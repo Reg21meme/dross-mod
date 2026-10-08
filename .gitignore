@@ -1,0 +1,44 @@
+# gradle
+build
+.gradle
+
+# Minecraft run folders (worlds, logs, configs created when you run the game)
+run
+run-data
+
+# local maven publish output
+mcmodsrepo
+
+# eclipse
+bin
+*.launch
+.settings
+.metadata
+.classpath
+.project
+eclipse
+
+# idea
+out
+*.ipr
+*.iws
+*.iml
+.idea
+
+# vscode
+.vscode/*
+!.vscode/extensions.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# logs
+*.log
+
+# Files from Forge MDK
+forge*changelog.txt
+
+# local Claude Code settings
+.claude/settings.local.json
