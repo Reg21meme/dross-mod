@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "dross:block/dross_portal_frame",
+    "particle": "dross:block/dross_portal_frame"
+  }
+}

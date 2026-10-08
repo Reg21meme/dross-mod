@@ -42,3 +42,6 @@ forge*changelog.txt
 
 # local Claude Code settings
 .claude/settings.local.json
+
+# Claude Code agent worktrees (temporary project copies)
+.claude/worktrees/

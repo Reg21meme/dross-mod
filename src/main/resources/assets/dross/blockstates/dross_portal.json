@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "dross:block/dross_portal_ns"
+    },
+    "axis=z": {
+      "model": "dross:block/dross_portal_ew"
+    }
+  }
+}

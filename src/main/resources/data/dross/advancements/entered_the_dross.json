@@ -1,0 +1,24 @@
+{
+  "parent": "minecraft:story/root",
+  "display": {
+    "icon": {
+      "item": "dross:dross_portal_frame"
+    },
+    "title": {
+      "translate": "advancements.dross.entered_the_dross.title"
+    },
+    "description": {
+      "translate": "advancements.dross.entered_the_dross.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "entered": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [["entered"]]
+}
