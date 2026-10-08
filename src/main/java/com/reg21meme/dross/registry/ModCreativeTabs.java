@@ -19,6 +19,7 @@ public final class ModCreativeTabs
                     .icon(() -> new ItemStack(ModItems.DROSS_PORTAL_FRAME.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.DROSS_PORTAL_FRAME.get());
+                        output.accept(ModItems.DROSS_TRADER_SPAWN_EGG.get());
                     })
                     .build());
 

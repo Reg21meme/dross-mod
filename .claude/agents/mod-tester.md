@@ -20,7 +20,9 @@ You test the `dross` Forge mod (Minecraft 1.20.1, Forge 47.4.10, Java 17). Read 
 
 ## Headless world check (no player needed)
 - `.\gradlew.bat runGameTestServer --console=plain` (foreground) starts a server with a real world, runs zero tests and stops by itself in about a minute. Use it to check server-side loading without the user.
-- In its `run/logs/latest.log`, look for `Dross: built the unlit portal site frame at ...`, `[Dross] Spawned the Dross trader at ...` (or a clear `NOT spawned` warning), and `dross:dross` being saved. A missing `server.properties` message is normal here.
+- In its `run/logs/latest.log`, look for `Dross: built the unlit portal site frame at ...`, `[Dross] Waiting for the village at ...` and `dross:dross` being saved. A missing `server.properties` message is normal here.
+- The test server shuts down before the village finishes generating, so `[Dross] Built the Dross trader's hut at ...` and `[Dross] Spawned the Dross trader at ...` only appear in a real game (`runClient`). Look for them there, or for a clear `NOT spawned` / fallback warning.
+- The test server's world is `run/world`. It only spawns the trader once, so for a fresh check move it aside (never delete it, and never touch `run/saves`, which holds the user's worlds).
 - Copy the lines you need before running the client, because the next run overwrites `latest.log`.
 - Data files (dimension, biome, advancements, tags) are only read when a world loads. A clean title screen in `runClient` does **not** prove they're valid; this check (or the user loading a world) does.
 

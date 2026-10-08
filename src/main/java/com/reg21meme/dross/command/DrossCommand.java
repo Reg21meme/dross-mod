@@ -4,6 +4,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.villager.TraderCommands;
 import com.reg21meme.dross.world.PortalSite;
 import com.reg21meme.dross.world.PortalSiteBuilder;
 import net.minecraft.commands.CommandSourceStack;
@@ -20,6 +21,8 @@ import net.minecraftforge.fml.common.Mod;
  * The {@code /dross} command. Owned by world-builder; other areas ask for new subcommands.
  * <ul>
  *   <li>{@code /dross site}: teleports you in front of the Overworld portal site frame, facing it. Needs cheats (level 2).</li>
+ *   <li>{@code /dross trader}: teleports you to the Dross trader. {@code /dross trader home}: sends him home.
+ *       From the villager area ({@link TraderCommands}). Needs cheats (level 2).</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -41,7 +44,13 @@ public final class DrossCommand
         dispatcher.register(Commands.literal("dross")
                 .then(Commands.literal("site")
                         .requires(source -> source.hasPermission(2))
-                        .executes(DrossCommand::teleportToSite)));
+                        .executes(DrossCommand::teleportToSite))
+                // Villager area's test commands (the logic lives in TraderCommands).
+                .then(Commands.literal("trader")
+                        .requires(source -> source.hasPermission(2))
+                        .executes(TraderCommands::teleportToTrader)
+                        .then(Commands.literal("home")
+                                .executes(TraderCommands::sendTraderHome))));
     }
 
     private static int teleportToSite(CommandContext<CommandSourceStack> context) throws CommandSyntaxException

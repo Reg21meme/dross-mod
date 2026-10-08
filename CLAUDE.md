@@ -31,8 +31,8 @@
 |---|---|---|
 | Dimension | `dimension-builder` | `com.reg21meme.dross.dimension.*`; `data/dross/dimension/`, `data/dross/dimension_type/`, `data/dross/worldgen/`; Dross mob equipment |
 | Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); ingot activation; orange texture/particles/overlay; teleporting; return portal; the frame's creative-only block item and its entry in the "Dross" creative tab; the arrival sequence (title, piano notes) and the `dross:entered_the_dross` advancement (`data/dross/advancements/`) |
-| World site | `world-builder` | `com.reg21meme.dross.world.*` (portal site location, placing the frame built from `portal-builder`'s frame block); `com.reg21meme.dross.command.*` (the `/dross` command) |
-| Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, spawn logic, map trade, join message |
+| World site | `world-builder` | `com.reg21meme.dross.world.*` (portal site location, placing the frame built from `portal-builder`'s frame block); `com.reg21meme.dross.command.*` (the `/dross` command; its `trader` subcommands call the villager area's `TraderCommands`) |
+| Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, spawn logic, his hut and its path, his trades (Dross Compass, Admin Sword item and texture), spawn egg, `/dross trader` logic (`TraderCommands`), join message |
 | Testing | `mod-tester` | Nothing. Builds, runs and reads logs only; never edits feature code |
 
 Client-only code (renderers, particle providers) goes in a `client` subpackage of the area, for example `com.reg21meme.dross.villager.client`.
@@ -41,7 +41,15 @@ Client-only code (renderers, particle providers) goes in a `client` subpackage o
 1. **Dross dimension** (`dross:dross`): superflat, permanent night (`fixed_time` 18000), normal hostile mob spawn rates. Zombies spawn in full netherite armor + netherite sword. Skeletons spawn in full netherite armor and keep their bows. Nothing is enchanted (including the bow). None of this gear drops on death. Slimes are removed from the spawn list. Players see the dimension named **"The Dross"** (lang key `dimension.dross.dross`). Terrain is defined in data JSON with its own biome so it can be upgraded later without rewriting Java.
 2. **Dross portal**: the frame is made of a custom block, `dross:dross_portal_frame`, which **can't be crafted or mined** (no recipe, no drops, unbreakable, blast-proof). For testing, it has a block item that is only available in the creative **"Dross"** tab (or `/give`); it still has no recipe, drops nothing and can't be broken in survival. It looks like obsidian with orange veins (Minecraft's obsidian texture copied and recolored, temporary, see Parked) so it matches the portal. Throwing a **netherite ingot** into the empty middle of that frame uses up the ingot and lights an **orange** portal, in frames facing either direction (along X or Z). Only this frame works: a netherite ingot does nothing in a normal obsidian frame, and flint and steel can't light the Dross frame. Normal obsidian frames stay normal purple nether portals. The orange look is Minecraft's nether portal texture copied and recolored orange (temporary, see Parked), plus orange particles and an orange in-portal screen swirl. The portal teleports players between the Overworld and the Dross dimension, both ways.
 3. **Portal site** at (0, 0) in the Overworld, for testing: the frame is built from `dross:dross_portal_frame` and is **already there but unlit** when the world is created. It's the only Dross frame in the Overworld. Test command `/dross site` teleports the player there.
-4. **Dross trader** (villager): spawns once in the plains or desert biome nearest world spawn. For testing, on join the chat shows his coordinates. Placeholder skin. Trades 1 nether star for a map that points to the portal site (up to 3 uses, no restock). He is unkillable, because he only ever spawns once.
+4. **Dross trader** (villager): spawns once per world, in his own **hut at the edge of the village nearest world spawn**. Placeholder skin. He can be hurt and knocked back but **can never die**, because he only ever spawns once: at half health or less he teleports home and fully heals.
+   - **When:** the village's chunks are generated in the background first (a chunk ticket), then the hut is built and he spawns, a few seconds after the world opens.
+   - **Hut:** 5x5x5 outside (3x3x3 inside). Netherite walls, roof and floor edge (temporary, see Parked), a 3x3 gold block floor inside (not carpet: carpet in the doorway stopped him from walking out), an oak door, one glass pane window. It's on an open spot outside the village's bounds, so it never overlaps houses or paths. A dirt path follows the ground from his door to the nearest village path.
+   - **No usable village** within 1,600 blocks: the hut goes in the plains/desert nearest world spawn, with no path.
+   - **Behavior:** he wanders within 50 blocks of his hut (X and Z) and opens his door. If he's more than 50 blocks out, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings), he teleports to the middle of his hut with the enderman sound and orange enderman-style particles. He can't use portals.
+   - **Glow (finding aid):** while any player is within his 50-block area, he glows with a gold outline, visible through walls.
+   - **Trades** (no restock): 1 nether star → **Dross Compass** that always points to the portal site (3 uses). 1 Dross Portal Frame → **Admin Sword** that kills anything in one hit, bosses included, except the trader (unlimited uses; testing only, see Parked).
+   - **Spawn egg:** "Dross Trader Spawn Egg" in the creative Dross tab. An egg trader treats the spot he was spawned at as his home, with the same 50-block area, glow and teleport-home rules.
+   - For testing, on join the chat shows his hut's coordinates. `/dross trader` teleports you to him (even if his area isn't loaded) and `/dross trader home` sends him home. His entity ID is `dross:dross_trader`; `@e` selectors only find him while his area is loaded.
 
 5. **Arriving in the Dross** (through the portal only, not `/execute in`), in `portal/DrossArrival.java`. Times are in ticks after arrival (20 ticks = 1 second):
    - **Title**: at tick 20, "The Dross" (gold, from `dimension.dross.dross`) fades in like `/title` (0.5 s in, 3.5 s on screen, 1 s out). Shown every time. The 1-second delay keeps it from being hidden behind the "Loading terrain" screen.
@@ -52,7 +60,7 @@ Client-only code (renderers, particle providers) goes in a `client` subpackage o
 1. Dimension → 2. Portal → 3. World site → 4. Villager.
 Run `mod-tester` after each step.
 
-**Status:** steps 1–5 are built and tested in-game.
+**Status:** steps 1–5 are built and tested in-game, including the reworked trader (hut, compass, Admin Sword, spawn egg, `/dross trader`).
 
 ## Parked for later (do NOT build yet)
 - Zombie guards at the portal site.
@@ -61,3 +69,5 @@ Run `mod-tester` after each step.
 - A custom villager skin (replacing the placeholder).
 - Moving the portal site 3,000–10,000 blocks out from (0, 0).
 - Replace the recolored portal texture with an original one before publishing. The same goes for the recolored frame texture (orange-veined obsidian).
+- Remove the Admin Sword (the trade, `AdminSwordItem`, its `ModItems` entry, model, texture (a recolored Mojang netherite sword) and lang key).
+- Replace the trader hut's netherite blocks with a real building material.

@@ -26,6 +26,7 @@ Not yours: the frame block itself, portal lighting, the portal block or teleport
    - Remember that it's been placed (for example a `SavedData` flag plus the frame position), so it's never built twice. The frame block is unbreakable, so it can't be broken in survival anyway.
    - Don't light it. Lighting with a netherite ingot is `portal-builder`'s job.
 3. **Test command** `/dross site`: teleports the player who runs it to stand just in front of the frame, facing it. Permission level 2 (needs cheats on). Register it with `RegisterCommandsEvent`. You own the `/dross` root. If another area later needs a subcommand, they'll report it to you.
+   - Existing subcommands from other areas: `/dross trader` and `/dross trader home` (level 2), whose logic lives in the villager area's `villager/TraderCommands`. Keep them hooked up.
 
 ## Coordination
 - Your frame must be a valid frame for `portal-builder`'s activation check: nether-portal frame shape, every frame block `dross:dross_portal_frame`, and the opening must be empty (air). If they report extra frame rules, follow them.
