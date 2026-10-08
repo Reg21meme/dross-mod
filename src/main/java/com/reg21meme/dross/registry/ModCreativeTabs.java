@@ -1,10 +1,13 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.villager.DrossCompass;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -20,6 +23,18 @@ public final class ModCreativeTabs
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.DROSS_PORTAL_FRAME.get());
                         output.accept(ModItems.DROSS_TRADER_SPAWN_EGG.get());
+                        // Villager area: test sword, and a Dross Compass (it gets its target once it's in your inventory)
+                        output.accept(ModItems.ADMIN_SWORD.get());
+                        output.accept(DrossCompass.createBlank());
+                        // Enchantments area: a book for every level of Necromancy (I-IV) and Deathforged (I-X)
+                        for (int level = 1; level <= ModEnchantments.NECROMANCY.get().getMaxLevel(); level++)
+                        {
+                            output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.NECROMANCY.get(), level)));
+                        }
+                        for (int level = 1; level <= ModEnchantments.DEATHFORGED.get().getMaxLevel(); level++)
+                        {
+                            output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.DEATHFORGED.get(), level)));
+                        }
                     })
                     .build());
 

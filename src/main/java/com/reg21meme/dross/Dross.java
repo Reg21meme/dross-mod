@@ -3,6 +3,7 @@ package com.reg21meme.dross;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModCreativeTabs;
+import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
@@ -27,6 +28,7 @@ public class Dross
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModParticles.PARTICLE_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_TABS.register(modEventBus);
+        ModEnchantments.ENCHANTMENTS.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

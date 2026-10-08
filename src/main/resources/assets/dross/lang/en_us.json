@@ -8,5 +8,13 @@
   "dimension.dross.dross": "The Dross",
   "itemGroup.dross": "Dross",
   "advancements.dross.entered_the_dross.title": "Entered the Dross",
-  "advancements.dross.entered_the_dross.description": "Step through the orange portal."
+  "advancements.dross.entered_the_dross.description": "Step through the orange portal.",
+  "enchantment.dross.necromancy": "Necromancy",
+  "enchantment.dross.necromancy.desc": "Hits have a chance to raise the undead to fight for you.",
+  "enchantment.dross.deathforged": "Deathforged",
+  "enchantment.dross.deathforged.desc": "Your risen undead come armored. Higher levels forge stronger gear.",
+  "tooltip.dross.souls": "Souls: %s / %s",
+  "tooltip.dross.souls_infinite": "Souls: ∞",
+  "advancements.dross.rise.title": "Rise!",
+  "advancements.dross.rise.description": "Raise the undead with Necromancy."
 }

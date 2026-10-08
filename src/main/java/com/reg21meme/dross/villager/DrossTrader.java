@@ -1,13 +1,11 @@
 package com.reg21meme.dross.villager;
 
+import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
-import com.reg21meme.dross.world.PortalSite;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.NbtUtils;
-import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -32,15 +30,19 @@ import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.CompassItem;
+import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * The Dross trader: a villager-like NPC with fixed trades (nether star -> Dross Compass,
@@ -61,6 +63,16 @@ public class DrossTrader extends AbstractVillager
     private static final int COMPASS_MAX_USES = 3;
     /** The Admin Sword trade has no real limit. */
     private static final int ADMIN_SWORD_MAX_USES = Integer.MAX_VALUE;
+    /** The Necromancy book trades have no real limit either. */
+    private static final int NECROMANCY_MAX_USES = Integer.MAX_VALUE;
+    /** Necromancy I: emeralds (plus a book). */
+    private static final int NECROMANCY_1_EMERALDS = 16;
+    /** Necromancy II: diamonds (plus a book). */
+    private static final int NECROMANCY_2_DIAMONDS = 8;
+    /** Necromancy III: nether stars (plus a book). */
+    private static final int NECROMANCY_3_NETHER_STARS = 1;
+    /** Necromancy IV: Dross Portal Frames (no book needed). */
+    private static final int NECROMANCY_4_PORTAL_FRAMES = 1;
 
     /** He stays within this many blocks of his hut in X and Z. */
     private static final int LEASH = 50;
@@ -75,6 +87,8 @@ public class DrossTrader extends AbstractVillager
     /** The middle of his hut floor (or his spawn spot, for a spawn-egg trader). Set on his first tick if missing. */
     @Nullable
     private BlockPos home;
+    /** Set when loaded from disk: on the first server tick, add any trades he is missing. */
+    private boolean checkTrades;
 
     public DrossTrader(EntityType<? extends DrossTrader> type, Level level)
     {
@@ -119,6 +133,11 @@ public class DrossTrader extends AbstractVillager
         if (!(this.level() instanceof ServerLevel serverLevel))
         {
             return;
+        }
+        if (this.checkTrades)
+        {
+            this.checkTrades = false;
+            this.addMissingOffers(serverLevel);
         }
         if (this.home == null)
         {
@@ -270,6 +289,7 @@ public class DrossTrader extends AbstractVillager
         super.readAdditionalSaveData(tag);
         // Traders saved before he could take damage were invulnerable; he isn't any more (he just can't die).
         this.setInvulnerable(false);
+        this.checkTrades = true;
         if (tag.contains(TAG_HOME))
         {
             this.setHome(NbtUtils.readBlockPos(tag.getCompound(TAG_HOME)));
@@ -302,42 +322,95 @@ public class DrossTrader extends AbstractVillager
     @Override
     protected void updateTrades()
     {
-        MerchantOffers offers = this.getOffers();
         if (this.level() instanceof ServerLevel serverLevel)
         {
-            offers.add(new MerchantOffer(
-                    new ItemStack(Items.NETHER_STAR),
-                    createCompass(serverLevel),
-                    COMPASS_MAX_USES,
-                    0,      // no villager XP
-                    0.0F)); // no price changes
-            // TESTING ONLY: see "Parked for later" in CLAUDE.md.
-            offers.add(new MerchantOffer(
-                    new ItemStack(ModItems.DROSS_PORTAL_FRAME.get()),
-                    new ItemStack(ModItems.ADMIN_SWORD.get()),
-                    ADMIN_SWORD_MAX_USES,
-                    0,
-                    0.0F));
+            this.getOffers().addAll(buildOffers(serverLevel));
         }
     }
 
-    /**
-     * The Dross Compass: a vanilla compass with lodestone-style data pointing at the portal site
-     * in the Overworld. Lodestone tracking is off, so it keeps pointing there without a lodestone.
-     */
-    private static ItemStack createCompass(ServerLevel level)
+    /** All of his trades, in order. No XP, no price changes, no restock. */
+    private static List<MerchantOffer> buildOffers(ServerLevel level)
     {
-        ServerLevel overworld = level.getServer().overworld();
-        // Aim at the frame's opening (the frame's bottom corner + 1 in X and Y).
-        BlockPos target = PortalSite.getFramePos(overworld).offset(1, 1, 0);
-        ItemStack compass = new ItemStack(Items.COMPASS);
-        CompoundTag tag = compass.getOrCreateTag();
-        tag.put(CompassItem.TAG_LODESTONE_POS, NbtUtils.writeBlockPos(target));
-        Level.RESOURCE_KEY_CODEC.encodeStart(NbtOps.INSTANCE, Level.OVERWORLD).result()
-                .ifPresent(dimension -> tag.put(CompassItem.TAG_LODESTONE_DIMENSION, dimension));
-        tag.putBoolean(CompassItem.TAG_LODESTONE_TRACKED, false);
-        compass.setHoverName(Component.translatable("item.dross.dross_compass").withStyle(style -> style.withItalic(false)));
-        return compass;
+        List<MerchantOffer> list = new ArrayList<>();
+        list.add(new MerchantOffer(
+                new ItemStack(Items.NETHER_STAR),
+                DrossCompass.create(level),
+                COMPASS_MAX_USES,
+                0,      // no villager XP
+                0.0F)); // no price changes
+        // TESTING ONLY: see "Parked for later" in CLAUDE.md.
+        list.add(new MerchantOffer(
+                new ItemStack(ModItems.DROSS_PORTAL_FRAME.get()),
+                new ItemStack(ModItems.ADMIN_SWORD.get()),
+                ADMIN_SWORD_MAX_USES,
+                0,
+                0.0F));
+        // Necromancy books
+        list.add(bookOffer(new ItemStack(Items.EMERALD, NECROMANCY_1_EMERALDS), 1));
+        list.add(bookOffer(new ItemStack(Items.DIAMOND, NECROMANCY_2_DIAMONDS), 2));
+        list.add(bookOffer(new ItemStack(Items.NETHER_STAR, NECROMANCY_3_NETHER_STARS), 3));
+        list.add(new MerchantOffer(
+                new ItemStack(ModItems.DROSS_PORTAL_FRAME.get(), NECROMANCY_4_PORTAL_FRAMES),
+                necromancyBook(4),
+                NECROMANCY_MAX_USES,
+                0,
+                0.0F));
+        return list;
+    }
+
+    /** Necromancy I-III cost the given item plus one plain book. */
+    private static MerchantOffer bookOffer(ItemStack price, int level)
+    {
+        return new MerchantOffer(price, new ItemStack(Items.BOOK), necromancyBook(level), NECROMANCY_MAX_USES, 0, 0.0F);
+    }
+
+    private static ItemStack necromancyBook(int level)
+    {
+        return EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.NECROMANCY.get(), level));
+    }
+
+    /**
+     * Update step for traders saved before some trades existed: adds any trade from the current list
+     * that he doesn't have yet. Existing trades (and their use counts) are left alone.
+     * The compass trade is matched by item types (its result tags may differ between versions).
+     */
+    private void addMissingOffers(ServerLevel level)
+    {
+        MerchantOffers offers = this.getOffers();
+        for (MerchantOffer wanted : buildOffers(level))
+        {
+            MerchantOffer existing = null;
+            for (MerchantOffer offer : offers)
+            {
+                if (isSameTrade(offer, wanted))
+                {
+                    existing = offer;
+                    break;
+                }
+            }
+            if (existing == null)
+            {
+                offers.add(wanted);
+            }
+            else if (DrossCompass.isDrossCompass(wanted.getResult()) && !DrossCompass.isDrossCompass(existing.getResult()))
+            {
+                // Old compass trade: give its result the marker, so bought compasses are tracked. Uses are untouched.
+                existing.getResult().getOrCreateTag().putBoolean(DrossCompass.TAG_MARKER, true);
+            }
+        }
+    }
+
+    private static boolean isSameTrade(MerchantOffer offer, MerchantOffer wanted)
+    {
+        if (!offer.getBaseCostA().is(wanted.getBaseCostA().getItem()) || !offer.getCostB().is(wanted.getCostB().getItem()))
+        {
+            return false;
+        }
+        if (wanted.getResult().is(Items.COMPASS))
+        {
+            return offer.getResult().is(Items.COMPASS);
+        }
+        return ItemStack.isSameItemSameTags(offer.getResult(), wanted.getResult());
     }
 
     @Override

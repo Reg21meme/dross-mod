@@ -1,0 +1,24 @@
+{
+  "parent": "minecraft:story/root",
+  "display": {
+    "icon": {
+      "item": "minecraft:zombie_head"
+    },
+    "title": {
+      "translate": "advancements.dross.rise.title"
+    },
+    "description": {
+      "translate": "advancements.dross.rise.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "raised": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [["raised"]]
+}

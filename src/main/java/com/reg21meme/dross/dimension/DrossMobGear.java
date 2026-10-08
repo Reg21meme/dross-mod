@@ -1,6 +1,7 @@
 package com.reg21meme.dross.dimension;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.enchant.RisenUndead;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -39,6 +40,12 @@ public final class DrossMobGear
      */
     private static final float NO_DROP = 0.0F;
 
+    /**
+     * Persistent-data key marking a mob that this class geared up. Saved with the entity,
+     * so the mark survives chunk unloads/reloads. Read it via {@link #hasDrossGear(Entity)}.
+     */
+    public static final String DROSS_GEAR_TAG = "dross_netherite_gear";
+
     private static final EquipmentSlot[] ARMOR_SLOTS = {
             EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET
     };
@@ -60,12 +67,18 @@ public final class DrossMobGear
         }
 
         Entity entity = event.getEntity();
+        // Risen undead (Necromancy summons) get their gear only from Deathforged, never from here.
+        if (RisenUndead.isRisen(entity))
+        {
+            return;
+        }
         // Exact type checks (not instanceof), so subtypes like husk/stray/drowned are left alone.
         if (entity.getType() == EntityType.ZOMBIE)
         {
             Mob mob = (Mob) entity;
             equipNetheriteArmor(mob);
             equip(mob, EquipmentSlot.MAINHAND, Items.NETHERITE_SWORD);
+            markGeared(mob);
         }
         else if (entity.getType() == EntityType.SKELETON)
         {
@@ -73,7 +86,22 @@ public final class DrossMobGear
             equipNetheriteArmor(mob);
             // A brand-new bow replaces vanilla's (possibly enchanted) one.
             equip(mob, EquipmentSlot.MAINHAND, Items.BOW);
+            markGeared(mob);
         }
+    }
+
+    /**
+     * Returns true if this mob was given Dross netherite gear by {@link DrossMobGear}.
+     * The mark is stored in the entity's persistent data, so it survives chunk reloads.
+     */
+    public static boolean hasDrossGear(Entity entity)
+    {
+        return entity.getPersistentData().getBoolean(DROSS_GEAR_TAG);
+    }
+
+    private static void markGeared(Mob mob)
+    {
+        mob.getPersistentData().putBoolean(DROSS_GEAR_TAG, true);
     }
 
     private static void equipNetheriteArmor(Mob mob)

@@ -25,7 +25,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 Not yours: the dimension and its mob gear (`dimension-builder`), the portal (`portal-builder`), the portal site and the `/dross` command root (`world-builder`; if you need a test subcommand, report it to them), and the trader (`villager-builder`). If the trader should sell enchanted books, report it as "Needs from villager".
 
 ## What to build
-The design of these features **isn't decided yet**. Don't invent game mechanics. Build only what the task you're given describes. Once a design is agreed, it gets added to "The plan" in `CLAUDE.md`. If something important is unclear (numbers, what counts as a soul, what the undead do), stop and list your questions in the report instead of guessing.
+The design is in "The plan", step 6, in `CLAUDE.md`. Don't invent game mechanics beyond it. Build only what the task you're given describes. If something important is unclear (numbers, what counts as a soul, what the undead do), stop and list your questions in the report instead of guessing.
 
 ## Forge 1.20.1 notes
 - Enchantments are **registered in code** in 1.20.1: `DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, Dross.MODID)` with a class extending `Enchantment` (rarity, `EnchantmentCategory`, equipment slots). Data-driven enchantment JSON files are from 1.21 and don't exist here.
