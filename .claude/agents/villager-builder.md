@@ -17,14 +17,14 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - Java: `com.reg21meme.dross.villager.*` (client code such as the renderer in `com.reg21meme.dross.villager.client`).
 - The trader's entity type in `registry/ModEntities` (add only), its lang name, and its texture/renderer.
 
-Not yours: the portal site location (`world-builder`) and the portal/dimension. Read the site position from `world-builder`'s `PortalSite` class. If it doesn't exist yet, stop and report it.
+Not yours: the portal site location (`world-builder`) and the portal/dimension. Read the site position from `world-builder`'s `PortalSite.getFramePos(ServerLevel)`.
 
 ## What to build
-1. **Trader entity** (for example `dross:dross_trader`): one special villager-like trader with a fixed trade list. Base it on `AbstractVillager` (or similar) so he doesn't take vanilla professions, breed, or despawn like a wandering trader. Make him persistent. Register attributes (`EntityAttributeCreationEvent`) and a renderer.
+1. **Trader entity** (for example `dross:dross_trader`): one special villager-like trader with a fixed trade list. Base it on `AbstractVillager` (or similar) so he doesn't take vanilla professions, breed, or despawn like a wandering trader. Make him persistent. Register attributes (`EntityAttributeCreationEvent`) and a renderer. He is **invulnerable** (user decision): he only ever spawns once, so losing him would mean no map for the rest of the world. Keep it that way.
 2. **Placeholder skin**: render him with the vanilla villager model, and point the renderer at the vanilla villager texture (`minecraft:textures/entity/villager/villager.png`). Don't copy Mojang's PNG into the mod. A custom skin is parked for later, so keep the texture path in one obvious constant.
 3. **Spawn once per world**: find the **plains or desert** biome nearest world spawn in the Overworld (for example `ServerLevel#findClosestBiome3d` with a sensible radius). Spawn him on a safe surface block there, and record that he spawned plus his position (for example `SavedData`) so he's never spawned twice. If no such biome is found within the radius, log a clear warning instead of crashing.
 4. **Test-only join message**: when a player joins, send a chat line like `[Dross test] Trader is at X, Y, Z`. Keep it in **one clearly marked class** (`// TESTING ONLY`) so it's easy to remove later.
-5. **Trade**: 1 `minecraft:nether_star` → a filled map that points to the portal site. Like a vanilla explorer map, create the map on the server when the offer is generated, centered near the site, with a target marker on the site and a name like "Dross Portal Map". Pick reasonable max uses and explain your choice.
+5. **Trade**: 1 `minecraft:nether_star` → a filled map that points to the portal site. Like a vanilla explorer map, create the map on the server when the offer is generated, centered near the site, with a target marker on the site and a name like "Dross Portal Map". Max uses is **3, with no restock** (user decision; `MAP_MAX_USES` in `DrossTrader.java`).
 
 ## Testing tips to include in your report
 - Create a new world with cheats on and join. Read the coordinates in chat and `/tp` there.

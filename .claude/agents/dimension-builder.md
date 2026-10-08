@@ -24,9 +24,11 @@ Not yours: the portal, teleporting, the portal site, the trader, and the `/dross
 1. **Dimension `dross:dross`**, defined with data JSON:
    - `data/dross/dimension_type/dross.json`: start from overworld values, but `fixed_time: 18000` (permanent night) and `coordinate_scale: 1.0`. Keep overworld-like monster spawn light rules so hostile mobs spawn at normal rates.
    - `data/dross/dimension/dross.json`: `minecraft:flat` generator (superflat).
-   - Its **own biome** (for example `dross:dross_flats`) under `data/dross/worldgen/biome/`, with the normal overworld monster spawn list and weights (like plains). This keeps mob spawning and terrain swappable later.
+   - Its **own biome**, `dross:dross_flats`, under `data/dross/worldgen/biome/`, with the plains monster spawn list and weights **minus slimes** (the user removed them). This keeps mob spawning and terrain swappable later.
+   - Players see the dimension named **"The Dross"** via the lang key `dimension.dross.dross` (in the shared `en_us.json`).
+   - The flat ground surface is **y = -60** (grass top at y = -61, bedrock at y = -64).
 2. **Keys class** `com.reg21meme.dross.dimension.ModDimensions` with `public static final ResourceKey<Level> DROSS_LEVEL` (and the dimension-type key). The portal agent will use `DROSS_LEVEL`. This is your public API, so keep the name stable.
-3. **Mob gear**, applied only in the Dross dimension (use `MobSpawnEvent.FinalizeSpawn` or another 1.20.1 hook that runs *after* vanilla picks gear):
+3. **Mob gear**, applied only in the Dross dimension, in `dimension/DrossMobGear.java`. It uses `EntityJoinLevelEvent` (server side, skipping mobs loaded from disk). Don't switch to `MobSpawnEvent.FinalizeSpawn`: in Forge 1.20.1 it fires *before* vanilla picks gear and enchantments, so vanilla would overwrite ours.
    - `minecraft:zombie` gets a full netherite helmet, chestplate, leggings and boots, plus a netherite sword.
    - `minecraft:skeleton` gets full netherite armor and **keeps a bow** in its main hand.
    - **No enchantments at all.** Vanilla can enchant spawn gear (including the skeleton's bow) based on difficulty, so make sure the final items are plain, unenchanted stacks.
@@ -39,8 +41,8 @@ Not yours: the portal, teleporting, the portal site, the trader, and the `/dross
 - Keep the keys in `ModDimensions` as the single source of truth.
 
 ## Testing tips to include in your report
-- There's no portal yet, so test with `/execute in dross:dross run tp @s 0 100 0` (cheats on).
-- Confirm it stays night, mobs spawn, zombies and skeletons have unenchanted netherite gear, and killing them drops no gear.
+- Go through the portal (`/dross site`, then throw in a netherite ingot), or use `/execute in dross:dross run tp @s 0 -60 0` (cheats on). Don't teleport to y = 100: the ground is at y = -60, so that's a deadly fall in survival.
+- Confirm it stays night, mobs spawn (no slimes), zombies and skeletons have unenchanted netherite gear, and killing them drops no gear.
 
 ## Report format
 1. What you built, in plain words.

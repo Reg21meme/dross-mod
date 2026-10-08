@@ -18,6 +18,12 @@ You test the `dross` Forge mod (Minecraft 1.20.1, Forge 47.4.10, Java 17). Read 
 - Prefer the Bash tool for Gradle so the output is plain text. (PowerShell `*>` redirects write UTF-16, which is awkward to grep.)
 - If the very first setup fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, that's a flaky parallel download. Re-run once before reporting it.
 
+## Headless world check (no player needed)
+- `.\gradlew.bat runGameTestServer --console=plain` (foreground) starts a server with a real world, runs zero tests and stops by itself in about a minute. Use it to check server-side loading without the user.
+- In its `run/logs/latest.log`, look for `Dross: built the unlit portal site frame at ...`, `[Dross] Spawned the Dross trader at ...` (or a clear `NOT spawned` warning), and `dross:dross` being saved. A missing `server.properties` message is normal here.
+- Copy the lines you need before running the client, because the next run overwrites `latest.log`.
+- Data files (dimension, biome, advancements, tags) are only read when a world loads. A clean title screen in `runClient` does **not** prove they're valid; this check (or the user loading a world) does.
+
 ## Running the game (only when asked)
 - `.\gradlew.bat runClient --console=plain`, **in the background**. It blocks until the game window closes.
 - Watch `run/logs/latest.log` (and `debug.log` for detail). The game has finished loading when `Sound engine started` appears. Look for the mod's own lines (logger names under `com.reg21meme.dross`).
