@@ -28,7 +28,7 @@ import net.minecraftforge.server.ServerLifecycleHooks;
  * <ol>
  *   <li>"The Dross" fades in as a big on-screen title (like the /title command), together with
  *       four falling piano notes ("dun, dun, DUN, dunnn") that only the arriving player hears.</li>
- *   <li>Once the last note has rung out, the "Entered the Dross" advancement is granted
+ *   <li>Once the last note has rung out, the "Enter the Dross" advancement is granted
  *       (only does anything the first time), so its fanfare doesn't clash with the notes.
  *       On the player's first arrival, they also get the Dross Guide Book (both through the quest area's API).
  *       If the player leaves the Dross before then, both happen on their next arrival.</li>
@@ -130,7 +130,7 @@ public final class DrossArrival
      */
     private static void onSequenceFinished(MinecraftServer server, ServerPlayer player)
     {
-        // "Entered the Dross" (does nothing if the player already has it).
+        // "Enter the Dross" (does nothing if the player already has it).
         DrossAdvancements.grant(player, DrossAdvancements.ENTERED_THE_DROSS);
         // The Dross Guide Book, on the player's first arrival only (the quest area keeps the flag;
         // a full inventory drops it at their feet).

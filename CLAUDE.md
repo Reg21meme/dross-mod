@@ -33,8 +33,8 @@
 |---|---|---|
 | Dimension | `dimension-builder` | `com.reg21meme.dross.dimension.*`; `data/dross/dimension/`, `data/dross/dimension_type/`, `data/dross/worldgen/`; Dross mob equipment (skips risen undead; marks geared mobs for `DrossMobGear.hasDrossGear`); the hub's safe zone (no natural hostile spawns near `DrossHub.CENTER`) |
 | Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); the frame's ambient particles and sound; the **Rift Key** item and lighting a frame with it (replaces the netherite ingot); blocking portal lighting inside the Dross; the portal's look (texture, particles, screen overlay); teleporting; the **hub** at Dross 0,0 (`portal/DrossHub`: structure and exit portal); the frame's creative-only block item; the Rift Key and frame entries in the "Dross" creative tab; the arrival sequence (title, piano notes, and *when* `dross:entered_the_dross` is granted and the Guide Book is given, both through `quest-builder`'s API; the advancement JSON belongs to Quest) |
-| World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; placing the **castle**, or its placeholder shrine, around a frame made of `portal-builder`'s frame block; the "leaking" dead plants and cracked blocks around it); `com.reg21meme.dross.command.*` (the `/dross` command root; its `trader` and `quest` subcommands call the villager and quest areas' logic) |
-| Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, spawn logic, his hut and its path, his dialogue, tribute and key-material hand-ins (through Quest's progress API), giving the Dross Compass and the Rift Key, his shop, the Admin Sword (item and texture), the Dross Compass (and it setting its own target when in a player's inventory), the Admin Sword and Dross Compass entries in the "Dross" creative tab, spawn egg, `/dross trader` logic (`TraderCommands`), the test join message (being removed) |
+| World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; placing the **castle**, or its placeholder shrine, around a frame made of `portal-builder`'s frame block; the "leaking" dead plants and cracked blocks around it); `com.reg21meme.dross.command.*` (the `/dross` command root; its `trader` and `quest` subcommands call the villager and quest areas' logic; `/dross showcase huts` (`command/HutShowcase`) builds the villager area's hut designs in a row) |
+| Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, spawn logic, his hut (the Rift Chapel, `TraderHut.DESIGN`; the candidate designs in `villager.hut`) and its path, his dialogue, tribute and key-material hand-ins (through Quest's progress API), giving the Dross Compass and the Rift Key, his shop, the Admin Sword (item and texture), the Dross Compass (and it setting its own target when in a player's inventory), the Admin Sword and Dross Compass entries in the "Dross" creative tab, spawn egg, `/dross trader` logic (`TraderCommands`), the test join message (being removed) |
 | Enchantments | `enchant-builder` | `com.reg21meme.dross.enchant.*`; the Necromancy and Deathforged enchantments (`registry/ModEnchantments`); the soul system; summoning; the risen undead's behavior (and their entities/renderers if they need their own); Deathforged book drops; *when* `dross:rise` is granted (through `quest-builder`'s grant helper; the advancement JSON belongs to Quest); the enchanted books in the "Dross" creative tab. Design: see The plan, step 6 |
 | Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic. Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
 | Testing | `mod-tester` | Nothing. Builds, runs and reads logs only; never edits feature code |
@@ -98,19 +98,22 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
 
 4. **Dross trader** (villager) [built]: spawns once per world, in his own **hut at the edge of the village nearest world spawn**. Placeholder skin. He can be hurt and knocked back but **can never die**, because he only ever spawns once: at half health or less he teleports home and fully heals.
    - **When:** the village's chunks are generated in the background first (a chunk ticket), then the hut is built and he spawns, a few seconds after the world opens.
-   - **Hut:** 5x5x5 outside (3x3x3 inside). Netherite walls, roof and floor edge (temporary, see Parked), a 3x3 gold block floor inside (not carpet: carpet in the doorway stopped him from walking out), an oak door, one glass pane window. It's on an open spot outside the village's bounds, so it never overlaps houses or paths. A dirt path follows the ground from his door to the nearest village path.
-   - **No usable village** within 1,600 blocks: the hut goes in the plains/desert nearest world spawn, with no path.
-   - **Behavior:** he wanders within 50 blocks of his hut (X and Z) and opens his door. If he's more than 50 blocks out, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings), he teleports to the middle of his hut with the enderman sound and enderman-style particles (the portal's electric blue particles). If he's riding a boat, minecart or anything else, he gets off first (the vehicle stays where it was) and anything riding him is thrown off. He can't use portals.
+   - **Hut: the Rift Chapel** (`villager/hut/RiftChapel`, picked with `/dross showcase huts`; `TraderHut.DESIGN`), 9 wide x 13 deep x 18 tall. A small stone chapel: deepslate base, stone brick walls with lapis blocks here and there, buttresses, tall blue windows, a steep deepslate-tile roof, a blue rose window over the dark oak door, an open belfry with a soul lantern, and a spire topped with an end rod and a copper lightning rod. Inside: pews, blue banners, soul lanterns on chains, and behind the altar a broken piece of a real Dross portal frame (unbreakable, leaks blue dust and hums; it's incomplete, so it can't be lit). He stands in the aisle.
+     - It goes on an open spot outside the village's bounds (never overlapping houses or paths), with its door toward the nearest village path, preferring flat ground: the floor sits at the highest ground under it and only dips are filled (at most 3 blocks). A dirt path follows the ground from its door to the village path.
+     - The lightning rod draws natural lightning within 128 blocks to the spire (harmless, and it shields the village).
+     - Old worlds keep their 5x5 netherite hut: he only ever spawns once per world.
+   - **No usable village** within 1,600 blocks: the chapel goes on the nearest flat-enough spot in the plains/desert nearest world spawn, door facing spawn, with no path.
+   - **Behavior:** he wanders within 50 blocks of his hut (X and Z) and opens his door. If he's more than 50 blocks out, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut, whose footprint is saved on him as `HutBox`, or village buildings), he teleports to his spot in the hut (the chapel's aisle) with the enderman sound and enderman-style particles (the portal's electric blue particles). If he's riding a boat, minecart or anything else, he gets off first (the vehicle stays where it was) and anything riding him is thrown off. He can't use portals.
    - **Glow (finding aid):** while any player is within his 50-block area, he glows electric blue with an outline visible through walls.
    - **Quest and dialogue:** see step 7.
    - **Shop:**
      - The old test trades (nether star → compass, the Admin Sword, Necromancy I–IV) are gone.
      - After a player completes the quest he sells **Necromancy (its lowest level)** for 32 emeralds + book and **Deathforged I** for 24 emeralds + book. Unlimited uses, no restock, no XP.
      - The offers are the same for everyone, but the trading screen only opens for players who completed the quest (received the Rift Key).
-     - **Dross Guide Book**: for players who have the "Entered the Dross" advancement, he also sells the Dross Guide Book for 3 books (no emeralds; a labeled constant). Unlimited uses, no restock, no XP. Players without that advancement don't see this offer.
+     - **Dross Guide Book**: for players who have the "Enter the Dross" advancement, he also sells the Dross Guide Book for 3 books (no emeralds; a labeled constant). Unlimited uses, no restock, no XP. Players without that advancement don't see this offer.
      - Existing traders in old worlds get their old offers replaced once when they load (`SHOP_VERSION` in `DrossTrader`; bump it whenever the base shop changes).
    - **Spawn egg:** "Dross Trader Spawn Egg" in the creative Dross tab (electric blue spots). An egg trader treats the spot he was spawned at as his home, with the same 50-block area, glow and teleport-home rules.
-   - **Test tools:** `/dross trader` teleports you to him (even if his area isn't loaded) and `/dross trader home` sends him home. His entity ID is `dross:dross_trader`; `@e` selectors only find him while his area is loaded.
+   - **Test tools:** `/dross trader` teleports you to him (even if his area isn't loaded) and `/dross trader home` sends him home. `/dross showcase huts` builds all 10 candidate hut designs in a row in front of you, each with a numbered sign. His entity ID is `dross:dross_trader`; `@e` selectors only find him while his area is loaded.
    - The old test-only join message with his hut's coordinates is removed. The Weathered Letter (step 7) replaces it.
 
 5. **Arriving in the Dross** (through the portal only, not `/execute in`)
@@ -122,7 +125,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
    - **Arrival sequence**, in `portal/DrossArrival.java`. Times are in ticks after arrival (20 ticks = 1 second):
      - **Title** [built]: at tick 20, "The Dross" (from `dimension.dross.dross`) fades in like `/title` (0.5 s in, 3.5 s on screen, 1 s out). Shown every time. The 1-second delay keeps it from being hidden behind the "Loading terrain" screen. It's electric blue (`DrossColors`).
      - **Four-note piano sequence** [built] ("dun, dun, DUN, dunnn"): note block harp, every time, only the arriving player hears it, on the Master volume. Notes start with the title: E, D, C# 0.4 s apart, then a 0.5 s gap and low F# (pitch 0.5, the lowest note block note). Volumes 0.6, 0.6, 0.8, 1.0.
-     - **Advancement "Entered the Dross"** (`dross:entered_the_dross`) [built], **the main achievement**: "Step through the blue portal.", challenge frame (purple), Dross Portal Frame icon, in the Dross tab (step 7).
+     - **Advancement "Enter the Dross"** (`dross:entered_the_dross`) [built], **the main achievement**: "Step through the blue portal.", challenge frame (purple), Dross Portal Frame icon, in the Dross tab (step 7).
        - Granted through Quest's grant helper (`minecraft:impossible` trigger) 2 seconds after the last note, so its fanfare doesn't clash with the piano. If the player leaves the Dross before then, it's granted on their next arrival.
      - **Dross Guide Book** [built]: on the player's **first arrival only** (a flag that survives death), they get the **Dross Guide Book**: a custom item, readable like a written book, with its own original texture and placeholder text explaining the dimension (5 pages, lang keys). If their inventory is full, it drops at their feet. Given through `QuestProgress.giveGuideBookOnFirstArrival`. Later copies can be bought from the trader (step 4).
 
@@ -145,7 +148,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
    - **Getting them:**
      - After the quest the trader sells Necromancy (lowest level) and Deathforged I (step 4).
      - Deathforged books drop only from the netherite-wearing zombies and skeletons of the Dross (`DrossMobGear.hasDrossGear`), when a player hit them recently: 5% per kill + 1% per Looting level; level weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1.
-   - **Advancement "Rise!"** (`dross:rise`): "Raise the undead with Necromancy.", challenge frame (purple), zombie head icon, granted the first time a player raises undead, through Quest's grant helper. It's in the Dross tab (step 7), parent "Entered the Dross".
+   - **Advancement "Rise!"** (`dross:rise`): "Raise the undead with Necromancy.", challenge frame (purple), zombie head icon, granted the first time a player raises undead, through Quest's grant helper. It's in the Dross tab (step 7), parent "Enter the Dross".
    - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site), and enchanted books for every level of both enchantments (these stay even after the trader stops selling them).
 
 7. **The early-game quest** [built]. Progress is **per player, per world**, saved by Quest (a `SavedData` keyed by player UUID). The trader's side (dialogue, hand-ins, gifts) is Villager's, through Quest's API.
@@ -177,7 +180,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
    8. **The Dross Compass** (Villager): a vanilla compass with lodestone tags, re-aimed every second while it's in a player's inventory. Moving the site later keeps compasses correct. It targets `PortalSite.getOpeningCenter` and spins in other dimensions.
    9. **The Dross advancement tab** (Quest): all Dross advancements move out of the vanilla Minecraft tab into their **own "Dross" tab**.
       - The tab has a root advancement with a background (the new frame texture). The root shows no toast and no chat message, and is granted silently when the player picks up a Weathered Letter, so **the tab stays hidden until then**.
-      - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Entered the Dross** (challenge, the main achievement) → **Rise!** (challenge).
+      - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Enter the Dross** (challenge, the main achievement) → **Rise!** (challenge).
       - There is **no** "The Rift Reopened" advancement.
       - Quest owns every advancement JSON and a grant helper. Other areas call the helper when their event happens.
       - Quest's progress API grants "Proven Worthy" and "Keymaster" itself when those stages complete.
@@ -189,7 +192,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
 ## Build order
 Original build: 1. Dimension → 2. Portal → 3. World site → 4. Villager → 5. Enchantments → 6. Quest. Run `mod-tester` after each step.
 
-**Status:** everything in "The plan" is **built and tested in-game**, including the whole early-game build below (October 2026). Two additions came after that test (they build, but weren't separately confirmed in-game): the trader sells the Guide Book to players who have "Entered the Dross", and he leaves a boat or minecart before teleporting home. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
+**Status:** everything in "The plan" is **built and tested in-game**, including the whole early-game build below (October 2026). Two additions came after that test (they build, but weren't separately confirmed in-game): the trader sells the Guide Book to players who have "Enter the Dross", and he leaves a boat or minecart before teleporting home. Later additions, also not yet confirmed in-game: the Rift Chapel replaces the netherite hut in new worlds; a tribute held during your first right-click is taken straight after his speech; and players who finished the quest but have no Rift Key (and haven't entered the Dross) are told he can forge another. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
 Run the agents **one at a time** (never in parallel). They add to the same shared files and their Gradle builds would collide. Run `mod-tester` after each step.
@@ -251,9 +254,7 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 
 ## Known bugs
 Minor issues found during the early-game build. None block playing. Fix them when that area is next changed, and remove the line once fixed.
-- **Villager: first right-click only talks.** If a player's very first right-click on the trader is made while holding a tribute, he gives his opening speech but doesn't take the item. The player has to right-click again. (`DrossTrader.mobInteract`, the `hasSpokenIntro` check returns early.)
-- **Villager: no hint about replacing a lost Rift Key.** After the quest, he re-forges a key only if the player holds the key materials and has no key. With an empty hand he just opens the shop, so nothing tells players this is possible.
-- **Villager: leftover code.** `TraderSpawner.isWaiting()` was only used by the removed test join message and is now unused.
+- None right now.
 
 **Built but not yet tested in-game** (no file exists yet to test them with):
 - Placing a real castle from `portal_castle.nbt`, including a castle frame that runs along Z (compass aim, `/dross site` and arriving from the hub's exit portal).
@@ -272,7 +273,7 @@ Minor issues found during the early-game build. None block playing. Fix them whe
    - Throw a second key (creative tab) into the lit portal: it pops back out.
    - A netherite ingot does nothing.
    - Leave and rejoin: the portal is still lit.
-7. Walk in: you arrive at the hub at Dross 0,0, with the blue title, the four notes, "Entered the Dross" and the Guide Book. A second trip gives no book.
+7. Walk in: you arrive at the hub at Dross 0,0, with the blue title, the four notes, "Enter the Dross" and the Guide Book. A second trip gives no book.
 8. Stay near the hub at night: no hostile mobs spawn within 48 blocks. Flint and steel on an obsidian frame does nothing in the Dross, and neither does the Rift Key.
 9. Take the hub's exit portal: you arrive at the castle portal.
 10. Necromancy: wisps, puffs and the Deathforged X glow are blue. The trader glows blue. "Rise!" is in the Dross tab.
@@ -285,7 +286,6 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - A custom villager skin (replacing the placeholder).
 - Replace the recolored portal texture (a recolored Mojang nether portal, now blue) with an original one before publishing.
 - Remove the Admin Sword (`AdminSwordItem`, its `ModItems` entry, model, texture (a recolored Mojang netherite sword), lang key and creative-tab entry). Its trade is already gone.
-- Replace the trader hut's netherite blocks with a real building material.
 - **Necromancy five-level restructure** (a new weaker level I, the old I–III shift up, the admin level becomes V) and Deathforged anvil changes. The trader keeps selling "the lowest Necromancy level".
 - New terrain (gentle, old-Minecraft style), dense forests, silverwood trees, custom ores and crops.
 - Boss towers (including the golem floor), mini-bosses, the three elemental necromancers (Fire, Ice, Plague), the Earth General, the Storm King, the dragon mount, and boss exit portals.

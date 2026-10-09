@@ -32,6 +32,8 @@ import net.minecraftforge.fml.common.Mod;
  *       From the villager area ({@link TraderCommands}).</li>
  *   <li>{@code /dross quest status|reset|complete}: shows, clears or finishes your quest progress.
  *       From the quest area ({@link QuestCommands}).</li>
+ *   <li>{@code /dross showcase huts}: builds every candidate design for the trader's hut in a row in front of you,
+ *       each with a numbered sign, to compare them ({@link HutShowcase}; the designs are the villager area's).</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -69,7 +71,11 @@ public final class DrossCommand
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("status").executes(QuestCommands::status))
                         .then(Commands.literal("reset").executes(QuestCommands::reset))
-                        .then(Commands.literal("complete").executes(QuestCommands::complete))));
+                        .then(Commands.literal("complete").executes(QuestCommands::complete)))
+                // Test showcases that build things side by side to compare them (the logic lives in HutShowcase).
+                .then(Commands.literal("showcase")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("huts").executes(HutShowcase::buildHuts))));
     }
 
     private static int teleportToHub(CommandContext<CommandSourceStack> context) throws CommandSyntaxException

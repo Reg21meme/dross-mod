@@ -1,6 +1,6 @@
 ---
 name: villager-builder
-description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own netherite hut at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, glows when players are near, his quest dialogue and tribute/key-material hand-ins, giving the Dross Compass and the Rift Key, his post-quest shop, a placeholder skin, and the test-only Admin Sword. Use for anything about the trader, his dialogue, hand-ins or shop, his hut, the Dross Compass or the Admin Sword.
+description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own hut, the Rift Chapel, at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, glows when players are near, his quest dialogue and tribute/key-material hand-ins, giving the Dross Compass and the Rift Key, his post-quest shop, a placeholder skin, and the test-only Admin Sword. Use for anything about the trader, his dialogue, hand-ins or shop, his hut, the Dross Compass or the Admin Sword.
 model: sonnet
 ---
 
@@ -17,7 +17,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 ## Your area
 - Java: `com.reg21meme.dross.villager.*` (client code such as the renderer in `com.reg21meme.dross.villager.client`).
 - The trader's entity type in `registry/ModEntities` (add only), its lang name, and its texture/renderer.
-- His hut and its path (`villager/TraderHut.java`).
+- His hut and its path (`villager/TraderHut.java`; `TraderHut.DESIGN` is the Rift Chapel) and the candidate hut designs in `villager/hut/` (`/dross showcase huts`, world-builder's command, builds them all and must keep working).
 - His **dialogue** (lang keys in `en_us.json`), the **tribute and key-material hand-ins**, giving the **Dross Compass** and the **Rift Key**, and his **shop**.
 - The **Dross Compass** (`villager/DrossCompass`, `DrossCompassTracker`) and its creative-tab entry.
 - The test-only Admin Sword (`villager/AdminSwordItem.java`, `ModItems.ADMIN_SWORD`, `models/item/admin_sword.json`, `textures/item/admin_sword.png`) and its creative-tab entry.
@@ -42,12 +42,12 @@ The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] ex
    - Wait for it to generate with a chunk region ticket, checked once a second (give up after 60 s), then build.
    - **Spot:** fully outside the village's bounding box, on flat-enough dry ground, with the door closest to a village path.
    - **Path:** breadth-first search over ground columns to a village path, made of `dirt_path`.
-   - **Hut:** 5x5x5 outside, 3x3x3 inside. Netherite walls, roof and floor edge (temporary, parked), 3x3 gold block floor (no carpet: carpet in the doorway stopped him from walking out), oak door facing the path, one glass pane.
+   - **Hut:** the Rift Chapel (`villager/hut/RiftChapel`, 9x13x18), built by `TraderHut.DESIGN.build`, door toward the village path, floor at the highest ground under it (dips up to 3 filled). Old worlds keep their 5x5 netherite hut.
    - **No usable village** (none within 1,600 blocks, not generated in time, or no open spot): the hut goes in the plains/desert nearest world spawn, door facing spawn, no path.
    - `TraderSpawnData` records "spawned", the hut center, his UUID and his last known position.
 4. **Behavior**:
-   - Home = hut center (`HomePos`, `restrictTo(home, 50)`). He wanders and opens his door.
-   - He teleports to the hut center (enderman sound, `ModParticles.DROSS_PORTAL` particles at both ends) if he's more than 50 blocks out in X or Z, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings).
+   - Home = his spot in the hut, the chapel's aisle (`HomePos`, `restrictTo(home, 50)`), plus the hut's 3D footprint (`HutBox`; missing for old netherite huts and egg traders, which use the legacy 5x5 check). He wanders and opens his door.
+   - He teleports to his spot in the hut (enderman sound, `ModParticles.DROSS_PORTAL` particles at both ends) if he's more than 50 blocks out in X or Z, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings).
    - `canChangeDimensions()` is false.
    - **Glow:** while any player is within his 50-block area, `setGlowingTag(true)`, with `getTeamColor()` giving the outline color (no scoreboard team).
    - **Spawn-egg traders:** if he has no home on his first tick, his current spot becomes his home.

@@ -30,18 +30,23 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.server.ServerLifecycleHooks;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
 /**
- * Spawns the Dross trader exactly once per world, in his own hut at the edge of the village nearest world spawn.
+ * Spawns the Dross trader exactly once per world, in his own hut (the Rift Chapel, see {@link TraderHut})
+ * at the edge of the village nearest world spawn.
  * <ol>
- *   <li>When the server starts, find the nearest village and ask Minecraft to generate its chunks
- *       (a chunk "ticket", so it happens in the background without freezing the game).</li>
- *   <li>Once every chunk is generated, pick a spot, build the hut and the path, and spawn the trader.</li>
+ *   <li>When the server starts, find the nearest village and ask Minecraft to generate its chunks, plus enough
+ *       around it for the spot search (a chunk "ticket", so it happens in the background without freezing the game).</li>
+ *   <li>Once every chunk is generated, pick a spot, build the hut and the path, and spawn the trader
+ *       inside, in the aisle.</li>
  *   <li>If there's no village nearby (or it doesn't generate in time, or there's no open spot),
- *       build the hut in the plains/desert nearest world spawn instead, with no path.</li>
+ *       build the hut on flat, dry ground in the plains/desert nearest world spawn instead, door facing
+ *       spawn, with no path.</li>
  * </ol>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -51,7 +56,10 @@ public class TraderSpawner
 
     /** How far from world spawn (in chunks) we look for a village. 100 chunks = 1,600 blocks. */
     private static final int VILLAGE_SEARCH_CHUNKS = 100;
-    /** Extra blocks generated around the village, so the hut spot and its path are ready too. */
+    /**
+     * Extra blocks generated around the village, so the hut spot and its path are ready too. The hut search
+     * says how much it really reads ({@link TraderHut#searchReach()}); this is at least that, plus one.
+     */
     private static final int VILLAGE_MARGIN = 32;
     /** Upper limit for the chunk ticket's radius (in chunks). */
     private static final int MAX_TICKET_RADIUS = 16;
@@ -73,12 +81,6 @@ public class TraderSpawner
 
     private record PendingVillage(StructureStart village, ChunkPos ticketCenter, int ticketRadius, long deadline) {}
 
-    /** True while we're waiting for the village to generate (used by the testing join message). */
-    public static boolean isWaiting()
-    {
-        return pending != null;
-    }
-
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event)
     {
@@ -99,7 +101,9 @@ public class TraderSpawner
             return;
         }
 
-        BoundingBox area = village.getBoundingBox().inflatedBy(VILLAGE_MARGIN);
+        // Generate the village and everything around it that the hut search will read.
+        int margin = Math.max(VILLAGE_MARGIN, TraderHut.searchReach() + 1);
+        BoundingBox area = village.getBoundingBox().inflatedBy(margin);
         ChunkPos center = new ChunkPos(area.getCenter());
         int radius = Math.max(
                 Math.max(Math.abs((area.minX() >> 4) - center.x), Math.abs((area.maxX() >> 4) - center.x)),
@@ -133,34 +137,54 @@ public class TraderSpawner
         }
         pending = null;
 
-        if (!TraderSpawnData.get(overworld).hasSpawned())
+        try
         {
-            TraderHut.Site site = null;
-            if (!ready)
+            if (!TraderSpawnData.get(overworld).hasSpawned())
             {
-                LOGGER.warn("[Dross] The village didn't finish generating within {} seconds. Using the plains/desert fallback for the trader's hut.",
-                        WAIT_TIMEOUT_TICKS / 20);
-            }
-            else
-            {
-                site = TraderHut.findVillageSite(overworld, p.village());
-                if (site == null)
+                TraderHut.Site site = null;
+                if (!ready)
                 {
-                    LOGGER.warn("[Dross] No open, connectable spot at the edge of the village. Using the plains/desert fallback for the trader's hut.");
+                    LOGGER.warn("[Dross] The village didn't finish generating within {} seconds. Using the plains/desert fallback for the trader's hut.",
+                            WAIT_TIMEOUT_TICKS / 20);
+                }
+                else
+                {
+                    site = findVillageSite(overworld, p.village());
+                    if (site == null)
+                    {
+                        LOGGER.warn("[Dross] No open, connectable spot at the edge of the village. Using the plains/desert fallback for the trader's hut.");
+                    }
+                }
+
+                if (site != null)
+                {
+                    buildAndSpawn(overworld, site);
+                }
+                else
+                {
+                    spawnInFallbackSpot(overworld);
                 }
             }
-
-            if (site != null)
-            {
-                buildAndSpawn(overworld, site);
-            }
-            else
-            {
-                spawnInFallbackSpot(overworld);
-            }
         }
-        // Remove the ticket last, so the chunks stay loaded while we build.
-        overworld.getChunkSource().removeRegionTicket(VILLAGE_TICKET, p.ticketCenter(), p.ticketRadius(), p.ticketCenter());
+        finally
+        {
+            // Remove the ticket last, so the chunks stay loaded while we build (and even if something went wrong).
+            overworld.getChunkSource().removeRegionTicket(VILLAGE_TICKET, p.ticketCenter(), p.ticketRadius(), p.ticketCenter());
+        }
+    }
+
+    /** The hut search, guarded: an error is logged and counts as "no spot", so the fallback can still run. */
+    private static TraderHut.Site findVillageSite(ServerLevel overworld, StructureStart village)
+    {
+        try
+        {
+            return TraderHut.findVillageSite(overworld, village);
+        }
+        catch (RuntimeException e)
+        {
+            LOGGER.error("[Dross] Searching for the trader's hut spot at the village failed.", e);
+            return null;
+        }
     }
 
     @SubscribeEvent
@@ -191,13 +215,18 @@ public class TraderSpawner
         return null;
     }
 
+    /**
+     * True once every chunk of the ticket area is fully generated. (Not {@code hasChunk}: that only says the chunk
+     * has a ticket, not that it's finished, and then the hut search would generate chunks on the server thread.)
+     * Server thread only, which the tick handler is.
+     */
     private static boolean allChunksLoaded(ServerLevel level, ChunkPos center, int radius)
     {
         for (int x = center.x - radius; x <= center.x + radius; x++)
         {
             for (int z = center.z - radius; z <= center.z + radius; z++)
             {
-                if (!level.getChunkSource().hasChunk(x, z))
+                if (level.getChunkSource().getChunkNow(x, z) == null)
                 {
                     return false;
                 }
@@ -206,13 +235,26 @@ public class TraderSpawner
         return true;
     }
 
+    /**
+     * Builds the hut and its path, then spawns the trader inside, in his spot, facing the door.
+     * If the build throws, the error is logged and he is still spawned and remembered: an error in
+     * a tick handler would otherwise crash the game every time the world is reloaded.
+     */
     private static void buildAndSpawn(ServerLevel overworld, TraderHut.Site site)
     {
-        TraderHut.build(overworld, site);
-        TraderHut.layPath(overworld, site);
-        BlockPos center = site.center();
-        LOGGER.info("[Dross] Built the Dross trader's hut at {}, {}, {} (path of {} blocks)",
-                center.getX(), center.getY(), center.getZ(), site.path().size());
+        BlockPos spot = site.traderSpot();
+        try
+        {
+            TraderHut.build(overworld, site);
+            TraderHut.layPath(overworld, site);
+            LOGGER.info("[Dross] Built the Dross trader's hut at {}, {}, {} (path of {} blocks)",
+                    spot.getX(), spot.getY(), spot.getZ(), site.path().size());
+        }
+        catch (RuntimeException e)
+        {
+            LOGGER.error("[Dross] Building the Dross trader's hut at {}, {}, {} failed. Spawning him there anyway.",
+                    spot.getX(), spot.getY(), spot.getZ(), e);
+        }
 
         DrossTrader trader = ModEntities.TRADER.get().create(overworld);
         if (trader == null)
@@ -220,16 +262,20 @@ public class TraderSpawner
             LOGGER.warn("[Dross] Could not create the Dross trader entity.");
             return;
         }
-        trader.setHome(center);
-        trader.moveTo(center.getX() + 0.5D, center.getY(), center.getZ() + 0.5D, site.doorSide().toYRot(), 0.0F);
+        trader.setHome(spot, site.footprint());
+        trader.moveTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D, site.facing().toYRot(), 0.0F);
         trader.setPersistenceRequired();
         overworld.addFreshEntity(trader);
 
-        TraderSpawnData.get(overworld).markSpawned(center, trader.getUUID());
-        LOGGER.info("[Dross] Spawned the Dross trader at {}, {}, {}", center.getX(), center.getY(), center.getZ());
+        TraderSpawnData.get(overworld).markSpawned(spot, trader.getUUID());
+        LOGGER.info("[Dross] Spawned the Dross trader at {}, {}, {}", spot.getX(), spot.getY(), spot.getZ());
     }
 
-    /** No usable village: put the hut in the plains or desert nearest world spawn, door facing spawn. */
+    /**
+     * No usable village: put the hut on flat, dry ground in the plains or desert nearest world spawn, door
+     * facing spawn (or turned if the ground needs it). The first safe spot, nearest the biome hit first, that
+     * has room for the whole hut wins.
+     */
     private static void spawnInFallbackSpot(ServerLevel overworld)
     {
         BlockPos worldSpawn = overworld.getSharedSpawnPos();
@@ -240,23 +286,43 @@ public class TraderSpawner
             return;
         }
 
-        BlockPos spot = findSafeSpot(overworld, found.getFirst());
-        if (spot == null)
+        List<BlockPos> spots = findSafeSpots(overworld, found.getFirst());
+        if (spots.isEmpty())
         {
             LOGGER.warn("[Dross] Found a plains/desert biome near {} but no safe dry ground around it. The Dross trader was NOT spawned.", found.getFirst());
             return;
         }
-        buildAndSpawn(overworld, TraderHut.fallbackSite(spot, worldSpawn));
+        TraderHut.Site site = null;
+        try
+        {
+            for (BlockPos spot : spots)
+            {
+                site = TraderHut.fallbackSite(overworld, spot, worldSpawn);
+                if (site != null)
+                {
+                    break;
+                }
+            }
+        }
+        catch (RuntimeException e)
+        {
+            LOGGER.error("[Dross] Searching for a flat spot for the trader's hut failed.", e);
+        }
+        if (site == null)
+        {
+            LOGGER.warn("[Dross] Found a plains/desert biome near {} but no flat, dry ground with room for the hut around it. The Dross trader was NOT spawned.", found.getFirst());
+            return;
+        }
+        buildAndSpawn(overworld, site);
     }
 
     /**
-     * Looks around the given position for the closest surface block that is solid, dry, has two free blocks
-     * above it, and is still plains or desert. Returns the position the trader should stand in, or null.
+     * Looks around the given position for every surface block that is solid, dry, has two free blocks
+     * above it, and is still plains or desert. Returns the positions a trader could stand in, nearest first.
      */
-    private static BlockPos findSafeSpot(ServerLevel level, BlockPos around)
+    private static List<BlockPos> findSafeSpots(ServerLevel level, BlockPos around)
     {
-        BlockPos best = null;
-        double bestDist = Double.MAX_VALUE;
+        List<BlockPos> spots = new ArrayList<>();
         for (int dx = -SPOT_SEARCH_RADIUS; dx <= SPOT_SEARCH_RADIUS; dx += 4)
         {
             for (int dz = -SPOT_SEARCH_RADIUS; dz <= SPOT_SEARCH_RADIUS; dz += 4)
@@ -268,16 +334,17 @@ public class TraderSpawner
                 BlockPos stand = level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, new BlockPos(x, 0, z));
                 if (isSafe(level, stand))
                 {
-                    double dist = (double) dx * dx + (double) dz * dz;
-                    if (dist < bestDist)
-                    {
-                        bestDist = dist;
-                        best = stand;
-                    }
+                    spots.add(stand);
                 }
             }
         }
-        return best;
+        spots.sort(Comparator.comparingLong((BlockPos spot) ->
+        {
+            long dx = spot.getX() - around.getX();
+            long dz = spot.getZ() - around.getZ();
+            return dx * dx + dz * dz;
+        }));
+        return spots;
     }
 
     private static boolean isSafe(ServerLevel level, BlockPos stand)

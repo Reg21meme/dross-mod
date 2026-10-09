@@ -9,6 +9,7 @@ import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -49,6 +50,7 @@ import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
@@ -67,9 +69,11 @@ import java.util.List;
  * He can be hurt and knocked back but can never die (he only spawns once, so we don't want him lost):
  * at half health or less he teleports home and fully heals.
  * <p>
- * He lives in a hut (see {@link TraderHut}) and wanders within {@link #LEASH} blocks of it.
- * If he strays too far, falls, or ends up underground, he teleports back into the hut.
- * A trader from a spawn egg treats the spot he was spawned at as his home.
+ * He lives in a hut (see {@link TraderHut}; today the Rift Chapel) and wanders within {@link #LEASH} blocks of it.
+ * If he strays too far, falls, or ends up underground, he teleports back into the hut (home is his spot in it).
+ * The hut's whole footprint is saved on him ({@code HutBox}), so a roof over his head never counts as
+ * "underground". Traders from before that (the old 5x5 netherite hut) and spawn-egg traders have no footprint
+ * and keep the old small-hut rule. A trader from a spawn egg treats the spot he was spawned at as his home.
  * While any player is within his area, he glows electric blue (visible through walls) so he's easy to find.
  */
 public class DrossTrader extends AbstractVillager
@@ -81,7 +85,7 @@ public class DrossTrader extends AbstractVillager
     private static final int DEATHFORGED_EMERALDS = 24;
     /** The Deathforged level he sells. */
     private static final int DEATHFORGED_LEVEL = 1;
-    /** Plain books for the Dross Guide Book (no emeralds). Only offered to players who have "Entered the Dross". */
+    /** Plain books for the Dross Guide Book (no emeralds). Only offered to players who have "Enter the Dross". */
     private static final int GUIDE_BOOK_COST_BOOKS = 3;
     /** The shop has no real use limit. */
     private static final int SHOP_MAX_USES = Integer.MAX_VALUE;
@@ -98,11 +102,21 @@ public class DrossTrader extends AbstractVillager
     private static final float MAX_FALL = 4.0F;
     /** Being more than this many blocks below the surface sends him home. */
     private static final int MAX_DEPTH = 3;
+    /**
+     * The old hut was 5x5 (home +- this many blocks in X and Z). A trader with no saved hut footprint (one from
+     * before the chapel, or from a spawn egg) uses this rule for "inside my hut".
+     */
+    private static final int LEGACY_HUT_HALF = 2;
     private static final String TAG_HOME = "HomePos";
+    /** The hut footprint, saved as six ints: min X, Y, Z, then max X, Y, Z. */
+    private static final String TAG_HUT_BOX = "HutBox";
 
-    /** The middle of his hut floor (or his spawn spot, for a spawn-egg trader). Set on his first tick if missing. */
+    /** His spot inside his hut (or his spawn spot, for a spawn-egg trader). Set on his first tick if missing. */
     @Nullable
     private BlockPos home;
+    /** Everything his hut covers, floor to roof, or null if he has none saved (see {@link #isInsideHut}). */
+    @Nullable
+    private BoundingBox hutBox;
 
     public DrossTrader(EntityType<? extends DrossTrader> type, Level level)
     {
@@ -133,10 +147,20 @@ public class DrossTrader extends AbstractVillager
 
     // ---------------------------------------------------------------- home
 
-    /** Sets the hut he lives in. He wanders within {@link #LEASH} blocks of it. */
+    /** Sets his home, with no hut footprint (a spawn-egg trader). He wanders within {@link #LEASH} blocks of it. */
     public void setHome(BlockPos center)
     {
+        this.setHome(center, null);
+    }
+
+    /**
+     * Sets his home: his spot inside his hut, and the hut's footprint (null if there is none). He wanders within
+     * {@link #LEASH} blocks of it. The footprint is copied, so the caller's box can't change under him.
+     */
+    public void setHome(BlockPos center, @Nullable BoundingBox hut)
+    {
         this.home = center.immutable();
+        this.hutBox = hut == null ? null : hut.moved(0, 0, 0);
         this.restrictTo(this.home, LEASH);
     }
 
@@ -245,10 +269,24 @@ public class DrossTrader extends AbstractVillager
         return false;
     }
 
+    /**
+     * Is this spot inside his own hut? This is what stops the "too far below the surface" rule from sending him
+     * home while he stands under his own roof (under the chapel's 18-block-tall roof that rule would be true
+     * everywhere inside).
+     * <ul>
+     *   <li>With a saved hut footprint: inside the whole 3D box, so a cave under the hut doesn't count.</li>
+     *   <li>Without one (old 5x5 netherite hut, spawn egg): the old small-hut rule, 5x5 around home,
+     *       from one block below home to three above.</li>
+     * </ul>
+     */
     private boolean isInsideHut(BlockPos pos)
     {
-        return Math.abs(pos.getX() - this.home.getX()) <= TraderHut.HALF
-                && Math.abs(pos.getZ() - this.home.getZ()) <= TraderHut.HALF
+        if (this.hutBox != null)
+        {
+            return this.hutBox.isInside(pos);
+        }
+        return Math.abs(pos.getX() - this.home.getX()) <= LEGACY_HUT_HALF
+                && Math.abs(pos.getZ() - this.home.getZ()) <= LEGACY_HUT_HALF
                 && pos.getY() >= this.home.getY() - 1 && pos.getY() <= this.home.getY() + 3;
     }
 
@@ -300,6 +338,12 @@ public class DrossTrader extends AbstractVillager
         {
             tag.put(TAG_HOME, NbtUtils.writeBlockPos(this.home));
         }
+        if (this.hutBox != null)
+        {
+            tag.putIntArray(TAG_HUT_BOX, new int[] {
+                    this.hutBox.minX(), this.hutBox.minY(), this.hutBox.minZ(),
+                    this.hutBox.maxX(), this.hutBox.maxY(), this.hutBox.maxZ()});
+        }
     }
 
     @Override
@@ -319,7 +363,17 @@ public class DrossTrader extends AbstractVillager
         }
         if (tag.contains(TAG_HOME))
         {
-            this.setHome(NbtUtils.readBlockPos(tag.getCompound(TAG_HOME)));
+            // Read the hut footprint first, so home and footprint are set together, once. (fromCorners, not the
+            // six-number constructor, which throws if a saved box is ever the wrong way round.)
+            BoundingBox hut = null;
+            int[] corners = tag.getIntArray(TAG_HUT_BOX);
+            if (corners.length == 6)
+            {
+                hut = BoundingBox.fromCorners(
+                        new Vec3i(corners[0], corners[1], corners[2]),
+                        new Vec3i(corners[3], corners[4], corners[5]));
+            }
+            this.setHome(NbtUtils.readBlockPos(tag.getCompound(TAG_HOME)), hut);
         }
     }
 
@@ -334,10 +388,12 @@ public class DrossTrader extends AbstractVillager
     /**
      * Right-click. Only the main hand counts, and sneaking falls through to vanilla. Server side, in order:
      * <ol>
-     *   <li>A player's first right-click ever: the opening speech.</li>
+     *   <li>A player's first right-click ever: the opening speech (and then, if they're holding something he
+     *       wants, the next step in the same click).</li>
      *   <li>Holding something he wants: hand it in (full amount only).</li>
      *   <li>Earned the compass but has none: a free new one.</li>
-     *   <li>Quest complete: the shop opens. Otherwise: he repeats what's still needed.</li>
+     *   <li>Quest complete: the shop opens (first, if they have no Rift Key, he mentions that a lost key can be
+     *       forged again). Otherwise: he repeats what's still needed.</li>
      * </ol>
      * The trading screen never opens before the quest is complete.
      */
@@ -361,18 +417,25 @@ public class DrossTrader extends AbstractVillager
 
     private void talkTo(ServerPlayer player)
     {
-        if (!QuestProgress.hasSpokenIntro(player))
+        ItemStack held = player.getMainHandItem();
+
+        boolean firstTime = !QuestProgress.hasSpokenIntro(player);
+        if (firstTime)
         {
             QuestProgress.markIntroSpoken(player);
             this.say(player, "intro");
-            this.playSound(SoundEvents.VILLAGER_AMBIENT, 1.0F, this.getVoicePitch());
-            return;
         }
 
-        ItemStack held = player.getMainHandItem();
+        // Holding something he wants: take it. This includes the very first click, straight after the
+        // opening speech, so the player doesn't have to click a second time.
         if (this.wantsHandIn(player, held))
         {
             this.handIn(player, held);
+            return;
+        }
+        if (firstTime)
+        {
+            this.playSound(SoundEvents.VILLAGER_AMBIENT, 1.0F, this.getVoicePitch());
             return;
         }
 
@@ -386,6 +449,13 @@ public class DrossTrader extends AbstractVillager
 
         if (QuestProgress.isQuestComplete(player))
         {
+            if (!hasRiftKey(player) && !DrossAdvancements.has(player, DrossAdvancements.ENTERED_THE_DROSS))
+            {
+                // No key on them, and they aren't holding materials for one (he'd have taken those above):
+                // tell them a lost key can be forged again, and what that costs. The shop opens as usual.
+                // Not once they've been through: the key is used up lighting the portal, which then stays open.
+                this.say(player, "lost_key", stillNeeded(player));
+            }
             this.updateGuideBookOffer(player);
             this.setTradingPlayer(player);
             this.openTradingScreen(player, this.getDisplayName(), 1);
@@ -553,7 +623,7 @@ public class DrossTrader extends AbstractVillager
     }
 
     /**
-     * The Dross Guide Book offer lives only while a player who has "Entered the Dross" is trading:
+     * The Dross Guide Book offer lives only while a player who has "Enter the Dross" is trading:
      * it is added just before the screen opens, removed when the trade ends, and never saved.
      */
     private void updateGuideBookOffer(ServerPlayer player)

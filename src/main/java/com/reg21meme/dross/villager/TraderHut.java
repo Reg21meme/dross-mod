@@ -1,20 +1,22 @@
 package com.reg21meme.dross.villager;
 
+import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.villager.hut.HutDesign;
+import com.reg21meme.dross.villager.hut.HutDesigns;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.PipeBlock;
-import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.PoolElementStructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
 import net.minecraft.world.level.levelgen.structure.StructureStart;
+import org.slf4j.Logger;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -26,27 +28,31 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The Dross trader's hut: picking an open spot at the edge of a village, building the hut,
- * and laying a dirt path from its door to the village's own paths.
+ * The Dross trader's hut: picking an open spot at the edge of a village, building the hut, and laying a dirt
+ * path from its door to the village's own paths. What gets built is {@link #DESIGN}, today the Rift Chapel
+ * (see {@code villager.hut}): 9 x 13 blocks on the ground and 18 high, with the door in one short side.
  * <p>
- * The hut is 5x5x5 on the outside (3x3x3 inside): the floor replaces the top ground block,
- * walls are 3 high, then a flat roof.
+ * How a spot is chosen: every couple of blocks around the village, outside its bounding box, the hut is
+ * tried facing all four ways. A try is allowed if the ground under the whole footprint is dry and level enough
+ * (the build fills dips with dirt but never digs, so the floor sits at the highest ground). It is scored by
+ * how far its door is from a village path, plus a penalty for uneven ground. The best few get a path search,
+ * and the first one that connects wins.
  */
 public final class TraderHut
 {
-    /** Walls, floor and roof. Temporary: see "Parked for later" in CLAUDE.md. */
-    private static final Block WALL = Blocks.NETHERITE_BLOCK;
-    /** The 3x3 inside floor. (Not carpet: carpet in the doorway stopped him from walking out.) */
-    private static final Block FLOOR = Blocks.GOLD_BLOCK;
-    private static final Block DOOR = Blocks.OAK_DOOR;
-    private static final Block WINDOW = Blocks.GLASS_PANE;
+    private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** The hut covers its center +-2 blocks (5 wide). */
-    static final int HALF = 2;
-    /** How far outside the village's bounding box we look for a spot. */
+    /** The hut design the trader lives in. This is the one line to change if another design is ever used. */
+    static final HutDesign DESIGN = HutDesigns.RIFT_CHAPEL;
+
+    /** How far outside the village's bounding box we look for a spot (for the hut's center, in blocks). */
     private static final int SEARCH_MARGIN = 24;
-    /** The ground under the hut may vary by at most this many blocks. */
-    private static final int MAX_GROUND_VARIATION = 2;
+    /** The ground under the hut may vary by at most this many blocks (the floor ends up on a plinth this tall). */
+    private static final int MAX_GROUND_VARIATION = 3;
+    /** A spot's score is its door's distance to a village path in blocks, plus this much per block of uneven ground. */
+    private static final int FLATNESS_PENALTY = 4;
+    /** Hut centers are tried every this many blocks. */
+    private static final int CANDIDATE_STEP = 2;
     /** How many of the best-scoring spots we try to connect with a path. */
     private static final int SPOTS_TO_TRY = 12;
     /** The path search never goes further than this from the door (in blocks). */
@@ -54,29 +60,74 @@ public final class TraderHut
 
     /**
      * A chosen hut spot.
-     * @param floor    the center block of the hut's floor
-     * @param doorSide the wall the door is in (the door faces this way, out of the hut)
-     * @param path     the ground blocks to turn into a dirt path, starting just outside the door
+     * @param center the design's center: the ground block in the middle of the footprint (the floor replaces it)
+     * @param facing the way the door faces, out of the hut
+     * @param path   the ground blocks to turn into a dirt path, starting at the block in front of the door
      */
-    public record Site(BlockPos floor, Direction doorSide, List<BlockPos> path)
+    public record Site(BlockPos center, Direction facing, List<BlockPos> path)
     {
-        /** Where the trader stands: on the floor, in the middle of the hut. */
-        public BlockPos center()
+        /** Where the trader stands inside, and teleports home to. */
+        public BlockPos traderSpot()
         {
-            return floor.above();
+            return DESIGN.traderSpot(center, facing);
+        }
+
+        /** Everything the hut covers, from the ground layer up to its highest point. It is saved on the trader. */
+        public BoundingBox footprint()
+        {
+            return DESIGN.footprint(center, facing);
+        }
+
+        /** The ground block in front of the door, where the path starts. */
+        public BlockPos entrance()
+        {
+            return DESIGN.entrance(center, facing);
         }
     }
 
-    private record Candidate(BlockPos floor, Direction doorSide, double distSqr) {}
+    /** One way the door can face, with the footprint and the door-front block measured from the hut's center. */
+    private record Orientation(Direction facing, BoundingBox footprint, BlockPos entrance) {}
+
+    /** A hut spot being considered. The center's Y is the floor height. Lower scores are better. */
+    private record Candidate(BlockPos center, Direction facing, double score) {}
+
+    /** The floor height for a footprint (its highest ground) and how uneven the ground under it is. */
+    private record Floor(int y, int variation) {}
+
+    /** The four orientations. The footprint and entrance are worked out once, as offsets from the center. */
+    private static final List<Orientation> ORIENTATIONS = orientations();
 
     private TraderHut() {}
+
+    private static List<Orientation> orientations()
+    {
+        List<Orientation> list = new ArrayList<>();
+        for (Direction facing : Direction.Plane.HORIZONTAL)
+        {
+            list.add(new Orientation(facing,
+                    DESIGN.footprint(BlockPos.ZERO, facing),
+                    DESIGN.entrance(BlockPos.ZERO, facing)));
+        }
+        return List.copyOf(list);
+    }
+
+    /**
+     * How far from the village's bounding box the search reads blocks: the furthest hut center
+     * ({@link #SEARCH_MARGIN}), plus half the hut's size, plus one for the block in front of its door.
+     * {@link TraderSpawner} generates at least this much around the village before it searches.
+     */
+    public static int searchReach()
+    {
+        return SEARCH_MARGIN + Math.max(DESIGN.width(), DESIGN.depth()) / 2 + 1;
+    }
 
     // ---------------------------------------------------------------- choosing a spot
 
     /**
      * Finds an open spot just outside the village's bounding box (so it can't overlap houses or paths),
      * as close as possible to one of the village's paths, and a ground-following path to it.
-     * Returns null if there is no such spot. The village's chunks must already be generated.
+     * Returns null if there is no such spot. The village's chunks must already be generated: columns in
+     * chunks that aren't are treated as walls, and no chunk is ever generated here.
      */
     public static Site findVillageSite(ServerLevel level, StructureStart village)
     {
@@ -88,89 +139,166 @@ public final class TraderHut
             (isStreet(piece) ? streets : houses).add(piece.getBoundingBox());
         }
 
+        // Every column the search can reach, read once.
+        int reach = searchReach();
+        Ground ground = new Ground(level, false,
+                box.minX() - reach, box.minZ() - reach, box.maxX() + reach, box.maxZ() + reach);
+        return search(ground, box, houses, streets, level.getMaxBuildHeight());
+    }
+
+    /**
+     * The search itself, on ground that has already been read: every candidate hut center around the village
+     * box, scored, then the best few tried with a path search.
+     *
+     * @param box        the village's bounding box
+     * @param houses     the bounding boxes of everything in the village that isn't a street (paths never cross them)
+     * @param streets    the bounding boxes of the village's street pieces
+     * @param buildLimit the world's build limit: the hut must end below it
+     */
+    private static Site search(Ground ground, BoundingBox box, List<BoundingBox> houses, List<BoundingBox> streets,
+                               int buildLimit)
+    {
+        long startedAt = System.nanoTime();
+
         // What the new path should connect to: the village's dirt path blocks. Desert villages
         // may not use dirt paths, so fall back to "anywhere on a street piece".
-        List<BlockPos> targets = findDirtPaths(level, box);
+        List<BlockPos> targets = findDirtPaths(ground, box);
         boolean useStreets = targets.isEmpty();
         if (useStreets)
         {
-            targets = streetSurface(level, streets);
+            targets = streetSurface(ground, streets);
         }
         if (targets.isEmpty())
         {
             return null;
         }
         Set<Long> targetColumns = new HashSet<>();
-        for (BlockPos t : targets)
+        int[] targetX = new int[targets.size()];
+        int[] targetZ = new int[targets.size()];
+        for (int i = 0; i < targets.size(); i++)
         {
+            BlockPos t = targets.get(i);
             targetColumns.add(column(t.getX(), t.getZ()));
+            targetX[i] = t.getX();
+            targetZ[i] = t.getZ();
         }
 
+        // Every hut center, facing every way, that fits on the ground.
         List<Candidate> candidates = new ArrayList<>();
-        int edge = HALF + 1; // the hut plus one block of space around it
-        for (int x = box.minX() - SEARCH_MARGIN; x <= box.maxX() + SEARCH_MARGIN; x += 2)
+        for (int x = box.minX() - SEARCH_MARGIN; x <= box.maxX() + SEARCH_MARGIN; x += CANDIDATE_STEP)
         {
-            for (int z = box.minZ() - SEARCH_MARGIN; z <= box.maxZ() + SEARCH_MARGIN; z += 2)
+            for (int z = box.minZ() - SEARCH_MARGIN; z <= box.maxZ() + SEARCH_MARGIN; z += CANDIDATE_STEP)
             {
-                // Fully outside the village's box: "at the edge", and never on top of a house or path.
-                if (box.intersects(x - edge, z - edge, x + edge, z + edge))
+                for (Orientation o : ORIENTATIONS)
                 {
-                    continue;
-                }
-                Integer floorY = floorHeight(level, x, z);
-                if (floorY == null)
-                {
-                    continue;
-                }
-                // Put the door on the side closest to a village path.
-                Direction bestSide = null;
-                double bestDist = Double.MAX_VALUE;
-                for (Direction side : Direction.Plane.HORIZONTAL)
-                {
-                    int sx = x + side.getStepX() * edge;
-                    int sz = z + side.getStepZ() * edge;
-                    for (BlockPos t : targets)
+                    BoundingBox fp = o.footprint();
+                    // Fully outside the village's box, with a block of space all round: "at the edge", and
+                    // never on top of a house or path.
+                    if (box.intersects(x + fp.minX() - 1, z + fp.minZ() - 1, x + fp.maxX() + 1, z + fp.maxZ() + 1))
                     {
-                        double dx = t.getX() - sx;
-                        double dz = t.getZ() - sz;
-                        double d = dx * dx + dz * dz;
-                        if (d < bestDist)
-                        {
-                            bestDist = d;
-                            bestSide = side;
-                        }
+                        continue;
                     }
+                    Floor floor = ground.floor(x + fp.minX(), z + fp.minZ(), x + fp.maxX(), z + fp.maxZ());
+                    if (floor == null || floor.y() + DESIGN.height() >= buildLimit)
+                    {
+                        continue;
+                    }
+                    // The block in front of the door is where the path starts, so it must be usable.
+                    int entranceX = x + o.entrance().getX();
+                    int entranceZ = z + o.entrance().getZ();
+                    if (Ground.kind(ground.at(entranceX, entranceZ)) == Ground.BLOCKED)
+                    {
+                        continue;
+                    }
+                    double score = distanceToNearest(targetX, targetZ, entranceX, entranceZ)
+                            + FLATNESS_PENALTY * floor.variation();
+                    candidates.add(new Candidate(new BlockPos(x, floor.y(), z), o.facing(), score));
                 }
-                candidates.add(new Candidate(new BlockPos(x, floorY, z), bestSide, bestDist));
             }
         }
 
-        candidates.sort(Comparator.comparingDouble(Candidate::distSqr));
-        for (int i = 0; i < Math.min(SPOTS_TO_TRY, candidates.size()); i++)
+        // Try the best spots until one can be connected to the village.
+        candidates.sort(Comparator.comparingDouble(Candidate::score));
+        Set<Long> deadColumns = new HashSet<>();
+        Site site = null;
+        int tried = 0;
+        for (Candidate c : candidates)
         {
-            Candidate c = candidates.get(i);
-            List<BlockPos> path = findPath(level, c, houses, streets, targetColumns, useStreets);
+            if (tried >= SPOTS_TO_TRY)
+            {
+                break;
+            }
+            BlockPos entrance = DESIGN.entrance(c.center(), c.facing());
+            if (deadColumns.contains(column(entrance.getX(), entrance.getZ())))
+            {
+                continue; // a failed search already walked through here, so this one would fail the same way
+            }
+            tried++;
+            List<BlockPos> path = findPath(ground, c, houses, streets, targetColumns, useStreets, deadColumns);
             if (path != null)
             {
-                return new Site(c.floor(), c.doorSide(), path);
+                site = new Site(c.center(), c.facing(), path);
+                break;
             }
+        }
+        LOGGER.info("[Dross] Trader hut spot search: {} candidate spots, {} path searches, {} ms ({}).",
+                candidates.size(), tried, (System.nanoTime() - startedAt) / 1_000_000L,
+                site != null ? "found one" : "none could be connected");
+        return site;
+    }
+
+    /**
+     * A hut spot when there is no village: centered on {@code stand}'s column (a safe spot found by the spawner),
+     * with the door facing {@code faceToward} if the ground allows it, otherwise turned to another side
+     * (clockwise, then counter-clockwise, then away). The "path" is just the block in front of the door.
+     * Generates the chunks the hut needs. Returns null if the ground around there won't do: fluid, trees,
+     * too uneven, or too tall for the world.
+     */
+    public static Site fallbackSite(ServerLevel level, BlockPos stand, BlockPos faceToward)
+    {
+        int reach = Math.max(DESIGN.width(), DESIGN.depth()) / 2 + 1;
+        Ground ground = new Ground(level, true,
+                stand.getX() - reach, stand.getZ() - reach, stand.getX() + reach, stand.getZ() + reach);
+
+        Direction toward = Direction.getNearest(faceToward.getX() - stand.getX(), 0, faceToward.getZ() - stand.getZ());
+        if (!toward.getAxis().isHorizontal())
+        {
+            toward = Direction.SOUTH;
+        }
+        for (Direction facing : List.of(toward, toward.getClockWise(), toward.getCounterClockWise(), toward.getOpposite()))
+        {
+            Orientation o = orientation(facing);
+            BoundingBox fp = o.footprint();
+            int x = stand.getX();
+            int z = stand.getZ();
+            Floor floor = ground.floor(x + fp.minX(), z + fp.minZ(), x + fp.maxX(), z + fp.maxZ());
+            if (floor == null || floor.y() + DESIGN.height() >= level.getMaxBuildHeight())
+            {
+                continue;
+            }
+            // The block in front of the door must be dry and about level with the floor, so the doorstep
+            // doesn't float or sit in a hole.
+            int cell = ground.at(x + o.entrance().getX(), z + o.entrance().getZ());
+            if (Ground.kind(cell) == Ground.BLOCKED || Math.abs(Ground.y(cell) - floor.y()) > 1)
+            {
+                continue;
+            }
+            BlockPos center = new BlockPos(x, floor.y(), z);
+            return new Site(center, facing, List.of(DESIGN.entrance(center, facing)));
         }
         return null;
     }
 
-    /**
-     * A hut spot when there is no village: centered on {@code stand} (where the trader would stand),
-     * with the door facing {@code faceToward}. The "path" is just the block in front of the door.
-     */
-    public static Site fallbackSite(BlockPos stand, BlockPos faceToward)
+    private static Orientation orientation(Direction facing)
     {
-        BlockPos floor = stand.below();
-        Direction side = Direction.getNearest(faceToward.getX() - floor.getX(), 0, faceToward.getZ() - floor.getZ());
-        if (!side.getAxis().isHorizontal())
+        for (Orientation o : ORIENTATIONS)
         {
-            side = Direction.SOUTH;
+            if (o.facing() == facing)
+            {
+                return o;
+            }
         }
-        return new Site(floor, side, List.of(floor.relative(side, HALF + 1)));
+        throw new IllegalArgumentException("Not a horizontal direction: " + facing);
     }
 
     /** Street pieces have "streets" in their template name, e.g. village/plains/streets/... */
@@ -179,55 +307,37 @@ public final class TraderHut
         return piece instanceof PoolElementStructurePiece pool && pool.getElement().toString().contains("streets");
     }
 
-    /**
-     * The floor height for a hut centered on x/z, or null if the spot is no good: water or lava,
-     * a tree trunk, an existing path, or ground that is too uneven.
-     */
-    private static Integer floorHeight(ServerLevel level, int cx, int cz)
+    /** The distance from (x, z) to the nearest of the given columns. */
+    private static double distanceToNearest(int[] targetX, int[] targetZ, int x, int z)
     {
-        int min = Integer.MAX_VALUE;
-        int max = Integer.MIN_VALUE;
-        for (int dx = -HALF; dx <= HALF; dx++)
+        long best = Long.MAX_VALUE;
+        for (int i = 0; i < targetX.length; i++)
         {
-            for (int dz = -HALF; dz <= HALF; dz++)
-            {
-                BlockPos ground = groundAt(level, cx + dx, cz + dz);
-                BlockState state = level.getBlockState(ground);
-                if (!level.getFluidState(ground).isEmpty() || state.is(BlockTags.LOGS) || state.is(Blocks.DIRT_PATH))
-                {
-                    return null;
-                }
-                min = Math.min(min, ground.getY());
-                max = Math.max(max, ground.getY());
-            }
+            long dx = targetX[i] - x;
+            long dz = targetZ[i] - z;
+            best = Math.min(best, dx * dx + dz * dz);
         }
-        return max - min <= MAX_GROUND_VARIATION ? max : null;
+        return Math.sqrt(best);
     }
 
-    /** The top solid (or liquid) block in this column, ignoring leaves. */
-    private static BlockPos groundAt(ServerLevel level, int x, int z)
-    {
-        return new BlockPos(x, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1, z);
-    }
-
-    private static List<BlockPos> findDirtPaths(ServerLevel level, BoundingBox box)
+    private static List<BlockPos> findDirtPaths(Ground ground, BoundingBox box)
     {
         List<BlockPos> found = new ArrayList<>();
         for (int x = box.minX(); x <= box.maxX(); x++)
         {
             for (int z = box.minZ(); z <= box.maxZ(); z++)
             {
-                BlockPos ground = groundAt(level, x, z);
-                if (level.getBlockState(ground).is(Blocks.DIRT_PATH))
+                int cell = ground.at(x, z);
+                if (Ground.kind(cell) == Ground.ROAD)
                 {
-                    found.add(ground);
+                    found.add(new BlockPos(x, Ground.y(cell), z));
                 }
             }
         }
         return found;
     }
 
-    private static List<BlockPos> streetSurface(ServerLevel level, List<BoundingBox> streets)
+    private static List<BlockPos> streetSurface(Ground ground, List<BoundingBox> streets)
     {
         List<BlockPos> found = new ArrayList<>();
         for (BoundingBox street : streets)
@@ -236,34 +346,184 @@ public final class TraderHut
             {
                 for (int z = street.minZ(); z <= street.maxZ(); z++)
                 {
-                    found.add(groundAt(level, x, z));
+                    int cell = ground.at(x, z);
+                    if (Ground.kind(cell) != Ground.BLOCKED)
+                    {
+                        found.add(new BlockPos(x, Ground.y(cell), z));
+                    }
                 }
             }
         }
         return found;
     }
 
+    // ---------------------------------------------------------------- the ground
+
+    /**
+     * The ground of a rectangle of columns, each read once. A column's "ground" is its top block that stops
+     * movement or holds fluid, leaves not counted (the same as the MOTION_BLOCKING_NO_LEAVES heightmap).
+     * Columns outside the rectangle are read when asked for, and remembered.
+     * <p>
+     * Every column has a kind:
+     * <ul>
+     *   <li>{@link #FREE}: ordinary dry ground, fine to build on and to walk over;</li>
+     *   <li>{@link #ROAD}: a dirt path, a village road. Fine to walk to, but never built on;</li>
+     *   <li>{@link #BLOCKED}: a chunk that isn't generated yet, fluid, ice, a log, cactus or bamboo.
+     *       (The last two count as ground in the heightmap and would raise the floor.) Never built on
+     *       and never walked over.</li>
+     * </ul>
+     */
+    private static final class Ground
+    {
+        static final int FREE = 0;
+        static final int ROAD = 1;
+        static final int BLOCKED = 2;
+
+        private final ServerLevel level;
+        /** True: generate chunks that aren't there yet (the fallback). False: leave them, they're walls. */
+        private final boolean loadChunks;
+        private final int minX;
+        private final int minZ;
+        private final int sizeX;
+        private final int sizeZ;
+        /** One packed cell per column (see {@link #pack}), x-major. */
+        private final int[] cells;
+        private final Map<Long, Integer> outside = new HashMap<>();
+        private final BlockPos.MutableBlockPos scratch = new BlockPos.MutableBlockPos();
+        /** The chunk the last column was read from, so a run of columns in one chunk costs one lookup. */
+        private LevelChunk chunk;
+        private int chunkX = Integer.MAX_VALUE;
+        private int chunkZ = Integer.MAX_VALUE;
+
+        Ground(ServerLevel level, boolean loadChunks, int minX, int minZ, int maxX, int maxZ)
+        {
+            this.level = level;
+            this.loadChunks = loadChunks;
+            this.minX = minX;
+            this.minZ = minZ;
+            this.sizeX = maxX - minX + 1;
+            this.sizeZ = maxZ - minZ + 1;
+            this.cells = new int[sizeX * sizeZ];
+            for (int x = minX; x <= maxX; x++)
+            {
+                for (int z = minZ; z <= maxZ; z++)
+                {
+                    cells[(x - minX) * sizeZ + (z - minZ)] = read(x, z);
+                }
+            }
+        }
+
+        /** The packed cell for this column: use {@link #y} and {@link #kind} on it. */
+        int at(int x, int z)
+        {
+            int ix = x - minX;
+            int iz = z - minZ;
+            if (ix >= 0 && iz >= 0 && ix < sizeX && iz < sizeZ)
+            {
+                return cells[ix * sizeZ + iz];
+            }
+            return outside.computeIfAbsent(column(x, z), key -> read(x, z));
+        }
+
+        /**
+         * The floor for a hut over this rectangle: the highest ground in it, and how much the ground varies.
+         * Null if any column is not {@link #FREE} or the ground varies by more than {@link #MAX_GROUND_VARIATION}.
+         */
+        Floor floor(int fromX, int fromZ, int toX, int toZ)
+        {
+            int lowest = Integer.MAX_VALUE;
+            int highest = Integer.MIN_VALUE;
+            for (int x = fromX; x <= toX; x++)
+            {
+                for (int z = fromZ; z <= toZ; z++)
+                {
+                    int cell = at(x, z);
+                    if (kind(cell) != FREE)
+                    {
+                        return null;
+                    }
+                    lowest = Math.min(lowest, y(cell));
+                    highest = Math.max(highest, y(cell));
+                    if (highest - lowest > MAX_GROUND_VARIATION)
+                    {
+                        return null;
+                    }
+                }
+            }
+            return new Floor(highest, highest - lowest);
+        }
+
+        /** The Y of the ground block (meaningless for a {@link #BLOCKED} column). */
+        static int y(int cell)
+        {
+            return cell >> 2;
+        }
+
+        static int kind(int cell)
+        {
+            return cell & 3;
+        }
+
+        private static int pack(int y, int kind)
+        {
+            return (y << 2) | kind;
+        }
+
+        private int read(int x, int z)
+        {
+            LevelChunk c = chunkAt(x, z);
+            if (c == null)
+            {
+                return pack(0, BLOCKED);
+            }
+            int y = c.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x & 15, z & 15);
+            BlockState state = c.getBlockState(scratch.set(x, y, z));
+            if (state.isAir() || !state.getFluidState().isEmpty() || state.is(BlockTags.LOGS) || state.is(BlockTags.ICE)
+                    || state.is(Blocks.CACTUS) || state.is(Blocks.BAMBOO))
+            {
+                return pack(y, BLOCKED);
+            }
+            return pack(y, state.is(Blocks.DIRT_PATH) ? ROAD : FREE);
+        }
+
+        private LevelChunk chunkAt(int x, int z)
+        {
+            int cx = x >> 4;
+            int cz = z >> 4;
+            if (cx != chunkX || cz != chunkZ)
+            {
+                chunk = loadChunks ? level.getChunk(cx, cz) : level.getChunkSource().getChunkNow(cx, cz);
+                chunkX = cx;
+                chunkZ = cz;
+            }
+            return chunk;
+        }
+    }
+
     // ---------------------------------------------------------------- the path
 
     /**
-     * Breadth-first search over ground columns from just outside the door to the nearest village path.
-     * Each step may go up or down at most one block, never through water or lava, and never through a
-     * house or the hut itself. Returns the ground blocks to pave (not including the village path block
-     * it reaches), or null if there's no way through.
+     * Breadth-first search over ground columns from the block in front of the door to the nearest village path.
+     * Each step may go up or down at most one block, never through a wall (fluid, an unloaded chunk...),
+     * and never through a house or the hut itself. Returns the ground blocks to pave (not including the village
+     * path block it reaches), or null if there's no way through. When it fails, every column it visited goes into
+     * {@code deadColumns}, so spots whose door opens onto one of those are skipped.
      */
-    private static List<BlockPos> findPath(ServerLevel level, Candidate c, List<BoundingBox> houses,
-                                           List<BoundingBox> streets, Set<Long> targetColumns, boolean useStreets)
+    private static List<BlockPos> findPath(Ground ground, Candidate c, List<BoundingBox> houses,
+                                           List<BoundingBox> streets, Set<Long> targetColumns, boolean useStreets,
+                                           Set<Long> deadColumns)
     {
-        BlockPos floor = c.floor();
-        int startX = floor.getX() + c.doorSide().getStepX() * (HALF + 1);
-        int startZ = floor.getZ() + c.doorSide().getStepZ() * (HALF + 1);
+        BoundingBox footprint = DESIGN.footprint(c.center(), c.facing());
+        BlockPos entrance = DESIGN.entrance(c.center(), c.facing());
+        int startX = entrance.getX();
+        int startZ = entrance.getZ();
         long start = column(startX, startZ);
 
         Map<Long, Long> cameFrom = new HashMap<>();
         Map<Long, Integer> heights = new HashMap<>();
         ArrayDeque<Long> queue = new ArrayDeque<>();
         cameFrom.put(start, start);
-        heights.put(start, floor.getY()); // the doorstep is levelled with the hut floor
+        heights.put(start, c.center().getY()); // the doorstep is levelled with the hut floor
         queue.add(start);
 
         while (!queue.isEmpty())
@@ -293,21 +553,22 @@ public final class TraderHut
                 long next = column(nx, nz);
                 if (cameFrom.containsKey(next)
                         || Math.abs(nx - startX) > PATH_SEARCH_RADIUS || Math.abs(nz - startZ) > PATH_SEARCH_RADIUS
-                        || (Math.abs(nx - floor.getX()) <= HALF && Math.abs(nz - floor.getZ()) <= HALF)
+                        || (nx >= footprint.minX() && nx <= footprint.maxX() && nz >= footprint.minZ() && nz <= footprint.maxZ())
                         || insideAny(houses, nx, nz))
                 {
                     continue;
                 }
-                BlockPos ground = groundAt(level, nx, nz);
-                if (!level.getFluidState(ground).isEmpty() || Math.abs(ground.getY() - y) > 1)
+                int cell = ground.at(nx, nz);
+                if (Ground.kind(cell) == Ground.BLOCKED || Math.abs(Ground.y(cell) - y) > 1)
                 {
                     continue;
                 }
                 cameFrom.put(next, current);
-                heights.put(next, ground.getY());
+                heights.put(next, Ground.y(cell));
                 queue.add(next);
             }
         }
+        deadColumns.addAll(cameFrom.keySet());
         return null;
     }
 
@@ -376,55 +637,13 @@ public final class TraderHut
 
     // ---------------------------------------------------------------- building
 
-    /** Builds the hut at the site. */
+    /**
+     * Builds the hut at the site: the design clears its footprint, fills dips under it and draws itself.
+     * The path is laid separately, with {@link #layPath}.
+     */
     public static void build(ServerLevel level, Site site)
     {
-        BlockPos floor = site.floor();
-        int y0 = floor.getY();
-        BlockState wall = WALL.defaultBlockState();
-        BlockState air = Blocks.AIR.defaultBlockState();
-
-        for (int dx = -HALF; dx <= HALF; dx++)
-        {
-            for (int dz = -HALF; dz <= HALF; dz++)
-            {
-                int x = floor.getX() + dx;
-                int z = floor.getZ() + dz;
-                boolean edge = Math.abs(dx) == HALF || Math.abs(dz) == HALF;
-                // Fill any gap under the floor down to the ground.
-                fillDown(level, new BlockPos(x, y0 - 1, z), Blocks.DIRT, 8);
-                level.setBlock(new BlockPos(x, y0, z), edge ? wall : FLOOR.defaultBlockState(), Block.UPDATE_ALL);
-                for (int y = y0 + 1; y <= y0 + 3; y++)
-                {
-                    level.setBlock(new BlockPos(x, y, z), edge ? wall : air, Block.UPDATE_ALL);
-                }
-                level.setBlock(new BlockPos(x, y0 + 4, z), wall, Block.UPDATE_ALL);
-                // Clear leftover tree parts or plants above the roof.
-                for (int y = y0 + 5; y <= y0 + 12; y++)
-                {
-                    BlockPos above = new BlockPos(x, y, z);
-                    BlockState state = level.getBlockState(above);
-                    if (state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS) || (!state.isAir() && state.canBeReplaced()))
-                    {
-                        level.setBlock(above, air, Block.UPDATE_ALL);
-                    }
-                }
-            }
-        }
-
-        // Door in the middle of the door wall. FACING is the way a player placing it from outside would face.
-        Direction doorSide = site.doorSide();
-        BlockPos doorLower = floor.relative(doorSide, HALF).above();
-        BlockState door = DOOR.defaultBlockState().setValue(DoorBlock.FACING, doorSide.getOpposite());
-        level.setBlock(doorLower, door.setValue(DoorBlock.HALF, DoubleBlockHalf.LOWER), Block.UPDATE_ALL);
-        level.setBlock(doorLower.above(), door.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER), Block.UPDATE_ALL);
-
-        // A single glass pane at eye height in a side wall, joined to the wall on both sides.
-        Direction windowSide = doorSide.getClockWise();
-        BlockState pane = WINDOW.defaultBlockState()
-                .setValue(PipeBlock.PROPERTY_BY_DIRECTION.get(doorSide), true)
-                .setValue(PipeBlock.PROPERTY_BY_DIRECTION.get(doorSide.getOpposite()), true);
-        level.setBlock(floor.relative(windowSide, HALF).above(2), pane, Block.UPDATE_ALL);
+        DESIGN.build(level, site.center(), site.facing());
     }
 
     /** Places {@code block} from {@code top} downwards until it reaches solid ground (at most {@code maxDepth} blocks). */

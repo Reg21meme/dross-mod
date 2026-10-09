@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /**
  * Remembers (per world) that the trader was already spawned, so he (and his hut) are never made twice.
- * The saved position is the middle of his hut floor, where he stands.
+ * The saved position is his spot in the hut, where he stands (the chapel's aisle).
  * It also remembers which entity he is and where he was last seen, so {@code /dross trader}
  * can find him even when his area isn't loaded.
  */
@@ -35,7 +35,7 @@ public class TraderSpawnData extends SavedData
         return spawned;
     }
 
-    /** The middle of his hut floor. */
+    /** His spot in the hut: where he stands, and where he teleports home to. */
     public BlockPos getPos()
     {
         return pos;

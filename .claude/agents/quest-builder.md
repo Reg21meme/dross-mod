@@ -26,7 +26,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 Not yours:
 - The trader's dialogue and hand-in interaction: `villager-builder`. It reads and writes progress through your API.
 - The Rift Key item and lighting the portal: `portal-builder`.
-- The arrival sequence (title, notes, timing): `portal-builder`. It calls your API to give the Guide Book and to grant "Entered the Dross".
+- The arrival sequence (title, notes, timing): `portal-builder`. It calls your API to give the Guide Book and to grant "Enter the Dross".
 - The enchantments: `enchant-builder`. It calls your grant helper for "Rise!".
 - The `/dross` command root: `world-builder`. If you need a test subcommand (for example `/dross quest ...`), put the logic in your package and report it as "Needs from world site" so they hook it up.
 
@@ -56,8 +56,8 @@ The design is in `CLAUDE.md`, "The plan", step 7 (and steps 5 and 6 for the Guid
 2. **Grant helper** (`quest/DrossAdvancements.grant(ServerPlayer, String id)` or similar): looks up `dross:<id>` and awards its criterion. It does nothing if the advancement is already done or missing (log a warning when missing).
 3. **The Dross advancement tab**:
    - A root advancement with a `background` texture (the frame texture, `dross:textures/block/dross_portal_frame.png`). It has no toast and no chat message, and is granted silently when the player picks up a Weathered Letter, so **the tab stays hidden until then**.
-   - Chain: root → **A Weathered Letter** (`weathered_letter`, granted on pickup, for example with an `inventory_changed` trigger) → **Proven Worthy** (`proven_worthy`) → **Keymaster** (`keymaster`) → **Entered the Dross** (challenge, the main achievement) → **Rise!** (challenge).
-   - Move `entered_the_dross` and `rise` into the tab with those parents. Change "Entered the Dross"'s description to "Step through the blue portal."
+   - Chain: root → **A Weathered Letter** (`weathered_letter`, granted on pickup, for example with an `inventory_changed` trigger) → **Proven Worthy** (`proven_worthy`) → **Keymaster** (`keymaster`) → **Enter the Dross** (challenge, the main achievement) → **Rise!** (challenge).
+   - Move `entered_the_dross` and `rise` into the tab with those parents. Change "Enter the Dross"'s description to "Step through the blue portal."
    - There is **no** "The Rift Reopened" advancement.
 4. **The Weathered Letter** (`dross:weathered_letter`):
    - A custom item, readable like a written book. It opens `BookViewScreen` from `quest.client`, with its pages in the item's tag. Give it its own original texture (an old, worn letter).

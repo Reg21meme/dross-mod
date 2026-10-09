@@ -283,7 +283,7 @@ public final class QuestProgress
 
     /**
      * Clears all of this player's quest progress (including the Guide Book flag) and takes away the
-     * quest advancements (root, A Weathered Letter, Proven Worthy, Keymaster, Entered the Dross).
+     * quest advancements (root, A Weathered Letter, Proven Worthy, Keymaster, Enter the Dross).
      * Items they already have are not taken.
      */
     public static void reset(ServerPlayer player)

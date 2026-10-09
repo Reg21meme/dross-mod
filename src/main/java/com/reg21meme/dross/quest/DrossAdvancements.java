@@ -33,7 +33,7 @@ public final class DrossAdvancements
     public static final String PROVEN_WORTHY = "proven_worthy";
     /** "Keymaster": granted by {@link QuestProgress} when the Rift Key is forged. */
     public static final String KEYMASTER = "keymaster";
-    /** "Entered the Dross" (the main achievement): the portal area grants it at the end of the arrival sequence. */
+    /** "Enter the Dross" (the main achievement): the portal area grants it at the end of the arrival sequence. */
     public static final String ENTERED_THE_DROSS = "entered_the_dross";
     /** "Rise!": the enchantments area grants it the first time a player raises undead. */
     public static final String RISE = "rise";
