@@ -1,6 +1,6 @@
 ---
 name: dimension-builder
-description: Builds and changes the Dross dimension for the dross Forge 1.20.1 mod — the superflat, permanent-night dimension, its biome/mob spawning, and the netherite gear on zombies and skeletons there. Use for anything about the Dross dimension itself (not the portal into it).
+description: Builds and changes the Dross dimension for the dross Forge 1.20.1 mod — the superflat, permanent-night dimension, its biome/mob spawning (including the no-spawn safe zone around the hub), and the netherite gear on zombies and skeletons there. Use for anything about the Dross dimension itself (not the portal into it).
 model: opus
 ---
 
@@ -18,14 +18,18 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - Java: `com.reg21meme.dross.dimension.*`
 - Data: `src/main/resources/data/dross/dimension/`, `dimension_type/`, `worldgen/` (biome etc.)
 - The equipment logic for zombies and skeletons in the Dross dimension.
+- Mob spawning rules in the Dross, including the hub's safe zone.
 
-Not yours: the portal, teleporting, the portal site, the trader, and the `/dross` command.
+Not yours: the portal, teleporting, the hub structure and its exit portal (`portal-builder`; read its `DrossHub.CENTER`), the portal site, the trader, and the `/dross` command.
 
 ## What to build
+The design is in `CLAUDE.md`, "The plan", steps 1 and 5. Items 1–3 are built and must keep working. Item 4 is your part of the early-game build ("Build order", step 5). Build only what the task you're given describes.
+
+### Built (keep working)
 1. **Dimension `dross:dross`**, defined with data JSON:
    - `data/dross/dimension_type/dross.json`: start from overworld values, but `fixed_time: 18000` (permanent night) and `coordinate_scale: 1.0`. Keep overworld-like monster spawn light rules so hostile mobs spawn at normal rates.
    - `data/dross/dimension/dross.json`: `minecraft:flat` generator (superflat).
-   - Its **own biome**, `dross:dross_flats`, under `data/dross/worldgen/biome/`, with the plains monster spawn list and weights **minus slimes** (the user removed them). This keeps mob spawning and terrain swappable later.
+   - Its **own biome**, `dross:dross_flats`, under `data/dross/worldgen/biome/`, with the plains monster spawn list and weights **minus slimes, creepers and spiders** (the user removed them). This keeps mob spawning and terrain swappable later.
    - Players see the dimension named **"The Dross"** via the lang key `dimension.dross.dross` (in the shared `en_us.json`).
    - The flat ground surface is **y = -60** (grass top at y = -61, bedrock at y = -64).
 2. **Keys class** `com.reg21meme.dross.dimension.ModDimensions` with `public static final ResourceKey<Level> DROSS_LEVEL` (and the dimension-type key). The portal agent will use `DROSS_LEVEL`. This is your public API, so keep the name stable.
@@ -35,6 +39,14 @@ Not yours: the portal, teleporting, the portal site, the trader, and the `/dross
    - **No enchantments at all.** Vanilla can enchant spawn gear (including the skeleton's bow) based on difficulty, so make sure the final items are plain, unenchanted stacks.
    - **Nothing drops on death:** set the drop chance to 0 for every equipment slot you fill.
    - Only those two exact mob types. Leave husks, strays, drowned, zombie villagers etc. vanilla, and mention this in your report.
+   - Skip risen undead (from Necromancy): their gear comes only from Deathforged. Geared mobs are tagged so `DrossMobGear.hasDrossGear` can find them (`enchant-builder`'s Deathforged book drops use it).
+
+### Early-game build [to build]
+4. **Hub safe zone**:
+   - No **natural** hostile mob spawning within **48 blocks** (X and Z) of `portal-builder`'s `DrossHub.CENTER` in the Dross. Keep the radius as a labeled constant.
+   - Use Forge's spawn events (for example `MobSpawnEvent.SpawnPlacementCheck` or `MobSpawnEvent.FinalizeSpawn`, only for natural spawns: `MobSpawnType.NATURAL` and `CHUNK_GENERATION`), and only for monsters (`MobCategory.MONSTER`).
+   - Spawn eggs, spawners, commands and mobs walking in from outside are not blocked.
+   - If `DrossHub` doesn't exist yet, report "Needs from portal".
 
 ## "Upgradeable later" means
 - Terrain lives in data JSON, not hard-coded Java. Swapping `minecraft:flat` for a noise generator later (parked: "old-Minecraft-style terrain") should only touch files under `data/dross/`.
@@ -42,8 +54,9 @@ Not yours: the portal, teleporting, the portal site, the trader, and the `/dross
 - Keep the keys in `ModDimensions` as the single source of truth.
 
 ## Testing tips to include in your report
-- Go through the portal (`/dross site`, then throw in a netherite ingot), or use `/execute in dross:dross run tp @s 0 -60 0` (cheats on). Don't teleport to y = 100: the ground is at y = -60, so that's a deadly fall in survival.
-- Confirm it stays night, mobs spawn (no slimes), zombies and skeletons have unenchanted netherite gear, and killing them drops no gear.
+- Go through the portal (`/dross site`, then throw in a Rift Key from the creative "Dross" tab), or use `/dross hub` or `/execute in dross:dross run tp @s 0 -60 0` (cheats on). Don't teleport to y = 100: the ground is at y = -60, so that's a deadly fall in survival.
+- Confirm it stays night, mobs spawn (no slimes, creepers or spiders), zombies and skeletons have unenchanted netherite gear, and killing them drops no gear.
+- Stand at the hub at night: no hostile mobs spawn within 48 blocks, but they still spawn farther out (`/tp` 100 blocks away to compare).
 
 ## Report format
 1. What you built, in plain words.

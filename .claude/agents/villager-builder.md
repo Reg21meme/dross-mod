@@ -1,6 +1,6 @@
 ---
 name: villager-builder
-description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own netherite hut at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, a test chat message with his hut's coordinates on join, a placeholder skin, and his trades (nether star for a Dross Compass, Dross Portal Frame for the test-only Admin Sword). Use for anything about the trader, his hut or the Admin Sword.
+description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own netherite hut at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, glows when players are near, his quest dialogue and tribute/key-material hand-ins, giving the Dross Compass and the Rift Key, his post-quest shop, a placeholder skin, and the test-only Admin Sword. Use for anything about the trader, his dialogue, hand-ins or shop, his hut, the Dross Compass or the Admin Sword.
 model: sonnet
 ---
 
@@ -17,37 +17,82 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 ## Your area
 - Java: `com.reg21meme.dross.villager.*` (client code such as the renderer in `com.reg21meme.dross.villager.client`).
 - The trader's entity type in `registry/ModEntities` (add only), its lang name, and its texture/renderer.
-- His hut and its path (`villager/TraderHut.java`), and the test-only Admin Sword (`villager/AdminSwordItem.java`, `ModItems.ADMIN_SWORD`, `models/item/admin_sword.json`, `textures/item/admin_sword.png`).
+- His hut and its path (`villager/TraderHut.java`).
+- His **dialogue** (lang keys in `en_us.json`), the **tribute and key-material hand-ins**, giving the **Dross Compass** and the **Rift Key**, and his **shop**.
+- The **Dross Compass** (`villager/DrossCompass`, `DrossCompassTracker`) and its creative-tab entry.
+- The test-only Admin Sword (`villager/AdminSwordItem.java`, `ModItems.ADMIN_SWORD`, `models/item/admin_sword.json`, `textures/item/admin_sword.png`) and its creative-tab entry.
 - The spawn egg (`ModItems.DROSS_TRADER_SPAWN_EGG`, its entry in `ModCreativeTabs`, `models/item/dross_trader_spawn_egg.json`).
 - The logic behind `/dross trader` and `/dross trader home` (`villager/TraderCommands.java`). `world-builder` owns the `/dross` root and just hooks these up.
+- Your colors in `DrossColors` (`TRADER_GLOW`, `TRADER_EGG_BASE`, `TRADER_EGG_SPOTS`).
 
-Not yours: the portal site location (`world-builder`) and the portal/dimension. Read the site position from `world-builder`'s `PortalSite.getFramePos(ServerLevel)`. The teleport particles reuse `portal-builder`'s orange `ModParticles.DROSS_PORTAL` (read only).
+Not yours:
+- The portal site location (`world-builder`): read it from `PortalSite` (`getFramePos`, and `getOpeningCenter` once it exists).
+- The portal, the Rift Key item and the dimension (`portal-builder`, `dimension-builder`). Give the key with `new ItemStack(ModItems.RIFT_KEY.get())`; the teleport particles reuse `portal-builder`'s `ModParticles.DROSS_PORTAL` (read only).
+- **Quest progress and advancements** (`quest-builder`): store and read each player's progress only through quest-builder's API. It also grants "Proven Worthy" and "Keymaster". Never write your own progress storage or advancement JSON.
 
 ## What to build
-1. **Trader entity** (for example `dross:dross_trader`): one special villager-like trader with a fixed trade list. Base it on `AbstractVillager` (or similar) so he doesn't take vanilla professions, breed, or despawn like a wandering trader. Make him persistent. Register attributes (`EntityAttributeCreationEvent`) and a renderer. He **can never die** (user decision; he only ever spawns once): he takes damage and knockback normally, but `hurt` caps each hit so it can't take his last health, and at half health or less he teleports home and fully heals. Don't use `setInvulnerable`: creative-mode players ignore it.
-2. **Placeholder skin**: render him with the vanilla villager model, and point the renderer at the vanilla villager texture (`minecraft:textures/entity/villager/villager.png`). Don't copy Mojang's PNG into the mod. A custom skin is parked for later, so keep the texture path in one obvious constant.
+The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] exist and must keep working. Items marked [to build] are your part of the early-game build ("Build order", step 3). Build only what the task you're given describes.
+
+### Built (keep working)
+1. **Trader entity** `dross:dross_trader` (`DrossTrader`, based on `AbstractVillager`): no vanilla profession, no breeding, never despawns, persistent.
+   - He **can never die**: he takes damage and knockback normally, but `hurt` caps each hit so it can't take his last health, and at half health or less he teleports home and fully heals. Don't use `setInvulnerable`: creative-mode players ignore it.
+2. **Placeholder skin**: the vanilla villager model and texture (`minecraft:textures/entity/villager/villager.png`), with the path in one obvious constant. Don't copy Mojang's PNG into the mod. A custom skin is parked.
 3. **Spawn once per world, in his hut** (`TraderSpawner`, `TraderHut`, `TraderSpawnData`):
-   - On `ServerStartedEvent`, find the village nearest world spawn (`findNearestMapStructure(StructureTags.VILLAGE, ..., 100 chunks)`) and read its `StructureStart` (bounding box + pieces) from its start chunk.
-   - **Wait for it to generate** without freezing the game: a chunk region ticket over the village + 32 blocks, checked once a second. When every chunk is loaded, build; then remove the ticket. Give up after 60 s.
-   - **Spot:** fully outside the village's bounding box (so it never overlaps houses or paths), ground varying by at most 2, no water, lava, tree trunks or existing paths. Best = door closest to a village `dirt_path` block (desert fallback: any street piece).
-   - **Path:** breadth-first search over ground columns from the doorstep to a village path. Steps go up/down at most 1, no water, never through house pieces or the hut. The ground becomes `dirt_path` and plants on top are cleared.
-   - **Hut:** 5x5x5 outside, 3x3x3 inside. Netherite walls, roof and floor edge (temporary, see Parked); 3x3 gold block floor inside (no carpet: carpet in the doorway stopped him from walking out); oak door in the wall facing the path; one glass pane at eye height in a side wall.
-   - **No usable village** (none within 1,600 blocks, didn't generate in time, or no open spot): the hut goes in the plains/desert nearest world spawn (`findClosestBiome3d` + safe spot), door facing world spawn, no path (user decision).
-   - `TraderSpawnData` records "spawned", the hut center, the hut trader's UUID and his last known position (updated every second while loaded), so it all happens only once and `/dross trader` can find him when he isn't loaded.
-4. **Behavior** (`DrossTrader`): home = hut center (saved as `HomePos`, `restrictTo(home, 50)`). He wanders (`WaterAvoidingRandomStrollGoal`, `MoveTowardsRestrictionGoal`) and opens/closes his door (`OpenDoorGoal`, `setCanOpenDoors`). He teleports to the hut center, with the enderman teleport sound and orange `ModParticles.DROSS_PORTAL` particles at both ends, if he is more than 50 blocks from the hut in X or Z, falls more than 4 blocks, or is more than 3 blocks below the surface (skipped inside his hut and inside village buildings). `canChangeDimensions()` is false, so portals ignore him.
-   - **Glow:** while any player is within his 50-block area (X and Z), `setGlowingTag(true)`; `getTeamColor()` returns gold (`0xFFAA00`) so the outline is gold without a scoreboard team.
-   - **Spawn-egg / summoned traders:** if he has no home on his first tick, his current spot becomes his home (same rules).
-5. **Test-only join message**: when a player joins, send `[Dross test] Trader's hut is at X, Y, Z` (or "being built...", then the coordinates once ready). Keep it in **one clearly marked class** (`// TESTING ONLY`) so it's easy to remove later.
-6. **Trades** (fixed, no XP, no restock):
-   - 1 `minecraft:nether_star` → **Dross Compass**: a vanilla compass with lodestone tags pointing at the portal site opening in the Overworld, `LodestoneTracked` false, named "Dross Compass". Max uses **3** (user decision).
-   - 1 Dross Portal Frame → **Admin Sword** (TESTING ONLY, parked for removal): unlimited uses (user decision). One hit kills any living thing, bosses included (player-attack damage, then `kill()` if still alive; dragon parts count as the dragon). Never breaks, fire-resistant, glint, epic rarity. Texture: Mojang's netherite sword recolored black with orange veins to match the frame (recolor script kept outside `src/`). Never hurts the trader. For the Ender Dragon, set its health to 0 after the hit: vanilla keeps a dying dragon at 1 health while it flies back to the portal, and 0 starts the death animation immediately.
+   - On `ServerStartedEvent`, find the village nearest world spawn and read its `StructureStart`.
+   - Wait for it to generate with a chunk region ticket, checked once a second (give up after 60 s), then build.
+   - **Spot:** fully outside the village's bounding box, on flat-enough dry ground, with the door closest to a village path.
+   - **Path:** breadth-first search over ground columns to a village path, made of `dirt_path`.
+   - **Hut:** 5x5x5 outside, 3x3x3 inside. Netherite walls, roof and floor edge (temporary, parked), 3x3 gold block floor (no carpet: carpet in the doorway stopped him from walking out), oak door facing the path, one glass pane.
+   - **No usable village** (none within 1,600 blocks, not generated in time, or no open spot): the hut goes in the plains/desert nearest world spawn, door facing spawn, no path.
+   - `TraderSpawnData` records "spawned", the hut center, his UUID and his last known position.
+4. **Behavior**:
+   - Home = hut center (`HomePos`, `restrictTo(home, 50)`). He wanders and opens his door.
+   - He teleports to the hut center (enderman sound, `ModParticles.DROSS_PORTAL` particles at both ends) if he's more than 50 blocks out in X or Z, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings).
+   - `canChangeDimensions()` is false.
+   - **Glow:** while any player is within his 50-block area, `setGlowingTag(true)`, with `getTeamColor()` giving the outline color (no scoreboard team).
+   - **Spawn-egg traders:** if he has no home on his first tick, his current spot becomes his home.
+5. **Dross Compass**: a vanilla compass with lodestone tags (`LodestoneTracked` false), named "Dross Compass", with a hidden marker tag.
+   - `DrossCompassTracker` re-aims every Dross Compass in a player's inventory once a second, so moving the site later keeps compasses correct.
+   - It spins in other dimensions (vanilla behavior).
+6. **Admin Sword** (TESTING ONLY, parked for removal): one hit kills any living thing, bosses included (player-attack damage, then `kill()` if still alive; dragon parts count as the dragon; the Ender Dragon's health is set to 0 so its death animation starts at once).
+   - It never hurts the trader, never breaks, is fire-resistant, and has a glint and epic rarity.
+   - It stays in the creative "Dross" tab.
+
+### Early-game build [to build]
+1. **Remove the test trades**: nether star → compass, Dross Portal Frame → Admin Sword, and every Necromancy book trade. Remove `addMissingOffers`. Add a one-time migration that replaces old traders' saved offers with the new shop when they load.
+2. **Remove `TestingJoinMessage`** (the Weathered Letter, from `quest-builder`, now tells players where he is). Keep `/dross trader` and `/dross trader home`.
+3. **Right-click** (`mobInteract`, main hand only; sneaking falls through to vanilla):
+   - Before the quest is complete his trading screen **never** opens.
+   - **First right-click ever** (per player): he speaks in chat with his name as the speaker: `<Dross Trader> You've come about the rift? I don't believe you're strong enough. Show me. Bring me a skull from the Nether's fortresses, shards from the cities of the deep dark, and stone from the End.`
+   - **Holding an item he still needs** (and that's allowed at this stage): hand it in (see 4 and 5).
+   - **Otherwise**, before the quest is complete: he repeats what's still needed.
+   - **After the quest is complete:** the shop opens.
+   - Every line is a lang key in `en_us.json` (`dross.trader.dialogue.*`), so the user can edit the wording without code.
+4. **Tributes** (any order): 1 `minecraft:wither_skeleton_skull`, 3 `minecraft:echo_shard`, 15 `minecraft:end_stone`.
+   - **Full amount only**: if the player holds at least the required amount, take exactly that much and confirm in chat. If not, he says how many to bring.
+   - When all three are in, he gives the **Dross Compass** (dropped at the player's feet if their inventory is full) and says he knows how to forge a key but needs materials.
+5. **Key materials** (only after all tributes, any order, same rules): 1 `minecraft:trident` (any), 1 `minecraft:heart_of_the_sea`, 8 `minecraft:amethyst_shard`.
+   - When all are in, he forges the **Rift Key** (`ModItems.RIFT_KEY`) and gives it with a line of dialogue (dropped if their inventory is full).
+   - The quest is now complete.
+   - Keep all the amounts as labeled constants.
+6. **Lost items**:
+   - If a player earned the compass and has none in their inventory, a right-click gives a new one for free.
+   - A lost Rift Key is **not** replaced for free: he asks for the key materials again (quest-builder's API must support re-forging).
+7. **Shop** (after the quest, no restock, no XP, unlimited uses):
+   - **Necromancy at its lowest level**: 32 emeralds + 1 book. Use the enchantment's minimum level, because a five-level restructure is planned.
+   - **Deathforged I**: 24 emeralds + 1 book.
+   - The offers are the same for everyone, but the screen only opens for players whose quest is complete.
+   - Keep the prices as labeled constants.
+8. **Compass target**: switch `DrossCompass.target` from `getFramePos(...).offset(1,1,0)` (which assumes an X-axis frame) to `PortalSite.getOpeningCenter` once `world-builder` adds it. Until then keep the current target and report "Needs from world site".
+9. **Colors**: point `TRADER_GLOW` and `TRADER_EGG_SPOTS` at the electric blue palette in `DrossColors`, and move the hard-coded colors in `DrossTrader` (`GLOW_COLOR`) and `registry/ModItems` (the spawn egg) onto `DrossColors`.
 
 ## Testing tips to include in your report
-- Create a **new** world with cheats on and join. Read the hut coordinates in chat (it may say "being built..." for a few seconds) and `/tp` there.
-- Check the hut (netherite, gold floor, door, window) sits at the village edge without touching houses or paths, with a dirt path to the village. He should walk out through the door and glow gold.
-- `/dross trader` takes you to him; `/dross trader home` sends him home. To test the leash, stand near him and run `/execute as @e[type=dross:dross_trader,sort=nearest,limit=1] at @s run tp @s ~60 ~ ~` (an `@e` selector only finds him while his area is loaded). Hit him (any game mode) until half health: he teleports home and heals, and never dies.
+- Create a **new** world with cheats on. Get a Weathered Letter (`/loot give @s loot minecraft:chests/nether_bridge`) to find him, or use `/dross trader`.
+- Right-click him: the opening speech, then reminders. His shop doesn't open yet.
+- `/give` yourself the tributes and key materials. Try holding too few (he asks for more) and too many (he takes exactly what he needs). You get the compass, then the Rift Key, and the advancements. Then the shop opens with Necromancy (32 emeralds + book) and Deathforged I (24 emeralds + book).
+- Drop the compass and right-click him: a free replacement. `/dross quest reset` replays the quest.
+- He glows blue near players and teleports home with blue particles. `/dross trader` takes you to him; `/dross trader home` sends him home. Hit him until half health: he teleports home and heals, and never dies.
 - The Dross Trader Spawn Egg (creative Dross tab) makes a trader whose home is where he was spawned.
-- Trade a nether star (`/give @s minecraft:nether_star`): the Dross Compass points to the portal site (`/dross site` to compare). Trade a Dross Portal Frame (creative "Dross" tab) for the Admin Sword and one-hit a zombie, the Wither and the Ender Dragon.
 - Rejoin: still only one trader and one hut.
 - Note: `runGameTestServer` stops before the village finishes generating, so the hut can only be checked in the real game.
 

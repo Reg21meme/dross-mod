@@ -29,6 +29,27 @@ Also not yours: advancement JSON files (`data/dross/advancements/`, including `r
 ## What to build
 The design is in "The plan", step 6, in `CLAUDE.md`. Don't invent game mechanics beyond it. Build only what the task you're given describes. If something important is unclear (numbers, what counts as a soul, what the undead do), stop and list your questions in the report instead of guessing.
 
+### Built (keep working)
+Everything in step 6 is built and tested:
+- Necromancy I–IV and Deathforged I–X, with their rules.
+- Souls stored on the sword.
+- Summoning and the risen undead's behavior.
+- Deathforged book drops from the Dross's geared mobs.
+- The "Rise!" grant.
+- All the books in the creative "Dross" tab.
+
+The trader's book trades are being removed by `villager-builder`. After the quest he sells only Necromancy at its lowest level and Deathforged I. The creative-tab books stay.
+
+### Early-game build [to build] ("Build order", step 6)
+1. **Electric blue**:
+   - Point your colors in `DrossColors` at the electric blue palette: `SOUL_WISP` and `RISEN_PUFF` (RGB), and `RISEN_GLOW_TEAM` = `ChatFormatting.BLUE` (scoreboard teams can only use chat colors).
+   - Move the hard-coded colors onto `DrossColors`: `WISP_DUST` in `enchant/NecromancyEvents.java`, and `ORANGE_DUST` (rename it, since it's no longer orange) and `GLOW_COLOR` in `enchant/RisenUndead.java`.
+   - `SOUL_TOOLTIP` **stays gold** (user decision); just read it from `DrossColors` in `enchant/client/SoulTooltip.java`.
+2. **"Rise!"**: grant it through `quest-builder`'s grant helper instead of your own copy in `NecromancyEvents.grantRiseAdvancement`. Keep the "first time a player raises undead" timing. The JSON (moved into the Dross tab) is quest-builder's.
+
+### Parked (do NOT build yet)
+- The **Necromancy five-level restructure** (a new weaker level I, the old I–III shift up, the admin level becomes V) and the Deathforged anvil changes. Parked; a separate task.
+
 ## Forge 1.20.1 notes
 - Enchantments are **registered in code** in 1.20.1: `DeferredRegister.create(ForgeRegistries.ENCHANTMENTS, Dross.MODID)` with a class extending `Enchantment` (rarity, `EnchantmentCategory`, equipment slots). Data-driven enchantment JSON files are from 1.21 and don't exist here.
 - Read levels with `EnchantmentHelper.getItemEnchantmentLevel(enchantment, stack)`. Enchanted books, the anvil and the enchanting table pick custom enchantments up automatically, based on their category, rarity and `isTreasureOnly` / `isDiscoverable` / `isTradeable` settings.
@@ -39,6 +60,7 @@ The design is in "The plan", step 6, in `CLAUDE.md`. Don't invent game mechanics
 - Give yourself the enchanted item with `/enchant` or `/give` (cheats on), or put a book in the creative "Dross" tab if one was asked for.
 - Explain how to see the soul count, and how to trigger and end a summon.
 - Check the risen undead in both the Overworld and the Dross. Leave and rejoin: the souls and the summons behave as designed.
+- The soul wisps, rise/crumble puffs and the Deathforged X glow are electric blue. The soul tooltip is still gold. "Rise!" appears in the Dross advancement tab.
 
 ## Report format
 1. What you built, in plain words.

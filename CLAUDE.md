@@ -271,7 +271,6 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 
 ## Parked for later (do NOT build yet)
 - Zombie guards at the portal site.
-- Kill 3 iron golems to unlock the portal.
 - Moving the portal site 3,000–10,000 blocks out from (0, 0), chosen when the world is created.
 - The real castle (`dross:portal_castle`) and the real hub (`dross:dross_hub`): the user builds them with structure blocks. Until then, the placeholders are used.
 - A custom villager skin (replacing the placeholder).
@@ -280,7 +279,7 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 - Replace the trader hut's netherite blocks with a real building material.
 - **Necromancy five-level restructure** (a new weaker level I, the old I–III shift up, the admin level becomes V) and Deathforged anvil changes. The trader keeps selling "the lowest Necromancy level".
 - New terrain (gentle, old-Minecraft style), dense forests, silverwood trees, custom ores and crops.
-- Boss towers, mini-bosses, the three elemental necromancers (Fire, Ice, Plague), the Earth General, the Storm King, the dragon mount, and boss exit portals.
+- Boss towers (including the golem floor), mini-bosses, the three elemental necromancers (Fire, Ice, Plague), the Earth General, the Storm King, the dragon mount, and boss exit portals.
 - The elemental relics (Magma Wand, Frostbreaker Charm, Cleansing Flask), the Great Mystic Bow, and special arrows.
 - Player-built portals (Stormvine, a craftable frame, building portals anywhere in the Overworld, returning to the portal you came from, protection for player-built frames).
 - Config files for modpack makers (keep values as constants so a config can be added later).
