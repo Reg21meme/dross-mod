@@ -1,6 +1,7 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.enchant.NecromancyScheme;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.WeatheredLetterItem;
 import com.reg21meme.dross.villager.DrossCompass;
@@ -30,10 +31,11 @@ public final class ModCreativeTabs
                         // Villager area: test sword, and a Dross Compass (it gets its target once it's in your inventory)
                         output.accept(ModItems.ADMIN_SWORD.get());
                         output.accept(DrossCompass.createBlank());
-                        // Enchantments area: a book for every level of Necromancy (I-IV) and Deathforged (I-X)
+                        // Enchantments area: a book for every level of Necromancy (I-V) and Deathforged (I-X).
+                        // Necromancy books are marked as the five-level scheme, so they're never moved up a level.
                         for (int level = 1; level <= ModEnchantments.NECROMANCY.get().getMaxLevel(); level++)
                         {
-                            output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.NECROMANCY.get(), level)));
+                            output.accept(NecromancyScheme.createBook(level));
                         }
                         for (int level = 1; level <= ModEnchantments.DEATHFORGED.get().getMaxLevel(); level++)
                         {

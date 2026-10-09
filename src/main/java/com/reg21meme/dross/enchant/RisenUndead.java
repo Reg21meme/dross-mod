@@ -4,6 +4,8 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.villager.DrossTrader;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -75,8 +77,9 @@ import net.minecraftforge.server.ServerLifecycleHooks;
  * <ul>
  *   <li>The owner's UUID and the spawn time go into the mob's persistent data before it joins the world,
  *       so other code can recognise it with {@link #isRisen(Entity)} (the Dross netherite rule skips them).</li>
- *   <li>Their hostile targeting is replaced: they attack what the owner hits, mobs that hurt the owner and mobs
- *       that hurt them, and follow the owner when idle. Never players, villagers, wandering traders, the Dross
+ *   <li>Their hostile targeting is replaced by a pack AI ({@link RisenTargetGoal}): once fighting they keep their
+ *       target until it dies; when free they defend the owner, then attack the owner's target, then fight back, then
+ *       help the same owner's risen undead nearby, and otherwise follow the owner. Never players, villagers, wandering traders, the Dross
  *       trader or the owner's other risen undead (damage from them, arrows included, to those is cancelled too).
  *       The owner's own hits never damage them. Risen drowned fight on land, day or night.</li>
  *   <li>They crumble (blue puff) after {@link #DESPAWN_TICKS}, or early when the owner logs out, dies or changes
@@ -110,6 +113,8 @@ public final class RisenUndead
 
     /** Goal priorities. Lower runs first. Attack goals are 2 (zombies) and 4 (skeletons), so following waits. */
     private static final int FOLLOW_GOAL_PRIORITY = 5;
+    /** Priority of the pack-AI target goal (the only target goal they have). */
+    private static final int TARGET_GOAL_PRIORITY = 1;
     /** How long (ticks) a brain-based mob (piglin, hoglin...) stays angry at a risen undead that hit it: 30 s. */
     private static final long BRAIN_ANGER_TICKS = 600L;
 
@@ -182,6 +187,12 @@ public final class RisenUndead
     {
         UUID owner = getOwnerId(mob);
         return owner == null ? null : mob.level().getPlayerByUUID(owner);
+    }
+
+    /** Every risen mob (riders and mounts) currently loaded, read-only. Used by the pack AI to find allies. */
+    static Collection<Mob> active()
+    {
+        return Collections.unmodifiableSet(ACTIVE);
     }
 
     /** How many of this player's risen undead are alive. A jockey counts once (its mount isn't counted). */
@@ -374,9 +385,8 @@ public final class RisenUndead
 
         // Targeting: drop every vanilla target goal (players, villagers, golems, turtles...) and use ours.
         mob.targetSelector.removeAllGoals(goal -> true);
-        mob.targetSelector.addGoal(1, new RisenTargetGoal(mob, RisenTargetGoal.Source.OWNER_ATTACKER));
-        mob.targetSelector.addGoal(2, new RisenTargetGoal(mob, RisenTargetGoal.Source.OWNER_TARGET));
-        mob.targetSelector.addGoal(3, new RisenTargetGoal(mob, RisenTargetGoal.Source.SELF_ATTACKER));
+        // One goal holds the whole pack AI (priorities, commitment, helping allies): see RisenTargetGoal.
+        mob.targetSelector.addGoal(TARGET_GOAL_PRIORITY, new RisenTargetGoal(mob));
 
         // Movement: no wandering off on their own; follow the owner instead.
         mob.goalSelector.removeAllGoals(goal -> goal instanceof RandomStrollGoal || goal instanceof MoveThroughVillageGoal);

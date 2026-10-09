@@ -119,7 +119,7 @@ public final class NecromancyEvents
         int index = NecromancyEnchantment.index(necromancyLevel);
         int max = NecromancyEnchantment.MAX_ALIVE[index];
         int alive = RisenUndead.countAlive(player.getUUID());
-        int count = alive == 0 ? max : NecromancyEnchantment.RAISE_WHEN_SOME_ALIVE[index];
+        int count = alive == 0 ? max : NecromancyEnchantment.raiseWhenSomeAlive(index);
         count = Math.min(count, max - alive); // never over the max
         if (count <= 0)
         {
@@ -192,7 +192,7 @@ public final class NecromancyEvents
         {
             return;
         }
-        // Infinite swords (level IV) don't store anything, but still show the wisp.
+        // Infinite swords (level V) don't store anything, but still show the wisp.
         if (SoulStorage.addSoul(sword) || SoulStorage.isInfinite(sword))
         {
             WISPS.add(new Wisp((ServerLevel) victim.level(), victim.position().add(0.0D, victim.getBbHeight() / 2.0D, 0.0D), player.getUUID()));

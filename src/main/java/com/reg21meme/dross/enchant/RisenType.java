@@ -7,9 +7,9 @@ import net.minecraft.util.RandomSource;
 /**
  * The kinds of undead Necromancy can raise, the Necromancy level that unlocks each, and their soul cost.
  * <ul>
- *   <li>I: zombie, skeleton</li>
- *   <li>II: + husk, stray, drowned</li>
- *   <li>III (and IV): + chicken jockey, spider jockey, skeleton horseman</li>
+ *   <li>I and II: zombie, skeleton</li>
+ *   <li>III: + husk, stray, drowned</li>
+ *   <li>IV (and V): + chicken jockey, spider jockey, skeleton horseman</li>
  * </ul>
  * A jockey/horseman takes 1 "alive" slot (the rider) but costs {@link NecromancyEnchantment#SOUL_COST_MOUNTED} souls.
  */
@@ -17,15 +17,15 @@ public enum RisenType
 {
     ZOMBIE(1, false),
     SKELETON(1, false),
-    HUSK(2, false),
-    STRAY(2, false),
-    DROWNED(2, false),
+    HUSK(3, false),
+    STRAY(3, false),
+    DROWNED(3, false),
     /** A baby zombie riding a chicken. */
-    CHICKEN_JOCKEY(3, true),
+    CHICKEN_JOCKEY(4, true),
     /** A skeleton riding a spider. */
-    SPIDER_JOCKEY(3, true),
+    SPIDER_JOCKEY(4, true),
     /** A skeleton riding a skeleton horse. */
-    SKELETON_HORSEMAN(3, true);
+    SKELETON_HORSEMAN(4, true);
 
     /** Necromancy level that unlocks this type. */
     public final int unlockLevel;

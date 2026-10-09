@@ -1,6 +1,7 @@
 package com.reg21meme.dross.villager;
 
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.enchant.NecromancyScheme;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.QuestProgress;
@@ -79,7 +80,7 @@ import java.util.List;
 public class DrossTrader extends AbstractVillager
 {
     // ---- Shop prices (after the quest). Each costs emeralds plus one plain book. ----
-    /** Emeralds for the lowest level of Necromancy. */
+    /** Emeralds for Necromancy level I (Necromancy has five levels; he sells only the lowest). */
     private static final int NECROMANCY_EMERALDS = 32;
     /** Emeralds for Deathforged I. */
     private static final int DEATHFORGED_EMERALDS = 24;
@@ -93,7 +94,7 @@ public class DrossTrader extends AbstractVillager
      * Bump this whenever the shop changes. A trader saved with a different number gets his saved offers
      * replaced by the current shop once, when he loads. (Traders saved before this existed have no number.)
      */
-    private static final int SHOP_VERSION = 1;
+    private static final int SHOP_VERSION = 2;
     private static final String TAG_SHOP_VERSION = "ShopVersion";
 
     /** He stays within this many blocks of his hut in X and Z. */
@@ -604,19 +605,26 @@ public class DrossTrader extends AbstractVillager
     {
         Enchantment necromancy = ModEnchantments.NECROMANCY.get();
         List<MerchantOffer> list = new ArrayList<>();
-        // Necromancy at its lowest level (a restructure into five levels is planned, so ask the enchantment).
-        list.add(bookOffer(NECROMANCY_EMERALDS, necromancy, necromancy.getMinLevel()));
+        // Necromancy has five levels (I-V); he sells the lowest, level I (the enchantment's minimum level).
+        // The book comes from NecromancyScheme so it carries the "new numbering" marker.
+        list.add(bookOffer(NECROMANCY_EMERALDS, NecromancyScheme.createBook(necromancy.getMinLevel())));
         list.add(bookOffer(DEATHFORGED_EMERALDS, ModEnchantments.DEATHFORGED.get(), DEATHFORGED_LEVEL));
         return list;
     }
 
-    /** Emeralds plus one plain book for an enchanted book. */
+    /** Emeralds plus one plain book for an enchanted book of the given enchantment and level. */
     private static MerchantOffer bookOffer(int emeralds, Enchantment enchantment, int level)
+    {
+        return bookOffer(emeralds, EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantment, level)));
+    }
+
+    /** Emeralds plus one plain book for the given result item. */
+    private static MerchantOffer bookOffer(int emeralds, ItemStack result)
     {
         return new MerchantOffer(
                 new ItemStack(Items.EMERALD, emeralds),
                 new ItemStack(Items.BOOK),
-                EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantment, level)),
+                result,
                 SHOP_MAX_USES,
                 0,      // no villager XP
                 0.0F);  // no price changes

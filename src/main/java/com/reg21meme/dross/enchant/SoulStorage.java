@@ -14,7 +14,7 @@ public final class SoulStorage
     /** Item tag key that holds the soul count. */
     public static final String SOULS_TAG = "dross_souls";
 
-    /** Marker for "infinite" capacity (Necromancy IV). Such a sword never spends souls. */
+    /** Marker for "infinite" capacity (Necromancy V, the admin level). Such a sword never spends souls. */
     public static final int INFINITE = -1;
 
     private SoulStorage() {}

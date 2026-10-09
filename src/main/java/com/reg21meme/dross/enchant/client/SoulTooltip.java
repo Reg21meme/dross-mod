@@ -11,7 +11,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Shows "Souls: X / Y" (or "Souls: ∞" at Necromancy IV) on any item with Necromancy.
+ * Shows "Souls: X / Y" (or "Souls: ∞" at Necromancy V) on any item with Necromancy.
  * The count is read from the item's own tag, which the client already has, so no packets are needed.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, value = Dist.CLIENT)

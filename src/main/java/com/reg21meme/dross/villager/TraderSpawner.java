@@ -38,7 +38,7 @@ import java.util.function.Predicate;
 
 /**
  * Spawns the Dross trader exactly once per world, in his own hut (the Rift Chapel, see {@link TraderHut})
- * at the edge of the village nearest world spawn.
+ * in the village nearest world spawn, close to its houses, with a wide path to its nearest street.
  * <ol>
  *   <li>When the server starts, find the nearest village and ask Minecraft to generate its chunks, plus enough
  *       around it for the spot search (a chunk "ticket", so it happens in the background without freezing the game).</li>
@@ -152,7 +152,7 @@ public class TraderSpawner
                     site = findVillageSite(overworld, p.village());
                     if (site == null)
                     {
-                        LOGGER.warn("[Dross] No open, connectable spot at the edge of the village. Using the plains/desert fallback for the trader's hut.");
+                        LOGGER.warn("[Dross] No open, connectable spot in or beside the village. Using the plains/desert fallback for the trader's hut.");
                     }
                 }
 
