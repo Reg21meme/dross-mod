@@ -1,15 +1,15 @@
 package com.reg21meme.dross.enchant;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.villager.DrossTrader;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-import net.minecraft.advancements.Advancement;
 import net.minecraft.core.particles.DustParticleOptions;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -34,14 +34,13 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.server.ServerLifecycleHooks;
-import org.joml.Vector3f;
 
 /**
  * What a Necromancy sword does:
  * <ul>
  *   <li><b>Hits</b> ({@link AttackEntityEvent}, which fires once per swing for the main target only, so mobs caught
  *       by the sweep never roll): a chance to raise undead next to the player, paid for with the sword's souls.</li>
- *   <li><b>Kills</b> of any zombie or skeleton kind with the sword store 1 soul, shown as an orange wisp flying
+ *   <li><b>Kills</b> of any zombie or skeleton kind with the sword store 1 soul, shown as an electric blue wisp flying
  *       from the mob into the player's hand.</li>
  *   <li>The first raise grants the "Rise!" advancement.</li>
  * </ul>
@@ -58,12 +57,11 @@ public final class NecromancyEvents
     private static final int WISP_TICKS = 10;
     /** Particles drawn along the wisp's path each tick. */
     private static final int WISP_PARTICLES_PER_TICK = 4;
-    /** Wisp colour (orange) and particle size. */
-    private static final DustParticleOptions WISP_DUST = new DustParticleOptions(new Vector3f(1.0F, 0.55F, 0.0F), 1.0F);
-
-    private static final ResourceLocation RISE_ADVANCEMENT = new ResourceLocation(Dross.MODID, "rise");
-    /** Criterion name in data/dross/advancements/rise.json. */
-    private static final String RISE_CRITERION = "raised";
+    /** Wisp particle size. */
+    private static final float WISP_SIZE = 1.0F;
+    /** Wisp colour (electric blue, from DrossColors.SOUL_WISP) and size. */
+    private static final DustParticleOptions WISP_DUST =
+            new DustParticleOptions(DrossColors.vector(DrossColors.SOUL_WISP), WISP_SIZE);
 
     /** Soul wisps currently flying. */
     private static final List<Wisp> WISPS = new ArrayList<>();
@@ -161,17 +159,8 @@ public final class NecromancyEvents
         }
         if (raised > 0)
         {
-            grantRiseAdvancement(player);
-        }
-    }
-
-    /** Does nothing if the player already has it. Same pattern as portal/DrossArrival. */
-    private static void grantRiseAdvancement(ServerPlayer player)
-    {
-        Advancement advancement = player.server.getAdvancements().getAdvancement(RISE_ADVANCEMENT);
-        if (advancement != null)
-        {
-            player.getAdvancements().award(advancement, RISE_CRITERION);
+            // Quest's shared grant helper. Does nothing if the player already has it.
+            DrossAdvancements.grant(player, DrossAdvancements.RISE);
         }
     }
 

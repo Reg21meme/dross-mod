@@ -1,0 +1,28 @@
+{
+  "parent": "dross:root",
+  "display": {
+    "icon": {
+      "item": "dross:weathered_letter"
+    },
+    "title": {
+      "translate": "advancements.dross.weathered_letter.title"
+    },
+    "description": {
+      "translate": "advancements.dross.weathered_letter.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "found": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "found"
+    ]
+  ]
+}

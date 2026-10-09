@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -33,16 +32,23 @@ import org.slf4j.Logger;
  *       refreshed while it still stands in a portal, so it never bounces straight back.</li>
  * </ul>
  * Players and other entities (mobs, items) can all travel, like the nether portal.
+ * Where they land is decided by {@link DrossTeleporter}: every portal outside the Dross leads to the hub,
+ * and the hub's exit portal leads to the castle portal.
+ * <p>
+ * Exception: a Rift Key item thrown into a lit portal outside the Dross doesn't travel. It's pushed back out
+ * ({@link DrossPortalActivation#pushBackKey}).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossPortalTravel
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** Key in the entity's persistent data: the Overworld portal block the entity left from. */
-    static final String TAG_RETURN_PORTAL = "dross_return_portal";
-    /** Key in the entity's persistent data: the dimension that portal is in. */
-    static final String TAG_RETURN_DIM = "dross_return_dim";
+    /**
+     * Old saved data from before the hub existed (the portal an entity left from). No longer used;
+     * it's removed from an entity the next time it travels, to keep saves tidy.
+     */
+    private static final String OLD_TAG_RETURN_PORTAL = "dross_return_portal";
+    private static final String OLD_TAG_RETURN_DIM = "dross_return_dim";
 
     private static final Map<Entity, PortalTimer> TIMERS = new WeakHashMap<>();
     private static boolean warnedMissingDimension = false;
@@ -59,6 +65,10 @@ public final class DrossPortalTravel
     /** Called (server side) every tick an entity is inside a Dross portal block. */
     public static void onEntityInside(Entity entity, BlockPos portalPos)
     {
+        if (DrossPortalActivation.pushBackKey(entity, portalPos))
+        {
+            return; // a Rift Key thrown into an already lit portal pops back out instead of travelling
+        }
         if (entity.isOnPortalCooldown())
         {
             entity.setPortalCooldown(); // like vanilla: you have to step out before you can travel again
@@ -156,13 +166,9 @@ public final class DrossPortalTravel
             return;
         }
 
-        if (!inDross)
-        {
-            // Remember which portal we left from, so the trip back lands at the same portal.
-            CompoundTag data = entity.getPersistentData();
-            data.put(TAG_RETURN_PORTAL, NbtUtils.writeBlockPos(portalPos));
-            data.putString(TAG_RETURN_DIM, from.dimension().location().toString());
-        }
+        CompoundTag data = entity.getPersistentData();
+        data.remove(OLD_TAG_RETURN_PORTAL);
+        data.remove(OLD_TAG_RETURN_DIM);
 
         entity.setPortalCooldown();
         Entity arrived = entity.changeDimension(dest, new DrossTeleporter());

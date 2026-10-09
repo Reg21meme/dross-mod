@@ -20,9 +20,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * The orange swirl drawn over the screen while you stand in a Dross portal.
+ * The electric blue swirl drawn over the screen while you stand in a Dross portal.
  * Vanilla draws its purple swirl only for nether portals, so we keep our own fade-in/fade-out
- * strength (same speeds as vanilla) and draw the recolored orange portal sprite with it.
+ * strength (same speeds as vanilla) and draw the recolored blue portal sprite with it.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, value = Dist.CLIENT)
 public final class DrossPortalOverlay

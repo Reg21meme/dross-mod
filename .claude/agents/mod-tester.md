@@ -20,7 +20,16 @@ You test the `dross` Forge mod (Minecraft 1.20.1, Forge 47.4.10, Java 17). Read 
 
 ## Headless world check (no player needed)
 - `.\gradlew.bat runGameTestServer --console=plain` (foreground) starts a server with a real world, runs zero tests and stops by itself in about a minute. Use it to check server-side loading without the user.
-- In its `run/logs/latest.log`, look for `Dross: built the unlit portal site frame at ...`, `[Dross] Waiting for the village at ...` and `dross:dross` being saved. A missing `server.properties` message is normal here.
+- In its `run/logs/latest.log`, look for `Dross hub: built the placeholder hub; exit portal at ...`, `[Dross] Waiting for the village at ...` and `dross:dross` being saved. A missing `server.properties` message is normal here.
+- **Castle (portal site) log lines** (loggers under `com.reg21meme.dross.world`, all start with `Dross portal site:`). In a fresh world, expect exactly one of these:
+  - No template file: `no castle template (dross:portal_castle = ...), so the placeholder shrine is used.` followed by `built the placeholder ruined shrine; frame corner x, y, z axis x (opening 2x3)`.
+  - Template file present and valid: `placed the castle template dross:portal_castle at ... (size ...); frame corner x, y, z axis x|z (opening WxH)`.
+- Then expect `leak effects applied within 16 blocks of ...: N plants turned into dead bushes, ...` once. In a world that already has a site: `already placed in this world (castle template | placeholder shrine | bare frame (old world)); frame corner ... axis ...`, and no leak line.
+- Report these as problems:
+  - A `WARN` that the template has no complete frame, has several frames, is empty, or was placed but its frame isn't valid. The castle file is broken and the placeholder was built instead. This belongs to world site, or to the user's `.nbt`.
+  - An `ERROR` that the placeholder's frame doesn't pass the portal frame check (the Rift Key may not light it).
+  - `couldn't look up the frame (...); using a rough guess at sea level.`
+- The old line `Dross: built the unlit portal site frame at ...` no longer appears. That's expected.
 - The test server shuts down before the village finishes generating, so `[Dross] Built the Dross trader's hut at ...` and `[Dross] Spawned the Dross trader at ...` only appear in a real game (`runClient`). Look for them there, or for a clear `NOT spawned` / fallback warning.
 - The test server's world is `run/world`. It only spawns the trader once, so for a fresh check move it aside (never delete it, and never touch `run/saves`, which holds the user's worlds).
 - Copy the lines you need before running the client, because the next run overwrites `latest.log`.

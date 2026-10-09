@@ -1,18 +1,19 @@
 package com.reg21meme.dross.portal;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.quest.DrossAdvancements;
+import com.reg21meme.dross.quest.QuestProgress;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
-import net.minecraft.ChatFormatting;
-import net.minecraft.advancements.Advancement;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -28,9 +29,11 @@ import net.minecraftforge.server.ServerLifecycleHooks;
  *   <li>"The Dross" fades in as a big on-screen title (like the /title command), together with
  *       four falling piano notes ("dun, dun, DUN, dunnn") that only the arriving player hears.</li>
  *   <li>Once the last note has rung out, the "Entered the Dross" advancement is granted
- *       (only does anything the first time), so its fanfare doesn't clash with the notes.</li>
+ *       (only does anything the first time), so its fanfare doesn't clash with the notes.
+ *       On the player's first arrival, they also get the Dross Guide Book (both through the quest area's API).
+ *       If the player leaves the Dross before then, both happen on their next arrival.</li>
  * </ol>
- * The title text comes from the lang key {@code dimension.dross.dross}.
+ * The title text comes from the lang key {@code dimension.dross.dross}; its color is {@link DrossColors#ARRIVAL_TITLE}.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossArrival
@@ -57,10 +60,6 @@ public final class DrossArrival
     private static final int FADE_IN = 10;
     private static final int STAY = 70;
     private static final int FADE_OUT = 20;
-
-    private static final ResourceLocation ADVANCEMENT_ID = new ResourceLocation(Dross.MODID, "entered_the_dross");
-    /** Criterion name in data/dross/advancements/entered_the_dross.json. */
-    private static final String ADVANCEMENT_CRITERION = "entered";
 
     /** Players in the middle of their arrival sequence, and how many ticks since they arrived. */
     private static final Map<UUID, Integer> ARRIVING = new HashMap<>();
@@ -109,7 +108,7 @@ public final class DrossArrival
             }
             if (tick >= ADVANCEMENT_TICK)
             {
-                grantAdvancement(server, player);
+                onSequenceFinished(server, player);
                 it.remove();
             }
         }
@@ -121,16 +120,20 @@ public final class DrossArrival
         // Clear any leftover subtitle from an earlier /title command.
         player.connection.send(new ClientboundSetSubtitleTextPacket(Component.empty()));
         player.connection.send(new ClientboundSetTitleTextPacket(
-                Component.translatable("dimension.dross.dross").withStyle(ChatFormatting.GOLD)));
+                Component.translatable("dimension.dross.dross")
+                        .withStyle(style -> style.withColor(TextColor.fromRgb(DrossColors.ARRIVAL_TITLE)))));
     }
 
-    /** Does nothing if the player already has it. */
-    private static void grantAdvancement(MinecraftServer server, ServerPlayer player)
+    /**
+     * QUEST HOOK POINT: runs once the title and the four notes are over (2 seconds after the last note),
+     * while the player is still in the Dross. This is where the quest area's API gets called.
+     */
+    private static void onSequenceFinished(MinecraftServer server, ServerPlayer player)
     {
-        Advancement advancement = server.getAdvancements().getAdvancement(ADVANCEMENT_ID);
-        if (advancement != null)
-        {
-            player.getAdvancements().award(advancement, ADVANCEMENT_CRITERION);
-        }
+        // "Entered the Dross" (does nothing if the player already has it).
+        DrossAdvancements.grant(player, DrossAdvancements.ENTERED_THE_DROSS);
+        // The Dross Guide Book, on the player's first arrival only (the quest area keeps the flag;
+        // a full inventory drops it at their feet).
+        QuestProgress.giveGuideBookOnFirstArrival(player); // returns true if given now
     }
 }

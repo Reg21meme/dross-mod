@@ -1,6 +1,10 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.portal.RiftKeyItem;
+import com.reg21meme.dross.quest.DrossGuideBookItem;
+import com.reg21meme.dross.quest.WeatheredLetterItem;
 import com.reg21meme.dross.villager.AdminSwordItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
@@ -17,12 +21,21 @@ public final class ModItems
     public static final RegistryObject<Item> DROSS_PORTAL_FRAME = ITEMS.register("dross_portal_frame",
             () -> new BlockItem(ModBlocks.DROSS_PORTAL_FRAME.get(), new Item.Properties()));
 
+    // Portal area: the Rift Key. Thrown into a Dross frame, it lights the portal (the villager area gives it out)
+    public static final RegistryObject<Item> RIFT_KEY = ITEMS.register("rift_key", RiftKeyItem::new);
+
     // Villager area: TESTING ONLY, sold by the Dross trader (see Parked in CLAUDE.md)
     public static final RegistryObject<Item> ADMIN_SWORD = ITEMS.register("admin_sword", AdminSwordItem::new);
 
-    // Villager area: Dross Trader spawn egg (black with orange spots, like the portal frame)
+    // Villager area: Dross Trader spawn egg (black with electric blue spots)
     public static final RegistryObject<Item> DROSS_TRADER_SPAWN_EGG = ITEMS.register("dross_trader_spawn_egg",
-            () -> new ForgeSpawnEggItem(ModEntities.TRADER, 0x10101C, 0xDB7D1F, new Item.Properties()));
+            () -> new ForgeSpawnEggItem(ModEntities.TRADER, DrossColors.TRADER_EGG_BASE, DrossColors.TRADER_EGG_SPOTS, new Item.Properties()));
+
+    // Quest area: the Weathered Letter (Nether chest loot, readable, starts the quest)
+    public static final RegistryObject<Item> WEATHERED_LETTER = ITEMS.register("weathered_letter", WeatheredLetterItem::new);
+
+    // Quest area: the Dross Guide Book (given on a player's first arrival in the Dross, readable)
+    public static final RegistryObject<Item> DROSS_GUIDE_BOOK = ITEMS.register("dross_guide_book", DrossGuideBookItem::new);
 
     private ModItems() {}
 }

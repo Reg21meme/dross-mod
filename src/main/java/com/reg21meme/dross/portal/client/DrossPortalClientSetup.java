@@ -9,7 +9,7 @@ import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Client-only registrations for the portal: the orange particle and the orange screen swirl. */
+/** Client-only registrations for the portal: the blue particle and the blue screen swirl. */
 @Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public final class DrossPortalClientSetup
 {

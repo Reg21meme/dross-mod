@@ -1,5 +1,5 @@
 {
-  "parent": "minecraft:story/root",
+  "parent": "dross:keymaster",
   "display": {
     "icon": {
       "item": "dross:dross_portal_frame"
@@ -20,5 +20,9 @@
       "trigger": "minecraft:impossible"
     }
   },
-  "requirements": [["entered"]]
+  "requirements": [
+    [
+      "entered"
+    ]
+  ]
 }

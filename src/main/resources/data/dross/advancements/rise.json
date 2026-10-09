@@ -1,5 +1,5 @@
 {
-  "parent": "minecraft:story/root",
+  "parent": "dross:entered_the_dross",
   "display": {
     "icon": {
       "item": "minecraft:zombie_head"
@@ -20,5 +20,9 @@
       "trigger": "minecraft:impossible"
     }
   },
-  "requirements": [["raised"]]
+  "requirements": [
+    [
+      "raised"
+    ]
+  ]
 }

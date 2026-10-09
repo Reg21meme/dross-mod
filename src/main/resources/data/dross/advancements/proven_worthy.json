@@ -1,0 +1,28 @@
+{
+  "parent": "dross:weathered_letter",
+  "display": {
+    "icon": {
+      "item": "minecraft:wither_skeleton_skull"
+    },
+    "title": {
+      "translate": "advancements.dross.proven_worthy.title"
+    },
+    "description": {
+      "translate": "advancements.dross.proven_worthy.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "tributes": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "tributes"
+    ]
+  ]
+}

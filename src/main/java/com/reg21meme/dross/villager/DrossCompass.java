@@ -46,10 +46,10 @@ public final class DrossCompass
         return stack.is(Items.COMPASS) && stack.hasTag() && stack.getTag().getBoolean(TAG_MARKER);
     }
 
-    /** Aims at the frame's opening (the frame's bottom corner + 1 in X and Y). */
+    /** Aims at the middle of the frame's opening (works for either frame axis). */
     private static BlockPos target(ServerLevel level)
     {
-        return PortalSite.getFramePos(level.getServer().overworld()).offset(1, 1, 0);
+        return PortalSite.getOpeningCenter(level.getServer().overworld());
     }
 
     /**

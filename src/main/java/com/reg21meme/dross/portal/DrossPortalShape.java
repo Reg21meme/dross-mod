@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * The Dross version of vanilla's {@code PortalShape}: the same shape rules as a nether portal
  * (opening from 2x3 up to 21x21, standing upright along X or Z, corners optional),
  * but every frame block must be {@code dross:dross_portal_frame}.
- * Obsidian does not count, so a netherite ingot does nothing in a normal obsidian frame.
+ * Obsidian does not count, so a Rift Key does nothing in a normal obsidian frame.
  */
 public class DrossPortalShape
 {
@@ -36,6 +36,18 @@ public class DrossPortalShape
     public static Optional<DrossPortalShape> findEmptyPortalShape(LevelAccessor level, BlockPos pos, Direction.Axis preferredAxis)
     {
         return findPortalShape(level, pos, shape -> shape.isValid() && shape.numPortalBlocks == 0, preferredAxis);
+    }
+
+    /** Finds a complete, already fully lit Dross frame around {@code pos}, trying {@code preferredAxis} first. */
+    public static Optional<DrossPortalShape> findLitPortalShape(LevelAccessor level, BlockPos pos, Direction.Axis preferredAxis)
+    {
+        return findPortalShape(level, pos, DrossPortalShape::isComplete, preferredAxis);
+    }
+
+    /** Finds a complete Dross frame around {@code pos} whether its opening is empty, partly lit or fully lit. */
+    public static Optional<DrossPortalShape> findAnyPortalShape(LevelAccessor level, BlockPos pos, Direction.Axis preferredAxis)
+    {
+        return findPortalShape(level, pos, DrossPortalShape::isValid, preferredAxis);
     }
 
     public static Optional<DrossPortalShape> findPortalShape(LevelAccessor level, BlockPos pos, Predicate<DrossPortalShape> filter, Direction.Axis preferredAxis)
@@ -204,6 +216,13 @@ public class DrossPortalShape
     public BlockPos getBottomLeft()
     {
         return this.bottomLeft;
+    }
+
+    /** The opening block with the lowest X, Y and Z (the corner {@code BlockPos.betweenClosed} would start at). */
+    public BlockPos getMinCorner()
+    {
+        BlockPos far = this.bottomLeft.relative(this.rightDir, this.width - 1);
+        return new BlockPos(Math.min(this.bottomLeft.getX(), far.getX()), this.bottomLeft.getY(), Math.min(this.bottomLeft.getZ(), far.getZ()));
     }
 
     public int getWidth()

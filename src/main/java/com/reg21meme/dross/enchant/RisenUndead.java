@@ -1,6 +1,7 @@
 package com.reg21meme.dross.enchant;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.villager.DrossTrader;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -8,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.nbt.CompoundTag;
@@ -68,7 +68,6 @@ import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.server.ServerLifecycleHooks;
-import org.joml.Vector3f;
 
 /**
  * The risen undead: real vanilla mobs (zombies, skeletons, ...) raised by Necromancy, marked with their owner.
@@ -80,7 +79,7 @@ import org.joml.Vector3f;
  *       that hurt them, and follow the owner when idle. Never players, villagers, wandering traders, the Dross
  *       trader or the owner's other risen undead (damage from them, arrows included, to those is cancelled too).
  *       The owner's own hits never damage them. Risen drowned fight on land, day or night.</li>
- *   <li>They crumble (orange puff) after {@link #DESPAWN_TICKS}, or early when the owner logs out, dies or changes
+ *   <li>They crumble (blue puff) after {@link #DESPAWN_TICKS}, or early when the owner logs out, dies or changes
  *       dimension, or when their chunk is loaded back from a save.</li>
  *   <li>No drops, no XP, no item pickup, no portals, no conversions. Vanilla sunlight burning still applies.</li>
  * </ul>
@@ -117,14 +116,16 @@ public final class RisenUndead
     /** Same priority as the zombie attack goal vanilla drowned use. */
     private static final int DROWNED_ATTACK_GOAL_PRIORITY = 2;
 
-    /** Orange of the rise/crumble puff (red, green, blue from 0 to 1), and its size. */
-    private static final DustParticleOptions ORANGE_DUST = new DustParticleOptions(new Vector3f(1.0F, 0.5F, 0.0F), 1.5F);
+    /** Size of the rise/crumble puff particles. */
+    private static final float PUFF_SIZE = 1.5F;
+    /** Rise/crumble puff: electric blue (DrossColors.RISEN_PUFF) dust. */
+    private static final DustParticleOptions PUFF_DUST =
+            new DustParticleOptions(DrossColors.vector(DrossColors.RISEN_PUFF), PUFF_SIZE);
     /** Number of particles in a puff. */
     private static final int PUFF_PARTICLES = 25;
 
-    /** Scoreboard team for Deathforged X glow. Its colour (gold, Minecraft's closest to orange) colours the outline. */
+    /** Scoreboard team for Deathforged X glow. Its colour (DrossColors.RISEN_GLOW_TEAM, blue) colours the outline. */
     private static final String GLOW_TEAM = "dross_risen_glow";
-    private static final ChatFormatting GLOW_COLOR = ChatFormatting.GOLD;
 
     // ---------------------------------------------------------------------------------------------
     // Persistent-data keys.
@@ -465,7 +466,7 @@ public final class RisenUndead
             {
                 team = scoreboard.addPlayerTeam(GLOW_TEAM);
             }
-            team.setColor(GLOW_COLOR);
+            team.setColor(DrossColors.RISEN_GLOW_TEAM); // set every time, so old worlds' gold team turns blue
             scoreboard.addPlayerToTeam(mob.getScoreboardName(), team);
             mob.setGlowingTag(true);
         }
@@ -475,7 +476,7 @@ public final class RisenUndead
     // Crumbling
     // ---------------------------------------------------------------------------------------------
 
-    /** Orange puff, then the mob is removed (no death, so no drops or XP). */
+    /** Blue puff, then the mob is removed (no death, so no drops or XP). */
     private static void crumble(Mob mob)
     {
         if (mob.level() instanceof ServerLevel level)
@@ -487,7 +488,7 @@ public final class RisenUndead
 
     private static void puff(ServerLevel level, Entity entity)
     {
-        level.sendParticles(ORANGE_DUST, entity.getX(), entity.getY() + entity.getBbHeight() / 2.0D, entity.getZ(),
+        level.sendParticles(PUFF_DUST, entity.getX(), entity.getY() + entity.getBbHeight() / 2.0D, entity.getZ(),
                 PUFF_PARTICLES, entity.getBbWidth() / 2.0D, entity.getBbHeight() / 3.0D, entity.getBbWidth() / 2.0D, 0.0D);
     }
 

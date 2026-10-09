@@ -1,0 +1,28 @@
+{
+  "parent": "dross:proven_worthy",
+  "display": {
+    "icon": {
+      "item": "dross:rift_key"
+    },
+    "title": {
+      "translate": "advancements.dross.keymaster.title"
+    },
+    "description": {
+      "translate": "advancements.dross.keymaster.description"
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "key_forged": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "key_forged"
+    ]
+  ]
+}

@@ -107,6 +107,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
      - Remove the nether star → compass trade, the Admin Sword trade and all Necromancy book trades.
      - After a player completes the quest he sells **Necromancy (its lowest level)** for 32 emeralds + book and **Deathforged I** for 24 emeralds + book. Unlimited uses, no restock, no XP.
      - The offers are the same for everyone, but the trading screen only opens for players who completed the quest (received the Rift Key).
+     - **Dross Guide Book** [to build]: for players who have the "Entered the Dross" advancement, he also sells the Dross Guide Book for 3 books (no emeralds; a labeled constant). Unlimited uses, no restock, no XP. Players without that advancement don't see this offer.
      - Existing traders in old worlds get their old offers replaced when they load.
    - **Spawn egg:** "Dross Trader Spawn Egg" in the creative Dross tab (spots electric blue after the color switch). An egg trader treats the spot he was spawned at as his home, with the same 50-block area, glow and teleport-home rules.
    - **Test tools:** `/dross trader` teleports you to him (even if his area isn't loaded) and `/dross trader home` sends him home. His entity ID is `dross:dross_trader`; `@e` selectors only find him while his area is loaded.

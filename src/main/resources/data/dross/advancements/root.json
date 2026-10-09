@@ -1,0 +1,28 @@
+{
+  "display": {
+    "icon": {
+      "item": "dross:dross_portal_frame"
+    },
+    "title": {
+      "translate": "advancements.dross.root.title"
+    },
+    "description": {
+      "translate": "advancements.dross.root.description"
+    },
+    "background": "dross:textures/block/dross_portal_frame.png",
+    "frame": "task",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": true
+  },
+  "criteria": {
+    "found_letter": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "found_letter"
+    ]
+  ]
+}

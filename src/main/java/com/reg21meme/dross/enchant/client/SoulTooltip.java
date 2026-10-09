@@ -1,8 +1,8 @@
 package com.reg21meme.dross.enchant.client;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.enchant.SoulStorage;
-import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
@@ -30,6 +30,6 @@ public final class SoulTooltip
         Component line = SoulStorage.isInfinite(stack)
                 ? Component.translatable("tooltip.dross.souls_infinite")
                 : Component.translatable("tooltip.dross.souls", SoulStorage.getSouls(stack), SoulStorage.capacity(stack));
-        event.getToolTip().add(line.copy().withStyle(ChatFormatting.GOLD));
+        event.getToolTip().add(line.copy().withStyle(DrossColors.SOUL_TOOLTIP));
     }
 }

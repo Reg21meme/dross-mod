@@ -11,10 +11,8 @@ import net.minecraft.BlockUtil;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.NbtUtils;
-import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
@@ -23,7 +21,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.border.WorldBorder;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -36,11 +33,12 @@ import org.slf4j.Logger;
 /**
  * Decides where an entity lands when it goes through a Dross portal.
  * <ul>
- *   <li><b>Into Dross:</b> same X/Z (1:1). Uses a lit Dross portal within 16 blocks if there is one;
- *       otherwise builds a new, already lit return portal (frame of {@code dross_portal_frame}) on the surface.</li>
- *   <li><b>Back to the Overworld:</b> the portal the entity originally left from; else any lit Dross portal
- *       near the same X/Z; else the portal site. Never builds anything in the Overworld. If no portal is
- *       found, the entity lands safely on the surface (or at world spawn) and a warning is logged.</li>
+ *   <li><b>Into the Dross</b> (any Dross portal outside the Dross): always the <b>hub</b> at Dross 0,0, standing
+ *       in front of its exit portal (see {@link DrossHub}). The hub is built the first time it's needed.</li>
+ *   <li><b>Out of the Dross</b> (the hub's exit portal): always the <b>castle portal</b> in the Overworld
+ *       ({@link PortalSite}), wherever the entity came in. Lit or not, it lands in front of that frame.
+ *       Nothing is ever built in the Overworld. If the castle frame can't be found, the entity lands safely
+ *       on the ground at the site's X/Z and a warning is logged.</li>
  * </ul>
  * The entity is always placed on solid ground in free space next to the portal (or, if both sides are
  * blocked, inside the portal itself, standing on the frame), never inside blocks or over a drop.
@@ -48,8 +46,8 @@ import org.slf4j.Logger;
 public class DrossTeleporter implements ITeleporter
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final int SEARCH_RADIUS = 16;
-    private static final int LINKED_SEARCH_RADIUS = 4;
+    /** How far around the castle frame to look for a lit Dross portal, if the frame isn't where PortalSite says. */
+    private static final int CASTLE_SEARCH_RADIUS = 16;
 
     @Override
     public boolean isVanilla()
@@ -58,7 +56,7 @@ public class DrossTeleporter implements ITeleporter
     }
 
     @Override
-    public boolean playTeleportSound(net.minecraft.server.level.ServerPlayer player, ServerLevel sourceWorld, ServerLevel destWorld)
+    public boolean playTeleportSound(ServerPlayer player, ServerLevel sourceWorld, ServerLevel destWorld)
     {
         return true; // the normal "portal travel" whoosh
     }
@@ -75,154 +73,111 @@ public class DrossTeleporter implements ITeleporter
     {
         if (destWorld.dimension() == ModDimensions.DROSS_LEVEL)
         {
-            return toDross(entity, destWorld);
+            return toHub(entity, destWorld);
         }
-        return toOverworld(entity, destWorld);
+        return toCastle(entity, destWorld);
     }
 
-    // ------------------------------------------------------------------ Overworld -> Dross
+    // ------------------------------------------------------------------ into the Dross: the hub
 
-    private static PortalInfo toDross(Entity entity, ServerLevel dross)
+    private static PortalInfo toHub(Entity entity, ServerLevel dross)
     {
-        BlockPos target = clampToBorder(dross, entity.getX(), entity.getY(), entity.getZ());
-        BlockUtil.FoundRectangle portal = findPortal(dross, target, SEARCH_RADIUS)
-                .orElseGet(() -> buildReturnPortal(dross, target));
-        return arrivalAt(dross, entity, portal);
+        return DrossHub.arrival(dross, entity);
+    }
+
+    // ------------------------------------------------------------------ out of the Dross: the castle portal
+
+    private static PortalInfo toCastle(Entity entity, ServerLevel dest)
+    {
+        if (dest.dimension() == Level.OVERWORLD)
+        {
+            Optional<PortalOpening> castle = findCastlePortal(dest);
+            if (castle.isPresent())
+            {
+                return arrivalAt(dest, entity, castle.get(), true);
+            }
+        }
+        LOGGER.warn("Dross portal: couldn't find the castle portal frame in {} (site X {} Z {}); landing {} on the ground there instead.",
+                dest.dimension().location(), PortalSite.X, PortalSite.Z, entity.getName().getString());
+        return safeLanding(dest, entity, PortalSite.X, PortalSite.Z);
     }
 
     /**
-     * Builds a 4 wide x 5 tall {@code dross_portal_frame} frame (corners included, opening 2x3, along X),
-     * already lit, standing on the surface at {@code target}. Makes sure there is solid floor in front of
-     * and behind it and clears the air around it.
+     * The castle frame's opening (lit or not), facing either way. Uses the frame axis and opening centre stored
+     * by the world site area; if there's no complete frame there, looks for a lit Dross portal near it.
      */
-    private static BlockUtil.FoundRectangle buildReturnPortal(ServerLevel level, BlockPos target)
+    private static Optional<PortalOpening> findCastlePortal(ServerLevel overworld)
     {
-        int x0 = target.getX() - 1; // frame x0..x0+3, so the opening (x0+1..x0+2) covers the arrival column
-        int z = target.getZ();
-
-        int ground = Integer.MIN_VALUE;
-        for (int dx = -1; dx <= 4; dx++)
+        // X = the frame runs along X (walk through it along Z); Z = the frame runs along Z (walk through along X).
+        Direction.Axis axis = PortalSite.getFrameAxis(overworld);
+        // The middle block of the opening's bottom row: always inside the frame, whichever way it faces.
+        BlockPos openingGuess = PortalSite.getOpeningCenter(overworld);
+        Optional<DrossPortalShape> frame = DrossPortalShape.findAnyPortalShape(overworld, openingGuess, axis);
+        if (frame.isPresent())
         {
-            for (int dz = -1; dz <= 1; dz++)
-            {
-                ground = Math.max(ground, surfaceY(level, x0 + dx, z + dz));
-            }
+            return Optional.of(PortalOpening.of(frame.get()));
         }
-        int minY = level.getMinBuildHeight();
-        if (ground <= minY + 1)
-        {
-            // No ground in this column (void). Build on a floating floor instead of over the drop.
-            ground = Math.max(level.getSeaLevel(), minY + 2);
-        }
-        ground = Math.min(ground, level.getMaxBuildHeight() - 5);
-        int g = ground; // first free y above the surface: the opening starts here, the frame's bottom row is at g-1
-
-        BlockState frame = ModBlocks.DROSS_PORTAL_FRAME.get().defaultBlockState();
-        BlockState floor = Blocks.OBSIDIAN.defaultBlockState();
-        BlockState air = Blocks.AIR.defaultBlockState();
-        BlockPos.MutableBlockPos m = new BlockPos.MutableBlockPos();
-
-        for (int dx = -1; dx <= 4; dx++)
-        {
-            for (int dz = -1; dz <= 1; dz++)
-            {
-                boolean inFramePlane = dz == 0 && dx >= 0 && dx <= 3;
-                if (!inFramePlane)
-                {
-                    m.set(x0 + dx, g - 1, z + dz);
-                    BlockState below = level.getBlockState(m);
-                    if (!below.isFaceSturdy(level, m, Direction.UP) || !below.getFluidState().isEmpty())
-                    {
-                        level.setBlockAndUpdate(m, floor);
-                    }
-                }
-                for (int dy = 0; dy <= 4; dy++)
-                {
-                    if (inFramePlane && dy <= 3)
-                    {
-                        continue; // frame / opening, placed below
-                    }
-                    m.set(x0 + dx, g + dy, z + dz);
-                    if (!level.getBlockState(m).isAir())
-                    {
-                        level.setBlockAndUpdate(m, air);
-                    }
-                }
-            }
-        }
-
-        for (int dx = 0; dx <= 3; dx++)
-        {
-            for (int dy = -1; dy <= 3; dy++)
-            {
-                if (dx == 0 || dx == 3 || dy == -1 || dy == 3)
-                {
-                    level.setBlockAndUpdate(m.set(x0 + dx, g + dy, z), frame);
-                }
-            }
-        }
-
-        BlockState portal = ModBlocks.DROSS_PORTAL.get().defaultBlockState().setValue(DrossPortalBlock.AXIS, Direction.Axis.X);
-        for (int dx = 1; dx <= 2; dx++)
-        {
-            for (int dy = 0; dy <= 2; dy++)
-            {
-                level.setBlock(m.set(x0 + dx, g + dy, z), portal, 18);
-            }
-        }
-
-        LOGGER.info("Built a Dross return portal at {} {} {} in {}", x0, g - 1, z, level.dimension().location());
-        return new BlockUtil.FoundRectangle(new BlockPos(x0 + 1, g, z), 2, 3);
+        return findLitPortal(overworld, openingGuess, CASTLE_SEARCH_RADIUS);
     }
 
-    // ------------------------------------------------------------------ Dross -> Overworld
+    // ------------------------------------------------------------------ helpers (also used by DrossHub)
 
-    private static PortalInfo toOverworld(Entity entity, ServerLevel dest)
+    /**
+     * Where to stand next to a portal opening: in front (+Z / +X side) first, then behind, one block out
+     * and then two; if all of that is blocked, inside the opening itself (standing on the frame).
+     * Faces away from the portal, as if the entity had just walked out of it.
+     */
+    static PortalInfo arrivalAt(ServerLevel level, Entity entity, PortalOpening opening)
     {
-        // 1. The portal this entity left from (remembered when it went into Dross).
-        CompoundTag data = entity.getPersistentData();
-        if (data.contains(DrossPortalTravel.TAG_RETURN_PORTAL, Tag.TAG_COMPOUND)
-                && dest.dimension().location().toString().equals(data.getString(DrossPortalTravel.TAG_RETURN_DIM)))
-        {
-            BlockPos linked = NbtUtils.readBlockPos(data.getCompound(DrossPortalTravel.TAG_RETURN_PORTAL));
-            Optional<BlockUtil.FoundRectangle> found = findPortal(dest, linked, LINKED_SEARCH_RADIUS);
-            if (found.isPresent())
-            {
-                return arrivalAt(dest, entity, found.get());
-            }
-        }
+        return arrivalAt(level, entity, opening, false);
+    }
 
-        // 2. Any lit Dross portal near the same X/Z.
-        BlockPos target = clampToBorder(dest, entity.getX(), entity.getY(), entity.getZ());
-        Optional<BlockUtil.FoundRectangle> nearby = findPortal(dest, target, SEARCH_RADIUS);
-        if (nearby.isPresent())
-        {
-            return arrivalAt(dest, entity, nearby.get());
-        }
+    /**
+     * Same as {@link #arrivalAt(ServerLevel, Entity, PortalOpening)}, but with {@code facePortal} true the entity
+     * looks at the portal instead of away from it (used for the castle, so players see the frame they came out of).
+     * Works for frames along X (stands on the +Z / -Z side) and along Z (stands on the +X / -X side).
+     */
+    static PortalInfo arrivalAt(ServerLevel level, Entity entity, PortalOpening opening, boolean facePortal)
+    {
+        BlockPos min = opening.minCorner();
+        boolean alongX = opening.axis() == Direction.Axis.X;
+        double along = opening.centerAlong();
+        double perp = (alongX ? min.getZ() : min.getX()) + 0.5D;
+        double y = min.getY();
 
-        // 3. The portal site.
-        if (dest.dimension() == Level.OVERWORLD)
+        for (int distance = 1; distance <= 2; distance++)
         {
-            BlockPos site = PortalSite.getFramePos(dest);
-            if (site != null)
+            for (int side : new int[] {1, -1})
             {
-                Optional<BlockUtil.FoundRectangle> atSite = findPortal(dest, site, SEARCH_RADIUS);
-                if (atSite.isPresent())
+                for (int dy : new int[] {0, -1, 1})
                 {
-                    return arrivalAt(dest, entity, atSite.get());
+                    double p = perp + side * distance;
+                    Vec3 pos = alongX ? new Vec3(along, y + dy, p) : new Vec3(p, y + dy, along);
+                    if (isSafe(level, entity, pos))
+                    {
+                        // Minecraft yaw: 0 faces +Z (south), 180 faces -Z, -90 faces +X (east), 90 faces -X.
+                        // This is the direction pointing away from the portal; turn around to face it.
+                        float yaw = alongX ? (side > 0 ? 0.0F : 180.0F) : (side > 0 ? -90.0F : 90.0F);
+                        if (facePortal)
+                        {
+                            yaw = Mth.wrapDegrees(yaw + 180.0F);
+                        }
+                        return new PortalInfo(pos, Vec3.ZERO, yaw, 0.0F);
+                    }
                 }
             }
         }
 
-        // 4. Nothing found: land safely at the same X/Z, never build a frame in the Overworld.
-        LOGGER.warn("Dross portal: no lit Dross portal found in {} near {} or at the portal site; landing {} on the surface instead.",
-                dest.dimension().location(), target.toShortString(), entity.getName().getString());
-        return safeLanding(dest, entity, target);
+        // Both sides blocked: stand inside the opening, on top of the frame's bottom row.
+        // The portal cooldown stops it from sending the entity straight back.
+        Vec3 inside = alongX ? new Vec3(along, y, perp) : new Vec3(perp, y, along);
+        return new PortalInfo(inside, Vec3.ZERO, entity.getYRot(), entity.getXRot());
     }
 
-    private static PortalInfo safeLanding(ServerLevel level, Entity entity, BlockPos target)
+    /** Lands on the ground at X/Z; if that column is unsafe (void, lava...), at the world spawn instead. */
+    static PortalInfo safeLanding(ServerLevel level, Entity entity, int x, int z)
     {
-        Vec3 spot = surfaceSpot(level, target.getX(), target.getZ());
+        Vec3 spot = surfaceSpot(level, x, z);
         if (spot != null && (isSafe(level, entity, spot) || level.getFluidState(BlockPos.containing(spot).below()).is(FluidTags.WATER)))
         {
             return new PortalInfo(spot, Vec3.ZERO, entity.getYRot(), entity.getXRot());
@@ -241,40 +196,6 @@ public class DrossTeleporter implements ITeleporter
             return null; // void column
         }
         return new Vec3(x + 0.5D, y, z + 0.5D);
-    }
-
-    // ------------------------------------------------------------------ helpers
-
-    /** Where to stand next to a found portal: in front (+Z/+X side first), then behind, then inside it. */
-    private static PortalInfo arrivalAt(ServerLevel level, Entity entity, BlockUtil.FoundRectangle rect)
-    {
-        BlockPos min = rect.minCorner;
-        BlockState state = level.getBlockState(min);
-        Direction.Axis axis = state.hasProperty(DrossPortalBlock.AXIS) ? state.getValue(DrossPortalBlock.AXIS) : Direction.Axis.X;
-        boolean alongX = axis == Direction.Axis.X;
-        double along = (alongX ? min.getX() : min.getZ()) + rect.axis1Size / 2.0D;
-        double perp = (alongX ? min.getZ() : min.getX()) + 0.5D;
-        double y = min.getY();
-
-        for (int side : new int[] {1, -1})
-        {
-            for (int dy : new int[] {0, -1, 1})
-            {
-                double p = perp + side;
-                Vec3 pos = alongX ? new Vec3(along, y + dy, p) : new Vec3(p, y + dy, along);
-                if (isSafe(level, entity, pos))
-                {
-                    // Face away from the portal, as if you just walked out of it.
-                    float yaw = alongX ? (side > 0 ? 0.0F : 180.0F) : (side > 0 ? -90.0F : 90.0F);
-                    return new PortalInfo(pos, Vec3.ZERO, yaw, 0.0F);
-                }
-            }
-        }
-
-        // Both sides blocked: stand inside the portal, on top of the frame's bottom row.
-        // The portal cooldown stops it from sending you straight back.
-        Vec3 inside = alongX ? new Vec3(along, y, perp) : new Vec3(perp, y, along);
-        return new PortalInfo(inside, Vec3.ZERO, entity.getYRot(), entity.getXRot());
     }
 
     /** Free space for the entity's body, no liquid in it, and solid, non-burning ground right under its feet. */
@@ -299,11 +220,11 @@ public class DrossTeleporter implements ITeleporter
     }
 
     /**
-     * Finds the nearest lit Dross portal within {@code radius} blocks (horizontally, any height) and returns
-     * its rectangle. Cheap: chunk sections whose block palette can't contain the portal block are skipped
+     * Finds the nearest lit Dross portal within {@code radius} blocks (horizontally, any height).
+     * Cheap: chunk sections whose block palette can't contain the portal block are skipped
      * without looking at their blocks.
      */
-    static Optional<BlockUtil.FoundRectangle> findPortal(ServerLevel level, BlockPos center, int radius)
+    static Optional<PortalOpening> findLitPortal(ServerLevel level, BlockPos center, int radius)
     {
         Block portal = ModBlocks.DROSS_PORTAL.get();
         BlockPos best = null;
@@ -372,23 +293,15 @@ public class DrossTeleporter implements ITeleporter
         }
         BlockState bottomState = level.getBlockState(bottom);
         Direction.Axis axis = bottomState.getValue(DrossPortalBlock.AXIS);
-        return Optional.of(BlockUtil.getLargestRectangleAround(bottom, axis, DrossPortalShape.MAX_WIDTH, Direction.Axis.Y,
-                DrossPortalShape.MAX_HEIGHT, p -> level.getBlockState(p) == bottomState));
+        BlockUtil.FoundRectangle rect = BlockUtil.getLargestRectangleAround(bottom, axis, DrossPortalShape.MAX_WIDTH, Direction.Axis.Y,
+                DrossPortalShape.MAX_HEIGHT, p -> level.getBlockState(p) == bottomState);
+        return Optional.of(new PortalOpening(rect.minCorner, axis, rect.axis1Size, rect.axis2Size));
     }
 
     /** First free y above the top solid/liquid block of a column (loads the chunk if needed). */
-    private static int surfaceY(ServerLevel level, int x, int z)
+    static int surfaceY(ServerLevel level, int x, int z)
     {
         LevelChunk chunk = level.getChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z));
         return chunk.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x & 15, z & 15) + 1;
-    }
-
-    private static BlockPos clampToBorder(ServerLevel level, double x, double y, double z)
-    {
-        WorldBorder border = level.getWorldBorder();
-        double cx = Mth.clamp(x, border.getMinX() + 16.0D, border.getMaxX() - 16.0D);
-        double cz = Mth.clamp(z, border.getMinZ() + 16.0D, border.getMaxZ() - 16.0D);
-        double cy = Mth.clamp(y, level.getMinBuildHeight(), level.getMaxBuildHeight() - 1);
-        return BlockPos.containing(cx, cy, cz);
     }
 }

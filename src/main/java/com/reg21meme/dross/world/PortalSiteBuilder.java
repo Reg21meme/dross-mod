@@ -1,7 +1,7 @@
 package com.reg21meme.dross.world;
 
 import com.mojang.logging.LogUtils;
-import com.reg21meme.dross.registry.ModBlocks;
+import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
@@ -11,42 +11,34 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FallingBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import org.slf4j.Logger;
 
 /**
- * Builds the unlit Dross portal frame at the portal site, once per world.
- *
- * <p>What gets built (seen from above, Z grows downwards, F = frame, . = cleared space on a solid floor):
- * <pre>
- *   . . . . . .    2 rows behind the frame
- *   . . . . . .
- *   . F F F F .    the frame row (z = PortalSite.Z), opening in the middle two columns
- *   . . . . . .    3 rows in front of the frame (+Z), where /dross site puts the player
- *   . . . . . .
- *   . . . . . .
- * </pre>
- * The floor is only filled in where it isn't already solid ground (water, lava, air over a cliff...).
- * Everything above the floor is cleared up to one block above the frame.
+ * Builds the portal site (the castle) once per world:
+ * <ol>
+ *   <li>If the castle template {@code data/dross/structures/portal_castle.nbt} exists and contains exactly one
+ *       complete, unlit Dross frame, it's placed centred on the site ({@link PortalCastle}).</li>
+ *   <li>Otherwise the placeholder ruined shrine is built ({@link PortalShrine}).</li>
+ *   <li>Then the Dross "leaks" into the area around the frame, once ({@link SiteLeak}).</li>
+ * </ol>
+ * The frame's corner, axis and opening size are saved in {@link PortalSiteData}. The frame is never lit here
+ * (lighting it with the Rift Key is the portal area's job).
  */
 public final class PortalSiteBuilder
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** Extra floor/clear space on each side of the frame along X. */
-    private static final int PAD_X = 1;
-    /** Floor/clear rows behind (-Z) and in front (+Z) of the frame. */
-    private static final int ROWS_BEHIND = 2;
-    static final int ROWS_IN_FRONT = 3;
-    /** How many air blocks are cleared above the floor (frame height + 1). */
-    private static final int CLEAR_HEIGHT = PortalSite.FRAME_HEIGHT + 1;
+    /** How many air blocks are cleared above the placeholder's floor (frame height + 1). */
+    static final int CLEAR_HEIGHT = PortalSite.FRAME_HEIGHT + 1;
     /** Below the floor, fill up to this many extra blocks of water/lava/air so the platform has some support. */
-    private static final int SUPPORT_DEPTH = 3;
+    static final int SUPPORT_DEPTH = 3;
 
     /**
-     * Makes sure the frame exists in this world, building it the first time.
+     * Makes sure the site exists in this world, building it the first time.
      * Must be called on the server thread with the Overworld.
      *
-     * @return the frame position (bottom corner frame block with the lowest X)
+     * @return the frame position (bottom corner frame block with the lowest X and Z)
      */
     public static BlockPos ensurePlaced(ServerLevel overworld)
     {
@@ -56,26 +48,50 @@ public final class PortalSiteBuilder
             return data.getFramePos();
         }
 
-        BlockPos framePos = plannedFramePos(overworld);
-        build(overworld, framePos);
-        data.markPlaced(framePos);
-        LOGGER.info("Dross: built the unlit portal site frame at {}", framePos.toShortString());
-        return framePos;
+        SiteFrame frame = null;
+        String kind = PortalSiteData.KIND_PLACEHOLDER;
+        Optional<StructureTemplate> template = overworld.getStructureManager().get(PortalSite.CASTLE_TEMPLATE);
+        if (template.isPresent())
+        {
+            frame = PortalCastle.place(overworld, template.get());
+            if (frame != null)
+            {
+                kind = PortalSiteData.KIND_TEMPLATE;
+            }
+        }
+        else
+        {
+            LOGGER.info("Dross portal site: no castle template ({} = data/dross/structures/portal_castle.nbt), so the placeholder shrine is used.",
+                    PortalSite.CASTLE_TEMPLATE);
+        }
+        if (frame == null)
+        {
+            frame = PortalShrine.build(overworld, plannedFramePos(overworld));
+        }
+
+        SiteLeak.apply(overworld, frame);
+        data.markPlaced(frame, kind);
+        return frame.corner();
     }
 
-    /** Where the frame goes: on the ground at the site, with the site column inside the opening. */
+    /** Where the placeholder frame goes: on the ground at the site, with the site column inside the opening. */
     static BlockPos plannedFramePos(ServerLevel level)
     {
-        int standY = findStandY(level, PortalSite.X, PortalSite.Z);
-        standY = Mth.clamp(standY, level.getMinBuildHeight() + 1, level.getMaxBuildHeight() - CLEAR_HEIGHT - 1);
+        int standY = clampY(level, findStandY(level, PortalSite.X, PortalSite.Z), CLEAR_HEIGHT);
         return new BlockPos(PortalSite.frameMinX(), standY, PortalSite.Z);
+    }
+
+    /** Keeps a build of this height (plus its support underneath) inside the world's build limits. */
+    static int clampY(ServerLevel level, int y, int height)
+    {
+        return Mth.clamp(y, level.getMinBuildHeight() + SUPPORT_DEPTH + 2, level.getMaxBuildHeight() - height - 1);
     }
 
     /**
      * The Y a player would stand at in this column: one above the top solid block or the top of water/lava.
      * Trees (logs and leaves) and things you can walk through (grass, flowers, snow layers) are ignored.
      */
-    private static int findStandY(ServerLevel level, int x, int z)
+    static int findStandY(ServerLevel level, int x, int z)
     {
         int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, top, z);
@@ -99,20 +115,18 @@ public final class PortalSiteBuilder
         return level.getSeaLevel();
     }
 
-    private static void build(ServerLevel level, BlockPos frame)
+    /**
+     * Flattens a box for building on:
+     * <ol>
+     *   <li>a solid floor at {@code floorY} wherever the ground isn't solid (water, lava, a drop), with a little
+     *       support underneath;</li>
+     *   <li>water/lava around the box (and sand/gravel above it) sealed off so nothing pours or falls in;</li>
+     *   <li>everything from {@code floorY + 1} up to {@code topY} cleared (trees, terrain, water...).</li>
+     * </ol>
+     */
+    static void prepareGround(ServerLevel level, int minX, int maxX, int minZ, int maxZ, int floorY, int topY, BlockState platform)
     {
-        int frameX = frame.getX();
-        int floorY = frame.getY() - 1;
-        int bottomY = frame.getY();
-        int topY = bottomY + CLEAR_HEIGHT - 1;
-        int frameZ = frame.getZ();
-
-        int minX = frameX - PAD_X;
-        int maxX = frameX + PortalSite.FRAME_WIDTH - 1 + PAD_X;
-        int minZ = frameZ - ROWS_BEHIND;
-        int maxZ = frameZ + ROWS_IN_FRONT;
-
-        BlockState platform = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
+        int bottomY = floorY + 1;
         BlockState air = Blocks.AIR.defaultBlockState();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
 
@@ -182,24 +196,10 @@ public final class PortalSiteBuilder
                 }
             }
         }
-
-        // 4. The frame itself: 4 wide x 5 tall along X, corners included, opening left empty (unlit).
-        BlockState frameBlock = ModBlocks.DROSS_PORTAL_FRAME.get().defaultBlockState();
-        for (int i = 0; i < PortalSite.FRAME_WIDTH; i++)
-        {
-            for (int j = 0; j < PortalSite.FRAME_HEIGHT; j++)
-            {
-                boolean edge = i == 0 || i == PortalSite.FRAME_WIDTH - 1 || j == 0 || j == PortalSite.FRAME_HEIGHT - 1;
-                if (edge)
-                {
-                    level.setBlock(pos.set(frameX + i, bottomY + j, frameZ), frameBlock, Block.UPDATE_ALL);
-                }
-            }
-        }
     }
 
     /** Something you can stand on: not air, not a liquid, not leaves, and has a collision box. */
-    private static boolean isSolidGround(ServerLevel level, BlockPos pos)
+    static boolean isSolidGround(ServerLevel level, BlockPos pos)
     {
         BlockState state = level.getBlockState(pos);
         return !state.isAir()

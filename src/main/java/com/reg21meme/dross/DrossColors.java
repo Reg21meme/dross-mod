@@ -17,48 +17,71 @@ import org.joml.Vector3f;
  * Colors baked into textures (the portal, frame and Admin Sword PNGs) are not code
  * constants and are not listed here.
  *
- * The values below are what the mod uses today (orange/gold). The planned electric blue
- * palette (main 0x2E6BFF, deep cobalt 0x0B2A9E, highlight 0x7FA8FF) arrives with the
- * orange-to-blue switch in EARLY_GAME_PLAN.md. Existing code is moved onto these
- * constants as each area is next changed.
+ * The Dross's color is electric blue: see the "Palette" section below. Each area points its
+ * own constants at the palette as it switches from the old orange/gold (some areas are
+ * still orange until their step of the early-game build runs).
  */
 public final class DrossColors {
 
     private DrossColors() {
     }
 
+    // ---------------------------------------------------------------- Palette (shared)
+    // The Dross's electric blue. Areas point their own constants at these.
+    // Change these values only when the user asks for a different palette.
+
+    /** Main electric blue. */
+    public static final int PALETTE_MAIN = 0x2E6BFF;
+
+    /** Deep cobalt (the dark shade). */
+    public static final int PALETTE_DEEP_COBALT = 0x0B2A9E;
+
+    /** Highlight (the light shade). */
+    public static final int PALETTE_HIGHLIGHT = 0x7FA8FF;
+
     // ---------------------------------------------------------------- Portal (portal-builder)
 
     /** Portal swirl particles. The particle provider scales it by a random brightness. Used in portal/client/DrossPortalParticleProvider. */
-    public static final int PORTAL_PARTICLE = 0xFF7314;
+    public static final int PORTAL_PARTICLE = PALETTE_MAIN;
 
-    /** "The Dross" arrival title. Used in portal/DrossArrival. */
-    public static final ChatFormatting ARRIVAL_TITLE = ChatFormatting.GOLD;
+    /** "The Dross" arrival title (any RGB works for titles). Used in portal/DrossArrival. */
+    public static final int ARRIVAL_TITLE = PALETTE_MAIN;
+
+    /** Drifting dust that "leaks" out of every portal frame block. Used in portal/DrossPortalFrameBlock. */
+    public static final int FRAME_LEAK_PARTICLE = PALETTE_MAIN;
+
+    /** The Rift Key's item name. Used in portal/RiftKeyItem. */
+    public static final int RIFT_KEY_NAME = PALETTE_HIGHLIGHT;
 
     // ---------------------------------------------------------------- Villager (villager-builder)
 
     /** The trader's glow outline (any RGB works here, no team needed). Used in villager/DrossTrader. */
-    public static final int TRADER_GLOW = 0xFFAA00;
+    public static final int TRADER_GLOW = PALETTE_MAIN;
 
     /** Trader spawn egg base color. Used in registry/ModItems. */
     public static final int TRADER_EGG_BASE = 0x10101C;
 
     /** Trader spawn egg spot color. Used in registry/ModItems. */
-    public static final int TRADER_EGG_SPOTS = 0xDB7D1F;
+    public static final int TRADER_EGG_SPOTS = PALETTE_MAIN;
 
     // ---------------------------------------------------------------- Enchantments (enchant-builder)
 
     /** Soul wisp that flies from a killed mob to the player. Used in enchant/NecromancyEvents. */
-    public static final int SOUL_WISP = 0xFF8C00;
+    public static final int SOUL_WISP = PALETTE_MAIN;
 
     /** Puff when risen undead rise or crumble. Used in enchant/RisenUndead. */
-    public static final int RISEN_PUFF = 0xFF8000;
+    public static final int RISEN_PUFF = PALETTE_MAIN;
 
-    /** Deathforged X glow outline (a scoreboard team, so a chat color). Used in enchant/RisenUndead. */
-    public static final ChatFormatting RISEN_GLOW_TEAM = ChatFormatting.GOLD;
+    /** Deathforged X glow outline (a scoreboard team, so a chat color: BLUE is the closest to the palette). Used in enchant/RisenUndead. */
+    public static final ChatFormatting RISEN_GLOW_TEAM = ChatFormatting.BLUE;
 
-    /** "Souls: X / Y" tooltip text. Used in enchant/client/SoulTooltip. */
+    /** "Souls: X / Y" tooltip text. Stays gold (user decision). Used in enchant/client/SoulTooltip. */
     public static final ChatFormatting SOUL_TOOLTIP = ChatFormatting.GOLD;
+
+    // ---------------------------------------------------------------- Quest (quest-builder)
+
+    /** The "Right-click to read" tooltip line on the Weathered Letter and the Dross Guide Book. Used in quest/ReadableItem. */
+    public static final ChatFormatting READABLE_TOOLTIP = ChatFormatting.GRAY;
 
     // ---------------------------------------------------------------- Helpers
 

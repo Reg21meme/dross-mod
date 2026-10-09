@@ -11,7 +11,7 @@ public final class ModParticles
 {
     public static final DeferredRegister<ParticleType<?>> PARTICLE_TYPES = DeferredRegister.create(ForgeRegistries.PARTICLE_TYPES, Dross.MODID);
 
-    // Portal area: orange swirl particles around the Dross portal
+    // Portal area: electric blue swirl particles around the Dross portal
     public static final RegistryObject<SimpleParticleType> DROSS_PORTAL = PARTICLE_TYPES.register("dross_portal", () -> new SimpleParticleType(false));
 
     private ModParticles() {}

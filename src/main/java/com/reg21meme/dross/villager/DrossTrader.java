@@ -1,11 +1,20 @@
 package com.reg21meme.dross.villager;
 
+import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.quest.DrossAdvancements;
+import com.reg21meme.dross.quest.DrossGuideBookItem;
+import com.reg21meme.dross.quest.QuestProgress;
+import com.reg21meme.dross.quest.QuestRequirement;
 import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtUtils;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
@@ -17,6 +26,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -33,21 +43,26 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Dross trader: a villager-like NPC with fixed trades (nether star -> Dross Compass,
- * Dross Portal Frame -> Admin Sword). He is based on AbstractVillager, so he has no profession,
+ * The Dross trader: a villager-like NPC who runs the early-game quest and, once a player has finished it,
+ * sells Necromancy and Deathforged books. He is based on AbstractVillager, so he has no profession,
  * can't breed and never changes jobs. He is persistent (never despawns).
+ * <p>
+ * Right-click (main hand, not sneaking): see {@link #mobInteract}. Before a player has finished the quest
+ * his trading screen never opens. All his lines are lang keys named {@code dross.trader.dialogue.*}.
  * <p>
  * He can be hurt and knocked back but can never die (he only spawns once, so we don't want him lost):
  * at half health or less he teleports home and fully heals.
@@ -55,24 +70,27 @@ import java.util.List;
  * He lives in a hut (see {@link TraderHut}) and wanders within {@link #LEASH} blocks of it.
  * If he strays too far, falls, or ends up underground, he teleports back into the hut.
  * A trader from a spawn egg treats the spot he was spawned at as his home.
- * While any player is within his area, he glows gold (visible through walls) so he's easy to find.
+ * While any player is within his area, he glows electric blue (visible through walls) so he's easy to find.
  */
 public class DrossTrader extends AbstractVillager
 {
-    /** How many times the compass can be bought. He never restocks. */
-    private static final int COMPASS_MAX_USES = 3;
-    /** The Admin Sword trade has no real limit. */
-    private static final int ADMIN_SWORD_MAX_USES = Integer.MAX_VALUE;
-    /** The Necromancy book trades have no real limit either. */
-    private static final int NECROMANCY_MAX_USES = Integer.MAX_VALUE;
-    /** Necromancy I: emeralds (plus a book). */
-    private static final int NECROMANCY_1_EMERALDS = 16;
-    /** Necromancy II: diamonds (plus a book). */
-    private static final int NECROMANCY_2_DIAMONDS = 8;
-    /** Necromancy III: nether stars (plus a book). */
-    private static final int NECROMANCY_3_NETHER_STARS = 1;
-    /** Necromancy IV: Dross Portal Frames (no book needed). */
-    private static final int NECROMANCY_4_PORTAL_FRAMES = 1;
+    // ---- Shop prices (after the quest). Each costs emeralds plus one plain book. ----
+    /** Emeralds for the lowest level of Necromancy. */
+    private static final int NECROMANCY_EMERALDS = 32;
+    /** Emeralds for Deathforged I. */
+    private static final int DEATHFORGED_EMERALDS = 24;
+    /** The Deathforged level he sells. */
+    private static final int DEATHFORGED_LEVEL = 1;
+    /** Plain books for the Dross Guide Book (no emeralds). Only offered to players who have "Entered the Dross". */
+    private static final int GUIDE_BOOK_COST_BOOKS = 3;
+    /** The shop has no real use limit. */
+    private static final int SHOP_MAX_USES = Integer.MAX_VALUE;
+    /**
+     * Bump this whenever the shop changes. A trader saved with a different number gets his saved offers
+     * replaced by the current shop once, when he loads. (Traders saved before this existed have no number.)
+     */
+    private static final int SHOP_VERSION = 1;
+    private static final String TAG_SHOP_VERSION = "ShopVersion";
 
     /** He stays within this many blocks of his hut in X and Z. */
     private static final int LEASH = 50;
@@ -81,14 +99,10 @@ public class DrossTrader extends AbstractVillager
     /** Being more than this many blocks below the surface sends him home. */
     private static final int MAX_DEPTH = 3;
     private static final String TAG_HOME = "HomePos";
-    /** Glow outline colour: gold, to match the Dross portal (same as ChatFormatting.GOLD). */
-    private static final int GLOW_COLOR = 0xFFAA00;
 
     /** The middle of his hut floor (or his spawn spot, for a spawn-egg trader). Set on his first tick if missing. */
     @Nullable
     private BlockPos home;
-    /** Set when loaded from disk: on the first server tick, add any trades he is missing. */
-    private boolean checkTrades;
 
     public DrossTrader(EntityType<? extends DrossTrader> type, Level level)
     {
@@ -134,11 +148,6 @@ public class DrossTrader extends AbstractVillager
         {
             return;
         }
-        if (this.checkTrades)
-        {
-            this.checkTrades = false;
-            this.addMissingOffers(serverLevel);
-        }
         if (this.home == null)
         {
             // A spawn-egg (or /summon) trader: wherever he first appears is his home.
@@ -155,7 +164,7 @@ public class DrossTrader extends AbstractVillager
         }
     }
 
-    /** Glow (through walls) while any player is within his area, so he's easy to find. */
+    /** Glow (blue, through walls) while any player is within his area, so he's easy to find. */
     private void updateGlow(ServerLevel level)
     {
         boolean playerNearby = false;
@@ -177,7 +186,7 @@ public class DrossTrader extends AbstractVillager
     @Override
     public int getTeamColor()
     {
-        return GLOW_COLOR;
+        return DrossColors.TRADER_GLOW;
     }
 
     /** If this is the hut trader, remember where he is, so /dross trader can find him when he isn't loaded. */
@@ -243,13 +252,21 @@ public class DrossTrader extends AbstractVillager
                 && pos.getY() >= this.home.getY() - 1 && pos.getY() <= this.home.getY() + 3;
     }
 
-    /** Enderman-style teleport into the middle of his hut, with orange particles. Also used by /dross trader home. */
+    /**
+     * Enderman-style teleport into the middle of his hut, with the portal's blue particles. The one shared
+     * "go home" path: too far, fell, too deep, half health and /dross trader home all use it.
+     * He leaves any vehicle first (the vehicle is left behind).
+     */
     public void teleportHome(ServerLevel level)
     {
         if (this.home == null)
         {
             return;
         }
+        // Get out of any boat/minecart/horse first (the vehicle stays where it is), and drop any
+        // passengers, so nothing is dragged along or blocks the move. Only then play the effects.
+        this.stopRiding();
+        this.ejectPassengers();
         this.teleportEffects(level);
         this.getNavigation().stop();
         this.teleportTo(this.home.getX() + 0.5D, this.home.getY(), this.home.getZ() + 0.5D);
@@ -277,6 +294,8 @@ public class DrossTrader extends AbstractVillager
     public void addAdditionalSaveData(CompoundTag tag)
     {
         super.addAdditionalSaveData(tag);
+        tag.putInt(TAG_SHOP_VERSION, SHOP_VERSION);
+        removeGuideOfferFromTag(tag);
         if (this.home != null)
         {
             tag.put(TAG_HOME, NbtUtils.writeBlockPos(this.home));
@@ -289,7 +308,15 @@ public class DrossTrader extends AbstractVillager
         super.readAdditionalSaveData(tag);
         // Traders saved before he could take damage were invulnerable; he isn't any more (he just can't die).
         this.setInvulnerable(false);
-        this.checkTrades = true;
+        // The guide book offer is per player and never kept between sessions.
+        this.getOffers().removeIf(DrossTrader::isGuideBookOffer);
+        if (tag.getInt(TAG_SHOP_VERSION) != SHOP_VERSION)
+        {
+            // One-time migration: an old trader's saved trades are replaced by the current shop.
+            MerchantOffers offers = this.getOffers();
+            offers.clear();
+            offers.addAll(buildOffers());
+        }
         if (tag.contains(TAG_HOME))
         {
             this.setHome(NbtUtils.readBlockPos(tag.getCompound(TAG_HOME)));
@@ -302,115 +329,275 @@ public class DrossTrader extends AbstractVillager
         return false;
     }
 
-    // ---------------------------------------------------------------- trading
+    // ---------------------------------------------------------------- talking and trading
 
+    /**
+     * Right-click. Only the main hand counts, and sneaking falls through to vanilla. Server side, in order:
+     * <ol>
+     *   <li>A player's first right-click ever: the opening speech.</li>
+     *   <li>Holding something he wants: hand it in (full amount only).</li>
+     *   <li>Earned the compass but has none: a free new one.</li>
+     *   <li>Quest complete: the shop opens. Otherwise: he repeats what's still needed.</li>
+     * </ol>
+     * The trading screen never opens before the quest is complete.
+     */
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand)
     {
-        if (this.isAlive() && !this.isTrading() && !player.isSecondaryUseActive())
+        if (!this.isAlive() || this.isTrading() || player.isSecondaryUseActive())
         {
-            if (!this.level().isClientSide)
-            {
-                this.setTradingPlayer(player);
-                this.openTradingScreen(player, this.getDisplayName(), 1);
-            }
-            return InteractionResult.sidedSuccess(this.level().isClientSide);
+            return super.mobInteract(player, hand);
         }
-        return super.mobInteract(player, hand);
+        if (hand != InteractionHand.MAIN_HAND)
+        {
+            return InteractionResult.PASS;
+        }
+        if (player instanceof ServerPlayer serverPlayer)
+        {
+            this.talkTo(serverPlayer);
+        }
+        return InteractionResult.sidedSuccess(this.level().isClientSide);
     }
+
+    private void talkTo(ServerPlayer player)
+    {
+        if (!QuestProgress.hasSpokenIntro(player))
+        {
+            QuestProgress.markIntroSpoken(player);
+            this.say(player, "intro");
+            this.playSound(SoundEvents.VILLAGER_AMBIENT, 1.0F, this.getVoicePitch());
+            return;
+        }
+
+        ItemStack held = player.getMainHandItem();
+        if (this.wantsHandIn(player, held))
+        {
+            this.handIn(player, held);
+            return;
+        }
+
+        if (QuestProgress.hasEarnedCompass(player) && !hasDrossCompass(player))
+        {
+            giveItem(player, DrossCompass.create(player.serverLevel()));
+            this.say(player, "compass_replaced");
+            this.playSound(SoundEvents.VILLAGER_YES, 1.0F, this.getVoicePitch());
+            return;
+        }
+
+        if (QuestProgress.isQuestComplete(player))
+        {
+            this.updateGuideBookOffer(player);
+            this.setTradingPlayer(player);
+            this.openTradingScreen(player, this.getDisplayName(), 1);
+        }
+        else
+        {
+            this.remind(player);
+        }
+    }
+
+    /**
+     * Should the item in the player's hand be treated as a hand-in?
+     * Before the quest is complete: any quest item (so he can answer "not yet" or "already have it").
+     * After it: only a key material he still needs, and only if the player has no Rift Key
+     * (a replacement key). Otherwise a right-click opens the shop as normal.
+     */
+    private boolean wantsHandIn(ServerPlayer player, ItemStack held)
+    {
+        if (QuestProgress.isQuestComplete(player))
+        {
+            return !hasRiftKey(player) && QuestProgress.getWantedRequirement(player, held) != null;
+        }
+        return QuestRequirement.forItem(held) != null;
+    }
+
+    /** Takes the full amount or nothing (the quest API does the taking), then answers. */
+    private void handIn(ServerPlayer player, ItemStack held)
+    {
+        QuestProgress.HandInResult result = QuestProgress.handIn(player, held);
+        QuestRequirement requirement = result.requirement();
+        switch (result.outcome())
+        {
+            case NOT_WANTED -> this.remind(player);
+            case NOT_YET -> this.refuse(player, "not_yet");
+            case ALREADY_HANDED_IN -> this.refuse(player, "already_have", requirement.getItem().getDescription());
+            case NOT_ENOUGH -> this.refuse(player, "not_enough", requirement.describe());
+            case ACCEPTED ->
+            {
+                this.say(player, "accepted", stillNeeded(player));
+                this.playSound(SoundEvents.VILLAGER_YES, 1.0F, this.getVoicePitch());
+            }
+            case TRIBUTES_COMPLETE ->
+            {
+                giveItem(player, DrossCompass.create(player.serverLevel()));
+                this.say(player, "tributes_complete", stillNeeded(player));
+                this.playSound(SoundEvents.VILLAGER_CELEBRATE, 1.0F, this.getVoicePitch());
+            }
+            case KEY_FORGED ->
+            {
+                giveItem(player, new ItemStack(ModItems.RIFT_KEY.get()));
+                this.say(player, QuestProgress.getKeysForged(player) > 1 ? "key_replaced" : "key_forged");
+                this.playSound(SoundEvents.VILLAGER_CELEBRATE, 1.0F, this.getVoicePitch());
+            }
+        }
+    }
+
+    /** Repeats what's still needed (before the quest is complete). */
+    private void remind(ServerPlayer player)
+    {
+        boolean tributes = QuestProgress.getStage(player) == QuestProgress.Stage.TRIBUTES;
+        this.say(player, tributes ? "reminder_tributes" : "reminder_key_materials", stillNeeded(player));
+        this.playSound(SoundEvents.VILLAGER_AMBIENT, 1.0F, this.getVoicePitch());
+    }
+
+    private void refuse(ServerPlayer player, String key, Object... args)
+    {
+        this.say(player, key, args);
+        this.playSound(SoundEvents.VILLAGER_NO, 1.0F, this.getVoicePitch());
+    }
+
+    /** The tributes still needed, or (once those are in) the key materials still needed, as "Echo Shard x3, ...". */
+    private static Component stillNeeded(ServerPlayer player)
+    {
+        List<QuestRequirement> list = QuestProgress.getStage(player) == QuestProgress.Stage.TRIBUTES
+                ? QuestProgress.getStillNeeded(player)
+                : QuestProgress.getMissingKeyMaterials(player);
+        MutableComponent text = Component.empty();
+        for (int i = 0; i < list.size(); i++)
+        {
+            if (i > 0)
+            {
+                text.append(", ");
+            }
+            text.append(list.get(i).describe());
+        }
+        return text;
+    }
+
+    /** Says one line of his dialogue in chat, like a player would: {@code <Dross Trader> line}. */
+    private void say(ServerPlayer player, String key, Object... args)
+    {
+        Component line = Component.translatable("dross.trader.dialogue." + key, args);
+        player.sendSystemMessage(Component.translatable("chat.type.text", this.getDisplayName(), line));
+    }
+
+    /** Puts the item in the player's inventory, or drops it at their feet if it's full. */
+    private static void giveItem(ServerPlayer player, ItemStack stack)
+    {
+        if (!player.getInventory().add(stack) && !stack.isEmpty())
+        {
+            ItemEntity entity = new ItemEntity(player.level(), player.getX(), player.getY(), player.getZ(), stack);
+            entity.setDeltaMovement(0, 0, 0);
+            entity.setNoPickUpDelay();
+            entity.setTarget(player.getUUID());
+            player.level().addFreshEntity(entity);
+        }
+    }
+
+    private static boolean hasDrossCompass(ServerPlayer player)
+    {
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++)
+        {
+            if (DrossCompass.isDrossCompass(player.getInventory().getItem(i)))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasRiftKey(ServerPlayer player)
+    {
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++)
+        {
+            if (player.getInventory().getItem(i).is(ModItems.RIFT_KEY.get()))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---------------------------------------------------------------- the shop
 
     @Override
     protected void updateTrades()
     {
-        if (this.level() instanceof ServerLevel serverLevel)
-        {
-            this.getOffers().addAll(buildOffers(serverLevel));
-        }
-    }
-
-    /** All of his trades, in order. No XP, no price changes, no restock. */
-    private static List<MerchantOffer> buildOffers(ServerLevel level)
-    {
-        List<MerchantOffer> list = new ArrayList<>();
-        list.add(new MerchantOffer(
-                new ItemStack(Items.NETHER_STAR),
-                DrossCompass.create(level),
-                COMPASS_MAX_USES,
-                0,      // no villager XP
-                0.0F)); // no price changes
-        // TESTING ONLY: see "Parked for later" in CLAUDE.md.
-        list.add(new MerchantOffer(
-                new ItemStack(ModItems.DROSS_PORTAL_FRAME.get()),
-                new ItemStack(ModItems.ADMIN_SWORD.get()),
-                ADMIN_SWORD_MAX_USES,
-                0,
-                0.0F));
-        // Necromancy books
-        list.add(bookOffer(new ItemStack(Items.EMERALD, NECROMANCY_1_EMERALDS), 1));
-        list.add(bookOffer(new ItemStack(Items.DIAMOND, NECROMANCY_2_DIAMONDS), 2));
-        list.add(bookOffer(new ItemStack(Items.NETHER_STAR, NECROMANCY_3_NETHER_STARS), 3));
-        list.add(new MerchantOffer(
-                new ItemStack(ModItems.DROSS_PORTAL_FRAME.get(), NECROMANCY_4_PORTAL_FRAMES),
-                necromancyBook(4),
-                NECROMANCY_MAX_USES,
-                0,
-                0.0F));
-        return list;
-    }
-
-    /** Necromancy I-III cost the given item plus one plain book. */
-    private static MerchantOffer bookOffer(ItemStack price, int level)
-    {
-        return new MerchantOffer(price, new ItemStack(Items.BOOK), necromancyBook(level), NECROMANCY_MAX_USES, 0, 0.0F);
-    }
-
-    private static ItemStack necromancyBook(int level)
-    {
-        return EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.NECROMANCY.get(), level));
+        this.getOffers().addAll(buildOffers());
     }
 
     /**
-     * Update step for traders saved before some trades existed: adds any trade from the current list
-     * that he doesn't have yet. Existing trades (and their use counts) are left alone.
-     * The compass trade is matched by item types (its result tags may differ between versions).
+     * His shop (same for everyone; the screen only opens for players who finished the quest).
+     * No XP, no price changes, no restock, unlimited uses.
      */
-    private void addMissingOffers(ServerLevel level)
+    private static List<MerchantOffer> buildOffers()
+    {
+        Enchantment necromancy = ModEnchantments.NECROMANCY.get();
+        List<MerchantOffer> list = new ArrayList<>();
+        // Necromancy at its lowest level (a restructure into five levels is planned, so ask the enchantment).
+        list.add(bookOffer(NECROMANCY_EMERALDS, necromancy, necromancy.getMinLevel()));
+        list.add(bookOffer(DEATHFORGED_EMERALDS, ModEnchantments.DEATHFORGED.get(), DEATHFORGED_LEVEL));
+        return list;
+    }
+
+    /** Emeralds plus one plain book for an enchanted book. */
+    private static MerchantOffer bookOffer(int emeralds, Enchantment enchantment, int level)
+    {
+        return new MerchantOffer(
+                new ItemStack(Items.EMERALD, emeralds),
+                new ItemStack(Items.BOOK),
+                EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantment, level)),
+                SHOP_MAX_USES,
+                0,      // no villager XP
+                0.0F);  // no price changes
+    }
+
+    /**
+     * The Dross Guide Book offer lives only while a player who has "Entered the Dross" is trading:
+     * it is added just before the screen opens, removed when the trade ends, and never saved.
+     */
+    private void updateGuideBookOffer(ServerPlayer player)
     {
         MerchantOffers offers = this.getOffers();
-        for (MerchantOffer wanted : buildOffers(level))
+        offers.removeIf(DrossTrader::isGuideBookOffer);
+        if (DrossAdvancements.has(player, DrossAdvancements.ENTERED_THE_DROSS))
         {
-            MerchantOffer existing = null;
-            for (MerchantOffer offer : offers)
-            {
-                if (isSameTrade(offer, wanted))
-                {
-                    existing = offer;
-                    break;
-                }
-            }
-            if (existing == null)
-            {
-                offers.add(wanted);
-            }
-            else if (DrossCompass.isDrossCompass(wanted.getResult()) && !DrossCompass.isDrossCompass(existing.getResult()))
-            {
-                // Old compass trade: give its result the marker, so bought compasses are tracked. Uses are untouched.
-                existing.getResult().getOrCreateTag().putBoolean(DrossCompass.TAG_MARKER, true);
-            }
+            offers.add(new MerchantOffer(
+                    new ItemStack(Items.BOOK, GUIDE_BOOK_COST_BOOKS),
+                    DrossGuideBookItem.create(),   // a book with its pages already written in
+                    SHOP_MAX_USES,
+                    0,
+                    0.0F));
         }
     }
 
-    private static boolean isSameTrade(MerchantOffer offer, MerchantOffer wanted)
+    /** When the trade ends (screen closed, or he's hurt, etc.), the per-player offer goes away. */
+    @Override
+    public void setTradingPlayer(@Nullable Player player)
     {
-        if (!offer.getBaseCostA().is(wanted.getBaseCostA().getItem()) || !offer.getCostB().is(wanted.getCostB().getItem()))
+        super.setTradingPlayer(player);
+        if (player == null)
         {
-            return false;
+            this.getOffers().removeIf(DrossTrader::isGuideBookOffer);
         }
-        if (wanted.getResult().is(Items.COMPASS))
+    }
+
+    private static boolean isGuideBookOffer(MerchantOffer offer)
+    {
+        return offer.getResult().is(ModItems.DROSS_GUIDE_BOOK.get());
+    }
+
+    /** Takes the guide book offer out of the saved data (an offer could be present if he's saved mid-trade). */
+    private static void removeGuideOfferFromTag(CompoundTag tag)
+    {
+        if (!tag.contains("Offers", Tag.TAG_COMPOUND))
         {
-            return offer.getResult().is(Items.COMPASS);
+            return;
         }
-        return ItemStack.isSameItemSameTags(offer.getResult(), wanted.getResult());
+        ListTag recipes = tag.getCompound("Offers").getList("Recipes", Tag.TAG_COMPOUND);
+        String guideId = String.valueOf(ForgeRegistries.ITEMS.getKey(ModItems.DROSS_GUIDE_BOOK.get()));
+        recipes.removeIf(entry -> entry instanceof CompoundTag recipe
+                && guideId.equals(recipe.getCompound("sell").getString("id")));
     }
 
     @Override

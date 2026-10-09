@@ -25,7 +25,7 @@ import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
- * The lit, orange Dross portal. Works like the vanilla nether portal block:
+ * The lit, electric blue Dross portal. Works like the vanilla nether portal block:
  * no collision, translucent, can't be mined, light level 11, ambient sound and swirl particles,
  * and it disappears when its frame is no longer complete.
  * <p>

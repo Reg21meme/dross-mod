@@ -1,6 +1,8 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.quest.DrossGuideBookItem;
+import com.reg21meme.dross.quest.WeatheredLetterItem;
 import com.reg21meme.dross.villager.DrossCompass;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -22,6 +24,8 @@ public final class ModCreativeTabs
                     .icon(() -> new ItemStack(ModItems.DROSS_PORTAL_FRAME.get()))
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.DROSS_PORTAL_FRAME.get());
+                        // Portal area: the Rift Key (throw it into a frame to light the portal)
+                        output.accept(ModItems.RIFT_KEY.get());
                         output.accept(ModItems.DROSS_TRADER_SPAWN_EGG.get());
                         // Villager area: test sword, and a Dross Compass (it gets its target once it's in your inventory)
                         output.accept(ModItems.ADMIN_SWORD.get());
@@ -35,6 +39,9 @@ public final class ModCreativeTabs
                         {
                             output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.DEATHFORGED.get(), level)));
                         }
+                        // Quest area: a Weathered Letter (gets its text once it's in your inventory) and the Dross Guide Book
+                        output.accept(WeatheredLetterItem.createBlank());
+                        output.accept(DrossGuideBookItem.create());
                     })
                     .build());
 

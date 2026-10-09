@@ -6,6 +6,7 @@ import com.reg21meme.dross.registry.ModCreativeTabs;
 import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
+import com.reg21meme.dross.registry.ModLootModifiers;
 import com.reg21meme.dross.registry.ModParticles;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -29,6 +30,7 @@ public class Dross
         ModParticles.PARTICLE_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_TABS.register(modEventBus);
         ModEnchantments.ENCHANTMENTS.register(modEventBus);
+        ModLootModifiers.LOOT_MODIFIERS.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

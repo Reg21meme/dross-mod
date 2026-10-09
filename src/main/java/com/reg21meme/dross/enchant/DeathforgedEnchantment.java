@@ -14,7 +14,7 @@ import net.minecraft.world.item.enchantment.EnchantmentCategory;
  *  VII  + netherite sword for zombie types (skeletons keep their bow)
  *  VIII + Protection II, Sharpness II / Power II
  *  IX   + Protection IV, Sharpness V / Power V
- *  X    + Strength I and Speed I for their whole life, and a gold glow outline
+ *  X    + Strength I and Speed I for their whole life, and a blue glow outline
  * </pre>
  */
 public class DeathforgedEnchantment extends Enchantment
