@@ -2,7 +2,7 @@
 
 This document describes the full early-game journey: everything a player does before and during their first entry into the Dross. It replaces the current "test build" quest (nether star for compass, netherite ingot lights the frame at 0,0).
 
-Items marked **PROPOSED DEFAULT** have not been confirmed yet. Build them as written unless told otherwise, but list them as open questions in the plan.
+All open questions and proposed defaults have been decided (see "Decisions" at the end). The build plan, with which agent builds what, is in `CLAUDE.md` ("The plan" and "Build order").
 
 ---
 
@@ -22,17 +22,18 @@ Items marked **PROPOSED DEFAULT** have not been confirmed yet. Build them as wri
 The player plays regular Minecraft. Nothing from the mod is required yet.
 
 ### Step 2: The quest begins
-The player finds a **Weathered Letter** (custom item, readable like a written book) in **Nether Fortress or Bastion Remnant chests**. It says an old villager near a village close to spawn is seeking someone strong, and gives the rough direction or coordinates of his hut.
+The player finds a **Weathered Letter** (custom item, readable like a written book) in **Nether Fortress or Bastion Remnant chests**. It says an old villager near a village close to spawn is seeking someone strong, and gives a **rough location** of his hut: the direction from world spawn plus coordinates rounded to 50 (for example "…north-east of where the world began, near X 250, Z -100"). If the hut isn't built yet when the letter is made, it uses vaguer wording.
 
 - Finding it means the player has started exploring the dangerous parts of the Nether, which marks the start of mid-game.
 - Added to those chests with a Forge global loot modifier, so other mods' loot changes still work.
 - **Spawn chance: 100% in every Nether Fortress and Bastion chest for testing.** Keep the chance as a labeled constant so it can be lowered later.
-- Advancement: "A Weathered Letter", granted when the player first picks one up.
+- Advancement: "A Weathered Letter", granted when the player first picks one up. This also unlocks the Dross advancement tab, which stays hidden until then.
 
 ### Step 3: Meet the trader
 - He lives in **his own hut at the edge of the nearest village** to world spawn (already built: village search, hut placement, dirt path, fallback to nearest plains or desert).
 - All existing trader behavior stays: unkillable, 50-block home area, teleports home when lost, glows while a player is in his area, can't use portals.
 - When a player first right-clicks him, he speaks in chat (with his name as the speaker), roughly: *"You've come about the rift? I don't believe you're strong enough. Show me. Bring me a skull from the Nether's fortresses, shards from the cities of the deep dark, and stone from the End."*
+- Each later right-click (when he isn't taking an item) repeats what's still needed. Only the main hand counts. His trading screen doesn't open until the quest is complete.
 - Remove the testing chat message that announces his coordinates on join (keep `/dross trader` and `/dross trader home` for testing).
 
 ### Step 4: The three tributes
@@ -45,23 +46,26 @@ The player proves they have survived the three most dangerous places:
 | The End | End stone | 15 |
 
 **Important technical note:** vanilla villager trades only allow **two** cost items, so the tributes cannot be a single trade. Instead:
-- The player **right-clicks the trader while holding a tribute item** to hand it over. He takes the required amount and confirms in chat.
+- The player **right-clicks the trader while holding a tribute item** to hand it over. **Full amount only:** if they're holding at least the required amount, he takes exactly that much and confirms in chat. If not, he says how many to bring.
 - Progress is tracked **per player** (saved data). Tributes can be handed in in any order.
 - The trader's normal trading screen should not open while the player is holding a tribute item he still needs.
 - When all three are in, he gives the **Dross Compass** and says he knows how to forge a key, but needs materials (Step 5).
+- Lost compass: if a player earned it and has none in their inventory, he gives a new one for free.
 - Advancement: "Proven Worthy".
 
 ### Step 5: The key materials
 The trader asks for:
 
-| Material | Where it comes from | **PROPOSED DEFAULT** amount |
+| Material | Where it comes from | Amount |
 |---|---|---|
 | Trident | Rare drop from drowned | 1 |
 | Heart of the Sea | Buried treasure | 1 |
 | Amethyst shards | Geodes | 8 |
 
-- Same hand-in method as the tributes (right-click while holding, per-player progress, any order).
-- When all are in, he forges the **Rift Key** (custom item, name can change): a crystal key with a blue heart. He gives it to the player with a line of dialogue.
+- He only asks for these after all three tributes are in.
+- Same hand-in method as the tributes (right-click while holding, full amount only, per-player progress, any order). Any trident counts.
+- When all are in, he forges the **Rift Key** (custom item, name can change): a crystal key with a blue heart. He gives it to the player with a line of dialogue. The quest is now complete, and his shop opens for that player.
+- The Rift Key is fireproof and never despawns. If it's lost anyway, the player must bring the key materials again (no free duplicates).
 - Advancement: "Keymaster".
 
 ### Step 6: Find the castle
@@ -79,26 +83,26 @@ The trader asks for:
 ### Step 7: Reopen the portal
 - The player **throws the Rift Key into the sealed frame** (press Q while facing it), the same way the netherite ingot works today. This replaces the netherite-ingot activation.
 - The portal lights in **electric blue** (texture, particles, screen swirl).
-- **PROPOSED DEFAULT:** the **key is not consumed**. After the portal lights, the key pops back out to the player who threw it (it will matter for a later feature).
+- The **key is used up** when it lights the portal.
+- If the portal is already lit, the key isn't used: it pops back out instead of drifting into the Dross.
 - Once reopened, the castle portal **stays open permanently** for everyone.
-- Advancement: "The Rift Reopened".
+- There is **no** "The Rift Reopened" advancement. Entering the Dross is the main achievement.
 
 ### Step 8: Enter the Dross
 - The castle portal leads to **one arrival point: the hub at Dross 0,0**.
 - **The hub** is a safe zone:
-  - No hostile mob spawning within about 48 blocks (**PROPOSED DEFAULT**).
+  - No natural hostile mob spawning within 48 blocks.
   - Contains the exit portal, which returns players to the castle portal.
   - Portals cannot be built or lit anywhere inside the Dross.
   - A placeholder structure for now; I will design the real hub later with a structure block.
 - On arrival, keep the existing sequence: the "The Dross" title and the four piano notes, then the "Entered the Dross" challenge advancement.
-- **First arrival only:** the player receives the **Dross Guide Book** (a readable book explaining the dimension). Placeholder text is fine for now.
-- **Advancements:** move all Dross advancements into **their own "Dross" tab** with its own root advancement and background, instead of the vanilla Minecraft tab. Early-game chain:
+- **First arrival only:** the player receives the **Dross Guide Book**, a custom item with its own texture, readable like a written book, explaining the dimension. Placeholder text is fine for now.
+- **Advancements:** move all Dross advancements into **their own "Dross" tab** with its own root advancement and background, instead of the vanilla Minecraft tab. The tab stays hidden until the player picks up a Weathered Letter. Early-game chain:
   1. A Weathered Letter
   2. Proven Worthy
   3. Keymaster
-  4. The Rift Reopened
-  5. Entered the Dross (challenge, purple)
-  6. Rise! (challenge, purple, already exists; move it to the Dross tab)
+  4. Entered the Dross (challenge, purple; the main achievement)
+  5. Rise! (challenge, purple, already exists; move it to the Dross tab)
 
 ---
 
@@ -114,9 +118,9 @@ The trader asks for:
 
 - Remove the current test trades: nether star for compass, the Admin Sword trade, and the Necromancy book trades.
 - After the quest is complete, the trader sells:
-  - **Necromancy I** book
-  - **Deathforged I** book
-  - **PROPOSED DEFAULT** prices: emeralds plus a book (suggest reasonable amounts in the plan).
+  - **Necromancy I** book: 32 emeralds + book
+  - **Deathforged I** book: 24 emeralds + book
+  - Unlimited uses. The shop only opens for players who completed the quest.
 - The Admin Sword and test-only books stay available in the creative tab.
 - Note: Necromancy is being restructured into five levels (a new weaker level I, the old I to III shift up, admin becomes V). That restructure is a **separate task**; for this plan, the trader just sells "the lowest Necromancy level".
 
@@ -128,7 +132,7 @@ The trader asks for:
 |---|---|
 | Testing chat message with the trader's coordinates | Weathered Letter found in Nether Fortress and Bastion chests |
 | Trade: nether star for Dross Compass | Tribute hand-in quest, then compass |
-| Netherite ingot lights the frame | Rift Key lights the frame (reusable) |
+| Netherite ingot lights the frame | Rift Key lights the frame (used up) |
 | Bare frame at 0,0 | Castle structure (placeholder until I build it) |
 | Orange portal, particles, effects | Electric blue |
 | Obsidian-with-orange-veins frame texture | Original electric blue frame texture |
@@ -151,9 +155,33 @@ These are planned for later and should not be built now:
 
 ---
 
-## Open questions to include in the plan
+## Decisions
 
-1. Key material amounts (trident, Heart of the Sea, amethyst shards).
-2. Is the Rift Key kept after use (proposed) or consumed?
-3. Hub safe-zone radius.
-4. Trader prices for Necromancy I and Deathforged I.
+The original open questions:
+1. Key materials: 1 trident, 1 Heart of the Sea, 8 amethyst shards.
+2. The Rift Key is **used up** when it lights the portal. If the portal is already lit, it pops back out.
+3. Hub safe zone: 48 blocks.
+4. Trader prices: Necromancy I for 32 emeralds + book, Deathforged I for 24 emeralds + book.
+
+Decided during planning:
+5. The letter gives a rough location: the direction from spawn plus coordinates rounded to 50.
+6. The Dross advancement tab stays hidden until the player picks up a Weathered Letter.
+7. Lost compass: free replacement. Lost Rift Key: bring the key materials again. The key is fireproof and never despawns.
+8. Hand-ins take the full amount only, not partial amounts.
+9. No "The Rift Reopened" advancement. Entering the Dross is the main achievement.
+10. The Dross Guide Book is a custom item.
+
+Details added while writing the build plan (in `CLAUDE.md`):
+- The electric blue palette:
+  - main `0x2E6BFF`, deep cobalt `0x0B2A9E`, highlight `0x7FA8FF`, all in `DrossColors`.
+  - Team glows use `ChatFormatting.BLUE`.
+  - The Admin Sword texture and the soul tooltip aren't recolored.
+- The portal texture stays a recolor (now blue) until an original one replaces it.
+- The trader's dialogue lines are lang keys, so they can be edited without code.
+- Nothing can light a portal inside the Dross: neither the Rift Key nor a nether portal.
+- The hub's exit portal always returns to the castle portal.
+- Leaking effects:
+  - The dead plants and cracked blocks are applied once, when the castle is placed.
+  - The blue particles and the ambient sound come from the frame blocks.
+- The castle and hub use the `dross:portal_castle` and `dross:dross_hub` structure files when they exist, and placeholders until then.
+- Test commands: `/dross hub` and `/dross quest status|reset|complete`.
