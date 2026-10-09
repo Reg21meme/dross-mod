@@ -44,13 +44,13 @@ Client-only code (renderers, particle providers, book screens) goes in a `client
 ## The plan
 The full design, including the **early-game quest** from `EARLY_GAME_PLAN.md`, which replaces the old test quest (nether star for a compass, netherite ingot lights the bare frame at 0,0, arrival next to an auto-built return portal).
 - **[built]** means it's in the game now.
-- **[to build]** means it's part of the early-game build and isn't in the game yet (see "Build order"). Where something is marked "replaces", the old behavior stays in the game until that build step runs.
+- **[to build]** means it's planned but not in the game yet. Nothing in "The plan" is marked [to build] right now; new work goes here first.
 
 The Dross is a **mid-to-late game** place: players reach it after proving they survived dangerous places, not after beating every boss. It should work well alongside other mods. The only way in is the castle portal and the only way out is the hub, so the Dross stays dangerous.
 
-### The look: electric blue [to build]
-- The Dross's color is **electric blue** (deep cobalt / electric blue, clearly different from vanilla's cyan soul fire). It **replaces orange everywhere**: portal texture, portal particles, screen swirl, frame, the trader's teleport particles and glow, the spawn egg spots, the risen undead's puffs and wisps, the Deathforged X glow, and the arrival title.
-- Every color is a labeled constant in `DrossColors`. The palette is main `0x2E6BFF`, deep cobalt `0x0B2A9E` and highlight `0x7FA8FF`, kept in a shared "Palette" section of `DrossColors` (added by `portal-builder`, the first step). Each area points its own constants at it.
+### The look: electric blue [built]
+- The Dross's color is **electric blue** (deep cobalt / electric blue, clearly different from vanilla's cyan soul fire). It replaced the old orange everywhere: portal texture, portal particles, screen swirl, frame, the trader's teleport particles and glow, the spawn egg spots, the risen undead's puffs and wisps, the Deathforged X glow, and the arrival title.
+- Every color is a labeled constant in `DrossColors`. The palette is main `0x2E6BFF`, deep cobalt `0x0B2A9E` and highlight `0x7FA8FF`, kept in a shared "Palette" section of `DrossColors`. Each area points its own constants at it.
 - Scoreboard-team glows (Deathforged X) can only use chat colors, so they use `ChatFormatting.BLUE`. The trader's glow uses the exact RGB.
 - **Not recolored:** the Admin Sword texture (parked for removal) and the soul tooltip text (stays gold).
 
@@ -60,35 +60,35 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
    - Slimes, creepers and spiders are removed from the spawn list.
    - Players see the dimension named **"The Dross"** (lang key `dimension.dross.dross`).
    - Terrain is defined in data JSON with its own biome so it can be upgraded later without rewriting Java.
-   - [to build] The hub at Dross 0,0 is a safe zone (step 5).
+   - [built] The hub at Dross 0,0 is a safe zone (step 5).
 
 2. **Dross portal**
    - **Frame** [built]: a custom block, `dross:dross_portal_frame`, which **can't be crafted or mined** (no recipe, no drops, unbreakable, blast-proof). For testing, it has a block item that is only available in the creative **"Dross"** tab (or `/give`); it still has no recipe, drops nothing and can't be broken in survival. Flint and steel can't light it, and normal obsidian frames stay normal purple nether portals.
-   - **Frame look** [to build, replaces the recolored obsidian]: an **original** texture (dark stone with electric blue cracks), no longer based on Mojang's obsidian.
-   - **"The Dross is leaking out"** [to build]: frame blocks give off drifting electric blue particles and a low ambient sound. This applies to every frame, including the unlit castle frame.
-   - **Lighting** [to build, replaces the netherite ingot]: throwing the **Rift Key** (step 7) into the empty middle of a valid frame (along X or Z) **uses up the key** and lights the portal.
+   - **Frame look** [built]: an **original** texture (dark stone with electric blue cracks), no longer based on Mojang's obsidian.
+   - **"The Dross is leaking out"** [built]: frame blocks give off drifting electric blue particles and a low ambient sound. This applies to every frame, including the unlit castle frame.
+   - **Lighting** [built]: throwing the **Rift Key** (step 7) into the empty middle of a valid frame (along X or Z) **uses up the key** and lights the portal.
      - If that frame is already lit, the key isn't used: it pops back out, with a portal cooldown so it doesn't drift into the Dross.
      - A netherite ingot no longer lights anything.
-   - **No portals inside the Dross** [to build]: the Rift Key does nothing there, and lighting a nether portal (flint and steel or fire on obsidian) is blocked there. Otherwise a nether portal would be a second way out.
-   - **Portal look** [to build, replaces orange]: Minecraft's nether portal texture copied and recolored **electric blue** (still a recolor, see Parked), blue particles, and a blue in-portal screen swirl.
+   - **No portals inside the Dross** [built]: the Rift Key does nothing there, and lighting a nether portal (flint and steel or fire on obsidian) is blocked there. Otherwise a nether portal would be a second way out.
+   - **Portal look** [built]: Minecraft's nether portal texture copied and recolored **electric blue** (still a recolor, see Parked), blue particles, and a blue in-portal screen swirl.
    - **Stays open**: once lit, the castle portal stays open permanently, for everyone.
-   - **Travel** [to build, replaces "same X/Z, next to an auto-built return portal"]:
+   - **Travel** [built]:
      - Every Dross portal outside the Dross leads to the **hub at Dross 0,0** (step 5).
      - The hub's exit portal always leads to the **castle portal** (`PortalSite`), wherever the player came in.
      - No more auto-built return portals, and no saved return-portal lookup.
-     - All entities can travel, as now. Never place an entity inside blocks or above a void drop.
+     - All entities can travel. Never place an entity inside blocks or above a void drop.
 
 3. **The castle (portal site)**
-   - [built today] A bare, unlit frame of `dross:dross_portal_frame` at (0, 0) in the Overworld, placed once per world, plus `/dross site`.
-   - [to build, replaces the bare frame] **The castle**:
+   - **The castle** [built]:
      - Placed once per world, at the site location, on flattened ground (reuse the existing site-placement logic). The frame is unlit and fully unbreakable.
      - If `data/dross/structures/portal_castle.nbt` exists, that template is placed. The user builds it in creative and saves it with a structure block as `dross:portal_castle`.
-     - Otherwise a **placeholder**: a small ruined shrine around the frame.
+     - Otherwise a **placeholder**: a small ruined shrine (vanilla stone bricks) around a 4×5 frame along X.
+     - Old worlds made before this build keep their bare frame (treated as an X-axis frame).
      - The template must contain exactly **one** complete Dross frame with an empty opening (either direction). The code finds it and stores its bottom corner **and axis**.
      - Structure blocks save at most 48×48×48 in 1.20.1, so a bigger castle needs several pieces.
    - **Location**: one constant in `PortalSite`. It's (0, 0) for testing; a random spot 3,000–10,000 blocks out is parked.
-   - **`PortalSite` API becomes axis-aware**: keep `getFramePos`, and add `getFrameAxis` and `getOpeningCenter`. The compass and `/dross site` use them.
-   - **Leaking** [to build]: once, when the castle is placed, within about 16 blocks:
+   - **`PortalSite` API is axis-aware** [built]: `getFramePos` (bottom corner), `getFrameAxis`, `getOpeningCenter` (middle block of the opening's bottom row), `getOpeningWidth` and `getOpeningHeight`. The compass, `/dross site` and the hub's exit portal use them.
+   - **Leaking** [built]: once, when the castle is placed, within about 16 blocks:
      - flowers and grass become dead bushes or are removed,
      - some grass blocks become coarse dirt,
      - stone bricks become cracked stone bricks.
@@ -96,38 +96,37 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
      The particles and sound come from the frame blocks (step 2).
    - **`/dross site`**: teleports the player in front of the frame, facing it (axis-aware).
 
-4. **Dross trader** (villager) [built, except where marked]: spawns once per world, in his own **hut at the edge of the village nearest world spawn**. Placeholder skin. He can be hurt and knocked back but **can never die**, because he only ever spawns once: at half health or less he teleports home and fully heals.
+4. **Dross trader** (villager) [built]: spawns once per world, in his own **hut at the edge of the village nearest world spawn**. Placeholder skin. He can be hurt and knocked back but **can never die**, because he only ever spawns once: at half health or less he teleports home and fully heals.
    - **When:** the village's chunks are generated in the background first (a chunk ticket), then the hut is built and he spawns, a few seconds after the world opens.
    - **Hut:** 5x5x5 outside (3x3x3 inside). Netherite walls, roof and floor edge (temporary, see Parked), a 3x3 gold block floor inside (not carpet: carpet in the doorway stopped him from walking out), an oak door, one glass pane window. It's on an open spot outside the village's bounds, so it never overlaps houses or paths. A dirt path follows the ground from his door to the nearest village path.
    - **No usable village** within 1,600 blocks: the hut goes in the plains/desert nearest world spawn, with no path.
-   - **Behavior:** he wanders within 50 blocks of his hut (X and Z) and opens his door. If he's more than 50 blocks out, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings), he teleports to the middle of his hut with the enderman sound and enderman-style particles (the portal's particles, so electric blue after the color switch). He can't use portals.
-   - **Glow (finding aid):** while any player is within his 50-block area, he glows with an outline visible through walls (gold today, electric blue after the color switch).
-   - **Quest and dialogue** [to build, replaces the test trades]: see step 7.
-   - **Shop** [to build, replaces all current trades]:
-     - Remove the nether star → compass trade, the Admin Sword trade and all Necromancy book trades.
+   - **Behavior:** he wanders within 50 blocks of his hut (X and Z) and opens his door. If he's more than 50 blocks out, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings), he teleports to the middle of his hut with the enderman sound and enderman-style particles (the portal's electric blue particles). If he's riding a boat, minecart or anything else, he gets off first (the vehicle stays where it was) and anything riding him is thrown off. He can't use portals.
+   - **Glow (finding aid):** while any player is within his 50-block area, he glows electric blue with an outline visible through walls.
+   - **Quest and dialogue:** see step 7.
+   - **Shop:**
+     - The old test trades (nether star → compass, the Admin Sword, Necromancy I–IV) are gone.
      - After a player completes the quest he sells **Necromancy (its lowest level)** for 32 emeralds + book and **Deathforged I** for 24 emeralds + book. Unlimited uses, no restock, no XP.
      - The offers are the same for everyone, but the trading screen only opens for players who completed the quest (received the Rift Key).
-     - **Dross Guide Book** [to build]: for players who have the "Entered the Dross" advancement, he also sells the Dross Guide Book for 3 books (no emeralds; a labeled constant). Unlimited uses, no restock, no XP. Players without that advancement don't see this offer.
-     - Existing traders in old worlds get their old offers replaced when they load.
-   - **Spawn egg:** "Dross Trader Spawn Egg" in the creative Dross tab (spots electric blue after the color switch). An egg trader treats the spot he was spawned at as his home, with the same 50-block area, glow and teleport-home rules.
+     - **Dross Guide Book**: for players who have the "Entered the Dross" advancement, he also sells the Dross Guide Book for 3 books (no emeralds; a labeled constant). Unlimited uses, no restock, no XP. Players without that advancement don't see this offer.
+     - Existing traders in old worlds get their old offers replaced once when they load (`SHOP_VERSION` in `DrossTrader`; bump it whenever the base shop changes).
+   - **Spawn egg:** "Dross Trader Spawn Egg" in the creative Dross tab (electric blue spots). An egg trader treats the spot he was spawned at as his home, with the same 50-block area, glow and teleport-home rules.
    - **Test tools:** `/dross trader` teleports you to him (even if his area isn't loaded) and `/dross trader home` sends him home. His entity ID is `dross:dross_trader`; `@e` selectors only find him while his area is loaded.
-   - [to build] **Remove** the test-only join message with his hut's coordinates. The Weathered Letter (step 7) replaces it.
+   - The old test-only join message with his hut's coordinates is removed. The Weathered Letter (step 7) replaces it.
 
 5. **Arriving in the Dross** (through the portal only, not `/execute in`)
-   - **The hub** [to build, replaces arriving next to an auto-built return portal]:
+   - **The hub** [built]:
      - Built once per world at Dross 0,0. Its center is a constant, `DrossHub.CENTER`, in the portal area.
-     - If `data/dross/structures/dross_hub.nbt` exists (the user designs it later with a structure block), that template is used. Otherwise a **placeholder** platform with the lit **exit portal**.
+     - If `data/dross/structures/dross_hub.nbt` exists (the user designs it later with a structure block), that template is used. Otherwise a **placeholder**: an 11×11 platform at ground level with a lit 4×5 **exit portal** in the middle.
      - Players arrive at the hub, standing in front of the exit portal.
-     - **Safe zone:** no **natural** hostile mob spawning within **48 blocks** (X and Z) of the hub center. Mobs can still walk in from outside.
+     - **Safe zone:** no **natural** hostile mob spawning within **48 blocks** (X and Z) of the hub center. Mobs can still walk in from outside. (`dimension/DrossHubSafeZone`)
    - **Arrival sequence**, in `portal/DrossArrival.java`. Times are in ticks after arrival (20 ticks = 1 second):
-     - **Title** [built]: at tick 20, "The Dross" (from `dimension.dross.dross`) fades in like `/title` (0.5 s in, 3.5 s on screen, 1 s out). Shown every time. The 1-second delay keeps it from being hidden behind the "Loading terrain" screen. Its color is gold today and electric blue (`DrossColors`) after the color switch.
+     - **Title** [built]: at tick 20, "The Dross" (from `dimension.dross.dross`) fades in like `/title` (0.5 s in, 3.5 s on screen, 1 s out). Shown every time. The 1-second delay keeps it from being hidden behind the "Loading terrain" screen. It's electric blue (`DrossColors`).
      - **Four-note piano sequence** [built] ("dun, dun, DUN, dunnn"): note block harp, every time, only the arriving player hears it, on the Master volume. Notes start with the title: E, D, C# 0.4 s apart, then a 0.5 s gap and low F# (pitch 0.5, the lowest note block note). Volumes 0.6, 0.6, 0.8, 1.0.
-     - **Advancement "Entered the Dross"** (`dross:entered_the_dross`), **the main achievement**: challenge frame (purple), Dross Portal Frame icon.
-       - [built] Granted from code (`minecraft:impossible` trigger) 2 seconds after the last note, so its fanfare doesn't clash with the piano. If the player leaves the Dross before then, it's granted on their next arrival.
-       - [to build] Moves into the Dross tab (step 7) and is granted through Quest's grant helper. Description changes from "Step through the orange portal." to "Step through the blue portal."
-     - **Dross Guide Book** [to build]: on the player's **first arrival only** (a flag that survives death), they get the **Dross Guide Book**: a custom item, readable like a written book, with its own original texture and placeholder text explaining the dimension. If their inventory is full, it drops at their feet.
+     - **Advancement "Entered the Dross"** (`dross:entered_the_dross`) [built], **the main achievement**: "Step through the blue portal.", challenge frame (purple), Dross Portal Frame icon, in the Dross tab (step 7).
+       - Granted through Quest's grant helper (`minecraft:impossible` trigger) 2 seconds after the last note, so its fanfare doesn't clash with the piano. If the player leaves the Dross before then, it's granted on their next arrival.
+     - **Dross Guide Book** [built]: on the player's **first arrival only** (a flag that survives death), they get the **Dross Guide Book**: a custom item, readable like a written book, with its own original texture and placeholder text explaining the dimension (5 pages, lang keys). If their inventory is full, it drops at their feet. Given through `QuestProgress.giveGuideBookOnFirstArrival`. Later copies can be bought from the trader (step 4).
 
-6. **Necromancy and Deathforged** (enchantments, `com.reg21meme.dross.enchant`) [built, except where marked]. All tuning numbers are labeled constants at the top of their files.
+6. **Necromancy and Deathforged** (enchantments, `com.reg21meme.dross.enchant`) [built]. All tuning numbers are labeled constants at the top of their files.
    - **Necromancy** (swords only, I–IV): "Hits have a chance to raise the undead to fight for you."
 
      | Level | Chance per hit | Max alive | Soul capacity | Types |
@@ -139,18 +138,17 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
 
    - **Hits:** only a melee hit with the sword in the main hand on the **main target** of a swing (sweep hits never roll). Hitting a player, the Dross trader or your own risen undead never raises any.
    - **How many:** if none of yours are alive, a success raises the full max; otherwise half the max (I: 1, II: 2, III: 3, IV: 5), never over the max ("alive" counts per player). Each costs 1 soul; a jockey/horseman takes 1 slot but costs 2 souls (with only 1 soul left, a normal undead rises instead). Not enough souls: raise as many as the souls allow. Each one's type is random from the types the level unlocks.
-   - **Souls:** killing any zombie, skeleton or variant (anything that is a kind of zombie or skeleton) with the sword stores 1 soul, up to the level's capacity; risen undead give none. A wisp (orange today, electric blue after the color switch) flies from the mob into the player's hand. Souls are stored on the sword itself (item tag), so each sword has its own count and it moves with the sword. Tooltip: "Souls: X / Y" ("Souls: ∞" at IV; IV never spends souls), in gold.
-   - **Risen undead** (real vanilla mobs, owner stored in their persistent data): attack what their owner hits, mobs that hurt their owner, and mobs that hurt them; follow the owner when idle. They never target or hurt players (arrows included), the Dross trader, villagers, wandering traders, or their owner's other risen undead (even if the owner hits a villager or wandering trader). The owner's own hits (sweep included) never damage their risen undead. Whenever a risen undead damages a mob (arrows included), that mob switches its target to the risen undead that hit it, including zombies, skeletons and their variants, which normally ignore other undead. Risen drowned always fight on land, day or night. On Peaceful, Necromancy does nothing and no souls are spent. Deathforged X glow uses one shared team for all players, so different players' glowing undead don't fight each other. They crumble in a puff of particles (orange today, electric blue after the color switch) after 60 seconds, or early if the owner logs out, dies or changes dimension, or if their chunk is reloaded from a save. No drops, no XP, no item pickup, no portals, no conversions (zombie→drowned, skeleton→stray). Vanilla burning rules (helmets protect, husks don't burn).
-   - **Deathforged** (swords only, I–X; does nothing without Necromancy on the same sword): "Your risen undead come armored. Higher levels forge stronger gear." I leather, II gold, III chainmail, IV iron, V diamond, VI netherite, VII netherite + netherite sword (zombie types; skeletons keep their bow), VIII + Protection II and Sharpness II / Power II, IX + Protection IV and Sharpness V / Power V, X + Strength I and Speed I for their whole life and a glow outline (gold today, `ChatFormatting.BLUE` after the color switch). Without Deathforged: no armor; skeletons always get a plain bow. Mounts get no gear.
+   - **Souls:** killing any zombie, skeleton or variant (anything that is a kind of zombie or skeleton) with the sword stores 1 soul, up to the level's capacity; risen undead give none. An electric blue wisp flies from the mob into the player's hand. Souls are stored on the sword itself (item tag), so each sword has its own count and it moves with the sword. Tooltip: "Souls: X / Y" ("Souls: ∞" at IV; IV never spends souls), in gold.
+   - **Risen undead** (real vanilla mobs, owner stored in their persistent data): attack what their owner hits, mobs that hurt their owner, and mobs that hurt them; follow the owner when idle. They never target or hurt players (arrows included), the Dross trader, villagers, wandering traders, or their owner's other risen undead (even if the owner hits a villager or wandering trader). The owner's own hits (sweep included) never damage their risen undead. Whenever a risen undead damages a mob (arrows included), that mob switches its target to the risen undead that hit it, including zombies, skeletons and their variants, which normally ignore other undead. Risen drowned always fight on land, day or night. On Peaceful, Necromancy does nothing and no souls are spent. Deathforged X glow uses one shared team for all players, so different players' glowing undead don't fight each other. They crumble in a puff of electric blue particles after 60 seconds, or early if the owner logs out, dies or changes dimension, or if their chunk is reloaded from a save. No drops, no XP, no item pickup, no portals, no conversions (zombie→drowned, skeleton→stray). Vanilla burning rules (helmets protect, husks don't burn).
+   - **Deathforged** (swords only, I–X; does nothing without Necromancy on the same sword): "Your risen undead come armored. Higher levels forge stronger gear." I leather, II gold, III chainmail, IV iron, V diamond, VI netherite, VII netherite + netherite sword (zombie types; skeletons keep their bow), VIII + Protection II and Sharpness II / Power II, IX + Protection IV and Sharpness V / Power V, X + Strength I and Speed I for their whole life and a blue glow outline (`ChatFormatting.BLUE`). Without Deathforged: no armor; skeletons always get a plain bow. Mounts get no gear.
    - **Rules for both:** treasure only (never from the enchanting table, loot chests, fishing or normal librarians). Books work at an anvil, but two items with the same level of either enchantment can't be combined (no anvil result). Necromancy can't be combined with Smite. Rarity keeps Deathforged X under the anvil's "Too Expensive!" limit.
    - **Getting them:**
-     - [built today] The trader sells Necromancy I–IV.
-     - [to build] After the quest he sells only Necromancy (lowest level) and Deathforged I (step 4).
+     - After the quest the trader sells Necromancy (lowest level) and Deathforged I (step 4).
      - Deathforged books drop only from the netherite-wearing zombies and skeletons of the Dross (`DrossMobGear.hasDrossGear`), when a player hit them recently: 5% per kill + 1% per Looting level; level weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1.
-   - **Advancement "Rise!"** (`dross:rise`): "Raise the undead with Necromancy.", challenge frame (purple), zombie head icon, granted from code the first time a player raises undead. [to build] Moves into the Dross tab (step 7), parent "Entered the Dross", granted through Quest's grant helper.
+   - **Advancement "Rise!"** (`dross:rise`): "Raise the undead with Necromancy.", challenge frame (purple), zombie head icon, granted the first time a player raises undead, through Quest's grant helper. It's in the Dross tab (step 7), parent "Entered the Dross".
    - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site), and enchanted books for every level of both enchantments (these stay even after the trader stops selling them).
 
-7. **The early-game quest** [to build]. Progress is **per player, per world**, saved by Quest (a `SavedData` keyed by player UUID). The trader's side (dialogue, hand-ins, gifts) is Villager's, through Quest's API.
+7. **The early-game quest** [built]. Progress is **per player, per world**, saved by Quest (a `SavedData` keyed by player UUID). The trader's side (dialogue, hand-ins, gifts) is Villager's, through Quest's API.
    1. **Normal survival.** Nothing from the mod is needed yet.
    2. **The Weathered Letter** (Quest):
       - A custom item, readable like a written book. It opens `BookViewScreen` from client code, with its pages in the item's tag.
@@ -173,10 +171,10 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       - The quest is now complete, and his shop opens for that player.
    6. **Lost items:**
       - If a player earned the compass and has none in their inventory, he gives a new one for free.
-      - A lost Rift Key means bringing the key materials again (no free duplicates).
+      - A lost Rift Key means bringing the key materials again (no free duplicates). After the quest he only takes key materials when the player has **no** Rift Key in their inventory; otherwise a right-click opens the shop.
       - The Rift Key is fireproof and never despawns.
    7. **The Rift Key** (Portal): a custom item with an original texture, a crystal key with a blue heart. Throwing it into the castle frame lights the portal and uses it up (step 2).
-   8. **The Dross Compass** (Villager, built): a vanilla compass with lodestone tags, re-aimed every second while it's in a player's inventory. Moving the site later keeps compasses correct. It targets `PortalSite.getOpeningCenter` (to build) and spins in other dimensions.
+   8. **The Dross Compass** (Villager): a vanilla compass with lodestone tags, re-aimed every second while it's in a player's inventory. Moving the site later keeps compasses correct. It targets `PortalSite.getOpeningCenter` and spins in other dimensions.
    9. **The Dross advancement tab** (Quest): all Dross advancements move out of the vanilla Minecraft tab into their **own "Dross" tab**.
       - The tab has a root advancement with a background (the new frame texture). The root shows no toast and no chat message, and is granted silently when the player picks up a Weathered Letter, so **the tab stays hidden until then**.
       - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Entered the Dross** (challenge, the main achievement) → **Rise!** (challenge).
@@ -185,15 +183,15 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       - Quest's progress API grants "Proven Worthy" and "Keymaster" itself when those stages complete.
    10. **Test commands** (cheats on):
        - `/dross hub` teleports you to the hub (World site hooks it up).
-       - `/dross quest status|reset|complete` shows, clears or finishes your quest progress (Quest logic, World site hooks it up).
+       - `/dross quest status|reset|complete` shows, clears or finishes your quest progress (Quest logic, World site hooks it up). `reset` also clears the Guide Book flag and revokes every Dross advancement except "Rise!" (which is about Necromancy, not the quest).
    11. **Creative "Dross" tab** additions: the Weathered Letter, the Rift Key, the Dross Guide Book.
 
 ## Build order
 Original build: 1. Dimension → 2. Portal → 3. World site → 4. Villager → 5. Enchantments → 6. Quest. Run `mod-tester` after each step.
 
-**Status:** steps 1–6 of the plan are built and tested in-game, as the old test quest (nether star compass, netherite ingot, bare frame, auto-built return portal, orange). This includes the reworked trader (hut, compass, Admin Sword, spawn egg, `/dross trader`) and Necromancy and Deathforged (the fix that makes hit mobs turn on the risen undead was added after that test). The **early-game build** below is **not started**.
+**Status:** everything in "The plan" is **built and tested in-game**, including the whole early-game build below (October 2026). Two additions came after that test (they build, but weren't separately confirmed in-game): the trader sells the Guide Book to players who have "Entered the Dross", and he leaves a boat or minecart before teleporting home. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
-### Early-game build (everything marked [to build])
+### Early-game build [built]
 Run the agents **one at a time** (never in parallel). They add to the same shared files and their Gradle builds would collide. Run `mod-tester` after each step.
 1. **`portal-builder`**:
    - Add the shared "Palette" section to `DrossColors`, and move the portal's colors onto `DrossColors` (blue).
@@ -251,6 +249,16 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 - **Castle file:** a structure block saves to `run/saves/<world>/generated/dross/structures/portal_castle.nbt`. Copy it to `src/main/resources/data/dross/structures/`.
 - **Old test worlds** keep their bare frame and old portals. Test the castle and hub in a **new world**.
 
+## Known bugs
+Minor issues found during the early-game build. None block playing. Fix them when that area is next changed, and remove the line once fixed.
+- **Villager: first right-click only talks.** If a player's very first right-click on the trader is made while holding a tribute, he gives his opening speech but doesn't take the item. The player has to right-click again. (`DrossTrader.mobInteract`, the `hasSpokenIntro` check returns early.)
+- **Villager: no hint about replacing a lost Rift Key.** After the quest, he re-forges a key only if the player holds the key materials and has no key. With an empty hand he just opens the shop, so nothing tells players this is possible.
+- **Villager: leftover code.** `TraderSpawner.isWaiting()` was only used by the removed test join message and is now unused.
+
+**Built but not yet tested in-game** (no file exists yet to test them with):
+- Placing a real castle from `portal_castle.nbt`, including a castle frame that runs along Z (compass aim, `/dross site` and arriving from the hub's exit portal).
+- Placing a real hub from `dross_hub.nbt`.
+
 ### In-game test after the early-game build (new world, cheats ON)
 1. `/loot give @s loot minecraft:chests/nether_bridge`: you get a Weathered Letter. Read it (rough hut location). The Dross tab appears with "A Weathered Letter".
 2. `/dross trader`, then right-click him: the opening speech, then a reminder of what's still needed. The shop doesn't open.
@@ -275,8 +283,8 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 - Moving the portal site 3,000–10,000 blocks out from (0, 0), chosen when the world is created.
 - The real castle (`dross:portal_castle`) and the real hub (`dross:dross_hub`): the user builds them with structure blocks. Until then, the placeholders are used.
 - A custom villager skin (replacing the placeholder).
-- Replace the recolored portal texture (a recolored Mojang nether portal, blue after the color switch) with an original one before publishing.
-- Remove the Admin Sword (`AdminSwordItem`, its `ModItems` entry, model, texture (a recolored Mojang netherite sword), lang key and creative-tab entry). Its trade is removed in the early-game build.
+- Replace the recolored portal texture (a recolored Mojang nether portal, now blue) with an original one before publishing.
+- Remove the Admin Sword (`AdminSwordItem`, its `ModItems` entry, model, texture (a recolored Mojang netherite sword), lang key and creative-tab entry). Its trade is already gone.
 - Replace the trader hut's netherite blocks with a real building material.
 - **Necromancy five-level restructure** (a new weaker level I, the old I–III shift up, the admin level becomes V) and Deathforged anvil changes. The trader keeps selling "the lowest Necromancy level".
 - New terrain (gentle, old-Minecraft style), dense forests, silverwood trees, custom ores and crops.
