@@ -18,22 +18,25 @@
 1. Forge 1.20.1 / Java 17 APIs only. Use `DeferredRegister` for all registrations. Watch out for newer-version APIs that don't exist here: no `ResourceLocation.fromNamespaceAndPath` (use `new ResourceLocation(Dross.MODID, "path")`), no data components, no NeoForge classes, no `neoforge.mods.toml`.
 2. **Shared files: only ADD your own entries.** Never rewrite, reorder, rename or remove another area's entries. Shared files are:
    - `Dross.java`: add one line per thing you need registered on the mod event bus (for example `ModBlocks.BLOCKS.register(modEventBus);`). If `modEventBus` doesn't exist yet, add `IEventBus modEventBus = context.getModEventBus();` once at the top of the constructor.
-   - Registry classes in `com.reg21meme.dross.registry`: `ModBlocks`, `ModItems`, `ModEntities`, `ModParticles`, `ModCreativeTabs`, `ModEnchantments` (create one if it doesn't exist yet, holding only the `DeferredRegister` and your entries).
+   - Registry classes in `com.reg21meme.dross.registry`: `ModBlocks`, `ModItems`, `ModEntities`, `ModParticles`, `ModCreativeTabs`, `ModEnchantments`, `ModLootModifiers` (create one if it doesn't exist yet, holding only the `DeferredRegister` and your entries).
    - `src/main/resources/assets/dross/lang/en_us.json`: add keys only.
+   - `DrossColors.java` (`com.reg21meme.dross.DrossColors`): add constants in your own area's section, and change only your own area's values.
 3. **Stay in your own area** (see the table below). If you need something from another area, don't build it. Report it as "Needs from <area>: ...".
 4. Prefer your own `@Mod.EventBusSubscriber` classes inside your package over adding event code to `Dross.java`.
 5. After changes, run `.\gradlew.bat build --console=plain` and fix any errors **in your own area**. If the error is in another area's code, report it instead.
 6. Finish with a short, beginner-friendly explanation: what you added, which files, and how to test it in-game.
 7. Don't commit.
+8. **Colors come from `DrossColors`.** Never hard-code a color in feature code (particles, glows, text styles, spawn eggs). If you need a new color, add a labeled constant in your area's section of `DrossColors`. Some older code still has hard-coded colors; move it onto `DrossColors` when you next change that code.
 
 ## Areas and ownership
 | Area | Agent | Owns |
 |---|---|---|
 | Dimension | `dimension-builder` | `com.reg21meme.dross.dimension.*`; `data/dross/dimension/`, `data/dross/dimension_type/`, `data/dross/worldgen/`; Dross mob equipment (skips risen undead; marks geared mobs for `DrossMobGear.hasDrossGear`) |
-| Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); ingot activation; orange texture/particles/overlay; teleporting; return portal; the frame's creative-only block item and its entry in the "Dross" creative tab; the arrival sequence (title, piano notes) and the `dross:entered_the_dross` advancement (`data/dross/advancements/`) |
+| Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); ingot activation; orange texture/particles/overlay; teleporting; return portal; the frame's creative-only block item and its entry in the "Dross" creative tab; the arrival sequence (title, piano notes, and *when* `dross:entered_the_dross` is granted, through `quest-builder`'s grant helper; the advancement JSON belongs to Quest) |
 | World site | `world-builder` | `com.reg21meme.dross.world.*` (portal site location, placing the frame built from `portal-builder`'s frame block); `com.reg21meme.dross.command.*` (the `/dross` command; its `trader` subcommands call the villager area's `TraderCommands`) |
 | Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, spawn logic, his hut and its path, his trades (Dross Compass, Admin Sword item and texture, Necromancy books), the compass setting its own target when in a player's inventory, the Admin Sword and Dross Compass entries in the "Dross" creative tab, spawn egg, `/dross trader` logic (`TraderCommands`), join message |
-| Enchantments | `enchant-builder` | `com.reg21meme.dross.enchant.*`; the Necromancy and Deathforged enchantments (`registry/ModEnchantments`); the soul system; summoning; the risen undead's behavior (and their entities/renderers if they need their own); Deathforged book drops; the `dross:rise` advancement; the enchanted books in the "Dross" creative tab. Design: see The plan, step 6 |
+| Enchantments | `enchant-builder` | `com.reg21meme.dross.enchant.*`; the Necromancy and Deathforged enchantments (`registry/ModEnchantments`); the soul system; summoning; the risen undead's behavior (and their entities/renderers if they need their own); Deathforged book drops; *when* `dross:rise` is granted (through `quest-builder`'s grant helper; the advancement JSON belongs to Quest); the enchanted books in the "Dross" creative tab. Design: see The plan, step 6 |
+| Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item. Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
 | Testing | `mod-tester` | Nothing. Builds, runs and reads logs only; never edits feature code |
 
 Client-only code (renderers, particle providers) goes in a `client` subpackage of the area, for example `com.reg21meme.dross.villager.client`.
@@ -78,8 +81,10 @@ Client-only code (renderers, particle providers) goes in a `client` subpackage o
    - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site), and enchanted books for every level of both enchantments.
 
 ## Build order
-1. Dimension → 2. Portal → 3. World site → 4. Villager → 5. Enchantments.
+1. Dimension → 2. Portal → 3. World site → 4. Villager → 5. Enchantments → 6. Quest.
 Run `mod-tester` after each step.
+
+**Next:** the early-game quest in `EARLY_GAME_PLAN.md` replaces the current test quest. It isn't built yet; "The plan" above still describes what's built today.
 
 **Status:** steps 1–5 are built and tested in-game, including the reworked trader (hut, compass, Admin Sword, spawn egg, `/dross trader`). Step 6 (Necromancy and Deathforged) is built and tested in-game; the fix that makes hit mobs turn on the risen undead was added after that test.
 

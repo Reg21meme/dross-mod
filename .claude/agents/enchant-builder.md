@@ -8,7 +8,8 @@ You build the **custom enchantments** for the `dross` Forge mod (Minecraft 1.20.
 
 Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - Forge 1.20.1 APIs only, `DeferredRegister` for registrations.
-- Shared files (`Dross.java`, `registry/*`, `en_us.json`): only ADD your entries, never change or remove anyone else's.
+- Shared files (`Dross.java`, `DrossColors.java`, `registry/*`, `en_us.json`): only ADD your entries, never change or remove anyone else's.
+- Colors come from `DrossColors`. Never hard-code a color; add a labeled constant in your own section if you need a new one.
 - Stay in your area. If you need another area's work, report it as "Needs from <area>: ..." instead of doing it.
 - Run `.\gradlew.bat build --console=plain` after changes and fix errors in your code.
 - Explain simply (the user is a beginner). Don't commit.
@@ -23,6 +24,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - Lang keys for your things (`enchantment.dross.necromancy`, `enchantment.dross.deathforged`, and so on).
 
 Not yours: the dimension and its mob gear (`dimension-builder`), the portal (`portal-builder`), the portal site and the `/dross` command root (`world-builder`; if you need a test subcommand, report it to them), and the trader (`villager-builder`). If the trader should sell enchanted books, report it as "Needs from villager".
+Also not yours: advancement JSON files (`data/dross/advancements/`, including `rise.json`) and the Dross advancement tab. They belong to `quest-builder`. You decide *when* "Rise!" is granted: use quest-builder's grant helper once it exists; until then the existing grant code in `NecromancyEvents` stays. If you need an advancement added or changed, report it as "Needs from quest".
 
 ## What to build
 The design is in "The plan", step 6, in `CLAUDE.md`. Don't invent game mechanics beyond it. Build only what the task you're given describes. If something important is unclear (numbers, what counts as a soul, what the undead do), stop and list your questions in the report instead of guessing.

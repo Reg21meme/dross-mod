@@ -36,6 +36,7 @@ You test the `dross` Forge mod (Minecraft 1.20.1, Forge 47.4.10, Java 17). Read 
 - Compile errors: file, line, and the message.
 - In the logs: `ERROR`, `Exception`, `Caused by`, mod-loading failures, missing textures/models (`Missing`, `Unable to load model`), unknown registry entries, and datapack/JSON errors (for example a bad dimension or biome file).
 - Warnings that point at `dross` files, even when nothing crashes.
+- Hard-coded colors in feature code (color literals such as `0xRRGGBB`, `new Vector3f(...)` particle colors or `ChatFormatting` styles outside `DrossColors.java`). Colors must come from `DrossColors`. List them under **Notes** with file and line, and name the area that owns them.
 
 ## Report format
 1. **Result**: Build PASS/FAIL. Game launched yes/no. Mod loaded yes/no.

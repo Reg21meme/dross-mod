@@ -8,7 +8,8 @@ You build the **Dross portal** for the `dross` Forge mod (Minecraft 1.20.1, Forg
 
 Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - Forge 1.20.1 APIs only, `DeferredRegister` for registrations.
-- Shared files (`Dross.java`, `registry/*`, `en_us.json`): only ADD your entries, never change or remove anyone else's.
+- Shared files (`Dross.java`, `DrossColors.java`, `registry/*`, `en_us.json`): only ADD your entries, never change or remove anyone else's.
+- Colors come from `DrossColors`. Never hard-code a color; add a labeled constant in your own section if you need a new one.
 - Stay in your area. If you need another area's work, report it as "Needs from <area>: ..." instead of doing it.
 - Run `.\gradlew.bat build --console=plain` after changes and fix errors in your code.
 - Explain simply (the user is a beginner). Don't commit.
@@ -18,9 +19,10 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - The **frame block** `dross:dross_portal_frame` and the **portal block** `dross:dross_portal`: their registration (add to `registry/ModBlocks`), blockstates, models, textures, tags, and particles.
 - Activation, the orange look, teleporting both ways, and the return portal in the Dross dimension.
 - The frame's **creative-only block item** (`ModItems.DROSS_PORTAL_FRAME`) and its entry in the "Dross" creative tab (`registry/ModCreativeTabs`).
-- The **arrival sequence** in `portal/DrossArrival.java` (title, piano notes) and the `dross:entered_the_dross` advancement in `data/dross/advancements/`.
+- The **arrival sequence** in `portal/DrossArrival.java` (title, piano notes), including *when* `dross:entered_the_dross` is granted.
 
 Not yours: the dimension itself (`dimension-builder`); **placing** the frame at the site (`world-builder` does that using your frame block); the trader. Use `ModDimensions.DROSS_LEVEL` from `dimension-builder`.
+Also not yours: advancement JSON files (`data/dross/advancements/`), the Dross advancement tab and per-player quest progress. They belong to `quest-builder`. Grant `dross:entered_the_dross` through quest-builder's grant helper once it exists; until then the existing grant code in `DrossArrival` stays. If you need an advancement added or changed, report it as "Needs from quest".
 
 ## What to build
 1. **Frame block `dross:dross_portal_frame`**:

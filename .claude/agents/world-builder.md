@@ -8,7 +8,8 @@ You build the **portal site** for the `dross` Forge mod (Minecraft 1.20.1, Forge
 
 Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - Forge 1.20.1 APIs only, `DeferredRegister` for registrations.
-- Shared files (`Dross.java`, `registry/*`, `en_us.json`): only ADD your entries, never change or remove anyone else's.
+- Shared files (`Dross.java`, `DrossColors.java`, `registry/*`, `en_us.json`): only ADD your entries, never change or remove anyone else's.
+- Colors come from `DrossColors`. Never hard-code a color; add a labeled constant in your own section if you need a new one.
 - Stay in your area. If you need another area's work, report it as "Needs from <area>: ..." instead of doing it.
 - Run `.\gradlew.bat build --console=plain` after changes and fix errors in your code.
 - Explain simply (the user is a beginner). Don't commit.
