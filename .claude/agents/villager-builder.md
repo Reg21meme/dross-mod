@@ -43,7 +43,7 @@ The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] ex
    - **Spot:** fully outside the village's bounding box, on flat-enough dry ground, with the door closest to a village path.
    - **Path:** breadth-first search over ground columns to a village path, made of `dirt_path`.
    - **Hut:** the Rift Chapel (`villager/hut/RiftChapel`, 9x13x18), built by `TraderHut.DESIGN.build`, door toward the village path, floor at the highest ground under it (dips up to 3 filled). Old worlds keep their 5x5 netherite hut.
-   - **No usable village** (none within 1,600 blocks, not generated in time, or no open spot): the hut goes in the plains/desert nearest world spawn, door facing spawn, no path.
+   - **Which village:** the 5 nearest villages within 1,000 blocks of spawn are generated at once and the closest with a good spot wins; then the next 5 farther out, the square growing by 1,000 up to 5,000 blocks (`TraderSpawner`, `VillageSearchPlan`). Bumps up to 3 are cut and dips up to 3 filled. Only if nothing in range works: an emergency chapel near spawn (WARN, `TraderSpawnData.isInVillage()` false).
    - `TraderSpawnData` records "spawned", the hut center, his UUID and his last known position.
 4. **Behavior**:
    - Home = his spot in the hut, the chapel's aisle (`HomePos`, `restrictTo(home, 50)`), plus the hut's 3D footprint (`HutBox`; missing for old netherite huts and egg traders, which use the legacy 5x5 check). He wanders and opens his door.

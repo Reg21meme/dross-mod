@@ -13,7 +13,8 @@ import java.util.UUID;
  * Remembers (per world) that the trader was already spawned, so he (and his hut) are never made twice.
  * The saved position is his spot in the hut, where he stands (the chapel's aisle).
  * It also remembers which entity he is and where he was last seen, so {@code /dross trader}
- * can find him even when his area isn't loaded.
+ * can find him even when his area isn't loaded, and whether his hut is in a village or at the emergency spot
+ * near world spawn ({@link #isInVillage()}, which the Weathered Letter reads to word its hint).
  */
 public class TraderSpawnData extends SavedData
 {
@@ -24,6 +25,8 @@ public class TraderSpawnData extends SavedData
     @Nullable
     private UUID traderId;
     private BlockPos lastPos = BlockPos.ZERO;
+    /** True if his hut is at the edge of a village; false for the emergency spot near spawn (no village was usable). */
+    private boolean inVillage = true;
 
     public static TraderSpawnData get(ServerLevel overworld)
     {
@@ -54,8 +57,18 @@ public class TraderSpawnData extends SavedData
         return lastPos;
     }
 
-    public void markSpawned(BlockPos where, UUID trader)
+    /**
+     * True if his hut stands at the edge of a village, false if it is at the emergency spot near world spawn
+     * (no village could be used). Worlds saved before this was recorded count as in a village.
+     */
+    public boolean isInVillage()
     {
+        return inVillage;
+    }
+
+    public void markSpawned(BlockPos where, UUID trader, boolean inVillage)
+    {
+        this.inVillage = inVillage;
         this.spawned = true;
         this.pos = where;
         this.traderId = trader;
@@ -85,6 +98,7 @@ public class TraderSpawnData extends SavedData
             data.traderId = tag.getUUID("Trader");
         }
         data.lastPos = tag.contains("LastPos") ? NbtUtils.readBlockPos(tag.getCompound("LastPos")) : data.pos;
+        data.inVillage = !tag.contains("InVillage") || tag.getBoolean("InVillage");
         return data;
     }
 
@@ -98,6 +112,7 @@ public class TraderSpawnData extends SavedData
             tag.putUUID("Trader", traderId);
         }
         tag.put("LastPos", NbtUtils.writeBlockPos(lastPos));
+        tag.putBoolean("InVillage", inVillage);
         return tag;
     }
 }

@@ -98,13 +98,23 @@ public abstract class HutDesign
     }
 
     /**
-     * Builds the hut: clears everything above the ground inside the footprint (up to its height),
-     * fills dips under it, then draws the design.
+     * Builds the hut at {@code center} (the floor level): clears everything above the floor inside the footprint
+     * (up to its height), which cuts away any ground that rises above the floor, fills dips under it with dirt, then
+     * draws the design.
      */
     public final void build(ServerLevel level, BlockPos center, Direction facing)
     {
         Direction door = horizontal(facing);
         HutCanvas canvas = new HutCanvas(level, center, door, width, depth, 0xD2055L * 31 + number);
+        // Where the ground rises above the floor, clearing the footprint cuts it away (read before anything is placed).
+        boolean[] cut = new boolean[width * depth];
+        for (int x = 0; x < width; x++)
+        {
+            for (int z = 0; z < depth; z++)
+            {
+                cut[x * depth + z] = canvas.isSolid(x, 1, z);
+            }
+        }
         canvas.air(0, 1, 0, width - 1, height, depth - 1);
         for (int x = 0; x < width; x++)
         {
@@ -114,6 +124,11 @@ public abstract class HutDesign
                 {
                     canvas.set(x, 0, z, Blocks.GRASS_BLOCK);
                     canvas.foundation(x, z, x, z, Blocks.DIRT);
+                }
+                else if (cut[x * depth + z] && canvas.isDirt(x, 0, z))
+                {
+                    // The grass went with the cut; put some back on the new top (bare dirt looks wrong).
+                    canvas.set(x, 0, z, Blocks.GRASS_BLOCK);
                 }
             }
         }

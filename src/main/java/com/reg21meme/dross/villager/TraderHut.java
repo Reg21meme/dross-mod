@@ -41,12 +41,16 @@ import java.util.Set;
  * <ul>
  *   <li>its footprint, grown by {@link #PIECE_MARGIN} blocks, touches no piece of the village (houses, streets,
  *       lamp posts, wells, hay... every piece has a bounding box), and covers no village path block;</li>
- *   <li>the ground under the whole footprint is dry and level enough (the build fills dips with dirt but never
- *       digs, so the floor sits at the highest ground).</li>
+ *   <li>the ground under the whole footprint is dry and level enough: bumps may be cut away by up to
+ *       {@link #MAX_CUT} blocks and dips filled in by up to {@link #MAX_FILL} (so the ground may vary by up to
+ *       {@link #MAX_CUT} + {@link #MAX_FILL} blocks). The floor goes at the height that needs the least cutting
+ *       plus filling (on a tie, the one that cuts less); the build clears everything above the floor and fills
+ *       dips with dirt. The doorstep ground must be within {@link #DOORSTEP_STEP} of the floor, so the path
+ *       can start.</li>
  * </ul>
  * It is scored by how close it is to the village's pieces ({@link #GAP_WEIGHT} per block), how far its door is
- * from the nearest village path block, and a penalty for uneven ground. The best few get a path search, and the
- * first one that connects wins.
+ * from the nearest village path block, and penalties for uneven ground and for earthworks. The best few get a
+ * path search, and the first one that connects wins.
  * <p>
  * <b>The path</b> is {@link #PATH_WIDTH} blocks wide, from the doorstep to the nearest village path block
  * (the nearest street, not the village center). Its middle line is searched with a preference for straight runs;
@@ -73,10 +77,19 @@ public final class TraderHut
      * by this much must not touch any piece, so it never overlaps (or crowds) a house, street or decoration.
      */
     private static final int PIECE_MARGIN = 2;
-    /** The ground under the hut may vary by at most this many blocks (the floor ends up on a plinth this tall). */
-    private static final int MAX_GROUND_VARIATION = 3;
+    /** The floor may sit at most this many blocks below the highest ground under the hut (bumps are cut away). */
+    static final int MAX_CUT = 3;
+    /** The floor may sit at most this many blocks above the lowest ground under the hut (dips are filled in). */
+    static final int MAX_FILL = 3;
+    /**
+     * The ground in front of the door (the doorstep row) must be within this many blocks of the floor. The row is
+     * levelled to the floor, and the path beyond it steps one block at a time.
+     */
+    static final int DOORSTEP_STEP = 1;
     /** A spot's score is its door's distance to a village path in blocks, plus this much per block of uneven ground... */
     private static final int FLATNESS_PENALTY = 4;
+    /** ...plus this much per block of earth cut or filled under the hut (summed over all its columns)... */
+    private static final double EARTHWORK_WEIGHT = 0.1D;
     /** ...plus this much per block between the hut and the nearest village piece (lower is closer to the houses). */
     private static final double GAP_WEIGHT = 1.0D;
     /** Hut centers are tried every this many blocks. */
@@ -129,8 +142,11 @@ public final class TraderHut
     /** A hut spot being considered. The center's Y is the floor height. Lower scores are better. */
     private record Candidate(BlockPos center, Direction facing, double score) {}
 
-    /** The floor height for a footprint (its highest ground) and how uneven the ground under it is. */
-    private record Floor(int y, int variation) {}
+    /**
+     * The floor height chosen for a footprint, how uneven the ground under it is (highest minus lowest), and the
+     * earthwork it takes: the number of blocks cut away plus blocks filled in, over all columns.
+     */
+    record Floor(int y, int variation, int work) {}
 
     /** The four orientations. The footprint and entrance are worked out once, as offsets from the center. */
     private static final List<Orientation> ORIENTATIONS = orientations();
@@ -250,21 +266,24 @@ public final class TraderHut
                     {
                         continue;
                     }
-                    Floor floor = ground.floor(fromX, fromZ, toX, toZ);
-                    if (floor == null || floor.y() + DESIGN.height() >= buildLimit)
+                    // The doorstep row is where the path starts, so it must be usable ground...
+                    int entranceX = x + o.entrance().getX();
+                    int entranceZ = z + o.entrance().getZ();
+                    int[] doorstep = doorstepHeights(ground, entranceX, entranceZ, o.facing());
+                    if (doorstep == null)
                     {
                         continue;
                     }
-                    // The doorstep row is where the path starts, so it must be usable.
-                    int entranceX = x + o.entrance().getX();
-                    int entranceZ = z + o.entrance().getZ();
-                    if (!doorstepUsable(ground, entranceX, entranceZ, o.facing(), floor.y()))
+                    // ...and the floor goes where the ground under the hut and the doorstep can be levelled to.
+                    Floor floor = ground.floor(fromX, fromZ, toX, toZ, doorstep);
+                    if (floor == null || floor.y() + DESIGN.height() >= buildLimit)
                     {
                         continue;
                     }
                     double score = distanceToNearest(targetX, targetZ, entranceX, entranceZ)
                             + GAP_WEIGHT * gap
-                            + FLATNESS_PENALTY * floor.variation();
+                            + FLATNESS_PENALTY * floor.variation()
+                            + EARTHWORK_WEIGHT * floor.work();
                     candidates.add(new Candidate(new BlockPos(x, floor.y(), z), o.facing(), score));
                 }
             }
@@ -326,15 +345,16 @@ public final class TraderHut
             BoundingBox fp = o.footprint();
             int x = stand.getX();
             int z = stand.getZ();
-            Floor floor = ground.floor(x + fp.minX(), z + fp.minZ(), x + fp.maxX(), z + fp.maxZ());
-            if (floor == null || floor.y() + DESIGN.height() >= level.getMaxBuildHeight())
+            // The block in front of the door must be dry and within a step of the floor, so the doorstep
+            // doesn't float or sit in a hole.
+            int cell = ground.at(x + o.entrance().getX(), z + o.entrance().getZ());
+            if (Ground.kind(cell) == Ground.BLOCKED)
             {
                 continue;
             }
-            // The block in front of the door must be dry and about level with the floor, so the doorstep
-            // doesn't float or sit in a hole.
-            int cell = ground.at(x + o.entrance().getX(), z + o.entrance().getZ());
-            if (Ground.kind(cell) == Ground.BLOCKED || Math.abs(Ground.y(cell) - floor.y()) > 1)
+            Floor floor = ground.floor(x + fp.minX(), z + fp.minZ(), x + fp.maxX(), z + fp.maxZ(),
+                    new int[] {Ground.y(cell)});
+            if (floor == null || floor.y() + DESIGN.height() >= level.getMaxBuildHeight())
             {
                 continue;
             }
@@ -444,21 +464,62 @@ public final class TraderHut
 
     /**
      * The doorstep row: the block in front of the door and its neighbors on either side, {@link #PATH_WIDTH} in all.
-     * Each must be usable ground (not fluid, a wall, an unloaded chunk or an existing path) and within one block
-     * of the floor, because the whole row is levelled with the hut floor.
+     * Each must be usable ground (not fluid, a wall, an unloaded chunk or an existing path). Returns the ground
+     * height of each, or null if any isn't usable. The floor is then picked within {@link #DOORSTEP_STEP} of all of
+     * them, because the whole row is levelled with the hut floor.
      */
-    private static boolean doorstepUsable(Ground ground, int entranceX, int entranceZ, Direction facing, int floorY)
+    private static int[] doorstepHeights(Ground ground, int entranceX, int entranceZ, Direction facing)
     {
         Direction side = facing.getClockWise();
+        int[] heights = new int[PATH_WIDTH];
         for (int k = -PATH_RADIUS; k <= PATH_RADIUS; k++)
         {
             int cell = ground.at(entranceX + k * side.getStepX(), entranceZ + k * side.getStepZ());
-            if (Ground.kind(cell) != Ground.FREE || Math.abs(Ground.y(cell) - floorY) > 1)
+            if (Ground.kind(cell) != Ground.FREE)
             {
-                return false;
+                return null;
+            }
+            heights[k + PATH_RADIUS] = Ground.y(cell);
+        }
+        return heights;
+    }
+
+    /**
+     * Picks the floor height for a footprint, or null if the ground can't be levelled. {@code counts[i]} is how many
+     * footprint columns have their ground at {@code lowest + i}. The floor {@code y} may cut at most {@link #MAX_CUT}
+     * blocks off the highest ground and fill at most {@link #MAX_FILL} blocks on the lowest, and must be within
+     * {@link #DOORSTEP_STEP} of every height in {@code doorstep}. Of those, the one needing the fewest blocks cut
+     * plus filled wins; on a tie, the higher one (it cuts less).
+     */
+    static Floor chooseFloor(int lowest, int[] counts, int[] doorstep)
+    {
+        int variation = counts.length - 1;
+        if (variation > MAX_CUT + MAX_FILL)
+        {
+            return null;
+        }
+        int highest = lowest + variation;
+        int bottom = highest - MAX_CUT;
+        int top = lowest + MAX_FILL;
+        for (int door : doorstep)
+        {
+            bottom = Math.max(bottom, door - DOORSTEP_STEP);
+            top = Math.min(top, door + DOORSTEP_STEP);
+        }
+        Floor best = null;
+        for (int y = top; y >= bottom; y--)
+        {
+            int work = 0;
+            for (int i = 0; i < counts.length; i++)
+            {
+                work += counts[i] * Math.abs(lowest + i - y);
+            }
+            if (best == null || work < best.work())
+            {
+                best = new Floor(y, variation, work);
             }
         }
-        return true;
+        return best;
     }
 
     // ---------------------------------------------------------------- the path material
@@ -639,10 +700,12 @@ public final class TraderHut
         }
 
         /**
-         * The floor for a hut over this rectangle: the highest ground in it, and how much the ground varies.
-         * Null if any column is not {@link #FREE} or the ground varies by more than {@link #MAX_GROUND_VARIATION}.
+         * The floor for a hut over this rectangle (see {@link #chooseFloor}): bumps are cut down by up to
+         * {@link #MAX_CUT} blocks and dips filled in by up to {@link #MAX_FILL}. Null if any column is not
+         * {@link #FREE}, the ground varies by more than {@link #MAX_CUT} + {@link #MAX_FILL}, or no floor is within
+         * {@link #DOORSTEP_STEP} of the {@code doorstep} ground heights.
          */
-        Floor floor(int fromX, int fromZ, int toX, int toZ)
+        Floor floor(int fromX, int fromZ, int toX, int toZ, int[] doorstep)
         {
             int lowest = Integer.MAX_VALUE;
             int highest = Integer.MIN_VALUE;
@@ -657,13 +720,21 @@ public final class TraderHut
                     }
                     lowest = Math.min(lowest, y(cell));
                     highest = Math.max(highest, y(cell));
-                    if (highest - lowest > MAX_GROUND_VARIATION)
+                    if (highest - lowest > MAX_CUT + MAX_FILL)
                     {
                         return null;
                     }
                 }
             }
-            return new Floor(highest, highest - lowest);
+            int[] counts = new int[highest - lowest + 1];
+            for (int x = fromX; x <= toX; x++)
+            {
+                for (int z = fromZ; z <= toZ; z++)
+                {
+                    counts[y(at(x, z)) - lowest]++;
+                }
+            }
+            return chooseFloor(lowest, counts, doorstep);
         }
 
         /** The Y of the ground block (meaningless for a {@link #BLOCKED} column). */

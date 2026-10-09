@@ -227,6 +227,19 @@ final class HutCanvas
         return level.getBlockState(pos).blocksMotion() && level.getFluidState(pos).isEmpty();
     }
 
+    /** True if the world at this spot (before anything is placed) is solid and dry. */
+    boolean isSolid(int x, int y, int z)
+    {
+        BlockPos pos = toWorld(x, y, z);
+        return level.getBlockState(pos).blocksMotion() && level.getFluidState(pos).isEmpty();
+    }
+
+    /** True if the world at this spot (before anything is placed) is a plain dirt block. */
+    boolean isDirt(int x, int y, int z)
+    {
+        return level.getBlockState(toWorld(x, y, z)).is(Blocks.DIRT);
+    }
+
     // ---------------------------------------------------------------- placing
 
     /**
