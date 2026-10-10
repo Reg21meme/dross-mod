@@ -8,7 +8,6 @@ import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
 import com.reg21meme.dross.villager.TraderCommands;
 import com.reg21meme.dross.world.PortalSite;
-import com.reg21meme.dross.world.PortalSiteBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
@@ -26,7 +25,9 @@ import net.minecraftforge.fml.common.Mod;
 /**
  * The {@code /dross} command. Owned by world-builder; other areas' logic lives in their own packages. All need cheats (level 2).
  * <ul>
- *   <li>{@code /dross site}: teleports you in front of the castle's portal frame, facing it.</li>
+ *   <li>{@code /dross site}: teleports you in front of the castle's portal frame, facing it. Before the site has been
+ *       built in this world it fails ("hasn't been placed ... yet") and builds nothing: the site is built in the
+ *       background a little while after a new world opens (old worlds' bare frame or small shrine count as built).</li>
  *   <li>{@code /dross hub}: teleports you to the hub in the Dross (portal area's {@link DrossHub}).</li>
  *   <li>{@code /dross trader}: teleports you to the Dross trader. {@code /dross trader home}: sends him home.
  *       From the villager area ({@link TraderCommands}).</li>
@@ -49,6 +50,8 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossCommand
 {
+    /** What {@code /dross site} says (as a failure) before the site has been built in this world. */
+    public static final String SITE_NOT_PLACED = "The Dross portal site hasn't been placed in this world yet.";
     /** How far in front of (or behind) the frame the player is put, best first. */
     private static final int[] STAND_DISTANCES = {3, 2, 4, 1, 5};
     /** Height steps tried at each spot (relative to the frame's bottom row), best first. */
@@ -112,10 +115,17 @@ public final class DrossCommand
     private static int teleportToSite(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
     {
         CommandSourceStack source = context.getSource();
-        ServerPlayer player = source.getPlayerOrException();
         ServerLevel overworld = source.getServer().overworld();
+        if (!PortalSite.isPlaced(overworld))
+        {
+            // Never build it from here: it's built in the background a little while after a new world opens (or right
+            // away when someone leaves the Dross), and everyone is told where it is then.
+            source.sendFailure(Component.literal(SITE_NOT_PLACED));
+            return 0;
+        }
+        ServerPlayer player = source.getPlayerOrException();
 
-        BlockPos frame = PortalSiteBuilder.ensurePlaced(overworld);
+        BlockPos frame = PortalSite.getFramePos(overworld);
         Direction.Axis axis = PortalSite.getFrameAxis(overworld);
         boolean alongX = axis == Direction.Axis.X;
         // The opening starts one block along the frame from the corner; its middle is half its width further.

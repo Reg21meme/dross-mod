@@ -17,11 +17,18 @@ import net.minecraft.world.phys.AABB;
 /**
  * The risen undead's "pack AI": the one goal that picks what a risen undead fights.
  *
- * <p><b>Commitment:</b> once it has a target it keeps it until that target dies or becomes invalid (gone, out of its
- * follow range, a forbidden target...). It never switches to a "better" target mid-fight.
+ * <p><b>Commitment:</b> once it has a target it keeps it until that target dies or becomes invalid (dead, dying,
+ * removed, out of its follow range, a forbidden target...). It never switches to a "better" target mid-fight.
+ *
+ * <p><b>This goal is the only thing that sets or clears a risen undead's target.</b> Any target it would not keep is
+ * dropped the next time it checks, even while it isn't running. That matters because vanilla's skeleton bow attack
+ * only checks "is there a target?", not "is it alive?": a skeleton left with a dead target keeps shooting at the spot
+ * where it died. (That happened when the swing that raised the undead also killed the mob they were sent after.)
  *
  * <p><b>When it's free</b> (no target), it picks one in this order, highest first:
  * <ol>
+ *   <li><b>The mob the owner hit when it rose</b> (only on its very first check; skipped if that same swing killed
+ *       it);</li>
  *   <li><b>Defend the owner:</b> the mob that last hurt the owner, or (searched every
  *       {@link #SEARCH_INTERVAL_TICKS}) the nearest mob within {@link #DEFEND_RADIUS} of the owner that is
  *       targeting the owner;</li>
@@ -58,11 +65,21 @@ public class RisenTargetGoal extends TargetGoal
     private long nextSearchTime;
     @Nullable
     private LivingEntity candidate;
+    /**
+     * The mob the owner hit with the swing that raised this one. Tried once, on the first check, and only if it's
+     * still usable then: the same swing may already have killed it.
+     */
+    @Nullable
+    private LivingEntity firstTarget;
 
-    public RisenTargetGoal(Mob mob)
+    /**
+     * @param firstTarget the mob the owner just hit (the raising swing), or null (mounts, or nothing to go after)
+     */
+    public RisenTargetGoal(Mob mob, @Nullable LivingEntity firstTarget)
     {
         super(mob, false);
         this.setFlags(EnumSet.of(Goal.Flag.TARGET));
+        this.firstTarget = firstTarget;
         // Spread the searches of a freshly raised group over different ticks.
         this.nextSearchTime = mob.level().getGameTime() + mob.getRandom().nextInt(SEARCH_INTERVAL_TICKS);
     }
@@ -81,12 +98,26 @@ public class RisenTargetGoal extends TargetGoal
     @Nullable
     private LivingEntity pick()
     {
-        // Already has a target (for example the mob the owner hit when it rose, or a mob that just hit it):
-        // commitment, keep it.
+        // Already has a target (for example a mob that just hit it): commitment, keep it while it's usable.
         LivingEntity current = this.mob.getTarget();
-        if (this.usable(current))
+        if (current != null)
         {
-            return current;
+            if (this.usable(current))
+            {
+                return current;
+            }
+            // Dead, dying, removed, out of range or forbidden: let go of it now. Nothing else would (this goal isn't
+            // running), and a skeleton would keep shooting at it.
+            this.dropTarget();
+        }
+
+        // 0. The mob the owner hit when this one rose (first check only). If the raising swing also killed it, it's
+        //    no longer usable, and the normal rules below take over.
+        LivingEntity first = this.firstTarget;
+        this.firstTarget = null;
+        if (this.usable(first))
+        {
+            return first;
         }
 
         Player owner = RisenUndead.getOwner(this.mob);
@@ -228,7 +259,10 @@ public class RisenTargetGoal extends TargetGoal
         super.start();
     }
 
-    /** Keep the target until it dies or becomes invalid (vanilla also drops it when out of follow range). */
+    /**
+     * Keep the target until it dies (or is dying or removed) or becomes invalid (vanilla also drops it when out of
+     * follow range). When this returns false, {@link #stop()} clears the target.
+     */
     @Override
     public boolean canContinueToUse()
     {
@@ -239,8 +273,34 @@ public class RisenTargetGoal extends TargetGoal
     @Override
     public void stop()
     {
-        super.stop();
-        // The fight is over: look for allies that are still fighting right away, before following the owner.
+        super.stop(); // clears the target
+        this.endFight();
+    }
+
+    /** Same as {@link #stop()}, for a stale target found while this goal wasn't running. */
+    private void dropTarget()
+    {
+        this.mob.setTarget(null);
+        this.targetMob = null;
+        this.endFight();
+    }
+
+    /**
+     * The target is gone: end the attack too, and look for allies still fighting right away (before following the
+     * owner).
+     *
+     * <p>"Aggressive" means its vanilla attack goal is still running, and that goal is the one walking it around. A
+     * skeleton walks toward its target for its first second of seeing it, and vanilla's bow attack keeps going until
+     * that walk ends, even with no target: bow drawn, walking to the empty spot where the target died, for up to a
+     * few seconds if the way is blocked. Stopping the walk ends the attack goal on this same tick (bow lowered), so
+     * it's free to help the pack or follow the owner.
+     */
+    private void endFight()
+    {
+        if (this.mob.isAggressive())
+        {
+            this.mob.getNavigation().stop(); // for a jockey rider, this is the mount's walk
+        }
         this.nextSearchTime = 0L;
     }
 }

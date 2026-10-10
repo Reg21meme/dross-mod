@@ -210,12 +210,12 @@ public final class RisenUndead
     }
 
     /**
-     * Never players, the Dross trader, villagers or wandering traders, themselves, or their owner's other risen
-     * undead (even if the owner hits one of those).
+     * Never anything dead, dying or removed ({@link #isGone}), and never players, the Dross trader, villagers or
+     * wandering traders, themselves, or their owner's other risen undead (even if the owner hits one of those).
      */
     public static boolean isValidTarget(Mob risen, @Nullable LivingEntity target)
     {
-        if (target == null || target == risen || !target.isAlive())
+        if (target == null || target == risen || isGone(target))
         {
             return false;
         }
@@ -225,6 +225,15 @@ public final class RisenUndead
         }
         UUID owner = getOwnerId(risen);
         return owner == null || !owner.equals(getOwnerId(target));
+    }
+
+    /**
+     * True if the entity is dead or dying (health 0: a killed mob stays in the world for its 1-second death
+     * animation), or removed from the world (despawned, unloaded, changed dimension). Never a valid target.
+     */
+    public static boolean isGone(LivingEntity entity)
+    {
+        return entity.isRemoved() || entity.isDeadOrDying() || !entity.isAlive();
     }
 
     /**
@@ -242,8 +251,11 @@ public final class RisenUndead
 
     /**
      * Raises one undead of the given type next to the owner, with Deathforged gear for the given level (0 = none),
-     * and sends it after {@code firstTarget} (the mob the owner just hit) if that's a valid target.
-     * Returns true if it was spawned.
+     * and sends it after {@code firstTarget} (the mob the owner just hit). Returns true if it was spawned.
+     *
+     * <p>The target isn't set here: it's handed to the pack AI ({@link RisenTargetGoal}), which takes it on its first
+     * check only if it's still a valid target then. Necromancy raises during the swing, before its damage lands, so
+     * the swing that raises them can still kill that mob in the same tick.
      */
     static boolean raise(ServerPlayer owner, RisenType type, int deathforgedLevel, @Nullable LivingEntity firstTarget)
     {
@@ -301,12 +313,12 @@ public final class RisenUndead
         // Mark and set up BEFORE adding to the world, so EntityJoinLevelEvent handlers (the Dross netherite rule)
         // already see them as risen. finalizeSpawn is deliberately not called: no random vanilla gear.
         rider.moveTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, yaw, 0.0F);
-        setUp(rider, owner, now, false);
+        setUp(rider, owner, now, false, firstTarget);
         applyDeathforgedGear(rider, deathforgedLevel);
         if (mount != null)
         {
             mount.moveTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, yaw, 0.0F);
-            setUp(mount, owner, now, true);
+            setUp(mount, owner, now, true, null);
             rider.startRiding(mount, true);
             level.addFreshEntityWithPassengers(mount);
             if (mount.isAddedToWorld())
@@ -328,11 +340,6 @@ public final class RisenUndead
             return false;
         }
         ACTIVE.add(rider);
-
-        if (firstTarget != null && isValidTarget(rider, firstTarget))
-        {
-            rider.setTarget(firstTarget);
-        }
         puff(level, body);
         return true;
     }
@@ -356,8 +363,11 @@ public final class RisenUndead
         return center;
     }
 
-    /** Marks the mob as risen and swaps its hostile AI for the risen behavior. */
-    private static void setUp(Mob mob, ServerPlayer owner, long now, boolean isMount)
+    /**
+     * Marks the mob as risen and swaps its hostile AI for the risen behavior. {@code firstTarget} is the mob the owner
+     * just hit, passed on to the pack AI (null for mounts).
+     */
+    private static void setUp(Mob mob, ServerPlayer owner, long now, boolean isMount, @Nullable LivingEntity firstTarget)
     {
         CompoundTag data = mob.getPersistentData();
         data.putUUID(OWNER_KEY, owner.getUUID());
@@ -386,7 +396,7 @@ public final class RisenUndead
         // Targeting: drop every vanilla target goal (players, villagers, golems, turtles...) and use ours.
         mob.targetSelector.removeAllGoals(goal -> true);
         // One goal holds the whole pack AI (priorities, commitment, helping allies): see RisenTargetGoal.
-        mob.targetSelector.addGoal(TARGET_GOAL_PRIORITY, new RisenTargetGoal(mob));
+        mob.targetSelector.addGoal(TARGET_GOAL_PRIORITY, new RisenTargetGoal(mob, firstTarget));
 
         // Movement: no wandering off on their own; follow the owner instead.
         mob.goalSelector.removeAllGoals(goal -> goal instanceof RandomStrollGoal || goal instanceof MoveThroughVillageGoal);

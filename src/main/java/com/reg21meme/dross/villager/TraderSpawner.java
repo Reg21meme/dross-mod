@@ -64,7 +64,8 @@ import java.util.Set;
  *       biome, with a warning in the log. {@link TraderSpawnData#isInVillage()} records which it was.</li>
  * </ol>
  * If the world is closed while this is going on, it simply starts again the next time. Each village checked and the
- * final choice are logged on one line each.
+ * final choice are logged on one line each. Once he is spawned, everyone online is told where his hut is
+ * ({@link TraderAnnouncer}).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public class TraderSpawner
@@ -514,6 +515,8 @@ public class TraderSpawner
 
         TraderSpawnData.get(overworld).markSpawned(spot, trader.getUUID(), inVillage);
         LOGGER.info("[Dross] Spawned the Dross trader at {}, {}, {}", spot.getX(), spot.getY(), spot.getZ());
+        // Tell everyone online where his hut is (guarded: a problem with the message never undoes the spawn).
+        TraderAnnouncer.announceSpawned(overworld);
     }
 
     // ---------------------------------------------------------------- the emergency spot

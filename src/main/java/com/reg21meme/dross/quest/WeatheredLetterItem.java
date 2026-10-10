@@ -19,14 +19,17 @@ import java.util.List;
  * The Weathered Letter ({@code dross:weathered_letter}): found in Nether Fortress and Bastion chests
  * ({@link WeatheredLetterLootModifier}). Readable like a written book.
  * <ul>
- *   <li>It tells the reader that an old villager is seeking someone strong, and roughly where his hut is:
- *       the direction from world spawn, with coordinates rounded to {@value #LOCATION_ROUNDING} blocks.
- *       The wording depends on whether his hut is at the edge of a village or on its own in the wilds
- *       ({@link TraderSpawnData#isInVillage()}). If his hut isn't built yet, the wording is vaguer.</li>
+ *   <li>Four pages: blue portals from the Dross have been spilling into the world; "we" closed them, but the
+ *       Dross is pressing to break through again; an old villager, the writer's friend, is looking for someone
+ *       strong enough to fight back; and roughly where his hut is: the direction from world spawn, with
+ *       coordinates rounded to {@value #LOCATION_ROUNDING} blocks. The wording depends on whether his hut is at
+ *       the edge of a village or on its own in the wilds ({@link TraderSpawnData#isInVillage()}). If his hut
+ *       isn't built yet, the location is vaguer.</li>
  *   <li>The text is written when the letter is made (in the chest). A letter without text (for example from
  *       the creative tab) gets its text as soon as it's in a player's inventory. A letter written before his
  *       hut was built (the vague text) rewrites itself once, the next time it's in a player's inventory
- *       after he has spawned. Letters that already show a real location are never rewritten.</li>
+ *       after he has spawned. A letter from before the four-page text also rewrites itself once. Letters
+ *       that already show the current text and a real location are never rewritten.</li>
  *   <li>Having one in your inventory grants "A Weathered Letter" (and silently unlocks the Dross advancement tab).</li>
  * </ul>
  * All wording is in {@code en_us.json} under {@code book.dross.weathered_letter.*} and {@code book.dross.direction.*}.
@@ -42,8 +45,10 @@ public class WeatheredLetterItem extends ReadableItem
 
     /** Start of every lang key for the letter's pages. */
     private static final String KEY = "book.dross.weathered_letter.";
-    /** The page used while his hut isn't built yet. Letters with this page rewrite themselves once he has spawned. */
-    private static final String UNKNOWN_KEY = KEY + "page2_unknown";
+    /** The location page used while his hut isn't built yet. Letters with it rewrite themselves once he has spawned. */
+    private static final String UNKNOWN_KEY = KEY + "location_unknown";
+    /** How many pages the current text has. A letter with fewer was written by an older version and rewrites itself. */
+    private static final int PAGE_COUNT = 4;
 
     /** Lang keys for the 8 directions, starting at north and going clockwise. North is -Z, east is +X. */
     private static final String[] DIRECTION_KEYS = {
@@ -85,7 +90,9 @@ public class WeatheredLetterItem extends ReadableItem
         if (player.tickCount % CHECK_INTERVAL == 0)
         {
             // Written before his hut existed? Now that he has spawned, fill in the real location (once).
-            if (hasUnknownLocation(stack) && TraderSpawnData.get(player.server.overworld()).hasSpawned())
+            // Written by an older version (the old, shorter text)? Rewrite it with the current text (once).
+            if ((hasUnknownLocation(stack) && TraderSpawnData.get(player.server.overworld()).hasSpawned())
+                    || isOldText(stack))
             {
                 setPages(stack, writePages(player.server));
             }
@@ -115,6 +122,12 @@ public class WeatheredLetterItem extends ReadableItem
         return false;
     }
 
+    /** True if this letter was written by an older version of the mod (fewer pages than the current text). */
+    private static boolean isOldText(ItemStack stack)
+    {
+        return hasPages(stack) && stack.getTag().getList(PAGES_TAG, Tag.TAG_STRING).size() < PAGE_COUNT;
+    }
+
     /** The letter's pages, using where the trader's hut is right now (read from the villager area's saved data). */
     private static List<Component> writePages(MinecraftServer server)
     {
@@ -123,12 +136,15 @@ public class WeatheredLetterItem extends ReadableItem
         if (!trader.hasSpawned())
         {
             // His hut isn't built yet: we don't know where he is.
-            return List.of(Component.translatable(KEY + "page1"), Component.translatable(UNKNOWN_KEY));
+            return List.of(Component.translatable(KEY + "page1"), Component.translatable(KEY + "page2_intro"),
+                    Component.translatable(KEY + "page3"), Component.translatable(UNKNOWN_KEY));
         }
 
         // At the edge of a village, or (no usable village was found) on its own in the wilds near spawn.
         String suffix = trader.isInVillage() ? "" : "_wild";
-        Component intro = Component.translatable(KEY + "page1" + suffix);
+        Component story = Component.translatable(KEY + "page1");
+        Component intro = Component.translatable(KEY + "page2_intro" + suffix);
+        Component friend = Component.translatable(KEY + "page3");
 
         BlockPos hut = trader.getPos();
         BlockPos spawn = overworld.getSharedSpawnPos();
@@ -140,14 +156,14 @@ public class WeatheredLetterItem extends ReadableItem
         Component where;
         if (dx * dx + dz * dz < NEAR_SPAWN_DISTANCE * NEAR_SPAWN_DISTANCE)
         {
-            where = Component.translatable(KEY + "page2_near_spawn" + suffix, roughX, roughZ);
+            where = Component.translatable(KEY + "location_near_spawn" + suffix, roughX, roughZ);
         }
         else
         {
-            where = Component.translatable(KEY + "page2" + suffix,
+            where = Component.translatable(KEY + "location" + suffix,
                     Component.translatable(directionKey(dx, dz)), roughX, roughZ);
         }
-        return List.of(intro, where);
+        return List.of(story, intro, friend, where);
     }
 
     /** Rounds a coordinate to the nearest {@value #LOCATION_ROUNDING}. */

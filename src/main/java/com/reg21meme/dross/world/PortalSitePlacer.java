@@ -43,9 +43,11 @@ import org.slf4j.Logger;
  * </ol>
  * The number of checks is bounded. If nothing passes, the rules are relaxed step by step ({@link SiteRules#LADDER},
  * with a WARN each time); the last resort builds on the best spot found, on whatever ground is there, so a world is
- * never left without a site. If the site is needed before all this is done (for example {@code /dross site}, or
- * leaving the Dross), {@link #placeNow} finishes it on the spot, keeping the wait short (at most about
- * {@link #NOW_TOTAL_MILLIS} ms). If the world is closed halfway, it carries on from the planned spot next time.
+ * never left without a site. If the site is needed before all this is done (someone leaves the Dross through the
+ * hub's exit portal), {@link #placeNow} finishes it on the spot, keeping the wait short (at most about
+ * {@link #NOW_TOTAL_MILLIS} ms). ({@code /dross site} never builds it: it just says it isn't placed yet.) If the world
+ * is closed halfway, it carries on from the planned spot next time. Once the site is placed, everyone online is told
+ * where it is ({@link SiteAnnouncer}).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class PortalSitePlacer
@@ -517,6 +519,8 @@ public final class PortalSitePlacer
                             + (double) (z - spawn.getZ()) * (z - spawn.getZ()))),
                     rules().name(), checks, searches, frame.corner().toShortString(), frame.axis(),
                     frame.openingCenter().toShortString(), buildMillis, Math.round((System.currentTimeMillis() - startedAt) / 1000.0D));
+            // Tell everyone online where it is ("Dross portal site is at X, Y, Z").
+            SiteAnnouncer.announcePlaced(level);
         }
 
         /** Relaxes the rules one step (with a WARN), or builds the last resort if they're as loose as they go. */
