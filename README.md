@@ -170,7 +170,7 @@ Unlimited uses, no restocking, no XP.
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
 | **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon and the Wither) while still counting as your kill. Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 

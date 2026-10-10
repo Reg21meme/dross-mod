@@ -176,7 +176,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
      - After the quest the trader sells Necromancy (lowest level) and Deathforged I (step 4).
      - Deathforged books drop only from the netherite-wearing zombies and skeletons of the Dross (`DrossMobGear.hasDrossGear`), when a player hit them recently: 5% per kill + 1% per Looting level; level weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1.
    - **Advancement "Rise!"** (`dross:rise`): "Raise the undead with Necromancy.", challenge frame (purple), zombie head icon, granted the first time a player raises undead, through Quest's grant helper. It's in the Dross tab (step 7), parent "Enter the Dross".
-   - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site), and enchanted books for every level of both enchantments (these stay even after the trader stops selling them).
+   - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site), and enchanted books for every level of both enchantments (these stay even after the trader stops selling them). Dross enchanted books appear **only** in the Dross tab: vanilla's automatic copies in Ingredients (and search) and Combat are removed (`enchant/DrossBooksTabFilter`), so searching shows each book once, tagged "Dross".
 
 7. **The early-game quest** [built]. Progress is **per player, per world**, saved by Quest (a `SavedData` keyed by player UUID). The trader's side (dialogue, hand-ins, gifts) is Villager's, through Quest's API.
    1. **Normal survival.** Nothing from the mod is needed yet.
