@@ -35,7 +35,7 @@ record SiteFrame(BlockPos corner, Direction.Axis axis, int openingWidth, int ope
 
     /**
      * The middle block of the opening's bottom row. For an even width (like the usual 2) it's the lower of
-     * the two middle blocks, so for the placeholder it's exactly the site column (PortalSite.X, PortalSite.Z).
+     * the two middle blocks, so for the placeholder it's exactly the site column.
      */
     BlockPos openingCenter()
     {

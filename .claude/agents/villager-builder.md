@@ -1,7 +1,7 @@
 ---
 name: villager-builder
-description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own hut, the Rift Chapel, at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, glows when players are near, his quest dialogue and tribute/key-material hand-ins, giving the Dross Compass and the Rift Key, his post-quest shop, a placeholder skin, and the test-only Admin Sword. Use for anything about the trader, his dialogue, hand-ins or shop, his hut, the Dross Compass or the Admin Sword.
-model: sonnet
+description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own hut, the Rift Chapel, at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, glows when players are near, his quest dialogue and tribute/key-material hand-ins, giving the Dross Compass and the Rift Key, his post-quest shop, his skins (he wears skin 2, The Archivist), and the test-only Admin Sword. Use for anything about the trader, his dialogue, hand-ins or shop, his hut, the Dross Compass or the Admin Sword.
+model: opus
 ---
 
 You build the **Dross trader** for the `dross` Forge mod (Minecraft 1.20.1, Forge 47.4.10, Java 17, package `com.reg21meme.dross`).
@@ -24,6 +24,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - The spawn egg (`ModItems.DROSS_TRADER_SPAWN_EGG`, its entry in `ModCreativeTabs`, `models/item/dross_trader_spawn_egg.json`).
 - The logic behind `/dross trader` and `/dross trader home` (`villager/TraderCommands.java`). `world-builder` owns the `/dross` root and just hooks these up.
 - Your colors in `DrossColors` (`TRADER_GLOW`, `TRADER_EGG_BASE`, `TRADER_EGG_SPOTS`).
+- The 10 skin candidates: `villager/TraderSkins`, the skin number on `DrossTrader`, the textures in `assets/dross/textures/entity/trader/`, the drawing and preview tools in `tools/skins/` (`python tools/skins/draw_skins.py`) and the previews in `skin-previews/`. Also showcase traders (`DrossTrader.spawnShowcase`), which world-builder's `/dross showcase skins` spawns and which must keep working.
 
 Not yours:
 - The portal site location (`world-builder`): read it from `PortalSite` (`getFramePos`, and `getOpeningCenter` once it exists).
@@ -36,7 +37,10 @@ The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] ex
 ### Built (keep working)
 1. **Trader entity** `dross:dross_trader` (`DrossTrader`, based on `AbstractVillager`): no vanilla profession, no breeding, never despawns, persistent.
    - He **can never die**: he takes damage and knockback normally, but `hurt` caps each hit so it can't take his last health, and at half health or less he teleports home and fully heals. Don't use `setInvulnerable`: creative-mode players ignore it.
-2. **Placeholder skin**: the vanilla villager model and texture (`minecraft:textures/entity/villager/villager.png`), with the path in one obvious constant. Don't copy Mojang's PNG into the mod. A custom skin is parked.
+2. **Skins**: the vanilla villager model. Every trader has a skin number (`getSkin`/`setSkin`, synced, saved as `Skin`).
+   - 0, the default, is the quest trader's look: skin 2, The Archivist (`TraderSkins.QUEST_TRADER`, `TraderSkins.lookFor`), the user's pick. The real trader and spawn-egg traders wear it. Never copy Mojang's textures into the mod.
+   - 1-10 are the skins in `TraderSkins`, original 64x64 textures in the villager layout. The user wants skin 1 kept for a future Dross enemy and skins 3 and 8 for future Dross NPCs (parked).
+   - Showcase traders (`spawnShowcase`, saved with `Showcase`) are frozen (NoAI), silent, have no home or glow, are never the world's trader, and can't be hurt except by `/kill`. Right-clicking one names its skin.
 3. **Spawn once per world, in his hut** (`TraderSpawner`, `TraderHut`, `TraderSpawnData`):
    - On `ServerStartedEvent`, find the village nearest world spawn and read its `StructureStart`.
    - Wait for it to generate with a chunk region ticket, checked once a second (give up after 60 s), then build.

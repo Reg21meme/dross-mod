@@ -45,3 +45,6 @@ forge*changelog.txt
 
 # Claude Code agent worktrees (temporary project copies)
 .claude/worktrees/
+
+# Python caches (tools/)
+__pycache__/

@@ -83,6 +83,11 @@ public final class DrossColors {
     /** The "Right-click to read" tooltip line on the Weathered Letter and the Dross Guide Book. Used in quest/ReadableItem. */
     public static final ChatFormatting READABLE_TOOLTIP = ChatFormatting.GRAY;
 
+    // ---------------------------------------------------------------- World site (world-builder)
+
+    /** Clickable "teleport there" lines in a showcase command's chat output (any RGB works in chat). Used in command/ShrineShowcase. */
+    public static final int SHOWCASE_LINK = PALETTE_HIGHLIGHT;
+
     // ---------------------------------------------------------------- Helpers
 
     /** Red part of an 0xRRGGBB color, from 0 to 1. */

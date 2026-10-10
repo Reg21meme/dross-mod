@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.PortalSite;
+import com.reg21meme.dross.world.PortalSiteBuilder;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -91,15 +92,19 @@ public class DrossTeleporter implements ITeleporter
     {
         if (dest.dimension() == Level.OVERWORLD)
         {
+            // In a brand-new world the castle may not be built yet (it's placed far from spawn in the background):
+            // build it now. Does nothing once it exists.
+            PortalSiteBuilder.ensurePlaced(dest);
             Optional<PortalOpening> castle = findCastlePortal(dest);
             if (castle.isPresent())
             {
                 return arrivalAt(dest, entity, castle.get(), true);
             }
         }
+        BlockPos site = PortalSite.getOpeningCenter(dest);
         LOGGER.warn("Dross portal: couldn't find the castle portal frame in {} (site X {} Z {}); landing {} on the ground there instead.",
-                dest.dimension().location(), PortalSite.X, PortalSite.Z, entity.getName().getString());
-        return safeLanding(dest, entity, PortalSite.X, PortalSite.Z);
+                dest.dimension().location(), site.getX(), site.getZ(), entity.getName().getString());
+        return safeLanding(dest, entity, site.getX(), site.getZ());
     }
 
     /**
@@ -139,6 +144,34 @@ public class DrossTeleporter implements ITeleporter
      */
     static PortalInfo arrivalAt(ServerLevel level, Entity entity, PortalOpening opening, boolean facePortal)
     {
+        // Both sides blocked: stand inside the opening, on top of the frame's bottom row.
+        // The portal cooldown stops it from sending the entity straight back.
+        return spotBeside(level, entity, opening, facePortal).orElseGet(() -> spotInside(entity, opening));
+    }
+
+    /**
+     * Like {@link #arrivalAt(ServerLevel, Entity, PortalOpening)}, but for an opening whose frame may be broken (so
+     * the opening itself can't be trusted either): the spot inside the opening is only used if it's safe too, and if
+     * no spot is safe the result is empty.
+     */
+    static Optional<PortalInfo> safeArrivalNear(ServerLevel level, Entity entity, PortalOpening opening)
+    {
+        Optional<PortalInfo> beside = spotBeside(level, entity, opening, false);
+        if (beside.isPresent())
+        {
+            return beside;
+        }
+        PortalInfo inside = spotInside(entity, opening);
+        return isSafe(level, entity, inside.pos) ? Optional.of(inside) : Optional.empty();
+    }
+
+    /**
+     * The first safe spot next to the opening: in front (+Z / +X side) first, then behind, one block out and then two,
+     * each at the opening's bottom level, one lower and one higher (so steps up to the frame are fine). Faces away from
+     * the portal, or towards it with {@code facePortal}.
+     */
+    private static Optional<PortalInfo> spotBeside(ServerLevel level, Entity entity, PortalOpening opening, boolean facePortal)
+    {
         BlockPos min = opening.minCorner();
         boolean alongX = opening.axis() == Direction.Axis.X;
         double along = opening.centerAlong();
@@ -162,15 +195,22 @@ public class DrossTeleporter implements ITeleporter
                         {
                             yaw = Mth.wrapDegrees(yaw + 180.0F);
                         }
-                        return new PortalInfo(pos, Vec3.ZERO, yaw, 0.0F);
+                        return Optional.of(new PortalInfo(pos, Vec3.ZERO, yaw, 0.0F));
                     }
                 }
             }
         }
+        return Optional.empty();
+    }
 
-        // Both sides blocked: stand inside the opening, on top of the frame's bottom row.
-        // The portal cooldown stops it from sending the entity straight back.
-        Vec3 inside = alongX ? new Vec3(along, y, perp) : new Vec3(perp, y, along);
+    /** Standing inside the opening, on top of the frame's bottom row, keeping the entity's own rotation. */
+    private static PortalInfo spotInside(Entity entity, PortalOpening opening)
+    {
+        BlockPos min = opening.minCorner();
+        boolean alongX = opening.axis() == Direction.Axis.X;
+        double along = opening.centerAlong();
+        double perp = (alongX ? min.getZ() : min.getX()) + 0.5D;
+        Vec3 inside = alongX ? new Vec3(along, min.getY(), perp) : new Vec3(perp, min.getY(), along);
         return new PortalInfo(inside, Vec3.ZERO, entity.getYRot(), entity.getXRot());
     }
 

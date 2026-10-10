@@ -1,0 +1,232 @@
+[
+ {
+  "number": 1,
+  "id": "fallen_cathedral",
+  "name": "Fallen Cathedral",
+  "mood": "gothic, vast",
+  "width": 61,
+  "depth": 87,
+  "layers": 66,
+  "ground_layer": 2,
+  "height_above_ground": 55,
+  "frame_opening_min": [
+   23,
+   7,
+   22
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 18491,
+  "palette": 83
+ },
+ {
+  "number": 2,
+  "id": "shattered_spire",
+  "name": "Shattered Spire",
+  "mood": "tall, snapped",
+  "width": 75,
+  "depth": 73,
+  "layers": 64,
+  "ground_layer": 2,
+  "height_above_ground": 61,
+  "frame_opening_min": [
+   24,
+   11,
+   34
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 11549,
+  "palette": 65
+ },
+ {
+  "number": 3,
+  "id": "sunken_temple",
+  "name": "Sunken Temple",
+  "mood": "flooded, sinking",
+  "width": 63,
+  "depth": 73,
+  "layers": 34,
+  "ground_layer": 2,
+  "height_above_ground": 31,
+  "frame_opening_min": [
+   30,
+   11,
+   28
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 26084,
+  "palette": 57
+ },
+ {
+  "number": 4,
+  "id": "broken_colosseum",
+  "name": "The Colosseum",
+  "mood": "vast, round",
+  "width": 75,
+  "depth": 65,
+  "layers": 32,
+  "ground_layer": 2,
+  "height_above_ground": 29,
+  "frame_opening_min": [
+   36,
+   6,
+   32
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 29482,
+  "palette": 54
+ },
+ {
+  "number": 5,
+  "id": "overgrown_keep",
+  "name": "Overgrown Keep",
+  "mood": "fortress, wild",
+  "width": 67,
+  "depth": 67,
+  "layers": 42,
+  "ground_layer": 2,
+  "height_above_ground": 34,
+  "frame_opening_min": [
+   32,
+   5,
+   25
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 17215,
+  "palette": 55
+ },
+ {
+  "number": 6,
+  "id": "fallen_colossus",
+  "name": "Fallen Colossus",
+  "mood": "statue, toppled",
+  "width": 67,
+  "depth": 85,
+  "layers": 40,
+  "ground_layer": 2,
+  "height_above_ground": 37,
+  "frame_opening_min": [
+   32,
+   10,
+   22
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 15798,
+  "palette": 47
+ },
+ {
+  "number": 7,
+  "id": "monolith_ring",
+  "name": "Monolith Ring",
+  "mood": "ancient, eerie",
+  "width": 71,
+  "depth": 79,
+  "layers": 34,
+  "ground_layer": 2,
+  "height_above_ground": 29,
+  "frame_opening_min": [
+   34,
+   6,
+   33
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 7308,
+  "palette": 34
+ },
+ {
+  "number": 8,
+  "id": "dead_world_tree",
+  "name": "Dead World Tree",
+  "mood": "dead, colossal",
+  "width": 77,
+  "depth": 77,
+  "layers": 76,
+  "ground_layer": 2,
+  "height_above_ground": 65,
+  "frame_opening_min": [
+   37,
+   4,
+   36
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 11749,
+  "palette": 33
+ },
+ {
+  "number": 9,
+  "id": "riven_ziggurat",
+  "name": "Riven Ziggurat",
+  "mood": "pyramid, split",
+  "width": 65,
+  "depth": 69,
+  "layers": 40,
+  "ground_layer": 2,
+  "height_above_ground": 34,
+  "frame_opening_min": [
+   31,
+   4,
+   31
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 27787,
+  "palette": 45
+ },
+ {
+  "number": 10,
+  "id": "old_observatory",
+  "name": "Old Observatory",
+  "mood": "dome, copper",
+  "width": 65,
+  "depth": 77,
+  "layers": 56,
+  "ground_layer": 2,
+  "height_above_ground": 44,
+  "frame_opening_min": [
+   31,
+   5,
+   52
+  ],
+  "frame_axis": "x",
+  "opening": [
+   3,
+   5
+  ],
+  "blocks": 8979,
+  "palette": 53
+ }
+]

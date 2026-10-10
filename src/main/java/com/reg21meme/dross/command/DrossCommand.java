@@ -34,7 +34,17 @@ import net.minecraftforge.fml.common.Mod;
  *       From the quest area ({@link QuestCommands}).</li>
  *   <li>{@code /dross showcase huts}: builds every candidate design for the trader's hut in a row in front of you,
  *       each with a numbered sign, to compare them ({@link HutShowcase}; the designs are the villager area's).</li>
+ *   <li>{@code /dross showcase shrines}: builds the 10 candidate designs for a grander portal shrine in a row to your
+ *       right (about 1,000 blocks long, so use a superflat world), one at a time from the server tick, each with a
+ *       numbered sign. A chat line appears as each one is finished; click it to teleport in front of that shrine
+ *       ({@link ShrineShowcase}; the designs are in {@code world.shrine}).</li>
+ *   <li>{@code /dross showcase skins}: spawns one frozen trader per candidate skin in a row in front of you, each on
+ *       a pedestal with a numbered sign; old showcase traders nearby are removed first, never the real trader
+ *       ({@link SkinShowcase}; the skins are the villager area's {@code TraderSkins}).</li>
  * </ul>
+ * The shrines and skins showcases use the command's position, rotation and dimension, so they also work from the server
+ * console and command blocks (for example {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross
+ * showcase skins}). The huts showcase needs a player.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossCommand
@@ -72,10 +82,13 @@ public final class DrossCommand
                         .then(Commands.literal("status").executes(QuestCommands::status))
                         .then(Commands.literal("reset").executes(QuestCommands::reset))
                         .then(Commands.literal("complete").executes(QuestCommands::complete)))
-                // Test showcases that build things side by side to compare them (the logic lives in HutShowcase).
+                // Test showcases that build things side by side to compare them
+                // (the logic lives in HutShowcase, ShrineShowcase and SkinShowcase).
                 .then(Commands.literal("showcase")
                         .requires(source -> source.hasPermission(2))
-                        .then(Commands.literal("huts").executes(HutShowcase::buildHuts))));
+                        .then(Commands.literal("huts").executes(HutShowcase::buildHuts))
+                        .then(Commands.literal("shrines").executes(ShrineShowcase::buildShrines))
+                        .then(Commands.literal("skins").executes(SkinShowcase::spawnSkins))));
     }
 
     private static int teleportToHub(CommandContext<CommandSourceStack> context) throws CommandSyntaxException

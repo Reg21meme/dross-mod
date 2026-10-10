@@ -42,6 +42,8 @@
   "dross.trader.dialogue.key_replaced": "Another key, then. Try not to lose this one.",
   "dross.trader.dialogue.compass_replaced": "You lost your compass? Here, take another. It will still point to the rift.",
   "dross.trader.dialogue.lost_key": "No key? I can forge you another, but it needs the same materials. Bring me: %1$s.",
+  "dross.trader.showcase": "Skin %1$s: %2$s (%3$s)",
+  "dross.trader.showcase.unknown": "Skin %1$s",
   "book.dross.blank": "The ink is too faded to read... for now.",
   "book.dross.weathered_letter.page1": "To whoever finds this,\n\nAn old villager has made his home at the edge of a village, somewhere out from where the world began.\n\nHe is seeking someone strong enough to face what lies beyond the rift.",
   "book.dross.weathered_letter.page1_wild": "To whoever finds this,\n\nAn old villager has made his home in an old chapel in the wilds, not far from where the world began.\n\nHe is seeking someone strong enough to face what lies beyond the rift.",

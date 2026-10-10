@@ -1,8 +1,7 @@
 package com.reg21meme.dross.world;
 
-import com.mojang.logging.LogUtils;
-import java.util.Optional;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
@@ -11,32 +10,34 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.FallingBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import org.slf4j.Logger;
 
 /**
- * Builds the portal site (the castle) once per world:
+ * Builds the portal site (the castle) once per world. Where it goes and how it's placed is {@link PortalSitePlacer}'s
+ * job (a random spot 3,000 to 10,000 blocks from spawn, picked and built in the background when the world is new);
+ * this class is the entry point other code uses, plus the small helpers the placeholder shrine needs.
  * <ol>
- *   <li>If the castle template {@code data/dross/structures/portal_castle.nbt} exists and contains exactly one
+ *   <li>If the user's castle template {@code data/dross/structures/portal_castle.nbt} exists and contains exactly one
  *       complete, unlit Dross frame, it's placed centred on the site ({@link PortalCastle}).</li>
- *   <li>Otherwise the placeholder ruined shrine is built ({@link PortalShrine}).</li>
+ *   <li>Otherwise the <b>Fallen Cathedral</b> (shrine design No. 1) is built with its frame opening on the site
+ *       column, on fitted ground ({@link PortalCathedral}).</li>
+ *   <li>Only if that fails (its template is missing, or its frame doesn't pass the check: an error is logged), the
+ *       small placeholder ruined shrine is built instead ({@link PortalShrine}).</li>
  *   <li>Then the Dross "leaks" into the area around the frame, once ({@link SiteLeak}).</li>
  * </ol>
  * The frame's corner, axis and opening size are saved in {@link PortalSiteData}. The frame is never lit here
- * (lighting it with the Rift Key is the portal area's job).
+ * (lighting it with the Rift Key is the portal area's job). Worlds that already have a site keep it.
  */
 public final class PortalSiteBuilder
 {
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     /** How many air blocks are cleared above the placeholder's floor (frame height + 1). */
     static final int CLEAR_HEIGHT = PortalSite.FRAME_HEIGHT + 1;
     /** Below the floor, fill up to this many extra blocks of water/lava/air so the platform has some support. */
     static final int SUPPORT_DEPTH = 3;
 
     /**
-     * Makes sure the site exists in this world, building it the first time.
-     * Must be called on the server thread with the Overworld.
+     * Makes sure the site exists in this world, building it right now if it isn't built yet (it normally is, a little
+     * while after a new world opens: this then waits for the search and loads the spot's chunks on the spot, which can
+     * take a few seconds). Must be called on the server thread with the Overworld.
      *
      * @return the frame position (bottom corner frame block with the lowest X and Z)
      */
@@ -47,38 +48,17 @@ public final class PortalSiteBuilder
         {
             return data.getFramePos();
         }
-
-        SiteFrame frame = null;
-        String kind = PortalSiteData.KIND_PLACEHOLDER;
-        Optional<StructureTemplate> template = overworld.getStructureManager().get(PortalSite.CASTLE_TEMPLATE);
-        if (template.isPresent())
-        {
-            frame = PortalCastle.place(overworld, template.get());
-            if (frame != null)
-            {
-                kind = PortalSiteData.KIND_TEMPLATE;
-            }
-        }
-        else
-        {
-            LOGGER.info("Dross portal site: no castle template ({} = data/dross/structures/portal_castle.nbt), so the placeholder shrine is used.",
-                    PortalSite.CASTLE_TEMPLATE);
-        }
-        if (frame == null)
-        {
-            frame = PortalShrine.build(overworld, plannedFramePos(overworld));
-        }
-
-        SiteLeak.apply(overworld, frame);
-        data.markPlaced(frame, kind);
-        return frame.corner();
+        return PortalSitePlacer.placeNow(overworld).corner();
     }
 
-    /** Where the placeholder frame goes: on the ground at the site, with the site column inside the opening. */
-    static BlockPos plannedFramePos(ServerLevel level)
+    /**
+     * Where the small placeholder frame goes for the site column {@code x}/{@code z}: on the ground there, with the
+     * site column as the left block of the opening.
+     */
+    static BlockPos placeholderFramePos(ServerLevel level, int x, int z)
     {
-        int standY = clampY(level, findStandY(level, PortalSite.X, PortalSite.Z), CLEAR_HEIGHT);
-        return new BlockPos(PortalSite.frameMinX(), standY, PortalSite.Z);
+        int standY = clampY(level, findStandY(level, x, z), CLEAR_HEIGHT);
+        return new BlockPos(x - 1, standY, z);
     }
 
     /** Keeps a build of this height (plus its support underneath) inside the world's build limits. */
@@ -90,10 +70,13 @@ public final class PortalSiteBuilder
     /**
      * The Y a player would stand at in this column: one above the top solid block or the top of water/lava.
      * Trees (logs and leaves) and things you can walk through (grass, flowers, snow layers) are ignored.
+     * The column's chunk is loaded first ({@code Level.getHeight} would answer "the bottom of the world" for a chunk
+     * that isn't loaded yet).
      */
     static int findStandY(ServerLevel level, int x, int z)
     {
-        int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z);
+        int top = level.getChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z))
+                .getHeight(Heightmap.Types.WORLD_SURFACE, x, z) + 1;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, top, z);
         for (int y = top - 1; y >= level.getMinBuildHeight(); y--)
         {
