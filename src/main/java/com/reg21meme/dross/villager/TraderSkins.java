@@ -16,8 +16,9 @@ import java.util.Locale;
  * The Archivist (the user's pick). So the real trader and spawn-egg traders, in old worlds and new, all wear it
  * ({@link #lookFor}). Showcase traders carry the number of the skin they show.
  * <p>
- * Kept for later (the user's picks, not used yet): skin 1, Hooded Watcher, for a possible enemy in the Dross, and
- * skins 3, Ragged Seeker, and 8, Blind Oracle, for NPCs in the Dross.
+ * Skins 8, Blind Oracle, and 3, Ragged Seeker, are worn by the hub's two survivors ({@link Survivor}: the mentor and
+ * her student). Kept for later (the user's pick, not used yet): skin 1, Hooded Watcher, for a possible enemy in the
+ * Dross.
  * <p>
  * Safe on the server: only names and texture paths live here, no client classes. The textures are in
  * {@code assets/dross/textures/entity/trader/} and are drawn by {@code tools/skins/draw_skins.py}.
@@ -28,6 +29,10 @@ public final class TraderSkins
     public static final int DEFAULT = 0;
     /** The quest trader's look: skin 2, The Archivist. */
     public static final int QUEST_TRADER = 2;
+    /** The hub's mentor survivor: skin 8, Blind Oracle. */
+    public static final int BLIND_ORACLE = 8;
+    /** The hub's student survivor: skin 3, Ragged Seeker. */
+    public static final int RAGGED_SEEKER = 3;
 
     /**
      * One candidate skin.

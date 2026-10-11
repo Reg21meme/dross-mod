@@ -3,6 +3,7 @@ package com.reg21meme.dross.enchant;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.villager.DrossTrader;
+import com.reg21meme.dross.villager.Survivor;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -79,7 +80,8 @@ import net.minecraftforge.server.ServerLifecycleHooks;
  *   <li>Their hostile targeting is replaced by a pack AI ({@link RisenTargetGoal}): once fighting they keep their
  *       target until it dies; when free they defend the owner, then attack the owner's target, then fight back, then
  *       help the same owner's risen undead nearby, and otherwise follow the owner. Never players, villagers, wandering traders, the Dross
- *       trader or the owner's other risen undead (damage from them, arrows included, to those is cancelled too).
+ *       trader, the hub's survivors or the owner's other risen undead (damage from them, arrows included, to those is
+ *       cancelled too).
  *       The owner's own hits never damage them. Risen drowned fight on land, day or night.</li>
  *   <li>They crumble (blue puff) after {@link #DESPAWN_TICKS}, or early when the owner logs out, dies or changes
  *       dimension, or when their chunk is loaded back from a save.</li>
@@ -204,8 +206,9 @@ public final class RisenUndead
     }
 
     /**
-     * Never anything dead, dying or removed ({@link #isGone}), and never players, the Dross trader, villagers or
-     * wandering traders, themselves, or their owner's other risen undead (even if the owner hits one of those).
+     * Never anything dead, dying or removed ({@link #isGone}), and never players, the Dross trader, the hub's
+     * survivors, villagers or wandering traders, themselves, or their owner's other risen undead (even if the owner
+     * hits one of those).
      */
     public static boolean isValidTarget(Mob risen, @Nullable LivingEntity target)
     {
@@ -232,11 +235,13 @@ public final class RisenUndead
 
     /**
      * Entities risen undead never attack or hurt: players, villagers and wandering traders
-     * ({@link AbstractVillager} covers both), and the Dross trader.
+     * ({@link AbstractVillager} covers both), the Dross trader, and the hub's two survivors in the Dross (the Blind
+     * Oracle and the Ragged Seeker, {@link Survivor}).
      */
     private static boolean isProtected(Entity entity)
     {
-        return entity instanceof Player || entity instanceof AbstractVillager || entity instanceof DrossTrader;
+        return entity instanceof Player || entity instanceof AbstractVillager || entity instanceof DrossTrader
+                || entity instanceof Survivor;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -633,8 +638,9 @@ public final class RisenUndead
     }
 
     /**
-     * Risen undead (and their arrows) never hurt players, villagers, wandering traders, the Dross trader, or their
-     * owner's other risen undead. And the owner's own hits (melee, sweep, arrows...) never hurt their risen undead.
+     * Risen undead (and their arrows) never hurt players, villagers, wandering traders, the Dross trader, the hub's
+     * survivors, or their owner's other risen undead. And the owner's own hits (melee, sweep, arrows...) never hurt
+     * their risen undead.
      */
     @SubscribeEvent
     public static void onAttack(LivingAttackEvent event)
@@ -692,7 +698,7 @@ public final class RisenUndead
         }
         if (isProtected(victim) || victim.isAlliedTo(risen))
         {
-            return; // villagers/traders (never damaged anyway) and mobs on the same scoreboard team
+            return; // villagers, traders and survivors (never damaged anyway) and mobs on the same scoreboard team
         }
         UUID attackerOwner = getOwnerId(risen);
         if (attackerOwner != null && attackerOwner.equals(getOwnerId(victim)))

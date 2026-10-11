@@ -7,6 +7,7 @@ import com.reg21meme.dross.boss.golem.LavaBlob;
 import com.reg21meme.dross.boss.golem.LavaGolem;
 import com.reg21meme.dross.boss.golem.StoneGolem;
 import com.reg21meme.dross.villager.DrossTrader;
+import com.reg21meme.dross.villager.Survivor;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.registries.DeferredRegister;
@@ -63,6 +64,16 @@ public final class ModEntities
                     .clientTrackingRange(6)
                     .updateInterval(10)
                     .build("lava_blob"));
+
+    /**
+     * Villager area: the hub's two survivors in the Dross, the Blind Oracle and the Ragged Seeker (one type; their role,
+     * saved on each, picks the skin and name). Spawned once per world at the hub by villager.SurvivorSpawner.
+     */
+    public static final RegistryObject<EntityType<Survivor>> SURVIVOR = ENTITY_TYPES.register("survivor",
+            () -> EntityType.Builder.of(Survivor::new, MobCategory.MISC)
+                    .sized(0.6F, 1.95F)
+                    .clientTrackingRange(10)
+                    .build("survivor"));
 
     private ModEntities() {}
 }

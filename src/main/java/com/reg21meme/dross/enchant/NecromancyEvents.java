@@ -5,6 +5,7 @@ import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.villager.DrossTrader;
+import com.reg21meme.dross.villager.Survivor;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -39,7 +40,9 @@ import net.minecraftforge.server.ServerLifecycleHooks;
  * What a Necromancy sword does:
  * <ul>
  *   <li><b>Hits</b> ({@link AttackEntityEvent}, which fires once per swing for the main target only, so mobs caught
- *       by the sweep never roll): a chance to raise undead next to the player, paid for with the sword's souls.</li>
+ *       by the sweep never roll): a chance to raise undead next to the player, paid for with the sword's souls.
+ *       Never from hitting a player, the Dross trader, one of the hub's survivors ({@link Survivor}) or your own
+ *       risen undead.</li>
  *   <li><b>Kills</b> of any zombie or skeleton kind with the sword store 1 soul, shown as an electric blue wisp flying
  *       from the mob into the player's hand.</li>
  *   <li>The first raise grants the "Rise!" advancement.</li>
@@ -96,8 +99,9 @@ public final class NecromancyEvents
         {
             target = part.getParent(); // a part of the Ender Dragon counts as the dragon
         }
-        // Mobs only (never players), never the trader, never your own risen undead.
-        if (!(target instanceof Mob mob) || mob instanceof DrossTrader || !mob.isAlive() || mob.isInvulnerable())
+        // Mobs only (never players), never the trader or the hub's survivors (the Blind Oracle and the Ragged Seeker),
+        // never your own risen undead.
+        if (!(target instanceof Mob mob) || mob instanceof DrossTrader || mob instanceof Survivor || !mob.isAlive() || mob.isInvulnerable())
         {
             return;
         }

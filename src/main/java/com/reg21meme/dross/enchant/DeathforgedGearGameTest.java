@@ -95,9 +95,9 @@ public final class DeathforgedGearGameTest
         helper.succeed();
     }
 
-    /** Raises one risen undead as Necromancy does, and returns it (or null if it didn't spawn). */
+    /** Raises one risen undead as Necromancy does, and returns it (or null if it didn't spawn). Also used by {@link RisenSurvivorGameTest}. */
     @Nullable
-    private static Mob raiseOne(ServerPlayer owner, RisenType type, int level)
+    static Mob raiseOne(ServerPlayer owner, RisenType type, int level)
     {
         Set<Mob> before = new HashSet<>(RisenUndead.active());
         if (!RisenUndead.raise(owner, type, level, null))

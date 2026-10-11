@@ -175,5 +175,18 @@
   "block.dross.scar_vent": "Scar Vent",
   "block.dross.cragstone": "Cragstone",
   "block.dross.storm_lichen": "Storm Lichen",
-  "block.dross.crag_thistle": "Crag Thistle"
+  "block.dross.crag_thistle": "Crag Thistle",
+  "entity.dross.survivor": "Survivor",
+  "entity.dross.survivor.blind_oracle": "Blind Oracle",
+  "entity.dross.survivor.ragged_seeker": "Ragged Seeker",
+  "dross.survivor.mentor.line.1": "Footsteps I don't know. So the rift has let someone new through. Welcome to the Dross, traveller.",
+  "dross.survivor.mentor.line.2": "No, I can't see you. I don't need to. You breathe like someone who has never been this far from the sun.",
+  "dross.survivor.mentor.line.3": "The blue portal here is the only way home. Whatever you hear out there in the dark, remember the way back to it.",
+  "dross.survivor.mentor.line.4": "The dead here wear netherite and never tire. We don't fight them. We outlast them.",
+  "dross.survivor.mentor.line.5": "My student thinks I'm asleep when I stand still. I'm listening. The Dross hums before it moves.",
+  "dross.survivor.student.line.1": "Oh! You're real. Sorry. Talk to enough rocks out here and you stop expecting answers.",
+  "dross.survivor.student.line.2": "She can't see a thing, but she always knows where I am. I've tested this. Many times. Don't ask.",
+  "dross.survivor.student.line.3": "She's teaching me to listen to the Dross. When the hum drops low, something's coming. So far I've mostly learned to run.",
+  "dross.survivor.student.line.4": "How long have we been out here? I stopped counting the nights. It's hard when they never end.",
+  "dross.survivor.student.line.5": "Whatever she tells you, listen. The one time I didn't, I spent a night up a dead tree, and she found me by the chattering of my teeth."
 }

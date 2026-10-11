@@ -13,7 +13,8 @@ import net.minecraftforge.entity.PartEntity;
 
 /**
  * TESTING ONLY (see "Parked for later" in CLAUDE.md): the Admin Sword, sold by the Dross trader.
- * One hit kills any living thing, bosses included, except the Dross trader himself.
+ * One hit kills any living thing, bosses included, except the Dross trader himself and the hub's two survivors (for
+ * them it's a normal sword hit, which they survive like any other).
  * It never breaks and survives fire and lava. Its texture is Minecraft's netherite sword, recoloured
  * black with orange veins to match the Dross Portal Frame.
  */
@@ -30,9 +31,9 @@ public class AdminSwordItem extends SwordItem
     {
         // Hitting any part of the Ender Dragon counts as hitting the dragon.
         Entity target = entity instanceof PartEntity<?> part ? part.getParent() : entity;
-        if (!(target instanceof LivingEntity living) || living instanceof DrossTrader)
+        if (!(target instanceof LivingEntity living) || living instanceof DrossTrader || living instanceof Survivor)
         {
-            return false; // boats, item frames, the trader...: a normal hit
+            return false; // boats, item frames, the trader, the hub's survivors...: a normal hit
         }
         if (player.getUUID().equals(RisenUndead.getOwnerId(living)))
         {

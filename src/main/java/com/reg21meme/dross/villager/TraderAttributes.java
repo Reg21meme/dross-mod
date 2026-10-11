@@ -6,7 +6,7 @@ import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Gives the trader his attributes (health, speed). Runs on the mod event bus. */
+/** Gives the trader and the hub's survivors their attributes (health, speed). Runs on the mod event bus. */
 @Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class TraderAttributes
 {
@@ -14,5 +14,6 @@ public class TraderAttributes
     public static void onAttributes(EntityAttributeCreationEvent event)
     {
         event.put(ModEntities.TRADER.get(), DrossTrader.createAttributes().build());
+        event.put(ModEntities.SURVIVOR.get(), Survivor.createAttributes().build());
     }
 }

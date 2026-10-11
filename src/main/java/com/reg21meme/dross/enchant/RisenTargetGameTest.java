@@ -72,8 +72,8 @@ public final class RisenTargetGameTest
      */
     static final String ARENA = "risen_test_arena";
     private static final ResourceLocation ARENA_ID = new ResourceLocation(Dross.MODID, ARENA);
-    /** Arena width and depth (blocks). */
-    private static final int ARENA_SIZE = 15;
+    /** Arena width and depth (blocks). Also used by {@link RisenSurvivorGameTest}. */
+    static final int ARENA_SIZE = 15;
     /** Arena height (blocks, floor included). */
     private static final int ARENA_HEIGHT = 5;
 
@@ -297,7 +297,8 @@ public final class RisenTargetGameTest
         return list;
     }
 
-    private static String name(LivingEntity entity)
+    /** The mob's kind in lower case ("zombie"), for test messages. Also used by {@link RisenSurvivorGameTest}. */
+    static String name(LivingEntity entity)
     {
         return entity.getType().getDescription().getString().toLowerCase();
     }

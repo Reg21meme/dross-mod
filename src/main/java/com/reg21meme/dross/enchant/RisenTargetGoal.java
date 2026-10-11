@@ -40,8 +40,8 @@ import net.minecraft.world.phys.AABB;
  * </ol>
  * If none of these finds anything, {@link RisenFollowOwnerGoal} walks it after the owner.
  *
- * <p>Players, villagers, wandering traders, the Dross trader and the owner's other risen undead are never picked
- * ({@link RisenUndead#isValidTarget}).
+ * <p>Players, villagers, wandering traders, the Dross trader, the hub's survivors and the owner's other risen undead
+ * are never picked ({@link RisenUndead#isValidTarget}), not even when the owner hits one of them.
  */
 public class RisenTargetGoal extends TargetGoal
 {

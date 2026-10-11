@@ -7,7 +7,7 @@ import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Registers the trader's renderer (client only). */
+/** Registers the trader's and the hub survivors' renderers (client only). */
 @Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
 public class TraderClientEvents
 {
@@ -15,5 +15,6 @@ public class TraderClientEvents
     public static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event)
     {
         event.registerEntityRenderer(ModEntities.TRADER.get(), DrossTraderRenderer::new);
+        event.registerEntityRenderer(ModEntities.SURVIVOR.get(), SurvivorRenderer::new);
     }
 }
