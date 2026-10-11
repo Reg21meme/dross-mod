@@ -45,7 +45,7 @@ import org.slf4j.Logger;
  * with a WARN each time); the last resort builds on the best spot found, on whatever ground is there, so a world is
  * never left without a site. If the site is needed before all this is done (someone leaves the Dross through the
  * hub's exit portal), {@link #placeNow} finishes it on the spot, keeping the wait short (at most about
- * {@link #NOW_TOTAL_MILLIS} ms). ({@code /dross site} never builds it: it just says it isn't placed yet.) If the world
+ * {@link #NOW_TOTAL_MILLIS} ms). ({@code /dross goto cathedral} never builds it: it just says it isn't placed yet.) If the world
  * is closed halfway, it carries on from the planned spot next time. Once the site is placed, everyone online is told
  * where it is ({@link SiteAnnouncer}).
  */

@@ -1,8 +1,9 @@
 # Golem generator (Cinder Colossus)
 
 Generates the Cinder Colossus (the golem mini-boss that serves the Fire Necromancer): its GeckoLib model, animations
-and textures, the preview images in `boss-previews/`, and the Java design list `boss/golem/GolemDesigns.java`. The mod
-itself only reads the finished files; Python is needed only to change the design.
+(including the fight's moves) and textures, the two minions it summons, the preview images in `boss-previews/`, and
+the Java design list `boss/golem/GolemDesigns.java` (with the fight's timings and hit points). The mod itself only
+reads the finished files; Python is needed only to change the design.
 
 **The pick:** the user picked **3G Saddleback** (`designs/d3g_saddleback.py`) from round 3, the only design built
 now. Its parts are shared with the other round-3 designs in `designs/calderon.py`. **Rounds 1 to 3**' other
@@ -20,6 +21,8 @@ python tools/golems/build.py               # all designs: game files, previews, 
 python tools/golems/build.py 2 4           # only designs 2 and 4 (GolemDesigns.java and all_golems.png are left alone)
 python tools/golems/build.py --previews-only 3          # previews only, the game files are left alone
 python tools/golems/build.py --scratch <folder> 1       # everything into <folder>, to try things out
+python tools/golems/build.py --minions-only             # only the minions (GolemDesigns.java is left alone)
+python tools/golems/build.py --trophies-only            # only the trophies (about half a minute)
 ```
 
 After changing a design: run `build.py` (all designs, so `GolemDesigns.java` and `all_golems.png` stay complete),
@@ -31,13 +34,40 @@ deletes the generated game files of designs that are no longer in the list.
 | File | What it is |
 |---|---|
 | `assets/dross/geo/entity/cinder_colossus/<id>.geo.json` | the model (Bedrock geometry 1.12.0, box UV, 16 units = 1 block) |
-| `assets/dross/animations/entity/cinder_colossus/<id>.animation.json` | `idle`, `walk`, `erupt`, `break_shell`, `death`, `statue`, and the volcano's own `volcano_burst` and `volcano_erupting` |
+| `assets/dross/animations/entity/cinder_colossus/<id>.animation.json` | `idle`, `walk`, `erupt`, `break_shell`, `death`, `statue`, the volcano's own `volcano_burst`, `volcano_erupting` and `volcano_lob`, and the fight's moves `swipe`, `throw`, `slam`, `charge_start`, `charge`, `lob`, `summon` |
 | `assets/dross/textures/entity/cinder_colossus/<id>.png` | the look (rock shell with dim cracks; lava painted as cooled crust) |
 | `.../<id>_glow.png` | the parts that glow, drawn full-bright on top (cracks, eyes, the whole lava body) |
 | `.../<id>_flow.png` | the lava poured over the shell when the volcano erupts; its alpha says how soon each pixel is reached |
+| `.../<id>_cracks.png` | the fight's Cracking stage: bright lava cracks across the shell (the mod fades it in as the shell cracks) |
 | `.../<id>_statue.png` | the golem cooled into obsidian (the death fades it in) |
-| `boss-previews/NN_<id>_<dormant/erupted/core>_<front/side/back>.png`, `NN_<id>_sheet.png`, `all_golems.png` | previews |
-| `src/main/java/.../boss/golem/GolemDesigns.java` | the design list and timings (generated: don't edit it by hand) |
+| `assets/dross/{geo,animations,textures}/entity/golem_minion/<id>...` | the two minions (`stone_golem`, `lava_golem`): model, `idle`/`walk`/`attack`/`spawn` animations (`animation.golem_minion.*`), texture and `_glow` |
+| `boss-previews/NN_<id>_<dormant/erupted/core>_<front/side/back>.png`, `NN_<id>_sheet.png`, `NN_<id>_fight.png`, `all_golems.png`, `minions.png` | previews (the fight page: the Cracking look and every move) |
+| `src/main/java/.../boss/golem/GolemDesigns.java` | the design list, timings, the fight's move timings and hit points, the loose plates and the minions (generated: don't edit it by hand) |
+| `assets/dross/geo/block/colossus_trophy.geo.json`, `geo/item/colossus_trophy.geo.json` | the trophies' model: copies of the boss's, one for the placed trophy and one for the item (GeckoLib shares a model's bones between everything drawn with it) |
+| `assets/dross/animations/block/colossus_trophy.animation.json` | the five trophy poses, held (`animation.colossus_trophy.design_<n>`) |
+| `assets/dross/textures/block/colossus_trophy/design_<n>_flow.png`, `_flow_base.png` | each trophy's lava streams, hot and cool (alpha: how far down the stream) |
+| `boss-previews/trophies.png` | the five trophies from four sides and at night |
+| `src/main/java/.../boss/trophy/TrophyModels.java` | the trophies' scale, outline box, drip spots, craters, glow and crack strength (generated) |
+
+## The trophies
+
+`kit/trophies.py` makes the five Cinder Colossus trophy designs (1x1x1 decorative blocks, a miniature of the boss on no
+base) from the built boss: `TROPHIES` lists each one's move and moment (the lob at its release, a gallop frame of the
+charge, the slam's raised fists and its hit, the death's last pose) and look (`STYLES`: dormant, erupted, cracking,
+lava core: which bones show, the glow and crack strength, how the streams look).
+
+- **Pose:** the move is sampled at its moment (with the lob's spurts, `volcano_lob`, and the Cracking stage's loose
+  plates where asked), the bones the look hides are scaled to 0, and the root is moved so the figure stands centred on
+  the block floor. Its scale fits it inside the block (`FIT_SIDE` across, `FIT_HEIGHT` up). It's written as a held,
+  looping two-frame animation.
+- **Streams:** like the boss's poured lava, but painted over the figure in its own pose (so the lava runs downhill the
+  way the figure stands now), and for the lava core over the lava body too. Two textures per design: hot (the bright
+  bands) and cool (between them); the crater pools are fully opaque and bright in both. The mod's `TrophyLayer` draws
+  the cool streams, then bright bands sliding down them in a loop.
+- **Drip spots:** a few low ends of the streams (on faces that look down where there are some), spread apart, nudged
+  off the surface: the mod drips lava from them.
+- They're written outside the `cinder_colossus` folders, so `remove_stale_files` never deletes them, and a full build
+  rebuilds them from the same model (their model is a copy of the boss's, so its UVs always match the boss's textures).
 
 ## The three stages
 
@@ -51,6 +81,25 @@ deletes the generated game files of designs that are no longer in the list.
   out and its fountain and lava bombs (`vent_*` bones) erupt all the time (`volcano_erupting`, its own controller).
 
 The death cools it into obsidian from any stage.
+
+## The fight
+
+- **Moves** (`kit/moves.py`, made like the other animations): `swipe` (a backhand sweep, its melee hit), `throw` (a
+  fist into the ground, a rock torn out (the `prop_rock`/`prop_magma` bones, hidden unless it holds one), lifted high
+  and hurled), `slam` (fists raised high for a second, then smashed down), `charge_start` + `charge` (head down and a
+  fist raking the ground, then a bounding gallop, head first), `lob` (it hunches, its back heaves and the craters
+  spurt lava; `volcano_lob` is the spurt) and `summon` (a roar, then three pounds: left fist, right fist, both). The
+  moves use wider shoulder limits (`MOVE_ARM_LIMITS`) so the arms can go overhead; the approved animations keep the
+  old ones. Each move records when its blow lands or its rock leaves, and where (`meta`, `points`), and every move ends
+  in exactly the rest pose. `GolemDesigns.Moves` gets them all, so the mod's hits line up with the animations.
+- **The Cracking stage** (`kit/cracks.py`): a design's `LOOSE` list knocks shell plates loose (pushed out, tilted) as
+  the shell cracks, from `from` (0-1) on; the mod adds the same offsets to the bones (`CinderColossusModel`). Its
+  `CRACKS` paint the `_cracks` texture: bright cracks running across the plates, and the loose plates' rims burning.
+- **Minions** (`designs/minions.py`, `kit/minion_anims.py`): the stone golem and the lava golem, about a block tall, on
+  the same skeleton (so the same limb solver and painter work): `idle`, `walk` (a scuttle), `attack` (a punch) and
+  `spawn` (climbing out of the ground).
+- **Clipping**: the moves are checked in both forms (the throw with the rock in its fist), and the shell form again
+  with every loose plate pushed out ("cracked").
 
 ## How a design is put together
 
@@ -95,7 +144,8 @@ The death cools it into obsidian from any stage.
   every part that grows out of the body (spikes, horns, volcano levels, rim teeth) must have at least 60% of its foot
   on the body (round 3's all have 95% or more), and parts mustn't pass through each other (forearms and fists through
   the torso, legs, head or volcanoes; shoulder spikes through the head or volcanoes; the jaw through the chest), in
-  the rest pose and through the idle, walk, erupt and death animations. Anything it finds is printed.
+  the rest pose and through the idle, walk, erupt and death animations and the fight's moves. Anything it finds is
+  printed.
 
 ## Matching the game
 
@@ -116,6 +166,10 @@ glow and flow layers' softened lighting (`GLOW_NORMAL_LIFT`), the flow reveal (`
 | `kit/geo.py` | bones and boxes, box-UV packing, `.geo.json` writer, GeckoLib-exact forward kinematics |
 | `kit/ik.py` | limb solver (puts a fist or foot flat on a target) |
 | `kit/anims.py` | the animations and the `.animation.json` writer |
+| `kit/moves.py` | the fight's moves (swipe, throw, slam, charge, lob, summon) |
+| `kit/cracks.py` | the Cracking stage: the loose plates' offsets and the `_cracks` texture |
+| `designs/minions.py`, `kit/minion_anims.py` | the two minions and their animations |
 | `kit/paint.py`, `kit/materials.py`, `kit/noise.py` | texture painting (and the lava flows) |
 | `kit/render.py`, `kit/previews.py` | the preview renderer and the preview pages |
 | `kit/checks.py`, `kit/clipping.py`, `kit/java.py` | z-fighting fix and size check; the clipping checks; the Java list writer |
+| `kit/trophies.py` | the five trophy designs: poses, stream textures, previews and `TrophyModels.java` |

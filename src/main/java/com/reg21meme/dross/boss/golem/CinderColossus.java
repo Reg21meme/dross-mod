@@ -1,6 +1,14 @@
 package com.reg21meme.dross.boss.golem;
 
+import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.trophy.ColossusTrophies;
+import com.reg21meme.dross.enchant.RisenUndead;
+import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
+import com.reg21meme.dross.registry.ModSounds;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -8,19 +16,41 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.BossEvent;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.OwnableEntity;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.control.MoveControl;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
+import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animatable.GeoEntity;
@@ -35,32 +65,42 @@ import software.bernie.geckolib.util.GeckoLibUtil;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
- * The Cinder Colossus: a gorilla-like golem of cobblestone and obsidian with a volcano on its back and a lava core,
- * the mini-boss that serves the Fire Necromancer. For now it only exists as a showcase (looks and animations, no
- * fight): see CLAUDE.md, "The plan", step 8, and {@link GolemDesigns} for the candidate designs.
+ * The Cinder Colossus: a gorilla-like golem of scorched stone and obsidian with two volcanoes on its back and a lava
+ * core, the mini-boss that serves the Fire Necromancer (CLAUDE.md, "The plan", step 8; the design is
+ * {@link GolemDesigns}, 3G Saddleback).
  * <p>
- * It has three looks ({@link GolemPhase}): dormant (its rock shell, the volcano only smoking), erupted (the volcano
- * has blown and lava has poured down over the shell) and core (the shell broken off: a lava body with a bigger,
- * always-erupting volcano). Clients get the design number, the phase and the current {@link GolemAction}, with a
- * counter that goes up every time an action starts, so a repeated action (another eruption, another death) restarts
- * its animation.
+ * <b>Its looks</b> ({@link GolemPhase}): dormant (its rock shell, the volcanoes only smoking), erupted (the volcanoes
+ * have blown and lava has poured down over the shell) and core (the shell broken off: a lava body with bigger,
+ * always-erupting volcanoes). Clients get the design number, the look, the current {@link GolemAction} and a counter
+ * that goes up every time an action starts, so a repeated action restarts its animation.
  * <p>
- * Two animation controllers: {@code main} moves the body ({@code idle}, {@code walk}, {@code erupt},
- * {@code break_shell}, {@code death}, {@code statue}); {@code volcano} moves the volcano's own bones (the blast of an
- * eruption, {@code volcano_burst}, and the core form's live eruption, {@code volcano_erupting}). The renderer
- * ({@code client.CinderColossusRenderer}) shows or hides bones by their name prefix ({@link #showsBone}), pours the
- * lava over the shell ({@link #flowProgress}) and cools it into obsidian when it dies. The particles come out of the
- * crater bones, and the eruption's lava and flames shoot out the way each volcano points (the renderer tells it where
- * the craters are and which way they face, {@link #setCraters}).
+ * Two animation controllers: {@code main} moves the body (idle, walk, the fight's moves, erupt, break_shell, death,
+ * statue); {@code volcano} moves the volcanoes' own bones (the eruption's blast, the lob's spurts, the core form's
+ * live eruption). The renderer ({@code client.CinderColossusRenderer}) shows or hides bones by their name prefix
+ * ({@link #showsBone}), pours the lava over the shell ({@link #flowProgress}), cracks the shell in the fight's middle
+ * stage ({@link #crackAmount}) and cools it into obsidian when it dies.
+ * <p>
+ * <b>The fight</b> (a Colossus from the spawn egg or {@code /dross boss summon colossus}): three stages
+ * ({@link ColossusStage}: Shell, Cracking, Lava Core) at {@link ColossusTuning#CRACKING_AT} and
+ * {@link ColossusTuning#LAVA_CORE_AT} of its health. A hit never takes it past the next threshold: the health stops
+ * there and it plays the change (the eruption, then the shell bursting), during which it can't be hurt. Its moves are
+ * run by {@link ColossusAttackGoal}. A boss bar shows for players within {@link ColossusTuning#BOSS_BAR_RANGE} blocks
+ * (drawn by {@code boss.client.DrossBossBars}). When it dies it cools into an obsidian statue that stands for
+ * {@link ColossusTuning#STATUE_TICKS} ticks and then crumbles; its minions crumble at once. The player who killed it
+ * (or whose arrow or risen undead did) and every player within the boss bar's range get the "Set in Stone"
+ * advancement. It never despawns (except on Peaceful, like every monster) and never spawns by itself.
  * <p>
  * <b>Showcase golems</b> ({@link #spawnShowcase}, saved with {@code Showcase}) stand frozen (no AI), make no sound,
- * can't be pushed, never despawn (not even on Peaceful) and can't be hurt except by {@code /kill}. Right-clicking one
- * moves it on to its next stage (dormant: erupts; erupted: breaks out of its shell; lava or statue: dormant again);
- * sneak + right-click makes it die.
+ * can't be pushed, never despawn (not even on Peaceful) and can't be hurt except by {@code /kill}. They never fight,
+ * have no boss bar and never grant the advancement. Right-clicking one moves it on to its next stage (dormant: erupts;
+ * erupted: breaks out of its shell; lava or statue: dormant again); sneak + right-click makes it die.
  */
 public class CinderColossus extends Monster implements GeoEntity
 {
@@ -68,6 +108,7 @@ public class CinderColossus extends Monster implements GeoEntity
     private static final EntityDataAccessor<Integer> DATA_PHASE = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ACTION = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ACTION_SERIAL = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> DATA_SHOWCASE = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.BOOLEAN);
 
     private static final String TAG_DESIGN = "Design";
     private static final String TAG_PHASE = "Phase";
@@ -88,11 +129,54 @@ public class CinderColossus extends Monster implements GeoEntity
      * animation only after the blend, so both controllers use the same number and stay in step (the volcano's blast
      * is kept upright against the body's lean frame by frame), and {@link #animationSeconds} allows for it.
      */
-    private static final int ANIMATION_BLEND_TICKS = 6;
+    static final int ANIMATION_BLEND_TICKS = 6;
+    /**
+     * How far a mob walking on ordinary ground moves in a tick for each unit of (speed attribute) squared: Minecraft
+     * adds speed x speed to a walking mob's motion every tick and ground friction keeps 0.546 of it (0.6 x 0.91), so
+     * it settles at speed x speed / (1 - 0.546).
+     */
+    private static final double WALK_DISTANCE_FACTOR = 1.0D / (1.0D - 0.6D * 0.91D);
+    /**
+     * The walk animation never plays faster or slower than this many times its own speed (the Lava Core stage's walk
+     * needs about 3.4 to keep its knuckles from sliding, the Shell stage's about 1.9).
+     */
+    private static final double MAX_WALK_SPEEDUP = 3.6D;
+    private static final double MIN_WALK_SPEEDUP = 0.6D;
+    /** The Cracking stage's crack layer starts this strong (it grows to full as its health falls to the next stage). */
+    private static final float CRACK_START = 0.35F;
+    /** How quickly (share per tick) the crack look catches up with its health on the client, so plates ease out. */
+    private static final float CRACK_EASE = 0.2F;
+    /** How long (ticks) a player stays credited for a kill after their last hit (the vanilla window). */
+    private static final int CREDIT_TICKS = 100;
+    /** Volume of its big moments (louder than 1 carries further: 16 blocks per 1). */
+    private static final float LOUD = 3.0F;
+    /** Obsidian dust when its statue crumbles. */
+    private static final int CRUMBLE_DUST = 160;
+    // A projectile's weak hit (ColossusStage.rangedDamageTaken): a stone clink and sparks off the shell, a hiss and a
+    // puff of smoke in the lava (the arrow burns up).
+    /** The clink: a pitched-up stone sound. */
+    private static final float GLANCE_VOLUME = 1.0F;
+    private static final float GLANCE_PITCH = 1.6F;
+    /** The hiss: the sound fire makes going out. */
+    private static final float HISS_VOLUME = 0.6F;
+    private static final float HISS_PITCH = 1.5F;
+    /** Sparks off the stone (dust specks, size 1 is a normal dust speck) and how far (blocks) they spread. */
+    private static final int GLANCE_SPARKS = 6;
+    private static final float GLANCE_SPARK_SIZE = 0.8F;
+    private static final double GLANCE_SPREAD = 0.15D;
+    /** The puff of smoke, the embers in it, and how far (blocks) they spread. */
+    private static final int HISS_SMOKE = 6;
+    private static final int HISS_EMBERS = 3;
+    private static final float HISS_EMBER_SIZE = 0.7F;
+    private static final double HISS_SPREAD = 0.12D;
+    /** How fast the smoke drifts (blocks a tick). */
+    private static final double HISS_SMOKE_SPEED = 0.02D;
 
     private static final Map<GolemAction, RawAnimation> ANIMATIONS = new EnumMap<>(GolemAction.class);
     private static final RawAnimation VOLCANO_BURST = RawAnimation.begin().thenPlayAndHold("animation.cinder_colossus.volcano_burst");
     private static final RawAnimation VOLCANO_ERUPTING = RawAnimation.begin().thenLoop("animation.cinder_colossus.volcano_erupting");
+    private static final RawAnimation VOLCANO_LOB = RawAnimation.begin().thenPlayAndHold("animation.cinder_colossus.volcano_lob");
+    private static final RawAnimation WALK = RawAnimation.begin().thenLoop(GolemAction.WALK.animationName());
 
     static
     {
@@ -102,11 +186,12 @@ public class CinderColossus extends Monster implements GeoEntity
             ANIMATIONS.put(action, loops ? RawAnimation.begin().thenLoop(action.animationName())
                     : RawAnimation.begin().thenPlayAndHold(action.animationName()));
         }
+        // The charge: the wind-up (head down, pawing the ground), then the gallop until the charge ends.
+        ANIMATIONS.put(GolemAction.CHARGE, RawAnimation.begin().thenPlay("animation.cinder_colossus.charge_start")
+                .thenLoop("animation.cinder_colossus.charge"));
     }
 
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
-    /** True for a showcase golem. Server side only. */
-    private boolean showcase;
     /** Server: tickCount when the current action started. */
     private int actionStartTick;
     /** Client: tickCount when this client saw the current action start. */
@@ -116,23 +201,44 @@ public class CinderColossus extends Monster implements GeoEntity
     private int volcanoSerialSeen = -1;
     /** Client: where the volcano craters were the last time it was drawn, and which way they point, for the particles. */
     private List<Crater> craters = List.of();
+    /** Client: the crack look as shown (eased towards {@link #crackTarget}), this tick and the last. */
+    private float crackShown;
+    private float crackShownO;
+    /** Client: walking (with a little hysteresis, so the walk animation's speed doesn't flicker). */
+    private boolean walkingShown;
+    /** Server: the fight's moves (null for a showcase golem, which never fights). */
+    @Nullable
+    private ColossusAttackGoal attackGoal;
+    /** Server: its boss bar (made when it first fights). */
+    @Nullable
+    private ServerBossEvent bossBar;
+    /** Server: the last player credited with a hit (directly, or through their arrows, pets or risen undead), and when. */
+    @Nullable
+    private UUID creditPlayer;
+    private int creditTick;
 
     public CinderColossus(EntityType<? extends Monster> type, Level level)
     {
         super(type, level);
-        this.xpReward = 0;
+        this.xpReward = ColossusTuning.XP_REWARD;
+        this.moveControl = new ColossusMoveControl(this);
+        this.setMaxUpStep(ColossusTuning.STEP_HEIGHT);
+        this.setPathfindingMalus(BlockPathTypes.LAVA, 0.0F);
+        this.setPathfindingMalus(BlockPathTypes.DAMAGE_FIRE, 0.0F);
+        this.setPathfindingMalus(BlockPathTypes.DANGER_FIRE, 0.0F);
+        this.setPathfindingMalus(BlockPathTypes.WATER, 8.0F);
     }
 
-    /** Placeholder numbers for the fight (not built yet); the showcase golems never fight. */
+    /** Its attributes; armour and speed change with the stage ({@link ColossusStage}). */
     public static AttributeSupplier.Builder createAttributes()
     {
         return Monster.createMonsterAttributes()
-                .add(Attributes.MAX_HEALTH, 300.0D)
-                .add(Attributes.ARMOR, 10.0D)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 1.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.22D)
-                .add(Attributes.ATTACK_DAMAGE, 18.0D)
-                .add(Attributes.FOLLOW_RANGE, 40.0D);
+                .add(Attributes.MAX_HEALTH, ColossusTuning.MAX_HEALTH)
+                .add(Attributes.ARMOR, ColossusStage.SHELL.armor)
+                .add(Attributes.KNOCKBACK_RESISTANCE, ColossusTuning.KNOCKBACK_RESISTANCE)
+                .add(Attributes.MOVEMENT_SPEED, ColossusStage.SHELL.speed)
+                .add(Attributes.ATTACK_DAMAGE, ColossusTuning.SWIPE_DAMAGE)
+                .add(Attributes.FOLLOW_RANGE, ColossusTuning.FOLLOW_RANGE);
     }
 
     @Override
@@ -143,6 +249,28 @@ public class CinderColossus extends Monster implements GeoEntity
         this.entityData.define(DATA_PHASE, GolemPhase.DORMANT.ordinal());
         this.entityData.define(DATA_ACTION, GolemAction.IDLE.ordinal());
         this.entityData.define(DATA_ACTION_SERIAL, 0);
+        this.entityData.define(DATA_SHOWCASE, false);
+    }
+
+    @Override
+    protected void registerGoals()
+    {
+        this.attackGoal = new ColossusAttackGoal(this);
+        this.goalSelector.addGoal(1, this.attackGoal);
+        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 16.0F));
+        this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
+        this.targetSelector.addGoal(1, new HurtByTargetGoal(this, CinderColossus.class, GolemMinion.class));
+        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+    }
+
+    /** A fighting Colossus (spawn egg, summon command): it never despawns and starts in its Shell stage. */
+    @Override
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType reason,
+                                        @Nullable SpawnGroupData data, @Nullable CompoundTag tag)
+    {
+        this.setPersistenceRequired();
+        this.applyStage(ColossusStage.SHELL);
+        return super.finalizeSpawn(level, difficulty, reason, data, tag);
     }
 
     // ---------------------------------------------------------------- state
@@ -169,6 +297,12 @@ public class CinderColossus extends Monster implements GeoEntity
         this.entityData.set(DATA_PHASE, phase.ordinal());
     }
 
+    /** The fight's stage (it follows the look: dormant is the Shell, erupted is Cracking, core is the Lava Core). */
+    public ColossusStage stage()
+    {
+        return ColossusStage.of(this.getPhase());
+    }
+
     public GolemAction getAction()
     {
         int i = this.entityData.get(DATA_ACTION);
@@ -184,10 +318,23 @@ public class CinderColossus extends Monster implements GeoEntity
         this.actionStartTick = this.tickCount;
     }
 
-    /** True if this golem only shows off a design (spawned by {@link #spawnShowcase}). Server side only. */
+    /** Server: ticks since the current action started (its animation starts {@link #ANIMATION_BLEND_TICKS} later). */
+    int ticksInAction()
+    {
+        return this.tickCount - this.actionStartTick;
+    }
+
+    /** True if this golem only shows off a design (spawned by {@link #spawnShowcase}). Works on both sides. */
     public boolean isShowcase()
     {
-        return this.showcase;
+        return this.entityData.get(DATA_SHOWCASE);
+    }
+
+    /** True while it plays a stage change (the eruption, the shell bursting): it can't be hurt then. */
+    public boolean isTransforming()
+    {
+        GolemAction action = this.getAction();
+        return action == GolemAction.ERUPT || action == GolemAction.BREAK_SHELL;
     }
 
     // ---------------------------------------------------------------- showcase controls
@@ -239,6 +386,394 @@ public class CinderColossus extends Monster implements GeoEntity
         this.startAction(walking ? GolemAction.WALK : GolemAction.IDLE);
     }
 
+    // ---------------------------------------------------------------- the fight: stages and damage
+
+    /** The health its current stage stops at (the next stage's threshold), or 0 in the Lava Core stage. */
+    private float healthFloor()
+    {
+        return switch (this.getPhase())
+        {
+            case DORMANT -> ColossusTuning.CRACKING_AT * this.getMaxHealth();
+            case ERUPTED -> ColossusTuning.LAVA_CORE_AT * this.getMaxHealth();
+            case CORE -> 0.0F;
+        };
+    }
+
+    /** Sets its armour and speed for a stage ({@link ColossusStage}). Also used by {@link ColossusGameTest}. */
+    void applyStage(ColossusStage stage)
+    {
+        AttributeInstance armor = this.getAttribute(Attributes.ARMOR);
+        if (armor != null)
+        {
+            armor.setBaseValue(stage.armor);
+        }
+        AttributeInstance speed = this.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (speed != null)
+        {
+            speed.setBaseValue(stage.speed);
+        }
+    }
+
+    /**
+     * Damage that would take it past its stage's threshold stops there, and it starts the next stage (the eruption,
+     * or the shell bursting). Damage that bypasses invulnerability ({@code /kill}, the void) isn't stopped. Ranged
+     * damage ({@link #isRanged}) is first cut to its stage's {@link ColossusStage#rangedDamageTaken} (its armour then
+     * counts as usual).
+     */
+    @Override
+    protected void actuallyHurt(DamageSource source, float amount)
+    {
+        if (this.isShowcase() || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
+        {
+            super.actuallyHurt(source, amount);
+            return;
+        }
+        float floor = this.healthFloor();
+        if (isRanged(source))
+        {
+            // Arrows, tridents, fireballs... barely hurt it, less with every stage (melee is never reduced).
+            amount *= this.stage().rangedDamageTaken;
+            this.rangedHitEffect(source);
+        }
+        super.actuallyHurt(source, amount);
+        this.noteCredit(source);
+        if (floor > 0.0F && this.getHealth() <= floor)
+        {
+            this.setHealth(floor);
+            this.beginNextStage();
+        }
+    }
+
+    /**
+     * True for ranged damage, which {@link ColossusStage#rangedDamageTaken} reduces: anything tagged
+     * {@code minecraft:is_projectile} (arrows, risen skeletons' too, tridents, fireballs, snowballs...), unless it
+     * bypasses invulnerability ({@code /kill}).
+     */
+    static boolean isRanged(DamageSource source)
+    {
+        return source.is(DamageTypeTags.IS_PROJECTILE) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY);
+    }
+
+    /**
+     * Shows that a ranged hit was weak, where the projectile hit: a clink and sparks off the stone (Shell, Cracking),
+     * or a hiss and a puff of smoke as it burns up in the lava (Lava Core).
+     */
+    private void rangedHitEffect(DamageSource source)
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        Vec3 at = this.hitPoint(source.getDirectEntity());
+        if (this.stage() == ColossusStage.LAVA_CORE)
+        {
+            level.playSound(null, at.x, at.y, at.z, SoundEvents.FIRE_EXTINGUISH, this.getSoundSource(),
+                    HISS_VOLUME, HISS_PITCH);
+            level.sendParticles(ParticleTypes.SMOKE, at.x, at.y, at.z, HISS_SMOKE,
+                    HISS_SPREAD, HISS_SPREAD, HISS_SPREAD, HISS_SMOKE_SPEED);
+            level.sendParticles(new DustParticleOptions(DrossColors.vector(DrossColors.COLOSSUS_RANGED_EMBER), HISS_EMBER_SIZE),
+                    at.x, at.y, at.z, HISS_EMBERS, HISS_SPREAD, HISS_SPREAD, HISS_SPREAD, 0.0D);
+        }
+        else
+        {
+            level.playSound(null, at.x, at.y, at.z, SoundEvents.STONE_BREAK, this.getSoundSource(),
+                    GLANCE_VOLUME, GLANCE_PITCH);
+            level.sendParticles(new DustParticleOptions(DrossColors.vector(DrossColors.COLOSSUS_RANGED_SPARK), GLANCE_SPARK_SIZE),
+                    at.x, at.y, at.z, GLANCE_SPARKS, GLANCE_SPREAD, GLANCE_SPREAD, GLANCE_SPREAD, 0.0D);
+        }
+    }
+
+    /**
+     * Where a projectile meets its body: along the projectile's flight this tick (it's still just outside when the hit
+     * is found), else the point of its box nearest the projectile, else the middle of its box.
+     */
+    private Vec3 hitPoint(@Nullable Entity projectile)
+    {
+        AABB box = this.getBoundingBox();
+        if (projectile == null)
+        {
+            return box.getCenter();
+        }
+        Vec3 from = projectile.position();
+        Optional<Vec3> along = box.clip(from, from.add(projectile.getDeltaMovement()));
+        return along.orElseGet(() -> new Vec3(Mth.clamp(from.x, box.minX, box.maxX),
+                Mth.clamp(from.y, box.minY, box.maxY), Mth.clamp(from.z, box.minZ, box.maxZ)));
+    }
+
+    /** Its shell erupts (Shell to Cracking) or bursts off (Cracking to Lava Core). It can't be hurt while it plays. */
+    private void beginNextStage()
+    {
+        if (this.attackGoal != null)
+        {
+            this.attackGoal.interrupt();
+        }
+        this.getNavigation().stop();
+        if (this.getPhase() == GolemPhase.DORMANT)
+        {
+            this.startAction(GolemAction.ERUPT);
+            this.applyStage(ColossusStage.CRACKING);
+        }
+        else if (this.getPhase() == GolemPhase.ERUPTED)
+        {
+            this.startAction(GolemAction.BREAK_SHELL);
+            this.applyStage(ColossusStage.LAVA_CORE);
+        }
+        this.playSound(ModSounds.COLOSSUS_RUMBLE.get(), LOUD, 0.9F);
+    }
+
+    @Override
+    public boolean isInvulnerableTo(DamageSource source)
+    {
+        boolean bypass = source.is(DamageTypeTags.BYPASSES_INVULNERABILITY);
+        // A showcase golem can't be hurt by anything except damage that bypasses invulnerability (/kill, the void).
+        if (this.isShowcase() && !bypass)
+        {
+            return true;
+        }
+        if (!bypass && (this.isTransforming() || source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.CRAMMING)
+                || source.is(DamageTypes.DROWN) || source.is(DamageTypes.FALL) || source.is(DamageTypes.FLY_INTO_WALL)))
+        {
+            return true;
+        }
+        return super.isInvulnerableTo(source);
+    }
+
+    /** Remembers which player gets the credit for a hit: theirs, their arrow's, their pet's or their risen undead's. */
+    private void noteCredit(DamageSource source)
+    {
+        UUID player = creditFor(source);
+        if (player != null)
+        {
+            this.creditPlayer = player;
+            this.creditTick = this.tickCount;
+        }
+    }
+
+    @Nullable
+    private static UUID creditFor(DamageSource source)
+    {
+        Entity attacker = source.getEntity();
+        Entity direct = source.getDirectEntity();
+        if (attacker instanceof Player player)
+        {
+            return player.getUUID();
+        }
+        UUID owner = RisenUndead.getOwnerId(attacker);
+        if (owner == null)
+        {
+            owner = RisenUndead.getOwnerId(direct);
+        }
+        if (owner == null && direct != null && direct.getPersistentData().hasUUID(RisenUndead.PROJECTILE_OWNER_KEY))
+        {
+            owner = direct.getPersistentData().getUUID(RisenUndead.PROJECTILE_OWNER_KEY);
+        }
+        if (owner == null && attacker instanceof OwnableEntity pet)
+        {
+            owner = pet.getOwnerUUID();
+        }
+        return owner;
+    }
+
+    /**
+     * Everyone who helped defeat it: the player credited with the kill (wherever they are) and every player within its
+     * boss bar's range ({@link ColossusTuning#BOSS_BAR_RANGE}; not spectators), each once.
+     */
+    List<ServerPlayer> victors(DamageSource source)
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return List.of();
+        }
+        Map<UUID, ServerPlayer> victors = new LinkedHashMap<>();
+        UUID killer = creditFor(source);
+        if (killer == null && this.creditPlayer != null && this.tickCount - this.creditTick <= CREDIT_TICKS)
+        {
+            killer = this.creditPlayer;
+        }
+        if (killer == null && this.getLastHurtByMob() instanceof Player player)
+        {
+            killer = player.getUUID();
+        }
+        if (killer != null)
+        {
+            ServerPlayer player = level.getServer().getPlayerList().getPlayer(killer);
+            if (player != null)
+            {
+                victors.put(player.getUUID(), player);
+            }
+        }
+        double range = ColossusTuning.BOSS_BAR_RANGE;
+        for (ServerPlayer player : level.players())
+        {
+            if (!player.isSpectator() && player.distanceToSqr(this) <= range * range)
+            {
+                victors.putIfAbsent(player.getUUID(), player);
+            }
+        }
+        return List.copyOf(victors.values());
+    }
+
+    /**
+     * Everyone who helped defeat it ({@link #victors}) gets "Set in Stone" and their own trophy
+     * ({@link ColossusTuning#DROP_DESIGN}), straight into their inventory; with a full inventory it's dropped a block
+     * in front of them, and for a player who's dead (waiting to respawn) where they died. A dropped one is theirs alone
+     * and nothing can destroy it ({@link ColossusTrophies#giveTo}).
+     */
+    private void rewardVictors(DamageSource source)
+    {
+        for (ServerPlayer player : this.victors(source))
+        {
+            DrossAdvancements.grant(player, DrossAdvancements.SET_IN_STONE);
+            ColossusTrophies.giveTo(player, ColossusTuning.DROP_DESIGN);
+        }
+    }
+
+    // ---------------------------------------------------------------- the fight: dying into a statue
+
+    /**
+     * A fighting Colossus plays its cooling death and stays as a statue (see {@link #tickDeath}); its minions crumble,
+     * its boss bar goes, and the players who beat it get the advancement and a trophy each (not when it's removed with
+     * {@code /kill}).
+     */
+    @Override
+    public void die(DamageSource source)
+    {
+        super.die(source);
+        if (this.level().isClientSide || !this.dead || this.isShowcase())
+        {
+            return;
+        }
+        this.startAction(GolemAction.DEATH);
+        if (this.bossBar != null)
+        {
+            this.bossBar.setProgress(0.0F);
+            this.bossBar.removeAllPlayers();
+        }
+        this.crumbleMinions();
+        if (!source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
+        {
+            this.rewardVictors(source);
+        }
+    }
+
+    /**
+     * Vanilla removes a dead mob after 20 ticks; a fighting Colossus stays through its cooling death and then as an
+     * obsidian statue for {@link ColossusTuning#STATUE_TICKS}, then crumbles away. (A showcase golem killed with
+     * {@code /kill} goes the vanilla way, as before.)
+     */
+    @Override
+    protected void tickDeath()
+    {
+        if (this.isShowcase())
+        {
+            super.tickDeath();
+            return;
+        }
+        this.deathTime = Math.min(this.deathTime + 1, Short.MAX_VALUE);
+        int end = this.getDesign().deathTicks() + ANIMATION_BLEND_TICKS + ColossusTuning.STATUE_TICKS;
+        if (!this.level().isClientSide && !this.isRemoved() && this.deathTime >= end)
+        {
+            this.crumbleStatue();
+        }
+    }
+
+    /** Ticks it has been dead (for the statue), shown as a statue after the cooling. */
+    private void crumbleStatue()
+    {
+        if (this.level() instanceof ServerLevel level)
+        {
+            AABB box = this.getBoundingBox();
+            level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.OBSIDIAN.defaultBlockState()),
+                    box.getCenter().x, box.minY + box.getYsize() * 0.4D, box.getCenter().z, CRUMBLE_DUST,
+                    box.getXsize() * 0.35D, box.getYsize() * 0.3D, box.getZsize() * 0.35D, 0.1D);
+            level.playSound(null, this.getX(), this.getY(), this.getZ(), ModSounds.COLOSSUS_CRUMBLE.get(),
+                    this.getSoundSource(), LOUD, 0.8F);
+        }
+        this.remove(RemovalReason.KILLED);
+    }
+
+    /** Its minions crumble when it dies. */
+    private void crumbleMinions()
+    {
+        for (GolemMinion minion : this.minions())
+        {
+            minion.crumble();
+        }
+    }
+
+    /** Its minions that are still alive near it. */
+    List<GolemMinion> minions()
+    {
+        AABB area = this.getBoundingBox().inflate(ColossusTuning.MINION_RANGE);
+        return this.level().getEntitiesOfClass(GolemMinion.class, area, m -> m.isAlive() && m.belongsTo(this));
+    }
+
+    // ---------------------------------------------------------------- the fight: boss bar
+
+    /** Shows its boss bar to the players near it (and hides it from the ones who left); keeps its name and fill up to date. */
+    private void updateBossBar()
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        ColossusStage stage = this.stage();
+        Component name = Component.translatable(stage.barName());
+        BossEvent.BossBarColor color = stage == ColossusStage.LAVA_CORE ? BossEvent.BossBarColor.RED : BossEvent.BossBarColor.PURPLE;
+        if (this.bossBar == null)
+        {
+            this.bossBar = new ServerBossEvent(name, color, BossEvent.BossBarOverlay.PROGRESS);
+            this.bossBar.setDarkenScreen(false);
+            this.bossBar.setPlayBossMusic(false);
+            this.bossBar.setCreateWorldFog(false);
+        }
+        if (!name.equals(this.bossBar.getName()))
+        {
+            this.bossBar.setName(name);
+            this.bossBar.setColor(color);
+        }
+        this.bossBar.setProgress(Mth.clamp(this.getHealth() / this.getMaxHealth(), 0.0F, 1.0F));
+        double range = ColossusTuning.BOSS_BAR_RANGE;
+        for (ServerPlayer player : level.players())
+        {
+            if (player.distanceToSqr(this) <= range * range)
+            {
+                this.bossBar.addPlayer(player);
+            }
+            else
+            {
+                this.bossBar.removePlayer(player);
+            }
+        }
+        for (ServerPlayer player : new ArrayList<>(this.bossBar.getPlayers()))
+        {
+            if (player.isRemoved() || player.level() != level)
+            {
+                this.bossBar.removePlayer(player);
+            }
+        }
+    }
+
+    @Override
+    public void stopSeenByPlayer(ServerPlayer player)
+    {
+        super.stopSeenByPlayer(player);
+        if (this.bossBar != null)
+        {
+            this.bossBar.removePlayer(player);
+        }
+    }
+
+    @Override
+    public void remove(RemovalReason reason)
+    {
+        if (this.bossBar != null)
+        {
+            this.bossBar.removeAllPlayers();
+        }
+        super.remove(reason);
+    }
+
     // ---------------------------------------------------------------- ticking
 
     @Override
@@ -247,11 +782,14 @@ public class CinderColossus extends Monster implements GeoEntity
         super.tick();
         if (this.level().isClientSide)
         {
+            this.crackShownO = this.crackShown;
+            this.crackShown += (this.crackTarget() - this.crackShown) * CRACK_EASE;
             this.spawnParticles();
             return;
         }
-        int elapsed = this.tickCount - this.actionStartTick;
+        int elapsed = this.ticksInAction();
         GolemDesigns.Design design = this.getDesign();
+        this.stageSounds(elapsed, design);
         switch (this.getAction())
         {
             case ERUPT -> {
@@ -273,6 +811,44 @@ public class CinderColossus extends Monster implements GeoEntity
                 {
                     // Same pose, held: also what it shows when it's loaded again later.
                     this.startAction(GolemAction.STATUE);
+                }
+            }
+            default -> {
+            }
+        }
+        if (!this.isShowcase() && this.isAlive())
+        {
+            this.updateBossBar();
+        }
+    }
+
+    /** The big moments' sounds (a showcase golem is silent, so it makes none of them). */
+    private void stageSounds(int elapsed, GolemDesigns.Design design)
+    {
+        int blast = ANIMATION_BLEND_TICKS + Math.round(GolemDesigns.ERUPT_BLAST * 20.0F);
+        switch (this.getAction())
+        {
+            case ERUPT -> {
+                if (elapsed == blast)
+                {
+                    this.playSound(ModSounds.COLOSSUS_ERUPT.get(), LOUD, 0.9F);
+                }
+                else if (elapsed == blast + 6)
+                {
+                    this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.9F);
+                }
+            }
+            case BREAK_SHELL -> {
+                if (elapsed == ANIMATION_BLEND_TICKS + design.burstTicks())
+                {
+                    this.playSound(ModSounds.COLOSSUS_SHELL_BREAK.get(), LOUD, 0.9F);
+                    this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.8F);
+                }
+            }
+            case DEATH -> {
+                if (elapsed == ANIMATION_BLEND_TICKS + Math.round(GolemDesigns.GLOW_FADE_START * 20.0F))
+                {
+                    this.playSound(ModSounds.COLOSSUS_COOL.get(), 2.0F, 0.6F);
                 }
             }
             default -> {
@@ -311,7 +887,8 @@ public class CinderColossus extends Monster implements GeoEntity
     /**
      * Whether the renderer draws this bone right now: the rock shell ({@code shell_*}) while it has one, the lava
      * extras ({@code molten_*}) in the core form (and as they grow out when the shell bursts), the live eruption
-     * ({@code vent_*}) in the core form while alive, the eruption's blast ({@code burst_*}) only while erupting.
+     * ({@code vent_*}) in the core form while alive, the eruption's blast ({@code burst_*}) only while erupting (and
+     * the lob's lava spurts), the rock it throws ({@code prop_*}) only while it holds it.
      */
     public boolean showsBone(String bone, float partialTick)
     {
@@ -330,7 +907,21 @@ public class CinderColossus extends Monster implements GeoEntity
         }
         if (bone.startsWith("burst_"))
         {
-            return this.getAction() == GolemAction.ERUPT;
+            GolemAction action = this.getAction();
+            return action == GolemAction.ERUPT
+                    || (action == GolemAction.LOB && this.getPhase().hasShell() && bone.endsWith("_column"));
+        }
+        if (bone.startsWith("prop_"))
+        {
+            if (this.getAction() != GolemAction.THROW)
+            {
+                return false;
+            }
+            GolemDesigns.Moves moves = this.getDesign().moves();
+            float t = this.animationSeconds(partialTick) * 20.0F;
+            boolean held = t >= moves.throwGrab() && t < moves.throwRelease();
+            boolean molten = this.getPhase() == GolemPhase.CORE;
+            return held && (bone.equals("prop_magma") == molten);
         }
         return true;
     }
@@ -376,6 +967,38 @@ public class CinderColossus extends Monster implements GeoEntity
         };
     }
 
+    /**
+     * Client: how cracked its shell looks (0 to 1) in the fight's Cracking stage: plates knocked loose and bright
+     * cracks ({@code GolemCrackLayer}). It starts at {@link #CRACK_START} when the volcanoes erupt (growing in with the
+     * poured lava) and grows to 1 as its health falls towards the Lava Core stage. Never for a showcase golem (its
+     * erupted look stays as it always was).
+     */
+    public float crackAmount(float partialTick)
+    {
+        return Mth.lerp(partialTick, this.crackShownO, this.crackShown);
+    }
+
+    /** The crack look its health and stage call for right now (see {@link #crackAmount}). */
+    private float crackTarget()
+    {
+        if (this.isShowcase())
+        {
+            return 0.0F;
+        }
+        GolemPhase phase = this.getPhase();
+        if (phase == GolemPhase.DORMANT && this.getAction() == GolemAction.ERUPT)
+        {
+            return CRACK_START * this.flowProgress(0.0F);
+        }
+        if (phase != GolemPhase.ERUPTED)
+        {
+            return 0.0F;
+        }
+        float health = this.getHealth() / this.getMaxHealth();
+        float worn = clamp01((ColossusTuning.CRACKING_AT - health) / (ColossusTuning.CRACKING_AT - ColossusTuning.LAVA_CORE_AT));
+        return CRACK_START + (1.0F - CRACK_START) * worn;
+    }
+
     private static float clamp01(float x)
     {
         return Mth.clamp(x, 0.0F, 1.0F);
@@ -391,6 +1014,165 @@ public class CinderColossus extends Monster implements GeoEntity
     public AABB getBoundingBoxForCulling()
     {
         return this.getBoundingBox().inflate(CULL_MARGIN, 2.0D, CULL_MARGIN);
+    }
+
+    // ---------------------------------------------------------------- the fight: movement
+
+    /** How far (blocks) a mob with this speed attribute walks in a tick on ordinary ground. */
+    public static double blocksPerTick(double speedAttribute)
+    {
+        return speedAttribute * speedAttribute * WALK_DISTANCE_FACTOR;
+    }
+
+    /**
+     * A point on its model (in the model's units: x its left, y up, z its back) in the world, as it stands now. The
+     * fight's moves use the points GolemDesigns gives (where a fist lands, where the rock leaves its hand...).
+     */
+    Vec3 modelPoint(GolemDesigns.Point p)
+    {
+        double gx = -p.x() / 16.0D;
+        double gy = p.y() / 16.0D;
+        double gz = p.z() / 16.0D;
+        double a = Math.toRadians(180.0D - this.yBodyRot);
+        double wx = gx * Math.cos(a) + gz * Math.sin(a);
+        double wz = -gx * Math.sin(a) + gz * Math.cos(a);
+        return this.position().add(wx, gy, wz);
+    }
+
+    /** Turns it (body, head and all) towards a spot, at most {@code maxDegrees} this tick. */
+    void turnTowards(Vec3 spot, float maxDegrees)
+    {
+        double dx = spot.x - this.getX();
+        double dz = spot.z - this.getZ();
+        if (dx * dx + dz * dz < 1.0E-4D)
+        {
+            return;
+        }
+        float wanted = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
+        float yaw = Mth.approachDegrees(this.getYRot(), wanted, maxDegrees);
+        this.setYRot(yaw);
+        this.setYBodyRot(yaw);
+        this.setYHeadRot(yaw);
+        this.yRotO = this.getYRot();
+    }
+
+    /** The way it faces, flat (a unit vector). */
+    Vec3 forward()
+    {
+        float yaw = this.getYRot() * Mth.DEG_TO_RAD;
+        return new Vec3(-Mth.sin(yaw), 0.0D, Mth.cos(yaw));
+    }
+
+    /** Its left side, flat (a unit vector). */
+    Vec3 left()
+    {
+        float yaw = this.getYRot() * Mth.DEG_TO_RAD;
+        return new Vec3(Mth.cos(yaw), 0.0D, Mth.sin(yaw));
+    }
+
+    /** Something its attacks may hit: alive, not itself or another Colossus, not one of the minions. */
+    boolean canHit(Entity entity)
+    {
+        return entity != this && entity.isAlive() && !(entity instanceof CinderColossus) && !(entity instanceof GolemMinion)
+                && !entity.isSpectator() && entity instanceof LivingEntity;
+    }
+
+    /** In the Lava Core stage every hit sets you on fire. */
+    void afterHit(Entity victim)
+    {
+        if (this.stage() == ColossusStage.LAVA_CORE)
+        {
+            victim.setSecondsOnFire(ColossusTuning.CORE_FIRE_SECONDS);
+        }
+    }
+
+    /** A damage source for its blows (scaled by the difficulty for players, like every mob's). */
+    DamageSource blow()
+    {
+        return this.damageSources().mobAttack(this);
+    }
+
+    /** Plays one of its sounds where it stands (louder carries further). */
+    void sound(SoundEvent sound, float volume, float pitch)
+    {
+        this.playSound(sound, volume, pitch);
+    }
+
+    @Override
+    public int getMaxHeadYRot()
+    {
+        return 10; // its head can't turn on its own: the whole body turns
+    }
+
+    @Override
+    public int getHeadRotSpeed()
+    {
+        return Math.round(this.stage().turnSpeed);
+    }
+
+    @Override
+    public boolean causeFallDamage(float distance, float multiplier, DamageSource source)
+    {
+        return false;
+    }
+
+    @Override
+    public boolean canBreatheUnderwater()
+    {
+        return true;
+    }
+
+    @Override
+    public boolean canBeLeashed(Player player)
+    {
+        return false;
+    }
+
+    // ---------------------------------------------------------------- sounds
+
+    @Override
+    protected SoundEvent getAmbientSound()
+    {
+        return this.getPhase() == GolemPhase.CORE ? ModSounds.COLOSSUS_AMBIENT_CORE.get() : ModSounds.COLOSSUS_AMBIENT.get();
+    }
+
+    @Override
+    public int getAmbientSoundInterval()
+    {
+        return 160;
+    }
+
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source)
+    {
+        return ModSounds.COLOSSUS_HURT.get();
+    }
+
+    @Override
+    protected SoundEvent getDeathSound()
+    {
+        return ModSounds.COLOSSUS_DEATH.get();
+    }
+
+    @Override
+    protected float getSoundVolume()
+    {
+        return 2.0F;
+    }
+
+    @Override
+    public float getVoicePitch()
+    {
+        return 0.9F + (this.random.nextFloat() - 0.5F) * 0.1F;
+    }
+
+    @Override
+    protected void playStepSound(BlockPos pos, BlockState state)
+    {
+        if (this.getAction() != GolemAction.CHARGE)
+        {
+            this.playSound(ModSounds.COLOSSUS_STEP.get(), 1.2F, 0.9F);
+        }
     }
 
     // ---------------------------------------------------------------- particles (client)
@@ -425,7 +1207,8 @@ public class CinderColossus extends Monster implements GeoEntity
 
     /**
      * Smoke from a dormant volcano; a blast of lava when it erupts; smoke and the odd spark once erupted; a constant
-     * eruption in the core form; a burst when the shell breaks; steam while it cools.
+     * eruption in the core form; a burst when the shell breaks; steam while it cools. In the fight: lava spurting from
+     * the craters when it lobs, and dust thrown up by its gallop.
      */
     private void spawnParticles()
     {
@@ -434,6 +1217,7 @@ public class CinderColossus extends Monster implements GeoEntity
         GolemPhase phase = this.getPhase();
         float t = this.animationSeconds(0.0F);
         float blast = GolemDesigns.ERUPT_BLAST;
+        float lob = this.getDesign().moves().lobRelease() / 20.0F;
         for (Crater c : this.craters())
         {
             Vec3 crater = c.at();
@@ -478,6 +1262,23 @@ public class CinderColossus extends Monster implements GeoEntity
                 {
                     this.burst(crater, smoke, ParticleTypes.LARGE_SMOKE, 1, 0.1D);
                 }
+                if (action == GolemAction.LOB && t >= lob && t < lob + 0.3F)
+                {
+                    this.jet(crater, aim, ParticleTypes.LAVA, 4, ERUPT_JET_BLOCKS);
+                }
+            }
+            else if (action == GolemAction.LOB)
+            {
+                if (t >= lob && t < lob + 0.35F)
+                {
+                    this.jet(crater, aim, ParticleTypes.LAVA, 4, ERUPT_JET_BLOCKS);
+                    this.burst(crater, aim, ParticleTypes.FLAME, 3, 0.25D);
+                    this.burst(crater, smoke, ParticleTypes.LARGE_SMOKE, 2, 0.12D);
+                }
+                else if (t < lob && this.tickCount % 3 == 0)
+                {
+                    this.burst(crater, UP, ParticleTypes.LARGE_SMOKE, 1, 0.06D);
+                }
             }
             else if (phase == GolemPhase.ERUPTED)
             {
@@ -504,6 +1305,21 @@ public class CinderColossus extends Monster implements GeoEntity
                 Vec3 middle = this.position().add(0.0D, this.getBbHeight() * 0.6D, 0.0D);
                 this.level().addParticle(ParticleTypes.EXPLOSION_EMITTER, middle.x, middle.y, middle.z, 0.0D, 0.0D, 0.0D);
                 this.jet(middle, UP, ParticleTypes.LAVA, 24, 1.0D);
+            }
+        }
+        if (action == GolemAction.CHARGE && t * 20.0F > this.getDesign().moves().chargeStartTicks() && this.onGround())
+        {
+            // Dust and grit thrown up by its gallop.
+            BlockState ground = this.level().getBlockState(this.blockPosition().below());
+            if (!ground.isAir())
+            {
+                AABB box = this.getBoundingBox();
+                for (int i = 0; i < 3; i++)
+                {
+                    this.level().addParticle(new BlockParticleOption(ParticleTypes.BLOCK, ground),
+                            Mth.lerp(random.nextDouble(), box.minX, box.maxX), box.minY + 0.1D,
+                            Mth.lerp(random.nextDouble(), box.minZ, box.maxZ), 0.0D, 0.15D, 0.0D);
+                }
             }
         }
     }
@@ -553,7 +1369,9 @@ public class CinderColossus extends Monster implements GeoEntity
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        controllers.add(new AnimationController<>(this, "main", ANIMATION_BLEND_TICKS, this::animateBody));
+        AnimationController<CinderColossus> main = new AnimationController<>(this, "main", ANIMATION_BLEND_TICKS, this::animateBody);
+        main.setAnimationSpeedHandler(golem -> golem.bodyAnimationSpeed());
+        controllers.add(main);
         controllers.add(new AnimationController<>(this, "volcano", ANIMATION_BLEND_TICKS, this::animateVolcano));
     }
 
@@ -566,10 +1384,42 @@ public class CinderColossus extends Monster implements GeoEntity
             this.mainSerialSeen = serial;
             state.getController().forceAnimationReset();
         }
-        return state.setAndContinue(ANIMATIONS.get(this.getAction()));
+        GolemAction action = this.getAction();
+        if (action == GolemAction.IDLE && this.isWalkingShown())
+        {
+            return state.setAndContinue(WALK);
+        }
+        return state.setAndContinue(ANIMATIONS.get(action));
     }
 
-    /** The volcano's own bones: the blast while it erupts, the live eruption in the core form, else still. */
+    /** Client: true while it walks about (a fighting golem moving between its moves), with a little hysteresis. */
+    private boolean isWalkingShown()
+    {
+        float speed = this.walkAnimation.speed();
+        if (this.walkingShown ? speed < 0.02F : speed > 0.06F)
+        {
+            this.walkingShown = !this.walkingShown;
+        }
+        return this.walkingShown && !this.isShowcase();
+    }
+
+    /**
+     * How fast the body's animation plays: its walk is sped up to match how fast it really moves in its stage (so its
+     * knuckles don't slide); everything else plays as made. The speed only changes with the stage (a steady speed,
+     * because changing it mid-loop would make the walk jump).
+     */
+    private double bodyAnimationSpeed()
+    {
+        if (this.getAction() != GolemAction.IDLE || !this.walkingShown)
+        {
+            return 1.0D;
+        }
+        GolemDesigns.Design design = this.getDesign();
+        double natural = design.walkBlocks() / design.walkTicks();
+        return Mth.clamp(blocksPerTick(this.stage().speed) / natural, MIN_WALK_SPEEDUP, MAX_WALK_SPEEDUP);
+    }
+
+    /** The volcano's own bones: the blast while it erupts, the spurts of a lob, the live eruption in the core form. */
     private PlayState animateVolcano(AnimationState<CinderColossus> state)
     {
         int serial = this.entityData.get(DATA_ACTION_SERIAL);
@@ -586,6 +1436,10 @@ public class CinderColossus extends Monster implements GeoEntity
         if (this.getPhase() == GolemPhase.CORE && !action.isDead())
         {
             return state.setAndContinue(VOLCANO_ERUPTING);
+        }
+        if (action == GolemAction.LOB)
+        {
+            return state.setAndContinue(VOLCANO_LOB);
         }
         return PlayState.STOP;
     }
@@ -613,7 +1467,7 @@ public class CinderColossus extends Monster implements GeoEntity
         {
             return null;
         }
-        golem.showcase = true;
+        golem.entityData.set(DATA_SHOWCASE, true);
         golem.setDesign(design.number());
         golem.moveTo(feet.x, feet.y, feet.z, yaw, 0.0F);
         golem.setYHeadRot(yaw);
@@ -623,6 +1477,31 @@ public class CinderColossus extends Monster implements GeoEntity
         golem.setNoAi(true);
         golem.setSilent(true);
         golem.setPersistenceRequired();
+        level.addFreshEntity(golem);
+        return golem;
+    }
+
+    /**
+     * Spawns a fighting Cinder Colossus (the user's pick, 3G Saddleback), in its Shell stage, facing {@code yaw}. Used by
+     * {@code /dross boss summon colossus}; the spawn egg makes one the same way.
+     *
+     * @return the Colossus, already in the world, or null if it couldn't be created
+     */
+    @Nullable
+    public static CinderColossus spawnBoss(ServerLevel level, Vec3 feet, float yaw)
+    {
+        CinderColossus golem = ModEntities.CINDER_COLOSSUS.get().create(level);
+        if (golem == null)
+        {
+            return null;
+        }
+        golem.moveTo(feet.x, feet.y, feet.z, yaw, 0.0F);
+        golem.setYHeadRot(yaw);
+        golem.setYBodyRot(yaw);
+        golem.yHeadRotO = yaw;
+        golem.yBodyRotO = yaw;
+        net.minecraftforge.event.ForgeEventFactory.onFinalizeSpawn(golem, level, level.getCurrentDifficultyAt(golem.blockPosition()),
+                MobSpawnType.COMMAND, null, null);
         level.addFreshEntity(golem);
         return golem;
     }
@@ -641,9 +1520,9 @@ public class CinderColossus extends Monster implements GeoEntity
         }
         if (this.level().isClientSide)
         {
-            return InteractionResult.SUCCESS;
+            return this.isShowcase() ? InteractionResult.SUCCESS : InteractionResult.PASS;
         }
-        if (!this.showcase)
+        if (!this.isShowcase())
         {
             return super.mobInteract(player, hand);
         }
@@ -674,27 +1553,16 @@ public class CinderColossus extends Monster implements GeoEntity
         return InteractionResult.CONSUME;
     }
 
-    /** A showcase golem can't be hurt by anything except damage that bypasses invulnerability ({@code /kill}, the void). */
-    @Override
-    public boolean isInvulnerableTo(DamageSource source)
-    {
-        if (this.showcase && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
-        {
-            return true;
-        }
-        return super.isInvulnerableTo(source);
-    }
-
     @Override
     public boolean isPushable()
     {
-        return !this.showcase && super.isPushable();
+        return false; // nothing shoves a colossus around (a showcase golem, or a fighting one)
     }
 
     @Override
     public void push(double x, double y, double z)
     {
-        if (!this.showcase)
+        if (!this.isShowcase())
         {
             super.push(x, y, z);
         }
@@ -703,13 +1571,13 @@ public class CinderColossus extends Monster implements GeoEntity
     @Override
     public boolean isPushedByFluid()
     {
-        return !this.showcase;
+        return false;
     }
 
     @Override
     protected boolean shouldDespawnInPeaceful()
     {
-        return !this.showcase;
+        return !this.isShowcase();
     }
 
     @Override
@@ -727,7 +1595,7 @@ public class CinderColossus extends Monster implements GeoEntity
         tag.putInt(TAG_DESIGN, this.getDesign().number());
         tag.putString(TAG_PHASE, this.getPhase().name());
         tag.putString(TAG_ACTION, this.getAction().name());
-        if (this.showcase)
+        if (this.isShowcase())
         {
             tag.putBoolean(TAG_SHOWCASE, true);
         }
@@ -737,14 +1605,15 @@ public class CinderColossus extends Monster implements GeoEntity
     public void readAdditionalSaveData(CompoundTag tag)
     {
         super.readAdditionalSaveData(tag);
-        this.showcase = tag.getBoolean(TAG_SHOWCASE);
+        this.entityData.set(DATA_SHOWCASE, tag.getBoolean(TAG_SHOWCASE));
         if (tag.contains(TAG_DESIGN))
         {
             this.setDesign(tag.getInt(TAG_DESIGN));
         }
         GolemPhase phase = GolemPhase.byName(tag.getString(TAG_PHASE));
         GolemAction action = GolemAction.byName(tag.getString(TAG_ACTION));
-        // Actions that were halfway through when it was saved pick up where they would have ended.
+        // Actions that were halfway through when it was saved pick up where they would have ended. A fight move in
+        // progress starts again from standing (the fight's AI picks its next move).
         switch (action)
         {
             case ERUPT -> {
@@ -757,9 +1626,57 @@ public class CinderColossus extends Monster implements GeoEntity
             }
             case DEATH -> action = GolemAction.STATUE;
             default -> {
+                if (action.isAttack())
+                {
+                    action = GolemAction.IDLE;
+                }
             }
         }
         this.setPhase(phase);
         this.startAction(action);
+        if (!this.isShowcase() && !this.isDeadOrDying())
+        {
+            // A rejoin mid-fight: the stage's armour and speed (and its boss bar, made on its next tick) come back.
+            this.applyStage(ColossusStage.of(phase));
+        }
+    }
+
+    // ---------------------------------------------------------------- movement control
+
+    /**
+     * Walks like any mob, but turns at its stage's {@link ColossusStage#turnSpeed} (vanilla mobs swing round up to 90
+     * degrees a tick, which looks wrong on something this big).
+     */
+    static class ColossusMoveControl extends MoveControl
+    {
+        private final CinderColossus golem;
+
+        ColossusMoveControl(CinderColossus golem)
+        {
+            super(golem);
+            this.golem = golem;
+        }
+
+        @Override
+        public void tick()
+        {
+            if (this.operation != Operation.MOVE_TO)
+            {
+                super.tick();
+                return;
+            }
+            this.operation = Operation.WAIT;
+            double dx = this.wantedX - this.mob.getX();
+            double dz = this.wantedZ - this.mob.getZ();
+            double dy = this.wantedY - this.mob.getY();
+            if (dx * dx + dy * dy + dz * dz < 2.5000003E-7D)
+            {
+                this.mob.setZza(0.0F);
+                return;
+            }
+            float wanted = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
+            this.mob.setYRot(this.rotlerp(this.mob.getYRot(), wanted, this.golem.stage().turnSpeed));
+            this.mob.setSpeed((float) (this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
+        }
     }
 }

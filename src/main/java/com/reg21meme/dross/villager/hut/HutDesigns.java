@@ -3,8 +3,8 @@ package com.reg21meme.dross.villager.hut;
 import java.util.List;
 
 /**
- * The ten candidate designs for the Dross trader's hut, numbered 1 to 10. {@code /dross showcase huts} builds them
- * all in a row to compare. Design 10, the Rift Chapel, was chosen: {@code TraderHut.DESIGN} points at
+ * The ten candidate designs for the Dross trader's hut, numbered 1 to 10. {@code /dross showcase trader_huts} builds
+ * them all in a row to compare. Design 10, the Rift Chapel, was chosen: {@code TraderHut.DESIGN} points at
  * {@link #RIFT_CHAPEL}, so it is the hut every new world gets.
  */
 public final class HutDesigns

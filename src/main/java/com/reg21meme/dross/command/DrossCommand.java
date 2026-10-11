@@ -5,6 +5,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.BossCommands;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
 import com.reg21meme.dross.villager.TraderCommands;
@@ -25,38 +26,56 @@ import net.minecraftforge.fml.common.Mod;
 
 /**
  * The {@code /dross} command. Owned by world-builder; other areas' logic lives in their own packages. All need cheats (level 2).
+ * <p>
+ * Names say what kind of thing a command is about and which one, so they stay clear as more bosses and places are
+ * added: {@code goto <place>}, {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
+ * {@code quest <action>}.
  * <ul>
- *   <li>{@code /dross site}: teleports you in front of the castle's portal frame, facing it. Before the site has been
- *       built in this world it fails ("hasn't been placed ... yet") and builds nothing: the site is built in the
- *       background a little while after a new world opens (old worlds' bare frame or small shrine count as built).</li>
- *   <li>{@code /dross hub}: teleports you to the hub in the Dross (portal area's {@link DrossHub}).</li>
- *   <li>{@code /dross trader}: teleports you to the Dross trader. {@code /dross trader home}: sends him home.
+ *   <li>{@code /dross goto cathedral}: teleports you in front of the castle's portal frame (the Fallen Cathedral, or
+ *       an old world's bare frame or small shrine), facing it. Before the site has been built in this world it fails
+ *       ("hasn't been placed ... yet") and builds nothing: the site is built in the background a little while after a
+ *       new world opens.</li>
+ *   <li>{@code /dross goto hub}: teleports you to the hub in the Dross (portal area's {@link DrossHub}).</li>
+ *   <li>{@code /dross goto trader}: teleports you to the Dross trader. {@code /dross trader sendhome}: sends him home.
  *       From the villager area ({@link TraderCommands}).</li>
  *   <li>{@code /dross quest status|reset|complete}: shows, clears or finishes your quest progress.
  *       From the quest area ({@link QuestCommands}).</li>
- *   <li>{@code /dross showcase huts}: builds every candidate design for the trader's hut in a row in front of you,
- *       each with a numbered sign, to compare them ({@link HutShowcase}; the designs are the villager area's).</li>
- *   <li>{@code /dross showcase shrines}: builds the 10 candidate designs for a grander portal shrine in a row to your
- *       right (about 1,000 blocks long, so use a superflat world), one at a time from the server tick, each with a
- *       numbered sign. A chat line appears as each one is finished; click it to teleport in front of that shrine
- *       ({@link ShrineShowcase}; the designs are in {@code world.shrine}).</li>
- *   <li>{@code /dross showcase skins}: spawns one frozen trader per candidate skin in a row in front of you, each on
- *       a pedestal with a numbered sign; old showcase traders nearby are removed first, never the real trader
+ *   <li>{@code /dross showcase trader_huts}: builds every candidate design for the trader's hut in a row in front of
+ *       you, each with a numbered sign, to compare them ({@link HutShowcase}; the designs are the villager area's).</li>
+ *   <li>{@code /dross showcase trader_skins}: spawns one frozen trader per candidate skin in a row in front of you,
+ *       each on a pedestal with a numbered sign; old showcase traders nearby are removed first, never the real trader
  *       ({@link SkinShowcase}; the skins are the villager area's {@code TraderSkins}).</li>
- *   <li>{@code /dross showcase golems}: spawns one frozen Cinder Colossus per candidate design in a row in front of
- *       you, dormant in their rock shells, each with a numbered sign;
- *       {@code /dross showcase golems dormant|erupt|erupted|break|core|die|walk|idle} switches them between their three
- *       stages and replays the eruption, the shell breaking and the death ({@link GolemShowcase}; the designs are the
- *       boss area's {@code GolemDesigns}).</li>
+ *   <li>{@code /dross showcase portal_shrines}: builds the 10 candidate designs for a grander portal shrine in a row to
+ *       your right (about 1,000 blocks long, so use a superflat world), one at a time from the server tick, each with
+ *       a numbered sign. A chat line appears as each one is finished; click it to teleport in front of that shrine
+ *       ({@link ShrineShowcase}; the designs are in {@code world.shrine}).</li>
+ *   <li>{@code /dross showcase boss_designs colossus}: spawns one frozen Cinder Colossus per design in a row in front
+ *       of you, dormant in their rock shells, each with a numbered sign;
+ *       {@code /dross showcase boss_designs colossus dormant|erupt|erupted|break|core|die|walk|idle} switches them
+ *       between their three stages and replays the eruption, the shell breaking and the death ({@link GolemShowcase};
+ *       the designs are the boss area's {@code GolemDesigns}).</li>
+ *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
+ *       you, each on a pedestal facing you with a sign giving its number and name ({@link TrophyShowcase}; the designs
+ *       are the boss area's {@code ColossusTrophies}).</li>
+ *   <li>{@code /dross boss summon colossus}: summons a fighting Cinder Colossus in front of you, facing you (not on
+ *       Peaceful). From the boss area ({@link BossCommands#summonColossus}).</li>
+ *   <li>{@code /dross boss arena colossus}: builds the placeholder Colossus arena round you, with a chat button that
+ *       summons the Colossus. From the boss area ({@link BossCommands#buildArena}; the arena itself is
+ *       {@code BossArena}). The button runs {@link BossCommands#SUMMON_COMMAND}, so the {@code boss summon colossus}
+ *       path must match it exactly.</li>
  * </ul>
- * The shrines and skins showcases use the command's position, rotation and dimension, so they also work from the server
- * console and command blocks (for example {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross
- * showcase skins}). The huts showcase needs a player.
+ * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase trophies}, {@code boss summon}
+ * and {@code boss arena}; a future place adds one under {@code goto}.
+ * <p>
+ * The shrine, skin, boss-design and trophy showcases and the boss commands use the command's position, rotation and
+ * dimension, so they also work from the server console and command blocks (for example {@code execute in
+ * minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase trader_skins}). The trader huts showcase needs
+ * a player.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossCommand
 {
-    /** What {@code /dross site} says (as a failure) before the site has been built in this world. */
+    /** What {@code /dross goto cathedral} says (as a failure) before the site has been built in this world. */
     public static final String SITE_NOT_PLACED = "The Dross portal site hasn't been placed in this world yet.";
     /** How far in front of (or behind) the frame the player is put, best first. */
     private static final int[] STAND_DISTANCES = {3, 2, 4, 1, 5};
@@ -72,45 +91,61 @@ public final class DrossCommand
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher)
     {
         dispatcher.register(Commands.literal("dross")
-                .then(Commands.literal("site")
+                // Teleports to places: goto <place>.
+                .then(Commands.literal("goto")
                         .requires(source -> source.hasPermission(2))
-                        .executes(DrossCommand::teleportToSite))
-                // Portal area's hub (the logic lives in DrossHub).
-                .then(Commands.literal("hub")
-                        .requires(source -> source.hasPermission(2))
-                        .executes(DrossCommand::teleportToHub))
-                // Villager area's test commands (the logic lives in TraderCommands).
+                        .then(Commands.literal("cathedral").executes(DrossCommand::teleportToSite))
+                        // Portal area's hub (the logic lives in DrossHub).
+                        .then(Commands.literal("hub").executes(DrossCommand::teleportToHub))
+                        // Villager area's trader (the logic lives in TraderCommands).
+                        .then(Commands.literal("trader").executes(TraderCommands::teleportToTrader)))
+                // Villager area's test commands: trader <action> (the logic lives in TraderCommands).
                 .then(Commands.literal("trader")
                         .requires(source -> source.hasPermission(2))
-                        .executes(TraderCommands::teleportToTrader)
-                        .then(Commands.literal("home")
-                                .executes(TraderCommands::sendTraderHome)))
-                // Quest area's test commands (the logic lives in QuestCommands).
+                        .then(Commands.literal("sendhome").executes(TraderCommands::sendTraderHome)))
+                // Quest area's test commands: quest <action> (the logic lives in QuestCommands).
                 .then(Commands.literal("quest")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("status").executes(QuestCommands::status))
                         .then(Commands.literal("reset").executes(QuestCommands::reset))
                         .then(Commands.literal("complete").executes(QuestCommands::complete)))
-                // Test showcases that build things side by side to compare them
-                // (the logic lives in HutShowcase, ShrineShowcase, SkinShowcase and GolemShowcase).
+                // Test showcases that build things side by side to compare them: showcase <kind> [<boss>]
+                // (the logic lives in HutShowcase, SkinShowcase, ShrineShowcase, GolemShowcase and TrophyShowcase).
                 .then(Commands.literal("showcase")
                         .requires(source -> source.hasPermission(2))
-                        .then(Commands.literal("huts").executes(HutShowcase::buildHuts))
-                        .then(Commands.literal("shrines").executes(ShrineShowcase::buildShrines))
-                        .then(Commands.literal("skins").executes(SkinShowcase::spawnSkins))
-                        // Boss area's golem designs (spawning and the controls live in GolemShowcase).
-                        .then(golemShowcase())));
+                        .then(Commands.literal("trader_huts").executes(HutShowcase::buildHuts))
+                        .then(Commands.literal("trader_skins").executes(SkinShowcase::spawnSkins))
+                        .then(Commands.literal("portal_shrines").executes(ShrineShowcase::buildShrines))
+                        // Boss area's designs, one literal per boss.
+                        .then(Commands.literal("boss_designs")
+                                .then(colossusDesignShowcase()))
+                        // Boss area's trophies, one literal per boss.
+                        .then(Commands.literal("trophies")
+                                .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))))
+                // Boss area's test commands: boss <action> <boss> (the logic lives in BossCommands). The arena's chat
+                // button runs BossCommands.SUMMON_COMMAND ("/dross boss summon colossus"), so keep that path exactly as it is.
+                .then(Commands.literal("boss")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("summon")
+                                .then(Commands.literal("colossus")
+                                        .executes(context -> BossCommands.summonColossus(context.getSource()))))
+                        .then(Commands.literal("arena")
+                                .then(Commands.literal("colossus")
+                                        .executes(context -> BossCommands.buildArena(context.getSource()))))));
     }
 
-    /** {@code /dross showcase golems} and its controls ({@code dormant}, {@code erupt}, {@code break}, {@code die}...). */
-    private static LiteralArgumentBuilder<CommandSourceStack> golemShowcase()
+    /**
+     * {@code /dross showcase boss_designs colossus} and its controls ({@code dormant}, {@code erupt}, {@code break},
+     * {@code die}...), one per {@link GolemShowcase.Control}.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> colossusDesignShowcase()
     {
-        LiteralArgumentBuilder<CommandSourceStack> golems = Commands.literal("golems").executes(GolemShowcase::spawnGolems);
+        LiteralArgumentBuilder<CommandSourceStack> colossus = Commands.literal("colossus").executes(GolemShowcase::spawnGolems);
         for (GolemShowcase.Control control : GolemShowcase.Control.values())
         {
-            golems.then(Commands.literal(control.word()).executes(context -> GolemShowcase.control(context, control)));
+            colossus.then(Commands.literal(control.word()).executes(context -> GolemShowcase.control(context, control)));
         }
-        return golems;
+        return colossus;
     }
 
     private static int teleportToHub(CommandContext<CommandSourceStack> context) throws CommandSyntaxException

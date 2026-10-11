@@ -189,9 +189,13 @@ def _pool_shades(model, tm, sel, pool, seed):
     return idx
 
 
-def rest_world(model, tm):
-    """Every texel's position and normal in the posed rest pose (Bedrock model space), for gravity-aware effects."""
-    mats = model.pose_matrices()
+def rest_world(model, tm, mats=None):
+    """
+    Every texel's position and normal in the posed rest pose (Bedrock model space), for gravity-aware effects; or in
+    another pose, given its bone matrices (model.pose_matrices(pose)).
+    """
+    if mats is None:
+        mats = model.pose_matrices()
     Pw = np.zeros_like(tm.P)
     Nw = np.zeros_like(tm.N)
     for c in tm.cubes:

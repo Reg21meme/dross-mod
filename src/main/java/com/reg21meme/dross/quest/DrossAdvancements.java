@@ -19,7 +19,8 @@ import java.util.List;
  * <p>Example (from any area): {@code DrossAdvancements.grant(player, DrossAdvancements.RISE);}</p>
  *
  * <p>The Dross tab, in order: {@link #ROOT} (silent, unlocks the tab) → {@link #WEATHERED_LETTER} →
- * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS} → {@link #RISE}.</p>
+ * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose children are {@link #RISE}
+ * and {@link #SET_IN_STONE}.</p>
  */
 public final class DrossAdvancements
 {
@@ -37,8 +38,10 @@ public final class DrossAdvancements
     public static final String ENTERED_THE_DROSS = "entered_the_dross";
     /** "Rise!": the enchantments area grants it the first time a player raises undead. */
     public static final String RISE = "rise";
+    /** "Set in Stone": the boss area grants it when a player defeats the Cinder Colossus. Not part of the quest. */
+    public static final String SET_IN_STONE = "set_in_stone";
 
-    /** The advancements {@code /dross quest reset} takes away ("Rise!" stays: it's about Necromancy, not the quest). */
+    /** The advancements {@code /dross quest reset} takes away ("Rise!" and "Set in Stone" stay: they're about Necromancy and the boss, not the quest). */
     static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, PROVEN_WORTHY, KEYMASTER, ENTERED_THE_DROSS);
 
     private DrossAdvancements() {}

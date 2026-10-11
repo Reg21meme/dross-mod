@@ -1,0 +1,259 @@
+{
+  "entity.cinder_colossus.ambient": {
+    "subtitle": "subtitles.dross.cinder_colossus.ambient",
+    "sounds": [
+      {"name": "minecraft:block/grindstone/grindstone1", "pitch": 0.5, "volume": 0.8},
+      {"name": "minecraft:block/grindstone/grindstone2", "pitch": 0.5, "volume": 0.8},
+      {"name": "minecraft:block/grindstone/grindstone3", "pitch": 0.5, "volume": 0.8},
+      {"name": "minecraft:ambient/nether/basalt_deltas/long_debris1", "pitch": 0.55, "volume": 0.9},
+      {"name": "minecraft:ambient/nether/basalt_deltas/long_debris2", "pitch": 0.55, "volume": 0.9},
+      {"name": "minecraft:mob/ravager/idle1", "pitch": 0.5, "volume": 0.7},
+      {"name": "minecraft:mob/ravager/idle3", "pitch": 0.5, "volume": 0.7}
+    ]
+  },
+  "entity.cinder_colossus.ambient_core": {
+    "subtitle": "subtitles.dross.cinder_colossus.ambient_core",
+    "sounds": [
+      {"name": "minecraft:liquid/lava", "pitch": 0.6, "volume": 0.9},
+      {"name": "minecraft:mob/magmacube/big1", "pitch": 0.5, "volume": 0.8},
+      {"name": "minecraft:mob/magmacube/big3", "pitch": 0.5, "volume": 0.8},
+      {"name": "minecraft:ambient/nether/basalt_deltas/active1", "pitch": 0.6, "volume": 0.9},
+      {"name": "minecraft:ambient/nether/basalt_deltas/active3", "pitch": 0.6, "volume": 0.9},
+      {"name": "minecraft:mob/ravager/idle5", "pitch": 0.55, "volume": 0.7}
+    ]
+  },
+  "entity.cinder_colossus.hurt": {
+    "subtitle": "subtitles.dross.cinder_colossus.hurt",
+    "sounds": [
+      {"name": "minecraft:mob/irongolem/hit1", "pitch": 0.55},
+      {"name": "minecraft:mob/irongolem/hit2", "pitch": 0.55},
+      {"name": "minecraft:mob/irongolem/hit3", "pitch": 0.55},
+      {"name": "minecraft:block/basalt/break1", "pitch": 0.5},
+      {"name": "minecraft:block/basalt/break3", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.death": {
+    "subtitle": "subtitles.dross.cinder_colossus.death",
+    "sounds": [
+      {"name": "minecraft:mob/ravager/death1", "pitch": 0.5},
+      {"name": "minecraft:mob/ravager/death2", "pitch": 0.5},
+      {"name": "minecraft:mob/ravager/death3", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.step": {
+    "subtitle": "subtitles.dross.cinder_colossus.step",
+    "sounds": [
+      {"name": "minecraft:mob/irongolem/walk1", "pitch": 0.55},
+      {"name": "minecraft:mob/irongolem/walk2", "pitch": 0.55},
+      {"name": "minecraft:mob/irongolem/walk3", "pitch": 0.55},
+      {"name": "minecraft:mob/irongolem/walk4", "pitch": 0.55},
+      {"name": "minecraft:mob/ravager/step1", "pitch": 0.5},
+      {"name": "minecraft:mob/ravager/step3", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.roar": {
+    "subtitle": "subtitles.dross.cinder_colossus.roar",
+    "sounds": [
+      {"name": "minecraft:mob/ravager/roar1", "pitch": 0.55},
+      {"name": "minecraft:mob/ravager/roar2", "pitch": 0.55},
+      {"name": "minecraft:mob/ravager/roar3", "pitch": 0.55},
+      {"name": "minecraft:mob/ravager/roar4", "pitch": 0.55}
+    ]
+  },
+  "entity.cinder_colossus.swipe": {
+    "subtitle": "subtitles.dross.cinder_colossus.swipe",
+    "sounds": [
+      {"name": "minecraft:mob/irongolem/throw", "pitch": 0.5},
+      {"name": "minecraft:mob/ravager/bite1", "pitch": 0.55},
+      {"name": "minecraft:mob/ravager/bite2", "pitch": 0.55}
+    ]
+  },
+  "entity.cinder_colossus.rip": {
+    "subtitle": "subtitles.dross.cinder_colossus.rip",
+    "sounds": [
+      {"name": "minecraft:block/basalt/break1", "pitch": 0.5},
+      {"name": "minecraft:block/basalt/break2", "pitch": 0.5},
+      {"name": "minecraft:block/deepslate/break1", "pitch": 0.5},
+      {"name": "minecraft:block/deepslate/break3", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.throw": {
+    "subtitle": "subtitles.dross.cinder_colossus.throw",
+    "sounds": [
+      {"name": "minecraft:mob/irongolem/throw", "pitch": 0.6},
+      {"name": "minecraft:mob/ravager/bite3", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.slam": {
+    "subtitle": "subtitles.dross.cinder_colossus.slam",
+    "sounds": [
+      {"name": "minecraft:random/explode1", "pitch": 0.55},
+      {"name": "minecraft:random/explode2", "pitch": 0.55},
+      {"name": "minecraft:mob/warden/attack_impact_1", "pitch": 0.5},
+      {"name": "minecraft:mob/warden/attack_impact_2", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.charge": {
+    "subtitle": "subtitles.dross.cinder_colossus.charge",
+    "sounds": [
+      {"name": "minecraft:mob/ravager/roar2", "pitch": 0.7},
+      {"name": "minecraft:mob/ravager/roar4", "pitch": 0.7}
+    ]
+  },
+  "entity.cinder_colossus.gallop": {
+    "subtitle": "subtitles.dross.cinder_colossus.gallop",
+    "sounds": [
+      {"name": "minecraft:mob/ravager/step1", "pitch": 0.5},
+      {"name": "minecraft:mob/ravager/step2", "pitch": 0.5},
+      {"name": "minecraft:mob/ravager/step4", "pitch": 0.5},
+      {"name": "minecraft:mob/irongolem/walk2", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.rumble": {
+    "subtitle": "subtitles.dross.cinder_colossus.rumble",
+    "sounds": [
+      {"name": "minecraft:ambient/nether/basalt_deltas/long_debris1", "pitch": 0.5},
+      {"name": "minecraft:ambient/nether/basalt_deltas/long_debris2", "pitch": 0.5},
+      {"name": "minecraft:block/respawn_anchor/charge1", "pitch": 0.5},
+      {"name": "minecraft:block/respawn_anchor/charge2", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.erupt": {
+    "subtitle": "subtitles.dross.cinder_colossus.erupt",
+    "sounds": [
+      {"name": "minecraft:random/explode3", "pitch": 0.5},
+      {"name": "minecraft:random/explode4", "pitch": 0.5},
+      {"name": "minecraft:ambient/nether/basalt_deltas/plode1", "pitch": 0.6},
+      {"name": "minecraft:ambient/nether/basalt_deltas/plode2", "pitch": 0.6}
+    ]
+  },
+  "entity.cinder_colossus.lob": {
+    "subtitle": "subtitles.dross.cinder_colossus.lob",
+    "sounds": [
+      {"name": "minecraft:mob/ghast/fireball4", "pitch": 0.6},
+      {"name": "minecraft:item/bucket/empty_lava1", "pitch": 0.6},
+      {"name": "minecraft:item/bucket/empty_lava2", "pitch": 0.6}
+    ]
+  },
+  "entity.cinder_colossus.pound": {
+    "subtitle": "subtitles.dross.cinder_colossus.pound",
+    "sounds": [
+      {"name": "minecraft:mob/warden/attack_impact_1", "pitch": 0.7},
+      {"name": "minecraft:mob/warden/attack_impact_2", "pitch": 0.7},
+      {"name": "minecraft:dig/stone1", "pitch": 0.5},
+      {"name": "minecraft:dig/stone3", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.shell_break": {
+    "subtitle": "subtitles.dross.cinder_colossus.shell_break",
+    "sounds": [
+      {"name": "minecraft:random/explode1", "pitch": 0.65},
+      {"name": "minecraft:block/deepslate/break2", "pitch": 0.5},
+      {"name": "minecraft:block/basalt/break4", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.cool": {
+    "subtitle": "subtitles.dross.cinder_colossus.cool",
+    "sounds": [
+      {"name": "minecraft:random/fizz", "pitch": 0.5}
+    ]
+  },
+  "entity.cinder_colossus.crumble": {
+    "subtitle": "subtitles.dross.cinder_colossus.crumble",
+    "sounds": [
+      {"name": "minecraft:block/deepslate/break1", "pitch": 0.5},
+      {"name": "minecraft:block/deepslate/break4", "pitch": 0.5},
+      {"name": "minecraft:block/basalt/break5", "pitch": 0.5}
+    ]
+  },
+  "entity.colossus_rock.shatter": {
+    "subtitle": "subtitles.dross.colossus_rock.shatter",
+    "sounds": [
+      {"name": "minecraft:block/deepslate/break1", "pitch": 0.65},
+      {"name": "minecraft:block/deepslate/break2", "pitch": 0.65},
+      {"name": "minecraft:dig/stone2", "pitch": 0.7},
+      {"name": "minecraft:dig/stone4", "pitch": 0.7}
+    ]
+  },
+  "entity.lava_blob.splash": {
+    "subtitle": "subtitles.dross.lava_blob.splash",
+    "sounds": [
+      {"name": "minecraft:item/bucket/empty_lava1", "pitch": 0.6},
+      {"name": "minecraft:item/bucket/empty_lava3", "pitch": 0.6},
+      {"name": "minecraft:liquid/lavapop", "pitch": 0.6}
+    ]
+  },
+  "entity.stone_golem.ambient": {
+    "subtitle": "subtitles.dross.stone_golem.ambient",
+    "sounds": [
+      {"name": "minecraft:block/grindstone/grindstone1", "pitch": 1.4, "volume": 0.4},
+      {"name": "minecraft:block/grindstone/grindstone3", "pitch": 1.4, "volume": 0.4}
+    ]
+  },
+  "entity.stone_golem.hurt": {
+    "subtitle": "subtitles.dross.stone_golem.hurt",
+    "sounds": [
+      {"name": "minecraft:mob/irongolem/hit1", "pitch": 1.5},
+      {"name": "minecraft:mob/irongolem/hit2", "pitch": 1.5},
+      {"name": "minecraft:mob/irongolem/hit4", "pitch": 1.5}
+    ]
+  },
+  "entity.stone_golem.death": {
+    "subtitle": "subtitles.dross.stone_golem.death",
+    "sounds": [
+      {"name": "minecraft:block/basalt/break2", "pitch": 0.9},
+      {"name": "minecraft:block/basalt/break4", "pitch": 0.9}
+    ]
+  },
+  "entity.stone_golem.step": {
+    "subtitle": "subtitles.dross.stone_golem.step",
+    "sounds": [
+      {"name": "minecraft:block/basalt/step1", "pitch": 1.2, "volume": 0.6},
+      {"name": "minecraft:block/basalt/step2", "pitch": 1.2, "volume": 0.6},
+      {"name": "minecraft:block/basalt/step3", "pitch": 1.2, "volume": 0.6}
+    ]
+  },
+  "entity.stone_golem.emerge": {
+    "subtitle": "subtitles.dross.stone_golem.emerge",
+    "sounds": [
+      {"name": "minecraft:block/rooted_dirt/break1", "pitch": 0.6},
+      {"name": "minecraft:block/rooted_dirt/break3", "pitch": 0.6},
+      {"name": "minecraft:dig/stone2", "pitch": 0.7}
+    ]
+  },
+  "entity.lava_golem.ambient": {
+    "subtitle": "subtitles.dross.lava_golem.ambient",
+    "sounds": [
+      {"name": "minecraft:liquid/lavapop", "pitch": 1.0, "volume": 0.6},
+      {"name": "minecraft:mob/magmacube/small1", "pitch": 0.8, "volume": 0.6}
+    ]
+  },
+  "entity.lava_golem.hurt": {
+    "subtitle": "subtitles.dross.lava_golem.hurt",
+    "sounds": [
+      {"name": "minecraft:mob/magmacube/small2", "pitch": 0.8},
+      {"name": "minecraft:mob/magmacube/small4", "pitch": 0.8}
+    ]
+  },
+  "entity.lava_golem.death": {
+    "subtitle": "subtitles.dross.lava_golem.death",
+    "sounds": [
+      {"name": "minecraft:mob/blaze/death", "pitch": 1.4},
+      {"name": "minecraft:random/fizz", "pitch": 0.8}
+    ]
+  },
+  "entity.lava_golem.fuse": {
+    "subtitle": "subtitles.dross.lava_golem.fuse",
+    "sounds": [
+      {"name": "minecraft:random/fuse", "pitch": 0.8}
+    ]
+  },
+  "entity.lava_golem.explode": {
+    "subtitle": "subtitles.dross.lava_golem.explode",
+    "sounds": [
+      {"name": "minecraft:random/explode1", "pitch": 1.0},
+      {"name": "minecraft:random/explode3", "pitch": 1.0},
+      {"name": "minecraft:ambient/nether/basalt_deltas/plode3", "pitch": 0.9}
+    ]
+  }
+}

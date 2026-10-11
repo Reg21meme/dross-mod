@@ -54,7 +54,7 @@ The design is in `CLAUDE.md`, "The plan", steps 1 and 5. Items 1–3 are built a
 - Keep the keys in `ModDimensions` as the single source of truth.
 
 ## Testing tips to include in your report
-- Go through the portal (`/dross site`, then throw in a Rift Key from the creative "Dross" tab), or use `/dross hub` or `/execute in dross:dross run tp @s 0 -60 0` (cheats on). Don't teleport to y = 100: the ground is at y = -60, so that's a deadly fall in survival.
+- Go through the portal (`/dross goto cathedral`, then throw in a Rift Key from the creative "Dross" tab), or use `/dross goto hub` or `/execute in dross:dross run tp @s 0 -60 0` (cheats on). Don't teleport to y = 100: the ground is at y = -60, so that's a deadly fall in survival.
 - Confirm it stays night, mobs spawn (no slimes, creepers or spiders), zombies and skeletons have unenchanted netherite gear, and killing them drops no gear.
 - Stand at the hub at night: no hostile mobs spawn within 48 blocks, but they still spawn farther out (`/tp` 100 blocks away to compare).
 

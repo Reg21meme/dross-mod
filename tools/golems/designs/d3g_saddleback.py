@@ -44,6 +44,7 @@ def build(m, b):
                    (0, 1.5, K.LOWER_BACK_Z, 8, 4, 38, 0)])
     K.molten_spikes(m, B, back=[(0, 8, 14, 10, 5, 26, 0), (0, 1, 14, 8, 4, 36, 0)], shoulder=((0, 10, 0),),
                     shoulder_splay=35.0, shoulder_out=6.0, horns=(12, 4, -35, 30))
+    K.held_rock(m, B)   # the fight's throw: the rock it tears out of the ground
     return dict(volcanoes=vols)
 
 
@@ -62,6 +63,8 @@ def materials():
         "mask": M.rock(seed=87, chunk=6.0, obsidian=0.0, cracks=0.0, fissures=0.0, cobble=M.COBBLE_OLD),
         "basalt": M.basalt(seed=88, cracks=0.1),
         "fang": M.fang(seed=89),
+        "throwrock": M.rock(seed=92, chunk=5.0, obsidian=0.0, cracks=0.0, fissures=0.0, heat=-0.8, cobble=M.COBBLE,
+                            stone_cell=3.2),
     }
 
 
@@ -74,6 +77,28 @@ def overlays():
 
 
 FLOWS = dict(reach=76.0, streams=0.6, seed=801)
+
+# The fight's Cracking stage (60% down to 35% of its health): its shell breaking up, lava glowing through. Plates
+# knocked loose: (bone, push (units, along its parent's axes), tilt (degrees), how cracked the shell is when it comes
+# loose: 0 = as soon as the stage starts, 1 = just before the shell bursts). See kit/cracks.py.
+LOOSE = [
+    ("shell_back_l", (0.8, 0.0, 1.6), (5.0, 0.0, -4.0), 0.0),
+    ("shell_flank_r", (-1.4, 0.0, 0.0), (0.0, -4.0, -6.0), 0.05),
+    ("shell_upperarm_l", (1.2, 0.0, 0.0), (0.0, 0.0, 7.0), 0.15),
+    ("shell_chest_r", (-0.5, 0.0, -1.3), (-4.0, 0.0, -5.0), 0.25),
+    ("shell_thigh_r", (-1.2, 0.0, 0.0), (0.0, 0.0, -6.0), 0.3),
+    ("shell_traps", (0.0, 1.2, 0.6), (5.0, 0.0, 0.0), 0.4),
+    ("shell_back_r", (-0.8, 0.0, 1.4), (4.0, 0.0, 5.0), 0.45),
+    ("shell_pauldron_l", (0.8, 1.0, 0.0), (0.0, 0.0, 8.0), 0.5),
+    ("shell_flank_l", (1.4, 0.0, 0.0), (0.0, 4.0, 7.0), 0.55),
+    ("shell_thigh_l", (1.2, 0.0, 0.0), (0.0, 0.0, 6.0), 0.6),
+    ("shell_chest_l", (0.5, 0.0, -1.3), (-5.0, 0.0, 4.0), 0.7),
+    ("shell_upperarm_r", (-1.2, 0.0, 0.0), (0.0, 0.0, -7.0), 0.75),
+    ("shell_pauldron_r", (-0.8, 1.0, 0.0), (0.0, 0.0, -8.0), 0.8),
+    ("shell_hips", (0.0, 0.4, 1.0), (4.0, 0.0, 0.0), 0.85),
+]
+# Its bright new cracks (the _cracks texture, faded in with the cracking).
+CRACKS = dict(seed=811, cell=11.0, width=0.8, share=0.55)
 
 ANIM = dict(
     weight=1.35,

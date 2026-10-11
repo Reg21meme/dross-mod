@@ -27,7 +27,7 @@ import org.slf4j.Logger;
  *   w . . F F F F . . w    the frame row (z = frame z), opening in the middle two columns
  *   w . . . . s s . . w    steps up into the opening, from the front and from the back
  *   w . . . . . . . . w
- *   w . . . . . . . . w    /dross site puts the player here, facing the frame
+ *   w . . . . . . . . w    /dross goto cathedral puts the player here, facing the frame
  *   P w w . . . . w w P    front (z = frame z + 4): open in the middle
  * </pre>
  * Walls and pillars have random, broken heights. The layout depends only on the world seed.

@@ -42,9 +42,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * {@code /dross showcase shrines} (test tool, cheats only): builds the candidate designs for a grander portal shrine
- * ({@code world.shrine.ShrineDesigns}) side by side, so they can be compared and one picked. The row is about 1,000
- * blocks long, so use a superflat world.
+ * {@code /dross showcase portal_shrines} (test tool, cheats only): builds the candidate designs for a grander portal
+ * shrine ({@code world.shrine.ShrineDesigns}) side by side, so they can be compared and one picked. The row is about
+ * 1,000 blocks long, so use a superflat world.
  * <p>
  * The layout, seen from where the command was run:
  * <ul>
@@ -65,7 +65,8 @@ import java.util.stream.Collectors;
  * and the others are still built. Only one shrine showcase runs at a time.
  * <p>
  * It uses the command's position, rotation and dimension, so it also works from the server console and command
- * blocks, for example {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase shrines}.
+ * blocks, for example
+ * {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase portal_shrines}.
  * It builds wherever it's run and never cleans up.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -110,7 +111,10 @@ public final class ShrineShowcase
     private static final List<Hold> HOLDS = new ArrayList<>();
     private static long nextTicketKey;
 
-    /** Runs {@code /dross showcase shrines}: lays out the row, then the shrines are built one by one from the server tick. */
+    /**
+     * Runs {@code /dross showcase portal_shrines}: lays out the row, then the shrines are built one by one from the
+     * server tick.
+     */
     public static int buildShrines(CommandContext<CommandSourceStack> context)
     {
         CommandSourceStack source = context.getSource();

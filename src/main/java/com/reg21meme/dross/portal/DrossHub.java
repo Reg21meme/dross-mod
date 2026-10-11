@@ -116,7 +116,7 @@ public final class DrossHub
     }
 
     /**
-     * Teleports a player to the hub, in front of the exit portal (for the {@code /dross hub} test command).
+     * Teleports a player to the hub, in front of the exit portal (for the {@code /dross goto hub} test command).
      * Doesn't play the arrival sequence: that's only for travelling through the portal.
      *
      * @return false if the Dross dimension isn't loaded

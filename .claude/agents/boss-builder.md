@@ -21,7 +21,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - The GeckoLib dependency (`build.gradle`, `gradle.properties` `geckolib_version`, the `geckolib` entry in `mods.toml`, the mixin refmap run properties).
 - Later: boss fights, arenas, boss sounds, loot, and with quest-builder (who owns advancements and progression) the boss progression hooks.
 
-Not yours: the `/dross` command root and the showcase commands (`world-builder` owns `command/*`, including `command/GolemShowcase`, which spawns your showcase golems through `CinderColossus.spawnShowcase` and drives them with `showDormant`/`playErupt`/`showErupted`/`playBreakShell`/`showCore`/`playDeath`/`setWalking` — keep those working); the dimension and its mob spawning (`dimension-builder`); advancements and progress (`quest-builder`).
+Not yours: the `/dross` command root and the showcase commands (`world-builder` owns `command/*`, including `command/GolemShowcase`, which spawns your showcase golems through `CinderColossus.spawnShowcase` and drives them with `showDormant`/`playErupt`/`showErupted`/`playBreakShell`/`showCore`/`playDeath`/`setWalking`, and `command/TrophyShowcase`, which places your trophies through `ColossusTrophies.DESIGNS`, `Design.displayName`, `Design.style` and `Design.blockState` — keep those working). Command names follow CLAUDE.md rule 9 (`showcase <kind> <boss>`, `boss <action> <boss>`): a new boss needs its own literals, so report them as "Needs from world site". the dimension and its mob spawning (`dimension-builder`); advancements and progress (`quest-builder`).
 
 ## How the Cinder Colossus works (built, showcase only)
 - **The design: 3G Saddleback** (`GolemDesigns.ALL` holds only it; `tools/golems/designs/d3g_saddleback.py`, parts shared in `designs/calderon.py`): the user's pick from round 3 — two great volcanoes merged into one saddle of rock on its back, big back spikes, 3H's horns, a beard, dark stone. Build the fight on it. The other candidates of rounds 1-3 are archived in `tools/golems/designs/round1/`-`round3/` and `boss-previews/round1/`-`round3/` (not in the game).
@@ -41,7 +41,7 @@ Edit the Python design (`tools/golems/designs/d3*_*.py`, shared parts in `design
 The design and the fight notes are in `CLAUDE.md`, "The plan", step 8. Build only what your task asks for, and only after the user has picked a design.
 
 ## Testing tips to include in your report
-- In a flat creative world with cheats on: `/dross showcase golems` spawns the candidates in a row; the chat buttons (or `/dross showcase golems dormant|erupt|erupted|break|core|die|walk|idle`) switch stages and replay the eruption, the shell breaking and the death.
+- In a flat creative world with cheats on: `/dross showcase boss_designs colossus` spawns the candidates in a row; the chat buttons (or `/dross showcase boss_designs colossus dormant|erupt|erupted|break|core|die|walk|idle`) switch stages and replay the eruption, the shell breaking and the death.
 - The dev run's `run/logs/latest.log` shows GeckoLib errors (a missing bone, animation or texture) by name.
 
 ## Report format

@@ -36,19 +36,19 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
 
 /**
- * Headless test (GameTest) for the portal site's chat message ({@link SiteAnnouncer}) and {@code /dross site}. Run it
- * with {@code .\gradlew.bat runGameTestServer --console=plain}, or in a dev world with {@code /test runall}. It only
- * exists in the development environment: in a normal game nothing here runs.
+ * Headless test (GameTest) for the portal site's chat message ({@link SiteAnnouncer}) and
+ * {@code /dross goto cathedral}. Run it with {@code .\gradlew.bat runGameTestServer --console=plain}, or in a dev
+ * world with {@code /test runall}. It only exists in the development environment: in a normal game nothing here runs.
  *
  * <p>It works in both kinds of world (the GameTest server uses the world named in {@code run/server.properties}):
  * <ul>
  *   <li><b>The site is already placed</b> (for example {@code run/world}, an old world with the small shrine): a player
- *       who joins is told "Dross portal site is at X, Y, Z" once, with the opening's middle, and {@code /dross site}
- *       takes him in front of the frame.</li>
+ *       who joins is told "Dross portal site is at X, Y, Z" once, with the opening's middle, and
+ *       {@code /dross goto cathedral} takes him in front of the frame.</li>
  *   <li><b>A new world</b> (the site is still being placed in the background): nothing is said on joining,
- *       {@code /dross site} fails with "hasn't been placed ... yet" and builds nothing; then, once the site is placed
- *       (about a minute; the test waits at most {@link #PLACEMENT_TIMEOUT_TICKS}), the player has been told where it
- *       is exactly once, and {@code /dross site} works.</li>
+ *       {@code /dross goto cathedral} fails with "hasn't been placed ... yet" and builds nothing; then, once the site
+ *       is placed (about a minute; the test waits at most {@link #PLACEMENT_TIMEOUT_TICKS}), the player has been told
+ *       where it is exactly once, and {@code /dross goto cathedral} works.</li>
  * </ul>
  */
 @GameTestHolder(Dross.MODID)
@@ -58,13 +58,18 @@ public final class PortalSiteGameTest
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** The test needs no blocks: a 1x1x1 air template, made in memory when the server starts (no file needed). */
-    private static final String EMPTY = "portal_site_test_empty";
+    /**
+     * The test needs no blocks: a 1x1x1 air template, made in memory when the server starts (no file needed). Other
+     * world-builder tests that need no blocks use it too ({@code command.DrossCommandGameTest}).
+     */
+    public static final String EMPTY = "portal_site_test_empty";
     private static final ResourceLocation EMPTY_ID = new ResourceLocation(Dross.MODID, EMPTY);
     /** In a new world the site is built in the background, about a minute after it opens: wait at most 5 minutes. */
     private static final int PLACEMENT_TIMEOUT_TICKS = 5 * 60 * 20;
-    /** After {@code /dross site}, the player must be within this many blocks (on each of X, Y and Z) of the opening's middle. */
+    /** After {@link #SITE_COMMAND}, the player must be within this many blocks (on each of X, Y and Z) of the opening's middle. */
     private static final int NEAR_FRAME = 8;
+    /** The command that takes a player to the portal site (without the slash). */
+    private static final String SITE_COMMAND = "dross goto cathedral";
 
     @GameTest(template = EMPTY, batch = "dross_portal_site", timeoutTicks = PLACEMENT_TIMEOUT_TICKS)
     public static void siteMessageAndCommand(GameTestHelper helper)
@@ -75,7 +80,7 @@ public final class PortalSiteGameTest
 
         if (placedAtStart)
         {
-            LOGGER.info("[site test] The site is already placed: checking the join message and /dross site.");
+            LOGGER.info("[site test] The site is already placed: checking the join message and /{}.", SITE_COMMAND);
             checked(player, () -> {
                 expectSiteMessages(player, 1, overworld, "on joining a world where the site is placed");
                 expectSiteCommandWorks(player, overworld);
@@ -85,8 +90,8 @@ public final class PortalSiteGameTest
             return;
         }
 
-        LOGGER.info("[site test] The site isn't placed yet: checking that joining says nothing and /dross site fails, "
-                + "then waiting for the background placement.");
+        LOGGER.info("[site test] The site isn't placed yet: checking that joining says nothing and /{} fails, "
+                + "then waiting for the background placement.", SITE_COMMAND);
         checked(player, () -> {
             expectSiteMessages(player, 0, overworld, "on joining before the site is placed");
             expectSiteCommandFails(player, overworld);
@@ -139,51 +144,52 @@ public final class PortalSiteGameTest
         }
     }
 
-    /** {@code /dross site} fails with the "hasn't been placed" message, and doesn't build the site. */
+    /** {@code /dross goto cathedral} fails with the "hasn't been placed" message, and doesn't build the site. */
     private static void expectSiteCommandFails(TestPlayer player, ServerLevel overworld)
     {
         int before = player.messages.size();
         int result = runSiteCommand(player);
         if (result != 0)
         {
-            throw new GameTestAssertException("/dross site should fail before the site is placed, but returned " + result);
+            throw new GameTestAssertException("/" + SITE_COMMAND + " should fail before the site is placed, but returned " + result);
         }
         boolean said = player.messages.subList(before, player.messages.size()).stream()
                 .anyMatch(message -> message.getString().equals(DrossCommand.SITE_NOT_PLACED));
         if (!said)
         {
-            throw new GameTestAssertException("/dross site didn't say \"" + DrossCommand.SITE_NOT_PLACED + "\"");
+            throw new GameTestAssertException("/" + SITE_COMMAND + " didn't say \"" + DrossCommand.SITE_NOT_PLACED + "\"");
         }
         if (PortalSite.isPlaced(overworld))
         {
-            throw new GameTestAssertException("/dross site built the site (it must only say it isn't placed yet)");
+            throw new GameTestAssertException("/" + SITE_COMMAND + " built the site (it must only say it isn't placed yet)");
         }
-        LOGGER.info("[site test] /dross site before placement failed as it should: \"{}\"", DrossCommand.SITE_NOT_PLACED);
+        LOGGER.info("[site test] /{} before placement failed as it should: \"{}\"", SITE_COMMAND, DrossCommand.SITE_NOT_PLACED);
     }
 
-    /** {@code /dross site} works and puts the player near the frame's opening, in the Overworld. */
+    /** {@code /dross goto cathedral} works and puts the player near the frame's opening, in the Overworld. */
     private static void expectSiteCommandWorks(TestPlayer player, ServerLevel overworld)
     {
         int result = runSiteCommand(player);
         if (result != 1)
         {
-            throw new GameTestAssertException("/dross site should work once the site is placed, but returned " + result);
+            throw new GameTestAssertException("/" + SITE_COMMAND + " should work once the site is placed, but returned " + result);
         }
         BlockPos center = PortalSite.getOpeningCenter(overworld);
         BlockPos at = player.blockPosition();
         if (player.serverLevel() != overworld || Math.abs(at.getX() - center.getX()) > NEAR_FRAME
                 || Math.abs(at.getY() - center.getY()) > NEAR_FRAME || Math.abs(at.getZ() - center.getZ()) > NEAR_FRAME)
         {
-            throw new GameTestAssertException("/dross site put the player at " + at.toShortString() + " in "
+            throw new GameTestAssertException("/" + SITE_COMMAND + " put the player at " + at.toShortString() + " in "
                     + player.serverLevel().dimension().location() + ", not near the opening at " + center.toShortString());
         }
-        LOGGER.info("[site test] /dross site put the player at {}, near the opening at {}", at.toShortString(), center.toShortString());
+        LOGGER.info("[site test] /{} put the player at {}, near the opening at {}", SITE_COMMAND, at.toShortString(),
+                center.toShortString());
     }
 
-    /** Runs {@code /dross site} as the player, with cheats (permission level 2). Returns the command's result. */
+    /** Runs {@link #SITE_COMMAND} as the player, with cheats (permission level 2). Returns the command's result. */
     private static int runSiteCommand(TestPlayer player)
     {
-        return player.server.getCommands().performPrefixedCommand(player.createCommandSourceStack().withPermission(2), "dross site");
+        return player.server.getCommands().performPrefixedCommand(player.createCommandSourceStack().withPermission(2), SITE_COMMAND);
     }
 
     /** Runs some checks; if one fails, the stand-in player leaves first, then the test fails. */

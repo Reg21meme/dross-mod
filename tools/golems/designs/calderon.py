@@ -193,6 +193,22 @@ def ridge(m, B, spikes, prefix="shell_spine", mat="obsidian", kind="shell", embe
     return out
 
 
+def held_rock(m, B, size=(10, 9, 10), side="r"):
+    """
+    The chunk of rock it tears out of the ground and throws (the fight's throw move): a cobblestone block in its
+    shell forms (`prop_rock`) and a lump of magma in its lava form (`prop_magma`), just past the knuckles of one fist.
+    "prop" bones are hidden unless the mod shows them (only while it holds the rock). Records the rock's bind-pose
+    centre on the model (`m.prop_rock_center`), so the moves can tell the mod where the rock leaves its hand.
+    """
+    fist = B[f"fist_{side}"]
+    fp = fist.pivot
+    centre = (fp[0], fp[1] - 14 - size[1] / 2.0 - 0.5, fp[2] - 1.0)
+    for name, mat in (("prop_rock", "throwrock"), ("prop_magma", "molten")):
+        bone = m.bone(name, centre, parent=fist, kind="prop")
+        bone.add_c((0, 0, 0), size, mat)
+    m.prop_rock_center = centre
+
+
 def molten_spikes(m, B, back=(), shoulder=((0, 11, 0),), shoulder_splay=25.0, shoulder_out=3.0, horns=None):
     """
     The core form's lava spikes: along the back (as ridge()), on the shoulders, pointing up ([(z offset, length,

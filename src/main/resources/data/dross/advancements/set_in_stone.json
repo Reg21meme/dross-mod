@@ -1,0 +1,28 @@
+{
+  "parent": "dross:entered_the_dross",
+  "display": {
+    "icon": {
+      "item": "minecraft:obsidian"
+    },
+    "title": {
+      "translate": "advancements.dross.set_in_stone.title"
+    },
+    "description": {
+      "translate": "advancements.dross.set_in_stone.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "defeated": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "defeated"
+    ]
+  ]
+}

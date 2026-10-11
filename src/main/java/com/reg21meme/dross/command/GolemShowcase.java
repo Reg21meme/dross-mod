@@ -27,9 +27,10 @@ import java.util.List;
 import java.util.function.Consumer;
 
 /**
- * {@code /dross showcase golems} (test tool, cheats only): spawns one frozen Cinder Colossus per candidate design
- * (the boss area's {@code boss.golem.GolemDesigns}) in a row in front of you, in their dormant rock shells, so they
- * can be compared and one picked. Use a flat world (superflat is ideal): the row is about 35 blocks wide.
+ * {@code /dross showcase boss_designs colossus} (test tool, cheats only): spawns one frozen Cinder Colossus per
+ * design (the boss area's {@code boss.golem.GolemDesigns}) in a row in front of you, in their dormant rock shells, so
+ * they can be compared. Use a flat world (superflat is ideal): the row is about 35 blocks wide. A future boss gets its
+ * own literal next to {@code colossus} (see {@code DrossCommand}).
  * <p>
  * The layout, seen from where the command was run:
  * <ul>
@@ -44,19 +45,20 @@ import java.util.function.Consumer;
  * of the fight are dormant (rock shell), erupted (the volcano has blown and lava poured over the shell) and the lava
  * core:
  * <ul>
- *   <li>{@code /dross showcase golems dormant}: back in their dormant shells, standing;</li>
- *   <li>{@code /dross showcase golems erupt}: dormant, then the volcano erupts and lava pours over them;</li>
- *   <li>{@code /dross showcase golems erupted}: straight to the erupted shell;</li>
- *   <li>{@code /dross showcase golems break}: erupted, then the shell breaks off (they end as lava);</li>
- *   <li>{@code /dross showcase golems core}: straight to the lava core form, the volcano erupting;</li>
- *   <li>{@code /dross showcase golems die}: the death, cooling into obsidian statues (in their current form);</li>
- *   <li>{@code /dross showcase golems walk} / {@code idle}: knuckle-walking on the spot / standing.</li>
+ *   <li>{@code /dross showcase boss_designs colossus dormant}: back in their dormant shells, standing;</li>
+ *   <li>{@code /dross showcase boss_designs colossus erupt}: dormant, then the volcano erupts and lava pours over them;</li>
+ *   <li>{@code /dross showcase boss_designs colossus erupted}: straight to the erupted shell;</li>
+ *   <li>{@code /dross showcase boss_designs colossus break}: erupted, then the shell breaks off (they end as lava);</li>
+ *   <li>{@code /dross showcase boss_designs colossus core}: straight to the lava core form, the volcano erupting;</li>
+ *   <li>{@code /dross showcase boss_designs colossus die}: the death, cooling into obsidian statues (in their current form);</li>
+ *   <li>{@code /dross showcase boss_designs colossus walk} / {@code idle}: knuckle-walking on the spot / standing.</li>
  * </ul>
  * Right-clicking one golem moves just that one on to its next stage (dormant: erupts; erupted: breaks out; lava or
  * statue: dormant again), sneak + right-click makes it die. They can't be hurt except by {@code /kill}.
  * <p>
  * It uses the command's position, rotation and dimension, so it also works from the server console and command
- * blocks, for example {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase golems}.
+ * blocks, for example
+ * {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase boss_designs colossus}.
  */
 public final class GolemShowcase
 {
@@ -78,28 +80,47 @@ public final class GolemShowcase
     private static final int CLEAR_HEIGHT = 10;
     /** A dip in the floor is filled with dirt at most this many blocks deep. */
     private static final int MAX_FILL = 4;
-    /** Floor blocks don't poke their neighbours (no redstone going off), but players still see every change. */
-    private static final int FLOOR_FLAGS = Block.UPDATE_CLIENTS;
 
-    /** What the controls do to every showcase golem in range. */
+    /** The command that spawns the row; each control is this plus its {@link Control#word()}. */
+    public static final String COMMAND = "/dross showcase boss_designs colossus";
+
+    /**
+     * What the controls do to every showcase golem in range. Each one is a subcommand ({@link #word()}) and a chat
+     * button ({@link #button}, {@link #hover}), in this order.
+     */
     public enum Control
     {
-        DORMANT("dormant", "back in their dormant shells", CinderColossus::showDormant),
-        ERUPT("erupt", "erupting: lava pours over their shells", CinderColossus::playErupt),
-        ERUPTED("erupted", "in their erupted shells", CinderColossus::showErupted),
-        BREAK("break", "breaking out of their shells", CinderColossus::playBreakShell),
-        CORE("core", "in their lava core form, the volcanoes erupting", CinderColossus::showCore),
-        DIE("die", "dying: cooling into obsidian statues", CinderColossus::playDeath),
-        WALK("walk", "knuckle-walking on the spot", golem -> golem.setWalking(true)),
-        IDLE("idle", "standing", golem -> golem.setWalking(false));
+        DORMANT("dormant", "Dormant", "Stage 1: the dormant rock shell, the volcano smoking",
+                "back in their dormant shells", CinderColossus::showDormant),
+        ERUPT("erupt", "Erupt!", "Halfway through stage 1: the volcano erupts and lava pours over the shell",
+                "erupting: lava pours over their shells", CinderColossus::playErupt),
+        ERUPTED("erupted", "Erupted", "Straight to the erupted shell",
+                "in their erupted shells", CinderColossus::showErupted),
+        BREAK("break", "Break shell", "Stage 2: the shell breaks off",
+                "breaking out of their shells", CinderColossus::playBreakShell),
+        CORE("core", "Lava core", "Straight to the lava core form, its volcano erupting",
+                "in their lava core form, the volcanoes erupting", CinderColossus::showCore),
+        DIE("die", "Die", "Cool into obsidian statues",
+                "dying: cooling into obsidian statues", CinderColossus::playDeath),
+        WALK("walk", "Walk", "Knuckle-walk on the spot",
+                "knuckle-walking on the spot", golem -> golem.setWalking(true)),
+        IDLE("idle", "Stand", "Stand still",
+                "standing", golem -> golem.setWalking(false));
 
         private final String word;
+        /** The chat button's text (shown in square brackets). */
+        private final String button;
+        /** The chat button's hover text (the command is added under it). */
+        private final String hover;
+        /** What the golems are doing now, for the command's reply. */
         private final String doing;
         private final Consumer<CinderColossus> action;
 
-        Control(String word, String doing, Consumer<CinderColossus> action)
+        Control(String word, String button, String hover, String doing, Consumer<CinderColossus> action)
         {
             this.word = word;
+            this.button = button;
+            this.hover = hover;
             this.doing = doing;
             this.action = action;
         }
@@ -109,9 +130,15 @@ public final class GolemShowcase
         {
             return this.word;
         }
+
+        /** The full command, for example {@code /dross showcase boss_designs colossus break}. */
+        public String command()
+        {
+            return COMMAND + " " + this.word;
+        }
     }
 
-    /** Runs {@code /dross showcase golems}. */
+    /** Runs {@code /dross showcase boss_designs colossus}. */
     public static int spawnGolems(CommandContext<CommandSourceStack> context)
     {
         CommandSourceStack source = context.getSource();
@@ -127,7 +154,8 @@ public final class GolemShowcase
 
         int firstOffset = -((designs.size() - 1) * SPACING) / 2;
         int lastOffset = firstOffset + (designs.size() - 1) * SPACING;
-        clearFloor(level, origin, look, right, firstOffset - FLOOR_SIDE_MARGIN, lastOffset + FLOOR_SIDE_MARGIN, AHEAD + FLOOR_BEHIND);
+        Showcases.clearFloor(level, origin, look, right, firstOffset - FLOOR_SIDE_MARGIN, lastOffset + FLOOR_SIDE_MARGIN,
+                AHEAD + FLOOR_BEHIND, CLEAR_HEIGHT, MAX_FILL);
 
         BlockState post = Blocks.POLISHED_BLACKSTONE_BRICKS.defaultBlockState();
         float yaw = facing.toYRot();
@@ -179,7 +207,7 @@ public final class GolemShowcase
         return spawned;
     }
 
-    /** Runs one of the controls ({@code /dross showcase golems shell|core|break|die|walk|idle}). */
+    /** Runs one of the controls ({@code /dross showcase boss_designs colossus dormant|erupt|...|idle}, see {@link Control}). */
     public static int control(CommandContext<CommandSourceStack> context, Control control)
     {
         CommandSourceStack source = context.getSource();
@@ -187,7 +215,7 @@ public final class GolemShowcase
         if (golems.isEmpty())
         {
             source.sendFailure(Component.literal("There are no showcase golems within " + REMOVE_RADIUS
-                    + " blocks. Spawn them with /dross showcase golems."));
+                    + " blocks. Spawn them with " + COMMAND + "."));
             return 0;
         }
         for (CinderColossus golem : golems)
@@ -203,23 +231,13 @@ public final class GolemShowcase
     private static Component controls()
     {
         MutableComponent line = Component.literal("Controls: ");
-        String[][] buttons = {
-                {"Dormant", "dormant", "Stage 1: the dormant rock shell, the volcano smoking"},
-                {"Erupt!", "erupt", "Halfway through stage 1: the volcano erupts and lava pours over the shell"},
-                {"Erupted", "erupted", "Straight to the erupted shell"},
-                {"Break shell", "break", "Stage 2: the shell breaks off"},
-                {"Lava core", "core", "Straight to the lava core form, its volcano erupting"},
-                {"Die", "die", "Cool into obsidian statues"},
-                {"Walk", "walk", "Knuckle-walk on the spot"},
-                {"Stand", "idle", "Stand still"},
-        };
-        for (String[] b : buttons)
+        for (Control control : Control.values())
         {
-            String command = "/dross showcase golems " + b[1];
-            line.append(Component.literal("[" + b[0] + "]").withStyle(style -> style
+            String command = control.command();
+            line.append(Component.literal("[" + control.button + "]").withStyle(style -> style
                     .withColor(DrossColors.GOLEM_SHOWCASE_BUTTON)
                     .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(b[2] + "\n" + command)))));
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(control.hover + "\n" + command)))));
             line.append(" ");
         }
         return line;
@@ -240,45 +258,6 @@ public final class GolemShowcase
             golem.discard();
         }
         return old.size();
-    }
-
-    /**
-     * Clears the area from your spot out to a little behind the row (air for {@link #CLEAR_HEIGHT} blocks above the
-     * ground) and makes its floor flat and solid: solid ground stays as it is, gaps get grass with dirt below.
-     */
-    private static void clearFloor(ServerLevel level, BlockPos origin, Direction look, Direction right, int fromRight, int toRight, int depth)
-    {
-        BlockState air = Blocks.AIR.defaultBlockState();
-        BlockState grass = Blocks.GRASS_BLOCK.defaultBlockState();
-        BlockState dirt = Blocks.DIRT.defaultBlockState();
-        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        for (int ahead = 0; ahead <= depth; ahead++)
-        {
-            for (int side = fromRight; side <= toRight; side++)
-            {
-                BlockPos ground = origin.relative(look, ahead).relative(right, side);
-                for (int dy = 1; dy <= CLEAR_HEIGHT; dy++)
-                {
-                    if (!level.getBlockState(pos.setWithOffset(ground, 0, dy, 0)).isAir())
-                    {
-                        level.setBlock(pos, air, FLOOR_FLAGS);
-                    }
-                }
-                if (Showcases.isSolidGround(level, ground))
-                {
-                    continue;
-                }
-                level.setBlock(ground, grass, FLOOR_FLAGS);
-                for (int dy = 1; dy <= MAX_FILL; dy++)
-                {
-                    if (Showcases.isSolidGround(level, pos.setWithOffset(ground, 0, -dy, 0)))
-                    {
-                        break;
-                    }
-                    level.setBlock(pos, dirt, FLOOR_FLAGS);
-                }
-            }
-        }
     }
 
     private GolemShowcase() {}

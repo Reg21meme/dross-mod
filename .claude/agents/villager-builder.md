@@ -17,14 +17,14 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 ## Your area
 - Java: `com.reg21meme.dross.villager.*` (client code such as the renderer in `com.reg21meme.dross.villager.client`).
 - The trader's entity type in `registry/ModEntities` (add only), its lang name, and its texture/renderer.
-- His hut and its path (`villager/TraderHut.java`; `TraderHut.DESIGN` is the Rift Chapel) and the candidate hut designs in `villager/hut/` (`/dross showcase huts`, world-builder's command, builds them all and must keep working).
+- His hut and its path (`villager/TraderHut.java`; `TraderHut.DESIGN` is the Rift Chapel) and the candidate hut designs in `villager/hut/` (`/dross showcase trader_huts`, world-builder's command, builds them all and must keep working).
 - His **dialogue** (lang keys in `en_us.json`), the **tribute and key-material hand-ins**, giving the **Dross Compass** and the **Rift Key**, and his **shop**.
 - The **Dross Compass** (`villager/DrossCompass`, `DrossCompassTracker`) and its creative-tab entry.
 - The test-only Admin Sword (`villager/AdminSwordItem.java`, `ModItems.ADMIN_SWORD`, `models/item/admin_sword.json`, `textures/item/admin_sword.png`) and its creative-tab entry.
 - The spawn egg (`ModItems.DROSS_TRADER_SPAWN_EGG`, its entry in `ModCreativeTabs`, `models/item/dross_trader_spawn_egg.json`).
-- The logic behind `/dross trader` and `/dross trader home` (`villager/TraderCommands.java`). `world-builder` owns the `/dross` root and just hooks these up.
+- The logic behind `/dross goto trader` and `/dross trader sendhome` (`villager/TraderCommands.java`). `world-builder` owns the `/dross` root and just hooks these up.
 - Your colors in `DrossColors` (`TRADER_GLOW`, `TRADER_EGG_BASE`, `TRADER_EGG_SPOTS`).
-- The 10 skin candidates: `villager/TraderSkins`, the skin number on `DrossTrader`, the textures in `assets/dross/textures/entity/trader/`, the drawing and preview tools in `tools/skins/` (`python tools/skins/draw_skins.py`) and the previews in `skin-previews/`. Also showcase traders (`DrossTrader.spawnShowcase`), which world-builder's `/dross showcase skins` spawns and which must keep working.
+- The 10 skin candidates: `villager/TraderSkins`, the skin number on `DrossTrader`, the textures in `assets/dross/textures/entity/trader/`, the drawing and preview tools in `tools/skins/` (`python tools/skins/draw_skins.py`) and the previews in `skin-previews/`. Also showcase traders (`DrossTrader.spawnShowcase`), which world-builder's `/dross showcase trader_skins` spawns and which must keep working.
 
 Not yours:
 - The portal site location (`world-builder`): read it from `PortalSite` (`getFramePos`, and `getOpeningCenter` once it exists).
@@ -64,7 +64,7 @@ The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] ex
 
 ### Early-game build [to build]
 1. **Remove the test trades**: nether star → compass, Dross Portal Frame → Admin Sword, and every Necromancy book trade. Remove `addMissingOffers`. Add a one-time migration that replaces old traders' saved offers with the new shop when they load.
-2. **Remove `TestingJoinMessage`** (the Weathered Letter, from `quest-builder`, now tells players where he is). Keep `/dross trader` and `/dross trader home`.
+2. **Remove `TestingJoinMessage`** (the Weathered Letter, from `quest-builder`, now tells players where he is). Keep `/dross goto trader` and `/dross trader sendhome`.
 3. **Right-click** (`mobInteract`, main hand only; sneaking falls through to vanilla):
    - Before the quest is complete his trading screen **never** opens.
    - **First right-click ever** (per player): he speaks in chat with his name as the speaker: `<Dross Trader> You've come about the rift? I don't believe you're strong enough. Show me. Bring me a skull from the Nether's fortresses, shards from the cities of the deep dark, and stone from the End.`
@@ -91,11 +91,11 @@ The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] ex
 9. **Colors**: point `TRADER_GLOW` and `TRADER_EGG_SPOTS` at the electric blue palette in `DrossColors`, and move the hard-coded colors in `DrossTrader` (`GLOW_COLOR`) and `registry/ModItems` (the spawn egg) onto `DrossColors`.
 
 ## Testing tips to include in your report
-- Create a **new** world with cheats on. Get a Weathered Letter (`/loot give @s loot minecraft:chests/nether_bridge`) to find him, or use `/dross trader`.
+- Create a **new** world with cheats on. Get a Weathered Letter (`/loot give @s loot minecraft:chests/nether_bridge`) to find him, or use `/dross goto trader`.
 - Right-click him: the opening speech, then reminders. His shop doesn't open yet.
 - `/give` yourself the tributes and key materials. Try holding too few (he asks for more) and too many (he takes exactly what he needs). You get the compass, then the Rift Key, and the advancements. Then the shop opens with Necromancy (32 emeralds + book) and Deathforged I (24 emeralds + book).
 - Drop the compass and right-click him: a free replacement. `/dross quest reset` replays the quest.
-- He glows blue near players and teleports home with blue particles. `/dross trader` takes you to him; `/dross trader home` sends him home. Hit him until half health: he teleports home and heals, and never dies.
+- He glows blue near players and teleports home with blue particles. `/dross goto trader` takes you to him; `/dross trader sendhome` sends him home. Hit him until half health: he teleports home and heals, and never dies.
 - The Dross Trader Spawn Egg (creative Dross tab) makes a trader whose home is where he was spawned.
 - Rejoin: still only one trader and one hut.
 - Note: `runGameTestServer` stops before the village finishes generating, so the hut can only be checked in the real game.

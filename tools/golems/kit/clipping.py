@@ -7,7 +7,9 @@ Clipping checks, run on every design by build.py:
    support hangs off the body, like a volcano standing upright on a sloping back.
 2. Pass-through (rest pose and animations): parts that mustn't go through each other (forearms and fists through
    the torso, legs, head or volcanoes; shoulder spikes through the head or volcanoes; the jaw through the chest) are
-   sampled frame by frame; how much of one is inside the other, and how deep, is reported.
+   sampled frame by frame; how much of one is inside the other, and how deep, is reported. The fight's moves are
+   checked in both forms (the throw with the rock in its fist), and the shell form again with every plate the
+   Cracking stage knocks loose pushed out ("cracked").
 
 Run on its own:   python tools/golems/kit/clipping.py <design module> [...]
 """
@@ -53,8 +55,10 @@ def _foot_points(frame, grid=5):
 
 
 def _form(bone):
-    """The form a bone is drawn in: "shell" (shell forms), "molten" (core form) or "both"."""
+    """The form a bone is drawn in: "shell" (shell forms), "molten" (core form), "prop" (only while held) or "both"."""
     kinds = {b.kind for b in bone.ancestors()}
+    if "prop" in kinds:
+        return "prop"
     if "shell" in kinds:
         return "shell"
     if "molten" in kinds or "vent" in kinds:
@@ -112,16 +116,22 @@ PAIRS = (
 )
 
 
-def pass_through(m, pose, form, samples=120, seed=0):
+def pass_through(m, pose, form, samples=120, seed=0, props=()):
     """
     {(part a, part b): (share of a's volume inside b, 95th percentile depth in units)} for one pose of one form
-    ("shell": the shell forms, "molten": the core form).
+    ("shell": the shell forms, "molten": the core form). Props (the rock it throws) count only when named in `props`.
     """
     rng = np.random.default_rng(seed)
     mats = m.pose_matrices(pose)
     groups = {}
     for b in m.bones:
-        if not b.cubes or _form(b) not in (form, "both"):
+        if not b.cubes:
+            continue
+        f = _form(b)
+        if f == "prop":
+            if b.name not in props:
+                continue
+        elif f not in (form, "both"):
             continue
         g = group_of(b)
         for c in b.cubes:
@@ -141,23 +151,47 @@ def pass_through(m, pose, form, samples=120, seed=0):
     return res
 
 
-def animation_report(m, animations, names=("idle", "walk", "erupt", "death"), frames=10):
-    """The worst pass-through per pair and form over a few frames of each animation."""
+MOVES = ("swipe", "throw", "slam", "charge_start", "charge", "lob", "summon")
+NAMES = ("idle", "walk", "erupt", "death") + MOVES
+
+
+def animation_report(m, animations, names=NAMES, frames=10, loose=None):
+    """
+    The worst pass-through per pair and form over a few frames of each animation. The fight's moves are checked in
+    both forms, the throw with the rock in its hand, and (given `loose`, the design's loose plates) the shell form is
+    checked again with every plate knocked loose, as in the Cracking stage ("cracked").
+    """
+    from kit import cracks  # (absolute: this file also runs on its own)
     worst = {}
-    for form in ("shell", "molten"):
+    forms = [("shell", None), ("molten", None)]
+    if loose:
+        forms.append(("cracked", cracks.loose_pose(loose, 1.0)))
+    for form, extra in forms:
+        check_form = "shell" if form == "cracked" else form
         for name in names:
             a = animations.get(name)
-            if a is None or (name == "death" and form == "shell") or (name == "erupt" and form == "molten"):
+            if a is None or (name == "death" and check_form == "shell") or (name == "erupt" and form == "molten"):
                 continue
-            for t in np.linspace(0.0, a.length, frames):
-                for pair, (share, d95) in pass_through(m, a.sample(float(t)), form).items():
+            if form == "cracked" and name in ("death", "erupt"):
+                continue
+            span = (0.0, a.length)
+            props = ()
+            if name == "throw" and "grab" in a.meta:
+                props = ("prop_rock",) if check_form == "shell" else ("prop_magma",)
+            n = frames * 2 if name in MOVES else frames
+            for t in np.linspace(span[0], span[1], n):
+                pose = a.sample(float(t))
+                if extra:
+                    pose = cracks.add_pose(pose, extra)
+                held = props if (props and a.meta["grab"] <= t < a.meta["release"]) else ()
+                for pair, (share, d95) in pass_through(m, pose, check_form, props=held).items():
                     key = (form,) + pair
                     if key not in worst or share * max(d95, 0.5) > worst[key][0] * max(worst[key][1], 0.5):
                         worst[key] = (share, d95, name, round(float(t), 2))
     return worst
 
 
-def report(m, animations=None, quiet=False):
+def report(m, animations=None, quiet=False, loose=None):
     """Prints and returns the problems found: hanging parts, and parts going through each other."""
     lines = []
     for n, s in attachment(m):
@@ -168,7 +202,7 @@ def report(m, animations=None, quiet=False):
             if share > 0.04 and d95 > 1.0:
                 lines.append(f"  rest pose ({form}): {pair[0]} through {pair[1]}: {share:.0%} of it, {d95:.1f} units deep")
     if animations:
-        for (form, ga, gb), (share, d95, name, t) in sorted(animation_report(m, animations).items()):
+        for (form, ga, gb), (share, d95, name, t) in sorted(animation_report(m, animations, loose=loose).items()):
             if share > 0.06 and d95 > 1.5:
                 lines.append(f"  {name} at {t}s ({form}): {ga} through {gb}: {share:.0%} of it, {d95:.1f} units deep")
     if not quiet:
@@ -187,4 +221,4 @@ if __name__ == "__main__":
         d = build.load_design(name)
         model, body, _info = build.build_model(d, verbose=False)
         print(f"{d.LABEL}. {d.NAME}")
-        report(model, anims.build_all(d, model, body))
+        report(model, anims.build_all(d, model, body), loose=getattr(d, "LOOSE", None))

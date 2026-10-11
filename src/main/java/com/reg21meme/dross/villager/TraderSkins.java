@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * The candidate skins for the Dross trader, numbered 1 to 10 (a design showcase: {@code /dross showcase skins}
+ * The candidate skins for the Dross trader, numbered 1 to 10 (a design showcase: {@code /dross showcase trader_skins}
  * spawns one frozen trader per skin, see {@link DrossTrader#spawnShowcase}).
  * <p>
  * A trader's skin number is saved on him ({@link DrossTrader#getSkin()}). Number {@link #DEFAULT} (0), which every

@@ -1,0 +1,78 @@
+package com.reg21meme.dross.boss.golem;
+
+/**
+ * The three stages of the Cinder Colossus fight, and the numbers that change from one to the next (the rest of the
+ * fight's numbers are in {@link ColossusTuning}).
+ * <ol>
+ *   <li>{@link #SHELL} (100% to 60% of its health): slow and heavy, in its dormant rock shell (look:
+ *       {@link GolemPhase#DORMANT}). Swipes, throws rocks, slams the ground, charges.</li>
+ *   <li>{@link #CRACKING} (60% to 35%): its volcanoes have erupted and the shell is breaking up, lava glowing through
+ *       (look: {@link GolemPhase#ERUPTED} with loose plates and bright cracks). A bit faster and more aggressive; adds
+ *       the volcano lob (lava pools) and summons stone golems.</li>
+ *   <li>{@link #LAVA_CORE} (35% to 0%): the shell has burst off (look: {@link GolemPhase#CORE}). Faster, angrier; every
+ *       hit sets you on fire, its charge leaves a trail of fire, and it summons lava golems instead.</li>
+ * </ol>
+ * The stage is saved as the golem's look ({@link GolemPhase}), so a rejoin mid-fight restores both.
+ */
+public enum ColossusStage
+{
+    // Speed: 25% faster in every stage than the first version (0.15, 0.17, 0.20), at the user's request. Minecraft moves
+    // a walking mob by its speed squared, so it really covers about 56% more ground: about 1.5, 2.0 and 2.8 blocks a
+    // second (a player walks 4.3).
+    // Ranged damage taken (the user's numbers): bows and other projectiles barely scratch the stone and burn up in
+    // the lava, so it can't be beaten easily from afar. Melee is never reduced.
+    //        armour  speed    damage x  cooldown x  pause  turn speed  ranged taken  name on the boss bar
+    SHELL(    12.0D,  0.1875D, 1.0F,     1.0F,       24,    6.0F,       0.50F,        "shell"),
+    CRACKING(  8.0D,  0.2125D, 1.15F,    0.8F,       16,    8.0F,       0.35F,        "cracking"),
+    LAVA_CORE( 4.0D,  0.25D,   1.3F,     0.6F,       10,   11.0F,       0.15F,        "core");
+
+    /** Armour points (a player in full diamond armour has 20): the rock shell is tough, the lava much less so. */
+    public final double armor;
+    /** Movement speed (Minecraft's speed attribute; a zombie is 0.23). The walk animation is sped up to match. */
+    public final double speed;
+    /** Every hit's damage is multiplied by this (its blows get harder as it breaks down). */
+    public final float damageScale;
+    /** Every attack's cooldown is multiplied by this (it attacks more often). */
+    public final float cooldownScale;
+    /** Ticks it waits after one attack before it starts the next (20 ticks = 1 second). */
+    public final int attackPause;
+    /** How fast it turns, in degrees a tick (while walking and while it aims an attack). */
+    public final float turnSpeed;
+    /**
+     * Projectile damage (arrows, tridents, fireballs, snowballs...: anything tagged {@code minecraft:is_projectile}) is
+     * multiplied by this before its armour counts; melee hits aren't. Shell 50%, Cracking 35%, Lava Core 15%.
+     */
+    public final float rangedDamageTaken;
+    /** The end of the boss bar's name key: boss.dross.cinder_colossus.<this>. */
+    public final String barKey;
+
+    ColossusStage(double armor, double speed, float damageScale, float cooldownScale, int attackPause, float turnSpeed,
+                  float rangedDamageTaken, String barKey)
+    {
+        this.armor = armor;
+        this.speed = speed;
+        this.damageScale = damageScale;
+        this.cooldownScale = cooldownScale;
+        this.attackPause = attackPause;
+        this.turnSpeed = turnSpeed;
+        this.rangedDamageTaken = rangedDamageTaken;
+        this.barKey = barKey;
+    }
+
+    /** The stage a golem with this look is in. */
+    public static ColossusStage of(GolemPhase phase)
+    {
+        return switch (phase)
+        {
+            case DORMANT -> SHELL;
+            case ERUPTED -> CRACKING;
+            case CORE -> LAVA_CORE;
+        };
+    }
+
+    /** The boss bar's name (a translation key; the client's custom bar recognises it by the boss.dross. start). */
+    public String barName()
+    {
+        return "boss.dross.cinder_colossus." + this.barKey;
+    }
+}

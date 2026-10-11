@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * {@code /dross showcase skins} (test tool, cheats only): spawns one frozen Dross trader per candidate skin (the
+ * {@code /dross showcase trader_skins} (test tool, cheats only): spawns one frozen Dross trader per candidate skin (the
  * villager area's {@code villager.TraderSkins}) in a row in front of you, so they can be compared and one picked.
  * <p>
  * The layout, seen from where the command was run:
@@ -39,7 +39,8 @@ import java.util.List;
  * {@code /kill}, and right-clicking one names its skin (the villager area's {@code DrossTrader.spawnShowcase}).
  * <p>
  * It uses the command's position, rotation and dimension, so it also works from the server console and command
- * blocks, for example {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase skins}.
+ * blocks, for example
+ * {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase trader_skins}.
  */
 public final class SkinShowcase
 {
@@ -59,10 +60,8 @@ public final class SkinShowcase
     private static final int CLEAR_HEIGHT = 5;
     /** A dip in the floor is filled with dirt at most this many blocks deep. */
     private static final int MAX_FILL = 4;
-    /** Floor blocks don't poke their neighbours (no redstone going off), but players still see every change. */
-    private static final int FLOOR_FLAGS = Block.UPDATE_CLIENTS;
 
-    /** Runs {@code /dross showcase skins}. */
+    /** Runs {@code /dross showcase trader_skins}. */
     public static int spawnSkins(CommandContext<CommandSourceStack> context)
     {
         CommandSourceStack source = context.getSource();
@@ -93,7 +92,8 @@ public final class SkinShowcase
         }
 
         // 3. A clear, flat floor from your spot to a little behind the row, a little past both ends.
-        clearFloor(level, origin, look, right, firstOffset - FLOOR_SIDE_MARGIN, lastOffset + FLOOR_SIDE_MARGIN, AHEAD + FLOOR_BEHIND);
+        Showcases.clearFloor(level, origin, look, right, firstOffset - FLOOR_SIDE_MARGIN, lastOffset + FLOOR_SIDE_MARGIN,
+                AHEAD + FLOOR_BEHIND, CLEAR_HEIGHT, MAX_FILL);
 
         // 4. Pedestals, signs and traders. His feet go on top of the pedestal: 2 blocks above the ground.
         BlockState pedestalBlock = Blocks.POLISHED_DEEPSLATE.defaultBlockState();
@@ -154,50 +154,6 @@ public final class SkinShowcase
             trader.discard();
         }
         return old.size();
-    }
-
-    /**
-     * Clears the area from your spot out to a little behind the row (air for {@link #CLEAR_HEIGHT} blocks above the
-     * ground) and makes its floor flat and solid: solid ground stays as it is, gaps get grass with dirt filling
-     * the dip below.
-     *
-     * @param fromRight the leftmost column, in blocks to your right (negative = to your left)
-     * @param toRight   the rightmost column
-     * @param depth     how many blocks ahead it reaches (0 is your own spot)
-     */
-    private static void clearFloor(ServerLevel level, BlockPos origin, Direction look, Direction right, int fromRight, int toRight, int depth)
-    {
-        BlockState air = Blocks.AIR.defaultBlockState();
-        BlockState grass = Blocks.GRASS_BLOCK.defaultBlockState();
-        BlockState dirt = Blocks.DIRT.defaultBlockState();
-        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-        for (int ahead = 0; ahead <= depth; ahead++)
-        {
-            for (int side = fromRight; side <= toRight; side++)
-            {
-                BlockPos ground = origin.relative(look, ahead).relative(right, side);
-                for (int dy = 1; dy <= CLEAR_HEIGHT; dy++)
-                {
-                    if (!level.getBlockState(pos.setWithOffset(ground, 0, dy, 0)).isAir())
-                    {
-                        level.setBlock(pos, air, FLOOR_FLAGS);
-                    }
-                }
-                if (Showcases.isSolidGround(level, ground))
-                {
-                    continue;
-                }
-                level.setBlock(ground, grass, FLOOR_FLAGS);
-                for (int dy = 1; dy <= MAX_FILL; dy++)
-                {
-                    if (Showcases.isSolidGround(level, pos.setWithOffset(ground, 0, -dy, 0)))
-                    {
-                        break;
-                    }
-                    level.setBlock(pos, dirt, FLOOR_FLAGS);
-                }
-            }
-        }
     }
 
     private SkinShowcase() {}

@@ -66,8 +66,11 @@ public final class RisenTargetGameTest
     // Test setup (20 ticks = 1 second).
     // ---------------------------------------------------------------------------------------------
 
-    /** The arena: a flat floor, made in memory when the server starts (no structure file needed). */
-    private static final String ARENA = "risen_test_arena";
+    /**
+     * The arena: a flat floor, made in memory when the server starts (no structure file needed). Also used by
+     * {@link DeathforgedGearGameTest}, which borrows the stand-in owner below too.
+     */
+    static final String ARENA = "risen_test_arena";
     private static final ResourceLocation ARENA_ID = new ResourceLocation(Dross.MODID, ARENA);
     /** Arena width and depth (blocks). */
     private static final int ARENA_SIZE = 15;
@@ -315,7 +318,7 @@ public final class RisenTargetGameTest
      * crumble at once (their owner "logged out"). Vanilla's {@code makeMockServerPlayerInLevel} crashes under Forge
      * (its connection has no network channel), so this one gets an in-memory channel.
      */
-    private static ServerPlayer addOwner(GameTestHelper helper)
+    static ServerPlayer addOwner(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel();
         ServerPlayer owner = new ServerPlayer(level.getServer(), level, new GameProfile(UUID.randomUUID(), "risen-test-owner"));
@@ -332,7 +335,7 @@ public final class RisenTargetGameTest
     }
 
     /** Logs the stand-in out (his risen undead crumble, as for a real player). Safe to call twice. */
-    private static void removeOwner(@Nullable ServerPlayer owner)
+    static void removeOwner(@Nullable ServerPlayer owner)
     {
         if (owner != null && owner.server.getPlayerList().getPlayer(owner.getUUID()) == owner)
         {

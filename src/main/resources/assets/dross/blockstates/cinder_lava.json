@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "life=0": {
+      "model": "dross:block/cinder_lava_crust"
+    },
+    "life=1": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=2": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=3": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=4": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=5": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=6": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=7": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=8": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=9": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=10": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=11": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=12": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=13": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=14": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=15": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=16": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=17": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=18": {
+      "model": "dross:block/cinder_lava"
+    },
+    "life=19": {
+      "model": "dross:block/cinder_lava"
+    }
+  }
+}

@@ -72,9 +72,6 @@ public final class DrossColors {
     /** Puff when risen undead rise or crumble. Used in enchant/RisenUndead. */
     public static final int RISEN_PUFF = PALETTE_MAIN;
 
-    /** Deathforged X glow outline (a scoreboard team, so a chat color: BLUE is the closest to the palette). Used in enchant/RisenUndead. */
-    public static final ChatFormatting RISEN_GLOW_TEAM = ChatFormatting.BLUE;
-
     /** "Souls: X / Y" tooltip text. Stays gold (user decision). Used in enchant/client/SoulTooltip. */
     public static final ChatFormatting SOUL_TOOLTIP = ChatFormatting.GOLD;
 
@@ -89,10 +86,97 @@ public final class DrossColors {
     public static final int SHOWCASE_LINK = PALETTE_HIGHLIGHT;
 
     /**
-     * The clickable control buttons of /dross showcase golems ([Shell], [Break shell]...). Lava orange, not the Dross
-     * blue: the golems serve the Fire Necromancer. Used in command/GolemShowcase.
+     * The clickable control buttons of /dross showcase boss_designs colossus ([Dormant], [Erupt!], [Break shell]...).
+     * Lava orange, not the Dross blue: the golems serve the Fire Necromancer. Used in command/GolemShowcase.
      */
     public static final int GOLEM_SHOWCASE_BUTTON = 0xFFA328;
+
+    // ---------------------------------------------------------------- Boss (boss-builder)
+    // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
+    // (Its texture colors live in the Python palettes in tools/golems/kit/materials.py.)
+
+    /** Cinder Colossus spawn egg base: scorched near-black stone. Used in registry/ModItems. */
+    public static final int COLOSSUS_EGG_BASE = 0x221F1E;
+
+    /** Cinder Colossus spawn egg spots: lava orange. Used in registry/ModItems. */
+    public static final int COLOSSUS_EGG_SPOTS = 0xF47A15;
+
+    /** Boss bar (all stages): the dark outline round the bar. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_OUTLINE = 0x0B0710;
+
+    /** Boss bar: the empty part of the bar (health already lost). Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_EMPTY = 0x1C1424;
+
+    /** Boss bar, Shell stage: obsidian purple, light top edge. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_OBSIDIAN_LIGHT = 0x6A5492;
+
+    /** Boss bar, Shell stage: obsidian purple, the middle. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_OBSIDIAN = 0x433158;
+
+    /** Boss bar, Shell stage: obsidian purple, dark bottom edge. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_OBSIDIAN_DARK = 0x231A33;
+
+    /** Boss bar, Shell stage: the glassy glints in the obsidian. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_OBSIDIAN_GLINT = 0x9C86C8;
+
+    /** Boss bar, Cracking stage: the glowing orange cracks over the obsidian. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_CRACK = 0xFF8A1F;
+
+    /** Boss bar, Cracking stage: the white-hot middle of the cracks. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_CRACK_HOT = 0xFFD45A;
+
+    /** Boss bar, Cracking stage: the dim glow either side of a crack. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_CRACK_GLOW = 0xA5440F;
+
+    /** Boss bar, Lava Core stage: lava red, bright top edge. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_LAVA_LIGHT = 0xFF6A1F;
+
+    /** Boss bar, Lava Core stage: lava red, the middle. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_LAVA = 0xD42E0A;
+
+    /** Boss bar, Lava Core stage: lava red, dark bottom edge. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_LAVA_DARK = 0x7A1606;
+
+    /** Boss bar, Lava Core stage: the bright streaks flowing along the lava. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_LAVA_HOT = 0xFFB347;
+
+    /** Boss bar names (the text above the bar), one per stage. Used in boss/client/DrossBossBars. */
+    public static final int BOSS_BAR_NAME_SHELL = 0xC8B6EA;
+    public static final int BOSS_BAR_NAME_CRACKING = 0xFFB066;
+    public static final int BOSS_BAR_NAME_CORE = 0xFF7A3A;
+
+    /** The "[Summon the Cinder Colossus]" button in /dross boss arena colossus's chat message. Used in boss/BossCommands. */
+    public static final int BOSS_COMMAND_BUTTON = 0xFFA328;
+
+    /** Stone Golem spawn egg base: grey stone. Used in registry/ModItems. */
+    public static final int STONE_GOLEM_EGG_BASE = 0x4E4A47;
+
+    /** Stone Golem spawn egg spots: its dim red-orange cracks. Used in registry/ModItems. */
+    public static final int STONE_GOLEM_EGG_SPOTS = 0xA5440F;
+
+    /** Lava Golem spawn egg base: dark cooling crust. Used in registry/ModItems. */
+    public static final int LAVA_GOLEM_EGG_BASE = 0x3C170C;
+
+    /** Lava Golem spawn egg spots: bright lava. Used in registry/ModItems. */
+    public static final int LAVA_GOLEM_EGG_SPOTS = 0xFFA328;
+
+    /** Cinder Colossus trophy: the item's name, lava orange. Used in boss/trophy/ColossusTrophyItem. */
+    public static final int TROPHY_NAME = 0xFF8A1F;
+
+    /** Cinder Colossus trophy: the tooltip line naming its design. Used in boss/trophy/ColossusTrophyItem. */
+    public static final ChatFormatting TROPHY_TOOLTIP = ChatFormatting.GRAY;
+
+    /** Cinder Colossus trophy: the tooltip hint "Right-click to change its pose". Used in boss/trophy/ColossusTrophyItem. */
+    public static final ChatFormatting TROPHY_HINT = ChatFormatting.GRAY;
+
+    /** Cinder Colossus trophy: the ember dust puffed out when it's right-clicked to a new pose. Used in boss/trophy/ColossusTrophyBlock. */
+    public static final int TROPHY_CYCLE_DUST = 0xFF6A1F;
+
+    /** Cinder Colossus, Shell and Cracking stages: the sparks where an arrow (any projectile) glances off its stone. Used in boss/golem/CinderColossus. */
+    public static final int COLOSSUS_RANGED_SPARK = 0xFFC45A;
+
+    /** Cinder Colossus, Lava Core stage: the embers left when an arrow (any projectile) burns up in its lava. Used in boss/golem/CinderColossus. */
+    public static final int COLOSSUS_RANGED_EMBER = 0xFF6A1F;
 
     // ---------------------------------------------------------------- Helpers
 

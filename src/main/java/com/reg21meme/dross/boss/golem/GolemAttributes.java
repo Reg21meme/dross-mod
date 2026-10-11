@@ -6,7 +6,7 @@ import net.minecraftforge.event.entity.EntityAttributeCreationEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-/** Gives the Cinder Colossus its attributes (health, armour...). Runs on the mod event bus. */
+/** Gives the Cinder Colossus and its minions their attributes (health, armour...). Runs on the mod event bus. */
 @Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
 public class GolemAttributes
 {
@@ -14,5 +14,7 @@ public class GolemAttributes
     public static void onAttributes(EntityAttributeCreationEvent event)
     {
         event.put(ModEntities.CINDER_COLOSSUS.get(), CinderColossus.createAttributes().build());
+        event.put(ModEntities.STONE_GOLEM.get(), StoneGolem.createAttributes().build());
+        event.put(ModEntities.LAVA_GOLEM.get(), LavaGolem.createAttributes().build());
     }
 }

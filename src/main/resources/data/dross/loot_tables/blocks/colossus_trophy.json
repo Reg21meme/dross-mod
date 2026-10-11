@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "dross:colossus_trophy",
+          "functions": [
+            {
+              "function": "minecraft:copy_state",
+              "block": "dross:colossus_trophy",
+              "properties": [ "design" ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

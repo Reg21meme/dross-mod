@@ -182,7 +182,7 @@ def _simplify(times, vals, tol):
     return sorted(keep)
 
 
-def to_json(animations):
+def to_json(animations, prefix=PREFIX):
     out = {"format_version": "1.8.0", "animations": {}, "geckolib_format_version": 2}
     for a in animations.values():
         bones = {}
@@ -191,7 +191,7 @@ def to_json(animations):
             for cname, kf in chans.items():
                 entry[cname] = {_ts(t): [_r(v) for v in vals] for t, vals in kf}
             bones[bone] = entry
-        out["animations"][PREFIX + a.name] = {
+        out["animations"][prefix + a.name] = {
             "loop": a.loop,
             "animation_length": round(a.length, 4),
             "bones": bones,
@@ -838,8 +838,9 @@ def statue(death_anim):
 
 
 def build_all(design, m, b):
-    """Every animation for a design, keyed by short name."""
+    """Every animation for a design, keyed by short name (the fight's moves too, see moves.py)."""
     from designs import common as C
+    from . import moves
     limbs = C.limbs(m, b)
     rig = Rig(m, limbs, C.rest_targets(b), getattr(design, "ANIM", {}))
     out = {"idle": idle(rig), "walk": walk(rig), "break_shell": break_shell(rig), "death": death(rig)}
@@ -848,6 +849,7 @@ def build_all(design, m, b):
         out["erupt"] = erupt(rig)
         out["volcano_erupting"] = volcano_erupting(rig)
         out["volcano_burst"] = volcano_burst(rig, out["erupt"])
+    out.update(moves.build_moves(rig))
     return out
 
 

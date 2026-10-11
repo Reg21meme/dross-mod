@@ -28,9 +28,9 @@ import java.util.UUID;
 /**
  * The trader's test commands. {@code DrossCommand} (the /dross root) hooks them up:
  * <ul>
- *   <li>{@code /dross trader}: teleports you to the hut trader, even if his area isn't loaded
+ *   <li>{@code /dross goto trader}: teleports you to the hut trader, even if his area isn't loaded
  *       (then you go to where he was last seen, which is where he still is).</li>
- *   <li>{@code /dross trader home}: sends him home. If his area isn't loaded, it's loaded first.</li>
+ *   <li>{@code /dross trader sendhome}: sends him home. If his area isn't loaded, it's loaded first.</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -43,7 +43,7 @@ public final class TraderCommands
     /** Give up looking for him after 10 seconds. */
     private static final int LOAD_TIMEOUT_TICKS = 10 * 20;
 
-    /** "/dross trader home" requests waiting for his area to load. */
+    /** "/dross trader sendhome" requests waiting for his area to load. */
     private static final List<PendingHome> PENDING = new ArrayList<>();
 
     private record PendingHome(UUID trader, ChunkPos from, ChunkPos home, long deadline, CommandSourceStack source) {}

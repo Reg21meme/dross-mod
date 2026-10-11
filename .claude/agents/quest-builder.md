@@ -84,7 +84,7 @@ The design is in `CLAUDE.md`, "The plan", step 7 (and steps 5 and 6 for the Guid
 - Per-player flags that must survive death go in the player's persistent data under `Player.PERSISTED_NBT_TAG`, or in your `SavedData`.
 
 ## Testing tips to include in your report
-- Use `/loot give @s loot minecraft:chests/nether_bridge` (cheats on) to test the letter loot without finding a fortress. Read the letter: the rough location should be near the trader's hut (`/dross trader` to compare). The Dross tab appears with "A Weathered Letter".
+- Use `/loot give @s loot minecraft:chests/nether_bridge` (cheats on) to test the letter loot without finding a fortress. Read the letter: the rough location should be near the trader's hut (`/dross goto trader` to compare). The Dross tab appears with "A Weathered Letter".
 - `/dross quest status|reset|complete` (once `world-builder` hooks it up) to check and replay progress.
 - Use `/advancement revoke @s everything` (or `only dross:<id>`) to replay advancements.
 - Leave and rejoin: progress is still there. Use a second world to check that progress is per world.

@@ -8,7 +8,10 @@ Preview pictures for the golem designs (boss-previews/):
   NN_<id>_sheet.png   everything about one design on one page: the three looks from four sides, night shots, and
                       filmstrips of the eruption, the shell breaking, the live eruption and the death (cooling into
                       an obsidian statue)
+  NN_<id>_fight.png   the fight: the Cracking stage's look (plates knocked loose, bright cracks) and a filmstrip of
+                      every move (swipe, throw, slam, charge, lob, summon)
   all_golems.png      every design side by side
+  minions.png         the stone golem and the lava golem it summons
 
 The previews are drawn by kit/render.py with GeckoLib's own geometry maths, so they match the game.
 A dark figure the size of a player stands to the left of each golem for scale.
@@ -187,21 +190,150 @@ def design_sheet(d, m, textures, animations, out_dir):
 def design_previews(d, m, textures, animations, out_dir):
     single_views(d, m, textures, animations, out_dir)
     design_sheet(d, m, textures, animations, out_dir)
+    if "swipe" in animations:
+        fight_sheet(d, m, textures, animations, out_dir)
+
+
+def cracking_shot(d, m, textures, yaw, elevation, scale, bounds, amount=1.0, pose=None, world_light=1.0,
+                  background=BG, figure=True):
+    """The fight's Cracking stage: the erupted shell with plates knocked loose and bright cracks (at `amount`)."""
+    from . import cracks
+    loose = cracks.loose_pose(getattr(d, "LOOSE", ()), amount)
+    return render.render(m, textures, pose=cracks.add_pose(pose, loose), visible=visibility("dormant"), yaw=yaw,
+                         elevation=elevation, scale=scale, bounds=bounds, flow_progress=1.0, crack_strength=amount,
+                         world_light=world_light, background=background, figure=figure)
+
+
+# The moves' preview frames (seconds into each), and which form they're shown in.
+MOVE_FRAMES = (
+    ("swipe", "Its melee hit: a backhand swipe", (0.0, 0.3, 0.45, 0.55, 0.6, 0.7, 0.95, 1.3), "dormant"),
+    ("throw", "Throwing a rock: torn out of the ground, raised high, hurled", (0.35, 0.6, 0.85, 1.1, 1.25, 1.4, 1.6, 2.0),
+     "dormant"),
+    ("slam", "The ground slam: fists raised high (the warning), then smashed down", (0.0, 0.5, 0.75, 1.1, 1.36, 1.5, 1.8,
+                                                                                    2.3), "dormant"),
+    ("charge_start", "The charge's wind-up: head down, a fist raking the ground", (0.0, 0.3, 0.45, 0.6, 0.75, 1.0),
+     "erupted"),
+    ("charge", "The charge: a gallop on all fours, head first (loops)", (0.0, 0.1, 0.2, 0.3, 0.4, 0.5), "core"),
+    ("lob", "The volcano lob: it hunches, its back heaves, the craters spit lava", (0.0, 0.5, 0.9, 1.05, 1.2, 1.5, 2.0),
+     "erupted"),
+    ("summon", "Summoning: a roar, then three pounds (a minion rises at each)", (0.35, 0.7, 0.95, 1.2, 1.45, 1.8, 2.05,
+                                                                               2.5), "erupted"),
+)
+
+
+def fight_sheet(d, m, textures, animations, out_dir):
+    """NN_<id>_fight.png: the Cracking stage's look and a filmstrip of every fight move."""
+    stem = f"{d.NUMBER:02d}_{d.ID}"
+    sc = 3
+    parts = []
+    views = (("front", 0.0, 10.0), ("side", 90.0, 10.0), ("back", 180.0, 10.0), ("three-quarter", 35.0, 18.0))
+    row = [_label(cracking_shot(d, m, textures, yaw, el, sc, window(m, yaw, el, animations)), f"cracking - {name}", 17)
+           for name, yaw, el in views]
+    parts.append(("The Cracking stage (60% to 35% of its health): plates knocked loose, lava glowing through",
+                  _grid(row, 4)))
+    stages = []
+    for amount in (0.0, 0.35, 0.7, 1.0):
+        b = window(m, 35.0, 18.0, animations)
+        im = cracking_shot(d, m, textures, 35.0, 18.0, sc, b, amount=amount, world_light=NIGHT_LIGHT,
+                           background=(14, 13, 18))
+        stages.append(_label(im, f"at night, {int(amount * 100)}% cracked", 17))
+    parts.append(("It cracks a little more with every hit (at night)", _grid(stages, 4)))
+    wide = (-5.0, -7.6, 5.0, 0.5)
+    for name, title, times, form in MOVE_FRAMES:
+        a = animations[name]
+        frames = []
+        for t in times:
+            pose = a.sample(t)
+            props = ()
+            if name == "throw" and a.meta["grab"] <= t < a.meta["release"]:
+                props = ("prop_magma",) if form == "core" else ("prop_rock",)
+            if name == "lob" and "volcano_lob" in animations:
+                pose = anims.combine(pose, animations["volcano_lob"].sample(t))
+            if form == "core":
+                if "volcano_erupting" in animations:
+                    pose = anims.combine(pose, animations["volcano_erupting"].sample(t))
+                vis = render.Visibility(shell=False, molten=True, vent=True, props=props)
+                frames.append((f"{t:.2f} s", pose, vis, 0.0, 1.0, 0.0))
+            else:
+                burst = name == "lob"
+                vis = render.Visibility(shell=True, molten=False, vent=False, burst=burst, props=props,
+                                        hide=[b.name for b in m.bones if "_rock_" in b.name] if burst else ())
+                flow = 1.0 if form == "erupted" else 0.0
+                glow = 1.0 if form == "erupted" else DORMANT_GLOW
+                frames.append((f"{t:.2f} s", pose, vis, flow, glow, 0.0))
+        parts.append((title, _grid(filmstrip(m, textures, frames, 30.0, 14.0, 2, wide), len(frames))))
+    width = max(p.width for _t, p in parts) + 40
+    header = 100
+    height = header + sum(p.height + 40 for _t, p in parts) + 20
+    sheet = Image.new("RGB", (width, height), SHEET_BG)
+    dr = ImageDraw.Draw(sheet)
+    dr.text((20, 14), f"{d.LABEL}. {d.NAME}: the fight", font=font(40), fill=TEXT)
+    dr.text((20, 64), "The Cracking stage and its moves (the shell forms; the gallop as lava). The rock it throws "
+                      "and the lava blobs it lobs are separate things in the game.", font=font(18, bold=False), fill=DIM)
+    y = header
+    for t, p in parts:
+        dr.text((20, y + 4), t, font=font(22), fill=ACCENT)
+        y += 34
+        sheet.paste(p, (20, y))
+        y += p.height + 6
+    sheet.save(os.path.join(out_dir, f"{stem}_fight.png"))
+
+
+def minion_sheet(built, out_dir):
+    """minions.png: the stone golem and the lava golem from four sides, at night, and their animations."""
+    parts = []
+    for d, m, animations, textures in built:
+        ims = []
+        for name, yaw, el in (("front", 0.0, 10.0), ("side", 90.0, 8.0), ("back", 180.0, 10.0), ("three-quarter", 35.0, 18.0)):
+            ims.append(_label(render.render(m, textures, visible=render.Visibility(shell=True), yaw=yaw, elevation=el,
+                                            scale=9, bounds=(-1.9, -1.6, 1.2, 0.3)), name, 15, DIM))
+        ims.append(_label(render.render(m, textures, visible=render.Visibility(shell=True), yaw=35.0, elevation=18.0,
+                                        scale=9, bounds=(-1.9, -1.6, 1.2, 0.3), world_light=NIGHT_LIGHT,
+                                        background=(14, 13, 18)), "at night", 15, DIM))
+        parts.append((f"{d.NAME}", _grid(ims, 5)))
+        frames = []
+        for name, ts in (("walk", (0.0, 0.15, 0.3)), ("attack", (0.1, 0.2, 0.35)), ("spawn", (0.1, 0.35, 0.6, 0.9))):
+            for t in ts:
+                frames.append((f"{name} {t:.2f} s", animations[name].sample(t), render.Visibility(shell=True), 0.0, 1.0,
+                               0.0))
+        parts.append((f"{d.NAME}: walking, punching, climbing out of the ground",
+                      _grid(filmstrip(m, textures, frames, 35.0, 14.0, 6, (-1.2, -1.5, 1.2, 1.1)), len(frames))))
+    width = max(p.width for _t, p in parts) + 40
+    header = 90
+    height = header + sum(p.height + 40 for _t, p in parts) + 20
+    sheet = Image.new("RGB", (width, height), SHEET_BG)
+    dr = ImageDraw.Draw(sheet)
+    dr.text((20, 14), "The Cinder Colossus's minions", font=font(36), fill=TEXT)
+    dr.text((20, 58), "About a block tall (the dark figure is a player). Stone golems rise in the Cracking stage, lava "
+                      "golems (which blow up) in the Lava Core stage.", font=font(17, bold=False), fill=DIM)
+    y = header
+    for t, p in parts:
+        dr.text((20, y + 4), t, font=font(22), fill=ACCENT)
+        y += 34
+        sheet.paste(p, (20, y))
+        y += p.height + 6
+    sheet.save(os.path.join(out_dir, "minions.png"))
 
 
 def overview(built, out_dir):
-    """all_golems.png: each design dormant, erupted, as lava and as a statue (three-quarter view), side by side."""
+    """
+    all_golems.png: each design dormant, erupted, cracking (the fight's middle stage), as lava and as a statue
+    (three-quarter view), side by side.
+    """
     cells = []
-    for d, m, animations, textures in built:
+    for d, m, animations, textures, *_rest in built:
         b = window(m, 35.0, 18.0, animations)
         ims = [_label(shot(m, textures, animations, phase, 35.0, 18.0, 3, b), label, 16, DIM)
-               for phase, label in (("dormant", "dormant"), ("erupted", "erupted"), ("core", "lava core"))]
+               for phase, label in (("dormant", "dormant"), ("erupted", "erupted"))]
+        if getattr(d, "LOOSE", None):
+            ims.append(_label(cracking_shot(d, m, textures, 35.0, 18.0, 3, b), "cracking (the fight)", 16, DIM))
+        ims.append(_label(shot(m, textures, animations, "core", 35.0, 18.0, 3, b), "lava core", 16, DIM))
         dth = animations["death"]
         st = render.render(m, textures, pose=dth.sample(dth.length), visible=render.Visibility(False, True, vent=False),
                            yaw=35.0, elevation=18.0, scale=3, bounds=b, glow_strength=0.0, statue_strength=1.0,
                            background=BG)
         ims.append(_label(st, "statue", 16, DIM))
-        row = _grid(ims, 4, 6)
+        row = _grid(ims, len(ims), 6)
         cell = Image.new("RGB", (row.width, row.height + 64), SHEET_BG)
         dr = ImageDraw.Draw(cell)
         title = f"{d.LABEL}. {d.NAME}"
@@ -215,7 +347,7 @@ def overview(built, out_dir):
     out = Image.new("RGB", (grid.width + 40, grid.height + 90), SHEET_BG)
     dr = ImageDraw.Draw(out)
     dr.text((20, 16), "Cinder Colossus: the pick", font=font(36), fill=TEXT)
-    dr.text((20, 58), "dormant / erupted / lava core / cooled obsidian statue (the dark figure is a player, for scale)",
-            font=font(17, bold=False), fill=DIM)
+    dr.text((20, 58), "dormant / erupted / cracking (the fight's middle stage) / lava core / cooled obsidian statue "
+                      "(the dark figure is a player, for scale)", font=font(17, bold=False), fill=DIM)
     out.paste(grid, (20, 90))
     out.save(os.path.join(out_dir, "all_golems.png"))

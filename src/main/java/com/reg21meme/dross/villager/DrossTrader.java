@@ -307,7 +307,7 @@ public class DrossTrader extends AbstractVillager
         return DrossColors.TRADER_GLOW;
     }
 
-    /** If this is the hut trader, remember where he is, so /dross trader can find him when he isn't loaded. */
+    /** If this is the hut trader, remember where he is, so /dross goto trader can find him when he isn't loaded. */
     private void rememberPosition(ServerLevel level)
     {
         TraderSpawnData data = TraderSpawnData.get(level.getServer().overworld());
@@ -409,7 +409,7 @@ public class DrossTrader extends AbstractVillager
 
     /**
      * Enderman-style teleport into the middle of his hut, with the portal's blue particles. The one shared
-     * "go home" path: too far, fell, too deep, half health and /dross trader home all use it.
+     * "go home" path: too far, fell, too deep, half health and /dross trader sendhome all use it.
      * He leaves any vehicle first (the vehicle is left behind).
      */
     public void teleportHome(ServerLevel level)

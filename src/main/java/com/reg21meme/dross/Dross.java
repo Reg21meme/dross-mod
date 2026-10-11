@@ -1,6 +1,7 @@
 package com.reg21meme.dross;
 
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.registry.ModBlockEntities;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModCreativeTabs;
 import com.reg21meme.dross.registry.ModEnchantments;
@@ -8,6 +9,7 @@ import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModLootModifiers;
 import com.reg21meme.dross.registry.ModParticles;
+import com.reg21meme.dross.registry.ModSounds;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -31,6 +33,8 @@ public class Dross
         ModCreativeTabs.CREATIVE_TABS.register(modEventBus);
         ModEnchantments.ENCHANTMENTS.register(modEventBus);
         ModLootModifiers.LOOT_MODIFIERS.register(modEventBus);
+        ModSounds.SOUND_EVENTS.register(modEventBus);
+        ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

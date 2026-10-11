@@ -6,6 +6,7 @@ import com.reg21meme.dross.boss.golem.CinderColossus;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
@@ -21,16 +22,20 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Draws a Cinder Colossus with GeckoLib, in four passes:
+ * Draws a Cinder Colossus with GeckoLib, in five passes:
  * <ol>
  *   <li>the model with its main texture (lit by the world like any mob);</li>
  *   <li>{@link GolemFlowLayer}: the lava poured over the shell when its volcano erupts, at full brightness;</li>
  *   <li>{@link GolemGlowLayer}: the glowing parts (lava cracks, the lava body, the eyes) at full brightness;</li>
+ *   <li>{@link GolemCrackLayer}: the fight's Cracking stage, bright cracks across the shell;</li>
  *   <li>{@link GolemStatueLayer}: the obsidian statue texture, faded in while it dies.</li>
  * </ol>
  * Bones it shouldn't show right now are skipped (see {@link CinderColossus#showsBone}). After drawing, it tells the
  * golem where its volcano craters are (the {@code *_crater} bones) and which way they point (towards the
  * {@code *_crater_aim} bone on each cone's axis), so the particles come out of them along the volcano.
+ * <p>
+ * A fighting Colossus that dies doesn't tip over or flash red like other mobs: it stays standing and cools into a
+ * statue (a showcase golem killed with {@code /kill} still dies the old way).
  */
 public class CinderColossusRenderer extends GeoEntityRenderer<CinderColossus>
 {
@@ -57,7 +62,26 @@ public class CinderColossusRenderer extends GeoEntityRenderer<CinderColossus>
         this.shadowRadius = SHADOW_RADIUS;
         this.addRenderLayer(new GolemFlowLayer(this));
         this.addRenderLayer(new GolemGlowLayer(this));
+        this.addRenderLayer(new GolemCrackLayer(this));
         this.addRenderLayer(new GolemStatueLayer(this));
+    }
+
+    /** A fighting Colossus stays standing as it dies (it cools into a statue where it stands). */
+    @Override
+    protected float getDeathMaxRotation(CinderColossus golem)
+    {
+        return golem.isShowcase() ? super.getDeathMaxRotation(golem) : 0.0F;
+    }
+
+    /** It flashes red when hurt, but not all the while it's dead (a statue isn't hurting). */
+    @Override
+    public int getPackedOverlay(CinderColossus golem, float u, float partialTick)
+    {
+        if (golem.isShowcase())
+        {
+            return super.getPackedOverlay(golem, u, partialTick);
+        }
+        return OverlayTexture.pack(OverlayTexture.u(u), OverlayTexture.v(golem.hurtTime > 0 && !golem.isDeadOrDying()));
     }
 
     @Override

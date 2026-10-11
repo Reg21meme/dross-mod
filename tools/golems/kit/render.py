@@ -61,15 +61,17 @@ def camera(yaw_deg, elevation_deg):
 class Visibility:
     """
     Which bones are drawn, by kind: shell plates (shell forms), molten extras (core form), vent bones (the core
-    form's live eruption) and burst bones (only while it erupts). Same rules as CinderColossus.showsBone.
+    form's live eruption), burst bones (only while it erupts) and props (things it holds: only the ones named in
+    `props`, for example the rock it throws). Same rules as CinderColossus.showsBone.
     """
 
-    def __init__(self, shell=True, molten=False, vent=None, burst=False, hide=()):
+    def __init__(self, shell=True, molten=False, vent=None, burst=False, hide=(), props=()):
         self.shell = shell
         self.molten = molten
         self.vent = molten if vent is None else vent
         self.burst = burst
         self.hide = set(hide)
+        self.props = set(props)
 
     def __call__(self, bone):
         if bone.name in self.hide:
@@ -82,6 +84,8 @@ class Visibility:
             if b.kind == "vent" and not self.vent:
                 return False
             if b.kind == "burst" and not self.burst:
+                return False
+            if b.kind == "prop" and b.name not in self.props:
                 return False
         return True
 
@@ -160,7 +164,7 @@ def rasterize(model, mats, visible, view, scale, bounds):
 
 
 def composite(buf, base, glow=None, statue=None, glow_strength=1.0, statue_strength=0.0, world_light=1.0,
-              background=None, flow=None, flow_progress=0.0, flow_dim=1.0):
+              background=None, flow=None, flow_progress=0.0, flow_dim=1.0, cracks=None, crack_strength=0.0):
     """
     Colours the rasterized buffers. base/glow/statue: HxWx4 uint8 texture arrays. Returns float RGB (0-255)
     and the coverage mask.
@@ -196,6 +200,13 @@ def composite(buf, base, glow=None, statue=None, glow_strength=1.0, statue_stren
         a = np.where(a < 0.1, 0.0, a)
         gc = g[..., :3] * buf["glight"][..., None]
         col = gc * a[..., None] + col * (1.0 - a[..., None])
+    if cracks is not None and crack_strength > 0:
+        # The fight's Cracking stage: bright lava cracks over the shell, full-bright like the glow (GolemCrackLayer).
+        c = cracks[v, u].astype(float)
+        a = (c[..., 3] / 255.0) * crack_strength
+        a = np.where(a < 0.1, 0.0, a)
+        cc = c[..., :3] * buf["glight"][..., None]
+        col = cc * a[..., None] + col * (1.0 - a[..., None])
     if statue is not None and statue_strength > 0:
         st = statue[v, u].astype(float)
         a = (st[..., 3] / 255.0) * statue_strength
@@ -233,7 +244,7 @@ def ground_view_y(view, y_world=0.0):
 
 def render(model, textures, pose=None, visible=None, yaw=0.0, elevation=12.0, scale=8, bounds=None,
            glow_strength=1.0, statue_strength=0.0, world_light=1.0, background=(46, 40, 38), grid=True,
-           figure=True, flow_progress=0.0, flow_dim=1.0):
+           figure=True, flow_progress=0.0, flow_dim=1.0, crack_strength=0.0):
     """
     One picture of the model. textures: dict with "base", "glow", "statue" HxWx4 arrays (glow/statue optional).
     yaw: 0 front, 90 left side, 180 back. scale: pixels per texel. bounds: view window in blocks (fits the
@@ -258,7 +269,8 @@ def render(model, textures, pose=None, visible=None, yaw=0.0, elevation=12.0, sc
         _draw_figure(bg, view, bounds, scale * 16.0, background)
     col, hit = composite(buf, textures["base"], textures.get("glow"), textures.get("statue"),
                          glow_strength=glow_strength, statue_strength=statue_strength, world_light=world_light,
-                         flow=textures.get("flow"), flow_progress=flow_progress, flow_dim=flow_dim)
+                         flow=textures.get("flow"), flow_progress=flow_progress, flow_dim=flow_dim,
+                         cracks=textures.get("cracks"), crack_strength=crack_strength)
     bg[hit] = col[hit]
     return Image.fromarray(np.clip(bg, 0, 255).astype(np.uint8), "RGB")
 

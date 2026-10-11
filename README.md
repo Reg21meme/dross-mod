@@ -98,7 +98,7 @@ The cathedral is the only way into the Dross, and it's built once per world.
 - **The leak:** within about 16 blocks, flowers and grass die or disappear, some grass turns to coarse dirt, and stone bricks crack.
 - **Fallback:** if the cathedral can't be built, a small ruined stone-brick shrine around a 4 × 5 frame is built instead.
 
-The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size). The compass, `/dross site` and the hub's exit portal all use it.
+The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size). The compass, `/dross goto cathedral` and the hub's exit portal all use it.
 
 ---
 
@@ -170,8 +170,10 @@ Unlimited uses, no restocking, no XP.
 | **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
 | **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon and the Wither) while still counting as your kill. Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
+| **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
+| **Stone Golem / Lava Golem Spawn Eggs** | Spawn the Colossus's minions on their own (a lava golem still blows up after a few seconds). |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem), **weapons and tools** (the Admin Sword), then the **enchanted books** (Necromancy I-V, then Deathforged I-X). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -218,21 +220,24 @@ Both are **swords only** and **treasure enchantments**. They never come from the
 ### Deathforged (I–X)
 *"Your risen undead come armored. Higher levels forge stronger gear."* Does nothing without Necromancy on the same sword.
 
-| Level | Gear on your risen undead |
-|---|---|
-| — (none) | No armor. Skeletons get a plain bow. |
-| I | Leather armor |
-| II | Gold armor |
-| III | Chainmail armor |
-| IV | Iron armor |
-| V | Diamond armor |
-| VI | Netherite armor |
-| VII | Netherite armor + netherite sword (skeletons keep their bow) |
-| VIII | + Protection II, Sharpness II / Power II |
-| IX | + Protection IV, Sharpness V / Power V |
-| X | + Strength I and Speed I for life, and a blue glow outline |
+| Level | Armor (all types) | Sword (zombie types) |
+|---|---|---|
+| — (none) | none | none |
+| I | Leather | none |
+| II | Leather | Wooden |
+| III | Gold | Gold |
+| IV | Chainmail | Stone |
+| V | Iron | Stone |
+| VI | Iron | Iron |
+| VII | Diamond | Iron |
+| VIII | Diamond | Diamond |
+| IX | Netherite | Netherite |
+| X | Netherite | Netherite, plus Strength I and Speed I for their whole life |
 
-Mounts (chickens, spiders, horses) get no gear.
+- **Nothing is enchanted**, and none of the gear drops.
+- **Skeleton types** (skeletons, strays, the riders of spider jockeys and horsemen) always hold a plain bow instead of a sword.
+- **Mounts** (chickens, spiders, horses) get no gear.
+- Level X's effects show no swirling particles, and they don't glow.
 
 ### Anvil rules
 - **Deathforged I–V** combine like vanilla enchantments (I + I → II … IV + IV → V), up to V. Levels VI–X can't be combined, but a single VI–X book can go onto a sword without Deathforged.
@@ -247,31 +252,96 @@ Mounts (chickens, spiders, horses) get no gear.
 
 ---
 
-## The Cinder Colossus (boss, in the works)
+## The Cinder Colossus (mini-boss)
 
 A golem mini-boss that serves the Fire Necromancer: a huge, gorilla-like brute about 5.5 blocks tall, hunched over and
 walking on its knuckles, with fists bigger than its legs, a cracked face, a layered jaw (an outer jaw and an inner
-one behind it), horns and spikes, and **volcanoes on its back**. The fight will have three stages:
-- **Dormant:** a body of dark stone and obsidian with a few dim cracks; the volcanoes only smoke, but their
-  craters always hold glowing lava.
-- **Erupted:** halfway through the first stage it leans in, the volcanoes erupt, and lava pours down over its body.
-- **Lava core:** in the second stage its shell breaks off, leaving a body of lava, and bigger volcanoes that erupt all the time.
+one behind it), horns and spikes, and **volcanoes on its back**. After three rounds of designs, the user picked
+**3G Saddleback**, a variation of Old Calderon (No. 3 of the first five designs): two great volcanoes grow out of its
+back and merge into one saddle of rock, big obsidian spikes stand in the saddle and down its lower back, it has horns,
+spikes pointing up off its shoulders and a beard of obsidian shards, all in dark scorched stone. Its volcanoes erupt
+out along their own angle, and its craters always hold glowing lava. Previews are in `boss-previews/`
+(`all_golems.png`, `01_saddleback_sheet.png`, the fight page `01_saddleback_fight.png` and `minions.png`; the other
+candidates are in `boss-previews/round1/` to `round3/`).
 
-So far only its looks exist. After three rounds of designs, the user picked **3G Saddleback**, a variation of Old
-Calderon (No. 3 of the first five designs): two great volcanoes grow out of its back and merge into one saddle of
-rock, big obsidian spikes stand in the saddle and down its lower back, it has horns, spikes pointing up off its
-shoulders and a beard of obsidian shards, all in dark scorched stone. Its volcanoes erupt out along their own angle,
-and its craters always hold glowing lava. Previews are in `boss-previews/` (`all_golems.png` and
-`01_saddleback_sheet.png`; the other candidates are in `boss-previews/round1/` to `round3/`).
+It doesn't appear in the world by itself yet (the Dross terrain comes first). For now you get one from the
+**Cinder Colossus Spawn Egg** (Dross creative tab) or `/dross boss summon colossus`, and `/dross boss arena colossus` builds a
+placeholder arena to fight it in: a round floor of red nether bricks, 31 blocks across, with a low wall (four gaps)
+and lights set in the floor.
 
-It has these animations:
-- idle and knuckle-walking;
-- the volcano erupting (it braces and leans in over its fists first);
-- the shell breaking off;
-- the lava volcanoes' endless eruption;
-- dying, which cools it into an obsidian statue.
+### The fight
+It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
+within 40 blocks. The fight has three stages:
+1. **Shell** (down to 60% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
+   second; 2 in the Cracking stage and 2.8 in the Lava Core stage). It swipes at you up close, tears rocks
+   out of the ground and throws them (they shatter; they never place a block), raises both fists for a moment and
+   slams the ground (little damage, but the shockwave throws you far), and charges about 10 blocks in a straight line,
+   on all fours, head first.
+2. **Cracking** (60% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
+   and its shell starts breaking up, plates knocked loose and lava glowing through, more with every hit. A bit faster
+   and more aggressive. Its volcanoes also spit **lava blobs** that land near you (never on you) and leave small pools
+   of lava for 20-40 seconds, and it pounds the ground to raise **three stone golems** (left, right, in front of it).
+3. **Lava Core** (35% to 0%; lava red): its shell bursts off (it can't be hurt while it does). Faster and angrier:
+   **every hit sets you on fire**, its charge leaves a **trail of fire**, its rocks are molten, and it raises
+   **lava golems**, which blow up a few seconds later unless you kill them first.
 
-`/dross showcase golems` spawns it so you can look at it and play its animations. The fight itself comes later.
+It's a slow stone brute, so it can't be beaten easily from afar: **arrows and other projectiles** (tridents,
+fireballs, snowballs, your risen skeletons' arrows) deal only **50%** of their damage in the Shell stage, **35%** in
+Cracking and **15%** in the Lava Core. You can tell: they clink off the stone with a few sparks, and in the Lava Core
+they hiss and burn up in a puff of smoke. Melee hits are never reduced, and its minions take full damage from
+anything. The minions are quick on their feet: stone golems walk about 3 blocks a second and lava golems about 4.6
+(a player walks 4.3 and sprints 5.6).
+
+A big hit never skips a stage: its health stops at 60% and at 35%. When it dies it screams, sinks down and **cools
+into an obsidian statue**, which stands for 2 minutes and then crumbles; its minions crumble with it. It drops 50
+experience. The player who killed it, and everyone within 40 blocks, get the challenge advancement **"Set in Stone"**
+and **a trophy each** (below). Removed with `/kill`, it gives neither.
+
+Its lava pools and fire trail are the mod's own blocks, not real lava and fire: they never spread, can't be picked up
+with a bucket, never make cobblestone or obsidian, never replace anything but air (or, with the mob griefing rule on,
+grass, flowers and thin snow), never touch chests or other blocks with contents, and clear themselves away, even if
+the area is unloaded and loaded again. Nothing in the fight breaks blocks. Its sounds are vanilla stone, iron golem,
+ravager and lava sounds pitched down: deep rumbles and grinding stone.
+
+All its numbers (health, damage, speeds, cooldowns, ranges, minion counts, pool size and time, the stage thresholds,
+the trophy design it drops) are labeled constants in `boss/golem/ColossusTuning.java` and `ColossusStage.java`.
+
+### The trophies
+The **Cinder Colossus Trophy** (`dross:colossus_trophy`) is a decorative block: a miniature of the boss, its own model
+scaled down to fit one block (about a sixth of its size), with no base or pedestal. It has five designs, each a
+different pose and look (previews: `boss-previews/trophies.png`), and every trophy can show any of them:
+
+| No. | Name | Pose | Look |
+|---|---|---|---|
+| 1 | Volcano's Wrath | the volcano lob, lava spurting from both craters | erupted (lava over the shell) |
+| 2 | Molten Charge | mid-gallop on all fours, head first | lava core |
+| 3 | The Roar | reared up roaring, both fists raised high | erupted |
+| 4 | Earthshaker | the ground slam, as its fists hit | cracking (plates loose, bright cracks) |
+| 5 | Dormant Shell | crouched in its shell, head bowed | dormant (dim) |
+
+- Its lava cracks glow softly, and the lava keeps **flowing down its body**: bright bands of fresh lava slide down the
+  streams over and over. Now and then **lava drips** off it and its craters smoke (just particles: nothing catches
+  fire). It gives off a little light (more for the lava ones).
+- Place it **on the floor** (it needs a block under it) and it **faces you**.
+- **Right-click it to change its pose:** each click turns it to the next design (1, 2, 3, 4, 5, then 1 again), still
+  facing the same way, with a quiet stone click and a little puff of ember dust. An empty hand or any item works (main
+  hand); holding a block, you change the pose instead of placing the block, so **sneak** to place a block against it.
+  In adventure mode it can't be changed. The tooltip says "Right-click to change its pose".
+- Any tool, or a bare hand, breaks it, and it drops itself with the design it's showing. It never burns and explosions can't break it.
+- **The drop:** when the Colossus is beaten, every player within its boss bar's range (40 blocks), plus the player who
+  killed it, gets **their own trophy**, straight into their inventory. If their inventory is full, it's dropped one
+  block in front of them instead (at their feet if a wall is there), and a player who's dead at that moment finds it
+  where they died. A dropped trophy can only be picked up by its player, never despawns, and fire, lava, explosions
+  and cactus can't destroy it. It drops as **design 1** (`DROP_DESIGN` in
+  `ColossusTuning`); since any trophy can be turned to any pose, there's no single final design to pick.
+- **`/dross showcase trophies colossus`** puts all five side by side on pedestals, each with a sign (they can be right-clicked
+  too). The creative Dross tab has all five too.
+- The figures are made by `tools/golems` (`kit/trophies.py`) from the boss's own model, poses and textures; the mod's
+  code is in `boss/trophy`.
+
+### The showcase
+`/dross showcase boss_designs colossus` spawns it frozen (it never fights) so you can look at it and play its
+animations: the dormant shell, the eruption, the shell breaking off, the lava core's endless eruption, the walk and the death.
 
 ---
 
@@ -287,6 +357,7 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | Keymaster | Have the trader forge the Rift Key | |
 | **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
 | Rise! | Raise the undead with Necromancy | Challenge |
+| Set in Stone | Defeat the Cinder Colossus | Challenge, under *Enter the Dross*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
 
 ---
 
@@ -305,24 +376,29 @@ Every color lives in one place, `DrossColors.java`.
 
 ## Commands
 
-All need cheats (operator level 2).
+All need cheats (operator level 2). Each name says what kind of thing it's about and which one, so the list stays
+clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<boss>]`, `boss <action> <boss>`,
+`trader <action>` and `quest <action>`.
 
 | Command | What it does |
 |---|---|
-| `/dross site` | Teleports you in front of the Fallen Cathedral's frame, facing it. Before the site is built, it says so instead. |
-| `/dross hub` | Teleports you to the hub (the Shattered Spire) in the Dross. |
-| `/dross trader` | Teleports you to the trader, even if his area isn't loaded. |
-| `/dross trader home` | Sends the trader home. |
+| `/dross goto cathedral` | Teleports you in front of the Fallen Cathedral's frame, facing it. Before the site is built, it says so instead. |
+| `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross. |
+| `/dross goto trader` | Teleports you to the trader, even if his area isn't loaded. |
+| `/dross trader sendhome` | Sends the trader home. |
 | `/dross quest status` | Shows your quest progress. |
-| `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*). |
+| `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!* and *Set in Stone*). |
 | `/dross quest complete` | Finishes the quest for you. |
-| `/dross showcase huts` | Builds the 10 candidate hut designs in a row, with numbered signs. |
-| `/dross showcase skins` | Lines up 10 frozen traders wearing the 10 candidate skins. Right-click one for its name. |
-| `/dross showcase shrines` | Builds the 10 grand shrine designs in a row, with signs and clickable teleports in chat. |
-| `/dross showcase golems` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
-| `/dross showcase golems dormant` / `erupted` / `core` | Puts every showcase golem nearby into that stage. |
-| `/dross showcase golems erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
-| `/dross showcase golems walk` / `idle` | Knuckle-walking on the spot / standing. |
+| `/dross showcase trader_huts` | Builds the 10 candidate hut designs in a row, with numbered signs. |
+| `/dross showcase trader_skins` | Lines up 10 frozen traders wearing the 10 candidate skins. Right-click one for its name. |
+| `/dross showcase portal_shrines` | Builds the 10 grand shrine designs in a row, with signs and clickable teleports in chat. |
+| `/dross showcase boss_designs colossus` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
+| `/dross showcase boss_designs colossus dormant` / `erupted` / `core` | Puts every showcase golem nearby into that stage. |
+| `/dross showcase boss_designs colossus erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
+| `/dross showcase boss_designs colossus walk` / `idle` | Knuckle-walking on the spot / standing. |
+| `/dross showcase trophies colossus` | Places the five Cinder Colossus trophy designs in a row in front of you, each on a pedestal facing you with a sign giving its number and name. Running it again replaces the row. |
+| `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
+| `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
 
 ---
 
@@ -345,8 +421,9 @@ From the project folder, on Windows:
   - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
   - See `tools/shrines/README.md`.
 - **`tools/skins/`:** draws the 10 trader skins (`textures/entity/trader/`) and renders the front and back previews in `skin-previews/`.
-- **`tools/golems/`:** generates the Cinder Colossus designs.
+- **`tools/golems/`:** generates the Cinder Colossus designs and its trophies.
   - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/`, and writes `GolemDesigns.java`.
+  - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
   - See `tools/golems/README.md`.
 
 ---
@@ -363,8 +440,8 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 | `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` holds the hut designs) |
 | `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
 | `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
-| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`), its GeckoLib renderer and the showcase golems |
+| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the logic of `/dross boss` |
 | `command` | The `/dross` command and its showcases |
-| `registry` | Every `DeferredRegister`: blocks, items, entities, particles, enchantments, loot modifiers, the creative tab |
+| `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, the creative tab |
 
 Mod metadata is in `src/main/resources/META-INF/mods.toml`, filled from `gradle.properties`. All player-facing text is in `assets/dross/lang/en_us.json`.

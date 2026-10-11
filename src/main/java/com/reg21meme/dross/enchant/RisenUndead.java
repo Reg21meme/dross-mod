@@ -46,10 +46,8 @@ import net.minecraft.world.entity.monster.Skeleton;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
@@ -65,6 +63,7 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -129,8 +128,11 @@ public final class RisenUndead
     /** Number of particles in a puff. */
     private static final int PUFF_PARTICLES = 25;
 
-    /** Scoreboard team for Deathforged X glow. Its colour (DrossColors.RISEN_GLOW_TEAM, blue) colours the outline. */
-    private static final String GLOW_TEAM = "dross_risen_glow";
+    /**
+     * The scoreboard team Deathforged X undead used to glow through (they no longer glow). Kept only to clean up old
+     * worlds: it's deleted when the server starts, and old saved mobs are taken off it when they load.
+     */
+    private static final String OLD_GLOW_TEAM = "dross_risen_glow";
 
     // ---------------------------------------------------------------------------------------------
     // Persistent-data keys.
@@ -145,16 +147,8 @@ public final class RisenUndead
     /** Owner's UUID on arrows shot by risen skeletons, so they stay harmless even after the skeleton crumbles. */
     public static final String PROJECTILE_OWNER_KEY = "dross_risen_projectile_owner";
 
+    /** Armor slots, in the same order as {@link DeathforgedEnchantment.Gear#armor()}: helmet, chestplate, leggings, boots. */
     private static final EquipmentSlot[] ARMOR_SLOTS = {EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
-    /** Armor per Deathforged level I-VI (VII and up stay netherite). Order: helmet, chestplate, leggings, boots. */
-    private static final Item[][] ARMOR_BY_LEVEL = {
-            {Items.LEATHER_HELMET, Items.LEATHER_CHESTPLATE, Items.LEATHER_LEGGINGS, Items.LEATHER_BOOTS},
-            {Items.GOLDEN_HELMET, Items.GOLDEN_CHESTPLATE, Items.GOLDEN_LEGGINGS, Items.GOLDEN_BOOTS},
-            {Items.CHAINMAIL_HELMET, Items.CHAINMAIL_CHESTPLATE, Items.CHAINMAIL_LEGGINGS, Items.CHAINMAIL_BOOTS},
-            {Items.IRON_HELMET, Items.IRON_CHESTPLATE, Items.IRON_LEGGINGS, Items.IRON_BOOTS},
-            {Items.DIAMOND_HELMET, Items.DIAMOND_CHESTPLATE, Items.DIAMOND_LEGGINGS, Items.DIAMOND_BOOTS},
-            {Items.NETHERITE_HELMET, Items.NETHERITE_CHESTPLATE, Items.NETHERITE_LEGGINGS, Items.NETHERITE_BOOTS},
-    };
 
     /** Every risen mob (riders and mounts) currently in a loaded world, on the server. */
     private static final Set<Mob> ACTIVE = new LinkedHashSet<>();
@@ -418,54 +412,32 @@ public final class RisenUndead
     }
 
     /**
-     * Gear from Deathforged (see {@link DeathforgedEnchantment}). Skeletons always get a plain bow, because they
-     * can't attack without one. Mounts never call this.
+     * Gear from Deathforged: the exact row of {@link DeathforgedEnchantment}'s gear table for this level (0 = no
+     * Deathforged, no armor). Armor for every type, the sword only for zombie types. Skeleton types always get a plain
+     * bow, because they can't attack without one. Nothing is enchanted and nothing drops. Mounts never call this.
+     * Package-private so the GameTest can check it.
      */
-    private static void applyDeathforgedGear(Mob mob, int level)
+    static void applyDeathforgedGear(Mob mob, int level)
     {
-        boolean skeletonType = mob instanceof AbstractSkeleton;
-        boolean zombieType = mob instanceof Zombie;
         level = Math.max(0, Math.min(level, DeathforgedEnchantment.MAX_LEVEL));
+        DeathforgedEnchantment.Gear gear = DeathforgedEnchantment.gearFor(level);
 
-        int protection = level >= DeathforgedEnchantment.ENCHANT_HIGH_LEVEL ? DeathforgedEnchantment.PROTECTION_HIGH
-                : level >= DeathforgedEnchantment.ENCHANT_LOW_LEVEL ? DeathforgedEnchantment.PROTECTION_LOW : 0;
-        int sharpness = level >= DeathforgedEnchantment.ENCHANT_HIGH_LEVEL ? DeathforgedEnchantment.SHARPNESS_HIGH
-                : level >= DeathforgedEnchantment.ENCHANT_LOW_LEVEL ? DeathforgedEnchantment.SHARPNESS_LOW : 0;
-        int power = level >= DeathforgedEnchantment.ENCHANT_HIGH_LEVEL ? DeathforgedEnchantment.POWER_HIGH
-                : level >= DeathforgedEnchantment.ENCHANT_LOW_LEVEL ? DeathforgedEnchantment.POWER_LOW : 0;
-
-        if (level > 0)
+        if (gear != null)
         {
-            Item[] armor = ARMOR_BY_LEVEL[Math.min(level, ARMOR_BY_LEVEL.length) - 1];
             for (int i = 0; i < ARMOR_SLOTS.length; i++)
             {
-                ItemStack piece = new ItemStack(armor[i]);
-                if (protection > 0)
-                {
-                    piece.enchant(Enchantments.ALL_DAMAGE_PROTECTION, protection);
-                }
-                mob.setItemSlot(ARMOR_SLOTS[i], piece);
+                mob.setItemSlot(ARMOR_SLOTS[i], new ItemStack(gear.armor()[i]));
             }
         }
 
-        if (skeletonType)
+        if (mob instanceof AbstractSkeleton skeleton)
         {
-            ItemStack bow = new ItemStack(Items.BOW);
-            if (power > 0)
-            {
-                bow.enchant(Enchantments.POWER_ARROWS, power);
-            }
-            mob.setItemSlot(EquipmentSlot.MAINHAND, bow);
-            ((AbstractSkeleton) mob).reassessWeaponGoal(); // switch to the bow attack
+            mob.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.BOW));
+            skeleton.reassessWeaponGoal(); // switch to the bow attack
         }
-        else if (zombieType && level >= DeathforgedEnchantment.SWORD_LEVEL)
+        else if (mob instanceof Zombie && gear != null && gear.sword() != null)
         {
-            ItemStack sword = new ItemStack(Items.NETHERITE_SWORD);
-            if (sharpness > 0)
-            {
-                sword.enchant(Enchantments.SHARPNESS, sharpness);
-            }
-            mob.setItemSlot(EquipmentSlot.MAINHAND, sword);
+            mob.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(gear.sword()));
         }
 
         for (EquipmentSlot slot : EquipmentSlot.values())
@@ -475,20 +447,11 @@ public final class RisenUndead
 
         if (level >= DeathforgedEnchantment.EFFECTS_LEVEL)
         {
-            // Whole life (they crumble long before "infinite" matters). No swirl particles: the glow shows it.
+            // Whole life (they crumble long before "infinite" matters). No swirl particles and no glow outline.
             mob.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, MobEffectInstance.INFINITE_DURATION,
                     DeathforgedEnchantment.STRENGTH_AMPLIFIER, false, false));
             mob.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SPEED, MobEffectInstance.INFINITE_DURATION,
                     DeathforgedEnchantment.SPEED_AMPLIFIER, false, false));
-            Scoreboard scoreboard = mob.level().getScoreboard();
-            PlayerTeam team = scoreboard.getPlayerTeam(GLOW_TEAM);
-            if (team == null)
-            {
-                team = scoreboard.addPlayerTeam(GLOW_TEAM);
-            }
-            team.setColor(DrossColors.RISEN_GLOW_TEAM); // set every time, so old worlds' gold team turns blue
-            scoreboard.addPlayerToTeam(mob.getScoreboardName(), team);
-            mob.setGlowingTag(true);
         }
     }
 
@@ -578,6 +541,21 @@ public final class RisenUndead
         }
     }
 
+    /**
+     * Old worlds: deletes the team Deathforged X undead used to glow through, so it doesn't linger in
+     * {@code /team list}. Any old saved mob still on it simply ends up on no team (it crumbles when it loads anyway).
+     */
+    @SubscribeEvent
+    public static void onServerStarted(ServerStartedEvent event)
+    {
+        Scoreboard scoreboard = event.getServer().getScoreboard();
+        PlayerTeam oldTeam = scoreboard.getPlayerTeam(OLD_GLOW_TEAM);
+        if (oldTeam != null)
+        {
+            scoreboard.removePlayerTeam(oldTeam);
+        }
+    }
+
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event)
     {
@@ -600,6 +578,7 @@ public final class RisenUndead
         if (event.loadedFromDisk() && isRisen(entity))
         {
             // Loaded back from a save: they're temporary, so they crumble instead of coming back.
+            // Old saves: take a Deathforged X mob off the old glow team (or any team) it was on.
             Scoreboard scoreboard = level.getScoreboard();
             if (scoreboard.getPlayersTeam(entity.getScoreboardName()) != null)
             {
@@ -713,7 +692,7 @@ public final class RisenUndead
         }
         if (isProtected(victim) || victim.isAlliedTo(risen))
         {
-            return; // villagers/traders (never damaged anyway) and the shared Deathforged X glow team
+            return; // villagers/traders (never damaged anyway) and mobs on the same scoreboard team
         }
         UUID attackerOwner = getOwnerId(risen);
         if (attackerOwner != null && attackerOwner.equals(getOwnerId(victim)))

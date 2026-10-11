@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * {@code /dross showcase huts} (test tool, cheats only): builds every candidate design for the Dross trader's hut
- * (the villager area's {@code villager.hut.HutDesigns}) side by side in front of the player, so they can be
+ * {@code /dross showcase trader_huts} (test tool, cheats only): builds every candidate design for the Dross trader's
+ * hut (the villager area's {@code villager.hut.HutDesigns}) side by side in front of the player, so they can be
  * compared and one picked.
  * <p>
  * The layout, as the player sees it:
@@ -62,7 +62,7 @@ public final class HutShowcase
     /** Pad blocks don't poke their neighbours (no redstone going off), but players still see every change. */
     private static final int PAD_FLAGS = Block.UPDATE_CLIENTS;
 
-    /** Runs {@code /dross showcase huts}. */
+    /** Runs {@code /dross showcase trader_huts}. */
     public static int buildHuts(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
     {
         CommandSourceStack source = context.getSource();

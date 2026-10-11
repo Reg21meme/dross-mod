@@ -34,7 +34,7 @@ The player finds a **Weathered Letter** (custom item, readable like a written bo
 - All existing trader behavior stays: unkillable, 50-block home area, teleports home when lost, glows while a player is in his area, can't use portals.
 - When a player first right-clicks him, he speaks in chat (with his name as the speaker), roughly: *"You've come about the rift? I don't believe you're strong enough. Show me. Bring me a skull from the Nether's fortresses, shards from the cities of the deep dark, and stone from the End."*
 - Each later right-click (when he isn't taking an item) repeats what's still needed. Only the main hand counts. His trading screen doesn't open until the quest is complete.
-- Remove the testing chat message that announces his coordinates on join (keep `/dross trader` and `/dross trader home` for testing).
+- Remove the testing chat message that announces his coordinates on join (keep `/dross goto trader` and `/dross trader sendhome` for testing).
 
 ### Step 4: The three tributes
 The player proves they have survived the three most dangerous places:
@@ -184,4 +184,4 @@ Details added while writing the build plan (in `CLAUDE.md`):
   - The dead plants and cracked blocks are applied once, when the castle is placed.
   - The blue particles and the ambient sound come from the frame blocks.
 - The castle and hub use the `dross:portal_castle` and `dross:dross_hub` structure files when they exist, and placeholders until then.
-- Test commands: `/dross hub` and `/dross quest status|reset|complete`.
+- Test commands: `/dross goto hub` and `/dross quest status|reset|complete`.
