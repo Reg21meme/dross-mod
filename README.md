@@ -11,6 +11,7 @@ The Dross is a **mid-to-late game** place. You reach it after surviving the Neth
 | Java | 17 |
 | Mod ID | `dross` |
 | Version | 0.1.0 |
+| Needs | [GeckoLib](https://www.curseforge.com/minecraft/mc-mods/geckolib) 4.8.4 or newer (for Forge 1.20.1) |
 
 ---
 
@@ -246,6 +247,34 @@ Mounts (chickens, spiders, horses) get no gear.
 
 ---
 
+## The Cinder Colossus (boss, in the works)
+
+A golem mini-boss that serves the Fire Necromancer: a huge, gorilla-like brute about 5.5 blocks tall, hunched over and
+walking on its knuckles, with fists bigger than its legs, a cracked face, a layered jaw (an outer jaw and an inner
+one behind it), horns and spikes, and **volcanoes on its back**. The fight will have three stages:
+- **Dormant:** a body of dark stone and obsidian with a few dim cracks; the volcanoes only smoke, but their
+  craters always hold glowing lava.
+- **Erupted:** halfway through the first stage it leans in, the volcanoes erupt, and lava pours down over its body.
+- **Lava core:** in the second stage its shell breaks off, leaving a body of lava, and bigger volcanoes that erupt all the time.
+
+So far only its looks exist. After three rounds of designs, the user picked **3G Saddleback**, a variation of Old
+Calderon (No. 3 of the first five designs): two great volcanoes grow out of its back and merge into one saddle of
+rock, big obsidian spikes stand in the saddle and down its lower back, it has horns, spikes pointing up off its
+shoulders and a beard of obsidian shards, all in dark scorched stone. Its volcanoes erupt out along their own angle,
+and its craters always hold glowing lava. Previews are in `boss-previews/` (`all_golems.png` and
+`01_saddleback_sheet.png`; the other candidates are in `boss-previews/round1/` to `round3/`).
+
+It has these animations:
+- idle and knuckle-walking;
+- the volcano erupting (it braces and leans in over its fists first);
+- the shell breaking off;
+- the lava volcanoes' endless eruption;
+- dying, which cools it into an obsidian statue.
+
+`/dross showcase golems` spawns it so you can look at it and play its animations. The fight itself comes later.
+
+---
+
 ## Advancements
 
 All Dross advancements live in their own **Dross** tab, which stays hidden until you pick up a Weathered Letter.
@@ -290,6 +319,10 @@ All need cheats (operator level 2).
 | `/dross showcase huts` | Builds the 10 candidate hut designs in a row, with numbered signs. |
 | `/dross showcase skins` | Lines up 10 frozen traders wearing the 10 candidate skins. Right-click one for its name. |
 | `/dross showcase shrines` | Builds the 10 grand shrine designs in a row, with signs and clickable teleports in chat. |
+| `/dross showcase golems` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
+| `/dross showcase golems dormant` / `erupted` / `core` | Puts every showcase golem nearby into that stage. |
+| `/dross showcase golems erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
+| `/dross showcase golems walk` / `idle` | Knuckle-walking on the spot / standing. |
 
 ---
 
@@ -312,6 +345,9 @@ From the project folder, on Windows:
   - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
   - See `tools/shrines/README.md`.
 - **`tools/skins/`:** draws the 10 trader skins (`textures/entity/trader/`) and renders the front and back previews in `skin-previews/`.
+- **`tools/golems/`:** generates the Cinder Colossus designs.
+  - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/`, and writes `GolemDesigns.java`.
+  - See `tools/golems/README.md`.
 
 ---
 
@@ -327,6 +363,7 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 | `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` holds the hut designs) |
 | `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
 | `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
+| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`), its GeckoLib renderer and the showcase golems |
 | `command` | The `/dross` command and its showcases |
 | `registry` | Every `DeferredRegister`: blocks, items, entities, particles, enchantments, loot modifiers, the creative tab |
 

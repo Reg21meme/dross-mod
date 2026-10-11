@@ -1,6 +1,7 @@
 package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
@@ -42,6 +43,11 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>{@code /dross showcase skins}: spawns one frozen trader per candidate skin in a row in front of you, each on
  *       a pedestal with a numbered sign; old showcase traders nearby are removed first, never the real trader
  *       ({@link SkinShowcase}; the skins are the villager area's {@code TraderSkins}).</li>
+ *   <li>{@code /dross showcase golems}: spawns one frozen Cinder Colossus per candidate design in a row in front of
+ *       you, dormant in their rock shells, each with a numbered sign;
+ *       {@code /dross showcase golems dormant|erupt|erupted|break|core|die|walk|idle} switches them between their three
+ *       stages and replays the eruption, the shell breaking and the death ({@link GolemShowcase}; the designs are the
+ *       boss area's {@code GolemDesigns}).</li>
  * </ul>
  * The shrines and skins showcases use the command's position, rotation and dimension, so they also work from the server
  * console and command blocks (for example {@code execute in minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross
@@ -86,12 +92,25 @@ public final class DrossCommand
                         .then(Commands.literal("reset").executes(QuestCommands::reset))
                         .then(Commands.literal("complete").executes(QuestCommands::complete)))
                 // Test showcases that build things side by side to compare them
-                // (the logic lives in HutShowcase, ShrineShowcase and SkinShowcase).
+                // (the logic lives in HutShowcase, ShrineShowcase, SkinShowcase and GolemShowcase).
                 .then(Commands.literal("showcase")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("huts").executes(HutShowcase::buildHuts))
                         .then(Commands.literal("shrines").executes(ShrineShowcase::buildShrines))
-                        .then(Commands.literal("skins").executes(SkinShowcase::spawnSkins))));
+                        .then(Commands.literal("skins").executes(SkinShowcase::spawnSkins))
+                        // Boss area's golem designs (spawning and the controls live in GolemShowcase).
+                        .then(golemShowcase())));
+    }
+
+    /** {@code /dross showcase golems} and its controls ({@code dormant}, {@code erupt}, {@code break}, {@code die}...). */
+    private static LiteralArgumentBuilder<CommandSourceStack> golemShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> golems = Commands.literal("golems").executes(GolemShowcase::spawnGolems);
+        for (GolemShowcase.Control control : GolemShowcase.Control.values())
+        {
+            golems.then(Commands.literal(control.word()).executes(context -> GolemShowcase.control(context, control)));
+        }
+        return golems;
     }
 
     private static int teleportToHub(CommandContext<CommandSourceStack> context) throws CommandSyntaxException

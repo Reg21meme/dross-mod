@@ -74,6 +74,13 @@ minecraft {
             // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
             property 'forge.logging.console.level', 'debug'
 
+            // GeckoLib (boss models and animations) uses a mixin whose refmap is written in SRG names.
+            // These two lines remap it to the names used in this dev environment, so it loads in runClient.
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            // GeckoLib registers its own example mobs and items in dev unless this is set.
+            property 'geckolib.disable_examples', 'true'
+
             mods {
                 "${mod_id}" {
                     source sourceSets.main
@@ -120,6 +127,16 @@ repositories {
     // flatDir {
     //     dir 'libs'
     // }
+
+    // GeckoLib: 3D models and keyframe animations for the bosses (boss-builder's area).
+    maven {
+        name = 'GeckoLib'
+        url = 'https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/'
+        content {
+            includeGroupByRegex('software\\.bernie.*')
+            includeGroup('com.eliotlash.mclib')
+        }
+    }
 }
 
 dependencies {
@@ -129,6 +146,12 @@ dependencies {
     // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
     // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+
+    // GeckoLib, the animation engine for the boss models (version in gradle.properties).
+    // Players need GeckoLib installed too: mods.toml lists it as a required dependency.
+    implementation fg.deobf("software.bernie.geckolib:geckolib-forge-${minecraft_version}:${geckolib_version}")
+    // GeckoLib's maths library (GeckoLib's install guide for Forge 1.20.1 asks for it).
+    implementation "com.eliotlash.mclib:mclib:20"
 
     // Example mod dependency with JEI - using fg.deobf() ensures the dependency is remapped to your development mappings
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
@@ -155,6 +178,7 @@ tasks.named('processResources', ProcessResources).configure {
             minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
             forge_version: forge_version, forge_version_range: forge_version_range,
             loader_version_range: loader_version_range,
+            geckolib_version_range: geckolib_version_range,
             mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
             mod_authors: mod_authors, mod_description: mod_description,
     ]

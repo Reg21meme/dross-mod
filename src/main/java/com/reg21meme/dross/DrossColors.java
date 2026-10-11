@@ -88,6 +88,12 @@ public final class DrossColors {
     /** Clickable "teleport there" lines in a showcase command's chat output (any RGB works in chat). Used in command/ShrineShowcase. */
     public static final int SHOWCASE_LINK = PALETTE_HIGHLIGHT;
 
+    /**
+     * The clickable control buttons of /dross showcase golems ([Shell], [Break shell]...). Lava orange, not the Dross
+     * blue: the golems serve the Fire Necromancer. Used in command/GolemShowcase.
+     */
+    public static final int GOLEM_SHOWCASE_BUTTON = 0xFFA328;
+
     // ---------------------------------------------------------------- Helpers
 
     /** Red part of an 0xRRGGBB color, from 0 to 1. */
