@@ -90,8 +90,8 @@ final class PortalCathedral
         }
         if (report.isEmpty())
         {
-            LOGGER.error("Dross portal site: the {} couldn't be built (its template {} is missing, see above); falling back to the "
-                    + "small placeholder shrine.", cathedral.name(), cathedral.template());
+            LOGGER.error("Dross portal site: the {} couldn't be built (its template {} is missing, or it doesn't fit there: see the "
+                    + "error above); falling back to the small placeholder shrine.", cathedral.name(), cathedral.template());
             return null;
         }
         return checkFrame(level, cathedral, cathedral.built(center, FACING), x, z);

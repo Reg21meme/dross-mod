@@ -11,8 +11,10 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntTag;
@@ -35,6 +37,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
@@ -51,6 +54,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Headless tests (GameTests) for the Cinder Colossus fight. Run them with
@@ -76,13 +80,15 @@ import java.util.UUID;
  *   <li>{@link #rightClickCyclesTrophyDesign}: right-clicking a placed trophy turns it 1, 2 ... 5, then 1 again,
  *       keeping the way it faces (holding a block too, which isn't placed).</li>
  * </ul>
+ * The tests that spawn something, look for it or need ticks first wait until their arena has finished loading
+ * ({@link #waitForArena}): far from spawn a test can start before its chunks are ready.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class ColossusGameTest
 {
-    /** The arena: a flat floor, made in memory when the server starts (no structure file needed). */
+    /** The arena: a flat floor under a roof, made in memory when the server starts (no structure file needed). */
     private static final String ARENA = "colossus_test_arena";
     private static final ResourceLocation ARENA_ID = new ResourceLocation(Dross.MODID, ARENA);
     /** Arena width and depth (blocks), and height (floor included): room for the 4 x 5 Colossus. */
@@ -95,6 +101,13 @@ public final class ColossusGameTest
     private static final int FLOOR_Y = 1;
     /** ...and the middle of the arena just above it. */
     private static final BlockPos MIDDLE = new BlockPos(8, FLOOR_Y + 1, 8);
+    /**
+     * A roof of barrier blocks just above the arena (relative height). The test server's world is a normal, random
+     * one, and the test framework clears the room for each test deep underground, often right under a cave: gravel or
+     * sand left hanging over that room falls in once its chunk starts ticking (it once buried part of the rock test's
+     * floor). The roof catches it, and anything else that falls or pours from above.
+     */
+    private static final int ROOF_Y = ARENA_HEIGHT + 1;
     /** Far more damage than it has health. */
     private static final float HUGE_HIT = 1000.0F;
     /** Ticks to wait after a stage change has finished playing. */
@@ -113,6 +126,11 @@ public final class ColossusGameTest
     private static final int NEVER_DESPAWNS_AGE = -32768;
     /** Ticks a trophy is left in lava. */
     private static final int TROPHY_IN_LAVA = 60;
+    /**
+     * The longest a test waits for its arena to finish loading ({@link #waitForArena}), in ticks, added to the time
+     * limit of each test that waits. (It's usually a few ticks, and none near spawn.)
+     */
+    private static final int ARENA_WAIT_TICKS = 100;
 
     private ColossusGameTest() {}
 
@@ -120,9 +138,13 @@ public final class ColossusGameTest
     // Tests
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = "dross_colossus_stages", timeoutTicks = 500)
+    @GameTest(template = ARENA, batch = "dross_colossus_stages", timeoutTicks = ARENA_WAIT_TICKS + 500)
     public static void stagesClampAndAdvance(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::stagesClampAndAdvance))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), 0.0F);
         if (golem == null)
@@ -254,9 +276,13 @@ public final class ColossusGameTest
         return golem.getMaxHealth() - golem.getHealth();
     }
 
-    @GameTest(template = ARENA, batch = "dross_colossus_minions", timeoutTicks = 100)
+    @GameTest(template = ARENA, batch = "dross_colossus_minions", timeoutTicks = ARENA_WAIT_TICKS + 100)
     public static void minionsCrumbleWithTheirColossus(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::minionsCrumbleWithTheirColossus))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), 0.0F);
         if (golem == null)
@@ -283,9 +309,13 @@ public final class ColossusGameTest
                 .thenSucceed();
     }
 
-    @GameTest(template = ARENA, batch = "dross_colossus_pool", timeoutTicks = 300)
+    @GameTest(template = ARENA, batch = "dross_colossus_pool", timeoutTicks = ARENA_WAIT_TICKS + 300)
     public static void lavaPoolStaysSmallAndCoolsAway(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::lavaPoolStaysSmallAndCoolsAway))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         BlockPos chest = MIDDLE.offset(2, 0, 0);
         BlockPos stone = MIDDLE.offset(-2, 0, 1);
@@ -339,9 +369,13 @@ public final class ColossusGameTest
                 .thenSucceed();
     }
 
-    @GameTest(template = ARENA, batch = "dross_colossus_fire", timeoutTicks = 200)
+    @GameTest(template = ARENA, batch = "dross_colossus_fire", timeoutTicks = ARENA_WAIT_TICKS + 200)
     public static void fireTrailGoesOut(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::fireTrailGoesOut))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         if (!LavaPools.placeFire(level, helper.absolutePos(MIDDLE), true))
         {
@@ -355,9 +389,13 @@ public final class ColossusGameTest
                 .thenSucceed();
     }
 
-    @GameTest(template = ARENA, batch = "dross_colossus_rock", timeoutTicks = 100)
+    @GameTest(template = ARENA, batch = "dross_colossus_rock", timeoutTicks = ARENA_WAIT_TICKS + 100)
     public static void thrownRockPlacesNoBlocks(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::thrownRockPlacesNoBlocks))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         Vec3 from = helper.absoluteVec(new Vec3(MIDDLE.getX() + 0.5D, MIDDLE.getY() + 6.0D, MIDDLE.getZ() + 0.5D));
         ColossusRock rock = ColossusRock.thrown(level, null, from, ColossusTuning.ROCK_DAMAGE, false);
@@ -386,9 +424,13 @@ public final class ColossusGameTest
                 .thenSucceed();
     }
 
-    @GameTest(template = ARENA, batch = "dross_colossus_trophy", timeoutTicks = 100)
+    @GameTest(template = ARENA, batch = "dross_colossus_trophy", timeoutTicks = ARENA_WAIT_TICKS + 100)
     public static void trophyForEveryPlayerInRange(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::trophyForEveryPlayerInRange))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), 0.0F);
         if (golem == null)
@@ -431,9 +473,13 @@ public final class ColossusGameTest
                 .thenSucceed();
     }
 
-    @GameTest(template = ARENA, batch = "dross_colossus_trophy_full", timeoutTicks = 200)
+    @GameTest(template = ARENA, batch = "dross_colossus_trophy_full", timeoutTicks = ARENA_WAIT_TICKS + 200)
     public static void trophyDropsInFrontWhenInventoryFull(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::trophyDropsInFrontWhenInventoryFull))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), 0.0F);
         if (golem == null)
@@ -501,9 +547,13 @@ public final class ColossusGameTest
                 .thenSucceed();
     }
 
-    @GameTest(template = ARENA, batch = "dross_colossus_trophy_kill", timeoutTicks = 100)
+    @GameTest(template = ARENA, batch = "dross_colossus_trophy_kill", timeoutTicks = ARENA_WAIT_TICKS + 100)
     public static void noTrophyForKillCommand(GameTestHelper helper)
     {
+        if (waitForArena(helper, ColossusGameTest::noTrophyForKillCommand))
+        {
+            return;
+        }
         ServerLevel level = helper.getLevel();
         CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), 0.0F);
         if (golem == null)
@@ -725,12 +775,93 @@ public final class ColossusGameTest
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Waiting for the arena to load
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Makes a test wait until its arena has finished loading. GameTests are laid out in a long row, and a test far
+     * from spawn starts one tick after the test framework force-loads the chunks under it, before Minecraft has
+     * finished loading them (it waits for the chunks round them too, a few ticks). Until then nothing in such a
+     * chunk moves, its block ticks wait, and searches like {@code getEntitiesOfClass} skip the entities in it: a
+     * trophy dropped there is in the world but can't be found, so a test would count fewer than were dropped (or miss
+     * one that shouldn't have been). Near spawn the chunks are always loaded, and nothing waits.
+     *
+     * @param test the test itself: run again from the start once the arena has loaded
+     * @return true if the arena is still loading (the test goes on later, so the caller just returns); false if the
+     *         test can go ahead now
+     */
+    private static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
+    {
+        if (arenaStillLoading(helper) == null)
+        {
+            return false;
+        }
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    String loading = arenaStillLoading(helper);
+                    if (loading != null)
+                    {
+                        helper.fail(loading); // keeps waiting (it only fails the test if it's still loading at the end)
+                    }
+                })
+                .thenExecute(() -> {
+                    try
+                    {
+                        test.accept(helper);
+                    }
+                    catch (GameTestAssertException failure)
+                    {
+                        throw failure;
+                    }
+                    catch (RuntimeException e)
+                    {
+                        // Run from a sequence, an unexpected error would stop the whole test server (run at the
+                        // start, the framework just fails the test): it fails this test instead.
+                        GameTestAssertException failure = new GameTestAssertException("the test threw " + e);
+                        failure.initCause(e);
+                        throw failure;
+                    }
+                });
+        return true;
+    }
+
+    /**
+     * Null once every chunk under the arena has finished loading: the entities in it tick and can be found, and its
+     * block ticks run. Otherwise which chunk is still loading.
+     */
+    @Nullable
+    private static String arenaStillLoading(GameTestHelper helper)
+    {
+        ServerLevel level = helper.getLevel();
+        BlockPos corner = helper.absolutePos(new BlockPos(0, FLOOR_Y, 0));
+        BlockPos opposite = helper.absolutePos(new BlockPos(ARENA_SIZE - 1, FLOOR_Y, ARENA_SIZE - 1));
+        int minX = SectionPos.blockToSectionCoord(Math.min(corner.getX(), opposite.getX()));
+        int maxX = SectionPos.blockToSectionCoord(Math.max(corner.getX(), opposite.getX()));
+        int minZ = SectionPos.blockToSectionCoord(Math.min(corner.getZ(), opposite.getZ()));
+        int maxZ = SectionPos.blockToSectionCoord(Math.max(corner.getZ(), opposite.getZ()));
+        for (int x = minX; x <= maxX; x++)
+        {
+            for (int z = minZ; z <= maxZ; z++)
+            {
+                ChunkPos chunk = new ChunkPos(x, z);
+                if (!level.isPositionEntityTicking(chunk.getWorldPosition()) || !level.areEntitiesLoaded(chunk.toLong())
+                        || !level.getChunkSource().isPositionTicking(chunk.toLong()))
+                {
+                    return "the arena's chunk " + x + ", " + z + " hasn't finished loading";
+                }
+            }
+        }
+        return null;
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // The arena template
     // ---------------------------------------------------------------------------------------------
 
     /**
      * GameTests are built on a structure template. Instead of shipping a file, the arena (a smooth stone floor with
-     * air above) is made in memory when a development server starts, before the tests are placed.
+     * air above, under a barrier roof: see {@link #ROOF_Y}) is made in memory when a development server starts, before
+     * the tests are placed.
      */
     @SubscribeEvent
     public static void onServerStarted(ServerStartedEvent event)
@@ -745,20 +876,27 @@ public final class ColossusGameTest
 
     private static CompoundTag arenaTag()
     {
+        // The template's bottom layer (0) is the floor at relative y FLOOR_Y, so the roof is layer ROOF_Y - FLOOR_Y.
+        int roofLayer = ROOF_Y - FLOOR_Y;
         CompoundTag tag = new CompoundTag();
-        tag.put("size", intList(ARENA_SIZE, ARENA_HEIGHT, ARENA_SIZE));
+        tag.put("size", intList(ARENA_SIZE, roofLayer + 1, ARENA_SIZE));
         ListTag palette = new ListTag();
         palette.add(NbtUtils.writeBlockState(Blocks.SMOOTH_STONE.defaultBlockState()));
+        palette.add(NbtUtils.writeBlockState(Blocks.BARRIER.defaultBlockState()));
         tag.put("palette", palette);
         ListTag blocks = new ListTag();
         for (int x = 0; x < ARENA_SIZE; x++)
         {
             for (int z = 0; z < ARENA_SIZE; z++)
             {
-                CompoundTag block = new CompoundTag();
-                block.put("pos", intList(x, 0, z));
-                block.putInt("state", 0);
-                blocks.add(block);
+                CompoundTag floor = new CompoundTag();
+                floor.put("pos", intList(x, 0, z));
+                floor.putInt("state", 0);
+                blocks.add(floor);
+                CompoundTag roof = new CompoundTag();
+                roof.put("pos", intList(x, roofLayer, z));
+                roof.putInt("state", 1);
+                blocks.add(roof);
             }
         }
         tag.put("blocks", blocks);

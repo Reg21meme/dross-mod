@@ -12,6 +12,7 @@ import com.reg21meme.dross.world.PortalSiteGameTest;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -19,11 +20,13 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.WallSignBlock;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -46,7 +49,11 @@ import java.util.Set;
  *   <li><b>Trophy showcase:</b> run far from everything else ({@link #SHOWCASE_X}, {@link #SHOWCASE_Z}), looking
  *       south, it places the 5 trophies in a row, each on a showcase pedestal, facing back north (toward the command),
  *       with a sign "No. N" and the design's name in front. Run again 10 blocks further north, the old row is gone
- *       and there are still exactly 5. The test removes its trophies, pedestals and signs afterwards.</li>
+ *       and there are still exactly 5. Run a third time from the same spot but standing on a block high in the air
+ *       (at least {@link #THIRD_RUN_UP} blocks above the old row: steep ground, made sure of), the old row far below
+ *       is gone too, while a trophy a "player" put on display nearby (on the same kind of block, without a showcase
+ *       sign) stays. Trophies are counted at every height, so uneven ground never fools the test. The test removes
+ *       its trophies, pedestals, signs and the floor built in the air afterwards.</li>
  * </ul>
  */
 @GameTestHolder(Dross.MODID)
@@ -76,12 +83,27 @@ public final class DrossCommandGameTest
     private static final int SHOWCASE_Z = -2000;
     /** The second run is this many blocks further north, so its cleared floor doesn't reach the first row. */
     private static final int SECOND_RUN_BACK = 10;
-    /** Trophies are looked for this many blocks round the showcase spots (X and Z)... */
+    /**
+     * The third run stands on a block at least this many blocks above the second row (the showcase once looked only 8
+     * blocks up and down for an old row, so this failed)...
+     */
+    private static final int THIRD_RUN_UP = 20;
+    /** ...and at least this many above every block under its floor, so its floor (built in the air) never touches the land. */
+    private static final int THIRD_RUN_CLEARANCE = 12;
+    /**
+     * The third run's floor, built in the air, lies within this box round its spot, which the test clears afterwards:
+     * this many blocks to each side (the floor reaches 8)...
+     */
+    private static final int AIR_FLOOR_SIDE = 10;
+    /** ...from this many blocks behind the spot to this many ahead of it (the floor reaches 6 ahead)... */
+    private static final int AIR_FLOOR_BEHIND = 2;
+    private static final int AIR_FLOOR_AHEAD = 9;
+    /** ...and this many blocks below and above the spot's block (grass and up to 4 dirt under it; the trophies at +2). */
+    private static final int AIR_FLOOR_HEIGHT = 6;
+    /** A "player's" own trophy on display (no showcase sign) stands this many blocks to the side of the third run's spot. */
+    private static final int DISPLAY_SIDE = 9;
+    /** Trophies are looked for this many blocks round the showcase spots (X and Z), at every height. */
     private static final int SEARCH_RADIUS = 20;
-    /** ...from this many blocks below the surface (the showcase goes down to the bottom of water)... */
-    private static final int SEARCH_BELOW = 48;
-    /** ...to this many above it. */
-    private static final int SEARCH_ABOVE = 12;
 
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_commands")
     public static void commandNames(GameTestHelper helper)
@@ -122,14 +144,15 @@ public final class DrossCommandGameTest
         BlockPos first = new BlockPos(SHOWCASE_X, 0, SHOWCASE_Z);
         BlockPos second = first.north(SECOND_RUN_BACK);
         List<BlockPos> placed = new ArrayList<>();
+        BoundingBox airFloor = null;
         try
         {
-            int result = runShowcase(server, overworld, first);
+            int result = runShowcase(server, overworld, first, surface(overworld, first));
             List<BlockPos> row = findTrophies(overworld, first);
             placed.addAll(row);
             checkRow(overworld, row, result, "first run");
 
-            result = runShowcase(server, overworld, second);
+            result = runShowcase(server, overworld, second, surface(overworld, second));
             row = findTrophies(overworld, first);
             placed.addAll(row);
             checkRow(overworld, row, result, "second run, 10 blocks further north");
@@ -140,11 +163,53 @@ public final class DrossCommandGameTest
                     throw new GameTestAssertException("second run: a trophy of the old row is still at " + trophy.toShortString());
                 }
             }
-            LOGGER.info("[command test] The trophy showcase placed 5 trophies with signs, and running it again replaced the row");
+
+            // The steep-ground case, made sure of: the same spot, but standing on a block high above the old row.
+            BoundingBox columns = BoundingBox.fromCorners(second.offset(-AIR_FLOOR_SIDE, 0, -AIR_FLOOR_BEHIND),
+                    second.offset(AIR_FLOOR_SIDE, 0, AIR_FLOOR_AHEAD));
+            int oldRowY = row.get(0).getY();
+            int high = Math.max(oldRowY + THIRD_RUN_UP, highestBlock(overworld, columns) + THIRD_RUN_CLEARANCE);
+            if (high + AIR_FLOOR_HEIGHT >= overworld.getMaxBuildHeight())
+            {
+                throw new GameTestAssertException("third run: no room in the sky above " + second.toShortString()
+                        + " (the land there reaches y " + (high - THIRD_RUN_CLEARANCE) + ")");
+            }
+            airFloor = new BoundingBox(columns.minX(), high - AIR_FLOOR_HEIGHT, columns.minZ(), columns.maxX(),
+                    high + AIR_FLOOR_HEIGHT, columns.maxZ());
+            overworld.setBlock(second.atY(high), Blocks.STONE.defaultBlockState(), Block.UPDATE_CLIENTS);
+            // A player's own trophy on display nearby: on the same kind of block, but without a showcase sign.
+            BlockPos display = second.offset(DISPLAY_SIDE, 0, 4).atY(high + 2);
+            overworld.setBlock(display.below(), Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState(), Block.UPDATE_CLIENTS);
+            overworld.setBlock(display, ColossusTrophies.get(1).blockState(Direction.NORTH), Block.UPDATE_CLIENTS);
+            placed.add(display);
+
+            result = runShowcase(server, overworld, second, high + 1);
+            row = findTrophies(overworld, first);
+            if (!row.remove(display))
+            {
+                throw new GameTestAssertException("third run: it removed a trophy on display that isn't a showcase trophy (no sign)");
+            }
+            placed.addAll(row);
+            String when = "third run, standing " + (high - oldRowY) + " blocks above the old row";
+            checkRow(overworld, row, result, when);
+            for (BlockPos trophy : row)
+            {
+                if (trophy.getY() != high + 2)
+                {
+                    throw new GameTestAssertException(when + ": a trophy is at " + trophy.toShortString()
+                            + ", not in the new row at y " + (high + 2) + " (the old row wasn't removed)");
+                }
+            }
+            LOGGER.info("[command test] The trophy showcase placed 5 trophies with signs, and running it again replaced the row, "
+                    + "also from {} blocks above it; a trophy on display without a showcase sign stayed", high - oldRowY);
         }
         finally
         {
             cleanUp(overworld, placed);
+            if (airFloor != null)
+            {
+                clear(overworld, airFloor);
+            }
         }
         helper.succeed();
     }
@@ -156,12 +221,11 @@ public final class DrossCommandGameTest
         return !parse.getReader().canRead() && parse.getExceptions().isEmpty() && parse.getContext().getCommand() != null;
     }
 
-    /** Runs {@code /dross showcase trophies colossus} standing on the ground at {@code column}, looking south. */
-    private static int runShowcase(MinecraftServer server, ServerLevel level, BlockPos column)
+    /** Runs {@code /dross showcase trophies colossus} at {@code column}, feet at {@code feetY}, looking south. */
+    private static int runShowcase(MinecraftServer server, ServerLevel level, BlockPos column, int feetY)
     {
-        int y = surface(level, column);
         CommandSourceStack source = server.createCommandSourceStack().withLevel(level).withPermission(2)
-                .withPosition(new Vec3(column.getX() + 0.5D, y, column.getZ() + 0.5D)).withRotation(new Vec2(0.0F, 0.0F))
+                .withPosition(new Vec3(column.getX() + 0.5D, feetY, column.getZ() + 0.5D)).withRotation(new Vec2(0.0F, 0.0F))
                 .withSuppressedOutput();
         return server.getCommands().performPrefixedCommand(source, "dross showcase trophies colossus");
     }
@@ -173,13 +237,12 @@ public final class DrossCommandGameTest
         return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
     }
 
-    /** Every Colossus trophy round the showcase spots. */
+    /** Every Colossus trophy round the showcase spots, from the bottom of the world to its top. */
     private static List<BlockPos> findTrophies(ServerLevel level, BlockPos first)
     {
         List<BlockPos> found = new ArrayList<>();
-        int y = surface(level, first);
-        BlockPos from = first.offset(-SEARCH_RADIUS, 0, -SEARCH_RADIUS - SECOND_RUN_BACK).atY(y - SEARCH_BELOW);
-        BlockPos to = first.offset(SEARCH_RADIUS, 0, SEARCH_RADIUS).atY(y + SEARCH_ABOVE);
+        BlockPos from = first.offset(-SEARCH_RADIUS, 0, -SEARCH_RADIUS - SECOND_RUN_BACK).atY(level.getMinBuildHeight());
+        BlockPos to = first.offset(SEARCH_RADIUS, 0, SEARCH_RADIUS).atY(level.getMaxBuildHeight() - 1);
         for (BlockPos pos : BlockPos.betweenClosed(from, to))
         {
             if (level.getBlockState(pos).is(ModBlocks.COLOSSUS_TROPHY.get()))
@@ -188,6 +251,34 @@ public final class DrossCommandGameTest
             }
         }
         return found;
+    }
+
+    /** The highest block (anything but air: land, water, leaves, an earlier showcase) in the box's columns. */
+    private static int highestBlock(ServerLevel level, BoundingBox area)
+    {
+        int highest = level.getMinBuildHeight();
+        for (int x = area.minX(); x <= area.maxX(); x++)
+        {
+            for (int z = area.minZ(); z <= area.maxZ(); z++)
+            {
+                level.getChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z)); // loaded first
+                highest = Math.max(highest, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1);
+            }
+        }
+        return highest;
+    }
+
+    /** Sets every block in the box to air (the third run's floor, built in the air). */
+    private static void clear(ServerLevel level, BoundingBox box)
+    {
+        BlockState air = Blocks.AIR.defaultBlockState();
+        for (BlockPos pos : BlockPos.betweenClosed(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()))
+        {
+            if (!level.getBlockState(pos).isAir())
+            {
+                level.setBlock(pos, air, Block.UPDATE_CLIENTS);
+            }
+        }
     }
 
     /** Exactly one trophy per design, each on a pedestal, facing north, with its sign. */

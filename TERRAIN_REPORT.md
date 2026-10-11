@@ -15,7 +15,8 @@ This file is the running log of the overnight build. It is updated after every s
 |---|---|---|---|
 | 0 | Branch, plan written into CLAUDE.md ("Terrain v1"), old test world moved to `run/world_before_terrain_v1` | done | 86ce2c5 |
 | 1 | Base stone, ores, materials, silverwood set, Stormvine, Silverwood Forest plants, tree shapes, texture tools | build OK, asset check OK, 26/26 headless tests in a fresh world | 2724f73 |
-| 2 | The other five biomes' blocks (22) | build OK, asset check OK; the 13 new tests passed in all 4 fresh worlds; 2 of 4 runs had one older test fail (see "Flaky older tests") | (see git log) |
+| 2 | The other five biomes' blocks (22) | build OK, asset check OK; the 13 new tests passed in all 4 fresh worlds; 2 of 4 runs had one older test fail (see "Flaky older tests") | c09fd13 |
+| 3 | The hub fitted onto the ground (staircase blend), Dross ground in GroundFit, hub layout API, safe-landing finder, the flaky older tests fixed | build OK, asset check OK, 46/46 tests in 7 fresh worlds and 3 old-world copies | (see git log) |
 
 ## Stage 1: blocks, part 1 (dimension-builder)
 **Built:** Duskstone; Duskstone Coal Ore, Duskstone Gold Ore (2-6 gold nuggets), Moonsilver Ore (Raw Moonsilver, Moonsilver Ingot), Stormite Ore (Stormite Shard, glowing crystals); the silverwood log, wood, stripped log, stripped wood, planks, leaves and sapling; Stormvine; Silvermoss, Glimmer Fern, Wispbloom. Three tree shapes and the `dross:stormvine` tree decorator. Tools in `tools/terrain/` (`worldgen.py`, `draw_blocks.py`, `block_data.py`, `check_assets.py`, `preview_trees.py`), previews in `block-previews/`.
@@ -48,3 +49,17 @@ Stage 2 was interrupted once by a usage limit (it had only read files; nothing w
 ## Flaky older tests (found by running in many fresh random worlds)
 - `ColossusGameTest.trophyDropsInFrontWhenInventoryFull` (boss area): failed in 2 of 6 runs ("1 of 3 trophies dropped"). Adding tests moved it far from spawn, and it counts the dropped items only 2 ticks after the Colossus dies, before the far chunks are fully loaded. To fix in Stage 3: wait until the items show up.
 - `DrossCommandGameTest.trophyShowcase` (world site): failed once. A real small bug: running `/dross showcase trophies colossus` again only looks 8 blocks up or down for the old row, so on steep ground the old row stays. To fix in Stage 3.
+
+## Stage 3: the hub on the terrain (world-builder, boss-builder, portal-builder)
+**3a, world site (`world/shrine`, `command/`):** the ground-fitting code (`GroundFit`, used by the cathedral and now the hub) recognises the Dross's own ground through two block tags, `#dross:fit_surface` (Silvermoss, Ash, Sporeloam, Hoarfrost, Scarred Netherrack, Cragstone) and `#dross:fit_soil` (Duskstone, Cragstone, Ash): each column keeps its own top block, buried top blocks become soil, and deep fill uses the world's own base stone (Duskstone in the Dross once the terrain exists, stone in the Overworld). Any giant mushroom (also the blightcaps) is felled whole like a tree. A building is refused if it wouldn't fit in the world's height. The Overworld cathedral behaves exactly as before.
+- Fixed: re-running `/dross showcase trophies colossus` now finds the old row at any height (it's recognised by trophy + pedestal + its "No. N" sign, so a player's own trophy on display is left alone); the skin and golem showcases now search the whole height too.
+- Fixed a hidden flake in `PortalSiteGameTest`: the test server runs ticks as fast as it can, so its "5 minutes" was really about 40 seconds; it now waits up to 5 minutes of real time.
+
+**3b, boss (`ColossusGameTest`, test only):** the flaky trophy test counted dropped trophies before the far-away test chunks were ready (their entities were still hidden). Eight Colossus tests now wait until their arena's chunks are fully loaded (at most 100 ticks), and the test arena got a barrier roof (natural gravel from caves above once fell into it). No gameplay change.
+
+**3c, portal (`portal/DrossHub` and new `DrossHubBuilder`, `DrossHubLayouts`):**
+- The Shattered Spire is built like the cathedral: the whole footprint levelled at the natural ground's median height, the edges stepping back to the natural ground at most 1 block per step over 16 blocks, touching trees and giant mushrooms removed whole. Still built when the server starts (under a second on the flat Dross). If the median height wouldn't fit, the nearest level that fits is used (with a warning). The placeholder and a user's own `dross_hub.nbt` are fitted the same way. Failures fall back to the placeholder and never crash start-up.
+- The hub's layout is saved (kind, footprint, ground level, build time, arrival spot). Older worlds get theirs worked out once from the real exit frame, without changing a block.
+- Arrival is unchanged: on the front stair, (0.5, ground+9, 1.5), facing south toward the gate.
+- New for the next stages: `DrossHub.layout(server)` (footprint, exit, arrival, the survivors' two rest spots on the dais beside the arrival step) and `DrossTeleporter.findSafeSpot(...)` (looks past tree canopies, mushroom caps and floating blocks; avoids lava, fire, cactus and other hazards). Landing in the Dross never falls back to the Overworld spawn's coordinates any more.
+- Not yet seen on real hills: the Dross is still flat until Stage 5, which re-checks the hub on real terrain.

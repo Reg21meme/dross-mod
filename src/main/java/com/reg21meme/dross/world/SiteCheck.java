@@ -66,10 +66,10 @@ final class SiteCheck
         return surveyMargin(rules) + EXTRA_LOAD;
     }
 
-    /** How far around the footprint the ground is surveyed. */
+    /** How far around the footprint the ground is surveyed ({@link GroundFit#surveyMargin}). */
     static int surveyMargin(SiteRules.Level rules)
     {
-        return rules.blendMargin() + 2 + GroundFit.PROTRUSION_WINDOW;
+        return GroundFit.surveyMargin(rules.blendMargin());
     }
 
     /** Checks the spot with its site column at {@code x}/{@code z}. Server thread. */

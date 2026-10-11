@@ -10,6 +10,7 @@ import net.minecraft.world.level.block.WallSignBlock;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -39,6 +40,17 @@ final class Showcases
             pos.move(Direction.DOWN);
         }
         return isSolidGround(level, pos) ? pos.getY() : underFeet.getY();
+    }
+
+    /**
+     * The box {@code radius} blocks round {@code position} (X and Z), from the bottom of the world to its top: where a
+     * showcase looks for the showcase traders or golems of an earlier run. Every height, because on a steep hillside an
+     * old row run from a few blocks away can stand far above or below the new one.
+     */
+    static AABB columnsAround(ServerLevel level, Vec3 position, int radius)
+    {
+        return new AABB(position.x - radius, level.getMinBuildHeight(), position.z - radius,
+                position.x + radius, level.getMaxBuildHeight(), position.z + radius);
     }
 
     /** Something you can stand on: not air, not water or lava, and has a collision box. */

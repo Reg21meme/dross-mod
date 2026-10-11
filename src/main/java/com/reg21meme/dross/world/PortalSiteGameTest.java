@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
@@ -47,9 +48,12 @@ import org.slf4j.Logger;
  *       {@code /dross goto cathedral} takes him in front of the frame.</li>
  *   <li><b>A new world</b> (the site is still being placed in the background): nothing is said on joining,
  *       {@code /dross goto cathedral} fails with "hasn't been placed ... yet" and builds nothing; then, once the site
- *       is placed (about a minute; the test waits at most {@link #PLACEMENT_TIMEOUT_TICKS}), the player has been told
- *       where it is exactly once, and {@code /dross goto cathedral} works.</li>
+ *       is placed (about a minute; the test waits at most {@link #PLACEMENT_TIMEOUT_MILLIS} of real time), the player
+ *       has been told where it is exactly once, and {@code /dross goto cathedral} works.</li>
  * </ul>
+ * The wait is measured in real time, not in game ticks: the game test server runs its ticks as fast as it can (it
+ * doesn't wait 50 ms between them), so 6,000 ticks there can pass in well under a minute, while the site's background
+ * search takes real time.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -64,14 +68,19 @@ public final class PortalSiteGameTest
      */
     public static final String EMPTY = "portal_site_test_empty";
     private static final ResourceLocation EMPTY_ID = new ResourceLocation(Dross.MODID, EMPTY);
-    /** In a new world the site is built in the background, about a minute after it opens: wait at most 5 minutes. */
-    private static final int PLACEMENT_TIMEOUT_TICKS = 5 * 60 * 20;
+    /** In a new world the site is built in the background, about a minute after it opens: wait at most 5 minutes (real time). */
+    private static final long PLACEMENT_TIMEOUT_MILLIS = 5 * 60 * 1000L;
+    /**
+     * The test's tick limit is only a backstop behind {@link #PLACEMENT_TIMEOUT_MILLIS}: the game test server can run
+     * several hundred ticks a second while it waits, so this is far more than 5 minutes' worth.
+     */
+    private static final int BACKSTOP_TIMEOUT_TICKS = 1_000_000;
     /** After {@link #SITE_COMMAND}, the player must be within this many blocks (on each of X, Y and Z) of the opening's middle. */
     private static final int NEAR_FRAME = 8;
     /** The command that takes a player to the portal site (without the slash). */
     private static final String SITE_COMMAND = "dross goto cathedral";
 
-    @GameTest(template = EMPTY, batch = "dross_portal_site", timeoutTicks = PLACEMENT_TIMEOUT_TICKS)
+    @GameTest(template = EMPTY, batch = "dross_portal_site", timeoutTicks = BACKSTOP_TIMEOUT_TICKS)
     public static void siteMessageAndCommand(GameTestHelper helper)
     {
         ServerLevel overworld = helper.getLevel().getServer().overworld();
@@ -96,13 +105,20 @@ public final class PortalSiteGameTest
             expectSiteMessages(player, 0, overworld, "on joining before the site is placed");
             expectSiteCommandFails(player, overworld);
         });
+        long deadline = Util.getMillis() + PLACEMENT_TIMEOUT_MILLIS;
         helper.startSequence()
                 .thenWaitUntil(() -> {
-                    if (!PortalSite.isPlaced(overworld))
+                    if (!PortalSite.isPlaced(overworld) && Util.getMillis() < deadline)
                     {
-                        throw new GameTestAssertException("The site was never placed (waited " + PLACEMENT_TIMEOUT_TICKS / 20 + " s)");
+                        throw new GameTestAssertException("Waiting for the site to be placed");
                     }
                 })
+                .thenExecute(() -> checked(player, () -> {
+                    if (!PortalSite.isPlaced(overworld))
+                    {
+                        throw new GameTestAssertException("The site was never placed (waited " + PLACEMENT_TIMEOUT_MILLIS / 1000 + " s)");
+                    }
+                }))
                 .thenExecute(() -> checked(player, () -> {
                     expectSiteMessages(player, 1, overworld, "after the site was placed");
                     expectSiteCommandWorks(player, overworld);

@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BushBlock;
 import net.minecraft.world.level.block.CarpetBlock;
 import net.minecraft.world.level.block.Fallable;
+import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -34,15 +35,17 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  *   <li><b>Cut</b>: inside the footprint, everything above the ground level is removed, all the way up to the sky:
  *       hills, trees, water.</li>
  *   <li><b>Fill</b>: under the ground level, every column is filled down to solid natural ground, however deep:
- *       grass on top, then {@link #DIRT_DEPTH} blocks of dirt, then stone (sand over sandstone where the ground around
- *       is mostly sand, red sand over terracotta in the badlands: see {@link Surface}). Over a lake or the sea that makes a stone
- *       foundation reaching down to the bottom (through any sea ice or iceberg, which floats). Sand and gravel only
+ *       grass on top, then {@link #DIRT_DEPTH} blocks of dirt, then the level's base block (stone in the Overworld,
+ *       see {@link GroundFit#deepFillBlock}; sand over sandstone where the ground around is mostly sand, red sand over
+ *       terracotta in the badlands: see {@link Surface}). Over a lake or the sea that makes a stone foundation reaching
+ *       down to the bottom (through any sea ice or iceberg, which floats). Sand and gravel only
  *       count as solid ground if something solid holds them up (not a cave or an underground water pocket), and
  *       inside the footprint there are always at least {@link #MIN_FOUNDATION} solid blocks under the ground.</li>
  *   <li><b>Blend</b>: in a band {@link #BLEND_MARGIN} blocks wide around the footprint, the ground slopes from the
  *       build's level back to the natural terrain (cut down or built up), so there's a slope instead of a sheer wall
  *       or a sudden drop. Water and lava there are only ever filled in, never drained.</li>
- *   <li><b>Seal</b>: water or lava right next to any space that was cleared is turned into stone, so nothing pours in.</li>
+ *   <li><b>Seal</b>: water or lava right next to any space that was cleared is turned into stone (the level's base
+ *       block), so nothing pours in.</li>
  *   <li><b>Tidy</b>: bits of trees left hanging by the cut (loose branches) are removed, and leaves that lost their
  *       tree wither away by themselves (vanilla leaf decay).</li>
  * </ol>
@@ -56,7 +59,7 @@ final class ShrineGround
 {
     /** How far (in blocks) outside the footprint the ground slopes back from the build's level to the natural terrain. */
     static final int BLEND_MARGIN = 16;
-    /** Under the top grass block, filled ground is dirt this many blocks deep; deeper down it's stone. */
+    /** Under the top grass block, filled ground is dirt this many blocks deep; deeper down it's the level's base block. */
     private static final int DIRT_DEPTH = 3;
     /**
      * Inside the footprint there are always at least this many solid blocks under the ground layer. A thin natural
@@ -73,9 +76,6 @@ final class ShrineGround
     private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
-    private static final BlockState STONE = Blocks.STONE.defaultBlockState();
-    /** What water or lava next to cleared space turns into. */
-    private static final BlockState SEAL = Blocks.STONE.defaultBlockState();
 
     /**
      * The ground level picked for a footprint, and what the natural ground under it looked like (for the log).
@@ -104,7 +104,7 @@ final class ShrineGround
      * @param deepestFill   the deepest fill in one column (blocks placed, the top grass included)
      * @param removed       blocks removed (terrain, trees, water above the ground)
      * @param placed        blocks placed for the foundation and the slopes
-     * @param sealed        water or lava blocks next to cleared space turned into stone
+     * @param sealed        water or lava blocks next to cleared space turned into stone (the level's base block)
      * @param looseLogs     hanging logs removed
      * @param leavesChecked leaves next to removed trees, told to check whether they still have a tree (decay)
      * @param surface       what new ground was topped with ("grass", "sand" or "red sand")
@@ -206,7 +206,9 @@ final class ShrineGround
 
     /**
      * Trees (logs, leaves, bee nests, huge mushrooms, mangrove roots) and plants, including the ones with a small
-     * collision box (lily pads, sea pickles, cactus, bamboo, dripleaves, carpets of moss...).
+     * collision box (lily pads, sea pickles, cactus, bamboo, dripleaves, carpets of moss...). A huge mushroom is any
+     * {@link HugeMushroomBlock}: vanilla's stems and caps, and other ones built the same way (the Dross's giant
+     * blightcaps).
      */
     static boolean isTreeOrPlant(BlockState state)
     {
@@ -224,6 +226,7 @@ final class ShrineGround
                 || state.is(Blocks.MUSHROOM_STEM)
                 || state.is(Blocks.RED_MUSHROOM_BLOCK)
                 || state.is(Blocks.BROWN_MUSHROOM_BLOCK)
+                || state.getBlock() instanceof HugeMushroomBlock
                 || state.is(Blocks.AZALEA)
                 || state.is(Blocks.BAMBOO)
                 || state.is(Blocks.CACTUS)
@@ -277,7 +280,7 @@ final class ShrineGround
     /**
      * What new ground is made of, to match the natural ground around the build: grass over dirt in most places, sand
      * over sandstone where the ground is mostly sand (deserts, beaches), red sand over terracotta in the badlands.
-     * Deeper fill is always stone.
+     * Deeper fill is always the level's base block (stone in the Overworld).
      *
      * @param top   the block on top of filled or freshly cut ground
      * @param under the next {@link #DIRT_DEPTH} blocks under it
@@ -366,6 +369,11 @@ final class ShrineGround
         final BlockPos.MutableBlockPos probe = new BlockPos.MutableBlockPos();
         /** What new ground is made of. */
         final Surface newGround;
+        /**
+         * Deep new ground, and what water or lava next to cleared space turns into: the level's base block
+         * ({@link GroundFit#deepFillBlock}: stone in the Overworld).
+         */
+        final BlockState deepFill;
         int cutColumns;
         int highestCut;
         int fillColumns;
@@ -381,6 +389,7 @@ final class ShrineGround
             this.level = level;
             this.footprint = footprint;
             this.newGround = surface;
+            this.deepFill = GroundFit.deepFillBlock(level);
             this.minX = footprint.minX() - BLEND_MARGIN;
             this.minZ = footprint.minZ() - BLEND_MARGIN;
             this.sizeX = footprint.getXSpan() + 2 * BLEND_MARGIN;
@@ -479,7 +488,7 @@ final class ShrineGround
                     {
                         break;
                     }
-                    level.setBlock(pos, target - y <= DIRT_DEPTH ? newGround.under() : STONE, FLAGS);
+                    level.setBlock(pos, target - y <= DIRT_DEPTH ? newGround.under() : deepFill, FLAGS);
                     depth++;
                 }
                 placed += depth;
@@ -514,7 +523,10 @@ final class ShrineGround
             }
         }
 
-        /** Fills the column from {@code fromY} down to solid ground (dirt near {@code groundY}, stone deeper down). */
+        /**
+         * Fills the column from {@code fromY} down to solid ground (dirt near {@code groundY}, the level's base block
+         * deeper down).
+         */
         private void fillDown(int x, int fromY, int z, int groundY)
         {
             int depth = 0;
@@ -525,7 +537,7 @@ final class ShrineGround
                 {
                     break;
                 }
-                level.setBlock(pos, groundY - y <= DIRT_DEPTH ? newGround.under() : STONE, FLAGS);
+                level.setBlock(pos, groundY - y <= DIRT_DEPTH ? newGround.under() : deepFill, FLAGS);
                 depth++;
             }
             placed += depth;
@@ -559,8 +571,8 @@ final class ShrineGround
         }
 
         /**
-         * Water or lava right next to space that was cleared would pour in: turn it into stone. Leaves next to it
-         * (their tree may have been removed) are told to check whether they still have a tree.
+         * Water or lava right next to space that was cleared would pour in: turn it into stone (the level's base
+         * block). Leaves next to it (their tree may have been removed) are told to check whether they still have a tree.
          */
         void seal()
         {
@@ -588,7 +600,7 @@ final class ShrineGround
                             BlockState state = level.getBlockState(pos);
                             if (!state.getFluidState().isEmpty())
                             {
-                                level.setBlock(pos, SEAL, FLAGS);
+                                level.setBlock(pos, deepFill, FLAGS);
                                 sealed++;
                             }
                             else if (state.is(BlockTags.LEAVES))

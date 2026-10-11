@@ -1,5 +1,6 @@
 package com.reg21meme.dross.world.shrine;
 
+import com.reg21meme.dross.Dross;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -7,18 +8,24 @@ import java.util.Locale;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.Fallable;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraftforge.registries.ForgeRegistries;
 
 /**
- * Fits a big build (the Fallen Cathedral at the portal site) into <b>natural, already flat</b> ground, gently:
+ * Fits a big build (the Fallen Cathedral at the portal site; the Shattered Spire at the Dross hub, once the Dross has
+ * real terrain) into <b>natural, nearly flat</b> ground, gently:
  * <ol>
  *   <li><b>Survey</b> ({@link #survey}): the natural ground's height in every column of the footprint and the ring
  *       around it. Trees, leaves, plants, snow layers, huge mushrooms, ice spikes and mossy boulders are looked
@@ -34,6 +41,12 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  *       is cut and filled to its level (small caves under it are filled down to solid ground) and the ring is shaped.
  *       New ground gets the same top as the column had (grass, podzol, sand over sandstone, snow...).</li>
  * </ol>
+ * <b>Other worlds' ground.</b> Besides vanilla's ground blocks, two block tags (filled by the Dimension area for the
+ * Dross) say what other ground is made of: {@link #FIT_SURFACE}, top-of-the-ground blocks (Silvermoss, Ash,
+ * Sporeloam...), which new ground in their column keeps on top and which turn into the column's soil when buried, like
+ * grass; and {@link #FIT_SOIL}, the ground under them (Duskstone, Cragstone, Ash). Deep new ground is the level's own
+ * base block ({@link #deepFillBlock}: stone in the Overworld, the Dross's base stone in the Dross).
+ * <p>
  * Changes use {@link #FLAGS}: players see them, but no block reacts to its neighbours meanwhile (water doesn't flow,
  * sand doesn't fall, leaves don't start decaying).
  */
@@ -43,20 +56,69 @@ public final class GroundFit
     static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
     /** How far around a column (blocks) we look to tell an ice spike or a boulder from the flat ground under it. */
     public static final int PROTRUSION_WINDOW = 6;
+    /**
+     * Columns surveyed beyond the blending ring ({@link #surveyMargin}): the plan compares the staircase's last column
+     * with the natural ground just past it, which needs one more column, and one spare.
+     */
+    private static final int SURVEY_PAST_BLEND = 2;
     /** Inside the footprint there are always at least this many solid blocks under the ground (small caves are filled). */
     private static final int MIN_FOUNDATION = 4;
-    /** Filled ground is the column's own under-block this many blocks deep; deeper down it's stone. */
+    /** Filled ground is the column's own under-block this many blocks deep; deeper down it's the level's base block. */
     private static final int SOIL_DEPTH = 3;
     /**
-     * A cave hidden under the footprint's ground (within {@link #MIN_FOUNDATION} blocks) is filled with stone, but at most
-     * this deep under the ground level; a bigger cave keeps its lower part (out of sight, and stone doesn't fall).
+     * A cave hidden under the footprint's ground (within {@link #MIN_FOUNDATION} blocks) is filled with the level's base
+     * block, but at most this deep under the ground level; a bigger cave keeps its lower part (out of sight, and stone
+     * doesn't fall).
      */
     private static final int CAVE_FILL_LIMIT = 16;
+
+    /**
+     * Top-of-the-ground blocks besides vanilla's (block tag {@code dross:fit_surface}, filled by the Dimension area: the
+     * Dross's Silvermoss, Ash, Sporeloam, Hoarfrost, Scarred Netherrack and Cragstone). New ground keeps its column's own
+     * top block when it's one of these, and one that ends up buried becomes the column's soil, like grass.
+     */
+    public static final TagKey<Block> FIT_SURFACE = TagKey.create(Registries.BLOCK, new ResourceLocation(Dross.MODID, "fit_surface"));
+    /**
+     * Ground under the top block besides vanilla's (block tag {@code dross:fit_soil}, filled by the Dimension area: the
+     * Dross's Duskstone, Cragstone and Ash). New ground in a column keeps its own one of these under its top block.
+     */
+    public static final TagKey<Block> FIT_SOIL = TagKey.create(Registries.BLOCK, new ResourceLocation(Dross.MODID, "fit_soil"));
 
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final BlockState STONE = Blocks.STONE.defaultBlockState();
 
     private GroundFit() {}
+
+    /**
+     * How far around a footprint to survey ({@link #survey}) for a staircase up to {@code blendMargin} blocks wide, so a
+     * {@link #plan} can use all of it: the blend margin, plus 2 columns past it (the plan checks the step from the
+     * staircase's last column to the natural ground beyond it), plus {@link #PROTRUSION_WINDOW} (so an ice spike or a
+     * boulder near the ring's edge is still told apart from the plain ground around it). For example 16 gives 24: the
+     * portal site's cathedral and the Dross hub survey 24 blocks round their footprints.
+     */
+    public static int surveyMargin(int blendMargin)
+    {
+        return blendMargin + SURVEY_PAST_BLEND + PROTRUSION_WINDOW;
+    }
+
+    /**
+     * What deep new ground (more than {@code 3} blocks under the ground level, and small caves under the footprint) is
+     * made of in {@code level}: the base block its terrain is made of ({@code default_block} of its noise settings:
+     * stone in the Overworld, netherrack in the Nether, the Dross's base stone once it has real terrain), or stone for
+     * any other kind of world (superflat...).
+     */
+    public static BlockState deepFillBlock(ServerLevel level)
+    {
+        if (level.getChunkSource().getGenerator() instanceof NoiseBasedChunkGenerator noise)
+        {
+            BlockState base = noise.generatorSettings().value().defaultBlock();
+            if (!base.isAir() && base.getFluidState().isEmpty())
+            {
+                return base;
+            }
+        }
+        return STONE;
+    }
 
     // ---------------------------------------------------------------- survey
 
@@ -84,12 +146,15 @@ public final class GroundFit
         /** What most of the natural ground here is topped with, and what lies under that. */
         final BlockState dominantTop;
         final BlockState dominantUnder;
+        /** What deep new ground is made of here: the level's base block ({@link #deepFillBlock}). */
+        final BlockState deepFill;
 
         private Survey(ServerLevel level, BoundingBox footprint, int margin)
         {
             this.level = level;
             this.footprint = footprint;
             this.margin = margin;
+            this.deepFill = deepFillBlock(level);
             this.minX = footprint.minX() - margin;
             this.minZ = footprint.minZ() - margin;
             this.sizeX = footprint.getXSpan() + 2 * margin;
@@ -111,6 +176,18 @@ public final class GroundFit
         public BoundingBox footprint()
         {
             return footprint;
+        }
+
+        /** How far around the footprint it reaches (blocks). */
+        public int margin()
+        {
+            return margin;
+        }
+
+        /** What deep new ground is made of here: the level's base block ({@link #deepFillBlock}). */
+        public BlockState deepFill()
+        {
+            return deepFill;
         }
 
         /** True if the column is inside the surveyed area. */
@@ -327,7 +404,10 @@ public final class GroundFit
         public final int steepSteps;
         /** The deepest dip in the footprint's natural ground that would be filled up to the ground level (blocks). */
         public final int deepestDip;
-        /** The deepest hidden cave right under the footprint's ground (blocks under the ground level; filled with stone, capped). */
+        /**
+         * The deepest hidden cave right under the footprint's ground (blocks under the ground level; filled with the
+         * level's base block, capped).
+         */
         public final int deepestCave;
         /** The footprint's natural ground heights, lowest first. */
         private final int[] sortedHeights;
@@ -659,17 +739,18 @@ public final class GroundFit
     /**
      * What applying a plan did.
      *
-     * @param felling what was removed whole (trees, huge mushrooms, ice spikes, boulders)
+     * @param felling  what was removed whole (trees, huge mushrooms, ice spikes, boulders)
+     * @param deepFill what deep new ground was made of (the level's base block, {@link #deepFillBlock})
      */
     public record Report(TreeFelling.Result felling, int footprintCut, int footprintFilled, int ringCut, int ringFilled,
-                         int removed, int placed, int dipsFilled, int sealed, int snowed)
+                         int removed, int placed, int dipsFilled, int sealed, int snowed, BlockState deepFill)
     {
         public String summary()
         {
             return felling.summary() + "; footprint: " + footprintCut + " columns cut, " + footprintFilled + " filled, "
                     + dipsFilled + " gaps under it filled; staircase: " + ringCut + " columns cut, " + ringFilled + " filled; "
                     + removed + " blocks removed, " + placed + " placed, " + sealed + " water/lava blocks sealed, "
-                    + snowed + " snow layers put back";
+                    + snowed + " snow layers put back; deep fill " + ForgeRegistries.BLOCKS.getKey(deepFill.getBlock());
         }
     }
 
@@ -711,7 +792,7 @@ public final class GroundFit
             }
         }
         return new Report(felling, applier.footprintCut, applier.footprintFilled, applier.ringCut, applier.ringFilled,
-                applier.removed, applier.placed, applier.dips, applier.sealed, applier.snowed + snowed);
+                applier.removed, applier.placed, applier.dips, applier.sealed, applier.snowed + snowed, s.deepFill);
     }
 
     /**
@@ -780,8 +861,8 @@ public final class GroundFit
                 footprintFilled++;
             }
             shapeTop(x, z, index, ground, natural);
-            // At least MIN_FOUNDATION solid blocks under the ground: a cave under a thin crust is filled with stone
-            // (stone never falls), at most CAVE_FILL_LIMIT blocks under the ground.
+            // At least MIN_FOUNDATION solid blocks under the ground: a cave under a thin crust is filled with the level's
+            // base block (stone, or the Dross's base stone; it never falls), at most CAVE_FILL_LIMIT blocks under the ground.
             for (int y = ground - 1; y >= ground - MIN_FOUNDATION && y > level.getMinBuildHeight(); y--)
             {
                 if (!isFirmGround(level, probe, x, y, z))
@@ -792,7 +873,7 @@ public final class GroundFit
                         {
                             break;
                         }
-                        set(x, fill, z, STONE);
+                        set(x, fill, z, s.deepFill);
                     }
                     dips++;
                     break;
@@ -833,7 +914,7 @@ public final class GroundFit
             BlockState underBlock = s.underFor(index);
             if (natural < ground && !s.liquid[index])
             {
-                // The old top is buried: grass turns to soil under it.
+                // The old top is buried: grass (and the like: podzol, mycelium, Silvermoss...) turns to soil under it.
                 BlockState old = level.getBlockState(pos.set(x, natural, z));
                 if (isGrassLike(old))
                 {
@@ -858,7 +939,7 @@ public final class GroundFit
             fillDown(x, ground - 1, z, ground, index);
         }
 
-        /** Fills the column from {@code fromY} down to firm ground: the column's soil near the top, stone deeper down. */
+        /** Fills the column from {@code fromY} down to firm ground: the column's soil near the top, the level's base block deeper down. */
         private void fillDown(int x, int fromY, int z, int ground, int index)
         {
             BlockState underBlock = s.underFor(index);
@@ -868,7 +949,7 @@ public final class GroundFit
                 {
                     break;
                 }
-                set(x, y, z, ground - y <= SOIL_DEPTH ? underBlock : STONE);
+                set(x, y, z, ground - y <= SOIL_DEPTH ? underBlock : s.deepFill);
             }
         }
 
@@ -951,7 +1032,7 @@ public final class GroundFit
                             BlockState state = level.getBlockState(pos.set(nx, y, nz));
                             if (!state.getFluidState().isEmpty())
                             {
-                                BlockState seal = s.contains(nx, nz) ? s.underFor(s.index(nx, nz)) : STONE;
+                                BlockState seal = s.contains(nx, nz) ? s.underFor(s.index(nx, nz)) : s.deepFill;
                                 level.setBlock(pos, seal, FLAGS);
                                 sealed++;
                             }
@@ -1014,26 +1095,39 @@ public final class GroundFit
         return state.is(Blocks.PACKED_ICE) || state.is(Blocks.BLUE_ICE) || state.is(Blocks.MOSSY_COBBLESTONE);
     }
 
-    /** A natural top-of-the-ground block, the kind new ground in that column gets on top. */
+    /**
+     * A natural top-of-the-ground block, the kind new ground in that column gets on top: vanilla's (grass, podzol,
+     * sand...) and every block in {@link #FIT_SURFACE} (the Dross's Silvermoss, Ash...).
+     */
     static boolean isSurfaceBlock(BlockState state)
     {
         return state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.PODZOL) || state.is(Blocks.MYCELIUM) || state.is(Blocks.COARSE_DIRT)
                 || state.is(Blocks.MOSS_BLOCK) || state.is(Blocks.SAND) || state.is(Blocks.RED_SAND) || state.is(Blocks.SNOW_BLOCK)
-                || state.is(Blocks.GRAVEL) || state.is(Blocks.PACKED_ICE) || state.is(Blocks.MUD);
+                || state.is(Blocks.GRAVEL) || state.is(Blocks.PACKED_ICE) || state.is(Blocks.MUD)
+                || state.is(FIT_SURFACE);
     }
 
-    /** Ground that can go under the top block of new ground (never grass: that turns to dirt under a block). */
+    /**
+     * Ground that can go under the top block of new ground (never grass: that turns to dirt under a block): vanilla's
+     * (dirt, sandstone, stone...) and every block in {@link #FIT_SOIL} (the Dross's Duskstone...).
+     */
     static boolean isSoil(BlockState state)
     {
         return state.is(Blocks.DIRT) || state.is(Blocks.COARSE_DIRT) || state.is(Blocks.SAND) || state.is(Blocks.RED_SAND)
                 || state.is(Blocks.SANDSTONE) || state.is(Blocks.RED_SANDSTONE) || state.is(Blocks.GRAVEL)
                 || state.is(Blocks.SNOW_BLOCK) || state.is(Blocks.PACKED_ICE) || state.is(Blocks.STONE)
-                || state.is(Blocks.CLAY) || state.is(BlockTags.TERRACOTTA);
+                || state.is(Blocks.CLAY) || state.is(BlockTags.TERRACOTTA)
+                || state.is(FIT_SOIL);
     }
 
-    private static boolean isGrassLike(BlockState state)
+    /**
+     * A top block that turns into its column's soil when new ground buries it: grass, podzol and mycelium (which would
+     * turn to dirt under a block anyway), and every block in {@link #FIT_SURFACE}.
+     */
+    static boolean isGrassLike(BlockState state)
     {
-        return state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.PODZOL) || state.is(Blocks.MYCELIUM);
+        return state.is(Blocks.GRASS_BLOCK) || state.is(Blocks.PODZOL) || state.is(Blocks.MYCELIUM)
+                || state.is(FIT_SURFACE);
     }
 
     /** Loose things on the ground: plants, snow layers and anything else simply replaced or without a full shape. */

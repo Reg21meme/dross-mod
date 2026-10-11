@@ -5,6 +5,9 @@ import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.PortalSite;
 import com.reg21meme.dross.world.PortalSiteBuilder;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.Nullable;
@@ -18,9 +21,13 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -28,6 +35,7 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.portal.PortalInfo;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.common.util.ITeleporter;
 import org.slf4j.Logger;
 
@@ -39,16 +47,28 @@ import org.slf4j.Logger;
  *   <li><b>Out of the Dross</b> (the hub's exit portal): always the <b>castle portal</b> in the Overworld
  *       ({@link PortalSite}), wherever the entity came in. Lit or not, it lands in front of that frame.
  *       Nothing is ever built in the Overworld. If the castle frame can't be found, the entity lands safely
- *       on the ground at the site's X/Z and a warning is logged.</li>
+ *       on the ground near the site's X/Z and a warning is logged.</li>
  * </ul>
  * The entity is always placed on solid ground in free space next to the portal (or, if both sides are
  * blocked, inside the portal itself, standing on the frame), never inside blocks or over a drop.
+ * <p>
+ * {@link #findSafeSpot} finds a safe place to stand on the ground near any column (other areas use it too, for
+ * example to teleport players to a place in the Dross).
  */
 public class DrossTeleporter implements ITeleporter
 {
     private static final Logger LOGGER = LogUtils.getLogger();
     /** How far around the castle frame to look for a lit Dross portal, if the frame isn't where PortalSite says. */
     private static final int CASTLE_SEARCH_RADIUS = 16;
+    /** How far (blocks, along X and Z) {@link #safeLanding} looks around its column for a safe spot ({@link #findSafeSpot}). */
+    public static final int LANDING_SEARCH_RADIUS = 16;
+    /**
+     * The ground a safe spot stands on must have at least this many more solid blocks right under it, so a lone block
+     * floating in the air (like the hub spire's frame shard, high over its hall) or a block on a branch is never "the ground".
+     */
+    public static final int GROUND_SUPPORT = 2;
+    /** The size used when there's no entity to measure: a standing player (0.6 wide, 1.8 tall). */
+    static final EntityDimensions PLAYER_SIZE = EntityType.PLAYER.getDimensions();
 
     @Override
     public boolean isVanilla()
@@ -146,7 +166,18 @@ public class DrossTeleporter implements ITeleporter
     {
         // Both sides blocked: stand inside the opening, on top of the frame's bottom row.
         // The portal cooldown stops it from sending the entity straight back.
-        return spotBeside(level, entity, opening, facePortal).orElseGet(() -> spotInside(entity, opening));
+        return spotBeside(level, entity, sizeOf(entity), opening, facePortal)
+                .orElseGet(() -> spotInside(opening, entity.getYRot(), entity.getXRot()));
+    }
+
+    /**
+     * Where a standing player arriving through this opening lands (the hub's arrival spot), worked out the same way as
+     * {@link #arrivalAt(ServerLevel, Entity, PortalOpening)}: in front of the opening if there's room, facing away from it.
+     */
+    static PortalInfo arrivalSpot(ServerLevel level, PortalOpening opening)
+    {
+        return spotBeside(level, null, PLAYER_SIZE, opening, false)
+                .orElseGet(() -> spotInside(opening, frontYaw(opening), 0.0F));
     }
 
     /**
@@ -156,13 +187,14 @@ public class DrossTeleporter implements ITeleporter
      */
     static Optional<PortalInfo> safeArrivalNear(ServerLevel level, Entity entity, PortalOpening opening)
     {
-        Optional<PortalInfo> beside = spotBeside(level, entity, opening, false);
+        EntityDimensions size = sizeOf(entity);
+        Optional<PortalInfo> beside = spotBeside(level, entity, size, opening, false);
         if (beside.isPresent())
         {
             return beside;
         }
-        PortalInfo inside = spotInside(entity, opening);
-        return isSafe(level, entity, inside.pos) ? Optional.of(inside) : Optional.empty();
+        PortalInfo inside = spotInside(opening, entity.getYRot(), entity.getXRot());
+        return isSafe(level, entity, size, inside.pos) ? Optional.of(inside) : Optional.empty();
     }
 
     /**
@@ -170,7 +202,8 @@ public class DrossTeleporter implements ITeleporter
      * each at the opening's bottom level, one lower and one higher (so steps up to the frame are fine). Faces away from
      * the portal, or towards it with {@code facePortal}.
      */
-    private static Optional<PortalInfo> spotBeside(ServerLevel level, Entity entity, PortalOpening opening, boolean facePortal)
+    private static Optional<PortalInfo> spotBeside(ServerLevel level, @Nullable Entity entity, EntityDimensions size,
+                                                   PortalOpening opening, boolean facePortal)
     {
         BlockPos min = opening.minCorner();
         boolean alongX = opening.axis() == Direction.Axis.X;
@@ -186,7 +219,7 @@ public class DrossTeleporter implements ITeleporter
                 {
                     double p = perp + side * distance;
                     Vec3 pos = alongX ? new Vec3(along, y + dy, p) : new Vec3(p, y + dy, along);
-                    if (isSafe(level, entity, pos))
+                    if (isSafe(level, entity, size, pos))
                     {
                         // Minecraft yaw: 0 faces +Z (south), 180 faces -Z, -90 faces +X (east), 90 faces -X.
                         // This is the direction pointing away from the portal; turn around to face it.
@@ -203,45 +236,233 @@ public class DrossTeleporter implements ITeleporter
         return Optional.empty();
     }
 
-    /** Standing inside the opening, on top of the frame's bottom row, keeping the entity's own rotation. */
-    private static PortalInfo spotInside(Entity entity, PortalOpening opening)
+    /** Standing inside the opening, on top of the frame's bottom row, with the given rotation. */
+    private static PortalInfo spotInside(PortalOpening opening, float yaw, float pitch)
     {
         BlockPos min = opening.minCorner();
         boolean alongX = opening.axis() == Direction.Axis.X;
         double along = opening.centerAlong();
         double perp = (alongX ? min.getZ() : min.getX()) + 0.5D;
         Vec3 inside = alongX ? new Vec3(along, min.getY(), perp) : new Vec3(perp, min.getY(), along);
-        return new PortalInfo(inside, Vec3.ZERO, entity.getYRot(), entity.getXRot());
+        return new PortalInfo(inside, Vec3.ZERO, yaw, pitch);
     }
 
-    /** Lands on the ground at X/Z; if that column is unsafe (void, lava...), at the world spawn instead. */
+    /** The yaw that faces out of the front (+Z / +X side) of the opening. */
+    private static float frontYaw(PortalOpening opening)
+    {
+        return opening.axis() == Direction.Axis.X ? 0.0F : -90.0F;
+    }
+
+    /**
+     * Lands on safe ground near X/Z ({@link #findSafeSpot}, up to {@link #LANDING_SEARCH_RADIUS} blocks away), or on
+     * open water right there. If there's neither: in the Dross, on the hub's arrival spot (never anywhere near the
+     * Overworld's spawn); anywhere else, near the world spawn.
+     */
     static PortalInfo safeLanding(ServerLevel level, Entity entity, int x, int z)
     {
-        Vec3 spot = surfaceSpot(level, x, z);
-        if (spot != null && (isSafe(level, entity, spot) || level.getFluidState(BlockPos.containing(spot).below()).is(FluidTags.WATER)))
+        Optional<Vec3> spot = findSafeSpot(level, entity, x, z, LANDING_SEARCH_RADIUS);
+        if (spot.isPresent())
         {
-            return new PortalInfo(spot, Vec3.ZERO, entity.getYRot(), entity.getXRot());
+            return new PortalInfo(spot.get(), Vec3.ZERO, entity.getYRot(), entity.getXRot());
+        }
+        Vec3 surface = surfaceSpot(level, x, z);
+        if (surface != null && level.getFluidState(BlockPos.containing(surface).below()).is(FluidTags.WATER))
+        {
+            return new PortalInfo(surface, Vec3.ZERO, entity.getYRot(), entity.getXRot()); // open water: it swims
+        }
+        if (level.dimension() == ModDimensions.DROSS_LEVEL)
+        {
+            PortalInfo hub = hubFallback(level, entity, x, z);
+            LOGGER.warn("Dross portal: no safe ground within {} blocks of {} {} in the Dross; landing {} on the hub's arrival spot {} instead.",
+                    LANDING_SEARCH_RADIUS, x, z, entity.getName().getString(), BlockPos.containing(hub.pos).toShortString());
+            return hub;
         }
         BlockPos spawn = level.getSharedSpawnPos();
+        Optional<Vec3> nearSpawn = findSafeSpot(level, entity, spawn.getX(), spawn.getZ(), LANDING_SEARCH_RADIUS);
+        if (nearSpawn.isPresent())
+        {
+            return new PortalInfo(nearSpawn.get(), Vec3.ZERO, entity.getYRot(), entity.getXRot());
+        }
         Vec3 spawnSpot = surfaceSpot(level, spawn.getX(), spawn.getZ());
         return new PortalInfo(spawnSpot != null ? spawnSpot : Vec3.atBottomCenterOf(spawn), Vec3.ZERO, entity.getYRot(), entity.getXRot());
     }
 
-    @Nullable
-    private static Vec3 surfaceSpot(ServerLevel level, int x, int z)
+    /**
+     * The last resort in the Dross: the hub's remembered arrival spot; if there is none, in front of its remembered exit
+     * portal; if the hub has no exit portal at all, the ground at X/Z, whatever it is.
+     */
+    private static PortalInfo hubFallback(ServerLevel dross, Entity entity, int x, int z)
     {
-        int y = surfaceY(level, x, z);
-        if (y <= level.getMinBuildHeight() + 1)
+        DrossHubData data = DrossHubData.get(dross.getServer());
+        Vec3 arrival = data.getArrival();
+        if (arrival != null)
         {
-            return null; // void column
+            return new PortalInfo(arrival, Vec3.ZERO, data.getArrivalYaw(), 0.0F);
         }
-        return new Vec3(x + 0.5D, y, z + 0.5D);
+        PortalOpening exit = data.getRememberedExit();
+        if (exit != null)
+        {
+            BlockPos min = exit.minCorner();
+            Vec3 front = exit.axis() == Direction.Axis.X
+                    ? new Vec3(exit.centerAlong(), min.getY(), min.getZ() + 1.5D)
+                    : new Vec3(min.getX() + 1.5D, min.getY(), exit.centerAlong());
+            return new PortalInfo(front, Vec3.ZERO, frontYaw(exit), 0.0F);
+        }
+        Vec3 surface = surfaceSpot(dross, x, z);
+        return new PortalInfo(surface != null ? surface : new Vec3(x + 0.5D, dross.getSeaLevel(), z + 0.5D), Vec3.ZERO,
+                entity.getYRot(), entity.getXRot());
     }
 
-    /** Free space for the entity's body, no liquid in it, and solid, non-burning ground right under its feet. */
-    private static boolean isSafe(ServerLevel level, Entity entity, Vec3 pos)
+    // ------------------------------------------------------------------ finding safe ground
+
+    /**
+     * A safe place for {@code entity} to stand on the ground, as near to the column {@code x}/{@code z} as possible: the
+     * columns are tried nearest first (spiralling out to {@code radius} blocks along X and Z), and in each column the
+     * highest ground is used if it's safe:
+     * <ul>
+     *   <li>Looking down from the top of the column, the ground is the first block with a collision shape (at most one
+     *       block tall) that isn't leaves, a log, a giant mushroom, a fluid or a portal, and that has at least
+     *       {@link #GROUND_SUPPORT} more solid blocks right under it. So tree tops, mushroom caps, floating blocks and
+     *       one-block ledges are looked past, and plants, snow and ash layers are stood in.</li>
+     *   <li>The spot is safe if the entity, standing up, fits there without touching any block, liquid or portal, has
+     *       something to stand on, and nothing under or around its feet burns or hurts (fire, lava, magma, cactus...).
+     *       If the column's ground isn't safe (a tree trunk stands on it, lava covers it...), the next column is tried.</li>
+     * </ul>
+     * Loads (and if needed generates) the chunks it looks at. Server thread only. With a null entity, the spot is sized
+     * for a standing player.
+     *
+     * @return the spot (the middle of the block's top face it stands on), or empty if no column within {@code radius} has one
+     */
+    public static Optional<Vec3> findSafeSpot(ServerLevel level, @Nullable Entity entity, int x, int z, int radius)
     {
-        AABB box = entity.getDimensions(entity.getPose()).makeBoundingBox(pos);
+        EntityDimensions size = sizeOf(entity);
+        for (int[] offset : spiral(Math.max(0, radius)))
+        {
+            Vec3 spot = safeSpotInColumn(level, entity, size, x + offset[0], z + offset[1]);
+            if (spot != null)
+            {
+                return Optional.of(spot);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** The column's highest ground (see {@link #findSafeSpot}), if it's safe to stand on; null otherwise. */
+    @Nullable
+    private static Vec3 safeSpotInColumn(ServerLevel level, @Nullable Entity entity, EntityDimensions size, int x, int z)
+    {
+        if (!level.getWorldBorder().isWithinBounds(x + 0.5D, z + 0.5D))
+        {
+            return null;
+        }
+        LevelChunk chunk = level.getChunk(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z));
+        int top = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z); // the highest block that isn't air
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int y = top; y >= level.getMinBuildHeight() + GROUND_SUPPORT; y--)
+        {
+            BlockState state = level.getBlockState(pos.set(x, y, z));
+            double height = groundHeight(level, pos, state);
+            if (height <= 0.0D || !isSupported(level, x, y, z))
+            {
+                continue; // air, plants, leaves, logs, water, portals; or a block floating in the air
+            }
+            Vec3 spot = new Vec3(x + 0.5D, y + height, z + 0.5D);
+            return isSafe(level, entity, size, spot) ? spot : null;
+        }
+        return null;
+    }
+
+    /**
+     * How high the top of this block is (0 to 1) if it can be stood on as ground; 0 if it isn't ground: air, a fluid
+     * (or a waterlogged block), part of a tree or a giant mushroom, a portal, anything without a collision shape
+     * (plants, thin snow) or taller than a block (fences, walls).
+     */
+    private static double groundHeight(ServerLevel level, BlockPos pos, BlockState state)
+    {
+        if (state.isAir() || !state.getFluidState().isEmpty() || isTreePart(state) || isPortal(state))
+        {
+            return 0.0D;
+        }
+        VoxelShape shape = state.getCollisionShape(level, pos);
+        if (shape.isEmpty())
+        {
+            return 0.0D;
+        }
+        double height = shape.max(Direction.Axis.Y);
+        return height > 1.0D ? 0.0D : height;
+    }
+
+    /**
+     * True if the {@link #GROUND_SUPPORT} blocks right under (x, y, z) are all solid (not air, a fluid, part of a tree or
+     * a giant mushroom, or a portal).
+     */
+    private static boolean isSupported(ServerLevel level, int x, int y, int z)
+    {
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int i = 1; i <= GROUND_SUPPORT; i++)
+        {
+            BlockState state = level.getBlockState(pos.set(x, y - i, z));
+            if (state.isAir() || !state.getFluidState().isEmpty() || isTreePart(state) || isPortal(state)
+                    || state.getCollisionShape(level, pos).isEmpty())
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Leaves, logs (the Dross's fallen charred and frostbitten logs too) and giant mushrooms (vanilla's and the Dross's
+     * blightcaps): never "the ground", so nothing lands on a tree top or a mushroom cap.
+     */
+    private static boolean isTreePart(BlockState state)
+    {
+        return state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS) || state.getBlock() instanceof HugeMushroomBlock;
+    }
+
+    /** Column offsets within {@code radius} along X and Z, nearest first (equally near ones in a fixed order). */
+    private static List<int[]> spiral(int radius)
+    {
+        List<int[]> offsets = new ArrayList<>((2 * radius + 1) * (2 * radius + 1));
+        for (int dx = -radius; dx <= radius; dx++)
+        {
+            for (int dz = -radius; dz <= radius; dz++)
+            {
+                offsets.add(new int[] {dx, dz});
+            }
+        }
+        offsets.sort(Comparator.<int[]>comparingInt(o -> o[0] * o[0] + o[1] * o[1]).thenComparingInt(o -> o[1]).thenComparingInt(o -> o[0]));
+        return offsets;
+    }
+
+    // ------------------------------------------------------------------ is a spot safe
+
+    /** The entity's size standing up (a player's if there's no entity): it'll stand up once it's there. */
+    private static EntityDimensions sizeOf(@Nullable Entity entity)
+    {
+        return entity == null ? PLAYER_SIZE : entity.getDimensions(Pose.STANDING);
+    }
+
+    /** True if something {@code size} big can stand at {@code pos} safely (see {@link #isSafe(ServerLevel, Entity, EntityDimensions, Vec3)}). */
+    static boolean isStandable(ServerLevel level, EntityDimensions size, Vec3 pos)
+    {
+        return isSafe(level, null, size, pos);
+    }
+
+    /** True if this entity can land at {@code pos} safely (standing up). */
+    static boolean isSafeFor(ServerLevel level, Entity entity, Vec3 pos)
+    {
+        return isSafe(level, entity, sizeOf(entity), pos);
+    }
+
+    /**
+     * Free space for the body (no block, liquid or portal in it), and solid ground right under its feet with nothing
+     * that burns or hurts under or around them (fire, lava, magma, campfires, cactus, berry bushes, powder snow, wither
+     * roses, cobwebs, the Cinder Colossus's temporary lava and fire).
+     */
+    private static boolean isSafe(ServerLevel level, @Nullable Entity entity, EntityDimensions size, Vec3 pos)
+    {
+        AABB box = size.makeBoundingBox(pos);
         if (!level.getWorldBorder().isWithinBounds(box))
         {
             return false;
@@ -255,9 +476,26 @@ public class DrossTeleporter implements ITeleporter
         {
             return false; // nothing to stand on
         }
-        return level.getBlockStatesIfLoaded(floor.minmax(box)).noneMatch(s ->
-                s.is(BlockTags.FIRE) || s.is(Blocks.MAGMA_BLOCK) || s.is(BlockTags.CAMPFIRES) || s.getFluidState().is(FluidTags.LAVA));
+        return level.getBlockStatesIfLoaded(floor.minmax(box).deflate(1.0E-7D)).noneMatch(DrossTeleporter::isHazard);
     }
+
+    /** Something an entity mustn't land in or on. */
+    private static boolean isHazard(BlockState state)
+    {
+        return state.is(BlockTags.FIRE) || state.is(Blocks.MAGMA_BLOCK) || state.is(BlockTags.CAMPFIRES)
+                || state.getFluidState().is(FluidTags.LAVA) || isPortal(state)
+                || state.is(Blocks.CACTUS) || state.is(Blocks.SWEET_BERRY_BUSH) || state.is(Blocks.POWDER_SNOW)
+                || state.is(Blocks.WITHER_ROSE) || state.is(Blocks.COBWEB)
+                || state.is(ModBlocks.CINDER_LAVA.get()) || state.is(ModBlocks.CINDER_FIRE.get());
+    }
+
+    /** A portal block: the Dross portal, a nether portal, an end portal or an end gateway. */
+    private static boolean isPortal(BlockState state)
+    {
+        return state.is(ModBlocks.DROSS_PORTAL.get()) || state.is(BlockTags.PORTALS);
+    }
+
+    // ------------------------------------------------------------------ finding portals
 
     /**
      * Finds the nearest lit Dross portal within {@code radius} blocks (horizontally, any height).
@@ -336,6 +574,20 @@ public class DrossTeleporter implements ITeleporter
         BlockUtil.FoundRectangle rect = BlockUtil.getLargestRectangleAround(bottom, axis, DrossPortalShape.MAX_WIDTH, Direction.Axis.Y,
                 DrossPortalShape.MAX_HEIGHT, p -> level.getBlockState(p) == bottomState);
         return Optional.of(new PortalOpening(rect.minCorner, axis, rect.axis1Size, rect.axis2Size));
+    }
+
+    // ------------------------------------------------------------------ the old surface helpers
+
+    /** The first free spot above the top solid or liquid block at X/Z (logs count, leaves don't), or null over the void. */
+    @Nullable
+    private static Vec3 surfaceSpot(ServerLevel level, int x, int z)
+    {
+        int y = surfaceY(level, x, z);
+        if (y <= level.getMinBuildHeight() + 1)
+        {
+            return null; // void column
+        }
+        return new Vec3(x + 0.5D, y, z + 0.5D);
     }
 
     /** First free y above the top solid/liquid block of a column (loads the chunk if needed). */

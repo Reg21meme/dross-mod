@@ -34,7 +34,8 @@ import java.util.List;
  *   <li>the space around them is cleared and the floor made flat and solid, so you can walk round them and see
  *       their backs.</li>
  * </ul>
- * Old showcase traders within {@link #REMOVE_RADIUS} blocks are removed first, so running it again replaces the row.
+ * Old showcase traders within {@link #REMOVE_RADIUS} blocks (X and Z, at any height) are removed first, so running it
+ * again replaces the row, even on a steep hillside.
  * The real trader is never removed (he isn't a showcase trader). Showcase traders don't move, can't be hurt except by
  * {@code /kill}, and right-clicking one names its skin (the villager area's {@code DrossTrader.spawnShowcase}).
  * <p>
@@ -50,7 +51,7 @@ public final class SkinShowcase
     private static final int AHEAD = 6;
     /** Blocks from one trader to the next, centre to centre. That leaves 2 clear blocks between pedestals, which the Wayfarer's hat brim needs. */
     private static final int SPACING = 3;
-    /** Old showcase traders within this many blocks of you are removed before the new row is spawned. */
+    /** Old showcase traders within this many blocks of you (X and Z, at any height) are removed before the new row is spawned. */
     private static final int REMOVE_RADIUS = 64;
     /** The cleared, flat floor reaches this many blocks past each end of the row... */
     private static final int FLOOR_SIDE_MARGIN = 3;
@@ -144,10 +145,13 @@ public final class SkinShowcase
         return spawned;
     }
 
-    /** Removes the showcase traders loaded within {@link #REMOVE_RADIUS} blocks, and says how many there were. */
+    /**
+     * Removes the showcase traders loaded within {@link #REMOVE_RADIUS} blocks (X and Z, at any height), and says how
+     * many there were.
+     */
     private static int removeOldTraders(ServerLevel level, Vec3 position)
     {
-        AABB area = new AABB(position, position).inflate(REMOVE_RADIUS);
+        AABB area = Showcases.columnsAround(level, position, REMOVE_RADIUS);
         List<DrossTrader> old = level.getEntities(ModEntities.TRADER.get(), area, DrossTrader::isShowcase);
         for (DrossTrader trader : old)
         {

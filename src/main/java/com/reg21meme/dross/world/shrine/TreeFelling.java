@@ -15,6 +15,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.VineBlock;
 import net.minecraft.world.level.block.state.BlockState;
@@ -506,9 +507,14 @@ public final class TreeFelling
         return state.is(BlockTags.LEAVES) && state.hasProperty(LeavesBlock.PERSISTENT) && !state.getValue(LeavesBlock.PERSISTENT);
     }
 
+    /**
+     * A huge mushroom's block: any {@link HugeMushroomBlock}, so vanilla's stems and caps and other mushrooms built the
+     * same way (the Dross's giant blightcaps).
+     */
     static boolean isMushroom(BlockState state)
     {
-        return state.is(Blocks.MUSHROOM_STEM) || state.is(Blocks.RED_MUSHROOM_BLOCK) || state.is(Blocks.BROWN_MUSHROOM_BLOCK);
+        return state.is(Blocks.MUSHROOM_STEM) || state.is(Blocks.RED_MUSHROOM_BLOCK) || state.is(Blocks.BROWN_MUSHROOM_BLOCK)
+                || state.getBlock() instanceof HugeMushroomBlock;
     }
 
     static boolean isSpikeIce(BlockState state)

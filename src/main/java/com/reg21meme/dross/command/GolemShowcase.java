@@ -39,9 +39,11 @@ import java.util.function.Consumer;
  *   <li>in front of each one a polished blackstone post with a sign: its number (3E, 3F...), name and style;</li>
  *   <li>the space is cleared and the floor made flat, so you can walk round them.</li>
  * </ul>
- * Old showcase golems within {@link #REMOVE_RADIUS} blocks are removed first, so running it again replaces the row.
+ * Old showcase golems within {@link #REMOVE_RADIUS} blocks (X and Z, at any height) are removed first, so running it
+ * again replaces the row, even on a steep hillside.
  * <p>
- * Controls (all the golems within {@link #REMOVE_RADIUS} blocks; also clickable in chat after spawning). The stages
+ * Controls (all the golems within {@link #REMOVE_RADIUS} blocks, X and Z, at any height; also clickable in chat after
+ * spawning). The stages
  * of the fight are dormant (rock shell), erupted (the volcano has blown and lava poured over the shell) and the lava
  * core:
  * <ul>
@@ -70,7 +72,7 @@ public final class GolemShowcase
     private static final int SPACING = 9;
     /** The sign posts stand this many blocks in front of each golem's centre (clear of its fists). */
     private static final int SIGN_IN_FRONT = 5;
-    /** Old showcase golems within this many blocks are removed first; the controls reach this far too. */
+    /** Old showcase golems within this many blocks (X and Z, at any height) are removed first; the controls reach this far too. */
     private static final int REMOVE_RADIUS = 64;
     /** The cleared, flat floor reaches this many blocks past each end of the row... */
     private static final int FLOOR_SIDE_MARGIN = 5;
@@ -243,13 +245,14 @@ public final class GolemShowcase
         return line;
     }
 
+    /** The showcase golems loaded within {@link #REMOVE_RADIUS} blocks (X and Z, at any height). */
     private static List<CinderColossus> nearbyGolems(ServerLevel level, Vec3 position)
     {
-        AABB area = new AABB(position, position).inflate(REMOVE_RADIUS);
+        AABB area = Showcases.columnsAround(level, position, REMOVE_RADIUS);
         return level.getEntities(ModEntities.CINDER_COLOSSUS.get(), area, CinderColossus::isShowcase);
     }
 
-    /** Removes the showcase golems loaded within {@link #REMOVE_RADIUS} blocks, and says how many there were. */
+    /** Removes the showcase golems loaded within {@link #REMOVE_RADIUS} blocks (X and Z, at any height), and says how many there were. */
     private static int removeOldGolems(ServerLevel level, Vec3 position)
     {
         List<CinderColossus> old = nearbyGolems(level, position);

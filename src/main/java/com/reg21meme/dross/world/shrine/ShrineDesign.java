@@ -7,6 +7,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
@@ -328,13 +329,36 @@ public final class ShrineDesign
     }
 
     /**
+     * True if the design fits in the world's height with its ground at {@code groundY}: its underground layers stay
+     * above the world's bottom layer, and its top plus the air cleared above it stay below the world's top. (The Dross
+     * hub checks this before building on real terrain; {@link #buildFitted} refuses a ground level that doesn't fit.)
+     */
+    public boolean fitsHeightAt(LevelHeightAccessor level, int groundY)
+    {
+        return groundY >= lowestGroundY(level) && groundY <= highestGroundY(level);
+    }
+
+    /** The lowest ground level the design fits at: its underground layers stay above the world's bottom layer. */
+    private int lowestGroundY(LevelHeightAccessor level)
+    {
+        return level.getMinBuildHeight() + groundLayer + 1;
+    }
+
+    /** The highest ground level the design fits at: its top and the air cleared above it stay inside the world. */
+    private int highestGroundY(LevelHeightAccessor level)
+    {
+        return level.getMaxBuildHeight() - 1 - CLEAR_ABOVE - (layers - 1 - groundLayer);
+    }
+
+    /**
      * Builds the design on ground that is already nearly flat, gently (the portal site uses this): the ground is
      * prepared by a {@link GroundFit.Plan} made for this footprint (whole trees removed where they touch, the footprint
      * levelled at {@code center}'s Y, a one-block-per-step staircase back to the natural terrain), then the template is
      * placed, then open natural ground inside it gets snow in a cold biome. Server thread only.
      *
-     * @return the ground report, or empty (and an error in the log) if the template file is missing or the plan was made
-     *         for another footprint or ground level
+     * @return the ground report, or empty (and an error in the log, nothing changed) if the template file is missing, the
+     *         plan was made for another footprint or ground level, or the design doesn't fit in the world's height at
+     *         that ground level ({@link #fitsHeightAt})
      */
     public Optional<GroundFit.Report> buildFitted(ServerLevel level, BlockPos center, Direction facing, GroundFit.Plan plan)
     {
@@ -352,6 +376,12 @@ public final class ShrineDesign
         {
             LOGGER.error("Shrine design {} ({}): the ground plan is for footprint {} at ground {}, not {} at ground {}; not built",
                     number, name, planned, plan.groundY, box, center.getY());
+            return Optional.empty();
+        }
+        if (!fitsHeightAt(level, center.getY()))
+        {
+            LOGGER.error("Shrine design {} ({}): it doesn't fit in the world's height with its ground at y {} (the ground must be "
+                            + "from {} to {}); not built", number, name, center.getY(), lowestGroundY(level), highestGroundY(level));
             return Optional.empty();
         }
         int clearTop = Math.min(box.maxY() + CLEAR_ABOVE, level.getMaxBuildHeight() - 1);
@@ -373,9 +403,8 @@ public final class ShrineDesign
     {
         BoundingBox box = footprint(centerForFrameAt(x, z, 0, front), front);
         // Keep the underground layers above the world's bottom, and the top (plus the cleared air) below its roof.
-        int minAllowed = level.getMinBuildHeight() + groundLayer + 1;
-        int maxAllowed = level.getMaxBuildHeight() - 1 - CLEAR_ABOVE - (layers - 1 - groundLayer);
-        return ShrineGround.chooseGroundY(level, box.minX(), box.minZ(), box.maxX(), box.maxZ(), minAllowed, maxAllowed);
+        return ShrineGround.chooseGroundY(level, box.minX(), box.minZ(), box.maxX(), box.maxZ(), lowestGroundY(level),
+                highestGroundY(level));
     }
 
     /** Template position (unrotated) to world position, for the design built at {@code center} facing {@code facing}. */
