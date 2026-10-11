@@ -91,6 +91,15 @@ public final class DrossColors {
      */
     public static final int GOLEM_SHOWCASE_BUTTON = 0xFFA328;
 
+    // ---------------------------------------------------------------- Dimension (dimension-builder)
+    // The Dross's own blocks and plants. (Their texture colors live in the Python palettes in tools/terrain/draw_blocks.py.)
+
+    /** The tiny glowing mote that drifts down from silverwood leaves now and then: its color when it appears (pale blue). Used in dimension/block/SilverwoodLeavesBlock. */
+    public static final int SILVERWOOD_LEAF_MOTE = PALETTE_HIGHLIGHT;
+
+    /** The silverwood leaf mote: the color it fades to as it drifts (electric blue). Used in dimension/block/SilverwoodLeavesBlock. */
+    public static final int SILVERWOOD_LEAF_MOTE_FADE = PALETTE_MAIN;
+
     // ---------------------------------------------------------------- Boss (boss-builder)
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
     // (Its texture colors live in the Python palettes in tools/golems/kit/materials.py.)

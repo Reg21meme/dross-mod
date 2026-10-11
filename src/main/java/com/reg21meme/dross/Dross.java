@@ -10,6 +10,7 @@ import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModLootModifiers;
 import com.reg21meme.dross.registry.ModParticles;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.registry.ModTreeDecorators;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
@@ -35,6 +36,7 @@ public class Dross
         ModLootModifiers.LOOT_MODIFIERS.register(modEventBus);
         ModSounds.SOUND_EVENTS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
+        ModTreeDecorators.TREE_DECORATORS.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

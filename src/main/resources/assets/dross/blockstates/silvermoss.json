@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "dross:block/silvermoss"
+      },
+      {
+        "model": "dross:block/silvermoss",
+        "y": 90
+      },
+      {
+        "model": "dross:block/silvermoss",
+        "y": 180
+      },
+      {
+        "model": "dross:block/silvermoss",
+        "y": 270
+      }
+    ]
+  }
+}

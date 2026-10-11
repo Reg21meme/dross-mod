@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "dross:silverwood_log",
+    "dross:silverwood_wood",
+    "dross:stripped_silverwood_log",
+    "dross:stripped_silverwood_wood"
+  ]
+}

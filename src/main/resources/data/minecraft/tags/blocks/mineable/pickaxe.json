@@ -1,6 +1,11 @@
 {
   "replace": false,
   "values": [
-    "dross:colossus_trophy"
+    "dross:colossus_trophy",
+    "dross:duskstone",
+    "dross:duskstone_coal_ore",
+    "dross:duskstone_gold_ore",
+    "dross:moonsilver_ore",
+    "dross:stormite_ore"
   ]
 }

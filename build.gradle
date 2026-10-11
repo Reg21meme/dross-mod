@@ -102,7 +102,13 @@ minecraft {
         // By default, the server will crash when no gametests are provided.
         // The gametest system is also enabled by default for other run configs under the /test command.
         gameTestServer {
-            property 'forge.enabledGameTestNamespaces', mod_id
+            // -PgameTestNamespaces=a,b runs only those namespaces' tests (default: all of the mod's).
+            property 'forge.enabledGameTestNamespaces', (project.findProperty('gameTestNamespaces') ?: mod_id)
+            // -PgameTestWorld=<folder> runs the tests in run/<folder> instead of run/world.
+            // A folder that doesn't exist yet gives a brand-new world, so nothing has to be moved aside.
+            if (project.hasProperty('gameTestWorld')) {
+                args '--world', project.property('gameTestWorld')
+            }
         }
 
         data {

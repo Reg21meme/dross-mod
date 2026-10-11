@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "dross:block/silvermoss_top",
+    "side": "dross:block/silvermoss_side",
+    "bottom": "dross:block/silvermoss_bottom"
+  }
+}

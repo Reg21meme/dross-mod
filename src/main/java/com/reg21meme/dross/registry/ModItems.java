@@ -55,5 +55,45 @@ public final class ModItems
     public static final RegistryObject<Item> COLOSSUS_TROPHY = ITEMS.register("colossus_trophy",
             () -> new ColossusTrophyItem(ModBlocks.COLOSSUS_TROPHY.get()));
 
+    // Dimension area: block items for the Dross's terrain blocks (stone, ores, silverwood, Stormvine, Silvermoss, plants)
+    public static final RegistryObject<Item> DUSKSTONE = ITEMS.register("duskstone", () -> new BlockItem(ModBlocks.DUSKSTONE.get(), new Item.Properties()));
+    // Dimension area: Duskstone Coal Ore
+    public static final RegistryObject<Item> DUSKSTONE_COAL_ORE = ITEMS.register("duskstone_coal_ore", () -> new BlockItem(ModBlocks.DUSKSTONE_COAL_ORE.get(), new Item.Properties()));
+    // Dimension area: Duskstone Gold Ore
+    public static final RegistryObject<Item> DUSKSTONE_GOLD_ORE = ITEMS.register("duskstone_gold_ore", () -> new BlockItem(ModBlocks.DUSKSTONE_GOLD_ORE.get(), new Item.Properties()));
+    // Dimension area: Moonsilver Ore
+    public static final RegistryObject<Item> MOONSILVER_ORE = ITEMS.register("moonsilver_ore", () -> new BlockItem(ModBlocks.MOONSILVER_ORE.get(), new Item.Properties()));
+    // Dimension area: Stormite Ore
+    public static final RegistryObject<Item> STORMITE_ORE = ITEMS.register("stormite_ore", () -> new BlockItem(ModBlocks.STORMITE_ORE.get(), new Item.Properties()));
+    // Dimension area: Silverwood Log
+    public static final RegistryObject<Item> SILVERWOOD_LOG = ITEMS.register("silverwood_log", () -> new BlockItem(ModBlocks.SILVERWOOD_LOG.get(), new Item.Properties()));
+    // Dimension area: Silverwood Wood
+    public static final RegistryObject<Item> SILVERWOOD_WOOD = ITEMS.register("silverwood_wood", () -> new BlockItem(ModBlocks.SILVERWOOD_WOOD.get(), new Item.Properties()));
+    // Dimension area: Stripped Silverwood Log
+    public static final RegistryObject<Item> STRIPPED_SILVERWOOD_LOG = ITEMS.register("stripped_silverwood_log", () -> new BlockItem(ModBlocks.STRIPPED_SILVERWOOD_LOG.get(), new Item.Properties()));
+    // Dimension area: Stripped Silverwood Wood
+    public static final RegistryObject<Item> STRIPPED_SILVERWOOD_WOOD = ITEMS.register("stripped_silverwood_wood", () -> new BlockItem(ModBlocks.STRIPPED_SILVERWOOD_WOOD.get(), new Item.Properties()));
+    // Dimension area: Silverwood Planks
+    public static final RegistryObject<Item> SILVERWOOD_PLANKS = ITEMS.register("silverwood_planks", () -> new BlockItem(ModBlocks.SILVERWOOD_PLANKS.get(), new Item.Properties()));
+    // Dimension area: Silverwood Leaves
+    public static final RegistryObject<Item> SILVERWOOD_LEAVES = ITEMS.register("silverwood_leaves", () -> new BlockItem(ModBlocks.SILVERWOOD_LEAVES.get(), new Item.Properties()));
+    // Dimension area: Silverwood Sapling
+    public static final RegistryObject<Item> SILVERWOOD_SAPLING = ITEMS.register("silverwood_sapling", () -> new BlockItem(ModBlocks.SILVERWOOD_SAPLING.get(), new Item.Properties()));
+    // Dimension area: Stormvine
+    public static final RegistryObject<Item> STORMVINE = ITEMS.register("stormvine", () -> new BlockItem(ModBlocks.STORMVINE.get(), new Item.Properties()));
+    // Dimension area: Silvermoss
+    public static final RegistryObject<Item> SILVERMOSS = ITEMS.register("silvermoss", () -> new BlockItem(ModBlocks.SILVERMOSS.get(), new Item.Properties()));
+    // Dimension area: Glimmer Fern
+    public static final RegistryObject<Item> GLIMMER_FERN = ITEMS.register("glimmer_fern", () -> new BlockItem(ModBlocks.GLIMMER_FERN.get(), new Item.Properties()));
+    // Dimension area: Wispbloom
+    public static final RegistryObject<Item> WISPBLOOM = ITEMS.register("wispbloom", () -> new BlockItem(ModBlocks.WISPBLOOM.get(), new Item.Properties()));
+
+    // Dimension area: Stormite Shard (a glowing blue crystal from Stormite Ore; for special arrows and the Great Mystic Bow later)
+    public static final RegistryObject<Item> STORMITE_SHARD = ITEMS.register("stormite_shard", () -> new Item(new Item.Properties()));
+    // Dimension area: Raw Moonsilver (from Moonsilver Ore; smelts into a Moonsilver Ingot)
+    public static final RegistryObject<Item> RAW_MOONSILVER = ITEMS.register("raw_moonsilver", () -> new Item(new Item.Properties()));
+    // Dimension area: Moonsilver Ingot (a pale metal for anti-undead gear later)
+    public static final RegistryObject<Item> MOONSILVER_INGOT = ITEMS.register("moonsilver_ingot", () -> new Item(new Item.Properties()));
+
     private ModItems() {}
 }

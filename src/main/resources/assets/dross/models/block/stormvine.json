@@ -1,0 +1,48 @@
+{
+  "ambientocclusion": false,
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "particle": "dross:block/stormvine",
+    "vine": "dross:block/stormvine"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        0.8
+      ],
+      "to": [
+        16,
+        16,
+        0.8
+      ],
+      "shade": false,
+      "forge_data": {
+        "block_light": 15,
+        "sky_light": 15,
+        "ambient_occlusion": false
+      },
+      "faces": {
+        "north": {
+          "uv": [
+            16,
+            0,
+            0,
+            16
+          ],
+          "texture": "#vine"
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ],
+          "texture": "#vine"
+        }
+      }
+    }
+  ]
+}

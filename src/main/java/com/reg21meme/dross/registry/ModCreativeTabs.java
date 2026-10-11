@@ -29,6 +29,7 @@ public final class ModCreativeTabs
      *   <li>Spawn eggs: the trader, the bosses and their minions, and any other mob</li>
      *   <li>Weapons and tools: the Admin Sword and the like</li>
      *   <li>Enchanted books: every level of Necromancy, then every level of Deathforged</li>
+     *   <li>Materials: ore materials and the like (Raw Moonsilver, Moonsilver Ingot, Stormite Shard)</li>
      * </ol>
      */
     public static final RegistryObject<CreativeModeTab> DROSS = CREATIVE_TABS.register("dross",
@@ -39,6 +40,23 @@ public final class ModCreativeTabs
                         // 1. Blocks
                         // Portal area: the Dross portal frame (creative only: no recipe, can't be mined)
                         output.accept(ModItems.DROSS_PORTAL_FRAME.get());
+                        // Dimension area: the Dross's stone and ores, the silverwood set, Stormvine, then Silvermoss and the plants
+                        output.accept(ModItems.DUSKSTONE.get());
+                        output.accept(ModItems.DUSKSTONE_COAL_ORE.get());
+                        output.accept(ModItems.DUSKSTONE_GOLD_ORE.get());
+                        output.accept(ModItems.MOONSILVER_ORE.get());
+                        output.accept(ModItems.STORMITE_ORE.get());
+                        output.accept(ModItems.SILVERWOOD_LOG.get());
+                        output.accept(ModItems.SILVERWOOD_WOOD.get());
+                        output.accept(ModItems.STRIPPED_SILVERWOOD_LOG.get());
+                        output.accept(ModItems.STRIPPED_SILVERWOOD_WOOD.get());
+                        output.accept(ModItems.SILVERWOOD_PLANKS.get());
+                        output.accept(ModItems.SILVERWOOD_LEAVES.get());
+                        output.accept(ModItems.SILVERWOOD_SAPLING.get());
+                        output.accept(ModItems.STORMVINE.get());
+                        output.accept(ModItems.SILVERMOSS.get());
+                        output.accept(ModItems.GLIMMER_FERN.get());
+                        output.accept(ModItems.WISPBLOOM.get());
 
                         // 2. Quest items
                         // Quest area: a Weathered Letter (gets its text once it's in your inventory)
@@ -80,6 +98,12 @@ public final class ModCreativeTabs
                         {
                             output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.DEATHFORGED.get(), level)));
                         }
+
+                        // 7. Materials
+                        // Dimension area: the Dross's ore materials
+                        output.accept(ModItems.RAW_MOONSILVER.get());
+                        output.accept(ModItems.MOONSILVER_INGOT.get());
+                        output.accept(ModItems.STORMITE_SHARD.get());
                     })
                     .build());
 
