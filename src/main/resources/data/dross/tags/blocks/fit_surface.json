@@ -1,6 +1,11 @@
 {
   "replace": false,
   "values": [
-    "dross:silvermoss"
+    "dross:silvermoss",
+    "dross:ash",
+    "dross:sporeloam",
+    "dross:hoarfrost",
+    "dross:scarred_netherrack",
+    "dross:cragstone"
   ]
 }

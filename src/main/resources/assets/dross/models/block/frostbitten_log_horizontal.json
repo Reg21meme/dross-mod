@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_column_horizontal",
+  "textures": {
+    "end": "dross:block/frostbitten_log_top",
+    "side": "dross:block/frostbitten_log",
+    "south": "dross:block/frostbitten_log_rime"
+  }
+}

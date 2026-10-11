@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "dross:ash",
+    "minecraft:basalt",
+    "minecraft:blackstone",
+    "minecraft:magma_block",
+    "dross:duskstone"
+  ]
+}

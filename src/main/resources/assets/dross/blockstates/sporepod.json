@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "burst=false": {
+      "model": "dross:block/sporepod"
+    },
+    "burst=true": {
+      "model": "dross:block/sporepod_burst"
+    }
+  }
+}

@@ -100,6 +100,42 @@ public final class DrossColors {
     /** The silverwood leaf mote: the color it fades to as it drifts (electric blue). Used in dimension/block/SilverwoodLeavesBlock. */
     public static final int SILVERWOOD_LEAF_MOTE_FADE = PALETTE_MAIN;
 
+    /** Cinder Wastes: the tiny ember that drifts up off Emberweed now and then, when it appears (bright ember orange). Used in dimension/block/EmberweedBlock. */
+    public static final int EMBERWEED_EMBER = 0xFF9A3C;
+
+    /** The Emberweed ember: the color it cools to as it drifts (dark red). Used in dimension/block/EmberweedBlock. */
+    public static final int EMBERWEED_EMBER_FADE = 0x7A1E0A;
+
+    /** Cinder Wastes: the rare spark from a Cinder Vent, the Dross leaking through (pale electric blue). Used in dimension/block/CinderVentBlock. */
+    public static final int CINDER_VENT_SPARK = PALETTE_HIGHLIGHT;
+
+    /** The Cinder Vent spark: the color it fades to (electric blue). Used in dimension/block/CinderVentBlock. */
+    public static final int CINDER_VENT_SPARK_FADE = PALETTE_MAIN;
+
+    /** Blightwood: the faint spore a Gloomcap lets go now and then (pale glowing teal). Used in dimension/block/GloomcapBlock. */
+    public static final int GLOOMCAP_SPORE = 0x8FF0E4;
+
+    /** The Gloomcap spore: the color it fades to (deep teal). Used in dimension/block/GloomcapBlock. */
+    public static final int GLOOMCAP_SPORE_FADE = 0x1E7F86;
+
+    /** Blightwood: the sickly spores a Sporepod puffs out, idly or when something walks into it (sickly yellow-green). Used in dimension/block/SporepodBlock. */
+    public static final int SPOREPOD_SPORE = 0xB9C77A;
+
+    /** The Sporepod spores: the color they fade to (murky olive). Used in dimension/block/SporepodBlock. */
+    public static final int SPOREPOD_SPORE_FADE = 0x56613A;
+
+    /** Nether Scar: the red embers a Scar Vent puffs out (hot red-orange). Used in dimension/block/ScarVentBlock. */
+    public static final int SCAR_VENT_EMBER_RED = 0xFF5A2A;
+
+    /** The Scar Vent's red embers: the color they cool to (dark nether red). Used in dimension/block/ScarVentBlock. */
+    public static final int SCAR_VENT_EMBER_RED_FADE = 0x6E0F0F;
+
+    /** Nether Scar: the electric blue embers a Scar Vent puffs out with the red ones (where the Dross meets the Nether). Used in dimension/block/ScarVentBlock. */
+    public static final int SCAR_VENT_EMBER_BLUE = PALETTE_HIGHLIGHT;
+
+    /** The Scar Vent's blue embers: the color they fade to (deep cobalt). Used in dimension/block/ScarVentBlock. */
+    public static final int SCAR_VENT_EMBER_BLUE_FADE = PALETTE_DEEP_COBALT;
+
     // ---------------------------------------------------------------- Boss (boss-builder)
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
     // (Its texture colors live in the Python palettes in tools/golems/kit/materials.py.)

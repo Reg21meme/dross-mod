@@ -6,6 +6,11 @@
     "dross:duskstone_coal_ore",
     "dross:duskstone_gold_ore",
     "dross:moonsilver_ore",
-    "dross:stormite_ore"
+    "dross:stormite_ore",
+    "dross:cinder_vent",
+    "dross:icicle",
+    "dross:scarred_netherrack",
+    "dross:scar_vent",
+    "dross:cragstone"
   ]
 }

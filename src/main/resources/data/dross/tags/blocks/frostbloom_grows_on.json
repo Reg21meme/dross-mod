@@ -1,0 +1,8 @@
+{
+  "replace": false,
+  "values": [
+    "dross:hoarfrost",
+    "minecraft:snow_block",
+    "#minecraft:dirt"
+  ]
+}

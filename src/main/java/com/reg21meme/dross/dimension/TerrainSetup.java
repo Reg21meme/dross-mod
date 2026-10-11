@@ -20,6 +20,12 @@ public final class TerrainSetup
     private static final float COMPOST_VINE = 0.5F;
     /** Like ferns and flowers, and Silvermoss like a moss block. */
     private static final float COMPOST_PLANT = 0.65F;
+    /** Like grass and dead bushes' dry stalks (vanilla grass: 0.3). */
+    private static final float COMPOST_GRASS = 0.3F;
+    /** Like glow lichen. */
+    private static final float COMPOST_LICHEN = 0.5F;
+    /** Like vanilla mushroom blocks and stems. */
+    private static final float COMPOST_MUSHROOM_BLOCK = 0.85F;
 
     private TerrainSetup() {}
 
@@ -34,6 +40,18 @@ public final class TerrainSetup
             ComposterBlock.COMPOSTABLES.put(ModItems.GLIMMER_FERN.get(), COMPOST_PLANT);
             ComposterBlock.COMPOSTABLES.put(ModItems.WISPBLOOM.get(), COMPOST_PLANT);
             ComposterBlock.COMPOSTABLES.put(ModItems.SILVERMOSS.get(), COMPOST_PLANT);
+            // The other biomes' plants and the giant blightcap's blocks
+            ComposterBlock.COMPOSTABLES.put(ModItems.EMBERWEED.get(), COMPOST_GRASS);
+            ComposterBlock.COMPOSTABLES.put(ModItems.GLOOMCAP.get(), COMPOST_PLANT);
+            ComposterBlock.COMPOSTABLES.put(ModItems.SPOREPOD.get(), COMPOST_PLANT);
+            ComposterBlock.COMPOSTABLES.put(ModItems.BLIGHTCAP_BLOCK.get(), COMPOST_MUSHROOM_BLOCK);
+            ComposterBlock.COMPOSTABLES.put(ModItems.ROTTING_BLIGHTCAP.get(), COMPOST_MUSHROOM_BLOCK);
+            ComposterBlock.COMPOSTABLES.put(ModItems.BLIGHTCAP_STEM.get(), COMPOST_MUSHROOM_BLOCK);
+            ComposterBlock.COMPOSTABLES.put(ModItems.FROSTBLOOM.get(), COMPOST_PLANT);
+            ComposterBlock.COMPOSTABLES.put(ModItems.SCAR_ROOTS.get(), COMPOST_PLANT);
+            ComposterBlock.COMPOSTABLES.put(ModItems.SOULWICK.get(), COMPOST_PLANT);
+            ComposterBlock.COMPOSTABLES.put(ModItems.STORM_LICHEN.get(), COMPOST_LICHEN);
+            ComposterBlock.COMPOSTABLES.put(ModItems.CRAG_THISTLE.get(), COMPOST_PLANT);
         });
     }
 }

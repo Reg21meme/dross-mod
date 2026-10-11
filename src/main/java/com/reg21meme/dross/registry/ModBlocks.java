@@ -60,5 +60,50 @@ public final class ModBlocks
     // Dimension area: Wispbloom (a small flower with glowing petals)
     public static final RegistryObject<Block> WISPBLOOM = BLOCKS.register("wispbloom", TerrainBlocks::wispbloom);
 
+    // Dimension area, Cinder Wastes (nothing here burns): Ash (soft volcanic ash; doesn't fall)
+    public static final RegistryObject<Block> ASH = BLOCKS.register("ash", TerrainBlocks::ash);
+    // Dimension area: Ash Layer (1-8 layers like snow; never melts)
+    public static final RegistryObject<Block> ASH_LAYER = BLOCKS.register("ash_layer", TerrainBlocks::ashLayer);
+    // Dimension area: Charred Log (a burnt dead trunk)
+    public static final RegistryObject<Block> CHARRED_LOG = BLOCKS.register("charred_log", TerrainBlocks::charredLog);
+    // Dimension area: Emberweed (dry stalks with glowing ember tips)
+    public static final RegistryObject<Block> EMBERWEED = BLOCKS.register("emberweed", TerrainBlocks::emberweed);
+    // Dimension area: Cinder Vent (a glowing vent that puffs smoke; harmless)
+    public static final RegistryObject<Block> CINDER_VENT = BLOCKS.register("cinder_vent", TerrainBlocks::cinderVent);
+    // Dimension area, Blightwood: Sporeloam (rotten soil dotted with spores)
+    public static final RegistryObject<Block> SPORELOAM = BLOCKS.register("sporeloam", TerrainBlocks::sporeloam);
+    // Dimension area: Blightcap Block (a giant decaying mushroom's cap; drops Gloomcaps)
+    public static final RegistryObject<Block> BLIGHTCAP_BLOCK = BLOCKS.register("blightcap_block", TerrainBlocks::blightcapBlock);
+    // Dimension area: Rotting Blightcap (a decayed cap block)
+    public static final RegistryObject<Block> ROTTING_BLIGHTCAP = BLOCKS.register("rotting_blightcap", TerrainBlocks::rottingBlightcap);
+    // Dimension area: Blightcap Stem (the giant blightcap's stem)
+    public static final RegistryObject<Block> BLIGHTCAP_STEM = BLOCKS.register("blightcap_stem", TerrainBlocks::blightcapStem);
+    // Dimension area: Gloomcap (a small glowing mushroom; never spreads)
+    public static final RegistryObject<Block> GLOOMCAP = BLOCKS.register("gloomcap", TerrainBlocks::gloomcap);
+    // Dimension area: Sporepod (bursts into harmless spores when walked into)
+    public static final RegistryObject<Block> SPOREPOD = BLOCKS.register("sporepod", TerrainBlocks::sporepod);
+    // Dimension area, Rimefall: Hoarfrost (frozen ground furred with frost)
+    public static final RegistryObject<Block> HOARFROST = BLOCKS.register("hoarfrost", TerrainBlocks::hoarfrost);
+    // Dimension area: Frostbitten Log (dead wood with rime on one side)
+    public static final RegistryObject<Block> FROSTBITTEN_LOG = BLOCKS.register("frostbitten_log", TerrainBlocks::frostbittenLog);
+    // Dimension area: Frostbloom (an icy flower with a glowing heart)
+    public static final RegistryObject<Block> FROSTBLOOM = BLOCKS.register("frostbloom", TerrainBlocks::frostbloom);
+    // Dimension area: Icicle (hangs under a solid block; breaks if that goes)
+    public static final RegistryObject<Block> ICICLE = BLOCKS.register("icicle", TerrainBlocks::icicle);
+    // Dimension area, Nether Scar (no fire): Scarred Netherrack (netherrack with glowing blue cracks)
+    public static final RegistryObject<Block> SCARRED_NETHERRACK = BLOCKS.register("scarred_netherrack", TerrainBlocks::scarredNetherrack);
+    // Dimension area: Scar Roots (crimson roots with blue tips)
+    public static final RegistryObject<Block> SCAR_ROOTS = BLOCKS.register("scar_roots", TerrainBlocks::scarRoots);
+    // Dimension area: Soulwick (a flower with a soul flame bloom; never burns)
+    public static final RegistryObject<Block> SOULWICK = BLOCKS.register("soulwick", TerrainBlocks::soulwick);
+    // Dimension area: Scar Vent (puffs red and blue embers; harmless)
+    public static final RegistryObject<Block> SCAR_VENT = BLOCKS.register("scar_vent", TerrainBlocks::scarVent);
+    // Dimension area, the Gravecrags: Cragstone (pale weathered mountain stone)
+    public static final RegistryObject<Block> CRAGSTONE = BLOCKS.register("cragstone", TerrainBlocks::cragstone);
+    // Dimension area: Storm Lichen (glowing blue lichen on cliffs)
+    public static final RegistryObject<Block> STORM_LICHEN = BLOCKS.register("storm_lichen", TerrainBlocks::stormLichen);
+    // Dimension area: Crag Thistle (a spiky thistle with a pale blue flower)
+    public static final RegistryObject<Block> CRAG_THISTLE = BLOCKS.register("crag_thistle", TerrainBlocks::cragThistle);
+
     private ModBlocks() {}
 }

@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "dross:block/scarred_netherrack"
+      },
+      {
+        "model": "dross:block/scarred_netherrack_mirrored"
+      },
+      {
+        "model": "dross:block/scarred_netherrack",
+        "y": 180
+      },
+      {
+        "model": "dross:block/scarred_netherrack_mirrored",
+        "y": 180
+      }
+    ]
+  }
+}

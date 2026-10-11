@@ -11,7 +11,11 @@ For every block registered in registry/ModBlocks and every item in registry/ModI
              block drops nothing on purpose (NO_LOOT below)
     items:   the item model (and its parents and textures; builtin/entity models are drawn by code and skipped) and
              the English name (block.dross.<id> for block items, item.dross.<id> otherwise)
-    data:    every dross id named in a loot table, recipe or tag is a registered block/item (or tag)
+    data:    every dross id named in a loot table, recipe or tag is a registered block/item (or tag), including the
+             blocks named in loot conditions ("block": ...)
+    sounds:  every sound event registered in registry/ModSounds has an entry in sounds.json, and every subtitle that
+             entry names has an English text
+    terrain: every block listed in tools/terrain/block_data.py is registered, and its item is in the creative tab
 It prints the problems and exits with code 1 if there are any (warnings alone don't fail it).
 """
 import glob
@@ -200,28 +204,33 @@ def check_data(blocks, items):
     item_ids = {f"{MOD}:{i}" for i in items}
     block_ids = {f"{MOD}:{b}" for b in blocks}
 
-    def walk_names(obj, found):
+    def walk_names(obj, found, blocks_found):
         if isinstance(obj, dict):
             for k, v in obj.items():
                 if k in ("name", "item") and isinstance(v, str):
                     found.append(v)
                 elif k == "result" and isinstance(v, str):
                     found.append(v)
+                elif k == "block" and isinstance(v, str):
+                    blocks_found.append(v)                       # a block_state_property condition
                 else:
-                    walk_names(v, found)
+                    walk_names(v, found, blocks_found)
         elif isinstance(obj, list):
             for v in obj:
-                walk_names(v, found)
+                walk_names(v, found, blocks_found)
 
     for f in glob.glob(os.path.join(DATA, MOD, "loot_tables", "blocks", "*.json")) + \
             glob.glob(os.path.join(DATA, MOD, "recipes", "*.json")):
         with open(f, encoding="utf-8") as fh:
             data = json.load(fh)
-        names = []
-        walk_names(data, names)
+        names, block_names = [], []
+        walk_names(data, names, block_names)
         for n in names:
             if n.startswith(MOD + ":") and n not in item_ids:
                 error(f"{os.path.relpath(f, ROOT)} names {n}, which isn't a registered item")
+        for n in block_names:
+            if n.startswith(MOD + ":") and n not in block_ids:
+                error(f"{os.path.relpath(f, ROOT)} has a condition on block {n}, which isn't a registered block")
         tags = re.findall(r'"tag":\s*"([a-z0-9_]+:[a-z0-9_/]+)"', json.dumps(data))
         for t in tags:
             ns, path = t.split(":", 1)
@@ -239,6 +248,56 @@ def check_data(blocks, items):
                         error(f"{os.path.relpath(f, ROOT)} includes tag {v}, which doesn't exist")
                 elif v.startswith(MOD + ":") and v not in ids:
                     error(f"{os.path.relpath(f, ROOT)} names {v}, which isn't a registered {kind[:-1]}")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Sounds: registry/ModSounds -> sounds.json -> subtitles in en_us.json
+# ---------------------------------------------------------------------------------------------------------------------
+
+
+def check_sounds(lang):
+    src = open(os.path.join(JAVA, "ModSounds.java"), encoding="utf-8").read()
+    events = re.findall(r'register\(\s*"([a-z0-9_.]+)"\s*\)', src)
+    path = os.path.join(ASSETS, MOD, "sounds.json")
+    sounds = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else {}
+    for event in events:
+        if event not in sounds:
+            error(f"sound {MOD}:{event} is registered in ModSounds but has no entry in sounds.json")
+    for event, entry in sounds.items():
+        subtitle = entry.get("subtitle")
+        if subtitle and subtitle not in lang:
+            error(f"sound {MOD}:{event}: its subtitle {subtitle} has no English text in en_us.json")
+        if event not in events:
+            warn(f"sounds.json has {event}, which ModSounds doesn't register (fine if code plays it by name)")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The terrain blocks (tools/terrain/block_data.py): registered, and in the creative tab
+# ---------------------------------------------------------------------------------------------------------------------
+
+
+def check_terrain(blocks, items):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import block_data                                           # its list of blocks (importing it writes nothing)
+    items_src = open(os.path.join(JAVA, "ModItems.java"), encoding="utf-8").read()
+    tabs_src = open(os.path.join(JAVA, "ModCreativeTabs.java"), encoding="utf-8").read()
+    item_const = {iid: const for const, iid in
+                  re.findall(r"RegistryObject<Item>\s+(\w+)\s*=\s*ITEMS\.register\(\s*\"([a-z0-9_]+)\"", items_src)}
+    in_tab = set(re.findall(r"ModItems\.(\w+)\.get\(\)", tabs_src))
+    for b in block_data.BLOCKS:
+        bid = b["id"]
+        if bid not in blocks:
+            error(f"tools/terrain/block_data.py lists {bid}, which isn't registered in ModBlocks")
+            continue
+        if bid not in items:
+            error(f"terrain block {bid} has no item registered in ModItems")
+        elif item_const.get(bid) not in in_tab:
+            error(f"terrain block {bid}'s item isn't in the Dross creative tab (registry/ModCreativeTabs)")
+    for iid in block_data.ITEMS:
+        if iid not in items:
+            error(f"tools/terrain/block_data.py lists the item {iid}, which isn't registered in ModItems")
+        elif item_const.get(iid) not in in_tab:
+            error(f"terrain item {iid} isn't in the Dross creative tab (registry/ModCreativeTabs)")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -280,6 +339,8 @@ def main():
             error(f"{owner}: no English name ({key})")
 
     check_data(blocks, items)
+    check_sounds(lang)
+    check_terrain(blocks, items)
 
     # textures nobody uses (only a warning: entity textures etc. are used by code)
     for folder in ("block", "item"):

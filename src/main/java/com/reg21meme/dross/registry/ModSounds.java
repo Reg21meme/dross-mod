@@ -50,6 +50,9 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> LAVA_GOLEM_FUSE = register("entity.lava_golem.fuse");
     public static final RegistryObject<SoundEvent> LAVA_GOLEM_EXPLODE = register("entity.lava_golem.explode");
 
+    // Dimension area: the Sporepod bursting when something walks into it (vanilla pufferfish and fungus sounds, soft).
+    public static final RegistryObject<SoundEvent> SPOREPOD_BURST = register("block.sporepod.burst");
+
     private static RegistryObject<SoundEvent> register(String name)
     {
         return SOUND_EVENTS.register(name, () -> SoundEvent.createVariableRangeEvent(new ResourceLocation(Dross.MODID, name)));

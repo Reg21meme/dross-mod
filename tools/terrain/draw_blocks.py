@@ -63,6 +63,56 @@ SHARD = [DROSS_DEEP, "#1d4fe0", DROSS_MAIN, "#5e8fff", "#a9c6ff", "#eef4ff"]
 METAL = ["#353d52", "#5b6683", "#8692ad", "#aeb9cf", "#d2daea", "#f2f5fc"]
 METAL_BLUE = "#a8c2ff"
 
+# --- Stage 2: the other biomes ---
+# Cinder Wastes (volcanic: grey-black ash, charcoal, basalt; ember orange only where something smoulders)
+ASH = ["#1d1c21", "#25242a", "#2d2c32", "#35343a", "#3e3d44", "#4a4950"]
+ASH_GRAIN = ["#57565f", "#141317"]                       # the odd light and dark grain
+EMBER_DULL = ["#3a190e", "#5c2712", "#7d3618"]           # dull ember specks in the ash
+CHAR = ["#0b0a0c", "#131114", "#1b181b", "#242023", "#2e292b", "#3a3436"]
+EMBER = ["#3d130a", "#64200e", "#953616", "#c95a1f", "#f28a34", "#ffc56b", "#fff0c2"]   # dark red .. white-hot
+STALK = ["#140f0d", "#211915", "#30241d", "#433226", "#57422f"]
+BASALT = ["#18171b", "#212025", "#2a292f", "#343239", "#3f3d44", "#4d4b53"]
+# Blightwood (rotten and fungal: sickly grey-green and teal)
+ROT = ["#141511", "#1b1d17", "#23261e", "#2c3026", "#363b2e", "#424838"]
+SPORE_PALE = ["#6b7764", "#97a38a", "#c4cdb4"]
+ROT_THREAD = "#5a5664"                                   # pale grey-violet fungal threads in the soil
+ROT_MOULD = "#2d5a56"                                    # faint teal mould (the Gloomcaps' kin)
+ROT_SOIL = ["#3b2b20", "#4b3727", "#5e4632", "#72573f", "#86684d"]   # a darker, damper dirt than SOIL
+CAP = ["#223029", "#2c3c34", "#37483f", "#42554a", "#4f6356", "#5d7263"]
+CAP_BLOTCH = ["#7d8c76", "#a3b197", "#c5d0b6", "#dfe6d1"]
+CAP_INSIDE = ["#8d9784", "#a1aa96", "#b2baa5", "#c3cab5", "#d2d8c4"]
+ROTCAP = ["#0f1412", "#151c19", "#1c2520", "#232e28", "#2c3830", "#36433a"]
+ROT_PIT = ["#050707", "#1b2420"]                         # a hole in the rotting cap: its depth, its lit far wall
+ROT_SICKLY = ["#4f5a2c", "#6f7c3a", "#929f4c"]
+STEM = ["#767e70", "#8a9283", "#9da596", "#afb6a6", "#bfc5b5", "#ced3c3"]
+STEM_ROT = ["#4d5649", "#5f6858", "#58706b"]
+GLOOM = ["#0b3a55", "#105f84", "#1888aa", "#2fb3cb", "#7fe2ec", "#d6fbff"]
+GLOOM_STEM = ["#5f7275", "#8ea3a4", "#bfd0cf"]
+POD = ["#252b1e", "#333b29", "#444f35", "#566343", "#6b7953", "#839169"]
+POD_SPOT = ["#a7b585", "#cfdba8"]
+# Rimefall (frozen: frost white, pale blue-grey soil, grey dead wood)
+FROST = ["#8b9fb4", "#a3b5c8", "#bccbd9", "#d3dee8", "#e7eef4", "#fafcff"]
+FROZEN_SOIL = ["#414b58", "#4f5a69", "#5f6b7c", "#707d8f", "#8390a2"]
+DEAD_WOOD = ["#38393d", "#47494e", "#57595f", "#686b71", "#7a7d83", "#8d9096"]
+RIME = ["#b9c9d9", "#d2deea", "#e8eff6", "#ffffff"]
+PETAL_ICE = ["#5f9cc8", "#8bbde2", "#b6daf3", "#def1fc"]
+FROST_HEART = ["#a6d8ff", "#d8f0ff", "#ffffff"]
+FROST_STEM = ["#56717b", "#7593a0", "#a4c0ca"]
+ICE = ["#6aa6d6", "#93c5ec", "#c2e2f8", "#effaff"]
+# Nether Scar (netherrack reds split by the Dross's electric blue)
+NETHERRACK = ["#360c0c", "#4b1111", "#601717", "#761e1e", "#8b2826", "#a03530"]
+SCAR = [DROSS_DEEP, "#1d4fe0", DROSS_MAIN, "#5e8fff", "#a9c6ff", "#eef4ff"]   # the cracks, dark edge .. white core
+CRIMSON = ["#3f0b12", "#62121d", "#871a28", "#ad2734", "#cd424a"]
+SOUL_FLAME = ["#0c4a68", "#1488ab", "#36c2e0", "#8aeefe", "#e6ffff"]
+SOUL_STEM = ["#232a37", "#323c4e", "#4a5870"]
+HOT = ["#5a0f0a", "#9a2410", "#d94a1c", "#ff7a2e", "#ffb45c"]                 # a red-hot crack, dark .. bright
+# The Gravecrags (pale weathered stone, electric blue lichen, grey-violet thistles)
+CRAG = ["#55585c", "#676a6e", "#7a7d81", "#8d9094", "#a1a3a6", "#b5b7b9"]
+CRAG_STAIN = ["#3f4246", "#4a4d51"]
+LICHEN = [DROSS_DEEP, "#1d4fe0", DROSS_MAIN, "#5e8fff", "#a9c6ff", "#eef4ff"]
+THISTLE = ["#352e3e", "#4a4156", "#61576e", "#7a6f88", "#968ba3"]
+THISTLE_HEAD = ["#5f7fbd", "#86a6e0", "#b1caf5", "#e2edff"]
+
 # =====================================================================================================================
 # Drawing kit
 # =====================================================================================================================
@@ -863,12 +913,954 @@ def moonsilver_ingot():
 
 
 # =====================================================================================================================
+# Stage 2 helpers
+# =====================================================================================================================
+
+
+def hex_at(img, x, y):
+    """The colour of a pixel as '#rrggbb'."""
+    return "#%02x%02x%02x" % tuple(int(c) for c in img[y % S, x % S, :3])
+
+
+def tint(img, x, y, colour, t):
+    """Blends the pixel at (x, y) a fraction t of the way towards colour (keeps it opaque)."""
+    img[y % S, x % S] = rgba(mix(hex_at(img, x, y), colour, t))
+
+
+def label_regions(free):
+    """Numbers the 4-connected regions of a boolean mask, wrapping round the edges (so it agrees with tiling).
+    Returns (labels, count); labels is -1 outside the mask."""
+    labels = np.full((S, S), -1)
+    count = 0
+    for y in range(S):
+        for x in range(S):
+            if free[y, x] and labels[y, x] < 0:
+                labels[y, x] = count
+                stack = [(y, x)]
+                while stack:
+                    cy, cx = stack.pop()
+                    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        ny, nx = (cy + dy) % S, (cx + dx) % S
+                        if free[ny, nx] and labels[ny, nx] < 0:
+                            labels[ny, nx] = count
+                            stack.append((ny, nx))
+                count += 1
+    return labels, count
+
+
+def curve_path(points, steps=80):
+    """The pixels along a chain of quadratic Bezier curves (p0, c0, p1, c1, p2, ...), without repeats, in order."""
+    path = []
+    for i in range(0, len(points) - 2, 2):
+        for x, y in bezier(points[i], points[i + 1], points[i + 2], steps):
+            px = (int(np.floor(x)), int(np.floor(min(y, S - 0.001))))
+            if 0 <= px[0] < S and 0 <= px[1] < S and (not path or path[-1] != px):
+                path.append(px)
+    return path
+
+
+def fringe_side(top, soil_img, fringe, edge_dark, soil_dark, top_row):
+    """A grass-like side: the top block's texture hangs over the soil by `fringe` rows per column; its lowest row is
+    darker (edge_dark), the soil just under it darker still (soil_dark), and the very top row uses top_row's colours
+    in turn, so the side meets the top of the block cleanly."""
+    img = soil_img.copy()
+    for x in range(S):
+        depth = fringe[x]
+        for y in range(depth):
+            img[y, x] = top[y, x]
+        img[depth - 1, x] = rgba(edge_dark)
+        img[depth, x] = rgba(soil_dark)
+        img[0, x] = rgba(top_row[x % len(top_row)])
+    return img
+
+
+# =====================================================================================================================
+# Cinder Wastes
+# =====================================================================================================================
+
+
+def ash():
+    """Soft grey-black volcanic ash: a fine, low-contrast powdery grain, a few lighter and darker grains, and two dull
+    ember specks still smouldering in it. Tiles in every direction (and its block turns and mirrors at random)."""
+    v = fbm([(16, 16, 0.5), (8, 8, 0.3), (4, 4, 0.2)], seed=201)
+    lv = quantize(v, [0.12, 0.30, 0.34, 0.18, 0.06])          # levels 0..4 (5 is kept for the light grains)
+    img = fill(lv, ASH)
+    rng = np.random.default_rng(202)
+    for i in range(14):                                         # single grains, half light, half dark
+        x, y = int(rng.integers(0, S)), int(rng.integers(0, S))
+        put(img, x, y, ASH[5] if i % 2 == 0 else ASH_GRAIN[1])
+    for x, y in [(3, 2), (12, 4), (7, 13)]:
+        put(img, x, y, ASH_GRAIN[0])
+    # dull ember specks, each sunk into the ash: a darker ember pixel beside it and dark ash under it
+    for x, y, bright in [(5, 5, True), (12, 11, False)]:
+        put(img, x, y, EMBER_DULL[2] if bright else EMBER_DULL[1])
+        put(img, x + 1, y, EMBER_DULL[0])
+        put(img, x, y + 1, ASH[0])
+    return img
+
+
+def charred_side():
+    """Charred bark: the burnt trunk crazed into irregular blocks of charcoal (taller than wide, along the grain) by
+    deep black cracks, like wood that has burnt right through. Each block has a dull silvery sheen along its top and
+    left edges and a shadow at its foot; a faint ember glow still lingers deep in a few cracks."""
+    rng = np.random.default_rng(211)
+    seeds = []
+    while len(seeds) < 15:                                      # block centres, spread out (measured round the edges)
+        x, y = rng.uniform(0, S), rng.uniform(0, S)
+        if all(min(abs(x - sx), S - abs(x - sx)) ** 2 + (0.5 * min(abs(y - sy), S - abs(y - sy))) ** 2 >= 2.4 ** 2
+               for sx, sy in seeds):
+            seeds.append((x, y))
+    yy, xx = np.mgrid[0:S, 0:S] + 0.5
+    d1 = np.full((S, S), 1e9)
+    d2 = np.full((S, S), 1e9)
+    owner = np.zeros((S, S), int)
+    for i, (sx, sy) in enumerate(seeds):
+        dx = np.minimum(np.abs(xx - sx), S - np.abs(xx - sx))
+        dy = np.minimum(np.abs(yy - sy), S - np.abs(yy - sy)) * 0.5   # rows count half: blocks stretch along the grain
+        d = np.sqrt(dx * dx + dy * dy)
+        closer = d < d1
+        d2 = np.where(closer, d1, np.minimum(d2, d))
+        owner = np.where(closer, i, owner)
+        d1 = np.where(closer, d, d1)
+    crack = (d2 - d1) < 0.62
+    tone = [int(rng.choice([2, 2, 3, 3, 1])) for _ in seeds]
+    lv = np.zeros((S, S), int)
+    for y in range(S):
+        for x in range(S):
+            if crack[y, x]:
+                continue
+            t = tone[owner[y, x]]
+            if crack[(y - 1) % S, x]:
+                t += 2                                          # the sheen along the block's top edge
+            elif crack[y, (x - 1) % S]:
+                t += 1                                          # and a little down its left edge
+            if crack[(y + 1) % S, x]:
+                t -= 1                                          # its foot in shadow
+            lv[y, x] = int(np.clip(t, 1, 5))
+    img = fill(lv, CHAR)
+    # faint embers deep in a few cracks (dim: it's mostly burnt out), never two side by side
+    spots = [(int(x), int(y)) for y, x in zip(*np.nonzero(crack))]
+    rng.shuffle(spots)
+    used = []
+    for x, y in spots:
+        if len(used) == 6:
+            break
+        if all(abs(x - ux) + abs(y - uy) > 3 for ux, uy in used):
+            used.append((x, y))
+    for i, (x, y) in enumerate(used):
+        put(img, x, y, EMBER[3] if i == 0 else (EMBER[2] if i < 3 else EMBER[1]))
+    return img
+
+
+# Cracks across a charred log's end: each a chain of points running out from the pith.
+CHARRED_TOP_CRACKS = [[(7, 7), (6, 5), (5, 4), (4, 2)], [(8, 7), (10, 6), (12, 5)], [(8, 8), (9, 10), (9, 12), (10, 13)],
+                      [(7, 8), (5, 9), (3, 10)]]
+
+
+def charred_top():
+    """The end of a charred log: growth rings in charcoal greys, split by a few uneven cracks running out from the
+    pith (none quite reaching the bark), a few notches in the burnt bark rim, and a last faint ember in the middle."""
+    img = wood_top([CHAR[0], CHAR[2], CHAR[3]], [CHAR[1], CHAR[2], CHAR[3], CHAR[4]], seed=213)
+    for crack in CHARRED_TOP_CRACKS:
+        for a, b in zip(crack, crack[1:]):
+            line(img, a, b, CHAR[0])
+    for x, y in [(0, 5), (15, 10), (6, 15), (11, 0), (0, 12)]:
+        put(img, x, y, CHAR[0])
+    put(img, 7, 7, EMBER[3])
+    put(img, 8, 8, EMBER[2])
+    put(img, 8, 7, EMBER[1])
+    put(img, 7, 8, EMBER[1])
+    put(img, 6, 5, EMBER[1])
+    return img
+
+
+# Emberweed: each stalk is a chain of curves from its root to its tip (pixel units).
+EMBERWEED_STALKS = [
+    [(7.6, 16.0), (6.4, 10.5), (4.4, 3.4)],
+    [(8.4, 16.0), (8.9, 9.0), (8.4, 1.4)],
+    [(8.2, 16.0), (11.0, 11.0), (12.8, 4.2)],
+    [(7.2, 16.0), (4.0, 13.0), (1.8, 8.4)],
+    [(8.8, 16.0), (12.4, 14.0), (14.6, 9.6)],
+    [(7.9, 16.0), (7.2, 12.0), (6.2, 7.4)],
+]
+EMBERWEED_SPURS = [(0, 6), (1, 4), (1, 9), (2, 5), (3, 3), (4, 3), (5, 4)]   # (stalk, step from the root)
+EMBERWEED_SPARKS = [(2, 2), (11, 1), (15, 6)]
+
+
+def emberweed():
+    """Dry dark stalks fanning up from one root, a few dry spurs on them, each tipped with a glowing ember (dark red,
+    orange, a white-hot point), and a couple of tiny embers drifting off. Returns (texture, glow overlay)."""
+    img, glow = blank(), blank()
+    paths = [curve_path(points) for points in EMBERWEED_STALKS]
+    for path in paths:
+        n = len(path)
+        for j, (x, y) in enumerate(path):
+            t = j / max(n - 1, 1)
+            put(img, x, y, STALK[1] if t < 0.35 else (STALK[2] if t < 0.7 else STALK[3]))
+    for stalk, step in EMBERWEED_SPURS:                         # a dry spur: one pixel off the stalk, angled up
+        path = paths[stalk]
+        if step + 1 < len(path):
+            x, y = path[step]
+            nx = path[step + 1][0]
+            side = -1 if nx >= x else 1                         # away from the way the stalk leans
+            put(img, x + side, y - 1, STALK[4])
+    for path in paths:                                           # the glowing tips
+        for (x, y), col in zip(path[-3:], [EMBER[2], EMBER[4], EMBER[6]]):
+            put(img, x, y, col)
+            put(glow, x, y, col)
+    for x, y in EMBERWEED_SPARKS:
+        put(img, x, y, EMBER[5])
+        put(glow, x, y, EMBER[5])
+    return img, glow
+
+
+def basalt_side(seed):
+    """Basalt-like rock seen from the side: rough vertical columns with dark joins between them (each column's left
+    edge lit) and long streaks along them."""
+    v = streaks(seed, lengths=(3, 9), patch=(4, 1), patch_weight=0.4).T
+    lv = quantize(v, [0.12, 0.33, 0.35, 0.20]) + 1             # levels 1..4
+    for gx in (0, 4, 9, 13):
+        lv[:, gx] = 0
+        lv[:, (gx + 1) % S] = np.minimum(lv[:, (gx + 1) % S] + 1, 5)
+    img = fill(lv, BASALT)
+    for x, y in [(2, 5), (7, 11), (11, 3), (14, 13), (6, 1)]:  # small chips across the columns
+        put(img, x, y, BASALT[0])
+        put(img, x, y - 1, BASALT[4])
+    return img
+
+
+def basalt_end(seed):
+    """The end of a basalt-like block: dark rock in soft blotches, a few chips."""
+    v = fbm([(4, 4, 0.5), (8, 8, 0.3), (16, 16, 0.2)], seed=seed)
+    lv = quantize(v, [0.10, 0.25, 0.30, 0.23, 0.12])
+    img = fill(lv, BASALT)
+    for x, y in [(3, 3), (12, 2), (2, 12), (13, 13)]:
+        put(img, x, y, BASALT[0])
+        put(img, x - 1, y - 1, BASALT[5])
+    return img
+
+
+def cinder_vent_top():
+    """The vent's mouth: a ragged hole in the rock glowing from deep inside (white-hot middle, orange, dark red at
+    its edge), a dark rim round it, and cracks running out from it with a faint glow where they leave the mouth.
+    Returns (texture, glow overlay)."""
+    img = basalt_end(221)
+    glow = blank()
+    mouth = ellipse(8.0, 8.2, 3.3, 2.7) | ellipse(6.2, 7.2, 1.8, 1.5) | ellipse(10.0, 9.6, 1.8, 1.4)
+    yy, xx = np.mgrid[0:S, 0:S]
+    d = np.sqrt(((xx + 0.5 - 8.2) / 3.4) ** 2 + ((yy + 0.5 - 8.3) / 2.8) ** 2)
+    for y, x in zip(*np.nonzero(mouth)):
+        level = 6 if d[y, x] < 0.32 else (5 if d[y, x] < 0.58 else (4 if d[y, x] < 0.82 else 3))
+        put(img, x, y, EMBER[level])
+        put(glow, x, y, EMBER[level])
+    for y, x in zip(*np.nonzero(outline_of(mouth))):
+        # the rim: dark rock, faintly lit by the glow on the far (bottom-right) side the glow shines onto
+        put(img, x, y, BASALT[0])
+        if x + 0.5 > 8.2 and y + 0.5 > 8.3:
+            put(img, x, y, mix(BASALT[1], EMBER[1], 0.6))
+    for p0, p1 in [((4, 6), (1, 3)), ((12, 6), (15, 2)), ((10, 11), (13, 14)), ((5, 10), (2, 13))]:
+        line(img, p0, p1, BASALT[0])
+        put(img, p0[0], p0[1], EMBER[2])
+        put(glow, p0[0], p0[1], EMBER[2])
+    return img, glow
+
+
+def cinder_vent_side():
+    """Basalt-like columns with two cracks running down from the vent above, glowing faintly near the top.
+    Returns (texture, glow overlay)."""
+    img = basalt_side(223)
+    glow = blank()
+    for crack in ([(6, 0, 3), (6, 1, 3), (7, 2, 2), (7, 3, 1), (6, 4, 0)], [(11, 0, 2), (11, 1, 1), (12, 2, 0)]):
+        for x, y, heat in crack:
+            if heat > 0:
+                col = [EMBER[1], EMBER[2], EMBER[3]][heat - 1]
+                put(img, x, y, col)
+                put(glow, x, y, col)
+            else:
+                put(img, x, y, BASALT[0])
+    return img, glow
+
+
+# =====================================================================================================================
+# Blightwood
+# =====================================================================================================================
+
+SPORE_CLUSTERS = [[(2, 3), (3, 4)], [(9, 1)], [(12, 5), (13, 5)], [(5, 9)], [(14, 11), (14, 12)], [(8, 12), (9, 13)],
+                  [(1, 14)], [(11, 9)], [(6, 2)]]
+HYPHAE = [[(0, 7), (1, 7), (2, 6), (3, 6), (4, 7)], [(10, 14), (11, 14), (12, 13), (13, 13)], [(7, 5), (8, 6), (9, 6)]]
+
+
+def sporeloam_top():
+    """Dark rotten soil in damp clumps, crossed by a few thin pale fungal threads, with faint teal mould here and there
+    and small clusters of pale spores (only a few of them bright)."""
+    v = fbm([(8, 8, 0.5), (16, 16, 0.3), (4, 4, 0.2)], seed=231)
+    lv = quantize(v, [0.08, 0.20, 0.30, 0.24, 0.13, 0.05])
+    img = fill(lv, ROT)
+    for thread in HYPHAE:
+        for i, (x, y) in enumerate(thread):
+            put(img, x, y, ROT_THREAD if 0 < i < len(thread) - 1 else ROT[5])
+    for x, y in [(4, 12), (13, 2), (10, 7)]:
+        put(img, x, y, ROT_MOULD)
+    for n, cluster in enumerate(SPORE_CLUSTERS):
+        for i, (x, y) in enumerate(cluster):
+            put(img, x, y, (SPORE_PALE[2] if n % 3 == 0 else SPORE_PALE[1]) if i == 0 else SPORE_PALE[0])
+        x, y = cluster[0]
+        put(img, x + 1, y + 1, ROT[0])                          # a speck of shadow under each cluster
+    return img
+
+
+def rotten_soil(seed):
+    """A darker, damper dirt than the Silverwood's, with a few grey pebbles and pale root threads."""
+    v = fbm([(8, 8, 0.6), (16, 16, 0.4)], seed=seed)
+    lv = quantize(v, [0.18, 0.40, 0.28, 0.11, 0.03])
+    img = fill(lv, ROT_SOIL)
+    for x, y in [(4, 6), (12, 10), (7, 14)]:
+        put(img, x, y, PEBBLE[1])
+        put(img, x + 1, y, PEBBLE[0])
+    for x, y in [(10, 3), (11, 4), (2, 11)]:
+        put(img, x, y, SPORE_PALE[0])
+    return img
+
+
+SPORELOAM_FRINGE = [3, 4, 3, 3, 5, 4, 3, 4, 4, 3, 5, 3, 3, 4, 3, 4]
+
+
+def sporeloam_side():
+    top = sporeloam_top()
+    img = fringe_side(top, rotten_soil(233), SPORELOAM_FRINGE, ROT[1], ROT_SOIL[0],
+                      [ROT[3], ROT[3], ROT[4], ROT[3], SPORE_PALE[1], ROT[3], ROT[4], ROT[3]])
+    for x, y in [(3, 1), (12, 2)]:
+        put(img, x, y, SPORE_PALE[2])
+    return img
+
+
+def wrapped_disc(cx, cy, r):
+    """Boolean mask of a round spot, measured round the edges (a spot at the edge comes back on the far side)."""
+    yy, xx = np.mgrid[0:S, 0:S] + 0.5
+    dx = np.minimum(np.abs(xx - cx), S - np.abs(xx - cx))
+    dy = np.minimum(np.abs(yy - cy), S - np.abs(yy - cy))
+    return dx * dx + dy * dy <= r * r
+
+
+# The pale spots on a blightcap's cap: (x, y, radius); some cross the edges and come back on the far side.
+CAP_SPOTS = [(4.0, 3.5, 2.3), (11.5, 5.0, 1.6), (7.5, 10.5, 2.7), (14.5, 12.5, 1.8), (2.0, 13.0, 1.3), (14.8, 1.2, 1.1)]
+
+
+def blightcap_cap():
+    """The outside of a giant blightcap's cap, like vanilla's spotted mushroom blocks gone sickly: grey-green mottled
+    flesh with round pale spots (lit at their top left, a dull rim at their foot and a dirty halo round them), and a
+    few dark rot specks. Tiles in every direction."""
+    base = fbm([(4, 4, 0.5), (8, 8, 0.35), (16, 16, 0.15)], seed=241)
+    lv = quantize(base, [0.12, 0.25, 0.30, 0.22, 0.11])
+    img = fill(lv, CAP)
+    spots = np.zeros((S, S), bool)
+    for cx, cy, r in CAP_SPOTS:
+        spots |= wrapped_disc(cx, cy, r)
+    for y, x in zip(*np.nonzero(outline_of(spots))):
+        if (x * 3 + y) % 4 != 0:
+            img[y, x] = rgba(CAP_BLOTCH[0])                     # the dirty halo round each spot
+    for y, x in zip(*np.nonzero(spots)):
+        if not spots[(y - 1) % S, x] or not spots[y, (x - 1) % S]:
+            col = CAP_BLOTCH[3]                                 # lit top-left edge
+        elif not spots[(y + 1) % S, x] or not spots[y, (x + 1) % S]:
+            col = CAP_BLOTCH[1]                                 # shaded foot
+        else:
+            col = CAP_BLOTCH[2]
+        img[y, x] = rgba(col)
+    for x, y in [(8, 6), (12, 9), (3, 8), (10, 14), (5, 1)]:  # dark rot specks, and one on a spot
+        put(img, x, y, CAP[0])
+    return img
+
+
+def blightcap_inside():
+    """The pale inside of the giant blightcap (the cap's underside and the stem's core): soft fibrous flesh with rows
+    of small pores."""
+    v = fbm([(8, 8, 0.6), (16, 16, 0.4)], seed=251)
+    lv = quantize(v, [0.15, 0.35, 0.35, 0.15]) + 1
+    img = fill(lv, CAP_INSIDE)
+    for row, y in enumerate(range(1, S, 3)):
+        for x in range(1 + (row % 2) * 2, S, 4):
+            put(img, x, y, CAP_INSIDE[0])
+            put(img, x, y - 1, CAP_INSIDE[4])
+    return img
+
+
+# Holes in the rotting cap, each a little pixel map ('#' hole) with its top left corner, and the sickly rot patches.
+ROT_HOLES = [(2, 2, ["##.", "###", ".#."]), (10, 1, ["##", "##"]), (12, 8, [".#", "##", "#."]), (5, 9, ["###", ".##"]),
+             (0, 13, ["#", "#"]), (9, 13, ["##"])]
+ROT_PATCHES = [[(7, 5), (8, 5), (7, 6)], [(13, 4)], [(3, 7)], [(14, 13), (15, 14)]]
+
+
+def rotting_cap():
+    """A blightcap gone bad: darker, grimy flesh with the ghosts of the fresh cap's pale spots, pocked with ragged
+    holes (black pits, their far inside wall faintly lit, a shadow on the rim above), and a few sickly yellow-green
+    rot patches."""
+    v = fbm([(4, 4, 0.5), (8, 8, 0.3), (16, 16, 0.2)], seed=261)
+    lv = quantize(v, [0.12, 0.25, 0.30, 0.22, 0.11])
+    img = fill(lv, ROTCAP)
+    for cx, cy, r in CAP_SPOTS:                                 # the same spots as the fresh cap, gone grimy
+        for y, x in zip(*np.nonzero(wrapped_disc(cx, cy, r * 0.8))):
+            put(img, x, y, mix(ROTCAP[4], CAP_BLOTCH[0], 0.3))
+    for x0, y0, rows in ROT_HOLES:
+        hole = np.zeros((S, S), bool)
+        for dy, row in enumerate(rows):
+            for dx, ch in enumerate(row):
+                if ch == "#":
+                    hole[(y0 + dy) % S, (x0 + dx) % S] = True
+        for y, x in zip(*np.nonzero(hole)):
+            far_wall = not hole[(y + 1) % S, x]                 # the bottom of the pit: its far wall catches light
+            put(img, x, y, ROT_PIT[1] if far_wall else ROT_PIT[0])
+            if not hole[(y - 1) % S, x]:
+                put(img, x, y - 1, ROTCAP[0])                   # the rim above the pit, in shadow
+    for patch in ROT_PATCHES:
+        for i, (x, y) in enumerate(patch):
+            put(img, x, y, ROT_SICKLY[2] if i == 0 else ROT_SICKLY[1])
+    return img
+
+
+def blightcap_stem():
+    """The giant blightcap's stem: pale fibrous flesh in long vertical fibres, streaked with rot."""
+    v = streaks(seed=271, lengths=(3, 9), patch=(4, 1), patch_weight=0.45)
+    lv = quantize(v.T, [0.08, 0.24, 0.36, 0.24, 0.08]) + 1
+    img = fill(lv, STEM)
+    for x, y0, n, col in [(3, 2, 7, 1), (4, 4, 3, 0), (10, 9, 6, 2), (13, 0, 4, 1), (7, 12, 3, 0)]:
+        for k in range(n):
+            put(img, x, y0 + k, STEM_ROT[col] if 0 < k < n - 1 else STEM[1])
+    return img
+
+
+def gloomcap():
+    """Two small glowing mushrooms, a taller one and a little one: blue-teal domed caps (lit at the top left, with
+    pale spots) over dark gills, on pale stems. Returns (texture, glow overlay): the caps glow."""
+    img, glow = blank(), blank()
+    # stems first (the caps overlap their tops)
+    for y in range(9, S):
+        put(img, 6, y, GLOOM_STEM[2])
+        put(img, 7, y, GLOOM_STEM[1])
+    put(img, 5, 15, GLOOM_STEM[1])
+    put(img, 8, 15, GLOOM_STEM[0])
+    for y in range(13, S):
+        put(img, 12, y, GLOOM_STEM[1])
+    put(img, 13, 15, GLOOM_STEM[0])
+    yy, xx = np.mgrid[0:S, 0:S]
+    for cx, top, bottom, r in [(6.5, 3, 7, 4.7), (12.4, 10, 12, 2.6)]:
+        dome = ellipse(cx, bottom + 0.6, r, bottom - top + 1.2) & (yy <= bottom)
+        light = lit(dome, cx - r * 0.3, top + 1.0, r, bottom - top + 1)
+        for y, x in zip(*np.nonzero(dome)):
+            v = light[y, x]
+            col = GLOOM[5] if v > 0.78 else (GLOOM[4] if v > 0.6 else (GLOOM[3] if v > 0.38 else GLOOM[2]))
+            if y == bottom:
+                col = GLOOM[2] if v > 0.4 else GLOOM[1]          # the cap's rim
+            put(img, x, y, col)
+            put(glow, x, y, col)
+        for x in range(int(np.ceil(cx - r + 1)), int(np.floor(cx + r))):   # dark gills under the cap
+            put(img, x, bottom + 1, GLOOM[0])
+    for x, y in [(4, 5), (8, 4), (7, 6), (12, 11)]:            # pale spots
+        put(img, x, y, GLOOM[5])
+        put(glow, x, y, GLOOM[5])
+    return img, glow
+
+
+def sporepod(burst):
+    """A bulbous fungal pod: a big sickly olive bulb with two small ones at its foot, veined and spotted, with a
+    puckered mouth on top and a few spores drifting out. burst=True: the same pod sagging and empty after it has
+    burst, wrinkled, its mouth torn open."""
+    img = blank()
+    if not burst:
+        bulbs = [(8.0, 9.9, 4.7, 5.1), (12.7, 13.5, 2.3, 2.1), (3.5, 13.9, 1.9, 1.7)]
+    else:
+        bulbs = [(8.0, 12.6, 5.8, 3.1), (12.9, 14.3, 2.3, 1.5), (3.3, 14.4, 1.9, 1.3)]
+    mask = np.zeros((S, S), bool)
+    light = np.zeros((S, S))
+    for cx, cy, rx, ry in bulbs:
+        m = ellipse(cx, cy, rx, ry)
+        light = np.where(m & ~mask, lit(m, cx, cy, rx, ry), np.maximum(light, lit(m, cx, cy, rx, ry) * m))
+        mask |= m
+    rng = np.random.default_rng(281 if not burst else 283)
+    for y, x in zip(*np.nonzero(mask)):
+        v = light[y, x] - (0.15 if rng.random() < 0.15 else 0.0) - (0.18 if burst else 0.0)
+        level = 5 if v > 0.8 else (4 if v > 0.62 else (3 if v > 0.42 else (2 if v > 0.22 else 1)))
+        img[y, x] = rgba(POD[level])
+    for y, x in zip(*np.nonzero(outline_of(mask))):
+        if y < S - 1:
+            img[y, x] = rgba(POD[0])
+    if not burst:
+        for x, y0, y1 in [(5, 8, 12), (10, 7, 12)]:            # veins curving down the bulb
+            for y in range(y0, y1 + 1):
+                put(img, x + (1 if y > (y0 + y1) // 2 else 0) * (1 if x > 8 else -1), y, POD[1])
+        for x, y in [(6, 7), (11, 10), (8, 12), (4, 11), (13, 13)]:
+            put(img, x, y, POD_SPOT[1] if (x + y) % 2 else POD_SPOT[0])
+        for x in (7, 8, 9):                                     # the puckered mouth on top
+            put(img, x, 5, POD[1])
+        put(img, 8, 5, POD[0])
+        put(img, 8, 4, POD[3])
+        for x, y in [(7, 2), (10, 1), (5, 0)]:                  # spores drifting out
+            put(img, x, y, POD_SPOT[1])
+    else:
+        for y in (11, 13):                                      # wrinkles across the empty pod
+            for x in range(4, 13):
+                if (x + y) % 3:
+                    put(img, x, y, POD[1])
+        for x in range(6, 11):                                  # the torn-open mouth
+            put(img, x, 10, POD[0])
+        put(img, 7, 9, POD[2])
+        put(img, 10, 9, POD[1])
+    return img
+
+
+# =====================================================================================================================
+# Rimefall
+# =====================================================================================================================
+
+FROST_CRYSTALS = [(2, 2, 0), (9, 3, 1), (13, 1, 0), (5, 8, 1), (12, 9, 0), (1, 12, 1), (8, 13, 0), (14, 14, 1)]
+FROST_FRINGE = [3, 2, 2, 3, 4, 3, 2, 2, 3, 2, 4, 3, 2, 2, 3, 3]
+
+
+def hoarfrost_top():
+    """Frozen ground furred with frost: patches of the pale blue-grey frozen soil showing through a furry white-blue
+    frost, and little feathery frost crystals all over it. Greyer and patchier than a snow block, so the two don't
+    look alike. Tiles in every direction."""
+    v = fbm([(8, 8, 0.45), (16, 16, 0.35), (4, 4, 0.2)], seed=291)
+    lv = quantize(v, [0.10, 0.22, 0.30, 0.24, 0.14])          # frost shades 0..4 (5 is kept for the crystals)
+    img = fill(lv, FROST)
+    bare = fbm([(4, 4, 0.6), (8, 8, 0.4)], seed=297)
+    bare = bare < np.quantile(bare, 0.22)                       # where the soil shows through
+    for y, x in zip(*np.nonzero(bare)):
+        put(img, x, y, FROZEN_SOIL[3] if (x + y) % 3 else FROZEN_SOIL[2])
+    for x, y, kind in FROST_CRYSTALS:
+        rows = [".w.", "wbw", ".w."] if kind == 0 else ["w.w", ".b.", "w.w"]
+        stamp(img, rows, {"w": FROST[5], "b": FROST[3]}, x - 1, y - 1, wrap=True)
+    return img
+
+
+def frozen_soil(seed):
+    """Pale blue-grey frozen soil with a few glints of ice in it."""
+    v = fbm([(8, 8, 0.6), (16, 16, 0.4)], seed=seed)
+    lv = quantize(v, [0.15, 0.37, 0.30, 0.13, 0.05])
+    img = fill(lv, FROZEN_SOIL)
+    for x, y in [(3, 6), (12, 9), (7, 13), (14, 3)]:
+        put(img, x, y, ICE[2])
+        put(img, x + 1, y + 1, FROZEN_SOIL[0])
+    return img
+
+
+def hoarfrost_side():
+    top = hoarfrost_top()
+    img = fringe_side(top, frozen_soil(293), FROST_FRINGE, FROST[1], FROZEN_SOIL[0],
+                      [FROST[4], FROST[5], FROST[4], FROST[3]])
+    return img
+
+
+def dead_wood_side(seed):
+    """Grey weathered dead wood without its bark: long vertical grain, a few long splits along it (dark, with a lit
+    edge to their left), and a knot."""
+    v = streaks(seed=seed, lengths=(4, 10), patch=(3, 1), patch_weight=0.5)
+    lv = quantize(v.T, [0.10, 0.25, 0.32, 0.23, 0.10]) + 1
+    img = fill(lv, DEAD_WOOD)
+    for x, y0, n in [(3, 1, 9), (10, 6, 8), (13, 13, 5)]:
+        for k in range(n):
+            put(img, x, y0 + k, DEAD_WOOD[0])
+            if k % 3 != 2:
+                put(img, x - 1, y0 + k, DEAD_WOOD[4])
+    stamp(img, [".hh.", "hkKd", ".ss."], {"h": DEAD_WOOD[5], "k": DEAD_WOOD[1], "K": DEAD_WOOD[0], "d": DEAD_WOOD[2],
+                                          "s": DEAD_WOOD[2]}, 6, 10, wrap=True)
+    return img
+
+
+def frostbitten_side():
+    return dead_wood_side(301)
+
+
+def frostbitten_rime():
+    """The side the frost wind blew on: the same dead wood, crusted with white rime. Rime grows into the wind as
+    feathery ice, so every row of the crust is a run of little feathers (bright at the root, paler towards the tip)
+    reaching out sideways, ragged where they end, with the grey wood showing between the rows here and there."""
+    img = dead_wood_side(301)
+    rng = np.random.default_rng(303)
+    reach = fbm([(2, 4, 0.6), (4, 8, 0.4)], seed=307)          # how far across the face the crust reaches, per row
+    for y in range(S):
+        # each row: feathers from a ragged start; most rows covered for most of their width
+        x = int(rng.integers(0, 3))
+        end = x + 9 + int(reach[y, 0] * 7)
+        while x < end:
+            n = int(rng.integers(2, 5))
+            for k in range(n):
+                col = RIME[3] if k == 0 else (RIME[2] if k < n - 1 else RIME[1])
+                if y % 2 and k == 0:
+                    col = RIME[2]
+                put(img, x + k, y, col)
+            put(img, x + n, y, RIME[0])                         # the feather's pale blue-grey tip
+            x += n + 1 + (1 if rng.random() < 0.25 else 0)      # now and then a gap shows the wood
+    for x, y in [(4, 3), (11, 8), (2, 13), (8, 11)]:
+        put(img, x, y, RIME[3])
+    return img
+
+
+def frostbitten_top():
+    """The end of a frostbitten log: grey growth rings, with frost crusted along the north edge (the rimed side)."""
+    img = wood_top([DEAD_WOOD[0], DEAD_WOOD[2], DEAD_WOOD[4]], [DEAD_WOOD[1], DEAD_WOOD[2], DEAD_WOOD[3], DEAD_WOOD[4]],
+                   seed=305)
+    for x in range(S):
+        put(img, x, 0, RIME[2] if x % 3 else RIME[3])
+        if x % 4 != 1:
+            put(img, x, 1, RIME[1])
+    for x in (3, 9, 13):
+        put(img, x, 2, RIME[0])
+    return img
+
+
+# The Frostbloom's head: a frost flower with eight pointed petals round a glowing heart (9 x 9, its top left corner at
+# FROSTBLOOM_AT). Petal shades 1 (shadow) .. 4 (lit); h, H, W the glowing heart (dim .. white).
+FROSTBLOOM_HEAD = [
+    "....4....",
+    ".4.343.3.",
+    "..43434..",
+    ".34hHh43.",
+    "434HWH432",
+    ".23hHh32.",
+    "..23232..",
+    ".2.232.1.",
+    "....2....",
+]
+FROSTBLOOM_AT = (4, 0)
+
+
+def frostbloom():
+    """A pale icy-blue frost flower on a frosty stem with two leaves; its heart glows softly. Returns (texture, glow
+    overlay): only the heart glows."""
+    img, glow = blank(), blank()
+    for y in range(9, S):
+        put(img, 8, y, FROST_STEM[1])
+    put(img, 7, 15, FROST_STEM[0])
+    for (x0, y0), (x1, y1) in [((7, 13), (4, 11)), ((9, 12), (12, 10))]:
+        line(img, (x0, y0), (x1, y1), FROST_STEM[2])
+        put(img, x1, y1 + 1, FROST_STEM[0])
+        put(img, x1, y1, RIME[2])                               # frost on the leaf tips
+    hx, hy = FROSTBLOOM_AT
+    keys = {"1": PETAL_ICE[0], "2": PETAL_ICE[1], "3": PETAL_ICE[2], "4": PETAL_ICE[3],
+            "h": FROST_HEART[0], "H": FROST_HEART[1], "W": FROST_HEART[2]}
+    for dy, row in enumerate(FROSTBLOOM_HEAD):
+        for dx, ch in enumerate(row):
+            if ch in keys:
+                put(img, hx + dx, hy + dy, keys[ch])
+                if ch in "hHW":
+                    put(glow, hx + dx, hy + dy, keys[ch])
+    return img, glow
+
+
+# The icicles: for each, its rows from the top as (first x, last x); the main one, a smaller one, a little one.
+ICICLES = [
+    [(5, 10), (5, 10), (6, 10), (6, 9), (6, 9), (6, 9), (7, 9), (7, 9), (7, 8), (7, 8), (7, 8), (8, 8), (8, 8), (8, 8)],
+    [(11, 13), (11, 13), (12, 13), (12, 13), (12, 12), (12, 12), (12, 12)],
+    [(2, 3), (2, 3), (2, 2), (2, 2)],
+]
+
+
+def icicle():
+    """Three icicles hanging from the top of the block, see-through: a bright lit left edge, pale blue middle, a
+    deeper blue right edge, and a bright drop at the main one's tip with a drip falling below it."""
+    img = blank()
+    for spike in ICICLES:
+        for y, (x0, x1) in enumerate(spike):
+            for x in range(x0, x1 + 1):
+                if x == x0:
+                    col, a = ICE[3], 235
+                elif x == x1:
+                    col, a = ICE[0], 215
+                else:
+                    col, a = (ICE[2], 185) if x == x0 + 1 else (ICE[1], 165)
+                put(img, x, y, col, a)
+        x0, x1 = spike[-1]
+        put(img, x0, len(spike) - 1, ICE[3], 225)               # the bright drop at the tip
+    put(img, 8, 15, ICE[2], 150)                                 # a drip falling from the main one
+    return img
+
+
+# =====================================================================================================================
+# Nether Scar
+# =====================================================================================================================
+
+
+def netherrack_base(seed):
+    """Our own netherrack-like rock: lumpy dark-red flesh in soft clumps, with short dark pores and a few pale lumps."""
+    v = fbm([(8, 8, 0.45), (4, 4, 0.30), (16, 16, 0.25)], seed=seed)
+    lv = quantize(v, [0.10, 0.22, 0.30, 0.22, 0.12, 0.04])
+    img = fill(lv, NETHERRACK)
+    rng = np.random.default_rng(seed + 1)
+    for _ in range(9):
+        x, y, n = int(rng.integers(0, S)), int(rng.integers(0, S)), int(rng.integers(1, 4))
+        for k in range(n):
+            put(img, x + k, y, NETHERRACK[0])
+        put(img, x, y - 1, NETHERRACK[4])
+    return img
+
+
+def crack_pixels(rng, horizontal, start, ups):
+    """A crack across the whole texture that comes back to where it started on the far side (so it tiles): its
+    pixels in order. horizontal: from the left edge to the right, else from the top to the bottom."""
+    track = wander(rng, start, ups)
+    pixels = []
+    for i, t in enumerate(track):
+        pixels.append((i, t % S) if horizontal else (t % S, i))
+        nxt = track[(i + 1) % S]
+        if nxt != t:                                            # a step aside: fill the corner so the crack is joined
+            pixels.append((i, nxt % S) if horizontal else (nxt % S, i))
+    return pixels
+
+
+def diagonal_crack(rng, start, flip=False):
+    """A jagged crack running diagonally right across the texture and wrapping round so it tiles: over the 16 columns
+    it drops exactly 16 rows, in uneven steps of 0, 1 or 2 rows (gaps filled so it stays joined). flip: it climbs
+    instead. Returns its pixels."""
+    steps = [1] * 8 + [0] * 4 + [2] * 4
+    rng.shuffle(steps)
+    pixels = []
+    y = start
+    for x in range(S):
+        pixels.append((x, y % S))
+        step = steps[x]
+        for k in range(1, step):                                # a 2-row step: fill the pixel between
+            pixels.append((x, (y + (-k if flip else k)) % S))
+        y += -step if flip else step
+    return pixels
+
+
+def scarred_netherrack():
+    """Netherrack split by jagged cracks of the Dross's electric blue (a white-hot core, glowing blue edges here and
+    there), the rock right beside each crack scorched dark. The main crack runs corner to corner and tiles into the
+    next block; a second one branches off and dies out. Returns (texture, glow overlay): the cracks glow."""
+    img = netherrack_base(311)
+    glow = blank()
+    rng = np.random.default_rng(313)
+    main = diagonal_crack(rng, 2)
+    y8 = min(y for x, y in main if x == 8)
+    y4 = max(y for x, y in main if x == 4)
+    # a branch leaving the main crack and climbing away to the right, and a hairline crack hanging below it
+    branch = [(9, y8 - 1), (10, y8 - 1), (11, y8 - 2), (12, y8 - 2), (13, y8 - 3), (14, y8 - 4)]
+    hair = [(4, y4 + 1), (3, y4 + 2), (3, y4 + 3), (2, y4 + 4)]
+    cracks = [main, [(x, y % S) for x, y in branch], [(x, y % S) for x, y in hair]]
+    on = np.zeros((S, S), bool)
+    for crack in cracks:
+        for x, y in crack:
+            on[y, x] = True
+    for y, x in zip(*np.nonzero(outline_of(on))):
+        tint(img, x, y, NETHERRACK[0], 0.65)                    # scorched rock beside the cracks
+        if rng.random() < 0.25:
+            put(img, x, y, SCAR[1])
+            put(glow, x, y, SCAR[1])
+    for i, (y, x) in enumerate(zip(*np.nonzero(on))):
+        col = SCAR[5] if i % 4 == 0 else (SCAR[4] if i % 4 == 1 else SCAR[3])
+        put(img, x, y, col)
+        put(glow, x, y, col)
+    return img, glow
+
+
+# Scar Roots: each root a chain of curves (twisting), from its foot up to its electric blue tip.
+SCAR_ROOT_STRANDS = [
+    [(7.5, 16.0), (4.0, 13.0), (5.6, 10.0), (7.2, 7.0), (4.4, 3.6)],
+    [(8.5, 16.0), (10.4, 12.0), (8.6, 9.0), (7.0, 6.0), (9.2, 1.6)],
+    [(8.8, 16.0), (12.6, 14.0), (12.0, 10.4), (11.4, 7.4), (13.8, 5.0)],
+    [(7.0, 16.0), (2.6, 14.6), (2.4, 11.6), (2.2, 9.6), (1.0, 7.6)],
+    [(9.2, 16.0), (14.6, 15.0), (14.4, 12.4)],
+]
+
+
+def scar_roots():
+    """Twisted crimson roots: five strands curling up from one tangle, banded light and dark where they twist (lit
+    on the left), each ending in a bright electric blue tip."""
+    img = blank()
+    for path in (curve_path(points) for points in SCAR_ROOT_STRANDS):
+        n = len(path)
+        for j, (x, y) in enumerate(path):
+            twist = (j // 2) % 2 == 0
+            col = CRIMSON[3] if twist else CRIMSON[2]
+            if j < 3:
+                col = CRIMSON[1]
+            put(img, x, y, col)
+            if j < n * 0.4 and x - 1 >= 0 and img[y, x - 1, 3] == 0:
+                put(img, x - 1, y, CRIMSON[0])                  # the thicker, darker foot of the root
+        for (x, y), col in zip(path[-3:], [SCAR[2], SCAR[4], SCAR[5]]):
+            put(img, x, y, col)
+    return img
+
+
+# The Soulwick's soul flame (7 wide, its top left at SOULWICK_FLAME_AT): shades of SOUL_FLAME, 0 deep blue .. 4 white.
+SOULWICK_FLAME = [
+    "....3..",
+    "...343.",
+    "..3443.",
+    ".23443.",
+    ".234432",
+    ".124421",
+    "..1221.",
+]
+SOULWICK_FLAME_AT = (5, 0)
+
+
+def soulwick():
+    """A dark slender stem with two thin leaves holding a little cup, and in the cup a blue soul flame (white at its
+    heart). Returns (texture, glow overlay): the flame and the cup's rim glow."""
+    img, glow = blank(), blank()
+    for y in range(9, S):
+        put(img, 8, y, SOUL_STEM[1])
+    put(img, 7, 15, SOUL_STEM[0])
+    for (x0, y0), (x1, y1) in [((7, 13), (4, 11)), ((9, 12), (12, 10))]:
+        line(img, (x0, y0), (x1, y1), SOUL_STEM[2])
+        put(img, x1, y1 + 1, SOUL_STEM[0])
+    for x in range(6, 11):                                      # the cup
+        put(img, x, 8, SOUL_STEM[0] if x in (6, 10) else SOUL_STEM[1])
+    fx, fy = SOULWICK_FLAME_AT
+    for dy, row in enumerate(SOULWICK_FLAME):
+        for dx, ch in enumerate(row):
+            if ch.isdigit():
+                put(img, fx + dx, fy + dy, SOUL_FLAME[int(ch)])
+                put(glow, fx + dx, fy + dy, SOUL_FLAME[int(ch)])
+    for x in (6, 10):                                           # the cup's rim, lit by the flame
+        put(img, x, 7, SOUL_FLAME[1])
+        put(glow, x, 7, SOUL_FLAME[1])
+    return img, glow
+
+
+def scar_vent_top():
+    """The top of a Scar Vent: netherrack torn open by a jagged gash glowing red-hot at its edges round an electric
+    blue heart, with two small red cracks branching off. Returns (texture, glow overlay)."""
+    img = netherrack_base(321)
+    glow = blank()
+    # the gash: blobs along a slightly bent line from the top left to the bottom right, widest in the middle
+    gash = np.zeros((S, S), bool)
+    for cx, cy, rx, ry in [(4.0, 4.6, 1.3, 1.0), (5.6, 5.8, 1.6, 1.3), (7.4, 7.2, 2.0, 1.6), (9.2, 8.6, 1.9, 1.5),
+                           (10.8, 10.2, 1.5, 1.2), (12.2, 11.6, 1.1, 0.9)]:
+        gash |= ellipse(cx, cy, rx, ry)
+    inner = gash & roll(gash, 1, 0) & roll(gash, -1, 0) & roll(gash, 0, 1) & roll(gash, 0, -1)
+    deep = inner & roll(inner, 1, 0) & roll(inner, -1, 0)
+    for y, x in zip(*np.nonzero(outline_of(gash))):
+        put(img, x, y, HOT[0])                                  # the scorched lips of the gash
+    for y, x in zip(*np.nonzero(gash)):
+        if deep[y, x]:
+            col = SCAR[5] if (x + y) % 2 == 0 else SCAR[4]      # the electric blue heart, white-hot
+        elif inner[y, x]:
+            col = SCAR[3]
+        else:
+            col = HOT[3] if (y <= x - 1) else HOT[2]            # red-hot edges, a little brighter on the lower side
+        put(img, x, y, col)
+        put(glow, x, y, col)
+    for crack in ([(3, 7), (2, 8), (1, 9)], [(12, 8), (13, 7), (14, 7)], [(8, 10), (8, 11), (7, 12)]):
+        for i, (x, y) in enumerate(crack):
+            col = HOT[2] if i == 0 else HOT[1]
+            put(img, x, y, col)
+            put(glow, x, y, col)
+    return img, glow
+
+
+def scar_vent_side():
+    """Netherrack with a red-hot crack running down from the vent above, blue at its top. Returns (texture, glow)."""
+    img = netherrack_base(323)
+    glow = blank()
+    for x, y, col in [(7, 0, SCAR[4]), (7, 1, SCAR[3]), (8, 2, HOT[3]), (8, 3, HOT[2]), (7, 4, HOT[2]), (7, 5, HOT[1]),
+                      (8, 6, HOT[1]), (12, 0, HOT[3]), (12, 1, HOT[2]), (13, 2, HOT[1])]:
+        put(img, x, y, col)
+        put(glow, x, y, col)
+    return img, glow
+
+
+# =====================================================================================================================
+# The Gravecrags
+# =====================================================================================================================
+
+# Weathering stains: (x, first row, length); each starts darkest at the top and fades out as it runs down the face.
+CRAG_STAINS = [(2, 0, 7), (6, 9, 6), (11, 2, 9), (14, 11, 4)]
+# Hairline cracks: chains of pixels, each with a lit lip just above it (a stain runs down from each).
+CRAG_CRACKS = [[(10, 1), (11, 2)], [(5, 8), (6, 9)]]
+
+
+def cragstone():
+    """Pale grey weathered mountain stone: soft broad patches and a fine grain, a few hairline cracks with a lit lip,
+    and soft dark weathering stains streaking down the face from them, fading as they go. Tiles in every direction."""
+    v = fbm([(4, 4, 0.5), (8, 8, 0.3), (16, 16, 0.2)], seed=331)
+    lv = quantize(v, [0.06, 0.20, 0.34, 0.26, 0.11, 0.03])
+    img = fill(lv, CRAG)
+    for x, y0, n in CRAG_STAINS:
+        for k in range(n):
+            tint(img, x, y0 + k, CRAG_STAIN[0], 0.8 * (1.0 - k / n))
+            if k < n // 2:
+                tint(img, x + 1, y0 + k, CRAG_STAIN[1], 0.35 * (1.0 - 2 * k / n))   # a softer second line beside it
+    for crack in CRAG_CRACKS:
+        for x, y in crack:
+            put(img, x, y, CRAG_STAIN[0])
+            tint(img, x, y - 1, CRAG[5], 0.6)
+    return img
+
+
+def storm_lichen():
+    """Electric blue lichen growing in many small round rosettes scattered over a see-through background (it grows
+    on the side of a block): each rosette brightest round its rim where it's growing, deeper blue towards its older
+    middle, the rims a little uneven, and a few white-hot specks. Tiles, so the growth runs on across blocks."""
+    img = blank()
+    rng = np.random.default_rng(343)
+    rosettes = []
+    tries = 0
+    while len(rosettes) < 16 and tries < 4000:                  # scattered, never quite on top of each other
+        tries += 1
+        x, y, r = rng.uniform(0, S), rng.uniform(0, S), rng.uniform(0.9, 2.1)
+        if all(min(abs(x - rx), S - abs(x - rx)) ** 2 + min(abs(y - ry), S - abs(y - ry)) ** 2 >= (r + rr - 0.4) ** 2
+               for rx, ry, rr in rosettes):
+            rosettes.append((x, y, r))
+    yy, xx = np.mgrid[0:S, 0:S] + 0.5
+    best = np.full((S, S), 9.0)                                 # how deep inside its rosette each pixel is (0 = middle)
+    for cx, cy, r in rosettes:
+        dx = np.minimum(np.abs(xx - cx), S - np.abs(xx - cx))
+        dy = np.minimum(np.abs(yy - cy), S - np.abs(yy - cy))
+        best = np.minimum(best, np.sqrt(dx * dx + dy * dy) / r)
+    lobes = (best <= 1.0) & ~((best > 0.75) & (rng.random((S, S)) < 0.25))   # an uneven rim
+    for y, x in zip(*np.nonzero(lobes)):
+        b = best[y, x]
+        col = LICHEN[4] if b > 0.7 else (LICHEN[3] if b > 0.4 else LICHEN[2])
+        img[y, x] = rgba(col)
+    inner = [(int(x), int(y)) for y, x in zip(*np.nonzero(lobes & (best < 0.5)))]
+    for k in rng.choice(len(inner), size=min(5, len(inner)), replace=False):
+        x, y = inner[k]
+        put(img, x, y, LICHEN[5] if k % 2 == 0 else LICHEN[1])
+    return img
+
+
+# The Crag Thistle: a..e = THISTLE shades (dark .. light); 1..4 = THISTLE_HEAD shades (pale blue, 4 the lightest).
+# A tuft of pale blue florets on a spiny globe of bracts, a stiff stem, and a rosette of spiny leaves low down.
+CRAG_THISTLE = [
+    "................",
+    "......3.4.3.....",
+    ".....342432.....",
+    ".....2323221....",
+    "......1211......",
+    "....e.bcdb.e....",
+    "....bdeedcb.....",
+    "...ebdedccbe....",
+    "....bcdccbb.....",
+    ".....abcba......",
+    "......bcb.......",
+    "..d...bc....d...",
+    "...dc.bc..cd....",
+    ".d..dcbccdc..d..",
+    "..ddc.bcb.cdd...",
+    "......bcb.......",
+]
+
+
+def crag_thistle():
+    """A spiky grey-violet mountain thistle: a stiff stem, spiny leaves fanning out low down, a spiky cup of bracts
+    and a bristly pale blue flower head on top."""
+    img = blank()
+    stamp(img, CRAG_THISTLE, {"a": THISTLE[0], "b": THISTLE[1], "c": THISTLE[2], "d": THISTLE[3], "e": THISTLE[4],
+                              "1": THISTLE_HEAD[0], "2": THISTLE_HEAD[1], "3": THISTLE_HEAD[2], "4": THISTLE_HEAD[3]})
+    return img
+
+
+# =====================================================================================================================
 # All textures
 # =====================================================================================================================
 
 
-def all_textures():
-    """{name: (folder, image)} for every texture, in a sensible order."""
+def stage1_textures():
+    """{name: (folder, image)} for Stage 1's textures: the Dross's stone, ores and materials, and the Silverwood."""
     stormite, stormite_glow = stormite_ore()
     bloom, bloom_glow = wispbloom()
     return {
@@ -898,6 +1890,87 @@ def all_textures():
     }
 
 
+def biome_textures():
+    """The other biomes' textures (Stage 2), biome by biome: [(biome name, {name: (folder, image)})]."""
+    ember, ember_glow = emberweed()
+    vent_top, vent_top_glow = cinder_vent_top()
+    vent_side, vent_side_glow = cinder_vent_side()
+    gloom, gloom_glow = gloomcap()
+    bloom, bloom_glow = frostbloom()
+    scarred, scarred_glow = scarred_netherrack()
+    wick, wick_glow = soulwick()
+    svent_top, svent_top_glow = scar_vent_top()
+    svent_side, svent_side_glow = scar_vent_side()
+    return [
+        ("Cinder Wastes", {
+            "ash": ("block", ash()),
+            "charred_log": ("block", charred_side()),
+            "charred_log_top": ("block", charred_top()),
+            "emberweed": ("block", ember),
+            "emberweed_glow": ("block", ember_glow),
+            "cinder_vent_top": ("block", vent_top),
+            "cinder_vent_top_glow": ("block", vent_top_glow),
+            "cinder_vent_side": ("block", vent_side),
+            "cinder_vent_side_glow": ("block", vent_side_glow),
+            "cinder_vent_bottom": ("block", basalt_end(225)),
+        }),
+        ("Blightwood", {
+            "sporeloam_top": ("block", sporeloam_top()),
+            "sporeloam_side": ("block", sporeloam_side()),
+            "sporeloam_bottom": ("block", rotten_soil(233)),
+            "blightcap_block": ("block", blightcap_cap()),
+            "rotting_blightcap": ("block", rotting_cap()),
+            "blightcap_stem": ("block", blightcap_stem()),
+            "blightcap_inside": ("block", blightcap_inside()),
+            "gloomcap": ("block", gloom),
+            "gloomcap_glow": ("block", gloom_glow),
+            "sporepod": ("block", sporepod(False)),
+            "sporepod_burst": ("block", sporepod(True)),
+        }),
+        ("Rimefall", {
+            "hoarfrost_top": ("block", hoarfrost_top()),
+            "hoarfrost_side": ("block", hoarfrost_side()),
+            "hoarfrost_bottom": ("block", frozen_soil(293)),
+            "frostbitten_log": ("block", frostbitten_side()),
+            "frostbitten_log_rime": ("block", frostbitten_rime()),
+            "frostbitten_log_top": ("block", frostbitten_top()),
+            "frostbloom": ("block", bloom),
+            "frostbloom_glow": ("block", bloom_glow),
+            "icicle": ("block", icicle()),
+        }),
+        ("Nether Scar", {
+            "scarred_netherrack": ("block", scarred),
+            "scarred_netherrack_glow": ("block", scarred_glow),
+            "scar_roots": ("block", scar_roots()),
+            "soulwick": ("block", wick),
+            "soulwick_glow": ("block", wick_glow),
+            "scar_vent_top": ("block", svent_top),
+            "scar_vent_top_glow": ("block", svent_top_glow),
+            "scar_vent_side": ("block", svent_side),
+            "scar_vent_side_glow": ("block", svent_side_glow),
+            "scar_vent_bottom": ("block", netherrack_base(325)),
+        }),
+        ("The Gravecrags", {
+            "cragstone": ("block", cragstone()),
+            "storm_lichen": ("block", storm_lichen()),
+            "crag_thistle": ("block", crag_thistle()),
+        }),
+    ]
+
+
+def texture_sections():
+    """[(section title, {name: (folder, image)})]: Stage 1's textures, then each other biome's."""
+    return [("Silverwood Forest, the Dross's stone, ores and materials (Stage 1)", stage1_textures())] + biome_textures()
+
+
+def all_textures():
+    """{name: (folder, image)} for every texture, in a sensible order."""
+    out = {}
+    for _, textures in texture_sections():
+        out.update(textures)
+    return out
+
+
 # =====================================================================================================================
 # Previews
 # =====================================================================================================================
@@ -905,6 +1978,7 @@ def all_textures():
 BG = (14, 17, 28, 255)
 NIGHT_TOP = np.array([8, 10, 22], float)
 NIGHT_BOTTOM = np.array([22, 30, 56], float)
+SECTION_COLOUR = (150, 182, 255, 255)
 
 
 def font(size, bold=False):
@@ -916,44 +1990,54 @@ def font(size, bold=False):
     return ImageFont.load_default()
 
 
-def sheet(textures, scale=8, cols=6):
+def sheet(sections, scale=8, cols=8):
+    """Every texture enlarged on a checkerboard (see-through pixels show), with its name, grouped by section."""
     cell_w = S * scale + 40
     cell_h = S * scale + 56
-    names = list(textures)
-    rows = (len(names) + cols - 1) // cols
-    out = Image.new("RGBA", (cols * cell_w + 16, rows * cell_h + 56), BG)
+    header_h = 34
+    rows = sum((len(textures) + cols - 1) // cols for _, textures in sections)
+    out = Image.new("RGBA", (cols * cell_w + 16, rows * cell_h + len(sections) * header_h + 60), BG)
     d = ImageDraw.Draw(out)
-    d.text((12, 10), "Dross terrain textures (Stage 1), 16x16 shown at 8x", font=font(20, True), fill=(230, 235, 245, 255))
+    d.text((12, 10), "Dross terrain textures, 16x16 shown at 8x, grouped by biome", font=font(20, True),
+           fill=(230, 235, 245, 255))
     checker = np.zeros((S * scale, S * scale, 4), np.uint8)
     yy, xx = np.mgrid[0:S * scale, 0:S * scale]
     on = ((yy // (scale * 2)) + (xx // (scale * 2))) % 2 == 0
     checker[..., :3] = np.where(on[..., None], 52, 40)
     checker[..., 3] = 255
-    for i, name in enumerate(names):
-        folder, img = textures[name]
-        x = 12 + (i % cols) * cell_w
-        y = 48 + (i // cols) * cell_h
-        tile = Image.fromarray(checker.copy(), "RGBA")
-        tile.alpha_composite(Image.fromarray(img, "RGBA").resize((S * scale, S * scale), Image.NEAREST))
-        out.paste(tile, (x, y + 36))
-        # the name on up to two lines (split at an underscore), so long names don't run into the next one
-        words = name.split("_")
-        first, second = name, ""
-        if len(name) > 18:
-            for k in range(len(words) - 1, 0, -1):
-                if len("_".join(words[:k])) <= 18:
-                    first, second = "_".join(words[:k]) + "_", "_".join(words[k:])
-                    break
-        d.text((x, y + 2), first, font=font(13, True), fill=(220, 226, 238, 255))
-        if second:
-            d.text((x, y + 18), second, font=font(13, True), fill=(220, 226, 238, 255))
+    y_top = 48
+    for title, textures in sections:
+        d.text((12, y_top + 4), title, font=font(17, True), fill=SECTION_COLOUR)
+        y_top += header_h
+        names = list(textures)
+        for i, name in enumerate(names):
+            folder, img = textures[name]
+            x = 12 + (i % cols) * cell_w
+            y = y_top + (i // cols) * cell_h
+            tile = Image.fromarray(checker.copy(), "RGBA")
+            tile.alpha_composite(Image.fromarray(img, "RGBA").resize((S * scale, S * scale), Image.NEAREST))
+            out.paste(tile, (x, y + 36))
+            # the name on up to two lines (split at an underscore), so long names don't run into the next one
+            words = name.split("_")
+            first, second = name, ""
+            if len(name) > 18:
+                for k in range(len(words) - 1, 0, -1):
+                    if len("_".join(words[:k])) <= 18:
+                        first, second = "_".join(words[:k]) + "_", "_".join(words[k:])
+                        break
+            d.text((x, y + 2), first, font=font(13, True), fill=(220, 226, 238, 255))
+            if second:
+                d.text((x, y + 18), second, font=font(13, True), fill=(220, 226, 238, 255))
+        y_top += ((len(names) + cols - 1) // cols) * cell_h
     return out
 
 
 def _face(out, tex, origin, e1, e2, shade=1.0, glow=None):
-    """Draws a 16x16 texture onto the parallelogram origin + u*e1 + v*e2 (u, v from 0 to 1) of the out array (float RGBA).
-    glow (optional) is drawn on top without shading (full-bright)."""
+    """Draws a texture onto the parallelogram origin + u*e1 + v*e2 (u, v from 0 to 1) of the out array (float RGBA).
+    The texture may be any size (a cropped side of a thin layer, say). glow (optional, same size) is drawn on top
+    without shading (full-bright)."""
     h, w = out.shape[:2]
+    th, tw = tex.shape[:2]
     corners = np.array([origin, origin + e1, origin + e2, origin + e1 + e2])
     x0, y0 = np.floor(corners.min(axis=0)).astype(int)
     x1, y1 = np.ceil(corners.max(axis=0)).astype(int)
@@ -969,8 +2053,8 @@ def _face(out, tex, origin, e1, e2, shade=1.0, glow=None):
     u = inv[0, 0] * px + inv[0, 1] * py
     v = inv[1, 0] * px + inv[1, 1] * py
     inside = (u >= 0) & (u < 1) & (v >= 0) & (v < 1)
-    tu = np.clip((u * S).astype(int), 0, S - 1)
-    tv = np.clip((v * S).astype(int), 0, S - 1)
+    tu = np.clip((u * tw).astype(int), 0, tw - 1)
+    tv = np.clip((v * th).astype(int), 0, th - 1)
     layers = [(tex, shade)] + ([(glow, 1.0)] if glow is not None else [])
     for t, sh in layers:
         src = t[tv, tu].astype(float) / 255.0
@@ -981,18 +2065,35 @@ def _face(out, tex, origin, e1, e2, shade=1.0, glow=None):
         region[..., 3] = np.maximum(region[..., 3], a)
 
 
-def iso_block(top, side, size=96, glow_top=None, glow_side=None, light=0.82):
-    """A cube in isometric view: top, left (south) and right (east) faces. light < 1 darkens it (night)."""
+def iso_block(top, side, size=96, glow_top=None, glow_side=None, light=0.82, right=None, glow_right=None,
+              height=1.0, top_overlay=None, left_overlay=None):
+    """A block in isometric view: top, left (south) and right (east) faces. light < 1 darkens it (night).
+    right: a different texture for the right face (default: side). height < 1: a thin layer that tall (its sides
+    show the bottom rows of the side texture, like Minecraft's snow-layer models). top_overlay / left_overlay:
+    full-bright textures drawn over the top / left face (lichen growing on it)."""
     a = size
     out = np.zeros((int(a * 1.2) + 2, a + 2, 4), float)
     half = a / 2.0
-    o = np.array([1.0, 1.0])
+    drop = half * 0.95 * (1.0 - height)                         # how far the top sits below a full block's top
+    o = np.array([1.0, 1.0 + drop])
+    rows = max(1, int(round(S * height)))
+    side_tex = side[S - rows:] if height < 1.0 else side
+    right_tex = (right if right is not None else side)
+    right_tex = right_tex[S - rows:] if height < 1.0 else right_tex
+    gs = glow_side[S - rows:] if (glow_side is not None and height < 1.0) else glow_side
+    gr = glow_right if glow_right is not None else glow_side
+    gr = gr[S - rows:] if (gr is not None and height < 1.0) else gr
+    side_h = half * 0.95 * height
     top_o = o + np.array([half, 0.0])
     _face(out, top, top_o, np.array([half, half / 2]), np.array([-half, half / 2]), 1.0 * light, glow_top)
+    if top_overlay is not None:
+        _face(out, top_overlay, top_o, np.array([half, half / 2]), np.array([-half, half / 2]), 1.0)
     left_o = o + np.array([0.0, half / 2])
-    _face(out, side, left_o, np.array([half, half / 2]), np.array([0.0, half * 0.95]), 0.78 * light, glow_side)
+    _face(out, side_tex, left_o, np.array([half, half / 2]), np.array([0.0, side_h]), 0.78 * light, gs)
+    if left_overlay is not None:
+        _face(out, left_overlay, left_o, np.array([half, half / 2]), np.array([0.0, side_h]), 1.0)
     right_o = o + np.array([half, half])
-    _face(out, side, right_o, np.array([half, -half / 2]), np.array([0.0, half * 0.95]), 0.6 * light, glow_side)
+    _face(out, right_tex, right_o, np.array([half, -half / 2]), np.array([0.0, side_h]), 0.6 * light, gr)
     return out
 
 
@@ -1006,64 +2107,119 @@ def a_h(size):
     return size * 1.2
 
 
-def blocks_3d(textures):
+def preview_sections(textures):
+    """What the 3D preview shows, section by section: [(title, cubes, sprites)].
+    cube: (label, top, side, options for iso_block); sprite: (label, texture, glow, light)."""
     t = {k: v[1] for k, v in textures.items()}
-    cubes = [
-        ("Duskstone", t["duskstone"], t["duskstone"], None, None),
-        ("Duskstone Coal Ore", t["duskstone_coal_ore"], t["duskstone_coal_ore"], None, None),
-        ("Duskstone Gold Ore", t["duskstone_gold_ore"], t["duskstone_gold_ore"], None, None),
-        ("Moonsilver Ore", t["moonsilver_ore"], t["moonsilver_ore"], None, None),
-        ("Stormite Ore", t["stormite_ore"], t["stormite_ore"], t["stormite_ore_glow"], t["stormite_ore_glow"]),
-        ("Silverwood Log", t["silverwood_log_top"], t["silverwood_log"], None, None),
-        ("Silverwood Wood", t["silverwood_log"], t["silverwood_log"], None, None),
-        ("Stripped Log", t["stripped_silverwood_log_top"], t["stripped_silverwood_log"], None, None),
-        ("Stripped Wood", t["stripped_silverwood_log"], t["stripped_silverwood_log"], None, None),
-        ("Silverwood Planks", t["silverwood_planks"], t["silverwood_planks"], None, None),
-        ("Silverwood Leaves", t["silverwood_leaves"], t["silverwood_leaves"], None, None),
-        ("Silvermoss", t["silvermoss_top"], t["silvermoss_side"], None, None),
+    return [
+        ("Silverwood Forest, the Dross's stone and ores (Stage 1)", [
+            ("Duskstone", t["duskstone"], t["duskstone"], {}),
+            ("Duskstone Coal Ore", t["duskstone_coal_ore"], t["duskstone_coal_ore"], {}),
+            ("Duskstone Gold Ore", t["duskstone_gold_ore"], t["duskstone_gold_ore"], {}),
+            ("Moonsilver Ore", t["moonsilver_ore"], t["moonsilver_ore"], {}),
+            ("Stormite Ore", t["stormite_ore"], t["stormite_ore"],
+             dict(glow_top=t["stormite_ore_glow"], glow_side=t["stormite_ore_glow"])),
+            ("Silverwood Log", t["silverwood_log_top"], t["silverwood_log"], {}),
+            ("Silverwood Wood", t["silverwood_log"], t["silverwood_log"], {}),
+            ("Stripped Log", t["stripped_silverwood_log_top"], t["stripped_silverwood_log"], {}),
+            ("Stripped Wood", t["stripped_silverwood_log"], t["stripped_silverwood_log"], {}),
+            ("Silverwood Planks", t["silverwood_planks"], t["silverwood_planks"], {}),
+            ("Silverwood Leaves", t["silverwood_leaves"], t["silverwood_leaves"], {}),
+            ("Silvermoss", t["silvermoss_top"], t["silvermoss_side"], {}),
+        ], [
+            ("Silverwood Sapling", t["silverwood_sapling"], None, 0.82),
+            ("Stormvine", t["stormvine"], t["stormvine"], 0.0),       # full-bright: the glow is the whole texture
+            ("Glimmer Fern", t["glimmer_fern"], None, 0.82),
+            ("Wispbloom", t["wispbloom"], t["wispbloom_glow"], 0.82),
+            ("Stormite Shard", t["stormite_shard"], None, 0.82),
+            ("Raw Moonsilver", t["raw_moonsilver"], None, 0.82),
+            ("Moonsilver Ingot", t["moonsilver_ingot"], None, 0.82),
+        ]),
+        ("Cinder Wastes", [
+            ("Ash", t["ash"], t["ash"], {}),
+            ("Ash Layer (3 layers)", t["ash"], t["ash"], dict(height=6 / 16)),
+            ("Charred Log", t["charred_log_top"], t["charred_log"], {}),
+            ("Cinder Vent", t["cinder_vent_top"], t["cinder_vent_side"],
+             dict(glow_top=t["cinder_vent_top_glow"], glow_side=t["cinder_vent_side_glow"])),
+        ], [
+            ("Emberweed", t["emberweed"], t["emberweed_glow"], 0.82),
+        ]),
+        ("Blightwood", [
+            ("Sporeloam", t["sporeloam_top"], t["sporeloam_side"], {}),
+            ("Blightcap Block", t["blightcap_block"], t["blightcap_block"], {}),
+            ("Rotting Blightcap", t["rotting_blightcap"], t["rotting_blightcap"], {}),
+            ("Blightcap Stem", t["blightcap_stem"], t["blightcap_stem"], {}),
+            ("Blightcap, cut open", t["blightcap_inside"], t["blightcap_block"], dict(right=t["blightcap_inside"])),
+        ], [
+            ("Gloomcap", t["gloomcap"], t["gloomcap_glow"], 0.82),
+            ("Sporepod", t["sporepod"], None, 0.82),
+            ("Sporepod (burst)", t["sporepod_burst"], None, 0.82),
+        ]),
+        ("Rimefall", [
+            ("Hoarfrost", t["hoarfrost_top"], t["hoarfrost_side"], {}),
+            ("Frostbitten Log", t["frostbitten_log_top"], t["frostbitten_log_rime"], dict(right=t["frostbitten_log"])),
+        ], [
+            ("Frostbloom", t["frostbloom"], t["frostbloom_glow"], 0.82),
+            ("Icicle", t["icicle"], None, 0.9),
+        ]),
+        ("Nether Scar", [
+            ("Scarred Netherrack", t["scarred_netherrack"], t["scarred_netherrack"],
+             dict(glow_top=t["scarred_netherrack_glow"], glow_side=t["scarred_netherrack_glow"])),
+            ("Scar Vent", t["scar_vent_top"], t["scar_vent_side"],
+             dict(glow_top=t["scar_vent_top_glow"], glow_side=t["scar_vent_side_glow"])),
+        ], [
+            ("Scar Roots", t["scar_roots"], None, 0.82),
+            ("Soulwick", t["soulwick"], t["soulwick_glow"], 0.82),
+        ]),
+        ("The Gravecrags", [
+            ("Cragstone", t["cragstone"], t["cragstone"], {}),
+            ("Lichen on Cragstone", t["cragstone"], t["cragstone"],
+             dict(left_overlay=t["storm_lichen"], top_overlay=t["storm_lichen"])),
+        ], [
+            ("Storm Lichen", t["storm_lichen"], t["storm_lichen"], 0.0),
+            ("Crag Thistle", t["crag_thistle"], None, 0.82),
+        ]),
     ]
-    plants = [
-        ("Silverwood Sapling", t["silverwood_sapling"], None),
-        ("Stormvine", t["stormvine"], t["stormvine"]),
-        ("Glimmer Fern", t["glimmer_fern"], None),
-        ("Wispbloom", t["wispbloom"], t["wispbloom_glow"]),
-        ("Stormite Shard", t["stormite_shard"], None),
-        ("Raw Moonsilver", t["raw_moonsilver"], None),
-        ("Moonsilver Ingot", t["moonsilver_ingot"], None),
-    ]
+
+
+def blocks_3d(textures, cols=8):
+    """The blocks as little cubes and the plants as sprites at night (glowing parts full-bright), grouped by biome."""
+    sections = preview_sections(textures)
     size = 112
     cell_w, cell_h = size + 50, int(size * 1.2) + 46
-    cols = 6
-    n = len(cubes) + len(plants)
-    rows_cubes = (len(cubes) + cols - 1) // cols
-    rows_plants = (len(plants) + cols - 1) // cols
-    H = (rows_cubes + rows_plants) * cell_h + 70
+    header_h = 34
+    rows = sum((len(cubes) + len(sprites) + cols - 1) // cols for _, cubes, sprites in sections)
+    H = rows * cell_h + len(sections) * header_h + 60
     W = cols * cell_w + 20
     sky = np.zeros((H, W, 4), float)
     for r in range(H):
         f = r / max(H - 1, 1)
         sky[r, :, :3] = (NIGHT_TOP * (1 - f) + NIGHT_BOTTOM * f) / 255.0
     sky[..., 3] = 1.0
-    labels = []
-    for i, (name, top, side, gt, gs) in enumerate(cubes):
-        x = 14 + (i % cols) * cell_w
-        y = 50 + (i // cols) * cell_h
-        cube = iso_block(top, side, size, gt, gs)
-        _paste(sky, cube, x + 10, y + 24)
-        labels.append((x, y, name))
-    for j, (name, tex, glow) in enumerate(plants):
-        x = 14 + (j % cols) * cell_w
-        y = 50 + (rows_cubes + j // cols) * cell_h
-        if name == "Stormvine":
-            p = iso_plant(tex, size, glow=glow, light=0.0)   # full-bright: the glow layer is the whole texture
-        else:
-            p = iso_plant(tex, size, glow=glow)
-        _paste(sky, p, x + 10, y + 24)
-        labels.append((x, y, name))
+    labels, headers = [], []
+    y_top = 50
+    for title, cubes, sprites in sections:
+        headers.append((y_top, title))
+        y_top += header_h
+        items = [("cube", c) for c in cubes] + [("sprite", s) for s in sprites]
+        for i, (kind, item) in enumerate(items):
+            x = 14 + (i % cols) * cell_w
+            y = y_top + (i // cols) * cell_h
+            if kind == "cube":
+                name, top, side, options = item
+                pic = iso_block(top, side, size, **options)
+            else:
+                name, tex, glow, light = item
+                pic = iso_plant(tex, size, glow=glow, light=light)
+            _paste(sky, pic, x + 10, y + 24)
+            labels.append((x, y, name))
+        y_top += ((len(items) + cols - 1) // cols) * cell_h
     img = Image.fromarray((np.clip(sky, 0, 1) * 255).astype(np.uint8), "RGBA")
     d = ImageDraw.Draw(img)
-    d.text((14, 12), "Dross terrain blocks at night (glowing parts drawn full-bright)", font=font(20, True),
-           fill=(225, 232, 245, 255))
+    d.text((14, 12), "Dross terrain blocks at night (glowing parts drawn full-bright), grouped by biome",
+           font=font(20, True), fill=(225, 232, 245, 255))
+    for y, title in headers:
+        d.text((14, y + 4), title, font=font(17, True), fill=SECTION_COLOUR)
     for x, y, name in labels:
         d.text((x, y + 2), name, font=font(14, True), fill=(205, 214, 232, 255))
     return img
@@ -1078,11 +2234,12 @@ def _paste(dst, src, x, y):
 
 
 def main():
+    sections = texture_sections()
     textures = all_textures()
     for name, (folder, img) in textures.items():
         save(img, BLOCK_DIR if folder == "block" else ITEM_DIR, name)
     os.makedirs(PREVIEW_DIR, exist_ok=True)
-    sheet(textures).save(os.path.join(PREVIEW_DIR, "blocks.png"))
+    sheet(sections).save(os.path.join(PREVIEW_DIR, "blocks.png"))
     blocks_3d(textures).save(os.path.join(PREVIEW_DIR, "blocks_3d.png"))
     print(f"draw_blocks: {len(textures)} textures written; previews in block-previews/")
 

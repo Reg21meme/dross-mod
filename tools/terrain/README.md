@@ -7,9 +7,9 @@ biomes and features in later stages). Run everything from the project folder. `w
 | Script | What it does | Writes |
 |---|---|---|
 | `worldgen.py` | The one generator for all Dross worldgen JSON. Change a tuning number, run it, the JSON is rewritten. | `src/main/resources/data/dross/worldgen/...` |
-| `block_data.py` | Blockstates, block and item models, loot tables, recipes, tags and English names for the terrain blocks and items, from one list (`BLOCKS`, `ITEMS`, `BLOCK_TAGS`, `ITEM_TAGS`, `RECIPES`). Shared files (tags other areas use, `en_us.json`) are merged: it only adds its own entries. | `assets/dross/...`, `data/dross/...`, `data/minecraft/tags/...`, `data/forge/tags/...` |
-| `draw_blocks.py` | Draws every 16x16 block and item texture from scratch, and the preview sheets. | `assets/dross/textures/block/`, `textures/item/`, `block-previews/blocks.png`, `block-previews/blocks_3d.png` |
-| `check_assets.py` | Checks every registered Dross block and item has its blockstate, models (following parents), textures, English name and loot table, and that every Dross id in a loot table, recipe or tag exists. Exits with code 1 on any problem. | nothing |
+| `block_data.py` | Blockstates, block and item models, loot tables, recipes, tags, sounds and English names for the terrain blocks and items, from one list (`BLOCKS`, `ITEMS`, `BLOCK_TAGS`, `ITEM_TAGS`, `RECIPES`, `SOUNDS`, `SUBTITLES`). Shared files (tags other areas use, `en_us.json`, `sounds.json`) are merged: it only adds or updates its own entries. | `assets/dross/...`, `data/dross/...`, `data/minecraft/tags/...`, `data/forge/tags/...` |
+| `draw_blocks.py` | Draws every 16x16 block and item texture from scratch, and the preview sheets (grouped by biome). | `assets/dross/textures/block/`, `textures/item/`, `block-previews/blocks.png`, `block-previews/blocks_3d.png` |
+| `check_assets.py` | Checks every registered Dross block and item has its blockstate, models (following parents), textures, English name and loot table; that every Dross id in a loot table (blocks in its conditions too), recipe or tag exists; that every sound in `registry/ModSounds` is in `sounds.json` with an English subtitle; and that every block in `block_data.py` is registered and in the Dross creative tab. Exits with code 1 on any problem. | nothing |
 | `preview_trees.py` | Draws the trees the GameTest grew, one by one and as a dense stand, at night. | `block-previews/trees.png` |
 
 ## The usual loop
@@ -26,15 +26,46 @@ python tools/terrain/preview_trees.py      # block-previews/trees.png
 
 ## Adding a block (for example in a later stage)
 
-1. Register it in `registry/ModBlocks` and its item in `registry/ModItems` (its properties go in `dimension/block/TerrainBlocks`).
+1. Register it in `registry/ModBlocks` and its item in `registry/ModItems` (its properties go in `dimension/block/TerrainBlocks`),
+   and add its item to the Dross creative tab (`registry/ModCreativeTabs`, end of group 1, with its biome).
 2. Add a line to `BLOCKS` in `block_data.py` (its model kind, what it drops, its English name) and its tags to `BLOCK_TAGS` / `ITEM_TAGS`.
-3. Draw its texture(s) in `draw_blocks.py` (a function, then a line in `all_textures()`).
+3. Draw its texture(s) in `draw_blocks.py` (a function, then a line in `stage1_textures()` or its biome in
+   `biome_textures()`, and an entry in `preview_sections()` for the 3D sheet).
 4. Run the loop above. `check_assets.py` says what's missing.
 
-Model kinds in `block_data.py`: `cube`, `stone` (cube plus a mirrored copy picked at random), `glow_cube` (cube plus a
-full-bright `_glow` overlay), `log`, `wood`, `leaves` (see-through, no tint), `cross` (an X-shaped plant), `glow_cross`
-(plant plus full-bright `_glow` overlay), `vine` (full-bright, no tint), `moss` (top / side / bottom, turned at random).
+Model kinds in `block_data.py`:
+
+| Kind | What it is | Textures |
+|---|---|---|
+| `cube` | one texture on all sides | `<id>` |
+| `stone` | cube plus a mirrored copy, each turned two ways, picked at random (no repeating pattern on big walls) | `<id>` |
+| `glow_cube` | cube plus a full-bright overlay; `turn=True` adds the random mirrored/turned copies like `stone` | `<id>`, `<id>_glow` |
+| `log`, `wood` | a log (bark sides, ring ends) and bark on all sides | `<log>`, `<log>_top` |
+| `rimed_log` | a log with rime on one side: north when standing, on top when lying down | `<id>`, `<id>_rime`, `<id>_top` |
+| `leaves` | cube with see-through gaps, no tint | `<id>` |
+| `cross` | an X-shaped plant; `render="translucent"` for see-through pixels (the icicle) | `<id>` |
+| `glow_cross` | plant plus a full-bright overlay (glowing petals, tips, caps, flames) | `<id>`, `<id>_glow` |
+| `pod` | a plant with a `burst` block state (the Sporepod) | `<id>`, `<id>_burst` |
+| `vine` | a vine, full-bright, no tint | `<id>` |
+| `multiface` | a lichen like glow lichen: a face on each covered side, full-bright | `<id>` |
+| `moss` | grass-like ground cover (top / side / bottom), turned at random | `<id>_top`, `_side`, `_bottom` |
+| `layers` | 1-8 layers like snow; 8 layers is the `texture` block's own model | the `texture` block's |
+| `mushroom` | a huge-mushroom block like vanilla's: each face the outside or the shared `inside`, by block state | `<id>`, `<inside>` |
+| `vent` | top / side / bottom plus full-bright overlays on the top and sides (a glowing mouth or crack) | `<id>_top`, `_side`, `_bottom`, `_top_glow`, `_side_glow` |
+
 Full-bright faces use Forge's per-element `"forge_data": {"block_light": 15, "sky_light": 15, "ambient_occlusion": false}`.
+
+What a block drops (`drops` in `BLOCKS`): `self`, `shears` (only with shears), `silk` (only with Silk Touch), an
+`("ore", item, min, max)`, `("leaves", sapling)`, `("mushroom_cap", item)` (0-2 of the item, mostly none, like vanilla
+mushroom blocks; Silk Touch: itself), `layers` (one per layer) and `multiface_shears` (with shears, one per covered side).
+
+## Where the plants grow
+
+Each biome plant grows only on the blocks in its own tag, `#dross:<plant>_grows_on` (in `BLOCK_TAGS`; the Java side is
+`dimension/block/PlantGround`). To let a plant grow on another block, add the block to its tag and run `block_data.py`.
+The plants also report their own Forge plant type, so a plant already in the world pops off if its ground is swapped for
+one that isn't in its tag (even dirt). `dimension/BiomeBlocksGameTest.plantsKeepToTheirGround` checks every plant on its
+right and wrong ground.
 
 ## worldgen.py: the tree numbers (TREES section)
 

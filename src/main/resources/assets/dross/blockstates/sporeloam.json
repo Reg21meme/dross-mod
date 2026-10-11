@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "dross:block/sporeloam"
+      },
+      {
+        "model": "dross:block/sporeloam",
+        "y": 90
+      },
+      {
+        "model": "dross:block/sporeloam",
+        "y": 180
+      },
+      {
+        "model": "dross:block/sporeloam",
+        "y": 270
+      }
+    ]
+  }
+}

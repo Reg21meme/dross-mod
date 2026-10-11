@@ -1,6 +1,10 @@
 {
   "replace": false,
   "values": [
-    "dross:silvermoss"
+    "dross:silvermoss",
+    "dross:ash",
+    "dross:ash_layer",
+    "dross:sporeloam",
+    "dross:hoarfrost"
   ]
 }

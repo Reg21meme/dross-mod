@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "dross:block/hoarfrost"
+      },
+      {
+        "model": "dross:block/hoarfrost",
+        "y": 90
+      },
+      {
+        "model": "dross:block/hoarfrost",
+        "y": 180
+      },
+      {
+        "model": "dross:block/hoarfrost",
+        "y": 270
+      }
+    ]
+  }
+}

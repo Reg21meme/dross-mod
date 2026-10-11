@@ -84,7 +84,8 @@ import org.slf4j.Logger;
  *   <li>{@link #stormvineGlowsAndNeverSpreads}: Stormvine lights its surroundings and never grows.</li>
  *   <li>{@link #recipesExist}: the smelting, blasting and crafting recipes, and that the plants compost.</li>
  * </ul>
- * Each test has its own batch, so the trees of one never grow into another's arena.
+ * Each test has its own batch, so the trees of one never grow into another's arena. The other biomes' blocks (Cinder
+ * Wastes, Blightwood, Rimefall, Nether Scar, Gravecrags) are tested in {@link BiomeBlocksGameTest}.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)

@@ -8,8 +8,10 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.DropExperienceBlock;
+import net.minecraft.world.level.block.GlowLichenBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.SaplingBlock;
+import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
@@ -59,6 +61,49 @@ public final class TerrainBlocks
 
     /** Eating suspicious stew made with a Wispbloom gives Night Vision for this many seconds (like a poppy). */
     private static final int WISPBLOOM_STEW_SECONDS = 5;
+
+    // --- The other biomes' blocks (Stage 2) ---
+
+    /** Ash: soft like sand (0.5); Ash Layer as thin as snow layers (0.1). */
+    private static final float ASH_HARDNESS = 0.5F;
+    private static final float ASH_LAYER_HARDNESS = 0.1F;
+    /** Cinder Vent: like basalt (1.25, blast resistance 4.2). */
+    private static final float CINDER_VENT_HARDNESS = 1.25F;
+    private static final float CINDER_VENT_RESISTANCE = 4.2F;
+    /** Sporeloam and Hoarfrost: like grass and mycelium (0.6). */
+    private static final float GROUND_COVER_HARDNESS = 0.6F;
+    /** The giant blightcap's blocks: like vanilla mushroom blocks (0.2). */
+    private static final float MUSHROOM_BLOCK_HARDNESS = 0.2F;
+    /** Icicle: as fragile as glass (0.3). */
+    private static final float ICICLE_HARDNESS = 0.3F;
+    /** Scarred Netherrack and the Scar Vent: like netherrack (0.4). */
+    private static final float NETHERRACK_HARDNESS = 0.4F;
+    /** Cragstone: as hard as stone (1.5, blast resistance 6), like Duskstone. */
+    private static final float CRAGSTONE_HARDNESS = 1.5F;
+    private static final float CRAGSTONE_RESISTANCE = 6.0F;
+    /** Storm Lichen: like glow lichen (0.2). */
+    private static final float STORM_LICHEN_HARDNESS = 0.2F;
+
+    /** Light levels of the biome blocks that glow (0-15; a torch is 14). */
+    private static final int EMBERWEED_LIGHT = 4;
+    private static final int CINDER_VENT_LIGHT = 3;
+    private static final int GLOOMCAP_LIGHT = 6;
+    private static final int FROSTBLOOM_LIGHT = 3;
+    private static final int SCARRED_NETHERRACK_LIGHT = 3;
+    private static final int SOULWICK_LIGHT = 10;
+    private static final int SCAR_VENT_LIGHT = 4;
+    /** Storm Lichen gives this light only where it covers at least one side (like glow lichen's 7). */
+    private static final int STORM_LICHEN_LIGHT = 7;
+
+    /** 1 in this many plants that bone meal sprouts on Sporeloam is a Sporepod; the rest are Gloomcaps. */
+    private static final int SPOREPOD_ONE_IN = 6;
+
+    /** Suspicious stew: Frostbloom gives Fire Resistance (frost against flame), like an allium, for this many seconds. */
+    private static final int FROSTBLOOM_STEW_SECONDS = 4;
+    /** Suspicious stew: Soulwick gives Slow Falling (the soul flame makes you light), for this many seconds. */
+    private static final int SOULWICK_STEW_SECONDS = 5;
+    /** Suspicious stew: Crag Thistle gives Resistance (its spines guard you), for this many seconds. */
+    private static final int CRAG_THISTLE_STEW_SECONDS = 4;
 
     private TerrainBlocks() {}
 
@@ -239,5 +284,282 @@ public final class TerrainBlocks
                 .offsetType(BlockBehaviour.OffsetType.XZ)
                 .ignitedByLava()
                 .pushReaction(PushReaction.DESTROY));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Cinder Wastes (volcanic). Nothing here burns: lava pools lie next to it.
+    // ---------------------------------------------------------------------------------------------
+
+    /** Ash: soft grey-black volcanic ash; like sand to dig (shovel), but it doesn't fall. Drops itself. */
+    public static Block ash()
+    {
+        return new Block(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_BLACK)
+                .instrument(NoteBlockInstrument.SNARE)
+                .strength(ASH_HARDNESS)
+                .sound(SoundType.SAND));
+    }
+
+    /** Ash Layer: 1-8 thin layers of ash, exactly like snow layers, but it never melts. One Ash Layer per layer. */
+    public static Block ashLayer()
+    {
+        return new AshLayerBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_BLACK)
+                .replaceable()
+                .forceSolidOff()
+                .strength(ASH_LAYER_HARDNESS)
+                .sound(SoundType.SAND)
+                .isViewBlocking((state, level, pos) -> state.getValue(SnowLayerBlock.LAYERS) >= SnowLayerBlock.MAX_HEIGHT)
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    /** Charred Log: the burnt trunk of a dead tree (axe). Already burnt out, so fire and lava never take it. */
+    public static Block charredLog()
+    {
+        return new DeadLogBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_BLACK)
+                .instrument(NoteBlockInstrument.BASS)
+                .strength(LOG_HARDNESS)
+                .sound(SoundType.WOOD), 0, 0);
+    }
+
+    /** Emberweed: dry dark stalks with glowing ember tips (like dry grass: replaceable, walk-through, shears only). */
+    public static Block emberweed()
+    {
+        return new EmberweedBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_BROWN)
+                .replaceable()
+                .noCollission()
+                .instabreak()
+                .sound(SoundType.GRASS)
+                .lightLevel(state -> EMBERWEED_LIGHT)
+                .offsetType(BlockBehaviour.OffsetType.XZ)
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    /** Cinder Vent: cracked basalt-like rock with a glowing vent mouth that puffs smoke (pickaxe). Harmless. */
+    public static Block cinderVent()
+    {
+        return new CinderVentBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_BLACK)
+                .instrument(NoteBlockInstrument.BASEDRUM)
+                .requiresCorrectToolForDrops()
+                .strength(CINDER_VENT_HARDNESS, CINDER_VENT_RESISTANCE)
+                .sound(SoundType.BASALT)
+                .lightLevel(state -> CINDER_VENT_LIGHT));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Blightwood (rotten and fungal)
+    // ---------------------------------------------------------------------------------------------
+
+    /** Sporeloam: dark rotten soil dotted with pale spores (shovel). Bone meal sprouts Gloomcaps and Sporepods. */
+    public static Block sporeloam()
+    {
+        return new SproutingSoilBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.TERRACOTTA_GREEN)
+                .strength(GROUND_COVER_HARDNESS)
+                .sound(SoundType.NYLIUM),
+                false, ModBlocks.GLOOMCAP, ModBlocks.SPOREPOD, SPOREPOD_ONE_IN);
+    }
+
+    /** Blightcap Block: the cap of a giant decaying mushroom (axe); drops 0-2 Gloomcaps like vanilla mushroom blocks. */
+    public static Block blightcapBlock()
+    {
+        return new BlightcapBlock(mushroomBlock(MapColor.TERRACOTTA_CYAN), true);
+    }
+
+    /** Rotting Blightcap: a darker, decayed, hole-pocked cap block; drops nothing without Silk Touch. */
+    public static Block rottingBlightcap()
+    {
+        return new BlightcapBlock(mushroomBlock(MapColor.COLOR_GRAY), true);
+    }
+
+    /** Blightcap Stem: the giant blightcap's pale fibrous stem; drops nothing without Silk Touch (like mushroom stems). */
+    public static Block blightcapStem()
+    {
+        return new BlightcapBlock(mushroomBlock(MapColor.WOOL), false);
+    }
+
+    private static BlockBehaviour.Properties mushroomBlock(MapColor color)
+    {
+        return BlockBehaviour.Properties.of()
+                .mapColor(color)
+                .instrument(NoteBlockInstrument.BASS)
+                .strength(MUSHROOM_BLOCK_HARDNESS)
+                .sound(SoundType.WOOD)
+                .ignitedByLava();
+    }
+
+    /** Gloomcap: a small glowing blue-teal mushroom. Never spreads or grows huge. */
+    public static Block gloomcap()
+    {
+        return new GloomcapBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.DIAMOND)
+                .noCollission()
+                .instabreak()
+                .sound(SoundType.FUNGUS)
+                .lightLevel(state -> GLOOMCAP_LIGHT)
+                .offsetType(BlockBehaviour.OffsetType.XZ)
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    /** Sporepod: a fungal pod that bursts into harmless spores when something walks into it. */
+    public static Block sporepod()
+    {
+        return new SporepodBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.TERRACOTTA_LIGHT_GREEN)
+                .noCollission()
+                .instabreak()
+                .sound(SoundType.FUNGUS)
+                .offsetType(BlockBehaviour.OffsetType.XZ)
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Rimefall (frozen)
+    // ---------------------------------------------------------------------------------------------
+
+    /** Hoarfrost: frozen ground furred with frost (shovel); crunches like snow but isn't slippery. */
+    public static Block hoarfrost()
+    {
+        return new SproutingSoilBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.SNOW)
+                .strength(GROUND_COVER_HARDNESS)
+                .sound(SoundType.SNOW),
+                false, null, null, 1);
+    }
+
+    /** Frostbitten Log: grey dead wood with white rime on one side (axe); burns, but slowly. */
+    public static Block frostbittenLog()
+    {
+        return new DeadLogBlock(BlockBehaviour.Properties.of()
+                .mapColor(state -> state.getValue(RotatedPillarBlock.AXIS) == Direction.Axis.Y ? MapColor.COLOR_GRAY : MapColor.COLOR_LIGHT_GRAY)
+                .instrument(NoteBlockInstrument.BASS)
+                .strength(LOG_HARDNESS)
+                .sound(SoundType.WOOD)
+                .ignitedByLava(),
+                Flammability.FROSTBITTEN_LOG_SPREAD, Flammability.FROSTBITTEN_LOG_BURN);
+    }
+
+    /** Frostbloom: a pale icy-blue flower with a softly glowing heart; crafts into light blue dye. */
+    public static Block frostbloom()
+    {
+        return new DrossFlowerBlock(() -> MobEffects.FIRE_RESISTANCE, FROSTBLOOM_STEW_SECONDS, PlantGround.FROSTBLOOM, true,
+                BlockBehaviour.Properties.of()
+                        .mapColor(MapColor.COLOR_LIGHT_BLUE)
+                        .noCollission()
+                        .instabreak()
+                        .sound(SoundType.GRASS)
+                        .lightLevel(state -> FROSTBLOOM_LIGHT)
+                        .offsetType(BlockBehaviour.OffsetType.XZ)
+                        .ignitedByLava()
+                        .pushReaction(PushReaction.DESTROY));
+    }
+
+    /** Icicle: a see-through spike of ice hanging under a solid block; breaks if that goes. Silk Touch to keep it. */
+    public static Block icicle()
+    {
+        return new IcicleBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.ICE)
+                .noCollission()
+                .noOcclusion()
+                .strength(ICICLE_HARDNESS)
+                .sound(SoundType.GLASS)
+                .isValidSpawn((state, level, pos, type) -> false)
+                .isRedstoneConductor((state, level, pos) -> false)
+                .isSuffocating((state, level, pos) -> false)
+                .isViewBlocking((state, level, pos) -> false)
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Nether Scar (the Nether bleeding through). No fire anywhere: nothing here burns or keeps a fire going.
+    // ---------------------------------------------------------------------------------------------
+
+    /** Scarred Netherrack: netherrack split by glowing electric blue cracks (pickaxe). Not a fire source, not nylium. */
+    public static Block scarredNetherrack()
+    {
+        return new Block(netherrack().lightLevel(state -> SCARRED_NETHERRACK_LIGHT));
+    }
+
+    /** Scar Roots: twisted crimson roots with electric blue tips (like crimson roots). */
+    public static Block scarRoots()
+    {
+        return new ScarRootsBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.NETHER)
+                .replaceable()
+                .noCollission()
+                .instabreak()
+                .sound(SoundType.ROOTS)
+                .offsetType(BlockBehaviour.OffsetType.XZ)
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    /** Soulwick: a flower whose bloom is a blue soul flame. A flower, not fire: it never burns or hurts. */
+    public static Block soulwick()
+    {
+        return new SoulwickBlock(() -> MobEffects.SLOW_FALLING, SOULWICK_STEW_SECONDS, BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_LIGHT_BLUE)
+                .noCollission()
+                .instabreak()
+                .sound(SoundType.GRASS)
+                .lightLevel(state -> SOULWICK_LIGHT)
+                .offsetType(BlockBehaviour.OffsetType.XZ)
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    /** Scar Vent: a netherrack crack that puffs red and electric blue embers (pickaxe). Harmless. */
+    public static Block scarVent()
+    {
+        return new ScarVentBlock(netherrack().lightLevel(state -> SCAR_VENT_LIGHT));
+    }
+
+    private static BlockBehaviour.Properties netherrack()
+    {
+        return BlockBehaviour.Properties.of()
+                .mapColor(MapColor.NETHER)
+                .instrument(NoteBlockInstrument.BASEDRUM)
+                .requiresCorrectToolForDrops()
+                .strength(NETHERRACK_HARDNESS)
+                .sound(SoundType.NETHERRACK);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The Gravecrags (mountains)
+    // ---------------------------------------------------------------------------------------------
+
+    /** Cragstone: pale grey weathered mountain stone with dark streaks. Works as stone, like Duskstone. */
+    public static Block cragstone()
+    {
+        return new Block(stone().mapColor(MapColor.COLOR_LIGHT_GRAY).strength(CRAGSTONE_HARDNESS, CRAGSTONE_RESISTANCE));
+    }
+
+    /** Storm Lichen: an electric blue lichen glowing on cliff faces (like glow lichen; shears only). */
+    public static Block stormLichen()
+    {
+        return new StormLichenBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.LAPIS)
+                .replaceable()
+                .noCollission()
+                .strength(STORM_LICHEN_HARDNESS)
+                .sound(SoundType.GLOW_LICHEN)
+                .lightLevel(GlowLichenBlock.emission(STORM_LICHEN_LIGHT))
+                .ignitedByLava()
+                .pushReaction(PushReaction.DESTROY));
+    }
+
+    /** Crag Thistle: a spiky grey-violet mountain thistle with a pale blue flower head; crafts into light blue dye. */
+    public static Block cragThistle()
+    {
+        return new DrossFlowerBlock(() -> MobEffects.DAMAGE_RESISTANCE, CRAG_THISTLE_STEW_SECONDS, PlantGround.CRAG_THISTLE, true,
+                BlockBehaviour.Properties.of()
+                        .mapColor(MapColor.COLOR_PURPLE)
+                        .noCollission()
+                        .instabreak()
+                        .sound(SoundType.GRASS)
+                        .offsetType(BlockBehaviour.OffsetType.XZ)
+                        .ignitedByLava()
+                        .pushReaction(PushReaction.DESTROY));
     }
 }

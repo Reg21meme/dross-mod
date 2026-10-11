@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:nylium",
+    "minecraft:netherrack",
+    "dross:scarred_netherrack",
+    "minecraft:soul_soil"
+  ]
+}

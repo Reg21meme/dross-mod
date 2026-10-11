@@ -255,5 +255,14 @@
       {"name": "minecraft:random/explode3", "pitch": 1.0},
       {"name": "minecraft:ambient/nether/basalt_deltas/plode3", "pitch": 0.9}
     ]
+  },
+  "block.sporepod.burst": {
+    "subtitle": "subtitles.dross.sporepod.burst",
+    "sounds": [
+      {"name": "minecraft:entity/pufferfish/blow_out1", "pitch": 1.25, "volume": 0.55},
+      {"name": "minecraft:entity/pufferfish/blow_out2", "pitch": 1.25, "volume": 0.55},
+      {"name": "minecraft:block/fungus/break2", "pitch": 1.15, "volume": 0.5},
+      {"name": "minecraft:block/fungus/break4", "pitch": 1.15, "volume": 0.5}
+    ]
   }
 }

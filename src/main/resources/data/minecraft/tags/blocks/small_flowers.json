@@ -1,6 +1,9 @@
 {
   "replace": false,
   "values": [
-    "dross:wispbloom"
+    "dross:wispbloom",
+    "dross:frostbloom",
+    "dross:soulwick",
+    "dross:crag_thistle"
   ]
 }

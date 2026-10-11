@@ -57,6 +57,30 @@ public final class ModCreativeTabs
                         output.accept(ModItems.SILVERMOSS.get());
                         output.accept(ModItems.GLIMMER_FERN.get());
                         output.accept(ModItems.WISPBLOOM.get());
+                        // Dimension area: the other biomes' blocks, biome by biome: Cinder Wastes, Blightwood, Rimefall,
+                        // Nether Scar, then the Gravecrags
+                        output.accept(ModItems.ASH.get());
+                        output.accept(ModItems.ASH_LAYER.get());
+                        output.accept(ModItems.CHARRED_LOG.get());
+                        output.accept(ModItems.EMBERWEED.get());
+                        output.accept(ModItems.CINDER_VENT.get());
+                        output.accept(ModItems.SPORELOAM.get());
+                        output.accept(ModItems.BLIGHTCAP_BLOCK.get());
+                        output.accept(ModItems.ROTTING_BLIGHTCAP.get());
+                        output.accept(ModItems.BLIGHTCAP_STEM.get());
+                        output.accept(ModItems.GLOOMCAP.get());
+                        output.accept(ModItems.SPOREPOD.get());
+                        output.accept(ModItems.HOARFROST.get());
+                        output.accept(ModItems.FROSTBITTEN_LOG.get());
+                        output.accept(ModItems.FROSTBLOOM.get());
+                        output.accept(ModItems.ICICLE.get());
+                        output.accept(ModItems.SCARRED_NETHERRACK.get());
+                        output.accept(ModItems.SCAR_ROOTS.get());
+                        output.accept(ModItems.SOULWICK.get());
+                        output.accept(ModItems.SCAR_VENT.get());
+                        output.accept(ModItems.CRAGSTONE.get());
+                        output.accept(ModItems.STORM_LICHEN.get());
+                        output.accept(ModItems.CRAG_THISTLE.get());
 
                         // 2. Quest items
                         // Quest area: a Weathered Letter (gets its text once it's in your inventory)

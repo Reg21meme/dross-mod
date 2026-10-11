@@ -88,6 +88,51 @@ public final class ModItems
     // Dimension area: Wispbloom
     public static final RegistryObject<Item> WISPBLOOM = ITEMS.register("wispbloom", () -> new BlockItem(ModBlocks.WISPBLOOM.get(), new Item.Properties()));
 
+    // Dimension area: block items for the other biomes' blocks (Cinder Wastes, Blightwood, Rimefall, Nether Scar, Gravecrags)
+    public static final RegistryObject<Item> ASH = ITEMS.register("ash", () -> new BlockItem(ModBlocks.ASH.get(), new Item.Properties()));
+    // Dimension area: Ash Layer
+    public static final RegistryObject<Item> ASH_LAYER = ITEMS.register("ash_layer", () -> new BlockItem(ModBlocks.ASH_LAYER.get(), new Item.Properties()));
+    // Dimension area: Charred Log
+    public static final RegistryObject<Item> CHARRED_LOG = ITEMS.register("charred_log", () -> new BlockItem(ModBlocks.CHARRED_LOG.get(), new Item.Properties()));
+    // Dimension area: Emberweed
+    public static final RegistryObject<Item> EMBERWEED = ITEMS.register("emberweed", () -> new BlockItem(ModBlocks.EMBERWEED.get(), new Item.Properties()));
+    // Dimension area: Cinder Vent
+    public static final RegistryObject<Item> CINDER_VENT = ITEMS.register("cinder_vent", () -> new BlockItem(ModBlocks.CINDER_VENT.get(), new Item.Properties()));
+    // Dimension area: Sporeloam
+    public static final RegistryObject<Item> SPORELOAM = ITEMS.register("sporeloam", () -> new BlockItem(ModBlocks.SPORELOAM.get(), new Item.Properties()));
+    // Dimension area: Blightcap Block
+    public static final RegistryObject<Item> BLIGHTCAP_BLOCK = ITEMS.register("blightcap_block", () -> new BlockItem(ModBlocks.BLIGHTCAP_BLOCK.get(), new Item.Properties()));
+    // Dimension area: Rotting Blightcap
+    public static final RegistryObject<Item> ROTTING_BLIGHTCAP = ITEMS.register("rotting_blightcap", () -> new BlockItem(ModBlocks.ROTTING_BLIGHTCAP.get(), new Item.Properties()));
+    // Dimension area: Blightcap Stem
+    public static final RegistryObject<Item> BLIGHTCAP_STEM = ITEMS.register("blightcap_stem", () -> new BlockItem(ModBlocks.BLIGHTCAP_STEM.get(), new Item.Properties()));
+    // Dimension area: Gloomcap
+    public static final RegistryObject<Item> GLOOMCAP = ITEMS.register("gloomcap", () -> new BlockItem(ModBlocks.GLOOMCAP.get(), new Item.Properties()));
+    // Dimension area: Sporepod
+    public static final RegistryObject<Item> SPOREPOD = ITEMS.register("sporepod", () -> new BlockItem(ModBlocks.SPOREPOD.get(), new Item.Properties()));
+    // Dimension area: Hoarfrost
+    public static final RegistryObject<Item> HOARFROST = ITEMS.register("hoarfrost", () -> new BlockItem(ModBlocks.HOARFROST.get(), new Item.Properties()));
+    // Dimension area: Frostbitten Log
+    public static final RegistryObject<Item> FROSTBITTEN_LOG = ITEMS.register("frostbitten_log", () -> new BlockItem(ModBlocks.FROSTBITTEN_LOG.get(), new Item.Properties()));
+    // Dimension area: Frostbloom
+    public static final RegistryObject<Item> FROSTBLOOM = ITEMS.register("frostbloom", () -> new BlockItem(ModBlocks.FROSTBLOOM.get(), new Item.Properties()));
+    // Dimension area: Icicle
+    public static final RegistryObject<Item> ICICLE = ITEMS.register("icicle", () -> new BlockItem(ModBlocks.ICICLE.get(), new Item.Properties()));
+    // Dimension area: Scarred Netherrack
+    public static final RegistryObject<Item> SCARRED_NETHERRACK = ITEMS.register("scarred_netherrack", () -> new BlockItem(ModBlocks.SCARRED_NETHERRACK.get(), new Item.Properties()));
+    // Dimension area: Scar Roots
+    public static final RegistryObject<Item> SCAR_ROOTS = ITEMS.register("scar_roots", () -> new BlockItem(ModBlocks.SCAR_ROOTS.get(), new Item.Properties()));
+    // Dimension area: Soulwick
+    public static final RegistryObject<Item> SOULWICK = ITEMS.register("soulwick", () -> new BlockItem(ModBlocks.SOULWICK.get(), new Item.Properties()));
+    // Dimension area: Scar Vent
+    public static final RegistryObject<Item> SCAR_VENT = ITEMS.register("scar_vent", () -> new BlockItem(ModBlocks.SCAR_VENT.get(), new Item.Properties()));
+    // Dimension area: Cragstone
+    public static final RegistryObject<Item> CRAGSTONE = ITEMS.register("cragstone", () -> new BlockItem(ModBlocks.CRAGSTONE.get(), new Item.Properties()));
+    // Dimension area: Storm Lichen
+    public static final RegistryObject<Item> STORM_LICHEN = ITEMS.register("storm_lichen", () -> new BlockItem(ModBlocks.STORM_LICHEN.get(), new Item.Properties()));
+    // Dimension area: Crag Thistle
+    public static final RegistryObject<Item> CRAG_THISTLE = ITEMS.register("crag_thistle", () -> new BlockItem(ModBlocks.CRAG_THISTLE.get(), new Item.Properties()));
+
     // Dimension area: Stormite Shard (a glowing blue crystal from Stormite Ore; for special arrows and the Great Mystic Bow later)
     public static final RegistryObject<Item> STORMITE_SHARD = ITEMS.register("stormite_shard", () -> new Item(new Item.Properties()));
     // Dimension area: Raw Moonsilver (from Moonsilver Ore; smelts into a Moonsilver Ingot)

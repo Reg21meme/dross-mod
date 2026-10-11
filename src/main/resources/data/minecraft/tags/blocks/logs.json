@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
-    "#dross:silverwood_logs"
+    "#dross:silverwood_logs",
+    "dross:charred_log",
+    "dross:frostbitten_log"
   ]
 }

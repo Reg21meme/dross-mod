@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "particle": "dross:block/frostbitten_log",
+    "down": "dross:block/frostbitten_log_top",
+    "up": "dross:block/frostbitten_log_top",
+    "north": "dross:block/frostbitten_log_rime",
+    "south": "dross:block/frostbitten_log",
+    "west": "dross:block/frostbitten_log",
+    "east": "dross:block/frostbitten_log"
+  }
+}

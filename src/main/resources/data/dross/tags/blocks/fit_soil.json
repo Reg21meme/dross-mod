@@ -1,6 +1,8 @@
 {
   "replace": false,
   "values": [
-    "dross:duskstone"
+    "dross:duskstone",
+    "dross:cragstone",
+    "dross:ash"
   ]
 }

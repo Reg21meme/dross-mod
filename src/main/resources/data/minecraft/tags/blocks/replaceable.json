@@ -2,6 +2,10 @@
   "replace": false,
   "values": [
     "dross:stormvine",
-    "dross:glimmer_fern"
+    "dross:glimmer_fern",
+    "dross:ash_layer",
+    "dross:emberweed",
+    "dross:scar_roots",
+    "dross:storm_lichen"
   ]
 }

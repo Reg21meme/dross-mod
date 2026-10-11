@@ -26,9 +26,21 @@ public final class Flammability
     public static final int VINE_SPREAD = 15;
     public static final int VINE_BURN = 100;
 
-    /** Small plants: Glimmer Fern and Wispbloom (vanilla fern and flowers: spread 60, burn 100). */
+    /** Small plants: Glimmer Fern and Wispbloom, and the Frostbloom and Crag Thistle (vanilla fern and flowers: spread 60, burn 100). */
     public static final int PLANT_SPREAD = 60;
     public static final int PLANT_BURN = 100;
+
+    /** Frostbitten logs: dead wood crusted with rime, so it catches and burns much more slowly than oak (5, 5). */
+    public static final int FROSTBITTEN_LOG_SPREAD = 2;
+    public static final int FROSTBITTEN_LOG_BURN = 2;
+
+    /** Storm Lichen (vanilla glow lichen: spreads 15, burns 100). */
+    public static final int LICHEN_SPREAD = 15;
+    public static final int LICHEN_BURN = 100;
+
+    // Never burn (no numbers on purpose): everything in the Cinder Wastes (Ash, Ash Layer, Charred Log, Emberweed,
+    // Cinder Vent), since lava pools lie next to it, and everything in the Nether Scar (Scarred Netherrack, Scar Roots,
+    // Soulwick, Scar Vent), where no fire is wanted at all. Blocks that don't override isFlammable never burn.
 
     private Flammability() {}
 }

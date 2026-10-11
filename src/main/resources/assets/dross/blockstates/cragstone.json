@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "dross:block/cragstone"
+      },
+      {
+        "model": "dross:block/cragstone_mirrored"
+      },
+      {
+        "model": "dross:block/cragstone",
+        "y": 180
+      },
+      {
+        "model": "dross:block/cragstone_mirrored",
+        "y": 180
+      }
+    ]
+  }
+}

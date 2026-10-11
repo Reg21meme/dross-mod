@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "dross:cragstone",
+    "minecraft:gravel",
+    "dross:duskstone",
+    "minecraft:snow_block",
+    "#minecraft:dirt"
+  ]
+}
