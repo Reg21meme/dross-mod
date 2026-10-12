@@ -391,6 +391,8 @@ NOISES = {
     "patch/rimefall": (-6, [1.0, 1.0, 1.0]),
     "patch/scar": (-6, [1.0, 1.0, 1.0]),
     "patch/scar_soul": (-6, [1.0, 1.0, 1.0]),
+    "patch/scar_cracks": (-5, [1.0, 0.6, 0.6, 0.5]),   # finer octaves: ragged clusters of cracked blocks
+    "patch/scar_speckle": (-2, [1.0, 0.5]),            # fine: plain blocks scattered inside those clusters
     "patch/gravecrags": (-6, [1.0, 1.0, 1.0]),
 }
 
@@ -952,7 +954,7 @@ def biome_json(biome_id, spec, spawns_from):
 # (ROCK_FACE_* below), which can see the real slope in every direction; the surface rules alone can't.
 PODZOL_PATCH = 0.55             # Silverwood: podzol where its patch noise is above this...
 MOSS_PATCH = -0.55              # ...and moss below this; Silvermoss everywhere else
-MYCELIUM_PATCH = 0.30           # Blightwood: mycelium above, coarse dirt below; Sporeloam elsewhere
+MUD_PATCH = 0.30                # Blightwood: mud above (wet rot), coarse dirt below; Sporeloam elsewhere
 COARSE_DIRT_PATCH = -0.50
 MAGMA_PATCH = 0.60              # Cinder Wastes: magma above (it burns: keep it rare), basalt below; Ash elsewhere
 BASALT_PATCH = -0.50
@@ -960,8 +962,14 @@ SNOW_PATCH = 0.40               # Rimefall: snow above, packed ice below; Hoarfr
 PACKED_ICE_PATCH = -0.45
 SOUL_SOIL_PATCH = 0.45          # Nether Scar: soul soil / soul sand patches first...
 SOUL_SAND_PATCH = -0.50
-CRIMSON_PATCH = 0.25            # ...then crimson / warped nylium; Scarred Netherrack elsewhere
+CRIMSON_PATCH = 0.25            # ...then crimson / warped nylium...
 WARPED_PATCH = -0.30
+SCARRED_PATCH = -0.15           # ...then Scarred Netherrack in ragged clusters, where its crack noise (patch/scar_cracks,
+                                # lattice 32) is above this (about 70% of that ground)...
+SCARRED_SPECKLE = -0.25         # ...and its fine speckle noise (patch/scar_speckle, lattice 4) is above this (about 79%),
+                                # so a few plain blocks lie scattered inside each cluster; plain netherrack elsewhere.
+                                # Together: about 55% of that ground cracked, about a third of the Scar's ground (the
+                                # user found it too busy when it was all cracked)
 GRAVEL_PATCH = 0.55             # Gravecrags: gravel above (it falls: keep it rare), moss below (only below
                                 # CRAG_MOSS_BELOW_Y); Cragstone elsewhere
 CRAG_MOSS_PATCH = -0.45
@@ -989,7 +997,7 @@ ROCK_FACE_ROCKS = {
 ROCK_FACE_DEFAULT = "dross:duskstone"
 ROCK_FACE_REPLACEABLE = [
     "dross:silvermoss", "minecraft:podzol", "minecraft:moss_block", "minecraft:dirt", "minecraft:grass_block",
-    "dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt",
+    "dross:sporeloam", "minecraft:mud", "minecraft:coarse_dirt",
     "dross:ash", "minecraft:magma_block", "minecraft:blackstone",
     "dross:hoarfrost", "minecraft:snow_block",
     "dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium", "minecraft:soul_soil",
@@ -1075,7 +1083,7 @@ def surface_rule():
     rules = {
         "silverwood_forest": silverwood_rules(),
         "blightwood": biome_rules(
-            top=[cond(noise_above("patch/blightwood", MYCELIUM_PATCH), block("minecraft:mycelium")),
+            top=[cond(noise_above("patch/blightwood", MUD_PATCH), block("minecraft:mud")),
                  cond(noise_below("patch/blightwood", COARSE_DIRT_PATCH), block("minecraft:coarse_dirt")),
                  block("dross:sporeloam")],
             under=[block("minecraft:dirt")]),
@@ -1097,7 +1105,9 @@ def surface_rule():
                  cond(noise_below("patch/scar_soul", SOUL_SAND_PATCH), block("minecraft:soul_sand")),
                  cond(noise_above("patch/scar", CRIMSON_PATCH), block("minecraft:crimson_nylium")),
                  cond(noise_below("patch/scar", WARPED_PATCH), block("minecraft:warped_nylium")),
-                 block("dross:scarred_netherrack")],
+                 cond(noise_above("patch/scar_cracks", SCARRED_PATCH),
+                      cond(noise_above("patch/scar_speckle", SCARRED_SPECKLE), block("dross:scarred_netherrack"))),
+                 block("minecraft:netherrack")],
             under=[block("minecraft:netherrack")],
             body=(SCAR_NETHERRACK_DEPTH, block("minecraft:netherrack"))),
         "gravecrags": biome_rules(
@@ -1268,7 +1278,8 @@ ORE_REPLACEABLE = ["dross:duskstone", "dross:cragstone", "minecraft:basalt", "mi
 # --- Ponds and lava pools (dross:pond) ---------------------------------------------------------------------------------
 # What a pond may dig into and line (block tag dross:pond_ground): the plain ground, i.e. every biome's ground cover and
 # soil (the rock_faces list), Duskstone, and other ponds' shores.
-POND_GROUND = ROCK_FACE_REPLACEABLE + ["dross:duskstone", "minecraft:mud", "minecraft:clay"]
+POND_GROUND = ROCK_FACE_REPLACEABLE + [b for b in ("dross:duskstone", "minecraft:mud", "minecraft:clay")
+                                       if b not in ROCK_FACE_REPLACEABLE]
 # A pond's surface lies at the lowest ground under it; it only forms where the ground under it and round its rim rises
 # at most this many blocks above that (its banks), so ponds lie in hollows and level ground, never dug into a slope.
 POND_MAX_BANK = 2
@@ -1486,7 +1497,7 @@ def features():
         "log": provider(LOG, axis="x"), "length": uniform_int(*FALLEN_BLIGHT_LOG_LENGTH),
         "top": weighted(FALLEN_BLIGHT_LOG_GROWS), "top_chance": FALLEN_BLIGHT_LOG_GROWTH}},
         per_chunk(FALLEN_BLIGHT_LOGS) + ground_air
-        + [predicate_filter(matching(["dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt"], DOWN))])
+        + [predicate_filter(matching(["dross:sporeloam", "minecraft:mud", "minecraft:coarse_dirt"], DOWN))])
     add_feature("local_modifications", "ice_boulder", [rf], {"type": "dross:boulder", "config": {
         "stone": provider("minecraft:packed_ice"), "top": provider("minecraft:snow_block"), "top_chance": ICE_BOULDER_SNOW,
         "lumps": uniform_int(*ICE_BOULDER_LUMPS), "lump_radius": uniform_float(*ICE_BOULDER_RADIUS),
@@ -1494,8 +1505,9 @@ def features():
         per_chunk(ICE_BOULDERS) + ground_air
         + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"], DOWN))])
     add_feature("local_modifications", "scar_vent", [ns], {"type": "minecraft:replace_single_block", "config": {
-        "targets": [{"target": {"predicate_type": "minecraft:block_match", "block": check_block("dross:scarred_netherrack")},
-                     "state": block_state("dross:scar_vent")}]}},
+        "targets": [{"target": {"predicate_type": "minecraft:block_match", "block": check_block(b)},
+                     "state": block_state("dross:scar_vent")}
+                    for b in ("dross:scarred_netherrack", "minecraft:netherrack")]}},
         per_chunk(SCAR_VENTS) + surface_air + [random_offset(0, -1)])
     add_feature("local_modifications", "crag_boulder", [gc], {"type": "dross:boulder", "config": {
         "stone": provider("dross:cragstone"), "top": provider("dross:cragstone"), "top_chance": 0.0,

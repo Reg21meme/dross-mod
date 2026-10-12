@@ -104,20 +104,27 @@ public final class TerrainChunksGameTest
             DrossBiomes.CINDER_WASTES, new Ground(Set.of("dross:ash", "minecraft:magma_block", "minecraft:basalt", "minecraft:blackstone",
                     "dross:cinder_vent"),
                     Set.of("dross:ash", "minecraft:magma_block", "minecraft:basalt"), 0.60D, Set.of("dross:ash"), 0.15D),
-            DrossBiomes.BLIGHTWOOD, new Ground(Set.of("dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt", "dross:duskstone",
-                    "minecraft:mud"),
-                    Set.of("dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt"), 0.60D, Set.of("dross:sporeloam"), 0.15D),
+            // (mud: its wet patches and the murky ponds' shores)
+            DrossBiomes.BLIGHTWOOD, new Ground(Set.of("dross:sporeloam", "minecraft:mud", "minecraft:coarse_dirt", "dross:duskstone"),
+                    Set.of("dross:sporeloam", "minecraft:mud", "minecraft:coarse_dirt"), 0.60D, Set.of("dross:sporeloam"), 0.15D),
             // (ice: the frozen ponds)
             DrossBiomes.RIMEFALL, new Ground(Set.of("dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice", "dross:duskstone",
                     "minecraft:ice"),
                     Set.of("dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"), 0.60D, Set.of("dross:hoarfrost"), 0.15D),
+            // (Scarred Netherrack lies in patches among plain netherrack, about a third of the ground: see SCAR_MIX below)
             DrossBiomes.NETHER_SCAR, new Ground(Set.of("dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium",
                     "minecraft:soul_soil", "minecraft:soul_sand", "minecraft:netherrack", "dross:scar_vent"),
                     Set.of("dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium", "minecraft:soul_soil",
-                            "minecraft:soul_sand"), 0.60D, Set.of("dross:scarred_netherrack"), 0.15D),
+                            "minecraft:soul_sand", "minecraft:netherrack"), 0.60D, Set.of("dross:scarred_netherrack"), 0.10D),
             DrossBiomes.GRAVECRAGS, new Ground(Set.of("dross:cragstone", "minecraft:snow_block", "minecraft:gravel", "minecraft:moss_block"),
                     Set.of("dross:cragstone", "minecraft:snow_block", "minecraft:gravel", "minecraft:moss_block"), 0.60D,
                     Set.of("dross:cragstone", "minecraft:snow_block"), 0.40D));
+
+    /**
+     * The Nether Scar's cracked ground is mixed with plain netherrack (the user found it too busy all cracked): a Scar
+     * site must have at least this share of its top blocks plain netherrack too, so the mix really ran.
+     */
+    private static final double SCAR_PLAIN_NETHERRACK = 0.05D;
 
     private TerrainChunksGameTest() {}
 
@@ -393,6 +400,11 @@ public final class TerrainChunksGameTest
         if (signature < want.signatureShare() * columns)
         {
             problems.add(String.format(Locale.ROOT, "%s: its own %s covers only %.1f%% (%s)", where, want.signature(), 100.0D * signature / columns, tops));
+        }
+        if (biome.equals(DrossBiomes.NETHER_SCAR) && tops.getOrDefault("minecraft:netherrack", 0) < SCAR_PLAIN_NETHERRACK * columns)
+        {
+            problems.add(String.format(Locale.ROOT, "%s: plain netherrack covers only %.1f%%, so the cracked ground isn't mixed with it (%s)",
+                    where, 100.0D * tops.getOrDefault("minecraft:netherrack", 0) / columns, tops));
         }
         if (noBedrock > 0 || highBedrock > 0)
         {

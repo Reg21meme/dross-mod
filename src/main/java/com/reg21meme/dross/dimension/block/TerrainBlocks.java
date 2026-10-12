@@ -396,7 +396,7 @@ public final class TerrainBlocks
                 .ignitedByLava();
     }
 
-    /** Gloomcap: a small glowing blue-teal mushroom. Never spreads or grows huge. */
+    /** Gloomcap: a small glowing poison-green mushroom. Never spreads or grows huge. */
     public static Block gloomcap()
     {
         return new GloomcapBlock(BlockBehaviour.Properties.of()

@@ -112,17 +112,17 @@ public final class DrossColors {
     /** The Cinder Vent spark: the color it fades to (electric blue). Used in dimension/block/CinderVentBlock. */
     public static final int CINDER_VENT_SPARK_FADE = PALETTE_MAIN;
 
-    /** Blightwood: the faint spore a Gloomcap lets go now and then (pale glowing teal). Used in dimension/block/GloomcapBlock. */
-    public static final int GLOOMCAP_SPORE = 0x8FF0E4;
+    /** Blightwood: the faint spore a Gloomcap lets go now and then (pale glowing poison green). Used in dimension/block/GloomcapBlock. */
+    public static final int GLOOMCAP_SPORE = 0xC2F56A;
 
-    /** The Gloomcap spore: the color it fades to (deep teal). Used in dimension/block/GloomcapBlock. */
-    public static final int GLOOMCAP_SPORE_FADE = 0x1E7F86;
+    /** The Gloomcap spore: the color it fades to (deep poison green). Used in dimension/block/GloomcapBlock. */
+    public static final int GLOOMCAP_SPORE_FADE = 0x3A7410;
 
-    /** Blightwood: the sickly spores a Sporepod puffs out, idly or when something walks into it (sickly yellow-green). Used in dimension/block/SporepodBlock. */
-    public static final int SPOREPOD_SPORE = 0xB9C77A;
+    /** Blightwood: the poisonous spores a Sporepod puffs out, idly or when something walks into it (poison green). Used in dimension/block/SporepodBlock. */
+    public static final int SPOREPOD_SPORE = 0x9CD43A;
 
-    /** The Sporepod spores: the color they fade to (murky olive). Used in dimension/block/SporepodBlock. */
-    public static final int SPOREPOD_SPORE_FADE = 0x56613A;
+    /** The Sporepod spores: the color they fade to (murky dark green). Used in dimension/block/SporepodBlock. */
+    public static final int SPOREPOD_SPORE_FADE = 0x3F5A14;
 
     /** Nether Scar: the red embers a Scar Vent puffs out (hot red-orange). Used in dimension/block/ScarVentBlock. */
     public static final int SCAR_VENT_EMBER_RED = 0xFF5A2A;
@@ -165,14 +165,14 @@ public final class DrossColors {
     /** Cinder Wastes: under water. */
     public static final int CINDER_WATER_FOG = 0x0C0A10;
 
-    /** Blightwood: night fog, sickly green-blue (and thick: see DrossSkyEffects). */
-    public static final int BLIGHTWOOD_FOG = 0x16342E;
+    /** Blightwood: night fog, a dark poison green (and thick: see DrossSkyRendering). */
+    public static final int BLIGHTWOOD_FOG = 0x213D0B;
     /** Blightwood: sky. */
-    public static final int BLIGHTWOOD_SKY = 0x2A5A50;
-    /** Blightwood: murky water in its ponds. */
-    public static final int BLIGHTWOOD_WATER = 0x2F3B25;
+    public static final int BLIGHTWOOD_SKY = 0x3C6414;
+    /** Blightwood: murky poison-green water in its ponds. */
+    public static final int BLIGHTWOOD_WATER = 0x4A5E16;
     /** Blightwood: under water. */
-    public static final int BLIGHTWOOD_WATER_FOG = 0x0B1208;
+    public static final int BLIGHTWOOD_WATER_FOG = 0x101A05;
 
     /** Rimefall: night fog, pale icy blue (and hazy). */
     public static final int RIMEFALL_FOG = 0x344E70;
@@ -217,8 +217,8 @@ public final class DrossColors {
     public static final int PREVIEW_SILVERWOOD = 0x3E7C8C;
     /** Terrain previews: Cinder Wastes (ash grey with a warm hint). */
     public static final int PREVIEW_CINDER = 0x8A6F5E;
-    /** Terrain previews: Blightwood (sickly olive). */
-    public static final int PREVIEW_BLIGHTWOOD = 0x7A8A3A;
+    /** Terrain previews: Blightwood (poison green). */
+    public static final int PREVIEW_BLIGHTWOOD = 0x8CBF2E;
     /** Terrain previews: Rimefall (icy white-blue). */
     public static final int PREVIEW_RIMEFALL = 0xC8DCF0;
     /** Terrain previews: Nether Scar (nether red). */

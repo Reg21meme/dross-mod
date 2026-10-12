@@ -60,7 +60,7 @@ Model kinds in `block_data.py`:
 |---|---|---|
 | `cube` | one texture on all sides | `<id>` |
 | `stone` | cube plus a mirrored copy, each turned two ways, picked at random (no repeating pattern on big walls) | `<id>` |
-| `glow_cube` | cube plus a full-bright overlay; `turn=True` adds the random mirrored/turned copies like `stone` | `<id>`, `<id>_glow` |
+| `glow_cube` | cube plus a full-bright overlay; `turn=True` adds a mirrored copy, each turned all four ways, picked at random; `looks=N` gives it N different drawings, one picked at random per block (Scarred Netherrack: 3) | `<id>`, `<id>_glow` (and `<id>_2`, `<id>_2_glow`...) |
 | `log`, `wood` | a log (bark sides, ring ends) and bark on all sides | `<log>`, `<log>_top` |
 | `rimed_log` | a log with rime on one side: north when standing, on top when lying down | `<id>`, `<id>_rime`, `<id>_top` |
 | `leaves` | cube with see-through gaps, no tint | `<id>` |
@@ -120,6 +120,21 @@ shaded shapes, curves and small pixel maps. Light comes from the top left, like 
 blues are the palette in `DrossColors` (main `#2E6BFF`, deep cobalt `#0B2A9E`, highlight `#7FA8FF`). Look at
 `block-previews/` after a change.
 
+Two looks the user asked for in round 2 (October 12):
+- **Blightwood** is poison green first, with a couple of decaying reds and some bone beiges ("dead and decay, not just
+  dead"), clearly apart from the Silverwood's deep blue: poison-green caps with beige spots (`CAP`, `CAP_BLOTCH`), rotting
+  caps a decaying maroon with green mould oozing out (`ROTCAP`, `ROT_OOZE`), bone-beige stems streaked with red and
+  green rot (`STEM`, `STEM_ROT`), green-black Sporeloam dusted with poison-green spores and a few red flecks (`ROT`,
+  `SPORE`, `RED_FLECK`), Gloomcaps glowing poison green (`GLOOM`), Sporepods red underneath and beige where lit, with
+  green spots (`POD`, `POD_SPOT`). Its fog, sky and water are `BLIGHTWOOD_*` in `DrossColors`, its spore particles
+  `GLOOMCAP_SPORE*` and `SPOREPOD_SPORE*`. Its ground patches are mud and coarse dirt (vanilla's purple-grey mycelium
+  clashed).
+- **Scarred Netherrack** is calm: three drawings (`SCAR_CRACKS`: a forked crack, a short jagged one, two faint
+  hairlines; picked 1 : 2 : 2, `look_weights` in `block_data.py`), each placed block picking one and turning and
+  mirroring it at random. No crack comes within a pixel of
+  the edge, so cracks never join from block to block into lines or a grid. The rock's colours (`NETHERRACK`) match
+  Minecraft's own netherrack, which lies in patches among it.
+
 ## worldgen.py: the terrain (TERRAIN, BIOMES and SURFACE sections)
 
 How it works, in short (the full design is `TERRAIN_DESIGN.md`): every column's ground height is worked out from 2D
@@ -153,7 +168,8 @@ feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bar
 | Mountains nearer or farther from the hub | `MOUNTAIN_FREE_INNER/OUTER`, `MOUNTAIN_RING_FADE_INNER/OUTER`, `MOUNTAIN_RING_BOOST` | None within ~650 now; the nearest are usually 750-800 blocks out. |
 | A bigger all-Silverwood area round the hub | `SILVERWOOD_CORE_INNER/OUTER` | Guaranteed within the inner radius (200); other biomes appear from ~300. |
 | Flatter or hillier ground at the hub | `HUB_FLAT_INNER/OUTER`, `HUB_HILLS_KEPT` | Within 80 blocks only 10% of the hills, no cliffs. |
-| Ground cover patches | `*_PATCH` (SURFACE) | Each biome's patch thresholds (podzol, moss, mycelium, magma, snow, nylium, soul soil, gravel...). |
+| Ground cover patches | `*_PATCH` (SURFACE) | Each biome's patch thresholds (podzol, moss, mud, magma, snow, nylium, soul soil, gravel...). |
+| How much of the Nether Scar is cracked | `SCARRED_PATCH`, `SCARRED_SPECKLE` (SURFACE) | Its bare ground is Scarred Netherrack in ragged clusters (where the `patch/scar_cracks` noise is above `SCARRED_PATCH`, -0.15: ~70%) with a few plain blocks scattered inside them (`patch/scar_speckle` above `SCARRED_SPECKLE`, -0.25: ~79%), plain netherrack elsewhere: about 55% of that ground cracked, about a third of the Scar. Lower either = more cracked. |
 | Bare rock on slopes | `ROCK_FACE_MIN_EXPOSED`, `ROCK_FACE_MAX_DEPTH`, `ROCK_FACE_ROCKS`, `ROCK_FACE_REPLACEABLE` (SURFACE) | A column 2+ blocks above a neighbour becomes its biome's rock. |
 | Fog, sky and water colours | `DrossColors.java`, Dimension section (`SILVERWOOD_FOG`...) | Then run `worldgen.py` again. |
 | Ambient particles, sounds, weather | `BIOMES` (BIOMES) | `particle_chance` per random spot per tick (vanilla crimson forest: 0.025). |

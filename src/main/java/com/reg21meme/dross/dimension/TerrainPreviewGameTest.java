@@ -55,10 +55,12 @@ import org.slf4j.Logger;
  * </pre>
  * Otherwise the test just succeeds. What it writes:
  * <ul>
- *   <li>{@code biomes_<seed>.png}: the biome map, {@value #MAP_HALF} blocks every way from the hub, {@value #MAP_CELL} blocks
- *       a pixel; the hub marked, rings at 200, 450, 600, 850 and 1500 blocks (the hub's falloff radii); a legend.</li>
- *   <li>{@code relief_<seed>.png}: the same area's land, lit from the north-west and coloured by biome, with a contour
- *       line every 16 blocks; higher land is lighter, snow above y 200 white.</li>
+ *   <li>{@code biomes_<seed>.png} for each fixed test seed, and {@code biomes_world.png} for this world (its seed changes
+ *       every run, so its file keeps one name and shows the seed in its title): the biome map, {@value #MAP_HALF} blocks
+ *       every way from the hub, {@value #MAP_CELL} blocks a pixel; the hub marked, rings at 200, 450, 600, 850 and 1500
+ *       blocks (the hub's falloff radii); a legend.</li>
+ *   <li>{@code relief_<seed>.png} and {@code relief_world.png}: the same area's land, lit from the north-west and coloured
+ *       by biome, with a contour line every 16 blocks; higher land is lighter, snow above y 200 white.</li>
  *   <li>{@code overview.png}: the seeds' biome maps side by side.</li>
  *   <li>{@code hub_area.png}: the real generated blocks {@value #HUB_HALF} blocks round the hub (this world), drawn like a
  *       Minecraft map (with a darker line every {@value #BLOCK_CONTOUR} blocks of height); the hub's footprint outlined.</li>
@@ -179,7 +181,7 @@ public final class TerrainPreviewGameTest
         try
         {
             Files.createDirectories(out);
-            // Clear the last run's pictures (the world's own seed changes every run, so its files would pile up).
+            // Clear the last run's pictures (and any older run's that named this world's maps by its seed).
             try (var old = Files.list(out))
             {
                 for (Path file : old.toList())
@@ -221,8 +223,10 @@ public final class TerrainPreviewGameTest
             String label = "seed " + seed + (seed == dross.getSeed() ? " (this world)" : "");
             BufferedImage biomeMap = biomeImage(biomes, n);
             biomeMaps.add(biomeMap);
-            saveWithLegend(biomeMap, out.resolve("biomes_" + seed + ".png"), "Dross biomes, " + label, true);
-            saveWithLegend(reliefImage(biomes, heights, n), out.resolve("relief_" + seed + ".png"), "Dross relief, " + label, false);
+            // this world's seed changes every run: a fixed name, so a refresh replaces its maps instead of adding new files
+            String fileName = seed == dross.getSeed() ? "world" : Long.toString(seed);
+            saveWithLegend(biomeMap, out.resolve("biomes_" + fileName + ".png"), "Dross biomes, " + label, true);
+            saveWithLegend(reliefImage(biomes, heights, n), out.resolve("relief_" + fileName + ".png"), "Dross relief, " + label, false);
         }
         saveOverview(biomeMaps, seeds, dross.getSeed(), out.resolve("overview.png"));
 

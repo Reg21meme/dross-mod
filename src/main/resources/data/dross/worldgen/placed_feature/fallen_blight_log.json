@@ -18,7 +18,7 @@
         "type": "minecraft:matching_blocks",
         "blocks": [
           "dross:sporeloam",
-          "minecraft:mycelium",
+          "minecraft:mud",
           "minecraft:coarse_dirt"
         ],
         "offset": [

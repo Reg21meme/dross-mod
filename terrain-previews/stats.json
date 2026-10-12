@@ -98,7 +98,7 @@
       "hub_ground_range": 1,
       "hub_ground_std": 0.471,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1348
+      "survey_ms": 493
     },
     {
       "seed": 2,
@@ -197,7 +197,7 @@
       "hub_ground_range": 3,
       "hub_ground_std": 0.926,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1451
+      "survey_ms": 406
     },
     {
       "seed": 3,
@@ -299,7 +299,7 @@
       "hub_ground_range": 2,
       "hub_ground_std": 0.523,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1399
+      "survey_ms": 398
     },
     {
       "seed": 20261011,
@@ -399,7 +399,7 @@
       "hub_ground_range": 2,
       "hub_ground_std": 0.564,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1441
+      "survey_ms": 384
     },
     {
       "seed": -4172368451,
@@ -498,7 +498,7 @@
       "hub_ground_range": 2,
       "hub_ground_std": 0.565,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1214
+      "survey_ms": 369
     },
     {
       "seed": 987654321,
@@ -602,7 +602,7 @@
       "hub_ground_range": 1,
       "hub_ground_std": 0.472,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1255
+      "survey_ms": 354
     },
     {
       "seed": 77,
@@ -700,7 +700,7 @@
       "hub_ground_range": 2,
       "hub_ground_std": 0.538,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1248
+      "survey_ms": 357
     },
     {
       "seed": 1234567890123,
@@ -801,160 +801,158 @@
       "hub_ground_range": 1,
       "hub_ground_std": 0.5,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1193
+      "survey_ms": 357
     },
     {
-      "seed": -8077503123227553848,
-      "all_silverwood_within": 321.994,
+      "seed": -8064446898835531414,
+      "all_silverwood_within": 359.555,
       "biomes": {
         "silverwood_forest": {
-          "share": 0.354,
-          "regions": 144,
+          "share": 0.387,
+          "regions": 141,
           "region_size_median": 25.532,
-          "region_size_area_weighted_median": 779.677,
-          "region_size_largest": 1413.761,
+          "region_size_area_weighted_median": 629.049,
+          "region_size_largest": 674.072,
           "nearest_to_hub": 0.0,
-          "height_p5": 56.177,
-          "height_p50": 74.039,
-          "height_p95": 93.847,
-          "slope_p50": 0.204,
-          "slope_p95": 0.625
+          "height_p5": 54.371,
+          "height_p50": 73.903,
+          "height_p95": 94.265,
+          "slope_p50": 0.214,
+          "slope_p95": 0.665
         },
         "cinder_wastes": {
-          "share": 0.135,
-          "regions": 90,
-          "region_size_median": 67.552,
-          "region_size_area_weighted_median": 611.177,
-          "region_size_largest": 1233.9,
-          "nearest_to_hub": 422.412,
-          "height_p5": 59.325,
-          "height_p50": 78.03,
-          "height_p95": 96.893,
-          "slope_p50": 0.283,
-          "slope_p95": 1.049
+          "share": 0.134,
+          "regions": 78,
+          "region_size_median": 78.696,
+          "region_size_area_weighted_median": 625.151,
+          "region_size_largest": 1162.071,
+          "nearest_to_hub": 359.555,
+          "height_p5": 54.676,
+          "height_p50": 75.697,
+          "height_p95": 99.871,
+          "slope_p50": 0.277,
+          "slope_p95": 1.03
         },
         "blightwood": {
           "share": 0.177,
-          "regions": 116,
-          "region_size_median": 44.223,
-          "region_size_area_weighted_median": 708.953,
-          "region_size_largest": 1490.527,
-          "nearest_to_hub": 422.412,
-          "height_p5": 51.552,
-          "height_p50": 68.934,
-          "height_p95": 91.301,
-          "slope_p50": 0.361,
-          "slope_p95": 0.847
+          "regions": 142,
+          "region_size_median": 31.271,
+          "region_size_area_weighted_median": 611.711,
+          "region_size_largest": 1385.936,
+          "nearest_to_hub": 376.595,
+          "height_p5": 49.462,
+          "height_p50": 68.376,
+          "height_p95": 91.251,
+          "slope_p50": 0.362,
+          "slope_p95": 0.81
         },
         "rimefall": {
-          "share": 0.148,
-          "regions": 63,
-          "region_size_median": 166.45,
-          "region_size_area_weighted_median": 736.464,
-          "region_size_largest": 996.578,
-          "nearest_to_hub": 321.994,
-          "height_p5": 57.158,
-          "height_p50": 71.334,
-          "height_p95": 89.036,
-          "slope_p50": 0.121,
-          "slope_p95": 0.444
+          "share": 0.13,
+          "regions": 73,
+          "region_size_median": 186.753,
+          "region_size_area_weighted_median": 584.461,
+          "region_size_largest": 949.342,
+          "nearest_to_hub": 775.464,
+          "height_p5": 59.877,
+          "height_p50": 76.387,
+          "height_p95": 89.489,
+          "slope_p50": 0.114,
+          "slope_p95": 0.407
         },
         "nether_scar": {
-          "share": 0.06,
-          "regions": 162,
+          "share": 0.051,
+          "regions": 159,
           "region_size_median": 112.748,
-          "region_size_area_weighted_median": 264.725,
-          "region_size_largest": 635.749,
-          "nearest_to_hub": 405.088,
-          "height_p5": 48.354,
-          "height_p50": 66.456,
-          "height_p95": 87.92,
-          "slope_p50": 0.23,
-          "slope_p95": 0.728
+          "region_size_area_weighted_median": 226.217,
+          "region_size_largest": 370.878,
+          "nearest_to_hub": 609.892,
+          "height_p5": 51.527,
+          "height_p50": 72.004,
+          "height_p95": 91.009,
+          "slope_p50": 0.198,
+          "slope_p95": 0.601
         },
         "gravecrags": {
-          "share": 0.126,
-          "regions": 54,
-          "region_size_median": 287.168,
-          "region_size_area_weighted_median": 604.744,
-          "region_size_largest": 977.757,
-          "nearest_to_hub": 769.332,
-          "height_p5": 82.492,
-          "height_p50": 123.512,
-          "height_p95": 204.526,
-          "slope_p50": 0.81,
-          "slope_p95": 2.261
+          "share": 0.122,
+          "regions": 50,
+          "region_size_median": 307.979,
+          "region_size_area_weighted_median": 632.923,
+          "region_size_largest": 947.107,
+          "nearest_to_hub": 805.739,
+          "height_p5": 81.93,
+          "height_p50": 120.706,
+          "height_p95": 207.184,
+          "slope_p50": 0.753,
+          "slope_p95": 2.245
         }
       },
       "mountain_peaks": [
-        156.524,
-        165.2,
-        171.948,
-        213.719,
-        217.35,
-        225.911,
-        227.381,
-        232.121,
-        248.202
+        141.96,
+        164.65,
+        188.385,
+        228.108,
+        241.553,
+        244.486,
+        248.035
       ],
-      "height_min": 35.322,
-      "height_max": 248.202,
-      "hub_ground_range": 3,
-      "hub_ground_std": 0.544,
+      "height_min": 34.776,
+      "height_max": 248.035,
+      "hub_ground_range": 1,
+      "hub_ground_std": 0.482,
       "hub_ground_steepest_step": 1,
-      "survey_ms": 1104
+      "survey_ms": 350
     }
   ],
   "averages": {
     "silverwood_forest": {
-      "share": 0.393,
-      "region_size_area_weighted_median": 956.002,
+      "share": 0.397,
+      "region_size_area_weighted_median": 939.266,
       "nearest_to_hub_max": 0.0
     },
     "cinder_wastes": {
       "share": 0.14,
-      "region_size_area_weighted_median": 654.904,
+      "region_size_area_weighted_median": 656.457,
       "nearest_to_hub_max": 662.987
     },
     "blightwood": {
       "share": 0.149,
-      "region_size_area_weighted_median": 632.273,
+      "region_size_area_weighted_median": 621.469,
       "nearest_to_hub_max": 527.758
     },
     "rimefall": {
-      "share": 0.148,
-      "region_size_area_weighted_median": 679.864,
-      "nearest_to_hub_max": 435.247
+      "share": 0.146,
+      "region_size_area_weighted_median": 662.975,
+      "nearest_to_hub_max": 775.464
     },
     "nether_scar": {
-      "share": 0.05,
-      "region_size_area_weighted_median": 243.211,
-      "nearest_to_hub_max": 416.308
+      "share": 0.049,
+      "region_size_area_weighted_median": 238.933,
+      "nearest_to_hub_max": 609.892
     },
     "gravecrags": {
-      "share": 0.12,
-      "region_size_area_weighted_median": 610.673,
+      "share": 0.119,
+      "region_size_area_weighted_median": 613.804,
       "nearest_to_hub_max": 829.843
     },
-    "mountain_ranges": 76,
-    "mountain_peak_median": 230.546
+    "mountain_ranges": 74,
+    "mountain_peak_median": 232.508
   },
   "chunks": {
     "hub_area_chunks": 289,
-    "hub_area_ms_per_chunk": 38.68,
-    "hub": "SPIRE on fitted ground, ground level 70, footprint X -25..49, Z -34..38",
-    "site_silverwood_forest_ms_per_chunk": 17.832,
-    "site_silverwood_forest": "5712, 6080",
-    "site_cinder_wastes_ms_per_chunk": 19.94,
-    "site_cinder_wastes": "6384, 6016",
-    "site_blightwood_ms_per_chunk": 15.759,
-    "site_blightwood": "5776, 6304",
-    "site_rimefall_ms_per_chunk": 17.871,
-    "site_rimefall": "6000, 6000",
-    "site_nether_scar_ms_per_chunk": 16.922,
-    "site_nether_scar": "5776, 5216",
-    "site_gravecrags_ms_per_chunk": 17.781,
-    "site_gravecrags": "6224, 6784"
+    "hub_area_ms_per_chunk": 15.202,
+    "hub": "SPIRE on fitted ground, ground level 71, footprint X -25..49, Z -34..38",
+    "site_silverwood_forest_ms_per_chunk": 6.904,
+    "site_silverwood_forest": "6000, 6000",
+    "site_cinder_wastes_ms_per_chunk": 6.161,
+    "site_cinder_wastes": "5760, 5568",
+    "site_blightwood_ms_per_chunk": 5.812,
+    "site_blightwood": "5968, 5648",
+    "site_rimefall_ms_per_chunk": 4.932,
+    "site_rimefall": "6096, 6304",
+    "site_nether_scar_ms_per_chunk": 5.318,
+    "site_nether_scar": "6368, 6592",
+    "site_gravecrags_ms_per_chunk": 7.213,
+    "site_gravecrags": "2992, 6384"
   },
-  "preview_seconds": 44.671
+  "preview_seconds": 14.259
 }

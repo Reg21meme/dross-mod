@@ -10,6 +10,15 @@
         "state": {
           "Name": "dross:scar_vent"
         }
+      },
+      {
+        "target": {
+          "predicate_type": "minecraft:block_match",
+          "block": "minecraft:netherrack"
+        },
+        "state": {
+          "Name": "dross:scar_vent"
+        }
       }
     ]
   }

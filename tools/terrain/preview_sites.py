@@ -139,11 +139,14 @@ def model_textures(assets, model_ref):
     return textures, parents
 
 
-def first_model(assets, name, props):
+def model_choices(assets, name, props):
+    """The models a block state may show: [(model, y rotation)]. Most have one; a block whose blockstate lists several
+    (stone-like blocks turned and mirrored at random, Scarred Netherrack's three looks...) gets one at random per
+    block in the game, and here too (see render)."""
     ns, path = split_id(name)
     bs = assets.json(ns, f"blockstates/{path}.json")
     if bs is None:
-        return None
+        return [(None, 0)]
     if "variants" in bs:
         best, best_score = None, -1
         for key, value in bs["variants"].items():
@@ -154,23 +157,23 @@ def first_model(assets, name, props):
                     best, best_score = value, score
         if best is None:
             best = next(iter(bs["variants"].values()))
-        if isinstance(best, list):
-            best = best[0]
-        return best.get("model")
+        choices = best if isinstance(best, list) else [best]
+        # (a weighted choice is listed `weight` times, so an even pick among the list follows the weights)
+        return [(c.get("model"), int(c.get("y", 0))) for c in choices for _ in range(int(c.get("weight", 1)))] or [(None, 0)]
     if "multipart" in bs:
         for part in bs["multipart"]:
             apply = part.get("apply")
             if isinstance(apply, list):
                 apply = apply[0]
             if apply and apply.get("model"):
-                return apply["model"]
-    return None
+                return [(apply["model"], 0)]
+    return [(None, 0)]
 
 
 class Look:
     """How one block state is drawn: kind (cube, cross, vine, layer, fluid, none), its face textures and glow overlays."""
 
-    def __init__(self, assets, state):
+    def __init__(self, assets, state, choice=None, random_look=False):
         self.state = state
         name, props = parse_state(state)
         self.name, self.props = name, props
@@ -181,7 +184,20 @@ class Look:
         self.alpha = 1.0
         self.faces = {}
         self.glow = {}
-        model = first_model(assets, name, props)
+        model, turn = choice if choice is not None else model_choices(assets, name, props)[0]
+        self._setup(assets, model)
+        # one of a block's random looks, turned or mirrored (stone-like blocks): turn its top, mirror every face
+        if random_look and self.kind == "cube" and (turn or (model and model.endswith("_mirrored"))):
+            for faces in (self.faces, self.glow):
+                for f, t in list(faces.items()):
+                    if model.endswith("_mirrored"):
+                        t = t[:, ::-1]
+                    if f == "top" and turn:
+                        t = np.rot90(t, -(turn // 90))
+                    faces[f] = np.ascontiguousarray(t)
+
+    def _setup(self, assets, model):
+        name, props = self.name, self.props
         textures, parents = model_textures(assets, model) if model else ({}, [])
 
         def tex(*keys):
@@ -353,15 +369,28 @@ def make_sprite(look, light, faces):
     return sprite
 
 
+def variant_index(x, y, z, count):
+    """Which of a block's random looks it shows: a fixed pick from its position (like the game's own position seed)."""
+    h = (x * 3129871) ^ (z * 116129781) ^ y
+    h = (h * h * 42317861 + h * 11) & 0xFFFFFFFFFFFF
+    return (h >> 16) % count
+
+
 def render(view, assets):
     palette = view["palette"]
-    looks = [Look(assets, s) for s in palette]
+    variants = []
+    for s in palette:
+        name, props = parse_state(s)
+        choices = model_choices(assets, name, props)
+        variants.append([Look(assets, s, c, random_look=len(choices) > 1) for c in choices])
+    looks = [v[0] for v in variants]
     water = view.get("water_color")
     if water is not None:
         tint = (((water >> 16) & 255) / 255.0, ((water >> 8) & 255) / 255.0, (water & 255) / 255.0)
-        for look in looks:
-            if look.name == "minecraft:water":
-                look.tint = tint
+        for options in variants:
+            for look in options:
+                if look.name == "minecraft:water":
+                    look.tint = tint
     opaque = [look.is_opaque for look in looks]
     blocks = view["blocks"]
     occupied = {}
@@ -381,7 +410,8 @@ def render(view, assets):
     cache = {}
     order = sorted(blocks, key=lambda b: (b[0] + b[1] + b[2], b[1]))
     for x, y, z, idx, light in order:
-        look = looks[idx]
+        pick = variant_index(x, y, z, len(variants[idx]))
+        look = variants[idx][pick]
         if look.kind == "none":
             continue
         faces = []
@@ -393,7 +423,7 @@ def render(view, assets):
             faces.append("east")
         if look.kind in ("cube",) and not faces:
             continue
-        key = (idx, light, tuple(faces))
+        key = (idx, pick, light, tuple(faces))
         sprite = cache.get(key)
         if sprite is None:
             sprite = make_sprite(look, light, faces)

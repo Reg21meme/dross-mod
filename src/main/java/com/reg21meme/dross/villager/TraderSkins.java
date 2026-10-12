@@ -17,7 +17,7 @@ import java.util.Locale;
  * ({@link #lookFor}). Showcase traders carry the number of the skin they show.
  * <p>
  * Skins 8, Blind Oracle, and 3, Ragged Seeker, are worn by the hub's two survivors ({@link Survivor}: the mentor and
- * her student). Kept for later (the user's pick, not used yet): skin 1, Hooded Watcher, for a possible enemy in the
+ * his student). Kept for later (the user's pick, not used yet): skin 1, Hooded Watcher, for a possible enemy in the
  * Dross.
  * <p>
  * Safe on the server: only names and texture paths live here, no client classes. The textures are in

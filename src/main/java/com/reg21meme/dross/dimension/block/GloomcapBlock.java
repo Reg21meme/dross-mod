@@ -15,7 +15,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.common.PlantType;
 
 /**
- * Gloomcap: a small blue-teal mushroom of the Blightwood whose cap glows (its light level is in its block properties;
+ * Gloomcap: a small poison-green mushroom of the Blightwood whose cap glows (its light level is in its block properties;
  * the cap is drawn full-bright by its model). Now and then it lets go a faint glowing spore.
  *
  * <p>It grows on the ground in {@code #dross:gloomcap_grows_on} ({@code #minecraft:dirt},
@@ -38,7 +38,7 @@ public class GloomcapBlock extends BushBlock
     /** How far from the middle of the block (sideways, blocks) the cap reaches. */
     private static final double CAP_RADIUS = 0.2D;
 
-    /** A spore starts pale glowing teal and fades to deep teal. */
+    /** A spore starts pale glowing poison green and fades to deep green. */
     private static final DustColorTransitionOptions SPORE = new DustColorTransitionOptions(
             DrossColors.vector(DrossColors.GLOOMCAP_SPORE), DrossColors.vector(DrossColors.GLOOMCAP_SPORE_FADE), SPORE_SIZE);
 

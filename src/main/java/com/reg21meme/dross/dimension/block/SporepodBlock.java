@@ -24,7 +24,7 @@ import net.minecraftforge.common.PlantType;
 
 /**
  * Sporepod: a bulbous fungal pod on the Blightwood floor. Now and then it puffs a few spores; when something walks
- * into it, it bursts: a little cloud of sickly spores and a soft sound, and it sags, empty, until it has filled up
+ * into it, it bursts: a little cloud of poison-green spores and a soft sound, and it sags, empty, until it has filled up
  * again a couple of seconds later ({@link #BURST}, back to false with a scheduled block tick). It's harmless: the spores
  * are only particles.
  *

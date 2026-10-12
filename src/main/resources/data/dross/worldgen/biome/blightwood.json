@@ -3,10 +3,10 @@
   "temperature": 0.6,
   "downfall": 0.9,
   "effects": {
-    "fog_color": 1455150,
-    "sky_color": 2775632,
-    "water_color": 3095333,
-    "water_fog_color": 725512,
+    "fog_color": 2178315,
+    "sky_color": 3957780,
+    "water_color": 4873750,
+    "water_fog_color": 1055237,
     "particle": {
       "options": {
         "type": "minecraft:spore_blossom_air"

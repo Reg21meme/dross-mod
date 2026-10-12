@@ -28,7 +28,9 @@ MOD = "dross"
 #   cube        one texture on all sides                       (textures: block/<id>)
 #   stone       like cube, plus a mirrored copy picked at random so big walls don't show a repeating pattern
 #   glow_cube   cube + a full-bright overlay (block/<id>_glow) drawn over it: glowing crystals. turn=True: plus a mirrored
-#               copy, each turned two ways, picked at random (like `stone`), so its pattern doesn't line up into stripes
+#               copy, each turned all four ways, picked at random, so its pattern doesn't line up into stripes.
+#               looks=N: N different drawings (block/<id>, block/<id>_2 .. block/<id>_N, each with its _glow), each placed
+#               block picking one at random (the item shows the first); look_weights=[...]: how often each is picked
 #   log         a log: bark sides, ring ends                   (block/<log>, block/<log>_top)
 #   wood        bark on all six sides                           (uses the log's side texture: `bark`)
 #   leaves      cube with see-through gaps (cutout_mipped), no biome tint
@@ -94,7 +96,9 @@ BLOCKS = [
     dict(id="frostbloom", name="Frostbloom", model="glow_cross", drops="self"),
     dict(id="icicle", name="Icicle", model="cross", render="translucent", drops="silk"),
     # Nether Scar (no fire anywhere)
-    dict(id="scarred_netherrack", name="Scarred Netherrack", model="glow_cube", turn=True, drops="self"),
+    # three crack drawings (draw_blocks.py SCAR_CRACKS); the big forked crack is the rarest
+    dict(id="scarred_netherrack", name="Scarred Netherrack", model="glow_cube", turn=True, looks=3, look_weights=[1, 2, 2],
+         drops="self"),
     dict(id="scar_roots", name="Scar Roots", model="cross", drops="self"),
     dict(id="soulwick", name="Soulwick", model="glow_cross", drops="self"),
     dict(id="scar_vent", name="Scar Vent", model="vent", drops="self"),
@@ -372,16 +376,23 @@ def block_models(b):
         state = {"variants": {"": [{"model": m}, {"model": mm}, {"model": m, "y": 180}, {"model": mm, "y": 180}]}}
         item = {"parent": m}
     elif kind == "glow_cube":
-        models[bid] = _glow_cube_model(tex)
         m = f"{MOD}:block/{bid}"
+        variants = []
+        looks = b.get("looks", 1)
+        weights = b.get("look_weights", [1] * looks)
+        for look in range(1, looks + 1):
+            name = bid if look == 1 else f"{bid}_{look}"
+            weight = {"weight": weights[look - 1]} if weights[look - 1] != 1 else {}
+            models[name] = _glow_cube_model(f"{MOD}:block/{name}")
+            variants.append({"model": f"{MOD}:block/{name}", **weight})
+            if b.get("turn"):
+                # a mirrored copy, and each turned all four ways, picked at random, so its cracks don't line up into
+                # long stripes or a repeating pattern across a big surface
+                models[name + "_mirrored"] = _glow_cube_model(f"{MOD}:block/{name}", mirrored=True)
+                variants.append({"model": f"{MOD}:block/{name}_mirrored", **weight})
         if b.get("turn"):
-            # like `stone`: a mirrored copy, each turned two ways, picked at random, so its cracks don't line up
-            # into long stripes across a big surface
-            models[bid + "_mirrored"] = _glow_cube_model(tex, mirrored=True)
-            mm = f"{MOD}:block/{bid}_mirrored"
-            state = {"variants": {"": [{"model": m}, {"model": mm}, {"model": m, "y": 180}, {"model": mm, "y": 180}]}}
-        else:
-            state = {"variants": {"": {"model": m}}}
+            variants = [dict(v, y=angle) if angle else dict(v) for angle in (0, 90, 180, 270) for v in variants]
+        state = {"variants": {"": variants if len(variants) > 1 else variants[0]}}
         item = {"parent": m}
     elif kind == "log":
         models[bid] = {"parent": "minecraft:block/cube_column", "textures": {"end": tex + "_top", "side": tex}}

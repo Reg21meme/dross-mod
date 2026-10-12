@@ -72,24 +72,27 @@ CHAR = ["#0b0a0c", "#131114", "#1b181b", "#242023", "#2e292b", "#3a3436"]
 EMBER = ["#3d130a", "#64200e", "#953616", "#c95a1f", "#f28a34", "#ffc56b", "#fff0c2"]   # dark red .. white-hot
 STALK = ["#140f0d", "#211915", "#30241d", "#433226", "#57422f"]
 BASALT = ["#18171b", "#212025", "#2a292f", "#343239", "#3f3d44", "#4d4b53"]
-# Blightwood (rotten and fungal: sickly grey-green and teal)
-ROT = ["#141511", "#1b1d17", "#23261e", "#2c3026", "#363b2e", "#424838"]
-SPORE_PALE = ["#6b7764", "#97a38a", "#c4cdb4"]
-ROT_THREAD = "#5a5664"                                   # pale grey-violet fungal threads in the soil
-ROT_MOULD = "#2d5a56"                                    # faint teal mould (the Gloomcaps' kin)
+# Blightwood (rotten and fungal; "dead and decay, not just dead"): poison green first, a couple of decaying reds, some
+# bone beiges. Clearly apart from the Silverwood's deep blue and teal.
+ROT = ["#101408", "#161c0b", "#1d250e", "#252f12", "#2e3a16", "#38461b"]   # Sporeloam: dark rotting soil, green-black
+SPORE = ["#4a7213", "#78b321", "#b0e84a"]                # poison-green spores (dim, mid, bright)
+ROT_THREAD = "#6f6650"                                   # pale beige fungal threads in the soil
+ROT_MOULD = "#3a6410"                                    # poison-green mould
+RED_FLECK = ["#5a1912", "#82271a"]                       # a few flecks of red rot (dark, bright)
 ROT_SOIL = ["#3b2b20", "#4b3727", "#5e4632", "#72573f", "#86684d"]   # a darker, damper dirt than SOIL
-CAP = ["#223029", "#2c3c34", "#37483f", "#42554a", "#4f6356", "#5d7263"]
-CAP_BLOTCH = ["#7d8c76", "#a3b197", "#c5d0b6", "#dfe6d1"]
-CAP_INSIDE = ["#8d9784", "#a1aa96", "#b2baa5", "#c3cab5", "#d2d8c4"]
-ROTCAP = ["#0f1412", "#151c19", "#1c2520", "#232e28", "#2c3830", "#36433a"]
-ROT_PIT = ["#050707", "#1b2420"]                         # a hole in the rotting cap: its depth, its lit far wall
-ROT_SICKLY = ["#4f5a2c", "#6f7c3a", "#929f4c"]
-STEM = ["#767e70", "#8a9283", "#9da596", "#afb6a6", "#bfc5b5", "#ced3c3"]
-STEM_ROT = ["#4d5649", "#5f6858", "#58706b"]
-GLOOM = ["#0b3a55", "#105f84", "#1888aa", "#2fb3cb", "#7fe2ec", "#d6fbff"]
-GLOOM_STEM = ["#5f7275", "#8ea3a4", "#bfd0cf"]
-POD = ["#252b1e", "#333b29", "#444f35", "#566343", "#6b7953", "#839169"]
-POD_SPOT = ["#a7b585", "#cfdba8"]
+CAP = ["#1d3705", "#2a4f08", "#376a0b", "#46870f", "#57a313", "#6bbf1b"]   # the fresh cap: poison green
+CAP_GLOSS = "#97de38"                                    # a wet glint on the cap
+CAP_BLOTCH = ["#5f5c3c", "#a3966e", "#c4b78c", "#e0d5ad"]   # its blotches: a dirty olive halo, then beige .. bone
+CAP_INSIDE = ["#8d8264", "#a19676", "#b2a887", "#c2b997", "#d0c8a7"]   # the inside: beige flesh
+ROTCAP = ["#1c0807", "#2b0d0b", "#3c1310", "#4e1a14", "#61221a", "#742c20"]   # the rotting cap: maroon .. decaying red
+ROT_PIT = ["#070202", "#2a0f0b"]                         # a hole in the rotting cap: its depth, its lit far wall
+ROT_OOZE = ["#3b5a0f", "#5c8a17", "#86bc25"]             # poison-green mould oozing out of the rot
+STEM = ["#857a5f", "#988d70", "#aa9f82", "#bab092", "#c8bfa2", "#d6ceb2"]   # the stem: beige .. bone
+STEM_ROT = ["#5e4834", "#6e2c20", "#4d6a1b"]             # its rot streaks: brown, red, poison-green mould
+GLOOM = ["#1c4407", "#2e680b", "#459111", "#63b91b", "#9ae33a", "#dcffa8"]   # Gloomcap caps: glowing poison green
+GLOOM_STEM = ["#6c654f", "#9a9279", "#c6bea1"]           # its stems: beige
+POD = ["#3b1410", "#5c2118", "#803a26", "#a3654a", "#c19a78", "#dbc3a0"]   # Sporepod: red underneath .. beige where lit
+POD_SPOT = ["#6aaa1d", "#a6e443"]                        # its poison-green spots and spores
 # Rimefall (frozen: frost white, pale blue-grey soil, grey dead wood)
 FROST = ["#8b9fb4", "#a3b5c8", "#bccbd9", "#d3dee8", "#e7eef4", "#fafcff"]
 FROZEN_SOIL = ["#414b58", "#4f5a69", "#5f6b7c", "#707d8f", "#8390a2"]
@@ -99,8 +102,9 @@ PETAL_ICE = ["#5f9cc8", "#8bbde2", "#b6daf3", "#def1fc"]
 FROST_HEART = ["#a6d8ff", "#d8f0ff", "#ffffff"]
 FROST_STEM = ["#56717b", "#7593a0", "#a4c0ca"]
 ICE = ["#6aa6d6", "#93c5ec", "#c2e2f8", "#effaff"]
-# Nether Scar (netherrack reds split by the Dross's electric blue)
-NETHERRACK = ["#360c0c", "#4b1111", "#601717", "#761e1e", "#8b2826", "#a03530"]
+# Nether Scar (netherrack reds split by the Dross's electric blue). The rock's tones match Minecraft's own netherrack,
+# which lies in patches right beside the Scarred Netherrack, so a cracked block reads as the same rock with a crack.
+NETHERRACK = ["#3c1414", "#4d1919", "#582020", "#652828", "#723232", "#854242"]
 SCAR = [DROSS_DEEP, "#1d4fe0", DROSS_MAIN, "#5e8fff", "#a9c6ff", "#eef4ff"]   # the cracks, dark edge .. white core
 CRIMSON = ["#3f0b12", "#62121d", "#871a28", "#ad2734", "#cd424a"]
 SOUL_FLAME = ["#0c4a68", "#1488ab", "#36c2e0", "#8aeefe", "#e6ffff"]
@@ -1185,17 +1189,21 @@ def cinder_vent_side():
 # Blightwood
 # =====================================================================================================================
 
-SPORE_CLUSTERS = [[(2, 3), (3, 4)], [(9, 1)], [(12, 5), (13, 5)], [(5, 9)], [(14, 11), (14, 12)], [(8, 12), (9, 13)],
-                  [(1, 14)], [(11, 9)], [(6, 2)]]
+SPORE_CLUSTERS = [[(2, 3), (3, 4), (2, 4)], [(9, 1), (10, 2)], [(12, 5), (13, 5)], [(5, 9), (6, 10)], [(14, 11), (14, 12)],
+                  [(8, 12), (9, 13), (8, 13)], [(1, 14)], [(11, 9), (12, 9)], [(6, 2)], [(4, 13)], [(13, 1)], [(10, 6)]]
 HYPHAE = [[(0, 7), (1, 7), (2, 6), (3, 6), (4, 7)], [(10, 14), (11, 14), (12, 13), (13, 13)], [(7, 5), (8, 6), (9, 6)]]
+SOIL_RED_FLECKS = [(7, 8), (15, 3), (3, 11)]
 
 
 def sporeloam_top():
-    """Dark rotten soil in damp clumps, crossed by a few thin pale fungal threads, with faint teal mould here and there
-    and small clusters of pale spores (only a few of them bright)."""
+    """Dark rotting soil in damp clumps (green-black), crossed by a few thin beige fungal threads, mottled with
+    poison-green mould, dusted with poison-green spores (a few of them bright) and a few flecks of red rot."""
     v = fbm([(8, 8, 0.5), (16, 16, 0.3), (4, 4, 0.2)], seed=231)
     lv = quantize(v, [0.08, 0.20, 0.30, 0.24, 0.13, 0.05])
     img = fill(lv, ROT)
+    mould = fbm([(4, 4, 0.6), (8, 8, 0.4)], seed=237)
+    for y, x in zip(*np.nonzero(mould > 0.72)):
+        tint(img, x, y, ROT_MOULD, 0.45)                        # soft patches of mould
     for thread in HYPHAE:
         for i, (x, y) in enumerate(thread):
             put(img, x, y, ROT_THREAD if 0 < i < len(thread) - 1 else ROT[5])
@@ -1203,14 +1211,17 @@ def sporeloam_top():
         put(img, x, y, ROT_MOULD)
     for n, cluster in enumerate(SPORE_CLUSTERS):
         for i, (x, y) in enumerate(cluster):
-            put(img, x, y, (SPORE_PALE[2] if n % 3 == 0 else SPORE_PALE[1]) if i == 0 else SPORE_PALE[0])
+            put(img, x, y, (SPORE[2] if n % 3 == 0 else SPORE[1]) if i == 0 else SPORE[0])
         x, y = cluster[0]
         put(img, x + 1, y + 1, ROT[0])                          # a speck of shadow under each cluster
+    for i, (x, y) in enumerate(SOIL_RED_FLECKS):
+        put(img, x, y, RED_FLECK[1] if i == 0 else RED_FLECK[0])
     return img
 
 
 def rotten_soil(seed):
-    """A darker, damper dirt than the Silverwood's, with a few grey pebbles and pale root threads."""
+    """A darker, damper dirt than the Silverwood's, with a few grey pebbles and specks of poison-green spores that have
+    worked their way down."""
     v = fbm([(8, 8, 0.6), (16, 16, 0.4)], seed=seed)
     lv = quantize(v, [0.18, 0.40, 0.28, 0.11, 0.03])
     img = fill(lv, ROT_SOIL)
@@ -1218,7 +1229,8 @@ def rotten_soil(seed):
         put(img, x, y, PEBBLE[1])
         put(img, x + 1, y, PEBBLE[0])
     for x, y in [(10, 3), (11, 4), (2, 11)]:
-        put(img, x, y, SPORE_PALE[0])
+        put(img, x, y, SPORE[0])
+    put(img, 14, 7, RED_FLECK[0])
     return img
 
 
@@ -1228,9 +1240,10 @@ SPORELOAM_FRINGE = [3, 4, 3, 3, 5, 4, 3, 4, 4, 3, 5, 3, 3, 4, 3, 4]
 def sporeloam_side():
     top = sporeloam_top()
     img = fringe_side(top, rotten_soil(233), SPORELOAM_FRINGE, ROT[1], ROT_SOIL[0],
-                      [ROT[3], ROT[3], ROT[4], ROT[3], SPORE_PALE[1], ROT[3], ROT[4], ROT[3]])
+                      [ROT[3], ROT[3], ROT[4], ROT[3], SPORE[1], ROT[3], ROT[4], ROT[3]])
     for x, y in [(3, 1), (12, 2)]:
-        put(img, x, y, SPORE_PALE[2])
+        put(img, x, y, SPORE[2])
+    put(img, 8, 2, RED_FLECK[1])
     return img
 
 
@@ -1243,13 +1256,15 @@ def wrapped_disc(cx, cy, r):
 
 
 # The pale spots on a blightcap's cap: (x, y, radius); some cross the edges and come back on the far side.
-CAP_SPOTS = [(4.0, 3.5, 2.3), (11.5, 5.0, 1.6), (7.5, 10.5, 2.7), (14.5, 12.5, 1.8), (2.0, 13.0, 1.3), (14.8, 1.2, 1.1)]
+CAP_SPOTS = [(4.0, 3.5, 2.0), (11.5, 5.0, 1.4), (7.5, 10.5, 2.3), (14.5, 12.5, 1.5), (2.0, 13.0, 1.1), (14.8, 1.2, 0.9)]
+CAP_GLINTS = [(9, 2), (1, 7), (12, 9), (4, 15), (10, 15)]     # wet glints on the green between the spots
+CAP_RED_SPECKS = [(8, 6), (3, 8)]                            # dark red rot specks
 
 
 def blightcap_cap():
-    """The outside of a giant blightcap's cap, like vanilla's spotted mushroom blocks gone sickly: grey-green mottled
-    flesh with round pale spots (lit at their top left, a dull rim at their foot and a dirty halo round them), and a
-    few dark rot specks. Tiles in every direction."""
+    """The outside of a giant blightcap's cap, like vanilla's spotted mushroom blocks gone poisonous: mottled poison-
+    green flesh with a few wet glints, round beige spots (lit bone-pale at their top left, a duller foot and a dirty
+    olive halo round them), and a few dark specks of red rot. Tiles in every direction."""
     base = fbm([(4, 4, 0.5), (8, 8, 0.35), (16, 16, 0.15)], seed=241)
     lv = quantize(base, [0.12, 0.25, 0.30, 0.22, 0.11])
     img = fill(lv, CAP)
@@ -1267,14 +1282,19 @@ def blightcap_cap():
         else:
             col = CAP_BLOTCH[2]
         img[y, x] = rgba(col)
-    for x, y in [(8, 6), (12, 9), (3, 8), (10, 14), (5, 1)]:  # dark rot specks, and one on a spot
+    for x, y in CAP_GLINTS:
+        if not spots[y % S, x % S]:
+            put(img, x, y, CAP_GLOSS)
+    for x, y in [(12, 9), (10, 14), (5, 1)]:                   # dark rot specks (one on a spot)
         put(img, x, y, CAP[0])
+    for x, y in CAP_RED_SPECKS:
+        put(img, x, y, RED_FLECK[0])
     return img
 
 
 def blightcap_inside():
-    """The pale inside of the giant blightcap (the cap's underside and the stem's core): soft fibrous flesh with rows
-    of small pores."""
+    """The pale inside of the giant blightcap (the cap's underside and the stem's core): soft beige fibrous flesh with
+    rows of small pores."""
     v = fbm([(8, 8, 0.6), (16, 16, 0.4)], seed=251)
     lv = quantize(v, [0.15, 0.35, 0.35, 0.15]) + 1
     img = fill(lv, CAP_INSIDE)
@@ -1285,22 +1305,22 @@ def blightcap_inside():
     return img
 
 
-# Holes in the rotting cap, each a little pixel map ('#' hole) with its top left corner, and the sickly rot patches.
+# Holes in the rotting cap, each a little pixel map ('#' hole) with its top left corner, and the mould oozing out.
 ROT_HOLES = [(2, 2, ["##.", "###", ".#."]), (10, 1, ["##", "##"]), (12, 8, [".#", "##", "#."]), (5, 9, ["###", ".##"]),
              (0, 13, ["#", "#"]), (9, 13, ["##"])]
 ROT_PATCHES = [[(7, 5), (8, 5), (7, 6)], [(13, 4)], [(3, 7)], [(14, 13), (15, 14)]]
 
 
 def rotting_cap():
-    """A blightcap gone bad: darker, grimy flesh with the ghosts of the fresh cap's pale spots, pocked with ragged
-    holes (black pits, their far inside wall faintly lit, a shadow on the rim above), and a few sickly yellow-green
-    rot patches."""
+    """A blightcap gone bad: its flesh turned a decaying maroon-red, with the ghosts of the fresh cap's beige spots
+    gone dirty, pocked with ragged holes (black pits, their far inside wall faintly lit, a shadow on the rim above),
+    and poison-green mould oozing out in a few places."""
     v = fbm([(4, 4, 0.5), (8, 8, 0.3), (16, 16, 0.2)], seed=261)
     lv = quantize(v, [0.12, 0.25, 0.30, 0.22, 0.11])
     img = fill(lv, ROTCAP)
     for cx, cy, r in CAP_SPOTS:                                 # the same spots as the fresh cap, gone grimy
         for y, x in zip(*np.nonzero(wrapped_disc(cx, cy, r * 0.8))):
-            put(img, x, y, mix(ROTCAP[4], CAP_BLOTCH[0], 0.3))
+            put(img, x, y, mix(ROTCAP[4], CAP_BLOTCH[1], 0.35))
     for x0, y0, rows in ROT_HOLES:
         hole = np.zeros((S, S), bool)
         for dy, row in enumerate(rows):
@@ -1314,12 +1334,13 @@ def rotting_cap():
                 put(img, x, y - 1, ROTCAP[0])                   # the rim above the pit, in shadow
     for patch in ROT_PATCHES:
         for i, (x, y) in enumerate(patch):
-            put(img, x, y, ROT_SICKLY[2] if i == 0 else ROT_SICKLY[1])
+            put(img, x, y, ROT_OOZE[2] if i == 0 else ROT_OOZE[1])
     return img
 
 
 def blightcap_stem():
-    """The giant blightcap's stem: pale fibrous flesh in long vertical fibres, streaked with rot."""
+    """The giant blightcap's stem: pale bone-beige fibrous flesh in long vertical fibres, streaked with rot (brown, a
+    decaying red, and poison-green mould)."""
     v = streaks(seed=271, lengths=(3, 9), patch=(4, 1), patch_weight=0.45)
     lv = quantize(v.T, [0.08, 0.24, 0.36, 0.24, 0.08]) + 1
     img = fill(lv, STEM)
@@ -1330,8 +1351,8 @@ def blightcap_stem():
 
 
 def gloomcap():
-    """Two small glowing mushrooms, a taller one and a little one: blue-teal domed caps (lit at the top left, with
-    pale spots) over dark gills, on pale stems. Returns (texture, glow overlay): the caps glow."""
+    """Two small glowing mushrooms, a taller one and a little one: poison-green domed caps (lit at the top left, with
+    pale spots) over dark gills, on beige stems. Returns (texture, glow overlay): the caps glow."""
     img, glow = blank(), blank()
     # stems first (the caps overlap their tops)
     for y in range(9, S):
@@ -1362,9 +1383,9 @@ def gloomcap():
 
 
 def sporepod(burst):
-    """A bulbous fungal pod: a big sickly olive bulb with two small ones at its foot, veined and spotted, with a
-    puckered mouth on top and a few spores drifting out. burst=True: the same pod sagging and empty after it has
-    burst, wrinkled, its mouth torn open."""
+    """A bulbous fungal pod, fleshy beige where the light falls and a decaying red underneath: a big bulb with two
+    small ones at its foot, veined in dark red and spotted poison green, with a puckered mouth on top and a few green
+    spores drifting out. burst=True: the same pod sagging and empty after it has burst, wrinkled, its mouth torn open."""
     img = blank()
     if not burst:
         bulbs = [(8.0, 9.9, 4.7, 5.1), (12.7, 13.5, 2.3, 2.1), (3.5, 13.9, 1.9, 1.7)]
@@ -1405,6 +1426,7 @@ def sporepod(burst):
             put(img, x, 10, POD[0])
         put(img, 7, 9, POD[2])
         put(img, 10, 9, POD[1])
+        put(img, 9, 12, POD_SPOT[0])                            # a last green spot on the sagging skin
     return img
 
 
@@ -1584,7 +1606,7 @@ def icicle():
 def netherrack_base(seed):
     """Our own netherrack-like rock: lumpy dark-red flesh in soft clumps, with short dark pores and a few pale lumps."""
     v = fbm([(8, 8, 0.45), (4, 4, 0.30), (16, 16, 0.25)], seed=seed)
-    lv = quantize(v, [0.10, 0.22, 0.30, 0.22, 0.12, 0.04])
+    lv = quantize(v, [0.06, 0.20, 0.22, 0.26, 0.20, 0.06])
     img = fill(lv, NETHERRACK)
     rng = np.random.default_rng(seed + 1)
     for _ in range(9):
@@ -1595,63 +1617,49 @@ def netherrack_base(seed):
     return img
 
 
-def crack_pixels(rng, horizontal, start, ups):
-    """A crack across the whole texture that comes back to where it started on the far side (so it tiles): its
-    pixels in order. horizontal: from the left edge to the right, else from the top to the bottom."""
-    track = wander(rng, start, ups)
-    pixels = []
-    for i, t in enumerate(track):
-        pixels.append((i, t % S) if horizontal else (t % S, i))
-        nxt = track[(i + 1) % S]
-        if nxt != t:                                            # a step aside: fill the corner so the crack is joined
-            pixels.append((i, nxt % S) if horizontal else (nxt % S, i))
-    return pixels
+# Scarred Netherrack's cracks, drawn by hand. The block has three looks (three textures), and each placed block picks
+# one at random and turns and mirrors it at random (block_data.py: looks=3, turn=True), so a cracked floor shows
+# separate, irregular cracks of different sizes instead of one shape stamped on every block. Each crack is a list of
+# pixels from one end to the other with how bright it glows (an index into SCAR: 0-1 a dim deep blue at the tips ..
+# 5 white-hot where it's deepest). None comes within a pixel of the texture's edge, so cracks never join up from one
+# block to the next into long lines or a grid.
+SCAR_CRACKS = {
+    # 1: a crack that wanders up across the block in a shallow arc, with a short fork
+    "scarred_netherrack": [
+        [(2, 11, 1), (3, 10, 2), (3, 9, 2), (4, 8, 3), (5, 7, 3), (6, 6, 4), (7, 6, 5), (8, 5, 3), (9, 4, 2), (10, 4, 2),
+         (11, 3, 1)],
+        [(6, 7, 2), (7, 8, 1)],
+    ],
+    # 2: a short jagged crack off to one side
+    "scarred_netherrack_2": [
+        [(8, 9, 1), (9, 10, 2), (10, 10, 3), (10, 11, 4), (11, 12, 3), (12, 13, 1)],
+    ],
+    # 3: two faint hairlines
+    "scarred_netherrack_3": [
+        [(3, 4, 1), (4, 5, 2), (4, 6, 1)],
+        [(11, 8, 0), (12, 9, 1), (13, 9, 0)],
+    ],
+}
 
 
-def diagonal_crack(rng, start, flip=False):
-    """A jagged crack running diagonally right across the texture and wrapping round so it tiles: over the 16 columns
-    it drops exactly 16 rows, in uneven steps of 0, 1 or 2 rows (gaps filled so it stays joined). flip: it climbs
-    instead. Returns its pixels."""
-    steps = [1] * 8 + [0] * 4 + [2] * 4
-    rng.shuffle(steps)
-    pixels = []
-    y = start
-    for x in range(S):
-        pixels.append((x, y % S))
-        step = steps[x]
-        for k in range(1, step):                                # a 2-row step: fill the pixel between
-            pixels.append((x, (y + (-k if flip else k)) % S))
-        y += -step if flip else step
-    return pixels
-
-
-def scarred_netherrack():
-    """Netherrack split by jagged cracks of the Dross's electric blue (a white-hot core, glowing blue edges here and
-    there), the rock right beside each crack scorched dark. The main crack runs corner to corner and tiles into the
-    next block; a second one branches off and dies out. Returns (texture, glow overlay): the cracks glow."""
+def scarred_netherrack(name):
+    """Netherrack with thin, irregular cracks of the Dross's electric blue (SCAR_CRACKS[name]): brightest where they're
+    deepest, fading to a dim deep blue at their tips; the rock just under each crack lies in shadow. Calm on purpose:
+    in the Nether Scar the cracked blocks lie in patches among plain netherrack. Returns (texture, glow overlay): the
+    cracks glow (full-bright; the block itself gives no light)."""
+    cracks = SCAR_CRACKS[name]
     img = netherrack_base(311)
     glow = blank()
-    rng = np.random.default_rng(313)
-    main = diagonal_crack(rng, 2)
-    y8 = min(y for x, y in main if x == 8)
-    y4 = max(y for x, y in main if x == 4)
-    # a branch leaving the main crack and climbing away to the right, and a hairline crack hanging below it
-    branch = [(9, y8 - 1), (10, y8 - 1), (11, y8 - 2), (12, y8 - 2), (13, y8 - 3), (14, y8 - 4)]
-    hair = [(4, y4 + 1), (3, y4 + 2), (3, y4 + 3), (2, y4 + 4)]
-    cracks = [main, [(x, y % S) for x, y in branch], [(x, y % S) for x, y in hair]]
-    on = np.zeros((S, S), bool)
+    on = {(x, y) for crack in cracks for x, y, _ in crack}
+    for x, y in sorted(on):
+        if (x, y + 1) not in on:
+            tint(img, x, y + 1, NETHERRACK[0], 0.55)            # the crack's lower lip, in shadow
+        if (x + 1, y) not in on and (x + 1, y + 1) not in on:
+            tint(img, x + 1, y, NETHERRACK[0], 0.25)
     for crack in cracks:
-        for x, y in crack:
-            on[y, x] = True
-    for y, x in zip(*np.nonzero(outline_of(on))):
-        tint(img, x, y, NETHERRACK[0], 0.65)                    # scorched rock beside the cracks
-        if rng.random() < 0.25:
-            put(img, x, y, SCAR[1])
-            put(glow, x, y, SCAR[1])
-    for i, (y, x) in enumerate(zip(*np.nonzero(on))):
-        col = SCAR[5] if i % 4 == 0 else (SCAR[4] if i % 4 == 1 else SCAR[3])
-        put(img, x, y, col)
-        put(glow, x, y, col)
+        for x, y, level in crack:
+            put(img, x, y, SCAR[level])
+            put(glow, x, y, SCAR[level])
     return img, glow
 
 
@@ -1900,7 +1908,7 @@ def biome_textures():
     vent_side, vent_side_glow = cinder_vent_side()
     gloom, gloom_glow = gloomcap()
     bloom, bloom_glow = frostbloom()
-    scarred, scarred_glow = scarred_netherrack()
+    scarred = {name: scarred_netherrack(name) for name in SCAR_CRACKS}
     wick, wick_glow = soulwick()
     svent_top, svent_top_glow = scar_vent_top()
     svent_side, svent_side_glow = scar_vent_side()
@@ -1942,8 +1950,8 @@ def biome_textures():
             "icicle": ("block", icicle()),
         }),
         ("Nether Scar", {
-            "scarred_netherrack": ("block", scarred),
-            "scarred_netherrack_glow": ("block", scarred_glow),
+            **{n: ("block", img) for name, (look, glow) in scarred.items()
+               for n, img in ((name, look), (name + "_glow", glow))},
             "scar_roots": ("block", scar_roots()),
             "soulwick": ("block", wick),
             "soulwick_glow": ("block", wick_glow),
@@ -2166,8 +2174,8 @@ def preview_sections(textures):
             ("Icicle", t["icicle"], None, 0.9),
         ]),
         ("Nether Scar", [
-            ("Scarred Netherrack", t["scarred_netherrack"], t["scarred_netherrack"],
-             dict(glow_top=t["scarred_netherrack_glow"], glow_side=t["scarred_netherrack_glow"])),
+            *[(f"Scarred Netherrack ({k + 1})", t[name], t[name], dict(glow_top=t[name + "_glow"], glow_side=t[name + "_glow"]))
+              for k, name in enumerate(SCAR_CRACKS)],
             ("Scar Vent", t["scar_vent_top"], t["scar_vent_side"],
              dict(glow_top=t["scar_vent_top_glow"], glow_side=t["scar_vent_side_glow"])),
         ], [

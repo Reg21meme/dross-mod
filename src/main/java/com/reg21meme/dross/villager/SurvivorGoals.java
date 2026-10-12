@@ -49,8 +49,8 @@ final class SurvivorGoals
     }
 
     /**
-     * The mentor waits (stands still, turned towards her student) while the student is more than
-     * {@link Survivor#WAIT_DISTANCE} blocks away, until it's within {@link Survivor#WAIT_RESUME}.
+     * The mentor waits (stands still, turned towards his student) while the student is more than
+     * {@link Survivor#WAIT_DISTANCE} blocks away, until the student is within {@link Survivor#WAIT_RESUME}.
      */
     static final class WaitForStudentGoal extends Goal
     {
@@ -98,14 +98,14 @@ final class SurvivorGoals
     }
 
     /**
-     * The student follows the mentor: it walks once she's more than {@link Survivor#FOLLOW_START} blocks away and stops
-     * {@link Survivor#FOLLOW_STOP} from her, faster when it has fallen far behind.
+     * The student follows the mentor: he walks once the mentor is more than {@link Survivor#FOLLOW_START} blocks away and
+     * stops {@link Survivor#FOLLOW_STOP} from him, faster when he has fallen far behind.
      */
     static final class FollowMentorGoal extends Goal
     {
-        /** The path to her is worked out again this often (ticks), as she moves. */
+        /** The path to the mentor is worked out again this often (ticks), as he moves. */
         private static final int REPATH_TICKS = 10;
-        /** If there's no path to her at all, it waits this long (ticks) before trying again. */
+        /** If there's no path to the mentor at all, the student waits this long (ticks) before trying again. */
         private static final int NO_PATH_RETRY_TICKS = 20;
 
         private final Survivor survivor;
@@ -171,7 +171,7 @@ final class SurvivorGoals
                         ? Survivor.STUDENT_CATCH_UP_SPEED : Survivor.STUDENT_FOLLOW_SPEED;
                 if (!this.survivor.getNavigation().moveTo(mentor, speed))
                 {
-                    this.retryAt = this.survivor.tickCount + NO_PATH_RETRY_TICKS; // no way to her from here: try again in a moment
+                    this.retryAt = this.survivor.tickCount + NO_PATH_RETRY_TICKS; // no way to the mentor from here: try again in a moment
                 }
             }
         }

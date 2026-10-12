@@ -8,12 +8,104 @@
         "model": "dross:block/scarred_netherrack_mirrored"
       },
       {
+        "model": "dross:block/scarred_netherrack_2",
+        "weight": 2
+      },
+      {
+        "model": "dross:block/scarred_netherrack_2_mirrored",
+        "weight": 2
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3",
+        "weight": 2
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3_mirrored",
+        "weight": 2
+      },
+      {
+        "model": "dross:block/scarred_netherrack",
+        "y": 90
+      },
+      {
+        "model": "dross:block/scarred_netherrack_mirrored",
+        "y": 90
+      },
+      {
+        "model": "dross:block/scarred_netherrack_2",
+        "weight": 2,
+        "y": 90
+      },
+      {
+        "model": "dross:block/scarred_netherrack_2_mirrored",
+        "weight": 2,
+        "y": 90
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3",
+        "weight": 2,
+        "y": 90
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3_mirrored",
+        "weight": 2,
+        "y": 90
+      },
+      {
         "model": "dross:block/scarred_netherrack",
         "y": 180
       },
       {
         "model": "dross:block/scarred_netherrack_mirrored",
         "y": 180
+      },
+      {
+        "model": "dross:block/scarred_netherrack_2",
+        "weight": 2,
+        "y": 180
+      },
+      {
+        "model": "dross:block/scarred_netherrack_2_mirrored",
+        "weight": 2,
+        "y": 180
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3",
+        "weight": 2,
+        "y": 180
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3_mirrored",
+        "weight": 2,
+        "y": 180
+      },
+      {
+        "model": "dross:block/scarred_netherrack",
+        "y": 270
+      },
+      {
+        "model": "dross:block/scarred_netherrack_mirrored",
+        "y": 270
+      },
+      {
+        "model": "dross:block/scarred_netherrack_2",
+        "weight": 2,
+        "y": 270
+      },
+      {
+        "model": "dross:block/scarred_netherrack_2_mirrored",
+        "weight": 2,
+        "y": 270
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3",
+        "weight": 2,
+        "y": 270
+      },
+      {
+        "model": "dross:block/scarred_netherrack_3_mirrored",
+        "weight": 2,
+        "y": 270
       }
     ]
   }

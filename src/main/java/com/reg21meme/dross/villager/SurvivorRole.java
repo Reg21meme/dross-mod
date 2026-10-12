@@ -6,9 +6,9 @@ import net.minecraft.network.chat.Component;
 /**
  * Which of the hub's two survivors a {@link Survivor} is. The role decides the skin, the name, the voice and the lines.
  * <ul>
- *   <li>{@link #MENTOR}: <b>the Blind Oracle</b> (trader skin 8). She leads: she wanders the hub, and waits for her
- *       student when it falls behind.</li>
- *   <li>{@link #STUDENT}: <b>the Ragged Seeker</b> (trader skin 3). It follows the Oracle wherever she goes.</li>
+ *   <li>{@link #MENTOR}: <b>the Blind Oracle</b> (trader skin 8). He leads: he wanders the hub, and waits for his
+ *       student when the student falls behind.</li>
+ *   <li>{@link #STUDENT}: <b>the Ragged Seeker</b> (trader skin 3). He follows the Oracle wherever the Oracle goes.</li>
  * </ul>
  * Safe on the server: only names, numbers and lang keys live here.
  */

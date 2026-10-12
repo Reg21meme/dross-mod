@@ -52,14 +52,14 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * One of the two <b>survivors</b> who live at the hub in the Dross (the Shattered Spire at Dross 0,0): the
- * <b>Blind Oracle</b>, the mentor, and the <b>Ragged Seeker</b>, her student ({@link SurvivorRole}). They have no trades;
+ * <b>Blind Oracle</b>, the mentor, and the <b>Ragged Seeker</b>, his student ({@link SurvivorRole}). They have no trades;
  * right-clicking one makes it say its next line in chat. They spawn once per world ({@link SurvivorSpawner}).
  * <ul>
  *   <li><b>Together:</b> the Oracle wanders the hub slowly, in and around the spire and out of its front gate, to the
- *       places in her {@link SurvivorGrounds} and short strolls between them, resting at her spot now and then; she waits
- *       whenever her student falls more than {@value #WAIT_DISTANCE} blocks behind. The Seeker follows her (walking once
- *       she's more than {@value #FOLLOW_START} blocks away, stopping at {@value #FOLLOW_STOP}). Both look at players and
- *       look around. A survivor whose partner isn't there wanders on its own.</li>
+ *       places in his {@link SurvivorGrounds} and short strolls between them, resting at his spot now and then; he waits
+ *       whenever his student falls more than {@value #WAIT_DISTANCE} blocks behind. The Seeker follows him (walking once
+ *       the Oracle is more than {@value #FOLLOW_START} blocks away, stopping at {@value #FOLLOW_STOP}). Both look at
+ *       players and look around. A survivor whose partner isn't there wanders on his own.</li>
  *   <li><b>Their area:</b> the hub's footprint and {@value SurvivorGrounds#AREA_MARGIN} blocks round it ({@link #getArea}).
  *       They never pick a place outside it, never walk into a portal or onto the steps by the exit portal, and keep
  *       clear of the arrival spot ({@link SurvivorGrounds.Clearance}).</li>
@@ -91,26 +91,26 @@ public class Survivor extends PathfinderMob
     // ---- Walking. Speeds are multipliers of MOVEMENT_SPEED; Minecraft moves a walking mob by about the square of its speed. ----
     /** The Oracle's pace: slow (about 1.3 blocks a second). */
     static final double MENTOR_WALK_SPEED = 0.4D;
-    /** The Seeker's pace following her (about 2 blocks a second, so it keeps up)... */
+    /** The Seeker's pace following the Oracle (about 2 blocks a second, so he keeps up)... */
     static final double STUDENT_FOLLOW_SPEED = 0.5D;
-    /** ...and when it's more than {@link #CATCH_UP_DISTANCE} blocks behind (about 3.3 blocks a second). */
+    /** ...and when he's more than {@link #CATCH_UP_DISTANCE} blocks behind (about 3.3 blocks a second). */
     static final double STUDENT_CATCH_UP_SPEED = 0.65D;
     static final double CATCH_UP_DISTANCE = 8.0D;
     /** The pace of a survivor walking on its own (its partner isn't there). */
     static final double ALONE_WALK_SPEED = 0.45D;
     /** The Seeker starts following when the Oracle is further than this (blocks)... */
     static final double FOLLOW_START = 3.0D;
-    /** ...and stops this close to her. */
+    /** ...and stops this close to him. */
     static final double FOLLOW_STOP = 2.0D;
     /** The Oracle waits while the Seeker is further than this (blocks)... */
     static final double WAIT_DISTANCE = 6.0D;
-    /** ...until it's this close again. */
+    /** ...until the Seeker is this close again. */
     static final double WAIT_RESUME = 4.0D;
 
     // ---- Popping back ----
     /** Falling more than this many blocks pops them back. */
     static final float MAX_FALL = 4.0F;
-    /** If the Seeker stays more than WAIT_DISTANCE from the Oracle this long (ticks; it can't reach her), both pop back. */
+    /** If the Seeker stays more than WAIT_DISTANCE from the Oracle this long (ticks; he can't reach the Oracle), both pop back. */
     static final int LOST_TICKS = 30 * 20;
     /** If something blocks a rest spot, they pop back to the nearest free spot this close to it (blocks). */
     private static final int FREE_SPOT_REACH = 3;
@@ -458,7 +458,7 @@ public class Survivor extends PathfinderMob
         }
     }
 
-    /** If the student has been out of reach too long (it can't get to her), both pop back to their spots. */
+    /** If the student has been out of reach too long (he can't get to his mentor), both pop back to their spots. */
     private void watchForLostStudent(ServerLevel level)
     {
         Survivor student = this.partner();
