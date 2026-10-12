@@ -80,6 +80,8 @@ import java.util.function.Consumer;
  *   <li>{@link #rightClickCyclesTrophyDesign}: right-clicking a placed trophy turns it 1, 2 ... 5, then 1 again,
  *       keeping the way it faces (holding a block too, which isn't placed).</li>
  * </ul>
+ * The wild stone and lava golems of the Cinder Wastes have their own tests, {@link WildGolemGameTest}, on the same arena
+ * (they share its helpers: {@link #waitForArena}, {@link #joinPlayer}, {@link #leaveAll}).
  * The tests that spawn something, look for it or need ticks first wait until their arena has finished loading
  * ({@link #waitForArena}): far from spawn a test can start before its chunks are ready.
  */
@@ -89,18 +91,18 @@ import java.util.function.Consumer;
 public final class ColossusGameTest
 {
     /** The arena: a flat floor under a roof, made in memory when the server starts (no structure file needed). */
-    private static final String ARENA = "colossus_test_arena";
+    static final String ARENA = "colossus_test_arena";
     private static final ResourceLocation ARENA_ID = new ResourceLocation(Dross.MODID, ARENA);
     /** Arena width and depth (blocks), and height (floor included): room for the 4 x 5 Colossus. */
-    private static final int ARENA_SIZE = 17;
-    private static final int ARENA_HEIGHT = 10;
+    static final int ARENA_SIZE = 17;
+    static final int ARENA_HEIGHT = 10;
     /**
      * The floor's height: the test's structure block sits at relative y 0, so the template's bottom layer (the floor)
      * is at relative y 1...
      */
-    private static final int FLOOR_Y = 1;
+    static final int FLOOR_Y = 1;
     /** ...and the middle of the arena just above it. */
-    private static final BlockPos MIDDLE = new BlockPos(8, FLOOR_Y + 1, 8);
+    static final BlockPos MIDDLE = new BlockPos(8, FLOOR_Y + 1, 8);
     /**
      * A roof of barrier blocks just above the arena (relative height). The test server's world is a normal, random
      * one, and the test framework clears the room for each test deep underground, often right under a cave: gravel or
@@ -130,7 +132,7 @@ public final class ColossusGameTest
      * The longest a test waits for its arena to finish loading ({@link #waitForArena}), in ticks, added to the time
      * limit of each test that waits. (It's usually a few ticks, and none near spawn.)
      */
-    private static final int ARENA_WAIT_TICKS = 100;
+    static final int ARENA_WAIT_TICKS = 100;
 
     private ColossusGameTest() {}
 
@@ -736,7 +738,7 @@ public final class ColossusGameTest
      * {@code makeMockServerPlayerInLevel} crashes under Forge, so he gets an in-memory network channel, like the
      * enchant area's test owner), facing {@code yaw}. He isn't ticked, so he never picks anything up.
      */
-    private static ServerPlayer joinPlayer(GameTestHelper helper, String name, BlockPos at, float yaw)
+    static ServerPlayer joinPlayer(GameTestHelper helper, String name, BlockPos at, float yaw)
     {
         ServerLevel level = helper.getLevel();
         ServerPlayer player = new ServerPlayer(level.getServer(), level, new GameProfile(UUID.randomUUID(), name));
@@ -755,7 +757,7 @@ public final class ColossusGameTest
     }
 
     /** Logs the stand-in players out. Safe to call twice. */
-    private static void leaveAll(List<ServerPlayer> players)
+    static void leaveAll(List<ServerPlayer> players)
     {
         for (ServerPlayer player : players)
         {
@@ -790,7 +792,7 @@ public final class ColossusGameTest
      * @return true if the arena is still loading (the test goes on later, so the caller just returns); false if the
      *         test can go ahead now
      */
-    private static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
+    static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
     {
         if (arenaStillLoading(helper) == null)
         {

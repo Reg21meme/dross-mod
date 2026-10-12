@@ -27,15 +27,25 @@ import net.minecraft.world.phys.Vec3;
  * you on fire. If nobody kills it, it swells, hisses and blows up {@link ColossusTuning#LAVA_GOLEM_FUSE_TICKS} ticks
  * after it climbs out of the ground: everything near it is hurt and set on fire, but the blast never breaks a block.
  * Killed in time, it just fizzles out. See {@link GolemMinion}.
+ * <p>
+ * A <b>wild</b> one (spawned by itself near lava in the Cinder Wastes, or from a spawn egg or {@code /summon}) has no
+ * timer, or it would blow up alone in an empty waste: its fuse is lit, creeper-like, when its target comes within
+ * {@link ColossusTuning#WILD_LAVA_GOLEM_FUSE_RANGE} blocks and it can see it. Then it swells and hisses for
+ * {@link ColossusTuning#LAVA_GOLEM_SWELL_TICKS} ticks and blows up the same way (no blocks broken). Once lit, it can't be
+ * put out: run, or kill it.
  */
 public class LavaGolem extends GolemMinion
 {
     private static final EntityDataAccessor<Integer> DATA_FUSE = SynchedEntityData.defineId(LavaGolem.class, EntityDataSerializers.INT);
     private static final String TAG_FUSE = "Fuse";
+    private static final String TAG_LIT = "FuseLit";
     /** Particles in its blast. */
     private static final int BLAST_FLAMES = 40;
     /** How hard its blast throws things (at the middle). */
     private static final double BLAST_KNOCKBACK = 0.8D;
+
+    /** A wild lava golem's fuse has been lit (a summoned one's always burns). Server side. */
+    private boolean lit;
 
     public LavaGolem(EntityType<? extends LavaGolem> type, Level level)
     {
@@ -76,10 +86,19 @@ public class LavaGolem extends GolemMinion
         return ColossusTuning.LAVA_GOLEM_SPEED;
     }
 
-    /** Ticks left before it blows up. */
+    /** Ticks left before it blows up (it only counts down while the fuse is lit). */
     public int fuse()
     {
         return this.entityData.get(DATA_FUSE);
+    }
+
+    /**
+     * True if its fuse is burning: a summoned one's always is (it blows up on its timer); a wild one's once a player
+     * came close. Server side.
+     */
+    public boolean isFuseLit()
+    {
+        return this.lit || !this.isWild();
     }
 
     /** How far it has swollen before blowing up: 0 normally, rising to 1 over its last few seconds. */
@@ -106,6 +125,16 @@ public class LavaGolem extends GolemMinion
         {
             return;
         }
+        if (!this.isFuseLit())
+        {
+            if (!this.targetInReach())
+            {
+                return; // a wild one waits for a player
+            }
+            // Lit: from here on it's the end of a summoned one's fuse (the hiss and swell, then the blast).
+            this.lit = true;
+            this.entityData.set(DATA_FUSE, ColossusTuning.LAVA_GOLEM_SWELL_TICKS + 1);
+        }
         int fuse = this.fuse() - 1;
         this.entityData.set(DATA_FUSE, fuse);
         if (fuse == ColossusTuning.LAVA_GOLEM_SWELL_TICKS)
@@ -116,6 +145,15 @@ public class LavaGolem extends GolemMinion
         {
             this.blowUp();
         }
+    }
+
+    /** True if its target is alive, close enough to light a wild one's fuse and in sight. */
+    private boolean targetInReach()
+    {
+        LivingEntity target = this.getTarget();
+        double reach = ColossusTuning.WILD_LAVA_GOLEM_FUSE_RANGE;
+        return target != null && target.isAlive() && this.distanceToSqr(target) <= reach * reach
+                && this.getSensing().hasLineOfSight(target);
     }
 
     /**
@@ -194,15 +232,23 @@ public class LavaGolem extends GolemMinion
     {
         super.addAdditionalSaveData(tag);
         tag.putInt(TAG_FUSE, this.fuse());
+        tag.putBoolean(TAG_LIT, this.lit);
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag)
     {
         super.readAdditionalSaveData(tag);
+        this.lit = tag.getBoolean(TAG_LIT);
         if (tag.contains(TAG_FUSE))
         {
             this.entityData.set(DATA_FUSE, tag.getInt(TAG_FUSE));
+        }
+        if (!this.isFuseLit())
+        {
+            // A wild one waiting for a player has its whole fuse (one from a spawn egg saved before wild lava golems
+            // waited may have been part-way down it).
+            this.entityData.set(DATA_FUSE, ColossusTuning.LAVA_GOLEM_FUSE_TICKS);
         }
     }
 }

@@ -11,24 +11,24 @@ import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
-import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.ForgeEventFactory;
 import software.bernie.geckolib.animatable.GeoEntity;
@@ -50,8 +50,16 @@ import java.util.UUID;
  * (designs/minions.py); their numbers are in {@link ColossusTuning}.
  * <p>
  * A minion belongs to the Colossus that summoned it (its UUID is saved as {@code Master}). It crumbles away when that
- * Colossus dies or is gone (one from a spawn egg, in the Dross creative tab, has no Colossus and stays). Minions never
- * despawn on their own, drop nothing and give a little experience.
+ * Colossus dies or is gone, and never despawns on its own.
+ * <p>
+ * A <b>wild</b> golem has no Colossus ({@link #isWild()}): one that spawned by itself in the Cinder Wastes (the spawn
+ * rules are in {@link WildGolemSpawns}), or came from a spawn egg (Dross creative tab) or {@code /summon}. It never
+ * crumbles, wanders about when it has nothing to fight, and despawns like any monster when no player is near. A wild
+ * lava golem's fuse waits for a player (see {@link LavaGolem}).
+ * <p>
+ * Both kinds ignore light (they belong in the lava-lit wastes), walk over magma and fire without fear (they're
+ * fire-proof), never walk into lava (they'd only wade, sink and get stuck), and never drown (they're stone, like an iron
+ * golem). They drop nothing and give a little experience.
  */
 public abstract class GolemMinion extends Monster implements GeoEntity
 {
@@ -90,6 +98,11 @@ public abstract class GolemMinion extends Monster implements GeoEntity
     {
         super(type, level);
         this.xpReward = XP;
+        // Fire-proof: magma floors and flames don't scare them (the Cinder Wastes are full of magma)...
+        this.setPathfindingMalus(BlockPathTypes.DANGER_FIRE, 0.0F);
+        this.setPathfindingMalus(BlockPathTypes.DAMAGE_FIRE, 0.0F);
+        // ...but they never walk into lava (Minecraft's, or a Colossus's pools): they'd only wade, sink and get stuck.
+        this.setPathfindingMalus(BlockPathTypes.LAVA, -1.0F);
     }
 
     /** Its model, animations and timings (GolemDesigns.STONE_GOLEM or LAVA_GOLEM). */
@@ -114,6 +127,15 @@ public abstract class GolemMinion extends Monster implements GeoEntity
     {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0D, true));
+        // Only a wild golem wanders (a summoned one stays where it climbed out until it has someone to fight).
+        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, ColossusTuning.WILD_GOLEM_WANDER_SPEED)
+        {
+            @Override
+            public boolean canUse()
+            {
+                return GolemMinion.this.isWild() && super.canUse();
+            }
+        });
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
         this.targetSelector.addGoal(1, new HurtByTargetGoal(this, CinderColossus.class, GolemMinion.class));
@@ -144,6 +166,7 @@ public abstract class GolemMinion extends Monster implements GeoEntity
         ForgeEventFactory.onFinalizeSpawn(minion, level, level.getCurrentDifficultyAt(BlockPos.containing(feet)),
                 MobSpawnType.MOB_SUMMONED, null, null);
         minion.master = colossus.getUUID();
+        minion.setPersistenceRequired(); // (a summoned minion never despawns: it crumbles with its Colossus instead)
         minion.emergeLeft = minion.design().spawnTicks() + BLEND_TICKS;
         minion.entityData.set(DATA_EMERGING, true);
         LivingEntity target = colossus.getTarget();
@@ -156,18 +179,19 @@ public abstract class GolemMinion extends Monster implements GeoEntity
         return created;
     }
 
-    @Override
-    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType reason,
-                                        @Nullable SpawnGroupData data, @Nullable CompoundTag tag)
-    {
-        this.setPersistenceRequired();
-        return super.finalizeSpawn(level, difficulty, reason, data, tag);
-    }
-
     /** True if this minion was summoned by {@code colossus}. */
     public boolean belongsTo(CinderColossus colossus)
     {
         return colossus.getUUID().equals(this.master);
+    }
+
+    /**
+     * True if no Colossus summoned it: it spawned by itself in the Cinder Wastes, or came from a spawn egg or
+     * {@code /summon}. Server side only (the client doesn't know its Colossus).
+     */
+    public boolean isWild()
+    {
+        return this.master == null;
     }
 
     /** True while it climbs out of the ground (it doesn't move or attack yet). */
@@ -190,7 +214,7 @@ public abstract class GolemMinion extends Monster implements GeoEntity
         {
             this.entityData.set(DATA_EMERGING, false);
         }
-        // (A minion from a spawn egg has no Colossus: it stays.)
+        // (A wild golem has no Colossus: it stays.)
         if (this.master != null && this.tickCount % ColossusTuning.MINION_MASTER_CHECK == 0
                 && this.tickCount > 2 * ColossusTuning.MINION_MASTER_CHECK && this.isAlive() && !this.masterAlive())
         {
@@ -244,10 +268,28 @@ public abstract class GolemMinion extends Monster implements GeoEntity
         return super.doHurtTarget(target);
     }
 
+    /** A wild golem despawns like any monster when no player is near; a summoned one never does. */
     @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer)
     {
-        return false;
+        return this.isWild();
+    }
+
+    /**
+     * Light doesn't matter to them: a monster normally only spawns (and likes to walk) where it's dark, but these fire
+     * golems belong in the lava-lit Cinder Wastes. (Natural spawning asks this through {@code checkSpawnRules}.)
+     */
+    @Override
+    public float getWalkTargetValue(BlockPos pos, LevelReader level)
+    {
+        return 0.0F;
+    }
+
+    /** They're stone and lava: they never run out of air (like an iron golem). */
+    @Override
+    protected int decreaseAirSupply(int air)
+    {
+        return air;
     }
 
     @Override

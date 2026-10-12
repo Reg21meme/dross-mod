@@ -8,7 +8,7 @@ there, for one extra check); `draw_blocks.py`, `preview_trees.py` and `preview_s
 
 | Script | What it does | Writes |
 |---|---|---|
-| `worldgen.py` | The one generator for all Dross worldgen JSON and the dimension itself. Change a tuning number, run it, the JSON is rewritten (files it no longer writes in its own folders are deleted). It checks every block, particle, sound, noise and feature id it names, that spline points go up, that the biomes' feature lists can't crash with "feature order cycle", and reads the biome colours from `DrossColors.java`. | `data/dross/worldgen/...`, `data/dross/dimension/dross.json`, `data/dross/dimension_type/dross.json`, the block tags `rock_face_replaceable`, `ore_replaceables` and `pond_ground` (`data/dross/tags/blocks/`), the biome names in `en_us.json` (merged) |
+| `worldgen.py` | The one generator for all Dross worldgen JSON and the dimension itself. Change a tuning number, run it, the JSON is rewritten (files it no longer writes in its own folders are deleted). It checks every block, particle, sound, noise, entity and feature id it names (and that our own mobs in a spawn list have that list's mob category), that spline points go up, that the biomes' feature lists can't crash with "feature order cycle", and reads the biome colours from `DrossColors.java`. | `data/dross/worldgen/...`, `data/dross/dimension/dross.json`, `data/dross/dimension_type/dross.json`, the block tags `rock_face_replaceable`, `ore_replaceables` and `pond_ground` (`data/dross/tags/blocks/`), the biome names in `en_us.json` (merged) |
 | `terrain_sketch.py` | A fast, approximate top-down sketch of the terrain for tuning: it reads the JSON `worldgen.py` wrote and works it out with a numpy copy of Minecraft's noise maths (numpy's random numbers, so seed N here isn't seed N in the game; the shapes and statistics are the same kind). Seconds instead of a server start. | `build/terrain-sketch/` (biome and relief PNGs, `sketch_stats.txt`) |
 | `block_data.py` | Blockstates, block and item models, loot tables, recipes, tags, sounds and English names for the terrain blocks and items, from one list (`BLOCKS`, `ITEMS`, `BLOCK_TAGS`, `ITEM_TAGS`, `RECIPES`, `SOUNDS`, `SUBTITLES`). Shared files (tags other areas use, `en_us.json`, `sounds.json`) are merged: it only adds or updates its own entries. | `assets/dross/...`, `data/dross/...`, `data/minecraft/tags/...`, `data/forge/tags/...` |
 | `draw_blocks.py` | Draws every 16x16 block and item texture from scratch, and the preview sheets (grouped by biome). | `assets/dross/textures/block/`, `textures/item/`, `block-previews/blocks.png`, `block-previews/blocks_3d.png` |
@@ -194,6 +194,39 @@ a see-through glow over the night sky and thickens the fog in Blightwood, the Ne
 Rimefall. Each part has an on/off switch at the top of its file, and switches itself off (one error in the log) if it
 ever fails.
 
+## worldgen.py: mob spawns (BIOMES section)
+
+Each biome's spawn lists are in its JSON (`spawners`, `spawn_costs`), written by `biome_spawns`. Five biomes (Silverwood
+Forest, Blightwood, Rimefall, the Nether Scar, the Gravecrags) copy the old superflat biome's lists exactly
+(`data/dross/worldgen/biome/dross_flats.json`, `OLD_BIOME`): the plains monsters minus slimes, creepers and spiders
+(zombies, zombie villagers, skeletons, endermen, witches), the plains animals and bats. To change those, edit
+`dross_flats.json` and run `worldgen.py`.
+
+**The Cinder Wastes** have their own lists (`SPAWN_OVERRIDES`; the user's round 2 request): no zombies, skeletons or
+any other mob for now, only the Cinder Colossus's golems, and only a few (two more Cinder-only mobs will come later).
+The golems spawn on solid ground in any light; a lava golem's spawn fails unless lava is within 6 blocks sideways and 3
+up or down (boss area, `boss/golem/WildGolemSpawns`). So away from lava every golem is a stone golem, and near lava about
+1 in 5 is a lava golem. Its animal and bat lists are empty (the animals need grass, which the wastes don't have, so none
+could spawn there anyway).
+
+| Constant | Now | Meaning |
+|---|---|---|
+| `CINDER_STONE_GOLEM_WEIGHT`, `CINDER_LAVA_GOLEM_WEIGHT` | 80, 20 | How often each is picked (a lava golem 20 / (80 + 20) = 1 pick in 5, and only near lava). |
+| `CINDER_GOLEM_GROUP_MIN`, `_MAX` | 1, 1 | Golems per spawn: always one at a time. |
+| `CINDER_GOLEM_ENERGY_BUDGET`, `CINDER_GOLEM_CHARGE` | 0.12, 1.0 | The crowding limit (vanilla's `spawn_costs`; the warped forest's endermen have the same numbers): a golem may only spawn where (sum over the golems near of charge / distance) x charge <= budget. One golem within about 8 blocks stops it, and so do 6 golems 50 blocks away. The golems ignore light, so this (not the monster cap) is what keeps them few: about 15 in the 128 blocks round a player, one or two within 50 blocks. Lower the budget (or raise the charge) for fewer. |
+
+Every mob with a spawn cost in a biome pushes back on every other one there, so when the two later Cinder mobs get
+spawn costs too, they share this limit with the golems: check the numbers again then.
+
+The headless checks, `dimension/DrossSpawnsGameTest`: `spawnListsPerBiome` (the five biomes' lists, spawn costs and
+animal chance are exactly the old biome's, which still has zombies and skeletons and no slimes, creepers or spiders; the
+Cinder Wastes list just the two golems, as monsters, 1 in 5 a lava golem, both with spawn costs, and nothing else) and
+`cinderWastesSpawnOnlyGolems` (a natural-spawning pass, 3,000 tries on the ground of the real Cinder Wastes sample site,
+80 x 80 blocks, with Minecraft's own rules and crowding maths: stone golems spawn, nothing that isn't a golem is ever
+picked, lava golems only near lava, at most 16 golems on the site; nothing is added to the world). Its log line,
+"[dross spawns]", gives the picks and the result (first run: 2,374 stone and 626 lava golem picks, 6 stone golems and 1
+lava golem placed, the closest two 23 blocks apart).
+
 ## worldgen.py: what grows and lies on the land, and the ores (FEATURES section)
 
 Each biome lists its features per generation step (Minecraft runs the steps in order: lakes, local modifications, ores,
@@ -202,7 +235,8 @@ so the "feature order cycle" crash can't happen (the script also checks it). All
 the top of the FEATURES section; "per chunk" means on average (0.25 = one chunk in 4), and a "patch" is a cluster of
 plants (its tries are random spots near one place; only spots where the plant can grow get one).
 
-**Light and monsters.** Monsters in the Dross only spawn in complete darkness (block light 0), so every glowing thing
+**Light and monsters.** Monsters in the Dross only spawn in complete darkness (block light 0; the Cinder Wastes' golems
+are the exception: they ignore light, see "Mob spawns" above), so every glowing thing
 (Stormvine 6, Wispbloom 5, Gloomcap 6, Emberweed 4, Frostbloom 3, Soulwick 10, Storm Lichen 7, Cinder Vent 3, Scar Vent
 4, lava 15) makes a small safe spot. The glowing plants are kept sparse, the Nether Scar's fungi have no shroomlights,
 and Scarred Netherrack's glowing cracks give no light. `dimension/TerrainFeaturesGameTest` logs how much of each biome's

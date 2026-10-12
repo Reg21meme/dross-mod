@@ -151,7 +151,10 @@ public final class ColossusTuning
     public static final double LAVA_GOLEM_SPEED = 0.322D;
     /** Its hits set you on fire for this many seconds. */
     public static final int LAVA_GOLEM_FIRE_SECONDS = 4;
-    /** If nobody kills it, it blows up this many ticks after it climbs out of the ground... */
+    /**
+     * If nobody kills it, a summoned one blows up this many ticks after it climbs out of the ground (a wild one waits
+     * for a player instead: {@link #WILD_LAVA_GOLEM_FUSE_RANGE})...
+     */
     public static final int LAVA_GOLEM_FUSE_TICKS = 140;
     /** ...swelling and hissing for the last this-many ticks... */
     public static final int LAVA_GOLEM_SWELL_TICKS = 30;
@@ -166,6 +169,27 @@ public final class ColossusTuning
     public static final int MINION_MASTER_CHECK = 20;
     /** How far from their Colossus minions still count as its own (for the summon limit and crumbling). */
     public static final double MINION_RANGE = 64.0D;
+
+    // ---------------------------------------------------------------- wild golems (the Cinder Wastes)
+    // Stone and lava golems also spawn by themselves in the Cinder Wastes (the biome's spawn list says which and how
+    // often; the spawn rules are in WildGolemSpawns). A wild golem has no Colossus: it never crumbles, despawns like
+    // any monster when no player is near, and its numbers (health, damage, speed) are the summoned ones above.
+
+    /**
+     * A lava golem only spawns by itself near lava: a block of lava at most this many blocks away sideways (a 13 x 13
+     * square round the spot)...
+     */
+    public static final int WILD_LAVA_SEARCH_SIDEWAYS = 6;
+    /** ...and at most this many blocks above or below the spot. */
+    public static final int WILD_LAVA_SEARCH_UP_DOWN = 3;
+    /**
+     * A wild lava golem has no timer: its fuse is lit (creeper-like) when its target is this close (blocks, middle to
+     * middle) and in sight. Then it swells and hisses for {@link #LAVA_GOLEM_SWELL_TICKS} ticks and blows up like a
+     * summoned one; once lit, it can't be put out (only killed).
+     */
+    public static final double WILD_LAVA_GOLEM_FUSE_RANGE = 2.5D;
+    /** A wild golem with nothing to fight wanders about at this share of its speed (1 = its full speed). */
+    public static final double WILD_GOLEM_WANDER_SPEED = 1.0D;
 
     // ---------------------------------------------------------------- death
 

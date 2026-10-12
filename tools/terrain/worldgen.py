@@ -51,7 +51,7 @@ def fail(msg):
 
 
 # =====================================================================================================================
-# Ids: what exists (for checking every block, particle, sound and noise this script names)
+# Ids: what exists (for checking every block, particle, sound, noise and entity this script names)
 # =====================================================================================================================
 
 def _dross_blocks():
@@ -79,12 +79,34 @@ def _vanilla_sounds():
             return None
 
 
+def _dross_entities():
+    """Our entity types and their mob category ({"dross:stone_golem": "MONSTER", ...}), from registry/ModEntities.java."""
+    src = open(os.path.join(JAVA, "registry", "ModEntities.java"), encoding="utf-8").read()
+    return {"dross:" + name: category for name, category in
+            re.findall(r'ENTITY_TYPES\.register\(\s*"([a-z0-9_]+)"[^;]*?MobCategory\.([A-Z_]+)', src)}
+
+
+def _vanilla_entities():
+    """Vanilla entity ids, from the game's English names (entity.minecraft.<id>), or None if the jar isn't there."""
+    if not os.path.exists(MC_JAR):
+        return None
+    with zipfile.ZipFile(MC_JAR) as jar:
+        try:
+            lang = json.loads(jar.read("assets/minecraft/lang/en_us.json"))
+        except KeyError:
+            return None
+    prefix = "entity.minecraft."
+    return {"minecraft:" + k[len(prefix):] for k in lang if k.startswith(prefix) and "." not in k[len(prefix):]}
+
+
 DROSS_BLOCKS = _dross_blocks()
+DROSS_ENTITIES = _dross_entities()
 VANILLA_BLOCKS = _vanilla("blockstates")
 VANILLA_PARTICLES = _vanilla("particles")
 VANILLA_SOUNDS = _vanilla_sounds()
+VANILLA_ENTITIES = _vanilla_entities()
 if VANILLA_BLOCKS is None:
-    print("worldgen: the game jar wasn't found, so vanilla block, particle and sound ids aren't checked")
+    print("worldgen: the game jar wasn't found, so vanilla block, particle, sound and entity ids aren't checked")
 
 
 def check_block(block_id):
@@ -106,6 +128,20 @@ def check_sound(sound_id):
     if VANILLA_SOUNDS is not None and sound_id not in VANILLA_SOUNDS:
         fail(f"{sound_id} isn't a vanilla 1.20.1 sound event")
     return sound_id
+
+
+def check_entity(entity_id, spawn_category=None):
+    """An entity id a spawn list names: one of ours (registered in registry/ModEntities.java; in a spawn list its own
+    mob category must be that list's, or it would count against the wrong mob cap) or a vanilla one."""
+    if entity_id.startswith("dross:"):
+        if entity_id not in DROSS_ENTITIES:
+            fail(f"{entity_id} isn't registered in registry/ModEntities.java")
+        own = DROSS_ENTITIES[entity_id]
+        if spawn_category is not None and own != spawn_category.upper():
+            fail(f"{entity_id} is in the {spawn_category} spawn list, but it's registered as MobCategory.{own}")
+    elif VANILLA_ENTITIES is not None and entity_id not in VANILLA_ENTITIES:
+        fail(f"{entity_id} isn't a vanilla 1.20.1 entity type")
+    return entity_id
 
 
 def drossColors():
@@ -699,8 +735,48 @@ BIOMES = {
 }
 BIOME_IDS = list(BIOMES)
 # The old superflat biome: still registered (old worlds' chunks name it), but never placed in new land. Its spawn rules
-# are the ones every biome copies, so the mob rules stay exactly as they were.
+# are the ones every biome copies (except those in SPAWN_OVERRIDES below), so the mob rules stay exactly as they were:
+# the plains monsters minus slimes, creepers and spiders (the user's rule), the plains animals, and bats.
 OLD_BIOME = "dross_flats"
+
+# --- Mob spawns: the Cinder Wastes' own list (the user's round 2 request) ---------------------------------------------
+# No zombies, skeletons or any other mob there for now: only the Cinder Colossus's golems (boss area: dross:stone_golem
+# and dross:lava_golem, both monsters), and only a few, since two more Cinder-only mobs will come later. The golems
+# spawn on solid ground in any light, and a lava golem's spawn fails unless lava is near (boss/golem/WildGolemSpawns:
+# within 6 blocks sideways, 3 up or down). So away from lava every golem is a stone golem, and near lava about 1 in 5
+# is a lava golem: LAVA / (STONE + LAVA) = 20 / 100.
+CINDER_STONE_GOLEM_WEIGHT = 80
+CINDER_LAVA_GOLEM_WEIGHT = 20
+CINDER_GOLEM_GROUP_MIN = 1      # golems per spawn: always one at a time (a group would bunch them up)
+CINDER_GOLEM_GROUP_MAX = 1
+# The crowding limit (vanilla's "spawn_costs"; the same numbers as the warped forest's endermen). Every golem nearby
+# (within the loaded land round the players) pushes back on a new one: a golem may only spawn where
+# (sum over the golems of CHARGE / their distance) * CHARGE <= ENERGY_BUDGET. With 1.0 and 0.12 one golem within about
+# 8 blocks (1 / 0.12) is enough to stop it, and so are 6 golems 50 blocks away. Because the golems ignore light, this
+# (not the monster cap of 70) is what keeps them few: about 15 in the 128 blocks round a player, mostly far out, one or
+# two within 50 blocks (until they come for you); the headless test's 80 x 80 site gets about 7.
+# Fewer golems: lower the budget (or raise the charge). The two later Cinder mobs will share this push (every mob with a
+# spawn cost here counts against every other), so give them costs too and check the totals then.
+CINDER_GOLEM_ENERGY_BUDGET = 0.12
+CINDER_GOLEM_CHARGE = 1.0
+
+# A biome listed here gets these spawn lists instead of OLD_BIOME's: each category ("monster", "creature", "ambient",
+# ...) is (entity, weight, fewest, most) entries, and every category it doesn't name is empty; "spawn_costs" is
+# entity -> (energy budget, charge).
+# The Cinder Wastes' creature and ambient lists are empty on purpose ("only those for now"): the animals need grass,
+# which the wastes don't have, so none could spawn there anyway, and this also keeps bats out.
+SPAWN_OVERRIDES = {
+    "cinder_wastes": {
+        "monster": [
+            ("dross:stone_golem", CINDER_STONE_GOLEM_WEIGHT, CINDER_GOLEM_GROUP_MIN, CINDER_GOLEM_GROUP_MAX),
+            ("dross:lava_golem", CINDER_LAVA_GOLEM_WEIGHT, CINDER_GOLEM_GROUP_MIN, CINDER_GOLEM_GROUP_MAX),
+        ],
+        "spawn_costs": {
+            "dross:stone_golem": (CINDER_GOLEM_ENERGY_BUDGET, CINDER_GOLEM_CHARGE),
+            "dross:lava_golem": (CINDER_GOLEM_ENERGY_BUDGET, CINDER_GOLEM_CHARGE),
+        },
+    },
+}
 
 MOOD_SOUND = "minecraft:ambient.cave"   # the occasional cave sound in the dark, in every biome (like the Overworld)
 MOOD_DELAY = 6000
@@ -894,7 +970,7 @@ def check_configured_refs(other_dross):
 def old_biome():
     path = os.path.join(WORLDGEN, "biome", OLD_BIOME + ".json")
     if not os.path.exists(path):
-        fail(f"{path} is missing: it must stay (old worlds' chunks name it), and every biome copies its mob spawns")
+        fail(f"{path} is missing: it must stay (old worlds' chunks name it), and the biomes copy its mob spawns")
     return json.load(open(path, encoding="utf-8"))
 
 
@@ -933,12 +1009,46 @@ def biome_json(biome_id, spec, spawns_from):
         "downfall": float(spec["downfall"]),
         "effects": effects,
     }
-    # Mob spawns: exactly the old Dross biome's (the user's rules: no slimes, creepers or spiders).
-    for key in ("creature_spawn_probability", "spawners", "spawn_costs"):
-        if key in spawns_from:
-            out[key] = spawns_from[key]
+    out.update(biome_spawns(biome_id, spawns_from))
     out["carvers"] = {}
     out["features"] = features
+    return out
+
+
+def biome_spawns(biome_id, spawns_from):
+    """The biome's mob spawns: exactly the old Dross biome's (the user's rules: no slimes, creepers or spiders), or its
+    own lists from SPAWN_OVERRIDES. Every entity id is checked (and the mob category of our own)."""
+    override = SPAWN_OVERRIDES.get(biome_id)
+    if override is None:
+        out = {key: spawns_from[key] for key in ("creature_spawn_probability", "spawners", "spawn_costs") if key in spawns_from}
+    else:
+        categories = list(spawns_from.get("spawners", {}))
+        unknown = [c for c in override if c != "spawn_costs" and c not in categories]
+        if unknown:
+            fail(f"SPAWN_OVERRIDES[{biome_id!r}] names {unknown}, which aren't spawn categories ({categories})")
+        spawners = {}
+        for category in categories:
+            entries = []
+            for entity, weight, fewest, most in override.get(category, []):
+                if not (isinstance(weight, int) and weight > 0 and isinstance(fewest, int) and isinstance(most, int)
+                        and 1 <= fewest <= most):
+                    fail(f"{biome_id}: the {category} entry for {entity} needs a whole weight above 0 and 1 <= fewest <= most")
+                entries.append({"type": entity, "weight": weight, "minCount": fewest, "maxCount": most})
+            spawners[category] = entries
+        listed = {e["type"] for entries in spawners.values() for e in entries}
+        costs = {}
+        for entity, (budget, charge) in override.get("spawn_costs", {}).items():
+            if entity not in listed:
+                fail(f"{biome_id} gives {entity} a spawn cost, but it isn't in any of its spawn lists")
+            if not (budget > 0 and charge > 0):
+                fail(f"{biome_id}: {entity}'s energy budget and charge must both be above 0")
+            costs[entity] = {"energy_budget": float(budget), "charge": float(charge)}
+        out = {"spawners": spawners, "spawn_costs": costs}
+    for category, entries in out.get("spawners", {}).items():
+        for entry in entries:
+            check_entity(entry["type"], category)
+    for entity in out.get("spawn_costs", {}):
+        check_entity(entity)
     return out
 
 

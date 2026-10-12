@@ -62,6 +62,10 @@ in `tools/terrain/README.md`):
   the Scar's floor); Stormvine's tree chances are lower (0.25 / 0.35 / 0.7, trunk 0.05, hanging 0.03); Storm Lichen
   8 tries a chunk; lava pools are rare. Measured lit floor: Silverwood ~15-18%, Cinder ~18-23%, Gravecrags ~11-20%,
   Scar ~5-12%, Blightwood and Rimefall ~4-8%.
+- **Mob spawns** (round 2): five biomes copy `dross_flats.json`'s lists exactly; the Cinder Wastes list only stone and
+  lava golems (weights 80 : 20, one at a time, `spawn_costs` 0.12 / 1.0 like the warped forest's endermen) and nothing
+  else. The golems ignore light, so the crowding limit, not the monster cap, keeps them few (about 7 on an 80 x 80 site).
+  `DrossSpawnsGameTest` checks both. Lit floor no longer matters for spawns in the Cinder Wastes.
 - **Dead trees**: the forked charred tree's trunk is at least 5 (vanilla acacia's): at 4 the forking trunk placer can
   start leaning at height 0, so the trunk begins beside its origin, over a dip. Ice spikes run after the frost trees
   (vegetal step), so a spike forms round a branch instead of the branch skipping the spike.
