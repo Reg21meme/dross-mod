@@ -14,8 +14,8 @@ Sections (each has its tuning numbers at the top, then the code that writes its 
                sounds, weather and mob spawns; the dimension's generator and biome source         [Stage 5]
     SURFACE    the surface rules: which blocks cover the ground in each biome; and the rock_faces feature, which makes
                steep ground bare rock                                                             [Stage 5]
-    FEATURES   placed features (trees, plants, ponds, ores) in each biome's feature lists         [Stage 6; for now
-               only rock_faces]
+    FEATURES   what grows and lies in each biome (trees, giant mushrooms and fungi, plants, boulders, ponds, lava
+               pools) and the ores: the configured and placed features and each biome's feature lists  [Stage 6]
 
 How the terrain works (TERRAIN; tools/terrain/TERRAIN_DESIGN.md has the full design):
     The land is a height field: every column's ground height H(x, z) is worked out from 2D noises (rolling hills, cliff
@@ -187,13 +187,15 @@ GREAT_CANOPY_ROWS = 2                  # 2 = three rows of leaves (0, 1 and 2 be
 # ending in a small clump of leaves (not tunable beyond the trunk height).
 
 # --- Stormvine on the trees (tree decorator dross:stormvine) ------------------------------------------------------
-# chance a tree has any Stormvine at all; then per log side / per open leaf side, as in the decorator's javadoc
-SILVERWOOD_STORMVINE_CHANCE = 0.35
-TALL_STORMVINE_CHANCE = 0.45
-GREAT_STORMVINE_CHANCE = 0.8
-STORMVINE_TRUNK_DENSITY = 0.07         # chance a side of a log starts a patch climbing the trunk
+# chance a tree has any Stormvine at all; then per log side / per open leaf side, as in the decorator's javadoc.
+# Stormvine glows (light 6), and monsters only spawn in the dark: these are kept so that in the dense Silverwood Forest
+# about a sixth of the floor is lit (dimension/TerrainFeaturesGameTest logs it).
+SILVERWOOD_STORMVINE_CHANCE = 0.25
+TALL_STORMVINE_CHANCE = 0.35
+GREAT_STORMVINE_CHANCE = 0.7
+STORMVINE_TRUNK_DENSITY = 0.05         # chance a side of a log starts a patch climbing the trunk
 STORMVINE_TRUNK_CONTINUE = 0.65        # chance a patch carries on up to the next log
-STORMVINE_HANGING_DENSITY = 0.035      # chance an open side of a leaf starts a strand hanging from the canopy
+STORMVINE_HANGING_DENSITY = 0.03       # chance an open side of a leaf starts a strand hanging from the canopy
 STORMVINE_HANGING_LENGTH = 4           # longest hanging strand (blocks); the great silverwood's are longer:
 GREAT_STORMVINE_HANGING_LENGTH = 6
 
@@ -702,9 +704,10 @@ MOOD_SOUND = "minecraft:ambient.cave"   # the occasional cave sound in the dark,
 MOOD_DELAY = 6000
 ADDITIONS_CHANCE = 0.0111               # vanilla's chance per tick of an "additions" sound in the Nether biomes
 
-# --- Features (Stage 6 fills the rest) ----------------------------------------------------------------------------------
+# --- Features (the FEATURES section fills these lists) ---------------------------------------------------------------
 # One list per generation step, in Minecraft's order. Each list holds placed feature ids. Keep ONE global order per step
-# and give each biome a subsequence of it, or Minecraft crashes with "feature order cycle".
+# and give each biome a subsequence of it, or Minecraft crashes with "feature order cycle" (the FEATURES section adds
+# every feature in one fixed order, so this always holds).
 # The first feature of all, in every biome: dross:rock_faces (bare rock on steep ground; see SURFACE). It must run
 # before anything grows on the ground (trees, plants), so it stays first in raw_generation.
 STEPS = ["raw_generation", "lakes", "local_modifications", "underground_structures", "surface_structures",
@@ -846,6 +849,44 @@ def check_features(written_placed):
 
         for node in list(after):
             visit(node, [])
+
+
+def _vanilla_configured_features():
+    if not os.path.exists(MC_JAR):
+        return None
+    prefix = "data/minecraft/worldgen/configured_feature/"
+    with zipfile.ZipFile(MC_JAR) as jar:
+        return {"minecraft:" + n[len(prefix):-5] for n in jar.namelist() if n.startswith(prefix) and n.endswith(".json")}
+
+
+def check_configured_refs(other_dross):
+    """Every configured feature a placed feature (or an inline one inside a feature) names exists: one of ours written
+    here (CONFIGURED, or `other_dross`), or a vanilla one."""
+    vanilla = _vanilla_configured_features()
+    ours = set(CONFIGURED) | set(other_dross)
+
+    def visit(node, where):
+        if isinstance(node, dict):
+            ref = node.get("feature")
+            if isinstance(ref, str) and "placement" in node:
+                check(ref, where)
+            for v in node.values():
+                visit(v, where)
+        elif isinstance(node, list):
+            for v in node:
+                visit(v, where)
+
+    def check(ref, where):
+        if ref.startswith("dross:"):
+            if ref[len("dross:"):] not in ours:
+                fail(f"{where} names the configured feature {ref}, which isn't written")
+        elif vanilla is not None and ref not in vanilla:
+            fail(f"{where} names {ref}, which isn't a vanilla 1.20.1 configured feature")
+
+    for name, placed in PLACED.items():
+        visit(placed, "placed feature " + name)
+    for name, configured in CONFIGURED.items():
+        visit(configured, "configured feature " + name)
 
 
 def old_biome():
@@ -1096,6 +1137,525 @@ def rock_faces():
 
 
 # =====================================================================================================================
+# FEATURES: tuning
+# =====================================================================================================================
+# What grows and lies in each biome, and the ores. A chunk is 16 x 16 blocks; "per chunk" numbers are averages: 2.5 means
+# 2 or 3 (half and half), 0.25 means one in every 4 chunks. A "patch" is a cluster of plants: TRIES random spots within
+# a few blocks of one place, each planted if the plant can grow there (so a patch has fewer plants than tries).
+# Things that GLOW (Wispbloom 5, Gloomcap 6, Emberweed 4, Frostbloom 3, Soulwick 10, Storm Lichen 7, Stormvine 6, the
+# vents 3-4, lava 15) stop hostile mobs spawning right round them (the Dross spawns monsters only in block light 0), so
+# they're kept sparse, the Nether Scar's fungi have no shroomlights, and Scarred Netherrack's glowing cracks give no light:
+# dimension/TerrainFeaturesGameTest reports how much of each biome's floor is lit.
+# The hub: ponds, boulders and fallen logs keep NOT_NEAR_HUB_RADIUS blocks away from it (dross:not_near_hub,
+# dimension/worldgen/NotNearHubFilter). Its footprint, the 16-block ring it levels round itself and the ground the hub
+# checks reach about 88 blocks from its centre, and a pond spreads up to 16 blocks from where it starts.
+NOT_NEAR_HUB_RADIUS = 112
+
+# --- Silverwood Forest: dense and dark ---------------------------------------------------------------------------------
+# Three layers of trees (TREES section for their shapes): great silverwoods (2x2 trunks, 20-28 tall, a wide flat canopy)
+# make the high dark roof; tall ones (14-20) and common ones (9-13) fill in under it. Bigger trees are placed first, so
+# the smaller ones fill the gaps; a tree only grows where its trunk has room, so not every try makes a tree.
+GREAT_SILVERWOODS = 1.0         # tries per chunk
+TALL_SILVERWOODS = 3.0
+SILVERWOODS = 5.0
+GLIMMER_FERN_PATCHES = 4.0      # Glimmer Ferns (no glow): patches per chunk...
+GLIMMER_FERN_TRIES = 24         # ...and tries per patch
+WISPBLOOM_PATCHES = 0.25        # Wispblooms glow (light 5): a small patch in about one chunk in 4
+WISPBLOOM_TRIES = 5
+MOSSY_BOULDERS = 0.25           # mossy Duskstone boulders per chunk
+MOSSY_BOULDER_LUMPS = (2, 3)    # each made of this many lumps...
+MOSSY_BOULDER_RADIUS = (1.2, 1.9)  # ...of this radius (blocks)
+MOSSY_BOULDER_MOSS = 0.65       # chance each top block of a boulder is moss
+FALLEN_SILVERWOODS = 0.25       # fallen silverwood logs per chunk (on level ground, or across a dip of one block)
+FALLEN_LOG_LENGTH = (4, 7)
+FALLEN_LOG_MOSS = 0.35          # chance each fallen log has a moss carpet on it
+SILVERWOOD_PONDS = 1.0 / 16     # tries per chunk at a small dark pond (about 6-14 blocks across; most tries find no
+                                # open, level ground and make nothing)
+SILVERWOOD_POND_SHORE = [("minecraft:mud", 3), ("minecraft:clay", 1)]   # one of these lines each pond (bed and shore)
+
+# --- Cinder Wastes: volcanic; nothing here burns ------------------------------------------------------------------------
+LAVA_POOLS = 1.0 / 8            # tries at a small lava pool per chunk (dross:pond with lava: only level, open ground
+                                # takes one; each pool lights the ground about 14 blocks round it, where monsters then
+                                # can't spawn, so they're kept rare)
+LAVA_POOL_SIZE = 10             # the box a pool is shaped in (8-16 blocks; 16 = a pond's): pools about 4-8 across
+LAVA_POOL_SHORE = [("minecraft:blackstone", 3), ("minecraft:magma_block", 1)]   # its bed and rim
+BASALT_SPIRES = 0.5             # clusters of basalt columns per chunk
+BASALT_SPIRE_HEIGHT = (3, 8)    # the tallest column of a cluster (blocks); the others are shorter
+BASALT_SPIRE_REACH = (0, 1)     # how thick each column is (0: one block, 1: 3x3)
+CHARRED_TREES = 1.5             # charred dead trees per chunk (tries)
+CHARRED_TREE_BRANCHY = 0.35     # share of them with many branches (the others fork once or twice)
+CINDER_VENTS = 0.3              # Cinder Vents set into the ground, per chunk (light 3)
+EMBERWEED_PATCHES = 1.0         # Emberweed (light 4)
+EMBERWEED_TRIES = 8
+ASH_LAYER_PATCHES = 1.5         # drifts of Ash Layers on the ash
+ASH_LAYER_TRIES = 24
+ASH_LAYER_DEPTH = (1, 3)        # layers deep (8 make a full block)
+
+# --- Blightwood: rotten and fungal ----------------------------------------------------------------------------------------
+BLIGHTCAPS = 4.0                # giant blightcaps per chunk (tries): vanilla's huge mushroom shapes in blightcap blocks,
+BLIGHTCAP_DOME_SHARE = 0.5      # half a round dome (radius 2), half a wide flat cap (radius 3); 1 in 12 grows twice as tall
+BLIGHTCAP_CAP_MIX = [("dross:blightcap_block", 3), ("dross:rotting_blightcap", 1)]   # the cap: mostly fresh, some rotting
+TOWERING_BLIGHTCAPS = 0.2       # towering giant blightcaps per chunk (tries; placed first, so they find room): landmarks
+TOWERING_BLIGHTCAP_HEIGHT = (11, 16)   # their stem (blocks; the ordinary ones are 4-6, now and then twice that)
+TOWERING_BLIGHTCAP_RADIUS = 4   # their flat cap reaches this far from the stem (9 across, corners cut)
+GLOOMCAP_PATCHES = 0.35         # Gloomcaps glow (light 6): a small patch in about one chunk in 3
+GLOOMCAP_TRIES = 6
+SPOREPOD_PATCHES = 1.5          # Sporepods (no glow)
+SPOREPOD_TRIES = 12
+FALLEN_BLIGHT_LOGS = 0.4        # rotting fallen silverwood logs per chunk (the forest the blight killed)
+FALLEN_BLIGHT_LOG_LENGTH = (3, 6)
+FALLEN_BLIGHT_LOG_GROWTH = 0.45  # chance each log of one has something growing on it:
+FALLEN_BLIGHT_LOG_GROWS = [("dross:sporepod", 3), ("minecraft:moss_carpet", 3), ("dross:gloomcap", 1)]
+BLIGHTWOOD_PONDS = 1.0 / 12     # tries at a small murky pond per chunk (its lumpy ground: most tries find it too uneven)
+BLIGHTWOOD_POND_SHORE = [("minecraft:mud", 1)]
+
+# --- Rimefall: frozen -----------------------------------------------------------------------------------------------------
+FROST_TREES = 1.8               # frost-covered dead trees per chunk (tries; only on Hoarfrost and snow)
+FROST_TREE_FORKED = 0.4         # share that lean and fork (the others branch out sideways)
+ICICLE_CHANCE = 0.4             # chance each branch log has an Icicle hanging under it
+FROSTBLOOM_PATCHES = 0.6        # Frostblooms (light 3)
+FROSTBLOOM_TRIES = 8
+SNOW_LAYER_PATCHES = 2.0        # drifts of snow on the Hoarfrost
+SNOW_LAYER_TRIES = 32
+SNOW_LAYER_DEPTH = (1, 2)
+ICE_SPIKE_TRIES = 2             # ice spikes (Minecraft's own; they only rise from snow blocks, so most tries fail;
+                                # placed after the dead trees, so they form round a branch instead of cutting it)
+ICE_BOULDERS = 0.2              # packed-ice boulders per chunk
+ICE_BOULDER_LUMPS = (2, 3)
+ICE_BOULDER_RADIUS = (1.2, 2.0)
+ICE_BOULDER_SNOW = 0.5          # chance each top block of one is a snow block
+RIMEFALL_PONDS = 1.0 / 24       # tries at a small pond per chunk (its gentle ground takes most); their tops freeze over
+RIMEFALL_POND_SHORE = [("minecraft:packed_ice", 1)]
+
+# --- Nether Scar: the Nether bleeding through (no lava, no fire) ---------------------------------------------------------
+CRIMSON_FUNGUS_TRIES = 8        # huge crimson fungi (tries per chunk; they only grow from crimson nylium)
+WARPED_FUNGUS_TRIES = 8         # huge warped fungi (only from warped nylium)
+NETHER_VEGETATION = 4.0         # patches of roots, small fungi and sprouts per chunk, each kind (only on nylium)
+SCAR_ROOT_PATCHES = 2.0         # Scar Roots
+SCAR_ROOT_TRIES = 16
+SOULWICK_PATCHES = 1.0          # Soulwicks glow brightly (light 10): small patches, only where a patch lands on soul
+SOULWICK_TRIES = 6              # soil or soul sand (most don't), so a few per region
+SCAR_VENTS = 0.3                # Scar Vents set into the ground (light 4)
+
+# --- The Gravecrags: mountains --------------------------------------------------------------------------------------------
+CRAG_SILVERWOODS = 0.6          # windswept common silverwoods (tries per chunk; they only grow on the moss low down)
+CRAG_THISTLE_PATCHES = 1.5      # Crag Thistles
+CRAG_THISTLE_TRIES = 10
+STORM_LICHEN_TRIES = 8          # Storm Lichen (light 7): tries per chunk, each from a spot up to STORM_LICHEN_REACH_UP
+STORM_LICHEN_REACH_UP = 8       # blocks above the ground at the foot of a cliff, onto the rock face beside it
+STORM_LICHEN_SPREAD = 0.5       # chance a piece spreads to the faces next to it
+CRAG_BOULDERS = 0.3             # Cragstone boulders per chunk
+CRAG_BOULDER_LUMPS = (2, 4)
+CRAG_BOULDER_RADIUS = (1.4, 2.4)
+GRAVECRAGS_SNOW = True          # vanilla's snow and ice in cold places (snow layers on the peaks above the snow line)
+
+# --- Ores (every biome; underground) ---------------------------------------------------------------------------------------
+# name: (block, veins per chunk, blocks per vein, chance a block touching air is left out, (spread, lowest y, highest y))
+# spread "uniform": evenly from lowest to highest; "trapezoid": most in the middle, thinning to none at both ends.
+# The Duskstone reaches from the bedrock (y -64) up to the ground (mostly y 50-95; the Gravecrags much higher). The ores
+# replace the blocks in ORE_REPLACEABLE: Duskstone, and the biome rock lying over it (basalt and blackstone in the Cinder
+# Wastes, netherrack in the Nether Scar, Cragstone in the Gravecrags), so those upper layers have ores too.
+ORES = {
+    "coal": ("dross:duskstone_coal_ore", 20, 17, 0.5, ("trapezoid", -32, 160)),        # common, near the surface
+    "gold": ("dross:duskstone_gold_ore", 10, 10, 0.0, ("uniform", -48, 128)),          # moderately common (nuggets)
+    "moonsilver": ("dross:moonsilver_ore", 7, 8, 0.0, ("trapezoid", -48, 64)),         # uncommon, mid depth
+    "stormite": ("dross:stormite_ore", 0.5, 5, 0.5, ("trapezoid", -64, 0)),            # rare, deep
+}
+# Stormite is mostly under the Gravecrags: there, this many extra veins per chunk, from deep down well up into the mountain.
+STORMITE_GRAVECRAGS = ("dross:stormite_ore", 6, 5, 0.5, ("uniform", -64, 96))
+ORE_REPLACEABLE = ["dross:duskstone", "dross:cragstone", "minecraft:basalt", "minecraft:blackstone", "minecraft:netherrack"]
+
+# --- Ponds and lava pools (dross:pond) ---------------------------------------------------------------------------------
+# What a pond may dig into and line (block tag dross:pond_ground): the plain ground, i.e. every biome's ground cover and
+# soil (the rock_faces list), Duskstone, and other ponds' shores.
+POND_GROUND = ROCK_FACE_REPLACEABLE + ["dross:duskstone", "minecraft:mud", "minecraft:clay"]
+# A pond's surface lies at the lowest ground under it; it only forms where the ground under it and round its rim rises
+# at most this many blocks above that (its banks), so ponds lie in hollows and level ground, never dug into a slope.
+POND_MAX_BANK = 2
+BLIGHTWOOD_POND_MAX_BANK = 3    # the lumpy Blightwood: its murky ponds may cut a little deeper into their banks
+
+
+# =====================================================================================================================
+# FEATURES: the JSON (configured features, placed features, and each biome's lists)
+# =====================================================================================================================
+CONFIGURED = {}
+PLACED = {}
+BIOME = {"type": "minecraft:biome"}
+IN_SQUARE = {"type": "minecraft:in_square"}
+DOWN = [0, -1, 0]
+
+
+def per_chunk(rate):
+    """A placement for `rate` features per chunk on average (count, a mix of two counts, or a rarity filter)."""
+    if rate <= 0:
+        fail(f"a per-chunk rate must be above 0 (got {rate}); leave the feature out instead")
+    if rate < 1:
+        return [{"type": "minecraft:rarity_filter", "chance": max(1, int(round(1.0 / rate)))}]
+    low = int(math.floor(rate))
+    frac = rate - low
+    if frac < 0.01:
+        return [{"type": "minecraft:count", "count": low}]
+    w_high = int(round(frac * 100))
+    return [{"type": "minecraft:count", "count": {"type": "minecraft:weighted_list", "distribution": [
+        {"data": low, "weight": 100 - w_high}, {"data": low + 1, "weight": w_high}]}}]
+
+
+def heightmap(kind):
+    return {"type": "minecraft:heightmap", "heightmap": kind}
+
+
+def not_near_hub():
+    return {"type": "dross:not_near_hub", "radius": NOT_NEAR_HUB_RADIUS}
+
+
+def random_offset(xz, y):
+    return {"type": "minecraft:random_offset", "xz_spread": xz, "y_spread": y}
+
+
+def uniform_int(lo, hi):
+    return {"type": "minecraft:uniform", "value": {"min_inclusive": int(lo), "max_inclusive": int(hi)}}
+
+
+def uniform_float(lo, hi):
+    return {"type": "minecraft:uniform", "value": {"min_inclusive": float(lo), "max_exclusive": float(hi)}}
+
+
+def block_state(name, **props):
+    s = {"Name": check_block(name)}
+    if props:
+        s["Properties"] = {k: str(v).lower() for k, v in props.items()}
+    return s
+
+
+def provider(name, **props):
+    return {"type": "minecraft:simple_state_provider", "state": block_state(name, **props)}
+
+
+def weighted(entries, **props):
+    """A state provider picking one of (block, weight) at random (each with the same properties)."""
+    if len(entries) == 1:
+        return provider(entries[0][0], **props)
+    return {"type": "minecraft:weighted_state_provider",
+            "entries": [{"weight": int(w), "data": block_state(b, **props)} for b, w in entries]}
+
+
+def matching(blocks, offset=None):
+    p = {"type": "minecraft:matching_blocks", "blocks": [check_block(b) for b in blocks]}
+    if offset:
+        p["offset"] = offset
+    return p
+
+
+def would_survive(state):
+    return {"type": "minecraft:would_survive", "state": state}
+
+
+def all_of(*predicates):
+    return {"type": "minecraft:all_of", "predicates": list(predicates)}
+
+
+def predicate_filter(predicate):
+    return {"type": "minecraft:block_predicate_filter", "predicate": predicate}
+
+
+def inline(configured, placement=()):
+    """An unnamed placed feature inside another feature (a configured feature id or inline JSON, plus its placement)."""
+    return {"feature": configured, "placement": list(placement)}
+
+
+def patch(state_provider, tries, xz, y, extra=()):
+    """A random_patch: `tries` spots within xz blocks sideways and y up or down; each gets the plant if the spot is air
+    (and the plant could grow there: simple_block checks that itself)."""
+    return {"type": "minecraft:random_patch", "config": {
+        "tries": int(tries), "xz_spread": int(xz), "y_spread": int(y),
+        "feature": inline({"type": "minecraft:simple_block", "config": {"to_place": state_provider}},
+                          [predicate_filter(all_of(matching(["minecraft:air"]), *extra))])}}
+
+
+def dead_tree(log, trunk_placer, ground, decorators=()):
+    """A leafless tree (TreeFeature with air for leaves): a trunk and branches of `log`; `ground` goes under its trunk
+    where the ground isn't dirt (so it never leaves a dirt block in the ash)."""
+    return {"type": "minecraft:tree", "config": {
+        "decorators": list(decorators),
+        "dirt_provider": provider(ground),
+        "foliage_placer": {"type": "minecraft:blob_foliage_placer", "radius": 0, "offset": 0, "height": 0},
+        "foliage_provider": provider("minecraft:air"),
+        "force_dirt": False,
+        "ignore_vines": True,
+        "minimum_size": {"type": "minecraft:two_layers_feature_size", "limit": 1, "lower_size": 0, "upper_size": 1},
+        "trunk_placer": trunk_placer,
+        "trunk_provider": provider(log, axis="y"),
+    }}
+
+
+def pond(shore, fluid="minecraft:water", size=16, max_bank=None):
+    """A small pond (dross:pond, dimension/worldgen/PondFeature): Minecraft's lake shape (in a box `size` blocks
+    square: 16 is vanilla's), its surface at the lowest ground under it (only where that ground varies by at most
+    `max_bank` blocks, POND_MAX_BANK unless given); it never cuts into trees or anything else standing on the ground, only
+    the ground (POND_GROUND) becomes its shore, and water freezes over at once where its biome is cold."""
+    return {"type": "dross:pond", "config": {"fluid": provider(fluid, level=0), "barrier": weighted(shore),
+                                             "ground": "#dross:pond_ground", "size": int(size),
+                                             "max_bank": int(POND_MAX_BANK if max_bank is None else max_bank)}}
+
+
+def ore(block, size, discard):
+    return {"type": "minecraft:ore", "config": {
+        "size": int(size), "discard_chance_on_air_exposure": float(discard),
+        "targets": [{"target": {"predicate_type": "minecraft:tag_match", "tag": "dross:ore_replaceables"},
+                     "state": block_state(block)}]}}
+
+
+def height_range(spread):
+    kind, lo, hi = spread
+    if kind not in ("uniform", "trapezoid") or hi <= lo:
+        fail(f"bad ore height range {spread}")
+    return {"type": "minecraft:height_range", "height": {"type": "minecraft:" + kind,
+                                                          "min_inclusive": {"absolute": int(lo)},
+                                                          "max_inclusive": {"absolute": int(hi)}}}
+
+
+SAPLING = block_state("dross:silverwood_sapling", stage=0)
+
+
+def add_feature(step, name, biomes, configured, placement):
+    """Adds the placed feature dross:<name> to `step` of each biome in `biomes`, after every feature added before it
+    (one global order, so no feature order cycle). `configured` is the configured feature's JSON (written as
+    dross:<name>), or a configured feature id that already exists (a string)."""
+    if step not in STEPS:
+        fail(f"no generation step {step}")
+    if name in PLACED:
+        fail(f"placed feature {name} is defined twice")
+    for b in biomes:
+        if b not in BIOMES:
+            fail(f"{name}: no biome {b}")
+    if isinstance(configured, str):
+        feature_id = configured
+    else:
+        CONFIGURED[name] = configured
+        feature_id = "dross:" + name
+    PLACED[name] = {"feature": feature_id, "placement": list(placement) + [BIOME]}
+    for b in biomes:
+        BIOME_FEATURES[b][step].append("dross:" + name)
+
+
+def features():
+    """Every feature of every biome, in the order Minecraft runs them (per step, top to bottom)."""
+    sw, cw, bw, rf, ns, gc = ("silverwood_forest", "cinder_wastes", "blightwood", "rimefall", "nether_scar", "gravecrags")
+
+    # ---- Ponds and lava pools (step "lakes") --------------------------------------------------------------------------
+    # dross:pond (Minecraft's lake shape): a pond about 6-14 blocks across and up to 4 deep, sunk into the ground; it
+    # refuses to form where its sides wouldn't hold the water (slopes, edges) or where it would cut into a tree, a giant
+    # mushroom or anything else standing on the ground, so ponds only lie in open, level ground (most tries don't make a
+    # pond). Its shore and bed become the "barrier" block (mud, clay or packed ice); Rimefall's freeze over. The origin is
+    # the air just above the ground.
+    surface_air = [IN_SQUARE, heightmap("WORLD_SURFACE_WG")]
+    add_feature("lakes", "pond_silverwood", [sw], pond(SILVERWOOD_POND_SHORE),
+                per_chunk(SILVERWOOD_PONDS) + surface_air + [not_near_hub()])
+    add_feature("lakes", "pond_blightwood", [bw], pond(BLIGHTWOOD_POND_SHORE, max_bank=BLIGHTWOOD_POND_MAX_BANK),
+                per_chunk(BLIGHTWOOD_PONDS) + surface_air)
+    add_feature("lakes", "pond_rimefall", [rf], pond(RIMEFALL_POND_SHORE), per_chunk(RIMEFALL_PONDS) + surface_air)
+    # The Cinder Wastes' lava pools are small ponds of lava (the same feature, a smaller box): every lava block is held
+    # in by solid ground on every side and below, so it never flows; a rim of blackstone and magma.
+    add_feature("lakes", "lava_pool", [cw], pond(LAVA_POOL_SHORE, "minecraft:lava", LAVA_POOL_SIZE),
+                per_chunk(LAVA_POOLS) + surface_air)
+
+    # ---- Boulders, spires, fallen logs, vents (step "local_modifications": before anything grows) -----------------------
+    # (the heightmap that looks through leaves: a neighbouring chunk's tree crown may already reach over this one; the
+    # filters on the ground below keep them off anything that isn't the ground)
+    ground_air = [IN_SQUARE, heightmap("MOTION_BLOCKING_NO_LEAVES")]
+    rock_face_tag = "#dross:rock_face_replaceable"
+    add_feature("local_modifications", "mossy_boulder", [sw], {"type": "dross:boulder", "config": {
+        "stone": provider("dross:duskstone"), "top": provider("minecraft:moss_block"), "top_chance": MOSSY_BOULDER_MOSS,
+        "lumps": uniform_int(*MOSSY_BOULDER_LUMPS), "lump_radius": uniform_float(*MOSSY_BOULDER_RADIUS),
+        "replaceable": rock_face_tag}},
+        per_chunk(MOSSY_BOULDERS) + ground_air
+        + [predicate_filter(matching(["dross:silvermoss", "minecraft:podzol", "minecraft:moss_block"], DOWN)), not_near_hub()])
+    add_feature("local_modifications", "fallen_silverwood", [sw], {"type": "dross:fallen_log", "config": {
+        "log": provider(LOG, axis="x"), "length": uniform_int(*FALLEN_LOG_LENGTH),
+        "top": provider("minecraft:moss_carpet"), "top_chance": FALLEN_LOG_MOSS}},
+        per_chunk(FALLEN_SILVERWOODS) + ground_air
+        + [predicate_filter(matching(["dross:silvermoss", "minecraft:podzol", "minecraft:moss_block"], DOWN)), not_near_hub()])
+    add_feature("local_modifications", "basalt_spires", [cw], {"type": "minecraft:basalt_columns", "config": {
+        "reach": uniform_int(*BASALT_SPIRE_REACH), "height": uniform_int(*BASALT_SPIRE_HEIGHT)}},
+        per_chunk(BASALT_SPIRES) + ground_air + [predicate_filter(matching(["dross:ash", "minecraft:basalt", "minecraft:blackstone"], DOWN))])
+    add_feature("local_modifications", "cinder_vent", [cw], {"type": "minecraft:replace_single_block", "config": {
+        "targets": [{"target": {"predicate_type": "minecraft:block_match", "block": check_block("dross:ash")},
+                     "state": block_state("dross:cinder_vent")}]}},
+        per_chunk(CINDER_VENTS) + surface_air + [random_offset(0, -1)])
+    add_feature("local_modifications", "fallen_blight_log", [bw], {"type": "dross:fallen_log", "config": {
+        "log": provider(LOG, axis="x"), "length": uniform_int(*FALLEN_BLIGHT_LOG_LENGTH),
+        "top": weighted(FALLEN_BLIGHT_LOG_GROWS), "top_chance": FALLEN_BLIGHT_LOG_GROWTH}},
+        per_chunk(FALLEN_BLIGHT_LOGS) + ground_air
+        + [predicate_filter(matching(["dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt"], DOWN))])
+    add_feature("local_modifications", "ice_boulder", [rf], {"type": "dross:boulder", "config": {
+        "stone": provider("minecraft:packed_ice"), "top": provider("minecraft:snow_block"), "top_chance": ICE_BOULDER_SNOW,
+        "lumps": uniform_int(*ICE_BOULDER_LUMPS), "lump_radius": uniform_float(*ICE_BOULDER_RADIUS),
+        "replaceable": rock_face_tag}},
+        per_chunk(ICE_BOULDERS) + ground_air
+        + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"], DOWN))])
+    add_feature("local_modifications", "scar_vent", [ns], {"type": "minecraft:replace_single_block", "config": {
+        "targets": [{"target": {"predicate_type": "minecraft:block_match", "block": check_block("dross:scarred_netherrack")},
+                     "state": block_state("dross:scar_vent")}]}},
+        per_chunk(SCAR_VENTS) + surface_air + [random_offset(0, -1)])
+    add_feature("local_modifications", "crag_boulder", [gc], {"type": "dross:boulder", "config": {
+        "stone": provider("dross:cragstone"), "top": provider("dross:cragstone"), "top_chance": 0.0,
+        "lumps": uniform_int(*CRAG_BOULDER_LUMPS), "lump_radius": uniform_float(*CRAG_BOULDER_RADIUS),
+        "replaceable": rock_face_tag}},
+        per_chunk(CRAG_BOULDERS) + ground_air
+        + [predicate_filter(matching(["dross:cragstone", "minecraft:gravel", "minecraft:moss_block", "minecraft:snow_block"], DOWN))])
+
+    # ---- Ores (step "underground_ores") ---------------------------------------------------------------------------------
+    everywhere = list(BIOMES)
+    for name, (block, count, size, discard, spread) in ORES.items():
+        add_feature("underground_ores", "ore_" + name, everywhere, ore(block, size, discard),
+                    per_chunk(count) + [IN_SQUARE, height_range(spread)])
+    block, count, size, discard, spread = STORMITE_GRAVECRAGS
+    add_feature("underground_ores", "ore_stormite_gravecrags", [gc], ore(block, size, discard),
+                per_chunk(count) + [IN_SQUARE, height_range(spread)])
+
+    # ---- Trees, giant mushrooms and fungi, then the ground plants (step "vegetal_decoration") ----------------------------
+    # Trees stand on the ground under any water (none here: surface_water_depth_filter 0 keeps them out of ponds) and
+    # only where their sapling could grow (Silvermoss, podzol, moss; dead trees: their own ground).
+    tree_spot = [IN_SQUARE, {"type": "minecraft:surface_water_depth_filter", "max_water_depth": 0}, heightmap("OCEAN_FLOOR")]
+    on_forest_floor = predicate_filter(would_survive(SAPLING))
+    add_feature("vegetal_decoration", "great_silverwoods", [sw], "dross:great_silverwood",
+                per_chunk(GREAT_SILVERWOODS) + tree_spot + [on_forest_floor])
+    add_feature("vegetal_decoration", "tall_silverwoods", [sw], "dross:tall_silverwood",
+                per_chunk(TALL_SILVERWOODS) + tree_spot + [on_forest_floor])
+    add_feature("vegetal_decoration", "silverwoods", [sw], "dross:silverwood",
+                per_chunk(SILVERWOODS) + tree_spot + [on_forest_floor])
+    add_feature("vegetal_decoration", "crag_silverwoods", [gc], "dross:silverwood",
+                per_chunk(CRAG_SILVERWOODS) + tree_spot + [on_forest_floor])
+
+    # Charred dead trees: forked like a burnt acacia, or (CHARRED_TREE_BRANCHY) many-branched like a burnt big oak.
+    # (a forking trunk at least 5 tall, like vanilla's acacia: shorter ones can start leaning from the ground up, so
+    # their foot ends up beside the spot they grew from, over a dip)
+    CONFIGURED["charred_tree_forked"] = dead_tree("dross:charred_log", {
+        "type": "minecraft:forking_trunk_placer", "base_height": 5, "height_rand_a": 2, "height_rand_b": 1}, "dross:ash")
+    CONFIGURED["charred_tree_branchy"] = dead_tree("dross:charred_log", {
+        "type": "minecraft:fancy_trunk_placer", "base_height": 5, "height_rand_a": 3, "height_rand_b": 0}, "dross:ash")
+    add_feature("vegetal_decoration", "charred_trees", [cw], {"type": "minecraft:random_selector", "config": {
+        "features": [{"chance": CHARRED_TREE_BRANCHY, "feature": inline("dross:charred_tree_branchy")}],
+        "default": inline("dross:charred_tree_forked")}},
+        per_chunk(CHARRED_TREES) + tree_spot + [predicate_filter(matching(["dross:ash"], DOWN))])
+
+    # Giant blightcaps: vanilla's huge mushroom shapes; the cap's faces are set by the shape (outside / inside).
+    cap = weighted(BLIGHTCAP_CAP_MIX, up=True, down=False, north=True, south=True, east=True, west=True)
+    stem = provider("dross:blightcap_stem", up=False, down=False, north=True, south=True, east=True, west=True)
+    CONFIGURED["blightcap_dome"] = {"type": "minecraft:huge_red_mushroom", "config": {
+        "cap_provider": cap, "stem_provider": stem, "foliage_radius": 2}}
+    CONFIGURED["blightcap_flat"] = {"type": "minecraft:huge_brown_mushroom", "config": {
+        "cap_provider": cap, "stem_provider": stem, "foliage_radius": 3}}
+    # The towering ones first (dross:towering_mushroom, dimension/worldgen/ToweringMushroomFeature): a tall stem under a
+    # wide flat cap; a giant mushroom needs its whole space open, so they go before the ordinary ones.
+    add_feature("vegetal_decoration", "towering_blightcaps", [bw], {"type": "dross:towering_mushroom", "config": {
+        "cap_provider": cap, "stem_provider": stem, "foliage_radius": TOWERING_BLIGHTCAP_RADIUS,
+        "height": uniform_int(*TOWERING_BLIGHTCAP_HEIGHT)}}, per_chunk(TOWERING_BLIGHTCAPS) + tree_spot)
+    add_feature("vegetal_decoration", "blightcaps", [bw], {"type": "minecraft:random_selector", "config": {
+        "features": [{"chance": BLIGHTCAP_DOME_SHARE, "feature": inline("dross:blightcap_dome")}],
+        "default": inline("dross:blightcap_flat")}},
+        per_chunk(BLIGHTCAPS) + tree_spot)
+
+    # Frost-covered dead trees: branching out sideways like a bare cherry tree, or (FROST_TREE_FORKED) leaning and
+    # forking; Icicles hang under their branches.
+    icicles = [{"type": "dross:icicles", "probability": ICICLE_CHANCE}]
+    CONFIGURED["frost_tree_branching"] = dead_tree("dross:frostbitten_log", {
+        "type": "minecraft:cherry_trunk_placer", "base_height": 5, "height_rand_a": 2, "height_rand_b": 1,
+        "branch_count": {"type": "minecraft:weighted_list", "distribution": [
+            {"data": 1, "weight": 1}, {"data": 2, "weight": 2}, {"data": 3, "weight": 1}]},
+        "branch_horizontal_length": uniform_int(2, 4),
+        "branch_start_offset_from_top": {"min_inclusive": -4, "max_inclusive": -3},   # this one is a bare range
+        "branch_end_offset_from_top": uniform_int(-1, 0)}, "dross:hoarfrost", icicles)
+    CONFIGURED["frost_tree_forked"] = dead_tree("dross:frostbitten_log", {
+        "type": "minecraft:forking_trunk_placer", "base_height": 5, "height_rand_a": 2, "height_rand_b": 2},
+        "dross:hoarfrost", icicles)
+    add_feature("vegetal_decoration", "frost_trees", [rf], {"type": "minecraft:random_selector", "config": {
+        "features": [{"chance": FROST_TREE_FORKED, "feature": inline("dross:frost_tree_forked")}],
+        "default": inline("dross:frost_tree_branching")}},
+        per_chunk(FROST_TREES) + tree_spot + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block"], DOWN))])
+    # Ice spikes after the trees: a spike forms round a branch in its way (the other way round, the branch would have a
+    # gap where the spike stands).
+    add_feature("vegetal_decoration", "ice_spike", [rf], "minecraft:ice_spike", per_chunk(ICE_SPIKE_TRIES) + ground_air)
+
+    # Huge crimson and warped fungi (vanilla's), each only from its own nylium. Their hats have no shroomlights (the
+    # Nether's glowing blocks: light 15 would keep monsters from spawning for 14 blocks round each one).
+    fungus_may_replace = matching(["minecraft:crimson_roots", "minecraft:warped_roots", "minecraft:nether_sprouts",
+                                   "minecraft:crimson_fungus", "minecraft:warped_fungus", "minecraft:weeping_vines",
+                                   "minecraft:weeping_vines_plant", "minecraft:twisting_vines",
+                                   "minecraft:twisting_vines_plant", "dross:scar_roots", "dross:soulwick"])
+    for kind, tries in (("crimson", CRIMSON_FUNGUS_TRIES), ("warped", WARPED_FUNGUS_TRIES)):
+        add_feature("vegetal_decoration", kind + "_fungi", [ns], {"type": "minecraft:huge_fungus", "config": {
+            "valid_base_block": block_state(f"minecraft:{kind}_nylium"),
+            "stem_state": block_state(f"minecraft:{kind}_stem", axis="y"),
+            "hat_state": block_state("minecraft:nether_wart_block" if kind == "crimson" else "minecraft:warped_wart_block"),
+            "decor_state": block_state("minecraft:nether_wart_block" if kind == "crimson" else "minecraft:warped_wart_block"),
+            "replaceable_blocks": fungus_may_replace,
+            "planted": False}},
+            per_chunk(tries) + ground_air)
+    add_feature("vegetal_decoration", "crimson_vegetation", [ns], {"type": "minecraft:nether_forest_vegetation", "config": {
+        "state_provider": weighted([("minecraft:crimson_roots", 87), ("minecraft:crimson_fungus", 11),
+                                    ("minecraft:warped_fungus", 1)]),
+        "spread_width": 8, "spread_height": 4}}, per_chunk(NETHER_VEGETATION) + ground_air)
+    add_feature("vegetal_decoration", "warped_vegetation", [ns], {"type": "minecraft:nether_forest_vegetation", "config": {
+        "state_provider": weighted([("minecraft:warped_roots", 60), ("minecraft:nether_sprouts", 28),
+                                    ("minecraft:warped_fungus", 11), ("minecraft:crimson_fungus", 1)]),
+        "spread_width": 8, "spread_height": 4}}, per_chunk(NETHER_VEGETATION) + ground_air)
+
+    # Ground plants, last (under the canopy: the heightmap that looks through leaves).
+    under_canopy = [IN_SQUARE, heightmap("MOTION_BLOCKING_NO_LEAVES")]
+    add_feature("vegetal_decoration", "glimmer_ferns", [sw],
+                patch(provider("dross:glimmer_fern"), GLIMMER_FERN_TRIES, 7, 3), per_chunk(GLIMMER_FERN_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "wispblooms", [sw],
+                patch(provider("dross:wispbloom"), WISPBLOOM_TRIES, 3, 2), per_chunk(WISPBLOOM_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "emberweed", [cw],
+                patch(provider("dross:emberweed"), EMBERWEED_TRIES, 5, 2), per_chunk(EMBERWEED_PATCHES) + under_canopy)
+    ash_layer = {"type": "minecraft:randomized_int_state_provider", "property": "layers",
+                 "values": uniform_int(*ASH_LAYER_DEPTH), "source": provider("dross:ash_layer", layers=1)}
+    add_feature("vegetal_decoration", "ash_layers", [cw],
+                patch(ash_layer, ASH_LAYER_TRIES, 6, 2, [matching(["dross:ash", "minecraft:basalt"], DOWN)]),
+                per_chunk(ASH_LAYER_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "gloomcaps", [bw],
+                patch(provider("dross:gloomcap"), GLOOMCAP_TRIES, 4, 2), per_chunk(GLOOMCAP_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "sporepods", [bw],
+                patch(provider("dross:sporepod"), SPOREPOD_TRIES, 6, 2), per_chunk(SPOREPOD_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "frostblooms", [rf],
+                patch(provider("dross:frostbloom"), FROSTBLOOM_TRIES, 5, 2), per_chunk(FROSTBLOOM_PATCHES) + under_canopy)
+    snow_layer = {"type": "minecraft:randomized_int_state_provider", "property": "layers",
+                  "values": uniform_int(*SNOW_LAYER_DEPTH), "source": provider("minecraft:snow", layers=1)}
+    add_feature("vegetal_decoration", "snow_drifts", [rf],
+                patch(snow_layer, SNOW_LAYER_TRIES, 7, 2, [matching(["dross:hoarfrost", "minecraft:snow_block"], DOWN)]),
+                per_chunk(SNOW_LAYER_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "scar_roots", [ns],
+                patch(provider("dross:scar_roots"), SCAR_ROOT_TRIES, 6, 2), per_chunk(SCAR_ROOT_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "soulwicks", [ns],
+                patch(provider("dross:soulwick"), SOULWICK_TRIES, 3, 2), per_chunk(SOULWICK_PATCHES) + under_canopy)
+    add_feature("vegetal_decoration", "crag_thistles", [gc],
+                patch(provider("dross:crag_thistle"), CRAG_THISTLE_TRIES, 5, 3), per_chunk(CRAG_THISTLE_PATCHES) + under_canopy)
+    # Storm Lichen: from a spot at the foot of a cliff (up to STORM_LICHEN_REACH_UP above the ground), onto the rock face
+    # beside it (walls only).
+    add_feature("vegetal_decoration", "storm_lichen", [gc], {"type": "minecraft:multiface_growth", "config": {
+        "block": check_block("dross:storm_lichen"), "search_range": 2, "can_place_on_floor": False,
+        "can_place_on_ceiling": False, "can_place_on_wall": True, "chance_of_spreading": STORM_LICHEN_SPREAD,
+        "can_be_placed_on": [check_block(b) for b in ("dross:cragstone", "dross:duskstone")]}},
+        per_chunk(STORM_LICHEN_TRIES) + [IN_SQUARE, heightmap("WORLD_SURFACE_WG"),
+                                          random_offset(0, uniform_int(0, STORM_LICHEN_REACH_UP))])
+
+    # ---- Snow on the peaks, then the tidy-up (step "top_layer_modification") ------------------------------------------
+    if GRAVECRAGS_SNOW:
+        BIOME_FEATURES[gc]["top_layer_modification"].append("minecraft:freeze_top_layer")
+    # The last feature of every chunk (dross:tidy_up, dimension/worldgen/TidyUpFeature): a chunk's features reach a few
+    # blocks into the chunks round it, some decorated before it and some after, so now and then a plant ends up on
+    # ground a later feature turned to rock (or a pond's shore), a hanging Stormvine strand loses its top to another
+    # tree's crown, or a few leaves where two trees meet are marked too far from a log (they'd decay). It removes what
+    # couldn't stay and gives such leaves their real distance (or removes them if no log holds them up).
+    add_feature("top_layer_modification", "tidy_up", list(BIOMES), {"type": "dross:tidy_up", "config": {}}, [])
+
+    ore_tag = {"replace": False, "values": [check_block(b) for b in ORE_REPLACEABLE]}
+    pond_tag = {"replace": False, "values": [check_block(b) for b in POND_GROUND]}
+    return ore_tag, pond_tag
+
+
+# =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
 SEA_LEVEL = -64                 # no seas: below the world's floor
@@ -1217,7 +1777,16 @@ def main():
     write_json("configured_feature", "rock_faces", configured)
     write_json("placed_feature", "rock_faces", placed)
     write_file(os.path.join(DATA, "tags", "blocks", "rock_face_replaceable.json"), tag)
-    check_features({"rock_faces"})
+
+    ore_tag, pond_tag = features()
+    check_configured_refs(set(trees()) | {"rock_faces"})
+    for name, js in CONFIGURED.items():
+        write_json("configured_feature", name, js)
+    for name, js in PLACED.items():
+        write_json("placed_feature", name, js)
+    write_file(os.path.join(DATA, "tags", "blocks", "ore_replaceables.json"), ore_tag)
+    write_file(os.path.join(DATA, "tags", "blocks", "pond_ground.json"), pond_tag)
+    check_features({"rock_faces"} | set(PLACED))
 
     spawns = old_biome()
     for biome_id, spec in BIOMES.items():
@@ -1234,7 +1803,8 @@ def main():
 
     print("worldgen: climate borders (noise): Gravecrags above {mountain:.4f}, Nether Scar above {scar:.4f}, "
           "Cinder Wastes above {hot:.4f}, Rimefall below {cold:.4f}, Blightwood above {rot:.4f}".format(**thresholds))
-    print(f"worldgen: {len(NOISES)} noises, {len(DENSITY_FUNCTIONS)} density functions, {len(BIOMES)} biomes")
+    print(f"worldgen: {len(NOISES)} noises, {len(DENSITY_FUNCTIONS)} density functions, {len(BIOMES)} biomes, "
+          f"{len(PLACED) + 1} placed features ({len(CONFIGURED)} configured features of their own)")
     print(f"worldgen: {len(written)} file(s) written or updated")
     for p in written:
         print("  " + p)

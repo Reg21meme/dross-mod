@@ -107,7 +107,7 @@ SOUL_FLAME = ["#0c4a68", "#1488ab", "#36c2e0", "#8aeefe", "#e6ffff"]
 SOUL_STEM = ["#232a37", "#323c4e", "#4a5870"]
 HOT = ["#5a0f0a", "#9a2410", "#d94a1c", "#ff7a2e", "#ffb45c"]                 # a red-hot crack, dark .. bright
 # The Gravecrags (pale weathered stone, electric blue lichen, grey-violet thistles)
-CRAG = ["#55585c", "#676a6e", "#7a7d81", "#8d9094", "#a1a3a6", "#b5b7b9"]
+CRAG = ["#4e5155", "#64676b", "#797c80", "#8e9195", "#a4a6a9", "#bcbec0"]
 CRAG_STAIN = ["#3f4246", "#4a4d51"]
 LICHEN = [DROSS_DEEP, "#1d4fe0", DROSS_MAIN, "#5e8fff", "#a9c6ff", "#eef4ff"]
 THISTLE = ["#352e3e", "#4a4156", "#61576e", "#7a6f88", "#968ba3"]
@@ -1774,10 +1774,13 @@ CRAG_CRACKS = [[(10, 1), (11, 2)], [(5, 8), (6, 9)]]
 
 
 def cragstone():
-    """Pale grey weathered mountain stone: soft broad patches and a fine grain, a few hairline cracks with a lit lip,
-    and soft dark weathering stains streaking down the face from them, fading as they go. Tiles in every direction."""
+    """Pale grey weathered mountain stone: broad patches and a fine grain, each lighter patch with a lit top edge and a
+    shadow under it (crisp little ledges, light from above), a few hairline cracks with a lit lip, and soft dark
+    weathering stains streaking down the face from them, fading as they go. Tiles in every direction."""
     v = fbm([(4, 4, 0.5), (8, 8, 0.3), (16, 16, 0.2)], seed=331)
     lv = quantize(v, [0.06, 0.20, 0.34, 0.26, 0.11, 0.03])
+    above = roll(lv, 1, 0)                                   # the pixel above each one (wrapping round)
+    lv = np.clip(lv + (lv > above).astype(int) - (lv < above).astype(int), 0, len(CRAG) - 1)
     img = fill(lv, CRAG)
     for x, y0, n in CRAG_STAINS:
         for k in range(n):

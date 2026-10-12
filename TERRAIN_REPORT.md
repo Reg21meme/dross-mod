@@ -18,7 +18,9 @@ This file is the running log of the overnight build. It is updated after every s
 | 2 | The other five biomes' blocks (22) | build OK, asset check OK; the 13 new tests passed in all 4 fresh worlds; 2 of 4 runs had one older test fail (see "Flaky older tests") | c09fd13 |
 | 3 | The hub fitted onto the ground (staircase blend), Dross ground in GroundFit, hub layout API, safe-landing finder, the flaky older tests fixed | build OK, asset check OK, 46/46 tests in 7 fresh worlds and 3 old-world copies | eb0d1eb |
 | 4 | The survivors (the Blind Oracle and the Ragged Seeker); Necromancy and risen undead leave them alone | build OK, 54/54 tests in fresh worlds and old-world copies | 7b23d51 |
-| 5 | The terrain: six biomes, cliffs, mesas, the Gravecrags, the hub area, sky/fog/light, previews | build OK, generator matches, 58/58 tests on a quiet PC (fresh and old world); 3 older tests time out when the PC is busy (fixed next) | (see git log) |
+| 5 | The terrain: six biomes, cliffs, mesas, the Gravecrags, the hub area, sky/fog/light, previews | build OK, generator matches, 58/58 tests on a quiet PC (fresh and old world); 3 older tests time out when the PC is busy (fixed next) | 83965e6 |
+| - | Survivor and trader tests wait in real time (test-only fix) | 58/58 in two fresh worlds | 3d8bc1e |
+| 6 | Trees, plants, ponds, lava pools, giant mushrooms, dead trees, fungi, lichen, boulders and ores in every biome | build OK, generator matches, 60/60 tests in fresh and old worlds | (see git log) |
 
 ## Stage 1: blocks, part 1 (dimension-builder)
 **Built:** Duskstone; Duskstone Coal Ore, Duskstone Gold Ore (2-6 gold nuggets), Moonsilver Ore (Raw Moonsilver, Moonsilver Ingot), Stormite Ore (Stormite Shard, glowing crystals); the silverwood log, wood, stripped log, stripped wood, planks, leaves and sapling; Stormvine; Silvermoss, Glimmer Fern, Wispbloom. Three tree shapes and the `dross:stormvine` tree decorator. Tools in `tools/terrain/` (`worldgen.py`, `draw_blocks.py`, `block_data.py`, `check_assets.py`, `preview_trees.py`), previews in `block-previews/`.
@@ -42,7 +44,7 @@ Stage 2 was interrupted once by a usage limit (it had only read files; nothing w
 - Cinder Wastes: nothing there burns (lava pools will sit beside it). Ash is soft like sand but doesn't fall; 3 Ash make 6 Ash Layers; Ash Layers never melt. Charred Log never burns (no planks, no charcoal). Emberweed glows (light 4) and sheds an ember about every 30 s. Cinder Vents (light 3) puff smoke about every 7 s and, rarely, an electric-blue spark; they are silent and harmless. The Cinder particles are ember orange (the Fire Necromancer's land); the Dross "leak" sparks stay blue.
 - Blightwood: Sporeloam drops itself, bone meal sprouts Gloomcaps (and some Sporepods). The giant mushroom blocks join like vanilla ones and drop about one Gloomcap per 3 blocks. Gloomcap glows (light 6). Sporepods burst into harmless spores with a soft sound when anything walks into them, then refill after 2.5 s (new sound, subtitle "Sporepod bursts").
 - Rimefall: Hoarfrost is frozen ground (snow sound, not slippery). Frostbitten Log burns slowly. Frostbloom's heart glows and it makes light blue dye. Icicles hang only under a solid face, break (no drop) when it goes, and you can walk through them.
-- Nether Scar: no fire anywhere. Scarred Netherrack glows faintly (light 3) and never burns forever. Soulwick (light 10) makes cyan dye. Scar Vents (light 4) puff red and blue embers. Scar Roots don't glow (a glow would stop mobs spawning).
+- Nether Scar: no fire anywhere. Scarred Netherrack's cracks look glowing and it never burns forever (it gave light 3 at first; Stage 6 set it to 0, see there). Soulwick (light 10) makes cyan dye. Scar Vents (light 4) puff red and blue embers. Scar Roots don't glow (a glow would stop mobs spawning).
 - Gravecrags: Cragstone works like stone. Storm Lichen is a glowing (light 7) lichen that spreads with bone meal like glow lichen. Crag Thistle makes light blue dye.
 - Suspicious stew effects for the new flowers: Wispbloom Night Vision, Frostbloom Fire Resistance, Soulwick Slow Falling, Crag Thistle Resistance.
 
@@ -94,3 +96,26 @@ Stage 2 was interrupted once by a usage limit (it had only read files; nothing w
 - **Old worlds:** their already-generated flat chunks stay flat (and their hub stays the old one); new chunks beyond get the new terrain, so there are tall walls where they meet. Play the terrain in a new world.
 
 **Found by the check (to fix before Stage 6):** three tests wait a fixed number of game ticks for work that takes real time, so they fail when the PC is busy (on a quiet PC everything passes): the survivors' `realPairAtTheHub`, Stormvine's light check, and the per-biome chunk check reading an old world's stored biome. Also one test-only colour value to move into `DrossColors`.
+
+## Stage 6: what grows in each biome, and the ores (dimension-builder)
+Stage 6 was cut off once by a usage limit right at the end (its work was all in place) and resumed to finish its report.
+
+**Built** (all numbers are labeled constants in the FEATURES section of `tools/terrain/worldgen.py`; the tuning guide is in `tools/terrain/README.md`):
+- **Silverwood Forest (dense and dark):** three layers of trees: great silverwoods make a high dark roof, tall and common ones fill in below (about 5,000 logs and 32,000 leaves per 49 chunks). Glowing Stormvine climbs the trunks and hangs from the crowns. On the floor: many Glimmer Ferns, a few Wispblooms, mossy Duskstone boulders, fallen silverwood logs with moss, and rare small dark ponds with mud and clay edges.
+- **Cinder Wastes:** small lava pools (4-8 blocks across) with blackstone and magma rims, always enclosed so lava never flows; basalt column clusters; charred dead trees (forked or many-branched); Emberweed, Cinder Vents and drifts of Ash Layers.
+- **Blightwood:** giant blightcap mushrooms (round and flat-topped, fresh and rotting cap blocks mixed), a rare **towering blightcap** landmark (an 11-16-block stem under a 9-block cap), Gloomcaps, Sporepods, rotting fallen logs with things growing on them, rare murky ponds.
+- **Rimefall:** frost-covered dead trees with Icicles under their branches, ice spikes, packed-ice boulders, Frostblooms, snow drifts, rare ponds that freeze over.
+- **Nether Scar:** huge crimson and warped fungi on their own nylium (without shroomlights), roots, sprouts and small fungi, Scar Roots, Soulwicks on soul soil and sand, Scar Vents. No lava, no fire.
+- **The Gravecrags:** glowing Storm Lichen on the rock faces, Crag Thistles, Cragstone boulders, silverwoods on the moss low down, snow layers on the peaks.
+- **Ores** (every biome, also inside the rock that lies over the Duskstone: basalt, blackstone, netherrack, Cragstone): Duskstone Coal Ore (common, y -32 to 160), Duskstone Gold Ore (y -48 to 128), Moonsilver Ore (y -48 to 64), Stormite Ore (rare and deep, with an extra, richer placement only under the Gravecrags).
+- New world-generation pieces: ponds and lava pools that only form on level ground and never cut trees; a tidy-up pass that removes plants or leaves left stranded where neighbouring chunks overlap; boulders built from the bottom up; fallen logs; the towering mushrooms; icicles on dead trees; and a filter that keeps ponds, boulders and fallen logs at least 112 blocks from the hub.
+
+**Choices made:**
+- **Light vs. monsters:** monsters in the Dross only spawn in complete darkness, so every glowing block makes a small safe spot. Glowing things were kept sparse: 3-24% of each biome's floor is lit (most in Silverwood and the Cinder Wastes, least in Rimefall). For this, **Scarred Netherrack now gives no light** (its cracks still look glowing; at light 3 it lit about 75% of the Scar's floor), the Scar's fungi have no shroomlights, and **Stormvine is a little sparser** (on 25% / 35% / 70% of common / tall / great trees; saplings grow the same trees, so they get a bit less vine too).
+- Cragstone's texture got crisper contrast (the tester had called it the weakest).
+- Ice spikes form after the frost trees, so a spike grows round a branch instead of cutting it.
+- Test fixes: the Stormvine light test and two others now wait in real time; the per-biome chunk test reads the hub's biome from the noise (old worlds pass); the last test-only colour moved into `DrossColors`.
+
+**Checks:** 60/60 tests in fresh worlds and an old-world copy; no errors. A Dross chunk with all its features takes about 33-46 ms to generate (a vanilla Overworld chunk about 60 ms in the same run). The hub now takes about 3.5 s to build when a new world starts, because it fells the forest around it (about 116 trees); one "Can't keep up" warning follows, once.
+
+**Tester's notes on the looks (night views in `terrain-previews/view_*.png`):** Silverwood is the strongest (dense, dark, blue vines); Cinder Wastes volcanic; Blightwood fungal but a bit samey; the Gravecrags rocky with snow. Rimefall reads more "dead and cold" than "frozen" (dark ground), and the Nether Scar's bright cracks form a busy regular grid on a flat plain. Both are tuned in Stage 8. Murky ponds are rare in Blightwood (its ground is lumpy).

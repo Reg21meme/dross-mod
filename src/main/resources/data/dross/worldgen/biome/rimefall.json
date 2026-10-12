@@ -110,6 +110,32 @@
   "features": [
     [
       "dross:rock_faces"
+    ],
+    [
+      "dross:pond_rimefall"
+    ],
+    [
+      "dross:ice_boulder"
+    ],
+    [],
+    [],
+    [],
+    [
+      "dross:ore_coal",
+      "dross:ore_gold",
+      "dross:ore_moonsilver",
+      "dross:ore_stormite"
+    ],
+    [],
+    [],
+    [
+      "dross:frost_trees",
+      "dross:ice_spike",
+      "dross:frostblooms",
+      "dross:snow_drifts"
+    ],
+    [
+      "dross:tidy_up"
     ]
   ]
 }

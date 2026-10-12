@@ -35,6 +35,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.gametest.framework.GameTestSequence;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -64,6 +65,9 @@ import org.slf4j.Logger;
  *   <li>{@code site_<biome>.png}: the real generated blocks of each biome's sample site ({@link TerrainChunksGameTest}).</li>
  *   <li>{@code stats.json} and {@code stats.txt}: the numbers ({@link TerrainSurvey} for every test seed and this world;
  *       chunk generation times; the hub).</li>
+ *   <li>For {@code tools/terrain/preview_sites.py}: the real blocks of the middle of each site ({@value #VIEW_HALF} blocks
+ *       every way) and round the hub ({@value #HUB_VIEW_HALF}), with their block light, in {@code build/tv1/views/};
+ *       the script draws them as night views from above ({@code terrain-previews/view_<name>.png}).</li>
  * </ul>
  * The seeds drawn are the first {@value #PREVIEW_FIXED_SEEDS} of {@link TerrainSamplingGameTest#TEST_SEEDS} and this world's.
  */
@@ -90,6 +94,14 @@ public final class TerrainPreviewGameTest
     /** Real-block pictures: a darker line every this many blocks of height. */
     private static final int BLOCK_CONTOUR = 8;
     private static final int LEGEND_WIDTH = 260;
+    /** The night views (tools/terrain/preview_sites.py): this far every way round a site's middle... */
+    private static final int VIEW_HALF = 24;
+    /** ...and round the middle of the hub's footprint (the Shattered Spire's: X -25..49, Z -34..38). */
+    private static final int HUB_VIEW_HALF = 64;
+    private static final int HUB_VIEW_X = 12;
+    private static final int HUB_VIEW_Z = 2;
+    /** A view's blocks reach this far below its lowest ground. */
+    private static final int VIEW_BELOW_GROUND = 3;
 
     private TerrainPreviewGameTest() {}
 
@@ -128,6 +140,7 @@ public final class TerrainPreviewGameTest
                     }
                     maps.join();
                     drawHubArea(dross, out, chunkStats);
+                    dumpView(dross, HUB_VIEW_X, HUB_VIEW_Z, HUB_VIEW_HALF, "hub", "The hub (the Shattered Spire) in the Silverwood Forest");
                 });
         for (ResourceKey<Biome> biome : DrossBiomes.ALL)
         {
@@ -143,6 +156,8 @@ public final class TerrainPreviewGameTest
                     // centred on the generated chunks (the site's own chunk is the middle one)
                     drawBlocks(dross, ((site.getX() >> 4) << 4) + 8, ((site.getZ() >> 4) << 4) + 8, TerrainChunksGameTest.SITE_CHUNKS * 8, SITE_SCALE, null,
                             out.resolve("site_" + DrossBiomes.name(biome) + ".png"), DrossBiomes.name(biome) + " (" + site.getX() + ", " + site.getZ() + ")");
+                    dumpView(dross, ((site.getX() >> 4) << 4) + 8, ((site.getZ() >> 4) << 4) + 8, VIEW_HALF, DrossBiomes.name(biome),
+                            DrossBiomes.name(biome) + " (" + site.getX() + ", " + site.getZ() + ")");
                 }
             });
         }
@@ -317,7 +332,7 @@ public final class TerrainPreviewGameTest
                 int base = biomeColor(biomes[k]);
                 if (here >= SNOW_Y)
                 {
-                    base = mix(base, 0xF4F8FF, 0.75D);
+                    base = mix(base, DrossColors.PREVIEW_SNOW, 0.75D);
                 }
                 double r = ((base >> 16) & 255) * shade * lift;
                 double g = ((base >> 8) & 255) * shade * lift;
@@ -520,6 +535,92 @@ public final class TerrainPreviewGameTest
         }
         g.dispose();
         save(img, file);
+    }
+
+    /**
+     * Writes the real blocks of a square round x, z ({@code half} blocks every way) to build/tv1/views/{@code name}.json
+     * for tools/terrain/preview_sites.py: from a few blocks under the lowest ground up to the highest block, only the
+     * blocks that can be seen from above and the south-east (the rest are hidden behind others), each with the block
+     * light next to it. Server thread.
+     */
+    private static void dumpView(ServerLevel dross, int cx, int cz, int half, String name, String title)
+    {
+        int n = 2 * half;
+        int x0 = cx - half;
+        int z0 = cz - half;
+        int lowest = Integer.MAX_VALUE;
+        int highest = Integer.MIN_VALUE;
+        int[] ground = new int[n * n];
+        for (int j = 0; j < n; j++)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                LevelChunk chunk = dross.getChunk((x0 + i) >> 4, (z0 + j) >> 4);
+                int surface = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, (x0 + i) & 15, (z0 + j) & 15);
+                ground[j * n + i] = TerrainChunksGameTest.groundTop(chunk, x0 + i, z0 + j, surface, dross.getMinBuildHeight());
+                lowest = Math.min(lowest, ground[j * n + i]);
+                highest = Math.max(highest, surface);
+            }
+        }
+        int y0 = lowest - VIEW_BELOW_GROUND;
+        Map<String, Integer> palette = new java.util.LinkedHashMap<>();
+        JsonArray blocks = new JsonArray();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        BlockPos.MutableBlockPos next = new BlockPos.MutableBlockPos();
+        for (int j = 0; j < n; j++)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                for (int y = y0; y <= highest; y++)
+                {
+                    BlockState state = dross.getBlockState(pos.set(x0 + i, y, z0 + j));
+                    if (state.isAir() || hidden(dross, pos, next))
+                    {
+                        continue;
+                    }
+                    String key = net.minecraft.commands.arguments.blocks.BlockStateParser.serialize(state);
+                    int index = palette.computeIfAbsent(key, k -> palette.size());
+                    int light = Math.max(dross.getBrightness(LightLayer.BLOCK, pos),
+                            Math.max(dross.getBrightness(LightLayer.BLOCK, next.setWithOffset(pos, 0, 1, 0)),
+                                    Math.max(dross.getBrightness(LightLayer.BLOCK, next.setWithOffset(pos, 0, 0, 1)),
+                                            dross.getBrightness(LightLayer.BLOCK, next.setWithOffset(pos, 1, 0, 0)))));
+                    JsonArray b = new JsonArray();
+                    b.add(i);
+                    b.add(y - y0);
+                    b.add(j);
+                    b.add(index);
+                    b.add(light);
+                    blocks.add(b);
+                }
+            }
+        }
+        JsonObject root = new JsonObject();
+        root.addProperty("note", "Written by TerrainPreviewGameTest; drawn by tools/terrain/preview_sites.py");
+        root.addProperty("name", name);
+        root.addProperty("title", title);
+        root.addProperty("x0", x0);
+        root.addProperty("y0", y0);
+        root.addProperty("z0", z0);
+        root.addProperty("size", n);
+        root.addProperty("water_color", dross.getBiome(new BlockPos(cx, 80, cz)).value().getWaterColor());
+        JsonArray names = new JsonArray();
+        palette.keySet().forEach(names::add);
+        root.add("palette", names);
+        root.add("blocks", blocks);
+        write(FMLPaths.GAMEDIR.get().toAbsolutePath().getParent().resolve("build").resolve("tv1").resolve("views").resolve(name + ".json"),
+                new GsonBuilder().create().toJson(root));
+    }
+
+    /** True if the block can't be seen from above and the south-east: full opaque blocks above it, south of it and east of it. */
+    private static boolean hidden(ServerLevel dross, BlockPos pos, BlockPos.MutableBlockPos next)
+    {
+        return opaque(dross, next.setWithOffset(pos, 0, 1, 0)) && opaque(dross, next.setWithOffset(pos, 0, 0, 1))
+                && opaque(dross, next.setWithOffset(pos, 1, 0, 0));
+    }
+
+    private static boolean opaque(ServerLevel dross, BlockPos pos)
+    {
+        return dross.getBlockState(pos).isSolidRender(dross, pos);
     }
 
     // ---------------------------------------------------------------------------------------------

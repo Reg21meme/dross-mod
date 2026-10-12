@@ -1,0 +1,33 @@
+{
+  "type": "dross:boulder",
+  "config": {
+    "stone": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:packed_ice"
+      }
+    },
+    "top": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:snow_block"
+      }
+    },
+    "top_chance": 0.5,
+    "lumps": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 2,
+        "max_inclusive": 3
+      }
+    },
+    "lump_radius": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 1.2,
+        "max_exclusive": 2.0
+      }
+    },
+    "replaceable": "#dross:rock_face_replaceable"
+  }
+}

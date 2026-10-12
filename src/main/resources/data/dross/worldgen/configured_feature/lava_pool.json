@@ -1,0 +1,34 @@
+{
+  "type": "dross:pond",
+  "config": {
+    "fluid": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:lava",
+        "Properties": {
+          "level": "0"
+        }
+      }
+    },
+    "barrier": {
+      "type": "minecraft:weighted_state_provider",
+      "entries": [
+        {
+          "weight": 3,
+          "data": {
+            "Name": "minecraft:blackstone"
+          }
+        },
+        {
+          "weight": 1,
+          "data": {
+            "Name": "minecraft:magma_block"
+          }
+        }
+      ]
+    },
+    "ground": "#dross:pond_ground",
+    "size": 10,
+    "max_bank": 2
+  }
+}

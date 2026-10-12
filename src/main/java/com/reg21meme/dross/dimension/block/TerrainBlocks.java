@@ -89,7 +89,12 @@ public final class TerrainBlocks
     private static final int CINDER_VENT_LIGHT = 3;
     private static final int GLOOMCAP_LIGHT = 6;
     private static final int FROSTBLOOM_LIGHT = 3;
-    private static final int SCARRED_NETHERRACK_LIGHT = 3;
+    /**
+     * Scarred Netherrack's cracks glow (full-bright in its model) but light nothing round them: it's the Nether Scar's main
+     * ground, and monsters in the Dross only spawn in complete darkness, so light here would keep them out of most of the
+     * Scar (it was 3 until Stage 6 of Terrain v1).
+     */
+    private static final int SCARRED_NETHERRACK_LIGHT = 0;
     private static final int SOULWICK_LIGHT = 10;
     private static final int SCAR_VENT_LIGHT = 4;
     /** Storm Lichen gives this light only where it covers at least one side (like glow lichen's 7). */

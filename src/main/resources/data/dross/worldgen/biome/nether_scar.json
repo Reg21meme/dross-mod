@@ -115,6 +115,32 @@
   "features": [
     [
       "dross:rock_faces"
+    ],
+    [],
+    [
+      "dross:scar_vent"
+    ],
+    [],
+    [],
+    [],
+    [
+      "dross:ore_coal",
+      "dross:ore_gold",
+      "dross:ore_moonsilver",
+      "dross:ore_stormite"
+    ],
+    [],
+    [],
+    [
+      "dross:crimson_fungi",
+      "dross:warped_fungi",
+      "dross:crimson_vegetation",
+      "dross:warped_vegetation",
+      "dross:scar_roots",
+      "dross:soulwicks"
+    ],
+    [
+      "dross:tidy_up"
     ]
   ]
 }

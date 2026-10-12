@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import net.minecraft.Util;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -102,7 +103,7 @@ public final class TerrainBlocksGameTest
     static final String ARENA = "dross_terrain_arena";
     private static final ResourceLocation ARENA_ID = new ResourceLocation(Dross.MODID, ARENA);
     /** Width and depth (blocks): room for a great silverwood's canopy and branches all round. */
-    private static final int ARENA_SIZE = 31;
+    static final int ARENA_SIZE = 31;
     /** Height (blocks, floor included): a great silverwood is up to 28 blocks tall, plus its canopy. */
     private static final int ARENA_HEIGHT = 36;
     /**
@@ -125,6 +126,15 @@ public final class TerrainBlocksGameTest
     /** Stormvine's light level (see TerrainBlocks), and how many random ticks it gets in the "never spreads" check. */
     private static final int STORMVINE_LIGHT = 6;
     private static final int RANDOM_TICKS = 2000;
+
+    /**
+     * The longest a test waits for light to spread, in real time. The light engine works on its own thread, while the
+     * test server runs its ticks as fast as it can (it doesn't wait 50 ms between them), so on a busy computer hundreds of
+     * ticks can pass before the light is there (it usually takes well under a second).
+     */
+    static final long LIGHT_TIMEOUT_MILLIS = 60_000L;
+    /** The tick limit of a test that waits for light: only a backstop behind {@link #LIGHT_TIMEOUT_MILLIS}. */
+    static final int LIGHT_BACKSTOP_TICKS = 1_000_000;
 
     /** Expected trunk heights, and heights of the whole tree (trunk plus crown), from tools/terrain/worldgen.py. */
     private static final int[] SILVERWOOD_TRUNK = {6, 10};
@@ -643,7 +653,7 @@ public final class TerrainBlocksGameTest
     // Stormvine
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = "dross_terrain_stormvine", timeoutTicks = 100)
+    @GameTest(template = ARENA, batch = "dross_terrain_stormvine", timeoutTicks = LIGHT_BACKSTOP_TICKS)
     public static void stormvineGlowsAndNeverSpreads(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel();
@@ -677,15 +687,35 @@ public final class TerrainBlocksGameTest
         {
             helper.fail("Stormvine should give off light level " + STORMVINE_LIGHT + ", but gives " + vine.getLightEmission(level, abs));
         }
-        // the light spreads out over the next ticks
-        helper.succeedWhen(() -> {
+        // the light spreads out over the next moments (real time: see LIGHT_TIMEOUT_MILLIS)
+        succeedWhenLit(helper, () -> {
             int lightHere = level.getBrightness(LightLayer.BLOCK, abs);
             if (lightHere < STORMVINE_LIGHT)
             {
                 throw new GameTestAssertException("the block light at the Stormvine is " + lightHere + " (expected "
                         + STORMVINE_LIGHT + ")");
             }
-        });
+        }, () -> {});
+    }
+
+    /**
+     * Waits until {@code lit} passes (it throws {@link GameTestAssertException} while the light isn't there yet), at most
+     * {@link #LIGHT_TIMEOUT_MILLIS} of real time; then checks it once more (failing the test if the light still isn't
+     * there), runs {@code then} and succeeds. The test's tick limit must be {@link #LIGHT_BACKSTOP_TICKS} or more.
+     */
+    static void succeedWhenLit(GameTestHelper helper, Runnable lit, Runnable then)
+    {
+        long deadline = Util.getMillis() + LIGHT_TIMEOUT_MILLIS;
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (Util.getMillis() < deadline)
+                    {
+                        lit.run();
+                    }
+                })
+                .thenExecute(lit)
+                .thenExecute(then)
+                .thenSucceed();
     }
 
     // ---------------------------------------------------------------------------------------------

@@ -104,6 +104,31 @@
   "features": [
     [
       "dross:rock_faces"
+    ],
+    [],
+    [
+      "dross:crag_boulder"
+    ],
+    [],
+    [],
+    [],
+    [
+      "dross:ore_coal",
+      "dross:ore_gold",
+      "dross:ore_moonsilver",
+      "dross:ore_stormite",
+      "dross:ore_stormite_gravecrags"
+    ],
+    [],
+    [],
+    [
+      "dross:crag_silverwoods",
+      "dross:crag_thistles",
+      "dross:storm_lichen"
+    ],
+    [
+      "minecraft:freeze_top_layer",
+      "dross:tidy_up"
     ]
   ]
 }

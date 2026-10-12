@@ -1,0 +1,8 @@
+{
+  "feature": "dross:tidy_up",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

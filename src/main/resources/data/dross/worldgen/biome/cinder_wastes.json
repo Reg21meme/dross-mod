@@ -115,6 +115,32 @@
   "features": [
     [
       "dross:rock_faces"
+    ],
+    [
+      "dross:lava_pool"
+    ],
+    [
+      "dross:basalt_spires",
+      "dross:cinder_vent"
+    ],
+    [],
+    [],
+    [],
+    [
+      "dross:ore_coal",
+      "dross:ore_gold",
+      "dross:ore_moonsilver",
+      "dross:ore_stormite"
+    ],
+    [],
+    [],
+    [
+      "dross:charred_trees",
+      "dross:emberweed",
+      "dross:ash_layers"
+    ],
+    [
+      "dross:tidy_up"
     ]
   ]
 }

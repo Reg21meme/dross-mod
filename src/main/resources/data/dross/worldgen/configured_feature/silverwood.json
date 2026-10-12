@@ -4,10 +4,10 @@
     "decorators": [
       {
         "type": "dross:stormvine",
-        "probability": 0.35,
-        "trunk_density": 0.07,
+        "probability": 0.25,
+        "trunk_density": 0.05,
         "trunk_continue": 0.65,
-        "hanging_density": 0.035,
+        "hanging_density": 0.03,
         "max_hanging_length": 4
       }
     ],

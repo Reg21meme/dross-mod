@@ -121,6 +121,34 @@
   "features": [
     [
       "dross:rock_faces"
+    ],
+    [
+      "dross:pond_silverwood"
+    ],
+    [
+      "dross:mossy_boulder",
+      "dross:fallen_silverwood"
+    ],
+    [],
+    [],
+    [],
+    [
+      "dross:ore_coal",
+      "dross:ore_gold",
+      "dross:ore_moonsilver",
+      "dross:ore_stormite"
+    ],
+    [],
+    [],
+    [
+      "dross:great_silverwoods",
+      "dross:tall_silverwoods",
+      "dross:silverwoods",
+      "dross:glimmer_ferns",
+      "dross:wispblooms"
+    ],
+    [
+      "dross:tidy_up"
     ]
   ]
 }

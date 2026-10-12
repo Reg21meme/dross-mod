@@ -1,0 +1,15 @@
+{
+  "type": "minecraft:multiface_growth",
+  "config": {
+    "block": "dross:storm_lichen",
+    "search_range": 2,
+    "can_place_on_floor": false,
+    "can_place_on_ceiling": false,
+    "can_place_on_wall": true,
+    "chance_of_spreading": 0.5,
+    "can_be_placed_on": [
+      "dross:cragstone",
+      "dross:duskstone"
+    ]
+  }
+}

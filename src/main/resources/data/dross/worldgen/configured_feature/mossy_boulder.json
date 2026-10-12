@@ -1,0 +1,33 @@
+{
+  "type": "dross:boulder",
+  "config": {
+    "stone": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "dross:duskstone"
+      }
+    },
+    "top": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:moss_block"
+      }
+    },
+    "top_chance": 0.65,
+    "lumps": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 2,
+        "max_inclusive": 3
+      }
+    },
+    "lump_radius": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 1.2,
+        "max_exclusive": 1.9
+      }
+    },
+    "replaceable": "#dross:rock_face_replaceable"
+  }
+}

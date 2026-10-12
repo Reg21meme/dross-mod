@@ -115,6 +115,32 @@
   "features": [
     [
       "dross:rock_faces"
+    ],
+    [
+      "dross:pond_blightwood"
+    ],
+    [
+      "dross:fallen_blight_log"
+    ],
+    [],
+    [],
+    [],
+    [
+      "dross:ore_coal",
+      "dross:ore_gold",
+      "dross:ore_moonsilver",
+      "dross:ore_stormite"
+    ],
+    [],
+    [],
+    [
+      "dross:towering_blightcaps",
+      "dross:blightcaps",
+      "dross:gloomcaps",
+      "dross:sporepods"
+    ],
+    [
+      "dross:tidy_up"
     ]
   ]
 }

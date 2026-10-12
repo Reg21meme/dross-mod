@@ -1,0 +1,28 @@
+{
+  "type": "dross:fallen_log",
+  "config": {
+    "log": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "dross:silverwood_log",
+        "Properties": {
+          "axis": "x"
+        }
+      }
+    },
+    "length": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 4,
+        "max_inclusive": 7
+      }
+    },
+    "top": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:moss_carpet"
+      }
+    },
+    "top_chance": 0.35
+  }
+}

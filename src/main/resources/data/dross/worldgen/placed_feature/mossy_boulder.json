@@ -1,0 +1,39 @@
+{
+  "feature": "dross:mossy_boulder",
+  "placement": [
+    {
+      "type": "minecraft:rarity_filter",
+      "chance": 4
+    },
+    {
+      "type": "minecraft:in_square"
+    },
+    {
+      "type": "minecraft:heightmap",
+      "heightmap": "MOTION_BLOCKING_NO_LEAVES"
+    },
+    {
+      "type": "minecraft:block_predicate_filter",
+      "predicate": {
+        "type": "minecraft:matching_blocks",
+        "blocks": [
+          "dross:silvermoss",
+          "minecraft:podzol",
+          "minecraft:moss_block"
+        ],
+        "offset": [
+          0,
+          -1,
+          0
+        ]
+      }
+    },
+    {
+      "type": "dross:not_near_hub",
+      "radius": 112
+    },
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

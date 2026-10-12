@@ -24,7 +24,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.CarpetBlock;
 import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.MultifaceBlock;
 import net.minecraft.world.level.block.SnowLayerBlock;
@@ -44,16 +46,21 @@ import org.slf4j.Logger;
  * every way, are all that biome; for the Gravecrags the highest such spot), generates {@value #SITE_CHUNKS} x
  * {@value #SITE_CHUNKS} chunks there for real, and checks:
  * <ul>
- *   <li>the biome in the middle is the one asked for, and the hub at 0, 0 stands in Silverwood Forest;</li>
+ *   <li>the biome in the middle is the one asked for, and the hub at 0, 0 stands in Silverwood Forest (read from the
+ *       noise, so an older world whose hub chunk was made flat, as Dross Flats, still passes);</li>
  *   <li>bedrock at the world's floor in every column, and none from 5 blocks above it up;</li>
- *   <li>no air more than {@value #AIR_DEPTH} blocks under the ground's top (no caves, gaps or overhangs);</li>
- *   <li>the ground's top blocks: at least 99% are the biome's own ({@link #GROUND}), its ground cover (not bare rock)
- *       covers at least 60%, and its own signature block is there (at least 15%; 40% Cragstone or snow in the Gravecrags);</li>
+ *   <li>no air more than {@value #AIR_DEPTH} blocks under the land's natural top, as the noise made it (no caves or gaps
+ *       in the terrain; boulders, ice spikes and the like stand on that top and may overhang a slope, so the ground's
+ *       real top isn't used for this);</li>
+ *   <li>the ground's top blocks: at least 99% are the biome's own ({@link #GROUND}: its ground cover and rock, and what its
+ *       features add to the ground, such as boulders, pond shores and vents), its ground cover (not bare rock) covers at
+ *       least 60%, and its own signature block is there (at least 15%; 40% Cragstone or snow in the Gravecrags);</li>
  *   <li>every fluid is a still source, lava has something solid (or lava) on every side and below, and the Nether
  *       Scar has no lava or fire; every plant, vine, lichen and snow layer could stay where it is.</li>
  * </ul>
- * The time to generate each site is logged ("[terrain chunks]"), per chunk. The sites are also what
- * {@link TerrainPreviewGameTest} draws.
+ * The time to generate each site is logged ("[terrain chunks]"), per chunk (with every feature: trees, plants, ponds,
+ * ores). The sites are also what {@link TerrainPreviewGameTest} draws. What grows on the land is checked in detail by
+ * {@link TerrainFeaturesGameTest}.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -89,16 +96,23 @@ public final class TerrainChunksGameTest
     record Ground(Set<String> allowed, Set<String> cover, double coverShare, Set<String> signature, double signatureShare) {}
 
     static final Map<ResourceKey<Biome>, Ground> GROUND = Map.of(
-            DrossBiomes.SILVERWOOD_FOREST, new Ground(Set.of("dross:silvermoss", "minecraft:podzol", "minecraft:moss_block", "dross:duskstone"),
+            // (mud and clay: the shores and beds of the ponds; Duskstone and moss: the mossy boulders)
+            DrossBiomes.SILVERWOOD_FOREST, new Ground(Set.of("dross:silvermoss", "minecraft:podzol", "minecraft:moss_block", "dross:duskstone",
+                    "minecraft:mud", "minecraft:clay"),
                     Set.of("dross:silvermoss", "minecraft:podzol", "minecraft:moss_block"), 0.60D, Set.of("dross:silvermoss"), 0.15D),
-            DrossBiomes.CINDER_WASTES, new Ground(Set.of("dross:ash", "minecraft:magma_block", "minecraft:basalt"),
+            // (blackstone: under the lava pools; Cinder Vents set into the ground)
+            DrossBiomes.CINDER_WASTES, new Ground(Set.of("dross:ash", "minecraft:magma_block", "minecraft:basalt", "minecraft:blackstone",
+                    "dross:cinder_vent"),
                     Set.of("dross:ash", "minecraft:magma_block", "minecraft:basalt"), 0.60D, Set.of("dross:ash"), 0.15D),
-            DrossBiomes.BLIGHTWOOD, new Ground(Set.of("dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt", "dross:duskstone"),
+            DrossBiomes.BLIGHTWOOD, new Ground(Set.of("dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt", "dross:duskstone",
+                    "minecraft:mud"),
                     Set.of("dross:sporeloam", "minecraft:mycelium", "minecraft:coarse_dirt"), 0.60D, Set.of("dross:sporeloam"), 0.15D),
-            DrossBiomes.RIMEFALL, new Ground(Set.of("dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice", "dross:duskstone"),
+            // (ice: the frozen ponds)
+            DrossBiomes.RIMEFALL, new Ground(Set.of("dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice", "dross:duskstone",
+                    "minecraft:ice"),
                     Set.of("dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"), 0.60D, Set.of("dross:hoarfrost"), 0.15D),
             DrossBiomes.NETHER_SCAR, new Ground(Set.of("dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium",
-                    "minecraft:soul_soil", "minecraft:soul_sand", "minecraft:netherrack"),
+                    "minecraft:soul_soil", "minecraft:soul_sand", "minecraft:netherrack", "dross:scar_vent"),
                     Set.of("dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium", "minecraft:soul_soil",
                             "minecraft:soul_sand"), 0.60D, Set.of("dross:scarred_netherrack"), 0.15D),
             DrossBiomes.GRAVECRAGS, new Ground(Set.of("dross:cragstone", "minecraft:snow_block", "minecraft:gravel", "minecraft:moss_block"),
@@ -115,7 +129,8 @@ public final class TerrainChunksGameTest
         {
             throw new GameTestAssertException("there's no Dross level");
         }
-        CompletableFuture<Map<ResourceKey<Biome>, BlockPos>> sites = CompletableFuture.supplyAsync(() -> findSites(TerrainProbe.forWorld(dross)));
+        TerrainProbe probe = TerrainProbe.forWorld(dross);
+        CompletableFuture<Map<ResourceKey<Biome>, BlockPos>> sites = CompletableFuture.supplyAsync(() -> findSites(probe, SITE_X, SITE_Z));
         long deadline = Util.getMillis() + TerrainSamplingGameTest.TIMEOUT_MILLIS;
         List<String> problems = new ArrayList<>();
         GameTestSequence sequence = helper.startSequence()
@@ -130,10 +145,12 @@ public final class TerrainChunksGameTest
                     {
                         throw new GameTestAssertException("looking for sample sites took too long");
                     }
-                    ResourceKey<Biome> hub = dross.getBiome(DrossHub.CENTER.atY(80)).unwrapKey().orElse(null);
-                    if (!DrossBiomes.SILVERWOOD_FOREST.equals(hub))
+                    // From the noise, not the chunk: an older world's hub chunk was made flat (Dross Flats) before the terrain.
+                    BlockPos hub = DrossHub.CENTER.atY(TerrainProbe.BIOME_Y);
+                    if (!DrossBiomes.isBiome(dross, hub, DrossBiomes.SILVERWOOD_FOREST))
                     {
-                        problems.add("the hub at 0, 0 stands in " + hub + ", not Silverwood Forest");
+                        problems.add("the hub at 0, 0 stands in " + TerrainProbe.forWorld(dross).biomeKey(hub.getX(), hub.getZ())
+                                + " (by the noise), not Silverwood Forest");
                     }
                 });
         for (ResourceKey<Biome> biome : DrossBiomes.ALL)
@@ -148,7 +165,7 @@ public final class TerrainChunksGameTest
                 long t = Util.getNanos();
                 List<LevelChunk> chunks = generate(dross, site);
                 double ms = (Util.getNanos() - t) / 1.0E6D / chunks.size();
-                checkSite(dross, biome, site, chunks, ms, problems);
+                checkSite(dross, probe, biome, site, chunks, ms, problems);
             });
         }
         sequence.thenExecute(() -> {
@@ -167,17 +184,30 @@ public final class TerrainChunksGameTest
         }).thenSucceed();
     }
 
-    /**
-     * A sample site for each biome near SITE_X, SITE_Z: the nearest spot whose surroundings (SITE_CLEAR blocks every way)
-     * are all that biome; for the Gravecrags the highest such spot. Noise only; off the server thread.
-     */
+    /** {@link #findSites(TerrainProbe, int, int)} round SITE_X, SITE_Z (the sites the previews draw too). */
     static Map<ResourceKey<Biome>, BlockPos> findSites(TerrainProbe probe)
     {
+        return findSites(probe, SITE_X, SITE_Z);
+    }
+
+    /**
+     * A sample site for each biome near centreX, centreZ (within SITE_SEARCH): the nearest spot whose surroundings
+     * (SITE_CLEAR blocks every way) are all that biome; for the Gravecrags the highest such spot. Noise only; off the
+     * server thread.
+     */
+    static Map<ResourceKey<Biome>, BlockPos> findSites(TerrainProbe probe, int centreX, int centreZ)
+    {
+        return findSites(probe, centreX, centreZ, SITE_CLEAR);
+    }
+
+    /** As {@link #findSites(TerrainProbe, int, int)}, with the surroundings that must be all one biome {@code clear} blocks every way. */
+    static Map<ResourceKey<Biome>, BlockPos> findSites(TerrainProbe probe, int centreX, int centreZ, int clear)
+    {
         int n = 2 * SITE_SEARCH / SITE_CELL + 1;
-        int x0 = SITE_X - SITE_SEARCH;
-        int z0 = SITE_Z - SITE_SEARCH;
+        int x0 = centreX - SITE_SEARCH;
+        int z0 = centreZ - SITE_SEARCH;
         int[] grid = TerrainSurvey.biomeGrid(probe, x0, z0, SITE_CELL, n, n);
-        int r = SITE_CLEAR / SITE_CELL;
+        int r = (clear + SITE_CELL - 1) / SITE_CELL;
         Map<ResourceKey<Biome>, BlockPos> sites = new LinkedHashMap<>();
         Map<Integer, double[]> best = new HashMap<>();
         for (int j = r; j < n - r; j++)
@@ -191,7 +221,7 @@ public final class TerrainChunksGameTest
                 }
                 int x = x0 + i * SITE_CELL;
                 int z = z0 + j * SITE_CELL;
-                double score = b == TerrainSurvey.GRAVECRAGS ? -probe.height(x, z) : Math.hypot(x - SITE_X, z - SITE_Z);
+                double score = b == TerrainSurvey.GRAVECRAGS ? -probe.height(x, z) : Math.hypot(x - centreX, z - centreZ);
                 double[] old = best.get(b);
                 if (old == null || score < old[0])
                 {
@@ -225,10 +255,16 @@ public final class TerrainChunksGameTest
         return true;
     }
 
-    /** Generates (or loads) the site's chunks, fully. Server thread. */
+    /** Generates (or loads) the site's chunks ({@value #SITE_CHUNKS} x {@value #SITE_CHUNKS}), fully. Server thread. */
     static List<LevelChunk> generate(ServerLevel dross, BlockPos site)
     {
-        int half = SITE_CHUNKS / 2;
+        return generate(dross, site, SITE_CHUNKS);
+    }
+
+    /** Generates (or loads) {@code size} x {@code size} chunks centred on the site's chunk, fully. Server thread. */
+    static List<LevelChunk> generate(ServerLevel dross, BlockPos site, int size)
+    {
+        int half = size / 2;
         int cx = site.getX() >> 4;
         int cz = site.getZ() >> 4;
         List<LevelChunk> chunks = new ArrayList<>();
@@ -242,8 +278,8 @@ public final class TerrainChunksGameTest
         return chunks;
     }
 
-    private static void checkSite(ServerLevel dross, ResourceKey<Biome> biome, BlockPos site, List<LevelChunk> chunks, double msPerChunk,
-                                  List<String> problems)
+    private static void checkSite(ServerLevel dross, TerrainProbe probe, ResourceKey<Biome> biome, BlockPos site, List<LevelChunk> chunks,
+                                  double msPerChunk, List<String> problems)
     {
         String name = DrossBiomes.name(biome);
         ResourceKey<Biome> middle = dross.getBiome(site.atY(80)).unwrapKey().orElse(null);
@@ -273,23 +309,26 @@ public final class TerrainChunksGameTest
                 for (int z = bz; z < bz + 16; z++)
                 {
                     columns++;
-                    if (!chunk.getBlockState(pos.set(x, minY, z)).is(net.minecraft.world.level.block.Blocks.BEDROCK))
+                    if (!chunk.getBlockState(pos.set(x, minY, z)).is(Blocks.BEDROCK))
                     {
                         noBedrock++;
                     }
                     for (int y = minY + 5; y < minY + 10; y++)
                     {
-                        if (chunk.getBlockState(pos.set(x, y, z)).is(net.minecraft.world.level.block.Blocks.BEDROCK))
+                        if (chunk.getBlockState(pos.set(x, y, z)).is(Blocks.BEDROCK))
                         {
                             highBedrock++;
                         }
                     }
                     int surface = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x & 15, z & 15);
-                    int floor = chunk.getHeight(Heightmap.Types.OCEAN_FLOOR, x & 15, z & 15);
+                    // the real ground (the heightmaps stop at tree crowns, giant mushrooms and fungi)
+                    int groundY = groundTop(chunk, x, z, surface, minY);
+                    // the land's top as the noise made it (what holes in the terrain are measured from)
+                    int naturalTop = probe.baseHeight(x, z) - 1;
                     for (int y = surface; y >= minY; y--)
                     {
                         BlockState state = chunk.getBlockState(pos.set(x, y, z));
-                        if (y < floor - AIR_DEPTH && state.isAir())
+                        if (y < naturalTop - AIR_DEPTH && state.isAir())
                         {
                             air++;
                         }
@@ -315,7 +354,6 @@ public final class TerrainChunksGameTest
                             unhappyPlants++;
                         }
                     }
-                    int groundY = groundTop(chunk, x, z, surface, minY);
                     groundAt.put(BlockPos.asLong(x, 0, z), groundY);
                     BlockState ground = chunk.getBlockState(pos.set(x, groundY, z));
                     tops.merge(ForgeRegistries.BLOCKS.getKey(ground.getBlock()).toString(), 1, Integer::sum);
@@ -394,21 +432,31 @@ public final class TerrainChunksGameTest
                 String.format(Locale.ROOT, "%.1f", inner == 0 ? 0.0D : 100.0D * steep / inner), sorted(tops, columns));
     }
 
-    /** The top of the ground in a column: the highest block that isn't air, a plant, leaves, a log, a giant mushroom or a fluid. */
+    /**
+     * The top of the ground in a column: the highest block that isn't air, a fluid, a plant, a carpet, leaves, a log (trunks,
+     * fallen logs and fungus stems), a giant mushroom or a huge fungus's hat (wart blocks and shroomlights).
+     */
     static int groundTop(LevelChunk chunk, int x, int z, int surface, int minY)
     {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int y = surface; y > minY; y--)
         {
             BlockState state = chunk.getBlockState(pos.set(x, y, z));
-            if (state.isAir() || !state.getFluidState().isEmpty() || state.canBeReplaced() || state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS)
-                    || state.getBlock() instanceof HugeMushroomBlock || state.getCollisionShape(chunk, pos).isEmpty())
+            if (isAboveGround(state) || state.getCollisionShape(chunk, pos).isEmpty())
             {
                 continue;
             }
             return y;
         }
         return minY;
+    }
+
+    /** Things that stand on (or hang over) the ground rather than being it: see {@link #groundTop}. */
+    static boolean isAboveGround(BlockState state)
+    {
+        return state.isAir() || !state.getFluidState().isEmpty() || state.canBeReplaced() || state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS)
+                || state.getBlock() instanceof HugeMushroomBlock || state.getBlock() instanceof CarpetBlock || state.is(BlockTags.WART_BLOCKS)
+                || state.is(Blocks.SHROOMLIGHT);
     }
 
     /** True if lava here has something solid (or more lava) on every side and below. */

@@ -1,0 +1,24 @@
+package com.reg21meme.dross.registry;
+
+import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.worldgen.NotNearHubFilter;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
+import net.minecraftforge.registries.DeferredRegister;
+import net.minecraftforge.registries.RegistryObject;
+
+/**
+ * Placement modifiers: new rules for where world generation places a feature (used by the placed-feature JSON in
+ * data/dross/worldgen/placed_feature/).
+ */
+public final class ModPlacementModifiers
+{
+    public static final DeferredRegister<PlacementModifierType<?>> PLACEMENT_MODIFIERS =
+            DeferredRegister.create(Registries.PLACEMENT_MODIFIER_TYPE, Dross.MODID);
+
+    // Dimension area: dross:not_near_hub, keeps ponds, boulders and fallen logs away from the hub at Dross 0, 0
+    public static final RegistryObject<PlacementModifierType<NotNearHubFilter>> NOT_NEAR_HUB =
+            PLACEMENT_MODIFIERS.register("not_near_hub", () -> () -> NotNearHubFilter.CODEC);
+
+    private ModPlacementModifiers() {}
+}

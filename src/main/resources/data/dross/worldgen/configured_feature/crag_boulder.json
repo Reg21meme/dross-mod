@@ -1,0 +1,33 @@
+{
+  "type": "dross:boulder",
+  "config": {
+    "stone": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "dross:cragstone"
+      }
+    },
+    "top": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "dross:cragstone"
+      }
+    },
+    "top_chance": 0.0,
+    "lumps": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 2,
+        "max_inclusive": 4
+      }
+    },
+    "lump_radius": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 1.4,
+        "max_exclusive": 2.4
+      }
+    },
+    "replaceable": "#dross:rock_face_replaceable"
+  }
+}

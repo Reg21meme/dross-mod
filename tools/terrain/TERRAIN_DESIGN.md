@@ -41,6 +41,41 @@ numbers are in `tools/terrain/worldgen.py`, the guide in `tools/terrain/README.m
 - **`DrossBiomes.findNearest`** moves the found spot up to 32 blocks further into the region (the search stops at its
   near edge, where Minecraft's slight blurring of borders can read the neighbour).
 
+## As built (Stage 6): what grows and lies on the land
+Section 4 is still how the feature lists work; these are the differences (numbers in `worldgen.py` FEATURES, the guide
+in `tools/terrain/README.md`):
+- **Ponds and lava pools are `dross:pond`** (`dimension/worldgen/PondFeature`), not `minecraft:lake` or `delta_feature`.
+  Vanilla's lake clears whatever stands in its upper half (only `#features_cannot_replace` is safe), so where a
+  neighbouring chunk had already grown its trees it cut their trunks and left them floating; the delta lava pools came
+  out as 1-3-block fragments on the rough Cinder ground. The pond keeps the lake's shape (box 16; lava pools 10), puts its
+  surface at the lowest natural ground under it and round its rim (the `WORLD_SURFACE_WG` heightmap, which features never
+  change), refuses ground that rises more than `max_bank` (2; Blightwood 3), refuses anything standing in its way or
+  beside it (logs, leaves, mushroom and wart blocks, block entities), lines only `#dross:pond_ground` with its barrier,
+  and freezes its own top in a cold biome (vanilla's lake checks one block too high, and `freeze_top_layer` would also
+  snow over Rimefall's hoarfrost). Outside world generation (`/place feature`, tests) it finds the ground by looking down.
+- **`dross:tidy_up`** (`TidyUpFeature`) is the last feature of every biome: a chunk's features reach into the chunks
+  round it, some decorated before it and some after, so plants could end up on ground a later `rock_faces` or pond made
+  rock or mud, Stormvine strands lost their tops to another tree's crown, and a few leaves where crowns met were left at
+  distance 7. It removes what can't stay and re-measures (or removes) such leaves in the 3 x 3 chunks: about 1 ms a chunk.
+- **Light vs. spawning** (monsters need block light 0 in the Dross): the Nether Scar's huge fungi have wart blocks instead
+  of shroomlights; Scarred Netherrack's light went from 3 to 0 (its full-bright cracks still glow; at 3 it lit ~75% of
+  the Scar's floor); Stormvine's tree chances are lower (0.25 / 0.35 / 0.7, trunk 0.05, hanging 0.03); Storm Lichen
+  8 tries a chunk; lava pools are rare. Measured lit floor: Silverwood ~15-18%, Cinder ~18-23%, Gravecrags ~11-20%,
+  Scar ~5-12%, Blightwood and Rimefall ~4-8%.
+- **Dead trees**: the forked charred tree's trunk is at least 5 (vanilla acacia's): at 4 the forking trunk placer can
+  start leaning at height 0, so the trunk begins beside its origin, over a dip. Ice spikes run after the frost trees
+  (vegetal step), so a spike forms round a branch instead of the branch skipping the spike.
+- **Ground features** use the `MOTION_BLOCKING_NO_LEAVES` heightmap and a filter on the block below (a neighbour's crown
+  may already reach over the chunk). Boulders are built from the bottom up, each block resting on the ground or the
+  boulder (no overhangs on slopes). Fallen logs try both directions and may lie across a dip of one block.
+- **Towering blightcaps** (`dross:towering_mushroom`): vanilla's flat huge mushroom with an 11-16 stem and a radius-4 cap,
+  placed before the ordinary blightcaps (a huge mushroom needs its whole space open).
+- **Ores** use the tag `#dross:ore_replaceables` (Duskstone, Cragstone, basalt, blackstone, netherrack), so the biome rock
+  over the Duskstone has ores too; Stormite has an extra Gravecrags-only placement.
+- **Checks**: `TerrainChunksGameTest` measures holes from the noise's surface (`TerrainProbe.baseHeight`), not the ground's
+  real top (boulders and ice spikes may overhang); `TerrainFeaturesGameTest` (real chunks: markers, canSurvive, fluids,
+  leaves, nothing hanging in the air, ores) and its prepared-ground pond test.
+
 ## 0. Key decisions
 - `minecraft:noise` generator, inline `minecraft:multi_noise` biome source, our own noises in the climate slots (temperature = heat, vegetation = rot, continents = mountain mask, weirdness/ridges = scar), erosion and depth fixed at 0 (2D biomes). A custom density function type `dross:hub_falloff` is required (vanilla has no function of x/z; `end_islands` only ramps to ~200 blocks).
 - **Terrain is a 2D height field.** `final_density = (H(x,z) - y)/32 + gated jag`. Linear in y, so the 8-block vertical interpolation is exact; no `squeeze`, slides or `blend_density` needed; floating blocks and caves are impossible by construction; `getBaseHeight` matches a cheap 2D probe.
@@ -175,7 +210,7 @@ Sample a biome grid at 16-block cells over 8192^2 blocks centred far from the hu
 | `MOUNTAIN_FREE_INNER/OUTER` | 600/850 | 1100/1500 |
 | `MOUNTAIN_RING_FADE_INNER/OUTER` | 1100/1500 | 1900/2600 |
 | test region-size band | 400-800 | 900-1500 |
-No water: set `POND_CHANCE_*` to 0 (and `CINDER_LAVA_POOL_CHANCE = 0` for no liquids).
+No water: leave the `pond_*` features out (and `lava_pool` for no liquids).
 
 ## 3. Surface rules
 They only replace blocks that are exactly the default block (duskstone); first match wins.

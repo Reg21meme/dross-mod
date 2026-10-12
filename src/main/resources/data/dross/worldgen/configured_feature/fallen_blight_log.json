@@ -1,0 +1,45 @@
+{
+  "type": "dross:fallen_log",
+  "config": {
+    "log": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "dross:silverwood_log",
+        "Properties": {
+          "axis": "x"
+        }
+      }
+    },
+    "length": {
+      "type": "minecraft:uniform",
+      "value": {
+        "min_inclusive": 3,
+        "max_inclusive": 6
+      }
+    },
+    "top": {
+      "type": "minecraft:weighted_state_provider",
+      "entries": [
+        {
+          "weight": 3,
+          "data": {
+            "Name": "dross:sporepod"
+          }
+        },
+        {
+          "weight": 3,
+          "data": {
+            "Name": "minecraft:moss_carpet"
+          }
+        },
+        {
+          "weight": 1,
+          "data": {
+            "Name": "dross:gloomcap"
+          }
+        }
+      ]
+    },
+    "top_chance": 0.45
+  }
+}

@@ -124,7 +124,8 @@ public final class BiomeBlocksGameTest
     private static final int CINDER_VENT_LIGHT = 3;
     private static final int GLOOMCAP_LIGHT = 6;
     private static final int FROSTBLOOM_LIGHT = 3;
-    private static final int SCARRED_NETHERRACK_LIGHT = 3;
+    /** Scarred Netherrack glows (full-bright cracks) but gives no light: monsters still spawn on the Nether Scar's ground. */
+    private static final int SCARRED_NETHERRACK_LIGHT = 0;
     private static final int SOULWICK_LIGHT = 10;
     private static final int SCAR_VENT_LIGHT = 4;
     private static final int STORM_LICHEN_LIGHT = 7;
@@ -135,7 +136,7 @@ public final class BiomeBlocksGameTest
     // Cinder Wastes
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = "dross_terrain_ash_layer", timeoutTicks = 100)
+    @GameTest(template = ARENA, batch = "dross_terrain_ash_layer", timeoutTicks = TerrainBlocksGameTest.LIGHT_BACKSTOP_TICKS)
     public static void ashLayerNeverMelts(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel();
@@ -150,8 +151,8 @@ public final class BiomeBlocksGameTest
         {
             helper.fail("Ash Layer shouldn't take random ticks (that's how snow melts)");
         }
-        helper.startSequence()
-                .thenWaitUntil(() -> {
+        // wait (in real time: the light engine works on its own thread) until the glowstone's light is there
+        TerrainBlocksGameTest.succeedWhenLit(helper, () -> {
                     for (BlockPos pos : List.of(ash, snow))
                     {
                         int light = level.getBrightness(LightLayer.BLOCK, helper.absolutePos(pos));
@@ -160,8 +161,7 @@ public final class BiomeBlocksGameTest
                             throw new GameTestAssertException("the light at " + pos + " is only " + light + " so far");
                         }
                     }
-                })
-                .thenExecute(() -> {
+                }, () -> {
                     RandomSource random = RandomSource.create(7L);
                     for (BlockPos pos : List.of(ash, snow))
                     {
@@ -180,8 +180,7 @@ public final class BiomeBlocksGameTest
                     {
                         helper.fail("control: vanilla snow beside the same light should have melted (is the light too dim?)");
                     }
-                })
-                .thenSucceed();
+                });
     }
 
     @GameTest(template = ARENA, batch = "dross_terrain_ash_stacks", timeoutTicks = 100)
@@ -495,7 +494,7 @@ public final class BiomeBlocksGameTest
     // Light
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = "dross_terrain_light", timeoutTicks = 100)
+    @GameTest(template = ARENA, batch = "dross_terrain_light", timeoutTicks = TerrainBlocksGameTest.LIGHT_BACKSTOP_TICKS)
     public static void glowingBlocksGiveLight(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel();
@@ -524,11 +523,12 @@ public final class BiomeBlocksGameTest
         helper.setBlock(soulwick, ModBlocks.SOULWICK.get());
         helper.setBlock(gloomcap.below(), ModBlocks.SPORELOAM.get());
         helper.setBlock(gloomcap, ModBlocks.GLOOMCAP.get());
-        helper.succeedWhen(() -> {
+        // the light spreads out over the next moments (real time: the light engine works on its own thread)
+        TerrainBlocksGameTest.succeedWhenLit(helper, () -> {
             expectBlockLight(helper, lichen, STORM_LICHEN_LIGHT);
             expectBlockLight(helper, soulwick, SOULWICK_LIGHT);
             expectBlockLight(helper, gloomcap, GLOOMCAP_LIGHT);
-        });
+        }, () -> {});
     }
 
     private static void expectLight(GameTestHelper helper, BlockState state, int light)

@@ -1,19 +1,20 @@
 # tools/terrain
 
 Python tools for the Dross's terrain: its blocks, their textures and files, and its worldgen (the land's shape, the six
-biomes, the surface blocks, tree shapes; trees, plants, ponds and ores in a later stage). Run everything from the project
-folder. `worldgen.py`, `block_data.py` and `check_assets.py` need only Python 3 (`worldgen.py` uses numpy if it's there,
-for one extra check); `draw_blocks.py` and `preview_trees.py` also need numpy and Pillow; `terrain_sketch.py` numpy,
-scipy and Pillow.
+biomes, the surface blocks, the trees, everything that grows and lies on the land, and the ores). Run everything from the
+project folder. `worldgen.py`, `block_data.py` and `check_assets.py` need only Python 3 (`worldgen.py` uses numpy if it's
+there, for one extra check); `draw_blocks.py`, `preview_trees.py` and `preview_sites.py` also need numpy and Pillow;
+`terrain_sketch.py` numpy, scipy and Pillow.
 
 | Script | What it does | Writes |
 |---|---|---|
-| `worldgen.py` | The one generator for all Dross worldgen JSON and the dimension itself. Change a tuning number, run it, the JSON is rewritten (files it no longer writes in its own folders are deleted). It checks every block, particle, sound, noise and feature id it names, that spline points go up, that the biomes' feature lists can't crash with "feature order cycle", and reads the biome colours from `DrossColors.java`. | `data/dross/worldgen/...`, `data/dross/dimension/dross.json`, `data/dross/dimension_type/dross.json`, `data/dross/tags/blocks/rock_face_replaceable.json`, the biome names in `en_us.json` (merged) |
+| `worldgen.py` | The one generator for all Dross worldgen JSON and the dimension itself. Change a tuning number, run it, the JSON is rewritten (files it no longer writes in its own folders are deleted). It checks every block, particle, sound, noise and feature id it names, that spline points go up, that the biomes' feature lists can't crash with "feature order cycle", and reads the biome colours from `DrossColors.java`. | `data/dross/worldgen/...`, `data/dross/dimension/dross.json`, `data/dross/dimension_type/dross.json`, the block tags `rock_face_replaceable`, `ore_replaceables` and `pond_ground` (`data/dross/tags/blocks/`), the biome names in `en_us.json` (merged) |
 | `terrain_sketch.py` | A fast, approximate top-down sketch of the terrain for tuning: it reads the JSON `worldgen.py` wrote and works it out with a numpy copy of Minecraft's noise maths (numpy's random numbers, so seed N here isn't seed N in the game; the shapes and statistics are the same kind). Seconds instead of a server start. | `build/terrain-sketch/` (biome and relief PNGs, `sketch_stats.txt`) |
 | `block_data.py` | Blockstates, block and item models, loot tables, recipes, tags, sounds and English names for the terrain blocks and items, from one list (`BLOCKS`, `ITEMS`, `BLOCK_TAGS`, `ITEM_TAGS`, `RECIPES`, `SOUNDS`, `SUBTITLES`). Shared files (tags other areas use, `en_us.json`, `sounds.json`) are merged: it only adds or updates its own entries. | `assets/dross/...`, `data/dross/...`, `data/minecraft/tags/...`, `data/forge/tags/...` |
 | `draw_blocks.py` | Draws every 16x16 block and item texture from scratch, and the preview sheets (grouped by biome). | `assets/dross/textures/block/`, `textures/item/`, `block-previews/blocks.png`, `block-previews/blocks_3d.png` |
 | `check_assets.py` | Checks every registered Dross block and item has its blockstate, models (following parents), textures, English name and loot table; that every Dross id in a loot table (blocks in its conditions too), recipe or tag exists; that every sound in `registry/ModSounds` is in `sounds.json` with an English subtitle; and that every block in `block_data.py` is registered and in the Dross creative tab. Exits with code 1 on any problem. | nothing |
 | `preview_trees.py` | Draws the trees the GameTest grew, one by one and as a dense stand, at night. | `block-previews/trees.png` |
+| `preview_sites.py` | Draws night views of real generated land, seen from above and the south-east, in the real block textures: each biome's sample site and the hub, with everything growing on them (dark unless block light reaches them). Reads what the preview test wrote. | `terrain-previews/view_<name>.png` |
 
 ## The usual loop
 
@@ -34,12 +35,14 @@ python tools/terrain/worldgen.py                       # rewrite the JSON
 python tools/terrain/terrain_sketch.py --seeds 4       # quick look: build/terrain-sketch/*.png and the stats it prints
 .\gradlew.bat build --console=plain
 $env:DROSS_TERRAIN_PREVIEWS="1"; .\gradlew.bat runGameTestServer -PgameTestWorld=<a new folder name> --console=plain
+python tools/terrain/preview_sites.py                 # night views of the sites and the hub (terrain-previews/view_*.png)
 ```
 
-The last line runs every headless test in a brand-new world (a folder under `run/` that doesn't exist yet) and, with the
-environment variable set, draws the real previews into `terrain-previews/` (about 20 seconds extra). Without it the
-preview test just succeeds. Read the `[terrain test]`, `[terrain chunks]` and `[terrain previews]` lines in the output
-(or `run/logs/latest.log`). Note: a world keeps the land it has already generated, so look at terrain changes in a new
+The runGameTestServer line runs every headless test in a brand-new world (a folder under `run/` that doesn't exist yet)
+and, with the environment variable set, draws the real previews into `terrain-previews/` (about 20 seconds extra) and
+writes the blocks `preview_sites.py` draws (`build/tv1/views/`). Without it the preview test just succeeds. Read the
+`[terrain test]`, `[terrain chunks]`, `[terrain features]` and `[terrain previews]` lines in the output (or
+`run/logs/latest.log`). Note: a world keeps the land it has already generated, so look at terrain changes in a new
 world (old worlds only get the new terrain in chunks nobody has visited yet).
 
 ## Adding a block (for example in a later stage)
@@ -164,6 +167,7 @@ feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bar
   biomes when sampled in a different order. Plus `findNearestFindsEveryBiome` (`DrossBiomes.findNearest`).
 - `dimension/TerrainChunksGameTest`: real chunks at a sample site of each biome: the right biome, bedrock floor, no air
   pockets, the biome's own surface blocks; logs the generation time per chunk next to the vanilla Overworld's.
+- `dimension/TerrainFeaturesGameTest`: what grows and lies on the land, and the ores (see the FEATURES section below).
 - `dimension/TerrainPreviewGameTest`: the previews (only with `DROSS_TERRAIN_PREVIEWS=1`).
 
 ### The client side (can't be tested headlessly)
@@ -173,3 +177,76 @@ in each biome's fog colour instead of black, removes clouds, and tints sky light
 a see-through glow over the night sky and thickens the fog in Blightwood, the Nether Scar, the Cinder Wastes and
 Rimefall. Each part has an on/off switch at the top of its file, and switches itself off (one error in the log) if it
 ever fails.
+
+## worldgen.py: what grows and lies on the land, and the ores (FEATURES section)
+
+Each biome lists its features per generation step (Minecraft runs the steps in order: lakes, local modifications, ores,
+vegetation, top layer). `add_feature` keeps one global order per step and gives each biome a part of it in that order,
+so the "feature order cycle" crash can't happen (the script also checks it). All numbers below are labeled constants at
+the top of the FEATURES section; "per chunk" means on average (0.25 = one chunk in 4), and a "patch" is a cluster of
+plants (its tries are random spots near one place; only spots where the plant can grow get one).
+
+**Light and monsters.** Monsters in the Dross only spawn in complete darkness (block light 0), so every glowing thing
+(Stormvine 6, Wispbloom 5, Gloomcap 6, Emberweed 4, Frostbloom 3, Soulwick 10, Storm Lichen 7, Cinder Vent 3, Scar Vent
+4, lava 15) makes a small safe spot. The glowing plants are kept sparse, the Nether Scar's fungi have no shroomlights,
+and Scarred Netherrack's glowing cracks give no light. `dimension/TerrainFeaturesGameTest` logs how much of each biome's
+floor is lit (about 15-20% in the Silverwood Forest, 15-25% in the Cinder Wastes with their lava, 10-20% in the
+Gravecrags, under 12% elsewhere).
+
+| Biome | What | Constants |
+|---|---|---|
+| Silverwood Forest | Three layers of trees: great (the high dark roof), tall and common silverwoods, bigger ones first so the others fill the gaps; Stormvine comes with the trees (TREES section) | `GREAT_SILVERWOODS`, `TALL_SILVERWOODS`, `SILVERWOODS` (tries per chunk) |
+| | Glimmer Ferns; Wispblooms (they glow: few) | `GLIMMER_FERN_PATCHES`/`_TRIES`, `WISPBLOOM_PATCHES`/`_TRIES` |
+| | Mossy Duskstone boulders; fallen silverwood logs with moss on them | `MOSSY_BOULDERS`, `MOSSY_BOULDER_*`, `FALLEN_SILVERWOODS`, `FALLEN_LOG_LENGTH`, `FALLEN_LOG_MOSS` |
+| | Small dark ponds (mud and clay shores) | `SILVERWOOD_PONDS`, `SILVERWOOD_POND_SHORE` |
+| Cinder Wastes | Small lava pools (blackstone and magma rim); basalt spires; charred dead trees (forked, or many-branched) | `LAVA_POOLS`, `LAVA_POOL_SIZE`, `LAVA_POOL_SHORE`, `BASALT_SPIRES`, `BASALT_SPIRE_*`, `CHARRED_TREES`, `CHARRED_TREE_BRANCHY` |
+| | Cinder Vents in the ash; Emberweed; drifts of Ash Layers | `CINDER_VENTS`, `EMBERWEED_*`, `ASH_LAYER_*` |
+| Blightwood | Towering blightcaps (tall stem, wide flat cap), then the ordinary giant blightcaps (round domes and flat caps of fresh and rotting cap blocks) | `TOWERING_BLIGHTCAP*`, `BLIGHTCAPS`, `BLIGHTCAP_DOME_SHARE`, `BLIGHTCAP_CAP_MIX` |
+| | Gloomcaps (they glow: few), Sporepods; rotting fallen silverwood logs with moss, Sporepods and Gloomcaps on them; murky ponds | `GLOOMCAP_*`, `SPOREPOD_*`, `FALLEN_BLIGHT_LOG*`, `BLIGHTWOOD_PONDS` |
+| Rimefall | Frost-covered dead trees (Icicles under their branches); ice spikes and packed-ice boulders; Frostblooms; snow drifts; frozen ponds | `FROST_TREES`, `FROST_TREE_FORKED`, `ICICLE_CHANCE`, `ICE_SPIKE_TRIES`, `ICE_BOULDER*`, `FROSTBLOOM_*`, `SNOW_LAYER_*`, `RIMEFALL_PONDS` |
+| Nether Scar | Huge crimson and warped fungi (each on its own nylium); roots, sprouts and small fungi; Scar Roots; Soulwicks on soul soil and soul sand; Scar Vents. No lava, no fire | `CRIMSON_FUNGUS_TRIES`, `WARPED_FUNGUS_TRIES`, `NETHER_VEGETATION`, `SCAR_ROOT_*`, `SOULWICK_*`, `SCAR_VENTS` |
+| The Gravecrags | Storm Lichen on the rock faces; Crag Thistles; Cragstone boulders; a few silverwoods on the moss low down; snow on the peaks (vanilla's `freeze_top_layer`) | `STORM_LICHEN_*`, `CRAG_THISTLE_*`, `CRAG_BOULDER*`, `CRAG_SILVERWOODS`, `GRAVECRAGS_SNOW` |
+
+**Ponds and lava pools** are `dross:pond` (`dimension/worldgen/PondFeature`): Minecraft's lake shape (lava pools in a
+smaller box, `LAVA_POOL_SIZE`), with its surface at the lowest ground under it, so it only forms in hollows and level
+ground (the ground may rise at most `POND_MAX_BANK` blocks round it; `BLIGHTWOOD_POND_MAX_BANK` in the lumpy
+Blightwood). Unlike vanilla's lake it never cuts into a tree, giant mushroom or anything else standing on the ground (it
+just doesn't form there), only plain ground (`POND_GROUND`, tag `#dross:pond_ground`) becomes its shore, and Rimefall's
+freeze over as they form. Most tries make no pond, so the `*_PONDS` and `LAVA_POOLS` numbers are tries: now about one or
+two ponds (or lava pools) in 50 chunks of their biome.
+
+**Ores** (every biome, `ORES`; Stormite gets an extra Gravecrags-only placement, `STORMITE_GRAVECRAGS`): each is (block,
+veins per chunk, blocks per vein, chance a block touching air is left out, (spread, lowest y, highest y)); "trapezoid"
+means most in the middle of the range. They replace Duskstone and the biome rock lying over it (`ORE_REPLACEABLE`, tag
+`#dross:ore_replaceables`: basalt and blackstone in the Cinder Wastes, netherrack in the Scar, Cragstone in the
+Gravecrags).
+
+| Ore | Veins per chunk x size | Heights | Found per chunk (about) |
+|---|---|---|---|
+| Duskstone Coal Ore | 20 x 17 | -32 to 160, most in the middle | 250-450 |
+| Duskstone Gold Ore (drops gold nuggets) | 10 x 10 | -48 to 128, even | 50-80 |
+| Moonsilver Ore | 7 x 8 | -48 to 64, most round y 8 | 40 |
+| Stormite Ore | 0.5 x 5 (plus 6 x 5 under the Gravecrags, up to y 96) | -64 to 0, most round y -32 | 1-2 (20 under the Gravecrags) |
+
+**Near the hub** (the Shattered Spire at 0, 0): ponds, mossy boulders and fallen logs stay `NOT_NEAR_HUB_RADIUS` blocks
+away (the placement filter `dross:not_near_hub`, `dimension/worldgen/NotNearHubFilter`, registered in
+`registry/ModPlacementModifiers`); the hub fells the trees touching it itself.
+
+**The tidy-up** (`dross:tidy_up`, `dimension/worldgen/TidyUpFeature`, the last feature of every chunk): a chunk's
+features reach a few blocks into the chunks round it, some decorated before it and some after, so now and then a plant
+ends up on ground a later feature turned into rock or a pond's shore, a hanging Stormvine strand loses its top to another
+tree's crown, or a few leaves where two trees meet are marked too far from a log (they'd decay). It removes what couldn't
+stay and gives such leaves their real distance (or removes them if no log holds them up). About 1 ms per chunk.
+
+The other Java behind the JSON: `dross:boulder` (`BoulderFeature`), `dross:fallen_log` (`FallenLogFeature`),
+`dross:towering_mushroom` (`ToweringMushroomFeature`), the tree decorators `dross:stormvine` and `dross:icicles`
+(`IcicleDecorator`), all in `dimension/worldgen/`.
+
+**The headless checks** `dimension/TerrainFeaturesGameTest`: `featuresPerBiome` generates 7 x 7 brand-new chunks at a
+sample site of each biome and checks each biome's own features are there, every plant, vine, lichen and snow or ash
+layer could stay where it is, every fluid is a still source, all lava is held in (and none in the Nether Scar), no fire,
+no leaves about to decay, nothing hanging in the air (trees, fallen logs, giant mushrooms), and the ores in their height
+ranges (all four found). It logs the generation time per chunk (and the tidy-up's share), the counts, the ponds and lava
+pools (and why the pond feature's other tries made nothing), the lit floor and the ores ("[terrain features]"). Ponds
+and lava pools are rare, so `pondsHoldTheirFluidAndNeverCutTrees` also places them on prepared ground in a test arena: a
+pond and a lava pool form and hold their fluid, and the same pond with a tree trunk standing in it doesn't form.

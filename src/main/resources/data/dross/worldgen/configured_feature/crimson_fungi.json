@@ -1,0 +1,37 @@
+{
+  "type": "minecraft:huge_fungus",
+  "config": {
+    "valid_base_block": {
+      "Name": "minecraft:crimson_nylium"
+    },
+    "stem_state": {
+      "Name": "minecraft:crimson_stem",
+      "Properties": {
+        "axis": "y"
+      }
+    },
+    "hat_state": {
+      "Name": "minecraft:nether_wart_block"
+    },
+    "decor_state": {
+      "Name": "minecraft:nether_wart_block"
+    },
+    "replaceable_blocks": {
+      "type": "minecraft:matching_blocks",
+      "blocks": [
+        "minecraft:crimson_roots",
+        "minecraft:warped_roots",
+        "minecraft:nether_sprouts",
+        "minecraft:crimson_fungus",
+        "minecraft:warped_fungus",
+        "minecraft:weeping_vines",
+        "minecraft:weeping_vines_plant",
+        "minecraft:twisting_vines",
+        "minecraft:twisting_vines_plant",
+        "dross:scar_roots",
+        "dross:soulwick"
+      ]
+    },
+    "planted": false
+  }
+}

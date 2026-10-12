@@ -1,0 +1,23 @@
+{
+  "type": "dross:pond",
+  "config": {
+    "fluid": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:water",
+        "Properties": {
+          "level": "0"
+        }
+      }
+    },
+    "barrier": {
+      "type": "minecraft:simple_state_provider",
+      "state": {
+        "Name": "minecraft:mud"
+      }
+    },
+    "ground": "#dross:pond_ground",
+    "size": 16,
+    "max_bank": 3
+  }
+}
