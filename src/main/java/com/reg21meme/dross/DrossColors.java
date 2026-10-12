@@ -136,6 +136,104 @@ public final class DrossColors {
     /** The Scar Vent's blue embers: the color they fade to (deep cobalt). Used in dimension/block/ScarVentBlock. */
     public static final int SCAR_VENT_EMBER_BLUE_FADE = PALETTE_DEEP_COBALT;
 
+    // The six terrain biomes: their night fog, sky and water. tools/terrain/worldgen.py reads these and writes them into
+    // the biome JSON (data/dross/worldgen/biome/<biome>.json); run it again after changing one. It's always night in the
+    // Dross, so the fog color is what you see as the haze in the distance and at the horizon (dimension/client/
+    // DrossSkyEffects shows it as it is, instead of darkening it to black like the Overworld at night). The sky color only
+    // counts by day (never, here); the night sky's blue comes from the fog (see DROSS_SKY_* below). Water: the color of the
+    // water itself, and the haze you see under water.
+
+    /** Silverwood Forest: night fog, deep blue (the Dross's main forest). */
+    public static final int SILVERWOOD_FOG = 0x0E1E58;
+    /** Silverwood Forest: sky. */
+    public static final int SILVERWOOD_SKY = 0x1C3A9E;
+    /** Silverwood Forest: dark water in its ponds. */
+    public static final int SILVERWOOD_WATER = 0x172B5E;
+    /** Silverwood Forest: under water. */
+    public static final int SILVERWOOD_WATER_FOG = 0x050C22;
+    /** Silverwood Forest: the tiny motes drifting in the air (ambient particles), when they appear (pale blue). */
+    public static final int SILVERWOOD_AIR_MOTE = PALETTE_HIGHLIGHT;
+    /** Silverwood Forest: the air motes, the color they fade to (electric blue). */
+    public static final int SILVERWOOD_AIR_MOTE_FADE = PALETTE_MAIN;
+
+    /** Cinder Wastes: night fog, smoky blue-grey with a warm hint. */
+    public static final int CINDER_FOG = 0x2E2834;
+    /** Cinder Wastes: sky. */
+    public static final int CINDER_SKY = 0x4A3E52;
+    /** Cinder Wastes: water (rare here). */
+    public static final int CINDER_WATER = 0x2B2833;
+    /** Cinder Wastes: under water. */
+    public static final int CINDER_WATER_FOG = 0x0C0A10;
+
+    /** Blightwood: night fog, sickly green-blue (and thick: see DrossSkyEffects). */
+    public static final int BLIGHTWOOD_FOG = 0x16342E;
+    /** Blightwood: sky. */
+    public static final int BLIGHTWOOD_SKY = 0x2A5A50;
+    /** Blightwood: murky water in its ponds. */
+    public static final int BLIGHTWOOD_WATER = 0x2F3B25;
+    /** Blightwood: under water. */
+    public static final int BLIGHTWOOD_WATER_FOG = 0x0B1208;
+
+    /** Rimefall: night fog, pale icy blue (and hazy). */
+    public static final int RIMEFALL_FOG = 0x344E70;
+    /** Rimefall: sky. */
+    public static final int RIMEFALL_SKY = 0x5A7EB0;
+    /** Rimefall: icy water (its ponds freeze over). */
+    public static final int RIMEFALL_WATER = 0x3D5E8F;
+    /** Rimefall: under water. */
+    public static final int RIMEFALL_WATER_FOG = 0x0F1C30;
+
+    /** Nether Scar: night fog, red-violet with blue (where the Nether bleeds through). */
+    public static final int NETHER_SCAR_FOG = 0x3A123E;
+    /** Nether Scar: sky. */
+    public static final int NETHER_SCAR_SKY = 0x5A2266;
+    /** Nether Scar: water. */
+    public static final int NETHER_SCAR_WATER = 0x3B1A3F;
+    /** Nether Scar: under water. */
+    public static final int NETHER_SCAR_WATER_FOG = 0x120614;
+
+    /** The Gravecrags: night fog, cold grey-blue. */
+    public static final int GRAVECRAGS_FOG = 0x222C42;
+    /** The Gravecrags: sky. */
+    public static final int GRAVECRAGS_SKY = 0x3A4A6E;
+    /** The Gravecrags: water. */
+    public static final int GRAVECRAGS_WATER = 0x26385A;
+    /** The Gravecrags: under water. */
+    public static final int GRAVECRAGS_WATER_FOG = 0x0A111E;
+
+    // The Dross's night sky and light (dimension/client/DrossSkyEffects). Vanilla draws the night sky black overhead,
+    // fading into the fog color at the horizon; DrossSkyEffects lays a see-through glow over it, so it fades from the fog
+    // color at the horizon to a dark blue overhead instead of black.
+
+    /** The glow over the night sky: mixed into the fog color, so it stays blue in every biome (deep cobalt). Used in dimension/client/DrossSkyEffects. */
+    public static final int DROSS_SKY_GLOW = PALETTE_DEEP_COBALT;
+    /** Light from the sky is tinted a little toward this (pale blue) at night. Used in dimension/client/DrossSkyEffects. */
+    public static final int DROSS_SKY_LIGHT_TINT = PALETTE_HIGHLIGHT;
+
+    // The terrain previews (terrain-previews/*.png, drawn by the headless dimension/TerrainPreviewGameTest): one map color
+    // per biome, picked to tell them apart at a glance (they aren't the in-game colors).
+
+    /** Terrain previews: Silverwood Forest (blue-green). */
+    public static final int PREVIEW_SILVERWOOD = 0x3E7C8C;
+    /** Terrain previews: Cinder Wastes (ash grey with a warm hint). */
+    public static final int PREVIEW_CINDER = 0x8A6F5E;
+    /** Terrain previews: Blightwood (sickly olive). */
+    public static final int PREVIEW_BLIGHTWOOD = 0x7A8A3A;
+    /** Terrain previews: Rimefall (icy white-blue). */
+    public static final int PREVIEW_RIMEFALL = 0xC8DCF0;
+    /** Terrain previews: Nether Scar (nether red). */
+    public static final int PREVIEW_NETHER_SCAR = 0xB0303A;
+    /** Terrain previews: the Gravecrags (stone grey). */
+    public static final int PREVIEW_GRAVECRAGS = 0x6E6A78;
+    /** Terrain previews: any other biome (old worlds' Dross Flats). */
+    public static final int PREVIEW_OTHER = 0xFF00FF;
+    /** Terrain previews: the hub, its rings and the marks drawn on the maps (pale electric blue). */
+    public static final int PREVIEW_MARK = PALETTE_HIGHLIGHT;
+    /** Terrain previews: the background and text panels (near black). */
+    public static final int PREVIEW_BACKGROUND = 0x101018;
+    /** Terrain previews: text. */
+    public static final int PREVIEW_TEXT = 0xE8ECF4;
+
     // ---------------------------------------------------------------- Boss (boss-builder)
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
     // (Its texture colors live in the Python palettes in tools/golems/kit/materials.py.)

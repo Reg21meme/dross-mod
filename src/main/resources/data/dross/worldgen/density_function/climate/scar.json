@@ -1,0 +1,40 @@
+{
+  "type": "minecraft:flat_cache",
+  "argument": {
+    "type": "minecraft:cache_2d",
+    "argument": {
+      "type": "minecraft:clamp",
+      "input": {
+        "type": "minecraft:add",
+        "argument1": {
+          "type": "minecraft:shifted_noise",
+          "noise": "dross:scar",
+          "xz_scale": 0.8,
+          "y_scale": 0.0,
+          "shift_x": {
+            "type": "minecraft:mul",
+            "argument1": 0.8,
+            "argument2": "dross:climate/warp_x"
+          },
+          "shift_y": 0.0,
+          "shift_z": {
+            "type": "minecraft:mul",
+            "argument1": 0.8,
+            "argument2": "dross:climate/warp_z"
+          }
+        },
+        "argument2": {
+          "type": "minecraft:mul",
+          "argument1": -1.0,
+          "argument2": {
+            "type": "minecraft:mul",
+            "argument1": 1.5,
+            "argument2": "dross:hub/core"
+          }
+        }
+      },
+      "min": -1.9,
+      "max": 1.9
+    }
+  }
+}

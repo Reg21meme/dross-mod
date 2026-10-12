@@ -1,0 +1,24 @@
+{
+  "replace": false,
+  "values": [
+    "dross:silvermoss",
+    "minecraft:podzol",
+    "minecraft:moss_block",
+    "minecraft:dirt",
+    "minecraft:grass_block",
+    "dross:sporeloam",
+    "minecraft:mycelium",
+    "minecraft:coarse_dirt",
+    "dross:ash",
+    "minecraft:magma_block",
+    "minecraft:blackstone",
+    "dross:hoarfrost",
+    "minecraft:snow_block",
+    "dross:scarred_netherrack",
+    "minecraft:crimson_nylium",
+    "minecraft:warped_nylium",
+    "minecraft:soul_soil",
+    "minecraft:soul_sand",
+    "minecraft:gravel"
+  ]
+}

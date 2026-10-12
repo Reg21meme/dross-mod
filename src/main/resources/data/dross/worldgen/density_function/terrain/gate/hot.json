@@ -1,0 +1,28 @@
+{
+  "type": "minecraft:flat_cache",
+  "argument": {
+    "type": "minecraft:cache_2d",
+    "argument": {
+      "type": "minecraft:mul",
+      "argument1": {
+        "type": "minecraft:spline",
+        "spline": {
+          "coordinate": "dross:climate/heat",
+          "points": [
+            {
+              "location": 0.22727112088384055,
+              "value": 0.0,
+              "derivative": 0.0
+            },
+            {
+              "location": 0.3272711208838405,
+              "value": 1.0,
+              "derivative": 0.0
+            }
+          ]
+        }
+      },
+      "argument2": "dross:terrain/gate/free"
+    }
+  }
+}

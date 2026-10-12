@@ -1,0 +1,54 @@
+{
+  "type": "minecraft:flat_cache",
+  "argument": {
+    "type": "minecraft:cache_2d",
+    "argument": {
+      "type": "minecraft:spline",
+      "spline": {
+        "coordinate": "dross:terrain/height_raw",
+        "points": [
+          {
+            "location": -64.0,
+            "value": 26.0,
+            "derivative": 0.05
+          },
+          {
+            "location": 20.0,
+            "value": 33.0,
+            "derivative": 0.25
+          },
+          {
+            "location": 50.0,
+            "value": 50.0,
+            "derivative": 1.0
+          },
+          {
+            "location": 190.0,
+            "value": 190.0,
+            "derivative": 1.0
+          },
+          {
+            "location": 230.0,
+            "value": 224.0,
+            "derivative": 0.6
+          },
+          {
+            "location": 270.0,
+            "value": 245.0,
+            "derivative": 0.4
+          },
+          {
+            "location": 310.0,
+            "value": 258.0,
+            "derivative": 0.2
+          },
+          {
+            "location": 360.0,
+            "value": 264.0,
+            "derivative": 0.0
+          }
+        ]
+      }
+    }
+  }
+}

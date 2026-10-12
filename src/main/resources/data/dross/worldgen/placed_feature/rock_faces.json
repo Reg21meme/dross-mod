@@ -1,0 +1,8 @@
+{
+  "feature": "dross:rock_faces",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

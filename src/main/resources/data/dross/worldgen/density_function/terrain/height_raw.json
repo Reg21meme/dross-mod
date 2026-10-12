@@ -1,0 +1,63 @@
+{
+  "type": "minecraft:flat_cache",
+  "argument": {
+    "type": "minecraft:cache_2d",
+    "argument": {
+      "type": "minecraft:add",
+      "argument1": {
+        "type": "minecraft:add",
+        "argument1": {
+          "type": "minecraft:add",
+          "argument1": 72.0,
+          "argument2": {
+            "type": "minecraft:mul",
+            "argument1": {
+              "type": "minecraft:add",
+              "argument1": 1.0,
+              "argument2": {
+                "type": "minecraft:mul",
+                "argument1": -1.0,
+                "argument2": {
+                  "type": "minecraft:mul",
+                  "argument1": 0.9,
+                  "argument2": "dross:hub/flat"
+                }
+              }
+            },
+            "argument2": "dross:terrain/hills"
+          }
+        },
+        "argument2": {
+          "type": "minecraft:mul",
+          "argument1": {
+            "type": "minecraft:add",
+            "argument1": 1.0,
+            "argument2": {
+              "type": "minecraft:mul",
+              "argument1": -1.0,
+              "argument2": "dross:hub/flat"
+            }
+          },
+          "argument2": {
+            "type": "minecraft:add",
+            "argument1": {
+              "type": "minecraft:add",
+              "argument1": {
+                "type": "minecraft:add",
+                "argument1": {
+                  "type": "minecraft:add",
+                  "argument1": "dross:terrain/escarpment",
+                  "argument2": "dross:terrain/outcrops"
+                },
+                "argument2": "dross:terrain/mesa"
+              },
+              "argument2": "dross:terrain/blight"
+            },
+            "argument2": "dross:terrain/scar_sink"
+          }
+        }
+      },
+      "argument2": "dross:terrain/mountain"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "type": "dross:rock_faces",
+  "config": {
+    "rocks": [
+      {
+        "biome": "dross:silverwood_forest",
+        "rock": {
+          "Name": "dross:duskstone"
+        }
+      },
+      {
+        "biome": "dross:blightwood",
+        "rock": {
+          "Name": "dross:duskstone"
+        }
+      },
+      {
+        "biome": "dross:cinder_wastes",
+        "rock": {
+          "Name": "minecraft:basalt"
+        }
+      },
+      {
+        "biome": "dross:rimefall",
+        "rock": {
+          "Name": "minecraft:packed_ice"
+        }
+      },
+      {
+        "biome": "dross:nether_scar",
+        "rock": {
+          "Name": "minecraft:netherrack"
+        }
+      },
+      {
+        "biome": "dross:gravecrags",
+        "rock": {
+          "Name": "dross:cragstone"
+        }
+      }
+    ],
+    "default_rock": {
+      "Name": "dross:duskstone"
+    },
+    "min_exposed": 2,
+    "max_depth": 8,
+    "replaceable": "#dross:rock_face_replaceable"
+  }
+}

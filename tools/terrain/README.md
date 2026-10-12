@@ -1,12 +1,15 @@
 # tools/terrain
 
-Python tools for the Dross's terrain: its blocks, their textures and files, and its worldgen (tree shapes now; terrain,
-biomes and features in later stages). Run everything from the project folder. `worldgen.py`, `block_data.py` and
-`check_assets.py` need only Python 3; `draw_blocks.py` and `preview_trees.py` also need numpy and Pillow.
+Python tools for the Dross's terrain: its blocks, their textures and files, and its worldgen (the land's shape, the six
+biomes, the surface blocks, tree shapes; trees, plants, ponds and ores in a later stage). Run everything from the project
+folder. `worldgen.py`, `block_data.py` and `check_assets.py` need only Python 3 (`worldgen.py` uses numpy if it's there,
+for one extra check); `draw_blocks.py` and `preview_trees.py` also need numpy and Pillow; `terrain_sketch.py` numpy,
+scipy and Pillow.
 
 | Script | What it does | Writes |
 |---|---|---|
-| `worldgen.py` | The one generator for all Dross worldgen JSON. Change a tuning number, run it, the JSON is rewritten. | `src/main/resources/data/dross/worldgen/...` |
+| `worldgen.py` | The one generator for all Dross worldgen JSON and the dimension itself. Change a tuning number, run it, the JSON is rewritten (files it no longer writes in its own folders are deleted). It checks every block, particle, sound, noise and feature id it names, that spline points go up, that the biomes' feature lists can't crash with "feature order cycle", and reads the biome colours from `DrossColors.java`. | `data/dross/worldgen/...`, `data/dross/dimension/dross.json`, `data/dross/dimension_type/dross.json`, `data/dross/tags/blocks/rock_face_replaceable.json`, the biome names in `en_us.json` (merged) |
+| `terrain_sketch.py` | A fast, approximate top-down sketch of the terrain for tuning: it reads the JSON `worldgen.py` wrote and works it out with a numpy copy of Minecraft's noise maths (numpy's random numbers, so seed N here isn't seed N in the game; the shapes and statistics are the same kind). Seconds instead of a server start. | `build/terrain-sketch/` (biome and relief PNGs, `sketch_stats.txt`) |
 | `block_data.py` | Blockstates, block and item models, loot tables, recipes, tags, sounds and English names for the terrain blocks and items, from one list (`BLOCKS`, `ITEMS`, `BLOCK_TAGS`, `ITEM_TAGS`, `RECIPES`, `SOUNDS`, `SUBTITLES`). Shared files (tags other areas use, `en_us.json`, `sounds.json`) are merged: it only adds or updates its own entries. | `assets/dross/...`, `data/dross/...`, `data/minecraft/tags/...`, `data/forge/tags/...` |
 | `draw_blocks.py` | Draws every 16x16 block and item texture from scratch, and the preview sheets (grouped by biome). | `assets/dross/textures/block/`, `textures/item/`, `block-previews/blocks.png`, `block-previews/blocks_3d.png` |
 | `check_assets.py` | Checks every registered Dross block and item has its blockstate, models (following parents), textures, English name and loot table; that every Dross id in a loot table (blocks in its conditions too), recipe or tag exists; that every sound in `registry/ModSounds` is in `sounds.json` with an English subtitle; and that every block in `block_data.py` is registered and in the Dross creative tab. Exits with code 1 on any problem. | nothing |
@@ -17,12 +20,27 @@ biomes and features in later stages). Run everything from the project folder. `w
 ```
 python tools/terrain/draw_blocks.py        # textures + block-previews/blocks.png, blocks_3d.png
 python tools/terrain/block_data.py         # JSON for the blocks and items
-python tools/terrain/worldgen.py           # worldgen JSON (tree shapes)
+python tools/terrain/worldgen.py           # worldgen JSON (terrain, biomes, surface, tree shapes)
 python tools/terrain/check_assets.py       # everything there?
 .\gradlew.bat build --console=plain
 .\gradlew.bat runGameTestServer --console=plain   # also writes build/tv1/trees.json
 python tools/terrain/preview_trees.py      # block-previews/trees.png
 ```
+
+For the terrain (see "worldgen.py: the terrain" below):
+
+```
+python tools/terrain/worldgen.py                       # rewrite the JSON
+python tools/terrain/terrain_sketch.py --seeds 4       # quick look: build/terrain-sketch/*.png and the stats it prints
+.\gradlew.bat build --console=plain
+$env:DROSS_TERRAIN_PREVIEWS="1"; .\gradlew.bat runGameTestServer -PgameTestWorld=<a new folder name> --console=plain
+```
+
+The last line runs every headless test in a brand-new world (a folder under `run/` that doesn't exist yet) and, with the
+environment variable set, draws the real previews into `terrain-previews/` (about 20 seconds extra). Without it the
+preview test just succeeds. Read the `[terrain test]`, `[terrain chunks]` and `[terrain previews]` lines in the output
+(or `run/logs/latest.log`). Note: a world keeps the land it has already generated, so look at terrain changes in a new
+world (old worlds only get the new terrain in chunks nobody has visited yet).
 
 ## Adding a block (for example in a later stage)
 
@@ -98,3 +116,60 @@ Each texture has its own small palette (the PALETTES section, dark to light) and
 shaded shapes, curves and small pixel maps. Light comes from the top left, like Minecraft's own textures. The Dross
 blues are the palette in `DrossColors` (main `#2E6BFF`, deep cobalt `#0B2A9E`, highlight `#7FA8FF`). Look at
 `block-previews/` after a change.
+
+## worldgen.py: the terrain (TERRAIN, BIOMES and SURFACE sections)
+
+How it works, in short (the full design is `TERRAIN_DESIGN.md`): every column's ground height is worked out from 2D
+noises (rolling hills, cliff steps, rocky knolls, mesas, lumps, mountains), so there are no caves, overhangs or floating
+islands. Four of our own noises fill Minecraft's climate slots (heat, rot, mountain, scar); the same values pick the biome
+and fade its land shapes in across its border, so the shapes follow the biomes. Near the hub at 0, 0 the noises are
+pushed (`dross:hub_falloff`, `dimension/worldgen/HubFalloff.java`): Silverwood Forest all round it, no mountains near it,
+gentle ground under it. The surface rules then cover the Duskstone with each biome's blocks, and the `dross:rock_faces`
+feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bare rock.
+
+### Which number changes what
+
+| What you want | Constant(s) (TERRAIN unless noted) | Notes |
+|---|---|---|
+| Bigger or smaller biome regions | `CLIMATE_XZ_SCALE` | Region size is about 500 / this (0.80: ~600 blocks across, measured 600-700). Lower = bigger. Also widen or shrink the hub radii below by the same factor. |
+| Bigger or smaller Nether Scar patches | `SCAR_XZ_SCALE` | 0.80: patches ~240 across. |
+| More or less of a biome | `TARGET_SHARES` (BIOMES) | Silverwood gets what's left (~40%). The script turns the shares into climate borders and prints them. |
+| Wavier or straighter biome borders | `WARP_BLOCKS` | How far borders wander (blocks). |
+| Higher or lower land | `BASE_HEIGHT` | The plain land's middle (72). The hub stands at about this height. |
+| Rolling hills | `BROAD_HEIGHT` (wide swells), `HILL_HEIGHT` (hills) | Silverwood heights now: p5 56, median 74, p95 94. |
+| More or fewer cliffs | `ROCKY_FROM`, `ROCKY_FULL` | Cliffs only where the rockiness noise is above `ROCKY_FROM` (~30% of the land at 0.15). Raise it for fewer. |
+| Taller cliffs | `CLIFF_STEP_LOW`, `CLIFF_STEP_HIGH` | The two steps (9 and 18 blocks). |
+| Steeper cliff faces | `CLIFF_EDGE_LOW`, `CLIFF_EDGE_HIGH` | Narrower noise bands = the rise happens over fewer blocks. |
+| Rocky knolls | `OUTCROP_FROM`, `OUTCROP_HEIGHT`, `OUTCROP_SHAPE` | Knobs of rock on rocky ground (up to 7 blocks). |
+| Cinder mesas | `MESA_HEIGHT`, `MESA_EDGE` | Raise `MESA_EDGE` for fewer mesa tops. |
+| Blightwood's lumps | `BLIGHT_SINK`, `BLIGHT_LUMPS` | |
+| Gentler Rimefall | `COLD_FLATTEN` | 0.5 = half the hills and cliffs. |
+| Mountain height and shape | `UPLIFT`, `RIDGE_SHARPNESS`, `RIDGE_LOW`, `SOFT_CAP` | `UPLIFT`: how high the land rises as the mountain noise goes past the Gravecrags' border; `SOFT_CAP` squeezes the top (peaks now: median ~233, top ~258). |
+| Where the snow starts on the peaks | `SNOW_LINE_Y` (BIOMES) | Sets the snow blocks (SURFACE) and the Gravecrags' temperature (snowfall above it). |
+| Rougher rock | `JAG_STRENGTH` | 3D roughness on rocky ground. Keep it under 0.5 or the ground could get gaps. |
+| Mountains nearer or farther from the hub | `MOUNTAIN_FREE_INNER/OUTER`, `MOUNTAIN_RING_FADE_INNER/OUTER`, `MOUNTAIN_RING_BOOST` | None within ~650 now; the nearest are usually 750-800 blocks out. |
+| A bigger all-Silverwood area round the hub | `SILVERWOOD_CORE_INNER/OUTER` | Guaranteed within the inner radius (200); other biomes appear from ~300. |
+| Flatter or hillier ground at the hub | `HUB_FLAT_INNER/OUTER`, `HUB_HILLS_KEPT` | Within 80 blocks only 10% of the hills, no cliffs. |
+| Ground cover patches | `*_PATCH` (SURFACE) | Each biome's patch thresholds (podzol, moss, mycelium, magma, snow, nylium, soul soil, gravel...). |
+| Bare rock on slopes | `ROCK_FACE_MIN_EXPOSED`, `ROCK_FACE_MAX_DEPTH`, `ROCK_FACE_ROCKS`, `ROCK_FACE_REPLACEABLE` (SURFACE) | A column 2+ blocks above a neighbour becomes its biome's rock. |
+| Fog, sky and water colours | `DrossColors.java`, Dimension section (`SILVERWOOD_FOG`...) | Then run `worldgen.py` again. |
+| Ambient particles, sounds, weather | `BIOMES` (BIOMES) | `particle_chance` per random spot per tick (vanilla crimson forest: 0.025). |
+
+### The headless checks (they fail if the terrain drifts out of the user's ranges)
+
+- `dimension/TerrainSamplingGameTest`: 8 fixed seeds and the world's own, from the noise alone (about 5 seconds):
+  Silverwood within 200 of the hub, no Gravecrags within 650, every biome within 1,500, biome shares and region sizes
+  (400-800 across; Nether Scar 120-350), heights (y 30-290, median mountain top y 225-265, Silverwood median 66-80), the
+  hub's natural ground nearly flat, no gaps in any column, the generator's height matching the noise's, and the same
+  biomes when sampled in a different order. Plus `findNearestFindsEveryBiome` (`DrossBiomes.findNearest`).
+- `dimension/TerrainChunksGameTest`: real chunks at a sample site of each biome: the right biome, bedrock floor, no air
+  pockets, the biome's own surface blocks; logs the generation time per chunk next to the vanilla Overworld's.
+- `dimension/TerrainPreviewGameTest`: the previews (only with `DROSS_TERRAIN_PREVIEWS=1`).
+
+### The client side (can't be tested headlessly)
+
+`dimension/client/DrossSkyEffects` (registered for the dimension type's `"effects": "dross:dross"`) keeps the night fog
+in each biome's fog colour instead of black, removes clouds, and tints sky light a little blue; `DrossSkyRendering` lays
+a see-through glow over the night sky and thickens the fog in Blightwood, the Nether Scar, the Cinder Wastes and
+Rimefall. Each part has an on/off switch at the top of its file, and switches itself off (one error in the log) if it
+ever fails.

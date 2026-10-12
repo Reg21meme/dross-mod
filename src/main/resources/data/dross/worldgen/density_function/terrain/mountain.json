@@ -1,0 +1,81 @@
+{
+  "type": "minecraft:flat_cache",
+  "argument": {
+    "type": "minecraft:cache_2d",
+    "argument": {
+      "type": "minecraft:mul",
+      "argument1": {
+        "type": "minecraft:spline",
+        "spline": {
+          "coordinate": "dross:climate/mountain",
+          "points": [
+            {
+              "location": 0.19957118290709996,
+              "value": 0.0,
+              "derivative": 0.0
+            },
+            {
+              "location": 0.3395711829071,
+              "value": 14.0,
+              "derivative": 260.0
+            },
+            {
+              "location": 0.4195711829071,
+              "value": 52.0,
+              "derivative": 490.0
+            },
+            {
+              "location": 0.5195711829070999,
+              "value": 124.0,
+              "derivative": 520.0
+            },
+            {
+              "location": 0.6595711829071,
+              "value": 178.0,
+              "derivative": 240.0
+            },
+            {
+              "location": 0.8395711829071,
+              "value": 196.0,
+              "derivative": 0.0
+            }
+          ]
+        }
+      },
+      "argument2": {
+        "type": "minecraft:add",
+        "argument1": 0.5,
+        "argument2": {
+          "type": "minecraft:mul",
+          "argument1": 0.5,
+          "argument2": {
+            "type": "minecraft:clamp",
+            "input": {
+              "type": "minecraft:add",
+              "argument1": 1.0,
+              "argument2": {
+                "type": "minecraft:mul",
+                "argument1": -1.0,
+                "argument2": {
+                  "type": "minecraft:mul",
+                  "argument1": 2.5,
+                  "argument2": {
+                    "type": "minecraft:abs",
+                    "argument": {
+                      "type": "minecraft:noise",
+                      "noise": "dross:ridges",
+                      "xz_scale": 1.0,
+                      "y_scale": 0.0
+                    }
+                  }
+                }
+              }
+            },
+            "min": 0.0,
+            "max": 1.0
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,8 +4,10 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.registry.ModBlockEntities;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModCreativeTabs;
+import com.reg21meme.dross.registry.ModDensityFunctions;
 import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModEntities;
+import com.reg21meme.dross.registry.ModFeatures;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModLootModifiers;
 import com.reg21meme.dross.registry.ModParticles;
@@ -37,6 +39,8 @@ public class Dross
         ModSounds.SOUND_EVENTS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
         ModTreeDecorators.TREE_DECORATORS.register(modEventBus);
+        ModDensityFunctions.DENSITY_FUNCTION_TYPES.register(modEventBus);
+        ModFeatures.FEATURES.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

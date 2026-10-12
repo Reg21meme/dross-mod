@@ -188,5 +188,12 @@
   "dross.survivor.student.line.2": "She can't see a thing, but she always knows where I am. I've tested this. Many times. Don't ask.",
   "dross.survivor.student.line.3": "She's teaching me to listen to the Dross. When the hum drops low, something's coming. So far I've mostly learned to run.",
   "dross.survivor.student.line.4": "How long have we been out here? I stopped counting the nights. It's hard when they never end.",
-  "dross.survivor.student.line.5": "Whatever she tells you, listen. The one time I didn't, I spent a night up a dead tree, and she found me by the chattering of my teeth."
+  "dross.survivor.student.line.5": "Whatever she tells you, listen. The one time I didn't, I spent a night up a dead tree, and she found me by the chattering of my teeth.",
+  "biome.dross.silverwood_forest": "Silverwood Forest",
+  "biome.dross.cinder_wastes": "Cinder Wastes",
+  "biome.dross.blightwood": "Blightwood",
+  "biome.dross.rimefall": "Rimefall",
+  "biome.dross.nether_scar": "Nether Scar",
+  "biome.dross.gravecrags": "The Gravecrags",
+  "biome.dross.dross_flats": "Dross Flats"
 }

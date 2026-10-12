@@ -1,16 +1,155 @@
 {
   "type": "dross:dross",
   "generator": {
-    "type": "minecraft:flat",
-    "settings": {
-      "biome": "dross:dross_flats",
-      "features": false,
-      "lakes": false,
-      "structure_overrides": [],
-      "layers": [
-        { "block": "minecraft:bedrock", "height": 1 },
-        { "block": "minecraft:dirt", "height": 2 },
-        { "block": "minecraft:grass_block", "height": 1 }
+    "type": "minecraft:noise",
+    "settings": "dross:dross",
+    "biome_source": {
+      "type": "minecraft:multi_noise",
+      "biomes": [
+        {
+          "biome": "dross:gravecrags",
+          "parameters": {
+            "temperature": [
+              -2.0,
+              2.0
+            ],
+            "humidity": [
+              -2.0,
+              2.0
+            ],
+            "continentalness": [
+              0.33965,
+              2.0
+            ],
+            "erosion": 0.0,
+            "depth": 0.0,
+            "weirdness": [
+              -2.0,
+              2.0
+            ],
+            "offset": 0.0
+          }
+        },
+        {
+          "biome": "dross:nether_scar",
+          "parameters": {
+            "temperature": [
+              -2.0,
+              2.0
+            ],
+            "humidity": [
+              -2.0,
+              2.0
+            ],
+            "continentalness": [
+              -2.0,
+              0.33955
+            ],
+            "erosion": 0.0,
+            "depth": 0.0,
+            "weirdness": [
+              0.45725,
+              2.0
+            ],
+            "offset": 0.0
+          }
+        },
+        {
+          "biome": "dross:cinder_wastes",
+          "parameters": {
+            "temperature": [
+              0.27735,
+              2.0
+            ],
+            "humidity": [
+              -2.0,
+              2.0
+            ],
+            "continentalness": [
+              -2.0,
+              0.33955
+            ],
+            "erosion": 0.0,
+            "depth": 0.0,
+            "weirdness": [
+              -2.0,
+              0.45715
+            ],
+            "offset": 0.0
+          }
+        },
+        {
+          "biome": "dross:rimefall",
+          "parameters": {
+            "temperature": [
+              -2.0,
+              -0.27735
+            ],
+            "humidity": [
+              -2.0,
+              2.0
+            ],
+            "continentalness": [
+              -2.0,
+              0.33955
+            ],
+            "erosion": 0.0,
+            "depth": 0.0,
+            "weirdness": [
+              -2.0,
+              0.45715
+            ],
+            "offset": 0.0
+          }
+        },
+        {
+          "biome": "dross:blightwood",
+          "parameters": {
+            "temperature": [
+              -0.27725,
+              0.27725
+            ],
+            "humidity": [
+              0.17475,
+              2.0
+            ],
+            "continentalness": [
+              -2.0,
+              0.33955
+            ],
+            "erosion": 0.0,
+            "depth": 0.0,
+            "weirdness": [
+              -2.0,
+              0.45715
+            ],
+            "offset": 0.0
+          }
+        },
+        {
+          "biome": "dross:silverwood_forest",
+          "parameters": {
+            "temperature": [
+              -0.27725,
+              0.27725
+            ],
+            "humidity": [
+              -2.0,
+              0.17465
+            ],
+            "continentalness": [
+              -2.0,
+              0.33955
+            ],
+            "erosion": 0.0,
+            "depth": 0.0,
+            "weirdness": [
+              -2.0,
+              0.45715
+            ],
+            "offset": 0.0
+          }
+        }
       ]
     }
   }

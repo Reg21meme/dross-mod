@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:range_choice",
+  "input": "dross:terrain/depth",
+  "min_inclusive": -24.0,
+  "max_exclusive": 24.0,
+  "when_in_range": {
+    "type": "minecraft:mul",
+    "argument1": "dross:terrain/jag_gate",
+    "argument2": {
+      "type": "minecraft:mul",
+      "argument1": 0.25,
+      "argument2": {
+        "type": "minecraft:noise",
+        "noise": "dross:jag",
+        "xz_scale": 1.0,
+        "y_scale": 0.5
+      }
+    }
+  },
+  "when_out_of_range": 0.0
+}
