@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
@@ -49,10 +50,14 @@ import org.slf4j.Logger;
  *   <li><b>He has already spawned:</b> a player who joins is told "Dross trader's hut is at X, Y, Z" once, with his
  *       saved spot in the hut.</li>
  *   <li><b>He hasn't spawned yet</b> (his village search is still running in the background): nothing is said on
- *       joining; once he spawns (usually under a minute; the test waits at most {@link #SPAWN_TIMEOUT_TICKS}) that
- *       player has been told exactly once, and a second player who joins then is told once too.</li>
+ *       joining; once he spawns (usually under a minute; the test waits at most {@link #SPAWN_TIMEOUT_MILLIS} of real
+ *       time) that player has been told exactly once, and a second player who joins then is told once too.</li>
  * </ul>
  * In both cases a spawn-egg trader and a showcase trader are then spawned, and neither sends the message.
+ *
+ * <p>The wait is measured in real time, not in game ticks: the game test server runs its ticks as fast as it can (it
+ * doesn't wait 50 ms between them), so on a busy computer thousands of ticks can pass while the village search takes
+ * real time. The wait always ends by itself, before the test's tick limit, so the stand-in players always leave.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -64,12 +69,18 @@ public final class TraderAnnouncerGameTest
     /** The test needs no blocks: a 1x1x1 air template, made in memory when the server starts (no file needed). */
     private static final String EMPTY = "trader_announcer_test_empty";
     private static final ResourceLocation EMPTY_ID = new ResourceLocation(Dross.MODID, EMPTY);
-    /** In a new world he spawns in the background once a village is ready (usually under a minute): wait at most 10 minutes. */
-    private static final int SPAWN_TIMEOUT_TICKS = 10 * 60 * 20;
+    /** In a new world he spawns in the background once a village is ready (usually under a minute): wait at most 10 minutes (real time). */
+    private static final long SPAWN_TIMEOUT_MILLIS = 10 * 60 * 1000L;
+    /**
+     * The ticks the test may spend waiting for him, added to its own time limit: only a backstop behind
+     * {@link #SPAWN_TIMEOUT_MILLIS} (the test server can run several hundred ticks a second while it waits). The wait
+     * gives up by itself when it gets here, so the stand-in players still leave.
+     */
+    private static final int SPAWN_BACKSTOP_TICKS = 2_000_000;
     /** How long the spawn-egg and showcase traders are watched for a message (ticks). */
     private static final int OTHER_TRADERS_WATCH_TICKS = 40;
 
-    @GameTest(template = EMPTY, batch = "dross_trader_announcer", timeoutTicks = SPAWN_TIMEOUT_TICKS)
+    @GameTest(template = EMPTY, batch = "dross_trader_announcer", timeoutTicks = SPAWN_BACKSTOP_TICKS + OTHER_TRADERS_WATCH_TICKS + 100)
     public static void hutMessage(GameTestHelper helper)
     {
         ServerLevel overworld = helper.getLevel().getServer().overworld();
@@ -88,18 +99,29 @@ public final class TraderAnnouncerGameTest
         {
             LOGGER.info("[trader test] The trader hasn't spawned yet: checking that joining says nothing, then waiting for him.");
             checked(players, () -> expectHutMessages(first, 0, overworld, "on joining before he has spawned"));
+            long started = Util.getMillis();
             sequence.thenWaitUntil(() -> {
-                        if (!TraderSpawnData.get(overworld).hasSpawned())
+                        // Ends once he has spawned, at the real-time deadline, or at the backstop (then the next step fails, and the players leave).
+                        if (!TraderSpawnData.get(overworld).hasSpawned() && Util.getMillis() - started < SPAWN_TIMEOUT_MILLIS
+                                && helper.getTick() < SPAWN_BACKSTOP_TICKS)
                         {
-                            throw new GameTestAssertException("The trader never spawned (waited " + SPAWN_TIMEOUT_TICKS / 20 + " s)");
+                            throw new GameTestAssertException("Waiting for the trader to spawn");
                         }
                     })
                     .thenExecute(() -> checked(players, () -> {
+                        if (!TraderSpawnData.get(overworld).hasSpawned())
+                        {
+                            throw new GameTestAssertException("The trader never spawned (waited " + (Util.getMillis() - started) / 1000L + " s, "
+                                    + helper.getTick() + " ticks)");
+                        }
                         expectHutMessages(first, 1, overworld, "after he spawned (the broadcast)");
                         TestPlayer second = TestPlayer.join(helper.getLevel(), "trader-test-player-2");
                         players.add(second);
                         expectHutMessages(second, 1, overworld, "on joining after he spawned");
-                    }));
+                    }))
+                    // If that failed, the test ends here: in the tick a step fails, the framework still runs the next
+                    // one, which would spawn traders that nobody removes.
+                    .thenIdle(1);
         }
 
         // Then a spawn-egg trader and a showcase trader appear next to the test: nobody is told anything new.

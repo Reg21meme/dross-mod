@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.Registries;
@@ -61,7 +62,8 @@ import org.slf4j.Logger;
  *       survivors near the hub, the Blind Oracle (mentor, skin 8) and the Ragged Seeker (student, skin 3), each the
  *       other's partner, with the hub's two rest spots as their homes, inside their area (the footprint and 20 blocks
  *       round it), within 6 blocks of each other, and neither on the arrival step or in the portal. (In a world that's
- *       been played in, they could be walking apart at that moment; the check is meant for fresh and copied worlds.)</li>
+ *       been played in, they could be walking apart at that moment; the check is meant for fresh and copied worlds.)
+ *       It keeps the hub's chunks loaded with a ticket while it looks, and always removes it at the end.</li>
  *   <li>{@link #cannotDie}: a 1000-damage hit, {@code kill()} and the void leave it alive; at half health or less it
  *       heals fully and is back on its rest spot.</li>
  *   <li>{@link #staysInItsArea}: moved out of its area it pops back within a couple of ticks (its partner too); falling
@@ -75,6 +77,13 @@ import org.slf4j.Logger;
  * </ul>
  * The test-made survivors live in a closed test arena (floor, barrier walls and roof) and never touch the saved data;
  * they're removed with {@code discard()} at the end (they can't be killed).
+ *
+ * <p>Waiting for chunks to load (the hub's, or a test's arena) is measured in real time, at most
+ * {@link #LOAD_TIMEOUT_MILLIS}: loading is background work, while the test server runs its ticks as fast as it can (it
+ * doesn't wait 50 ms between them), so on a busy computer hundreds of ticks can pass first. Every wait ends by itself
+ * (once it has what it waits for, at that deadline, or after a set number of ticks), well before the test's own tick
+ * limit, which would end the test on the spot. So the step after each wait always runs, and it cleans up whether the
+ * test passed or failed: the hub's chunk ticket, the test's mobs and its stand-in player.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -100,14 +109,30 @@ public final class SurvivorGameTest
     /** The inside of the walls, relative X and Z. */
     private static final int INSIDE_MIN = 1;
     private static final int INSIDE_MAX = ARENA_SIZE - 2;
-    /** The longest a test waits for its arena to finish loading (ticks), added to its time limit. */
-    private static final int ARENA_WAIT_TICKS = 100;
+
+    // ---- Waiting for chunks to load (a test's arena, or the hub's chunks and the pair) ----
+    /**
+     * The longest a test waits for chunks to load, in real time. Loading is background work (making or reading the
+     * chunks, then their entities), while the test server runs its ticks as fast as it can, so on a busy computer
+     * hundreds of ticks can pass before it's done. It usually takes a second or two.
+     */
+    private static final long LOAD_TIMEOUT_MILLIS = 3 * 60 * 1000L;
+    /**
+     * The ticks a test may spend waiting for chunks to load, added to its own time limit: only a backstop behind
+     * {@link #LOAD_TIMEOUT_MILLIS} (the test server can run several hundred ticks a second while it waits). A wait gives
+     * up by itself when it gets here, so its test still cleans up.
+     */
+    private static final int LOAD_BACKSTOP_TICKS = 1_000_000;
 
     // ---- The real pair ----
-    /** Keeps the hub's chunks loaded while the test looks (it runs out by itself after 2 minutes). */
-    private static final TicketType<ChunkPos> HUB_TICKET = TicketType.create("dross_survivor_test", Comparator.comparingLong(ChunkPos::toLong), 20 * 120);
-    /** How long the test waits for the hub's chunks and the pair to load (ticks). */
-    private static final int HUB_LOAD_TICKS = 300;
+    /**
+     * Keeps the hub's chunks loaded while the test looks. The test renews it on every tick it waits and always removes it
+     * when it's done, passed or failed; should anything ever skip that, it runs out by itself this many ticks after it
+     * was last renewed.
+     */
+    private static final int HUB_TICKET_TICKS = 20 * 30;
+    private static final TicketType<ChunkPos> HUB_TICKET = TicketType.create("dross_survivor_test", Comparator.comparingLong(ChunkPos::toLong),
+            HUB_TICKET_TICKS);
     /** The pair stands this close together (blocks). */
     private static final double TOGETHER = 6.0D;
 
@@ -124,6 +149,8 @@ public final class SurvivorGameTest
     private static final int POP_BACK_TICKS = 3;
     /** It's lifted this high above the floor for the fall check (more than Survivor.MAX_FALL). */
     private static final int DROP_HEIGHT = 8;
+    /** Dropped, it's back within this many ticks (it has fallen more than Survivor.MAX_FALL after about 10). */
+    private static final int FALL_POP_BACK_TICKS = 60;
     /** How long the hostile mobs are watched (ticks). */
     private static final int HOSTILE_WATCH_TICKS = 100;
 
@@ -133,7 +160,7 @@ public final class SurvivorGameTest
     // The real pair at the hub
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH, timeoutTicks = HUB_LOAD_TICKS + 100)
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH, timeoutTicks = LOAD_BACKSTOP_TICKS + 100)
     public static void realPairAtTheHub(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
@@ -151,29 +178,24 @@ public final class SurvivorGameTest
         }
         DrossHub.Layout layout = DrossHub.layout(server).orElseThrow(() -> new GameTestAssertException("the hub has no layout"));
         BoundingBox area = layout.footprint().inflatedBy(SurvivorGrounds.AREA_MARGIN);
-        ChunkPos center = new ChunkPos(DrossHub.CENTER);
-        int radius = ticketRadius(area, center);
-        dross.getChunkSource().addRegionTicket(HUB_TICKET, center, radius, center);
+        // From here on the ticket keeps the hub's chunks loaded; the step after the wait always removes it.
+        HubTicket ticket = HubTicket.add(dross, area);
+        LoadWait wait = new LoadWait(helper);
         helper.startSequence()
                 .thenWaitUntil(() -> {
-                    String loading = stillLoading(dross, area);
-                    if (loading != null)
-                    {
-                        helper.fail(loading);
-                    }
-                    if (!(dross.getEntity(mentorId) instanceof Survivor) || !(dross.getEntity(studentId) instanceof Survivor))
-                    {
-                        helper.fail("the hub's survivors haven't loaded yet");
-                    }
+                    ticket.renew(); // so it never runs out while the test waits, however many ticks that takes
+                    wait.check(pairStillLoading(dross, area, mentorId, studentId));
                 })
                 .thenExecute(() -> {
                     try
                     {
+                        LOGGER.info("[survivor test] Waited {} for the hub's chunks and the pair to load", wait.took());
+                        wait.failIfStillMissing();
                         checkRealPair(dross, layout, area, (Survivor) dross.getEntity(mentorId), (Survivor) dross.getEntity(studentId));
                     }
                     finally
                     {
-                        dross.getChunkSource().removeRegionTicket(HUB_TICKET, center, radius, center);
+                        ticket.remove();
                     }
                 })
                 .thenSucceed();
@@ -222,6 +244,48 @@ public final class SurvivorGameTest
                 mentor.getWaypoints().size());
     }
 
+    /**
+     * The test's ticket on the hub's chunks: a square round the hub's center, big enough to load the whole area fully.
+     * Adding a ticket that's already there just resets its age, which is how {@link #renew} keeps it from running out.
+     */
+    private record HubTicket(ServerLevel level, ChunkPos center, int radius)
+    {
+        static HubTicket add(ServerLevel level, BoundingBox area)
+        {
+            ChunkPos center = new ChunkPos(DrossHub.CENTER);
+            HubTicket ticket = new HubTicket(level, center, ticketRadius(area, center));
+            ticket.renew();
+            return ticket;
+        }
+
+        void renew()
+        {
+            this.level.getChunkSource().addRegionTicket(HUB_TICKET, this.center, this.radius, this.center);
+        }
+
+        /** Safe to call twice. */
+        void remove()
+        {
+            this.level.getChunkSource().removeRegionTicket(HUB_TICKET, this.center, this.radius, this.center);
+        }
+    }
+
+    /** Null once every chunk of the area has loaded its entities and both survivors are there; otherwise what's missing. */
+    @Nullable
+    private static String pairStillLoading(ServerLevel dross, BoundingBox area, UUID mentorId, UUID studentId)
+    {
+        String chunk = stillLoading(dross, area);
+        if (chunk != null)
+        {
+            return chunk;
+        }
+        if (!(dross.getEntity(mentorId) instanceof Survivor) || !(dross.getEntity(studentId) instanceof Survivor))
+        {
+            return "the hub's survivors haven't loaded yet";
+        }
+        return null;
+    }
+
     /** The ticket radius (chunks) that makes every chunk of the area fully loaded round {@code center}. */
     private static int ticketRadius(BoundingBox area, ChunkPos center)
     {
@@ -257,7 +321,7 @@ public final class SurvivorGameTest
     // Can't die
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = ARENA_WAIT_TICKS + 40)
+    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = LOAD_BACKSTOP_TICKS + 40)
     public static void cannotDie(GameTestHelper helper)
     {
         if (waitForArena(helper, SurvivorGameTest::cannotDie))
@@ -309,7 +373,7 @@ public final class SurvivorGameTest
     // Stays in its area
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = ARENA_WAIT_TICKS + 100)
+    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = LOAD_BACKSTOP_TICKS + POP_BACK_TICKS + FALL_POP_BACK_TICKS + 40)
     public static void staysInItsArea(GameTestHelper helper)
     {
         if (waitForArena(helper, SurvivorGameTest::staysInItsArea))
@@ -325,12 +389,13 @@ public final class SurvivorGameTest
         BlockPos outside = helper.absolutePos(new BlockPos(18, STAND_Y, 10));
         BlockPos high = helper.absolutePos(new BlockPos(8, STAND_Y + DROP_HEIGHT, 8));
         int[] before = new int[2];
+        long[] droppedAt = {-1L}; // the tick it's dropped at (-1 until then)
         helper.startSequence()
-                .thenExecute(() -> {
+                .thenExecute(() -> checked(List.of(mentor, student), () -> {
                     before[0] = mentor.timesPoppedBack();
                     before[1] = student.timesPoppedBack();
                     mentor.teleportTo(outside.getX() + 0.5D, outside.getY(), outside.getZ() + 0.5D);
-                })
+                }))
                 .thenExecuteAfter(POP_BACK_TICKS, () -> checked(List.of(mentor, student), () -> {
                     List<String> problems = new ArrayList<>();
                     expect(problems, mentor.timesPoppedBack() > before[0], "moved out of its area, it didn't pop back within " + POP_BACK_TICKS + " ticks");
@@ -342,14 +407,24 @@ public final class SurvivorGameTest
                     before[1] = student.timesPoppedBack();
                     student.teleportTo(high.getX() + 0.5D, high.getY(), high.getZ() + 0.5D);
                     student.fallDistance = 0.0F;
+                    droppedAt[0] = helper.getTick();
                 }))
+                // If that failed, the test ends here: in the tick a step fails, the framework still runs the next ones,
+                // and if its partner had popped back the wait below would end at once and the last step would run too.
+                .thenIdle(1)
                 .thenWaitUntil(() -> {
-                    if (student.timesPoppedBack() <= before[1])
+                    // Ends once it has popped back, or FALL_POP_BACK_TICKS after the drop (then the next step fails and cleans up).
+                    boolean waitedEnough = droppedAt[0] >= 0 && helper.getTick() - droppedAt[0] >= FALL_POP_BACK_TICKS;
+                    if (student.timesPoppedBack() <= before[1] && !waitedEnough)
                     {
                         helper.fail("dropped " + DROP_HEIGHT + " blocks, it hasn't popped back yet");
                     }
                 })
                 .thenExecute(() -> checked(List.of(mentor, student), () -> {
+                    if (student.timesPoppedBack() <= before[1])
+                    {
+                        helper.fail("dropped " + DROP_HEIGHT + " blocks, it didn't pop back within " + FALL_POP_BACK_TICKS + " ticks");
+                    }
                     List<String> problems = new ArrayList<>();
                     expectAtRest(problems, student, "after falling");
                     expect(problems, student.getHealth() == student.getMaxHealth(), "it took fall damage (health " + student.getHealth() + ")");
@@ -368,7 +443,7 @@ public final class SurvivorGameTest
     // Walks together
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = ARENA_WAIT_TICKS + WALK_TOGETHER_TICKS + STAY_TOGETHER_TICKS + 100)
+    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = LOAD_BACKSTOP_TICKS + WALK_TOGETHER_TICKS + STAY_TOGETHER_TICKS + 100)
     public static void walksTogether(GameTestHelper helper)
     {
         if (waitForArena(helper, SurvivorGameTest::walksTogether))
@@ -386,18 +461,24 @@ public final class SurvivorGameTest
         helper.startSequence()
                 .thenExecute(() -> ticks[0] = helper.getTick())
                 .thenWaitUntil(() -> {
-                    if (mentor.distanceTo(student) > CLOSE)
+                    // Ends once they're close, or after WALK_TOGETHER_TICKS (then the next step fails and cleans up).
+                    if (mentor.distanceTo(student) > CLOSE && helper.getTick() - ticks[0] < WALK_TOGETHER_TICKS)
                     {
                         helper.fail("they're still " + String.format("%.1f", mentor.distanceTo(student)) + " blocks apart");
                     }
                 })
                 .thenExecute(() -> checked(List.of(mentor, student), () -> {
                     ticks[1] = helper.getTick();
-                    if (ticks[1] - ticks[0] > WALK_TOGETHER_TICKS)
+                    double apart = mentor.distanceTo(student);
+                    if (apart > CLOSE || ticks[1] - ticks[0] > WALK_TOGETHER_TICKS)
                     {
-                        helper.fail("they took " + (ticks[1] - ticks[0]) + " ticks to get within " + CLOSE + " blocks, more than " + WALK_TOGETHER_TICKS);
+                        helper.fail("they didn't get within " + CLOSE + " blocks of each other within " + WALK_TOGETHER_TICKS + " ticks (after "
+                                + (ticks[1] - ticks[0]) + " ticks they're " + String.format("%.1f", apart) + " blocks apart)");
                     }
                 }))
+                // If that failed, the test ends here: in the tick a step fails, the framework still runs the next one,
+                // whose message would replace it.
+                .thenIdle(1)
                 .thenExecuteFor(STAY_TOGETHER_TICKS, () -> checked(List.of(mentor, student), () -> {
                     double apart = mentor.distanceTo(student);
                     furthest[0] = Math.max(furthest[0], apart);
@@ -424,7 +505,7 @@ public final class SurvivorGameTest
     // Hostile mobs ignore them
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = ARENA_WAIT_TICKS + HOSTILE_WATCH_TICKS + 40)
+    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = LOAD_BACKSTOP_TICKS + HOSTILE_WATCH_TICKS + 40)
     public static void hostileMobsIgnoreThem(GameTestHelper helper)
     {
         if (waitForArena(helper, SurvivorGameTest::hostileMobsIgnoreThem))
@@ -477,7 +558,7 @@ public final class SurvivorGameTest
     // Right-click
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = ARENA_WAIT_TICKS + 40)
+    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = LOAD_BACKSTOP_TICKS + 40)
     public static void rightClickSaysALine(GameTestHelper helper)
     {
         if (waitForArena(helper, SurvivorGameTest::rightClickSaysALine))
@@ -629,11 +710,58 @@ public final class SurvivorGameTest
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Waiting for the arena (like the Colossus tests: far from spawn a test can start before its chunks are ready)
+    // Waiting for chunks to load
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * Makes a test wait until its arena has finished loading: until then nothing in it moves and searches skip it.
+     * A wait for chunks to load, measured in real time: it goes on while something is still missing, for at most
+     * {@link #LOAD_TIMEOUT_MILLIS}, and never past tick {@link #LOAD_BACKSTOP_TICKS}. So it always ends by itself before
+     * its test's tick limit (which would end the test on the spot, skipping its clean-up), and the step after it runs.
+     */
+    private static final class LoadWait
+    {
+        private final GameTestHelper helper;
+        private final long startMillis = Util.getMillis();
+        private final long startTick;
+        @Nullable
+        private String missing;
+
+        LoadWait(GameTestHelper helper)
+        {
+            this.helper = helper;
+            this.startTick = helper.getTick();
+        }
+
+        /** For the sequence's wait: notes what's still missing (null: nothing) and keeps the sequence waiting while it may. */
+        void check(@Nullable String stillMissing)
+        {
+            this.missing = stillMissing;
+            if (stillMissing != null && Util.getMillis() - this.startMillis < LOAD_TIMEOUT_MILLIS && this.helper.getTick() < LOAD_BACKSTOP_TICKS)
+            {
+                this.helper.fail(stillMissing); // keeps waiting
+            }
+        }
+
+        /** After the wait: fails the test if something's still missing (the wait gave up). */
+        void failIfStillMissing()
+        {
+            if (this.missing != null)
+            {
+                this.helper.fail(this.missing + " (gave up after " + this.took() + ")");
+            }
+        }
+
+        /** How long it has waited, in ticks and seconds. */
+        String took()
+        {
+            return (this.helper.getTick() - this.startTick) + " ticks (" + String.format("%.1f", (Util.getMillis() - this.startMillis) / 1000.0D) + " s)";
+        }
+    }
+
+    /**
+     * Makes a test wait until its arena has finished loading (like the Colossus tests: a test can start before its
+     * chunks are ready): until then nothing in it moves and searches skip it. Nothing of the test exists yet while it
+     * waits, so if it gives up there's nothing to clean up.
      *
      * @return true if it's still loading (the test is run again from the start later, so the caller just returns)
      */
@@ -643,15 +771,11 @@ public final class SurvivorGameTest
         {
             return false;
         }
+        LoadWait wait = new LoadWait(helper);
         helper.startSequence()
-                .thenWaitUntil(() -> {
-                    String loading = arenaStillLoading(helper);
-                    if (loading != null)
-                    {
-                        helper.fail(loading); // keeps waiting (it only fails the test if it's still loading at the end)
-                    }
-                })
+                .thenWaitUntil(() -> wait.check(arenaStillLoading(helper)))
                 .thenExecute(() -> {
+                    wait.failIfStillMissing();
                     try
                     {
                         test.accept(helper);
