@@ -33,6 +33,7 @@ import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.SpawnGroupData;
@@ -114,6 +115,8 @@ public class CinderColossus extends Monster implements GeoEntity
     private static final String TAG_PHASE = "Phase";
     private static final String TAG_ACTION = "Action";
     private static final String TAG_SHOWCASE = "Showcase";
+    /** Saved: it has already roared at its first hit (it only does once). */
+    private static final String TAG_ROARED = "Roared";
 
     /** Ticks it waits after the shell-breaking or erupting animation before the next phase counts (the bits settle). */
     private static final int SETTLE_TICKS = 10;
@@ -150,6 +153,10 @@ public class CinderColossus extends Monster implements GeoEntity
     private static final int CREDIT_TICKS = 100;
     /** Volume of its big moments (louder than 1 carries further: 16 blocks per 1). */
     private static final float LOUD = 3.0F;
+    /** The roar's ring of dust: points round it (more the further it has rolled), and smoke at its feet. */
+    private static final int ROAR_RING_POINTS = 12;
+    private static final double ROAR_RING_POINTS_PER_BLOCK = 4.0D;
+    private static final int ROAR_SMOKE = 16;
     /** Obsidian dust when its statue crumbles. */
     private static final int CRUMBLE_DUST = 160;
     // A projectile's weak hit (ColossusStage.rangedDamageTaken): a stone clink and sparks off the shell, a hiss and a
@@ -216,6 +223,10 @@ public class CinderColossus extends Monster implements GeoEntity
     @Nullable
     private UUID creditPlayer;
     private int creditTick;
+    /** Server: true once it has had its first hit (and roared at it): it only roars at a first hit once. Saved. */
+    private boolean firstHitRoared;
+    /** Server: its roar's ring of dust rolling outwards: ticks since the roar (0: none). */
+    private int roarRing;
 
     public CinderColossus(EntityType<? extends Monster> type, Level level)
     {
@@ -437,10 +448,21 @@ public class CinderColossus extends Monster implements GeoEntity
         }
         super.actuallyHurt(source, amount);
         this.noteCredit(source);
-        if (floor > 0.0F && this.getHealth() <= floor)
+        boolean nextStage = floor > 0.0F && this.getHealth() <= floor;
+        if (nextStage)
         {
             this.setHealth(floor);
             this.beginNextStage();
+        }
+        if (!this.firstHitRoared)
+        {
+            // Its first hit in the fight: it roars and throws the players near it back. (Not when that hit starts a
+            // stage change, which roars a moment later anyway, or kills it.)
+            this.firstHitRoared = true;
+            if (!nextStage && this.isAlive() && !this.isDeadOrDying())
+            {
+                this.roar(true);
+            }
         }
     }
 
@@ -797,6 +819,10 @@ public class CinderColossus extends Monster implements GeoEntity
                 {
                     this.setPhase(GolemPhase.ERUPTED);
                     this.startAction(GolemAction.IDLE);
+                    if (this.isFighting())
+                    {
+                        this.attackGoal.stageChangeSummon(); // the Cracking stage starts with four stone golems
+                    }
                 }
             }
             case BREAK_SHELL -> {
@@ -804,6 +830,10 @@ public class CinderColossus extends Monster implements GeoEntity
                 {
                     this.setPhase(GolemPhase.CORE);
                     this.startAction(GolemAction.IDLE);
+                    if (this.isFighting())
+                    {
+                        this.attackGoal.stageChangeLob(); // the Lava Core starts with its volcanoes spewing lava
+                    }
                 }
             }
             case DEATH -> {
@@ -816,10 +846,81 @@ public class CinderColossus extends Monster implements GeoEntity
             default -> {
             }
         }
+        if (this.roarRing > 0 && this.level() instanceof ServerLevel level)
+        {
+            double r = ColossusTuning.ROAR_RADIUS * this.roarRing / ColossusTuning.ROAR_RING_TICKS;
+            ColossusAttackGoal.dustRing(level, this.position(), r, ROAR_RING_POINTS + (int) (r * ROAR_RING_POINTS_PER_BLOCK));
+            this.roarRing = this.roarRing >= ColossusTuning.ROAR_RING_TICKS ? 0 : this.roarRing + 1;
+        }
         if (!this.isShowcase() && this.isAlive())
         {
             this.updateBossBar();
         }
+    }
+
+    /** True for a fighting Colossus that's alive (not a showcase golem): its stage changes bring attacks. */
+    private boolean isFighting()
+    {
+        return !this.isShowcase() && this.isAlive() && this.attackGoal != null;
+    }
+
+    /**
+     * Its roar's shockwave (the first time it's hurt, and at the roar of each stage change): a ring of dust rolls out
+     * and every player within {@link ColossusTuning#ROAR_RADIUS} blocks is thrown back about 15 blocks. Knockback only:
+     * no damage, and only players (not in creative or spectator mode): its minions and other mobs stay put. A showcase
+     * golem never does it.
+     *
+     * @param withSound also roar (the stage changes play their own roar)
+     */
+    void roar(boolean withSound)
+    {
+        if (!(this.level() instanceof ServerLevel level) || this.isShowcase())
+        {
+            return;
+        }
+        if (withSound)
+        {
+            this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.9F);
+        }
+        double radius = ColossusTuning.ROAR_RADIUS;
+        for (ServerPlayer player : level.players())
+        {
+            if (player.isCreative() || player.isSpectator() || !player.isAlive() || player.distanceToSqr(this) > radius * radius)
+            {
+                continue;
+            }
+            Vec3 to = new Vec3(player.getX() - this.getX(), 0.0D, player.getZ() - this.getZ());
+            double d = to.length();
+            Vec3 away = d > 1.0E-3D ? to.scale(1.0D / d) : this.forward();
+            ColossusAttackGoal.knock(player, away.scale(ColossusTuning.ROAR_KNOCKBACK), ColossusTuning.ROAR_LIFT);
+        }
+        level.sendParticles(ParticleTypes.LARGE_SMOKE, this.getX(), this.getY() + 0.5D, this.getZ(), ROAR_SMOKE,
+                this.getBbWidth() * 0.5D, 0.3D, this.getBbWidth() * 0.5D, 0.05D);
+        this.roarRing = 1;
+    }
+
+    /**
+     * True for a player's risen undead (raised by Necromancy; the enchant area's own check), not a jockey's mount: the
+     * Colossus summons golems against them, and its golems go for them first.
+     */
+    static boolean isRisenUndead(Entity entity)
+    {
+        return entity instanceof Mob && entity.isAlive() && RisenUndead.isRisen(entity)
+                && !entity.getPersistentData().getBoolean(RisenUndead.MOUNT_KEY);
+    }
+
+    /** The risen undead (see {@link #isRisenUndead}) within {@code range} blocks of it. */
+    List<Mob> risenNear(double range)
+    {
+        return this.level().getEntitiesOfClass(Mob.class, this.getBoundingBox().inflate(range),
+                mob -> isRisenUndead(mob) && mob.distanceToSqr(this) <= range * range);
+    }
+
+    /** Its fighting AI (for {@link ColossusGameTest}, which starts moves itself). Null only before its goals exist. */
+    @Nullable
+    ColossusAttackGoal attackGoal()
+    {
+        return this.attackGoal;
     }
 
     /** The big moments' sounds (a showcase golem is silent, so it makes none of them). */
@@ -836,6 +937,7 @@ public class CinderColossus extends Monster implements GeoEntity
                 else if (elapsed == blast + 6)
                 {
                     this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.9F);
+                    this.roar(false);
                 }
             }
             case BREAK_SHELL -> {
@@ -843,6 +945,7 @@ public class CinderColossus extends Monster implements GeoEntity
                 {
                     this.playSound(ModSounds.COLOSSUS_SHELL_BREAK.get(), LOUD, 0.9F);
                     this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.8F);
+                    this.roar(false);
                 }
             }
             case DEATH -> {
@@ -1599,6 +1702,10 @@ public class CinderColossus extends Monster implements GeoEntity
         {
             tag.putBoolean(TAG_SHOWCASE, true);
         }
+        if (this.firstHitRoared)
+        {
+            tag.putBoolean(TAG_ROARED, true);
+        }
     }
 
     @Override
@@ -1606,6 +1713,7 @@ public class CinderColossus extends Monster implements GeoEntity
     {
         super.readAdditionalSaveData(tag);
         this.entityData.set(DATA_SHOWCASE, tag.getBoolean(TAG_SHOWCASE));
+        this.firstHitRoared = tag.getBoolean(TAG_ROARED);
         if (tag.contains(TAG_DESIGN))
         {
             this.setDesign(tag.getInt(TAG_DESIGN));

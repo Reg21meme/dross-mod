@@ -12,6 +12,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
@@ -33,18 +34,27 @@ import java.util.Set;
  * an animation, see {@link GolemAction}; their numbers are in {@link ColossusTuning} and {@link ColossusStage}):
  * <ul>
  *   <li><b>swipe</b>: a backhand sweep of its fist at anyone close in front of it;</li>
- *   <li><b>throw</b>: tears a rock out of the ground and throws it ({@link ColossusRock}; it never places a block);</li>
+ *   <li><b>throw</b> (Shell and Cracking): tears a rock out of the ground and throws it ({@link ColossusRock}; it never
+ *       places a block);</li>
  *   <li><b>slam</b>: both fists raised high for about a second (the warning), then a shockwave that does little damage
  *       but throws players far;</li>
- *   <li><b>charge</b>: head down, it paws the ground, then gallops about 10 blocks in a straight line, head first,
- *       hitting everything in its way (in the Lava Core stage leaving a trail of fire);</li>
+ *   <li><b>charge</b>: head down, it paws the ground, then gallops head first to the spot where its target stood when
+ *       the charge started (up to 32 blocks), hitting everything in its way; in the Cracking and Lava Core stages it
+ *       leaves a trail of fire;</li>
  *   <li><b>lob</b> (Cracking and Lava Core): its volcanoes spit lava blobs ({@link LavaBlob}) that land a few blocks
  *       from the player and leave pools of temporary lava;</li>
- *   <li><b>summon</b> (Cracking and Lava Core): it pounds the ground three times and a minion rises at each pound (to
- *       its left, its right, in front of it): stone golems, or lava golems in the Lava Core stage.</li>
+ *   <li><b>summon</b> (Cracking and Lava Core, and any stage while a player's risen undead are near): it pounds the
+ *       ground three times and minions rise at the pounds (to its left, its right, in front of it): stone golems, or
+ *       lava golems in the Lava Core stage.</li>
  * </ul>
- * A move always plays to its end (even if its target dies), except when the Colossus changes stage
- * ({@link #interrupt}). Every hit it lands in the Lava Core stage sets you on fire. It never breaks a block.
+ * Which move it picks depends on its stage and how far its target is: the chance tables in {@link ColossusTuning}
+ * ({@link #weights}). A move always plays to its end (even if its target dies), except when the Colossus changes stage
+ * ({@link #interrupt}); the stage changes have their own attacks ({@link #stageChangeSummon}, {@link #stageChangeLob}).
+ * Every hit it lands in the Lava Core stage sets you on fire. It never breaks a block.
+ * <p>
+ * Against Necromancy's risen undead (when they're within {@link ColossusTuning#RISEN_RANGE} blocks): a summon raises
+ * one golem for every two of them, the golems go for them first, and while it has fewer golems than half of them it may
+ * summon in every stage. When three or more attack it up close, its close-range moves lean from the swipe to the slam.
  */
 public class ColossusAttackGoal extends Goal
 {
@@ -54,7 +64,7 @@ public class ColossusAttackGoal extends Goal
         SWIPE(GolemAction.SWIPE, ColossusTuning.SWIPE_COOLDOWN),
         THROW(GolemAction.THROW, ColossusTuning.THROW_COOLDOWN),
         SLAM(GolemAction.SLAM, ColossusTuning.SLAM_COOLDOWN),
-        CHARGE(GolemAction.CHARGE, ColossusTuning.CHARGE_COOLDOWN),
+        CHARGE(GolemAction.CHARGE, ColossusTuning.CHARGE_COOLDOWN_SHELL),
         LOB(GolemAction.LOB, ColossusTuning.LOB_COOLDOWN),
         SUMMON(GolemAction.SUMMON, ColossusTuning.SUMMON_COOLDOWN);
 
@@ -65,6 +75,46 @@ public class ColossusAttackGoal extends Goal
         {
             this.action = action;
             this.cooldown = cooldown;
+        }
+
+        /** Ticks before it can make this move again in this stage (the charge has its own cooldown per stage). */
+        int cooldown(ColossusStage stage)
+        {
+            if (this == CHARGE)
+            {
+                return switch (stage)
+                {
+                    case SHELL -> ColossusTuning.CHARGE_COOLDOWN_SHELL;
+                    case CRACKING -> ColossusTuning.CHARGE_COOLDOWN_CRACKING;
+                    case LAVA_CORE -> ColossusTuning.CHARGE_COOLDOWN_CORE;
+                };
+            }
+            return Math.round(this.cooldown * stage.cooldownScale);
+        }
+    }
+
+    /** How far its target is (from its middle): which line of its stage's chance table counts. */
+    enum Band
+    {
+        CLOSE, MID, FAR, VERY_FAR;
+
+        /** The band for a distance, or null beyond the charge's reach (it walks closer). */
+        @Nullable
+        static Band of(double dist)
+        {
+            if (dist <= ColossusTuning.CLOSE_BAND)
+            {
+                return CLOSE;
+            }
+            if (dist <= ColossusTuning.MID_BAND)
+            {
+                return MID;
+            }
+            if (dist <= ColossusTuning.FAR_BAND)
+            {
+                return FAR;
+            }
+            return dist <= ColossusTuning.CHARGE_MAX_RANGE ? VERY_FAR : null;
         }
     }
 
@@ -78,11 +128,17 @@ public class ColossusAttackGoal extends Goal
             new GolemDesigns.Point(0.0F, 0.0F, -34.0F)};
     /** Where its right fist tears the rock out of the ground (model units). */
     private static final GolemDesigns.Point RIP_AT = new GolemDesigns.Point(-25.0F, 0.0F, -25.0F);
+    /** More than one minion at a pound: each next one rises this many degrees further round (alternating sides). */
+    private static final double EXTRA_MINION_DEGREES = 35.0D;
     /** The charge checks for a clear run every this many blocks. */
     private static final double RUN_CHECK_STEP = 2.0D;
+    /** A charge closer than this to its spot is already there. */
+    private static final double ARRIVED = 0.05D;
     /** How far below/above a target's feet a blob may land (it settles on the ground there). */
     private static final int LAND_SEARCH_UP = 4;
     private static final int LAND_SEARCH_DOWN = 8;
+    /** Tries to find a landing spot for a blob that isn't too close to any player. */
+    private static final int LANDING_TRIES = 8;
     /** Particles for its impacts. */
     private static final int DUST = 30;
 
@@ -93,13 +149,23 @@ public class ColossusAttackGoal extends Goal
     /** Ticks before it picks its next move. */
     private int pause;
     private int repath;
+    /** Ticks left of stepping in for a swipe it picked from a little out of reach (0: not stepping in). */
+    private int stepIn;
     /** Where its target was last seen: a move keeps aiming there if the target dies or vanishes mid-move. */
     @Nullable
     private Vec3 lastSeen;
-    /** The charge: the way it gallops, how far it has gone, and what it has already hit (each thing once). */
+    /** The charge: the spot it runs to (where its target stood when it started), where it set off, the way it gallops, how far it runs, and what it has already hit (each thing once). */
+    @Nullable
+    private Vec3 chargeSpot;
+    private Vec3 chargeFrom = Vec3.ZERO;
     private Vec3 chargeDir = Vec3.ZERO;
-    private double charged;
+    private double chargeRun;
+    private int chargeTicks;
     private final Set<Integer> chargeHits = new HashSet<>();
+    /** The summon in progress: how many minions it raises in all. */
+    private int summonCount = ColossusTuning.SUMMON_COUNT;
+    /** Where the blobs of its last lob were aimed (for the tests). */
+    private List<Vec3> lastLandings = List.of();
 
     public ColossusAttackGoal(CinderColossus golem)
     {
@@ -148,6 +214,7 @@ public class ColossusAttackGoal extends Goal
             this.finish();
         }
         this.current = null;
+        this.stepIn = 0;
         this.golem.getNavigation().stop();
         this.golem.setAggressive(false);
     }
@@ -162,6 +229,7 @@ public class ColossusAttackGoal extends Goal
     void interrupt()
     {
         this.current = null;
+        this.stepIn = 0;
         this.chargeHits.clear();
         this.pause = this.golem.stage().attackPause;
     }
@@ -182,9 +250,27 @@ public class ColossusAttackGoal extends Goal
         }
         if (target == null || !target.isAlive())
         {
+            this.stepIn = 0;
             return;
         }
         double dist = flatDistance(this.golem.position(), target.position());
+        if (this.stepIn > 0)
+        {
+            // Stepping in for the swipe it picked.
+            this.stepIn--;
+            if (this.ready(Move.SWIPE) && this.inSwipeReach(target, dist))
+            {
+                this.begin(Move.SWIPE, target);
+                return;
+            }
+            if (this.stepIn == 0 || dist > ColossusTuning.CLOSE_BAND)
+            {
+                this.stepIn = 0;
+                this.pause = ColossusTuning.RETHINK_TICKS;
+            }
+            this.approach(target, dist);
+            return;
+        }
         if (this.pause > 0)
         {
             this.pause--;
@@ -198,75 +284,165 @@ public class ColossusAttackGoal extends Goal
             this.pause = ColossusTuning.RETHINK_TICKS;
             return;
         }
+        if (move == Move.SWIPE && !this.inSwipeReach(target, dist))
+        {
+            this.stepIn = ColossusTuning.SWIPE_STEP_IN_TICKS;
+            this.approach(target, dist);
+            return;
+        }
+        this.begin(move, target);
+    }
+
+    /**
+     * Starts a move at a target. The charge fixes the spot it runs to now (where the target stands); the summon works
+     * out how many minions it raises. Package-private for {@link ColossusGameTest}, which starts moves itself.
+     */
+    void begin(Move move, LivingEntity target)
+    {
         this.current = move;
+        this.stepIn = 0;
+        this.lastSeen = target.position();
         this.golem.getNavigation().stop();
+        if (move == Move.CHARGE)
+        {
+            this.chargeSpot = target.position();
+        }
+        if (move == Move.SUMMON)
+        {
+            this.summonCount = this.summonCount();
+        }
         this.golem.startAction(move.action);
     }
 
     // ---------------------------------------------------------------- choosing a move
 
-    /** A move it can make right now (at random, weighted), or null if none fits. */
+    /** A move it can make right now (at random, by its stage's chance table), or null if none fits. */
     @Nullable
     private Move choose(LivingEntity target, double dist)
     {
+        Band band = Band.of(dist);
+        if (band == null)
+        {
+            return null; // beyond the charge's reach: it walks closer
+        }
         ColossusStage stage = this.golem.stage();
-        double edge = dist - this.golem.getBbWidth() / 2.0D - target.getBbWidth() / 2.0D;
-        double dy = target.getY() - this.golem.getY();
-        boolean sees = this.golem.getSensing().hasLineOfSight(target);
-        boolean later = stage != ColossusStage.SHELL;
-        List<Move> moves = new ArrayList<>();
-        List<Integer> weights = new ArrayList<>();
-        if (this.ready(Move.SWIPE) && edge <= ColossusTuning.SWIPE_REACH && dy > -2.0D && dy < 4.0D)
+        int risen = this.golem.risenNear(ColossusTuning.RISEN_RANGE).size();
+        int golems = this.golem.minions().size();
+        boolean risenSummon = risenSummonOpen(risen, golems);
+        boolean swarmed = band == Band.CLOSE && this.swarmCount() >= ColossusTuning.SWARM_ATTACKERS;
+        EnumMap<Move, Integer> weights = weights(stage, band, swarmed, risenSummon);
+        Set<Move> available = EnumSet.noneOf(Move.class);
+        for (Move move : weights.keySet())
         {
-            add(moves, weights, Move.SWIPE, 6);
+            if (weights.get(move) > 0 && this.fits(move, target, dist, stage, golems, risenSummon))
+            {
+                available.add(move);
+            }
         }
-        if (this.ready(Move.SLAM) && dist <= ColossusTuning.SLAM_TRIGGER_RANGE && dy > -2.0D && dy < 3.0D)
+        return pick(weights, available, this.golem.getRandom());
+    }
+
+    /**
+     * The chance (percent) of each move in a stage and distance band: its line of the stage's table in
+     * {@link ColossusTuning}. {@code swarmed} (three or more risen undead attacking it up close) moves
+     * {@link ColossusTuning#SWARM_SLAM_SHIFT} points of the close band from the swipe to the slam; {@code risenSummon}
+     * (risen undead near, and fewer golems than half of them) gives the summon a chance where the table has none.
+     */
+    static EnumMap<Move, Integer> weights(ColossusStage stage, Band band, boolean swarmed, boolean risenSummon)
+    {
+        List<ColossusTuning.Chances> table = switch (stage)
         {
-            add(moves, weights, Move.SLAM, this.playersNear(ColossusTuning.SLAM_RADIUS) >= 2 ? 8 : 3);
-        }
-        if (later && this.ready(Move.SUMMON) && dist <= ColossusTuning.SUMMON_RANGE
-                && this.golem.minions().size() < ColossusTuning.SUMMON_BELOW)
+            case SHELL -> ColossusTuning.SHELL_CHANCES;
+            case CRACKING -> ColossusTuning.CRACKING_CHANCES;
+            case LAVA_CORE -> ColossusTuning.CORE_CHANCES;
+        };
+        ColossusTuning.Chances line = table.get(band.ordinal());
+        int swipe = line.swipe();
+        int slam = line.slam();
+        if (swarmed && band == Band.CLOSE)
         {
-            add(moves, weights, Move.SUMMON, 4);
+            int shift = Math.min(ColossusTuning.SWARM_SLAM_SHIFT, swipe);
+            swipe -= shift;
+            slam += shift;
         }
-        if (later && this.ready(Move.LOB) && sees && dist >= ColossusTuning.LOB_MIN_RANGE && dist <= ColossusTuning.LOB_MAX_RANGE)
+        int summon = line.summon();
+        if (risenSummon && summon == 0)
         {
-            add(moves, weights, Move.LOB, 4);
+            summon = ColossusTuning.RISEN_SUMMON_CHANCE;
         }
-        if (this.ready(Move.CHARGE) && sees && dist >= ColossusTuning.CHARGE_MIN_RANGE && dist <= ColossusTuning.CHARGE_MAX_RANGE
-                && Math.abs(dy) < 2.5D && this.clearRun(target))
-        {
-            add(moves, weights, Move.CHARGE, 3);
-        }
-        if (this.ready(Move.THROW) && sees && dist >= ColossusTuning.THROW_MIN_RANGE && dist <= ColossusTuning.THROW_MAX_RANGE)
-        {
-            add(moves, weights, Move.THROW, 3);
-        }
+        EnumMap<Move, Integer> weights = new EnumMap<>(Move.class);
+        weights.put(Move.SWIPE, swipe);
+        weights.put(Move.THROW, line.throwRock());
+        weights.put(Move.SLAM, slam);
+        weights.put(Move.CHARGE, line.charge());
+        weights.put(Move.LOB, line.lob());
+        weights.put(Move.SUMMON, summon);
+        return weights;
+    }
+
+    /** One of the available moves at random, by their weights (the others' share is spread over them), or null. */
+    @Nullable
+    static Move pick(EnumMap<Move, Integer> weights, Set<Move> available, RandomSource random)
+    {
         int total = 0;
-        for (int w : weights)
+        for (Move move : available)
         {
-            total += w;
+            total += Math.max(0, weights.getOrDefault(move, 0));
         }
-        if (total == 0)
+        if (total <= 0)
         {
             return null;
         }
-        int roll = this.golem.getRandom().nextInt(total);
-        for (int i = 0; i < moves.size(); i++)
+        int roll = random.nextInt(total);
+        for (Move move : available)
         {
-            roll -= weights.get(i);
+            roll -= Math.max(0, weights.getOrDefault(move, 0));
             if (roll < 0)
             {
-                return moves.get(i);
+                return move;
             }
         }
-        return moves.get(moves.size() - 1);
+        return null;
     }
 
-    private static void add(List<Move> moves, List<Integer> weights, Move move, int weight)
+    /** True while risen undead are near and it has fewer golems than half of them (it may summon in any stage). */
+    static boolean risenSummonOpen(int risen, int golems)
     {
-        moves.add(move);
-        weights.add(weight);
+        return risen > 0 && golems * ColossusTuning.RISEN_PER_GOLEM < risen && golems < ColossusTuning.MAX_MINIONS;
+    }
+
+    /** True if it can make this move at its target right now (ready, in range, in sight...). */
+    private boolean fits(Move move, LivingEntity target, double dist, ColossusStage stage, int golems, boolean risenSummon)
+    {
+        if (!this.ready(move))
+        {
+            return false;
+        }
+        double dy = target.getY() - this.golem.getY();
+        return switch (move)
+        {
+            // (Out of reach but still close, it steps in first.)
+            case SWIPE -> dist <= ColossusTuning.CLOSE_BAND && dy > -2.0D && dy < 4.0D;
+            case SLAM -> dist <= ColossusTuning.SLAM_TRIGGER_RANGE && dy > -2.0D && dy < 3.0D;
+            case SUMMON -> golems < ColossusTuning.MAX_MINIONS && (risenSummon || (stage != ColossusStage.SHELL
+                    && golems < ColossusTuning.SUMMON_BELOW && dist <= ColossusTuning.SUMMON_RANGE));
+            case LOB -> stage != ColossusStage.SHELL && dist >= ColossusTuning.LOB_MIN_RANGE
+                    && dist <= ColossusTuning.LOB_MAX_RANGE && this.golem.getSensing().hasLineOfSight(target);
+            case THROW -> stage != ColossusStage.LAVA_CORE && dist >= ColossusTuning.THROW_MIN_RANGE
+                    && dist <= ColossusTuning.THROW_MAX_RANGE && this.golem.getSensing().hasLineOfSight(target);
+            case CHARGE -> dist >= ColossusTuning.CHARGE_MIN_RANGE && dist <= ColossusTuning.CHARGE_MAX_RANGE
+                    && Math.abs(dy) < ColossusTuning.CHARGE_MAX_RISE && this.golem.getSensing().hasLineOfSight(target)
+                    && this.clearRun(target);
+        };
+    }
+
+    /** True if it could make this move at this target right now (for {@link ColossusGameTest}'s fight tests). */
+    boolean available(Move move, LivingEntity target)
+    {
+        double dist = flatDistance(this.golem.position(), target.position());
+        int golems = this.golem.minions().size();
+        boolean risenSummon = risenSummonOpen(this.golem.risenNear(ColossusTuning.RISEN_RANGE).size(), golems);
+        return Band.of(dist) != null && this.fits(move, target, dist, this.golem.stage(), golems, risenSummon);
     }
 
     private boolean ready(Move move)
@@ -274,13 +450,21 @@ public class ColossusAttackGoal extends Goal
         return this.cooldowns.getOrDefault(move, 0) <= 0;
     }
 
-    /** Players (not in creative or spectator mode) within this many blocks of it. */
-    private int playersNear(double range)
+    /** True if its swipe reaches the target from where it stands. */
+    private boolean inSwipeReach(LivingEntity target, double dist)
+    {
+        double edge = dist - this.golem.getBbWidth() / 2.0D - target.getBbWidth() / 2.0D;
+        double dy = target.getY() - this.golem.getY();
+        return edge <= ColossusTuning.SWIPE_REACH && dy > -2.0D && dy < 4.0D;
+    }
+
+    /** How many risen undead are attacking it within its slam's range. */
+    int swarmCount()
     {
         int count = 0;
-        for (Player player : this.golem.level().players())
+        for (Mob risen : this.golem.risenNear(ColossusTuning.SLAM_TRIGGER_RANGE))
         {
-            if (!player.isCreative() && !player.isSpectator() && player.distanceToSqr(this.golem) <= range * range)
+            if (risen.getTarget() == this.golem)
             {
                 count++;
             }
@@ -288,7 +472,39 @@ public class ColossusAttackGoal extends Goal
         return count;
     }
 
-    /** True if nothing solid stands in the way of a charge at the target (low steps are fine: it climbs them). */
+    /**
+     * How many minions a summon raises: one for every two risen undead near it (half, rounded up) while there are any,
+     * otherwise {@link ColossusTuning#SUMMON_COUNT}. (Never past {@link ColossusTuning#MAX_MINIONS} alive: each pound
+     * checks.)
+     */
+    int summonCount()
+    {
+        int risen = this.golem.risenNear(ColossusTuning.RISEN_RANGE).size();
+        if (risen > 0)
+        {
+            return (risen + ColossusTuning.RISEN_PER_GOLEM - 1) / ColossusTuning.RISEN_PER_GOLEM;
+        }
+        return ColossusTuning.SUMMON_COUNT;
+    }
+
+    /** Players (not in creative or spectator mode) within this many blocks of it. */
+    private List<Player> playersNear(double range)
+    {
+        List<Player> near = new ArrayList<>();
+        for (Player player : this.golem.level().players())
+        {
+            if (!player.isCreative() && !player.isSpectator() && player.isAlive() && player.distanceToSqr(this.golem) <= range * range)
+            {
+                near.add(player);
+            }
+        }
+        return near;
+    }
+
+    /**
+     * True if the run at the target is clear-ish: nothing solid stands in the first {@link ColossusTuning#CHARGE_CLEAR_SHARE}
+     * of the way (low steps are fine: it climbs them). A wall further on stops it then.
+     */
     private boolean clearRun(LivingEntity target)
     {
         Vec3 dir = flat(target.position().subtract(this.golem.position()));
@@ -296,9 +512,11 @@ public class ColossusAttackGoal extends Goal
         {
             return false;
         }
+        dir = dir.normalize();
         AABB box = this.golem.getBoundingBox().move(0.0D, this.golem.maxUpStep(), 0.0D);
-        double run = Math.min(ColossusTuning.CHARGE_DISTANCE, flatDistance(this.golem.position(), target.position()));
-        for (double d = RUN_CHECK_STEP; d <= run; d += RUN_CHECK_STEP)
+        double run = Math.min(ColossusTuning.CHARGE_MAX_DISTANCE, flatDistance(this.golem.position(), target.position()));
+        double check = run * ColossusTuning.CHARGE_CLEAR_SHARE;
+        for (double d = RUN_CHECK_STEP; d <= check; d += RUN_CHECK_STEP)
         {
             if (!this.golem.level().noCollision(this.golem, box.move(dir.scale(d))))
             {
@@ -401,7 +619,7 @@ public class ColossusAttackGoal extends Goal
                     this.finish();
                 }
             }
-            case CHARGE -> this.runCharge(t, m, stage, aim);
+            case CHARGE -> this.runCharge(t, m, stage);
             case LOB -> {
                 if (t == at(0))
                 {
@@ -430,7 +648,7 @@ public class ColossusAttackGoal extends Goal
                 {
                     if (t == at(pounds.get(k)))
                     {
-                        this.pound(k, stage);
+                        this.pound(k, pounds.size(), stage);
                     }
                 }
                 if (t >= at(m.summonTicks()))
@@ -456,7 +674,7 @@ public class ColossusAttackGoal extends Goal
         {
             this.golem.startAction(GolemAction.IDLE);
         }
-        this.cooldowns.put(move, Math.round(move.cooldown * stage.cooldownScale));
+        this.cooldowns.put(move, move.cooldown(stage));
         this.pause = Math.max(this.pause, stage.attackPause);
     }
 
@@ -558,9 +776,12 @@ public class ColossusAttackGoal extends Goal
         {
             return;
         }
-        Vec3 centre = this.golem.modelPoint(m.slamAt());
-        double r = ColossusTuning.SLAM_RADIUS * ring / 3.0D;
-        int points = 10 + 8 * ring;
+        dustRing(level, this.golem.modelPoint(m.slamAt()), ColossusTuning.SLAM_RADIUS * ring / 3.0D, 10 + 8 * ring);
+    }
+
+    /** A ring of dust thrown up from the ground round {@code centre} (cosmetic: the slam's and the roar's shockwaves). */
+    static void dustRing(ServerLevel level, Vec3 centre, double r, int points)
+    {
         for (int i = 0; i < points; i++)
         {
             double a = 2.0D * Math.PI * i / points;
@@ -575,18 +796,20 @@ public class ColossusAttackGoal extends Goal
     }
 
     /**
-     * The charge: it turns towards the target during the wind-up, then gallops in a straight line until it has gone
-     * {@link ColossusTuning#CHARGE_DISTANCE} blocks, runs into something solid (then it's dazed for a moment) or runs
-     * out of time.
+     * The charge: during the wind-up it turns towards the spot where its target stood when the charge started
+     * ({@link #begin}), then gallops in a straight line all the way to that spot (at most
+     * {@link ColossusTuning#CHARGE_MAX_DISTANCE} blocks), unless it runs into something solid (then it's dazed for a
+     * moment) or runs out of time.
      */
-    private void runCharge(int t, GolemDesigns.Moves m, ColossusStage stage, @Nullable Vec3 aim)
+    private void runCharge(int t, GolemDesigns.Moves m, ColossusStage stage)
     {
         int windup = at(m.chargeStartTicks());
+        Vec3 spot = this.chargeSpot != null ? this.chargeSpot : this.lastSeen;
         if (t < windup - 2)
         {
-            if (aim != null)
+            if (spot != null)
             {
-                this.golem.turnTowards(aim, stage.turnSpeed * 1.5F);
+                this.golem.turnTowards(spot, stage.turnSpeed * 1.5F);
             }
             return;
         }
@@ -596,9 +819,11 @@ public class ColossusAttackGoal extends Goal
         }
         if (t == windup)
         {
-            Vec3 dir = aim != null ? flat(aim.subtract(this.golem.position())) : Vec3.ZERO;
+            Vec3 dir = spot != null ? flat(spot.subtract(this.golem.position())) : Vec3.ZERO;
             this.chargeDir = dir.lengthSqr() > 1.0E-4D ? dir.normalize() : this.golem.forward();
-            this.charged = 0.0D;
+            this.chargeRun = Math.min(ColossusTuning.CHARGE_MAX_DISTANCE, dir.length());
+            this.chargeFrom = this.golem.position();
+            this.chargeTicks = (int) Math.ceil(this.chargeRun / ColossusTuning.CHARGE_SPEED) + ColossusTuning.CHARGE_SLACK_TICKS;
             this.chargeHits.clear();
         }
         if (t < windup)
@@ -610,30 +835,42 @@ public class ColossusAttackGoal extends Goal
             // Ran into a wall: a thud, and it's dazed for a moment.
             this.golem.sound(ModSounds.COLOSSUS_SLAM.get(), 2.0F, 1.2F);
             this.dust(this.golem.position().add(this.chargeDir.scale(this.golem.getBbWidth() / 2.0D)), 0.8D);
-            this.finish();
+            this.stopCharge();
             this.pause = Math.max(this.pause, ColossusTuning.CHARGE_DAZED_TICKS);
             return;
         }
+        double gone = flatDistance(this.chargeFrom, this.golem.position());
+        if (t > windup && (gone >= this.chargeRun - ARRIVED || t > windup + this.chargeTicks))
+        {
+            this.stopCharge(); // there (or it gave up)
+            return;
+        }
+        // The last stride is just long enough to stop on the spot.
+        double step = Math.min(ColossusTuning.CHARGE_SPEED, this.chargeRun - gone);
         Vec3 v = this.golem.getDeltaMovement();
-        this.golem.setDeltaMovement(this.chargeDir.x * ColossusTuning.CHARGE_SPEED, v.y, this.chargeDir.z * ColossusTuning.CHARGE_SPEED);
+        this.golem.setDeltaMovement(this.chargeDir.x * step, v.y, this.chargeDir.z * step);
         float yaw = (float) (Mth.atan2(this.chargeDir.z, this.chargeDir.x) * Mth.RAD_TO_DEG) - 90.0F;
         this.golem.setYRot(yaw);
         this.golem.setYBodyRot(yaw);
         this.golem.setYHeadRot(yaw);
-        this.charged += ColossusTuning.CHARGE_SPEED;
         this.chargeHit(stage);
-        if (stage == ColossusStage.LAVA_CORE)
+        if (stage != ColossusStage.SHELL)
         {
-            this.fireTrail();
+            this.fireTrail(stage);
         }
         if ((t - windup) % 6 == 0)
         {
             this.golem.sound(ModSounds.COLOSSUS_GALLOP.get(), 2.0F, 1.0F);
         }
-        if (this.charged >= ColossusTuning.CHARGE_DISTANCE || t > windup + ColossusTuning.CHARGE_MAX_TICKS)
-        {
-            this.finish();
-        }
+    }
+
+    /** The charge is over: it digs in and stops (no sliding on), and the move ends. */
+    private void stopCharge()
+    {
+        Vec3 v = this.golem.getDeltaMovement();
+        this.golem.setDeltaMovement(0.0D, v.y, 0.0D);
+        this.chargeSpot = null;
+        this.finish();
     }
 
     /** Everything it runs into during its charge is hit (once) and thrown aside and up. */
@@ -658,13 +895,19 @@ public class ColossusAttackGoal extends Goal
         }
     }
 
-    /** Lava Core stage: fire on the ground behind it as it gallops (it never spreads and goes out by itself). */
-    private void fireTrail()
+    /**
+     * Cracking and Lava Core stages: fire on the ground behind it as it gallops (it never spreads and goes out by
+     * itself: after 4 to 5 seconds in the Lava Core, half that in the Cracking stage).
+     */
+    private void fireTrail(ColossusStage stage)
     {
         if (!(this.golem.level() instanceof ServerLevel level))
         {
             return;
         }
+        boolean core = stage == ColossusStage.LAVA_CORE;
+        int minTicks = core ? ColossusTuning.FIRE_TRAIL_MIN_TICKS : ColossusTuning.CRACKING_FIRE_MIN_TICKS;
+        int maxTicks = core ? ColossusTuning.FIRE_TRAIL_MAX_TICKS : ColossusTuning.CRACKING_FIRE_MAX_TICKS;
         boolean plants = ForgeEventFactory.getMobGriefingEvent(level, this.golem);
         Vec3 behind = this.golem.position().subtract(this.chargeDir.scale(this.golem.getBbWidth() / 2.0D - 0.5D));
         Vec3 side = new Vec3(-this.chargeDir.z, 0.0D, this.chargeDir.x);
@@ -674,7 +917,7 @@ public class ColossusAttackGoal extends Goal
             BlockPos pos = BlockPos.containing(p.x, this.golem.getY() + 0.2D, p.z);
             if (!level.getBlockState(pos).is(com.reg21meme.dross.registry.ModBlocks.CINDER_FIRE.get()))
             {
-                LavaPools.placeFire(level, pos, plants);
+                LavaPools.placeFire(level, pos, plants, minTicks, maxTicks);
             }
         }
     }
@@ -685,34 +928,108 @@ public class ColossusAttackGoal extends Goal
      */
     private void lob(@Nullable LivingEntity target, @Nullable Vec3 aim, ColossusStage stage, GolemDesigns.Moves m)
     {
-        if (!(this.golem.level() instanceof ServerLevel level))
-        {
-            return;
-        }
         Vec3 centre = target != null && target.isAlive() ? target.position() : aim;
         if (centre == null)
         {
             return;
         }
-        RandomSource random = this.golem.getRandom();
-        double angle = random.nextDouble() * 2.0D * Math.PI;
-        List<GolemDesigns.Point> craters = m.craters();
-        for (int i = 0; i < ColossusTuning.LOB_BLOBS; i++)
+        this.spew(List.of(centre), ColossusTuning.LOB_BLOBS, stage, m);
+    }
+
+    /**
+     * Entering the Lava Core stage (the shell has burst off, after its roar): its volcanoes spew
+     * {@link ColossusTuning#STAGE_CHANGE_LOB_BLOBS} blobs at once, landing round the players near it (shared out between
+     * them; round its target if no player is near), never on anyone. Called by {@link CinderColossus} when the shell
+     * bursting has finished.
+     */
+    void stageChangeLob()
+    {
+        List<Vec3> centres = new ArrayList<>();
+        for (Player player : this.playersNear(ColossusTuning.BOSS_BAR_RANGE))
         {
-            if (i > 0)
+            centres.add(player.position());
+        }
+        LivingEntity target = this.golem.getTarget();
+        if (centres.isEmpty() && target != null && target.isAlive())
+        {
+            centres.add(target.position());
+        }
+        if (!centres.isEmpty())
+        {
+            this.spew(centres, ColossusTuning.STAGE_CHANGE_LOB_BLOBS, this.golem.stage(), this.golem.getDesign().moves());
+        }
+    }
+
+    /**
+     * Its volcanoes spit {@code blobs} lava blobs: blob i lands round centre i (taking turns when there are more blobs
+     * than centres), each centre's blobs spread round it on opposite-ish sides, {@link ColossusTuning#LOB_LAND_MIN} to
+     * {@link ColossusTuning#LOB_LAND_MAX} blocks out, and never that close to any player near it.
+     */
+    private void spew(List<Vec3> centres, int blobs, ColossusStage stage, GolemDesigns.Moves m)
+    {
+        if (!(this.golem.level() instanceof ServerLevel level) || centres.isEmpty())
+        {
+            return;
+        }
+        RandomSource random = this.golem.getRandom();
+        List<Player> players = this.playersNear(ColossusTuning.BOSS_BAR_RANGE + ColossusTuning.LOB_LAND_MAX);
+        List<GolemDesigns.Point> craters = m.craters();
+        List<Vec3> landings = new ArrayList<>();
+        int n = centres.size();
+        double[] start = new double[n];
+        for (int c = 0; c < n; c++)
+        {
+            start[c] = random.nextDouble() * 2.0D * Math.PI;
+        }
+        for (int i = 0; i < blobs; i++)
+        {
+            int c = i % n;
+            int share = blobs / n + (c < blobs % n ? 1 : 0); // how many blobs land round this centre
+            int j = i / n; // this one's turn round it
+            Vec3 centre = centres.get(c);
+            Vec3 spot = null;
+            for (int tries = 0; tries < LANDING_TRIES && spot == null; tries++)
             {
-                angle += Math.PI * (0.6D + 0.8D * random.nextDouble());
+                double angle = start[c] + 2.0D * Math.PI * j / share
+                        + (random.nextDouble() - 0.5D) * 0.8D * Math.PI / Math.max(1, share);
+                double dist = ColossusTuning.LOB_LAND_MIN
+                        + random.nextDouble() * (ColossusTuning.LOB_LAND_MAX - ColossusTuning.LOB_LAND_MIN);
+                Vec3 at = centre.add(Math.cos(angle) * dist, 0.0D, Math.sin(angle) * dist);
+                if (clearOf(at, players) || tries == LANDING_TRIES - 1)
+                {
+                    spot = at;
+                }
             }
-            double dist = ColossusTuning.LOB_LAND_MIN + random.nextDouble() * (ColossusTuning.LOB_LAND_MAX - ColossusTuning.LOB_LAND_MIN);
-            Vec3 spot = centre.add(Math.cos(angle) * dist, 0.0D, Math.sin(angle) * dist);
             Vec3 landing = groundAt(level, spot);
+            landings.add(landing);
             Vec3 from = craters.isEmpty() ? this.golem.position().add(0.0D, this.golem.getBbHeight(), 0.0D)
                     : this.golem.modelPoint(craters.get(i % craters.size()));
             LavaBlob blob = LavaBlob.spat(level, this.golem, from, ColossusTuning.LOB_DIRECT_DAMAGE * stage.damageScale);
             blob.aim(landing, ColossusTuning.LOB_FLIGHT_TICKS);
             level.addFreshEntity(blob);
         }
+        this.lastLandings = List.copyOf(landings);
         this.golem.sound(ModSounds.COLOSSUS_LOB.get(), 3.0F, 1.0F);
+    }
+
+    /** True if a blob landing here keeps its distance from every one of these players. */
+    private static boolean clearOf(Vec3 at, List<Player> players)
+    {
+        double keep = ColossusTuning.LOB_LAND_MIN - 1.0E-3D;
+        for (Player player : players)
+        {
+            if (flatDistance(at, player.position()) < keep)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Where the blobs of its last lob (or stage-change spew) were aimed. For {@link ColossusGameTest}. */
+    List<Vec3> lastLandings()
+    {
+        return this.lastLandings;
     }
 
     /** The top of the ground at (or near) a spot: where a blob aimed there should land. */
@@ -735,10 +1052,11 @@ public class ColossusAttackGoal extends Goal
     }
 
     /**
-     * One of the summoning's pounds (0: its left fist, 1: its right, 2: both): dust where it lands, and a minion climbs
-     * out of the ground on that side of it (to its left, its right, in front of it).
+     * One of the summoning's pounds (0: its left fist, 1: its right, 2: both): dust where it lands, and its share of
+     * the summon's minions climbs out of the ground on that side of it (to its left, its right, in front of it), never
+     * past {@link ColossusTuning#MAX_MINIONS} alive.
      */
-    private void pound(int k, ColossusStage stage)
+    private void pound(int k, int pounds, ColossusStage stage)
     {
         if (!(this.golem.level() instanceof ServerLevel level))
         {
@@ -746,10 +1064,7 @@ public class ColossusAttackGoal extends Goal
         }
         this.golem.sound(ModSounds.COLOSSUS_POUND.get(), 3.0F, k == 2 ? 0.8F : 1.0F);
         this.dust(this.golem.modelPoint(POUND_AT[Math.min(k, POUND_AT.length - 1)]), k == 2 ? 0.9D : 0.5D);
-        if (this.golem.minions().size() >= ColossusTuning.MAX_MINIONS)
-        {
-            return;
-        }
+        int count = this.summonCount / pounds + (k < this.summonCount % pounds ? 1 : 0);
         Vec3 dir = switch (k)
         {
             case 0 -> this.golem.left();
@@ -758,11 +1073,67 @@ public class ColossusAttackGoal extends Goal
         };
         EntityType<? extends GolemMinion> type = stage == ColossusStage.LAVA_CORE ? ModEntities.LAVA_GOLEM.get()
                 : ModEntities.STONE_GOLEM.get();
-        Vec3 feet = this.minionSpot(level, type, dir);
-        if (feet != null)
+        int alive = this.golem.minions().size();
+        for (int i = 0; i < count && alive < ColossusTuning.MAX_MINIONS; i++)
         {
-            GolemMinion.summon(type, level, this.golem, feet, this.golem.getYRot());
+            // More than one here: each next one a little further round, alternating sides (0, +35, -35, +70...).
+            double degrees = EXTRA_MINION_DEGREES * ((i + 1) / 2) * (i % 2 == 0 ? -1.0D : 1.0D);
+            if (this.raise(level, type, rotate(dir, degrees)))
+            {
+                alive++;
+            }
         }
+    }
+
+    /**
+     * Entering the Cracking stage (its eruption has finished, after its roar): {@link ColossusTuning#STAGE_CHANGE_MINIONS}
+     * stone golems climb out of the ground at once, all round it (in front, to its right, behind, to its left), never
+     * past {@link ColossusTuning#MAX_MINIONS} alive. Called by {@link CinderColossus} when the eruption has finished.
+     */
+    void stageChangeSummon()
+    {
+        if (!(this.golem.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        this.golem.sound(ModSounds.COLOSSUS_POUND.get(), 3.0F, 0.8F);
+        Vec3 fwd = this.golem.forward();
+        Vec3 left = this.golem.left();
+        Vec3[] round = {fwd, left.scale(-1.0D), fwd.scale(-1.0D), left};
+        int alive = this.golem.minions().size();
+        for (int i = 0; i < ColossusTuning.STAGE_CHANGE_MINIONS && alive < ColossusTuning.MAX_MINIONS; i++)
+        {
+            Vec3 dir = round[i % round.length];
+            if (i >= round.length)
+            {
+                dir = rotate(dir, 45.0D); // (more than four: in between)
+            }
+            if (this.raise(level, ModEntities.STONE_GOLEM.get(), dir))
+            {
+                alive++;
+            }
+        }
+    }
+
+    /** A minion of this type climbs out of the ground on this side of it (if there's room): true if it did. */
+    private boolean raise(ServerLevel level, EntityType<? extends GolemMinion> type, Vec3 dir)
+    {
+        Vec3 feet = this.minionSpot(level, type, dir);
+        if (feet == null)
+        {
+            return false;
+        }
+        this.dust(feet, 0.5D);
+        return GolemMinion.summon(type, level, this.golem, feet, this.golem.getYRot()) != null;
+    }
+
+    /** A flat direction turned this many degrees (round the vertical). */
+    private static Vec3 rotate(Vec3 dir, double degrees)
+    {
+        double a = Math.toRadians(degrees);
+        double cos = Math.cos(a);
+        double sin = Math.sin(a);
+        return new Vec3(dir.x * cos - dir.z * sin, 0.0D, dir.x * sin + dir.z * cos);
     }
 
     /** A spot on the ground on one side of it where a minion fits (tried closer in if the first spot is blocked). */
@@ -793,8 +1164,11 @@ public class ColossusAttackGoal extends Goal
 
     // ---------------------------------------------------------------- helpers
 
-    /** Throws something: sideways (a horizontal velocity) and up, softened by half its knockback resistance. */
-    private static void knock(Entity victim, Vec3 sideways, double up)
+    /**
+     * Throws something: sideways (a horizontal velocity) and up, softened by half its knockback resistance. Also the
+     * roar's throw ({@link CinderColossus#roar}).
+     */
+    static void knock(Entity victim, Vec3 sideways, double up)
     {
         double resist = victim instanceof LivingEntity living ? living.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE) : 0.0D;
         double scale = 1.0D - 0.5D * Mth.clamp(resist, 0.0D, 1.0D);

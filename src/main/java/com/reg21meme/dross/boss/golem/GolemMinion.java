@@ -15,6 +15,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -45,7 +46,7 @@ import java.util.UUID;
 
 /**
  * A small golem (about a block tall) that a Cinder Colossus summons in its fight: it climbs out of the ground
- * ({@link #EMERGE_ANIM}) and goes for the players. Two kinds: {@link StoneGolem} (the Cracking stage) and
+ * ({@link #EMERGE_ANIM}) and goes for the players (for a player's risen undead first, when there are any). Two kinds: {@link StoneGolem} (the Cracking stage) and
  * {@link LavaGolem} (the Lava Core stage, which blows up). Their models and animations are made by tools/golems
  * (designs/minions.py); their numbers are in {@link ColossusTuning}.
  * <p>
@@ -73,6 +74,8 @@ public abstract class GolemMinion extends Monster implements GeoEntity
     private static final int XP = 2;
     /** Dust particles when it climbs out or crumbles. */
     private static final int DUST = 24;
+    /** A summoned golem looks for risen undead to fight about this often (ticks, on average). */
+    private static final int RISEN_CHECK_TICKS = 5;
 
     /**
      * The walk animation never runs slower or faster than these (times its own speed). The lava golem's stride needs
@@ -138,8 +141,11 @@ public abstract class GolemMinion extends Monster implements GeoEntity
         });
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-        this.targetSelector.addGoal(1, new HurtByTargetGoal(this, CinderColossus.class, GolemMinion.class));
-        this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+        // A summoned golem goes for a player's risen undead (Necromancy) first, then whoever hurts it, then players.
+        this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Mob.class, RISEN_CHECK_TICKS, false, false,
+                entity -> !GolemMinion.this.isWild() && CinderColossus.isRisenUndead(entity)));
+        this.targetSelector.addGoal(2, new HurtByTargetGoal(this, CinderColossus.class, GolemMinion.class));
+        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, true));
     }
 
     // ---------------------------------------------------------------- summoning
@@ -169,7 +175,18 @@ public abstract class GolemMinion extends Monster implements GeoEntity
         minion.setPersistenceRequired(); // (a summoned minion never despawns: it crumbles with its Colossus instead)
         minion.emergeLeft = minion.design().spawnTicks() + BLEND_TICKS;
         minion.entityData.set(DATA_EMERGING, true);
+        // Risen undead near the Colossus come first (the nearest one), otherwise the Colossus's own target.
         LivingEntity target = colossus.getTarget();
+        double best = Double.MAX_VALUE;
+        for (Mob risen : colossus.risenNear(ColossusTuning.RISEN_RANGE))
+        {
+            double d = risen.distanceToSqr(feet);
+            if (d < best)
+            {
+                best = d;
+                target = risen;
+            }
+        }
         if (target != null && target.isAlive())
         {
             minion.setTarget(target);

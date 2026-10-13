@@ -1,5 +1,7 @@
 package com.reg21meme.dross.boss.golem;
 
+import java.util.List;
+
 /**
  * Every tuning number of the Cinder Colossus fight in one place (the numbers that change per stage are in
  * {@link ColossusStage}). Times are in ticks (20 ticks = 1 second), distances in blocks, damage in half-hearts
@@ -53,7 +55,7 @@ public final class ColossusTuning
     public static final double ROCK_GRAVITY = 0.045D;
     /** How hard a rock knocks you back. */
     public static final double ROCK_KNOCKBACK = 0.8D;
-    /** It throws at players between these distances... */
+    /** It throws at players between these distances (in the Shell and Cracking stages: never in the Lava Core)... */
     public static final double THROW_MIN_RANGE = 6.0D;
     public static final double THROW_MAX_RANGE = 28.0D;
     /** ...at most this often (ticks). */
@@ -73,33 +75,59 @@ public final class ColossusTuning
     /** ...at most this often (ticks). */
     public static final int SLAM_COOLDOWN = 200;
 
-    // ---------------------------------------------------------------- charge
+    // ---------------------------------------------------------------- charge (it closes the gap)
 
-    /** How far it gallops in a straight line, head first... */
-    public static final double CHARGE_DISTANCE = 10.0D;
-    /** ...and how fast (blocks a tick: 0.6 is 12 blocks a second). */
+    /**
+     * It charges at the spot where its target stood when the charge started (the target may have moved by the time it
+     * gallops) and runs all the way to that spot, head first, at most this far...
+     */
+    public static final double CHARGE_MAX_DISTANCE = 32.0D;
+    /** ...this fast (blocks a tick: 0.6 is 12 blocks a second). */
     public static final double CHARGE_SPEED = 0.6D;
-    /** It gives up a charge after this many ticks (if something slows it down). */
-    public static final int CHARGE_MAX_TICKS = 30;
+    /** It gives up a charge this many ticks after it should have arrived (if something slows it down). */
+    public static final int CHARGE_SLACK_TICKS = 15;
     /** Damage to everything it runs into (times the stage's damage scale), and how hard it knocks them aside and up. */
     public static final float CHARGE_DAMAGE = 11.0F;
     public static final double CHARGE_KNOCKBACK = 1.6D;
     public static final double CHARGE_LIFT = 0.55D;
-    /** It charges at players between these distances... */
+    /** It charges at targets between these distances (it must see them, with a clear-ish run, see below)... */
     public static final double CHARGE_MIN_RANGE = 7.0D;
-    public static final double CHARGE_MAX_RANGE = 18.0D;
-    /** ...at most this often (ticks). */
-    public static final int CHARGE_COOLDOWN = 180;
+    public static final double CHARGE_MAX_RANGE = 32.0D;
+    /** ...not more than this many blocks above or below it... */
+    public static final double CHARGE_MAX_RISE = 2.5D;
+    /**
+     * ...and only when nothing solid stands in this share of the way (the start of the run): a clear-ish run. A wall
+     * further on still stops it (and dazes it).
+     */
+    public static final double CHARGE_CLEAR_SHARE = 0.75D;
+    /**
+     * It charges at most this often (ticks) in each stage: 9, 6 and 4 seconds. (Not scaled by the stage's cooldown
+     * multiplier, like the other moves are.)
+     */
+    public static final int CHARGE_COOLDOWN_SHELL = 180;
+    public static final int CHARGE_COOLDOWN_CRACKING = 120;
+    public static final int CHARGE_COOLDOWN_CORE = 80;
     /** If it runs into a wall it's dazed for this many ticks. */
     public static final int CHARGE_DAZED_TICKS = 25;
-    /** Lava Core stage: the trail of fire its charge leaves lasts between these many ticks (4 to 5 seconds). */
+    /**
+     * Every charge in the Cracking and Lava Core stages leaves a trail of fire behind it. In the Lava Core it lasts
+     * between these many ticks (4 to 5 seconds)...
+     */
     public static final int FIRE_TRAIL_MIN_TICKS = 80;
     public static final int FIRE_TRAIL_MAX_TICKS = 100;
+    /** ...and in the Cracking stage half as long (2 to 2.5 seconds). */
+    public static final int CRACKING_FIRE_MIN_TICKS = 40;
+    public static final int CRACKING_FIRE_MAX_TICKS = 50;
 
     // ---------------------------------------------------------------- volcano lob (Cracking and Lava Core)
 
     /** How many lava blobs its volcanoes spit out at once. */
     public static final int LOB_BLOBS = 2;
+    /**
+     * When it bursts out of its shell (entering the Lava Core stage, after its roar) its volcanoes spew this many blobs
+     * at once, landing round the players near it (shared out between them), never on them.
+     */
+    public static final int STAGE_CHANGE_LOB_BLOBS = 4;
     /** Each lands this far from the player (near them, never on them). */
     public static final double LOB_LAND_MIN = 4.0D;
     public static final double LOB_LAND_MAX = 6.0D;
@@ -126,6 +154,13 @@ public final class ColossusTuning
 
     /** Minions rise this far from its middle: one in front of it, one to its left, one to its right. */
     public static final double SUMMON_DISTANCE = 4.5D;
+    /** A summon raises this many minions (one at each of its three pounds), unless risen undead are near (below). */
+    public static final int SUMMON_COUNT = 3;
+    /**
+     * When its eruption has finished (entering the Cracking stage, after its roar) this many stone golems climb out of
+     * the ground at once, all round it (in front, to its right, behind, to its left), never past {@link #MAX_MINIONS}.
+     */
+    public static final int STAGE_CHANGE_MINIONS = 4;
     /** It only summons when fewer than this many of its minions are alive... */
     public static final int SUMMON_BELOW = 2;
     /** ...and never has more than this many alive at once. */
@@ -134,6 +169,84 @@ public final class ColossusTuning
     public static final double SUMMON_RANGE = 24.0D;
     /** ...at most this often (ticks). */
     public static final int SUMMON_COOLDOWN = 500;
+
+    // ---------------------------------------------------------------- the roar
+
+    /**
+     * It roars, with a shockwave of dust, the first time it's hurt in a fight (once per Colossus) and at both stage
+     * changes (at the roar in the eruption and in the shell bursting). Every player within this many blocks of it is
+     * thrown back...
+     */
+    public static final double ROAR_RADIUS = 15.0D;
+    /**
+     * ...this fast sideways (away from it) and this fast up: about 15 blocks on flat ground (less in armour that resists
+     * knockback). Knockback only: no damage, and only players (its minions and other mobs stay put).
+     */
+    public static final double ROAR_KNOCKBACK = 1.6D;
+    public static final double ROAR_LIFT = 0.75D;
+    /** Ticks its ring of dust takes to roll out to {@link #ROAR_RADIUS}. */
+    public static final int ROAR_RING_TICKS = 6;
+
+    // ---------------------------------------------------------------- choosing a move: chances by distance
+
+    /**
+     * How likely each move is (percent), for one band of distance to its target. Only the moves it can make right now
+     * count (ready after their cooldown, in range, in sight...): the others' share is spread over them (a 60 / 40 pair
+     * with the 60 on cooldown is a sure 40). With none it walks closer.
+     */
+    public record Chances(int swipe, int throwRock, int slam, int charge, int lob, int summon) {}
+
+    /**
+     * The distance bands (blocks from its middle to its target's): close (its swipe and slam range) up to this...
+     */
+    public static final double CLOSE_BAND = 7.0D;
+    /** ...mid up to this, far up to this, and very far up to {@link #CHARGE_MAX_RANGE} (beyond it, it walks closer). */
+    public static final double MID_BAND = 18.0D;
+    public static final double FAR_BAND = 28.0D;
+
+    /** The Shell stage: close, mid, far, very far. */
+    public static final List<Chances> SHELL_CHANCES = List.of(
+            //          swipe  throw  slam  charge  lob  summon
+            new Chances(60,    0,     40,   0,      0,   0),
+            new Chances(0,     50,    0,    50,     0,   0),
+            new Chances(0,     60,    0,    40,     0,   0),
+            new Chances(0,     0,     0,    100,    0,   0));
+    /** The Cracking stage: close, mid, far, very far. */
+    public static final List<Chances> CRACKING_CHANCES = List.of(
+            //          swipe  throw  slam  charge  lob  summon
+            new Chances(40,    0,     25,   0,      0,   35),
+            new Chances(0,     20,    0,    35,     25,  20),
+            new Chances(0,     15,    0,    45,     25,  15),
+            new Chances(0,     0,     0,    70,     30,  0));
+    /** The Lava Core stage: close, mid, far, very far. No rock throw at all any more. */
+    public static final List<Chances> CORE_CHANCES = List.of(
+            //          swipe  throw  slam  charge  lob  summon
+            new Chances(40,    0,     30,   0,      0,   30),
+            new Chances(0,     0,     0,    50,     35,  15),
+            new Chances(0,     0,     0,    60,     40,  0),
+            new Chances(0,     0,     0,    70,     30,  0));
+    /**
+     * Chosen from a little out of its swipe's reach (still in the close band), the swipe makes it step in first: for
+     * at most this many ticks, then it thinks again.
+     */
+    public static final int SWIPE_STEP_IN_TICKS = 30;
+
+    // ---------------------------------------------------------------- against Necromancy's risen undead
+
+    /** Risen undead (a player's, raised by Necromancy) within this many blocks of it count... */
+    public static final double RISEN_RANGE = 24.0D;
+    /**
+     * ...and then a summon raises one golem for every this many of them (half, rounded up; never past
+     * {@link #MAX_MINIONS} alive), and the golems go for the risen undead first. While they're near it may summon in
+     * every stage (the Shell too) whenever it has fewer golems than half the risen undead.
+     */
+    public static final int RISEN_PER_GOLEM = 2;
+    /** The summon's chance (percent) in a band whose table has none (the Shell; the far bands) while it may summon. */
+    public static final int RISEN_SUMMON_CHANCE = 35;
+    /** When at least this many risen undead are attacking it within its slam range ({@link #SLAM_TRIGGER_RANGE})... */
+    public static final int SWARM_ATTACKERS = 3;
+    /** ...this many points of the close band's chance move from the swipe to the slam (back when there are fewer). */
+    public static final int SWARM_SLAM_SHIFT = 20;
 
     // ---------------------------------------------------------------- stone golems (Cracking stage)
 

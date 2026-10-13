@@ -9,6 +9,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -102,12 +103,35 @@ public final class LavaPools
      */
     public static boolean placeFire(ServerLevel level, BlockPos pos, boolean plants)
     {
+        return placeFire(level, pos, plants, ColossusTuning.FIRE_TRAIL_MIN_TICKS, ColossusTuning.FIRE_TRAIL_MAX_TICKS);
+    }
+
+    /**
+     * Like {@link #placeFire(ServerLevel, BlockPos, boolean)}, but the fire goes out after {@code minTicks} to
+     * {@code maxTicks} ticks (the Cracking stage's trail burns half as long as the Lava Core's).
+     *
+     * @return true if fire was placed
+     */
+    public static boolean placeFire(ServerLevel level, BlockPos pos, boolean plants, int minTicks, int maxTicks)
+    {
         BlockPos spot = surfaceNear(level, pos, 1, plants);
         if (spot == null)
         {
             return false;
         }
-        level.setBlock(spot, ModBlocks.CINDER_FIRE.get().defaultBlockState(), Block.UPDATE_ALL);
+        Block fire = ModBlocks.CINDER_FIRE.get();
+        level.setBlock(spot, fire.defaultBlockState(), Block.UPDATE_ALL);
+        if (!level.getBlockState(spot).is(fire))
+        {
+            return false;
+        }
+        if (minTicks != ColossusTuning.FIRE_TRAIL_MIN_TICKS || maxTicks != ColossusTuning.FIRE_TRAIL_MAX_TICKS)
+        {
+            // The fire set its own countdown when it was placed (the Lava Core's): swap it for this one. (Only the
+            // fire's tick is at this spot: it was free air or a soft plant a moment ago.)
+            level.getBlockTicks().clearArea(new BoundingBox(spot));
+            level.scheduleTick(spot, fire, minTicks + level.random.nextInt(Math.max(1, maxTicks - minTicks + 1)));
+        }
         return true;
     }
 

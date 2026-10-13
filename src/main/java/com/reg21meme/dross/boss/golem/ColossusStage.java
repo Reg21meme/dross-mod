@@ -10,8 +10,12 @@ package com.reg21meme.dross.boss.golem;
  *       (look: {@link GolemPhase#ERUPTED} with loose plates and bright cracks). A bit faster and more aggressive; adds
  *       the volcano lob (lava pools) and summons stone golems.</li>
  *   <li>{@link #LAVA_CORE} (35% to 0%): the shell has burst off (look: {@link GolemPhase#CORE}). Faster, angrier; every
- *       hit sets you on fire, its charge leaves a trail of fire, and it summons lava golems instead.</li>
+ *       hit sets you on fire, its charge leaves a longer trail of fire, it summons lava golems instead and throws no
+ *       more rocks.</li>
  * </ol>
+ * Each stage change starts with a roar that throws the players near it back, then an attack: four stone golems
+ * (Cracking) or four lava blobs (Lava Core). Which move it picks in each stage is in the chance tables of
+ * {@link ColossusTuning}; while a player's risen undead are near it may summon in any stage, the Shell too.
  * The stage is saved as the golem's look ({@link GolemPhase}), so a rejoin mid-fight restores both.
  */
 public enum ColossusStage

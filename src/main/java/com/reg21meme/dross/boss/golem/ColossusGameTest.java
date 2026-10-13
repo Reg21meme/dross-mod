@@ -80,6 +80,8 @@ import java.util.function.Consumer;
  *   <li>{@link #rightClickCyclesTrophyDesign}: right-clicking a placed trophy turns it 1, 2 ... 5, then 1 again,
  *       keeping the way it faces (holding a block too, which isn't placed).</li>
  * </ul>
+ * The fight's moves (the roar, the stage changes' attacks, the long charge, the move chances, the answer to risen undead)
+ * are tested in {@link ColossusFightGameTest}.
  * The wild stone and lava golems of the Cinder Wastes have their own tests, {@link WildGolemGameTest}, on the same arena
  * (they share its helpers: {@link #waitForArena}, {@link #joinPlayer}, {@link #leaveAll}).
  * The tests that spawn something, look for it or need ticks first wait until their arena has finished loading
@@ -794,13 +796,19 @@ public final class ColossusGameTest
      */
     static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
     {
-        if (arenaStillLoading(helper) == null)
+        return waitForArena(helper, test, ARENA_SIZE, ARENA_SIZE);
+    }
+
+    /** {@link #waitForArena(GameTestHelper, Consumer)} for a test template of another size (blocks along x and z). */
+    static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test, int sizeX, int sizeZ)
+    {
+        if (arenaStillLoading(helper, sizeX, sizeZ) == null)
         {
             return false;
         }
         helper.startSequence()
                 .thenWaitUntil(() -> {
-                    String loading = arenaStillLoading(helper);
+                    String loading = arenaStillLoading(helper, sizeX, sizeZ);
                     if (loading != null)
                     {
                         helper.fail(loading); // keeps waiting (it only fails the test if it's still loading at the end)
@@ -832,11 +840,11 @@ public final class ColossusGameTest
      * block ticks run. Otherwise which chunk is still loading.
      */
     @Nullable
-    private static String arenaStillLoading(GameTestHelper helper)
+    private static String arenaStillLoading(GameTestHelper helper, int sizeX, int sizeZ)
     {
         ServerLevel level = helper.getLevel();
         BlockPos corner = helper.absolutePos(new BlockPos(0, FLOOR_Y, 0));
-        BlockPos opposite = helper.absolutePos(new BlockPos(ARENA_SIZE - 1, FLOOR_Y, ARENA_SIZE - 1));
+        BlockPos opposite = helper.absolutePos(new BlockPos(sizeX - 1, FLOOR_Y, sizeZ - 1));
         int minX = SectionPos.blockToSectionCoord(Math.min(corner.getX(), opposite.getX()));
         int maxX = SectionPos.blockToSectionCoord(Math.max(corner.getX(), opposite.getX()));
         int minZ = SectionPos.blockToSectionCoord(Math.min(corner.getZ(), opposite.getZ()));
@@ -873,23 +881,27 @@ public final class ColossusGameTest
             return;
         }
         StructureTemplate template = event.getServer().getStructureManager().getOrCreate(ARENA_ID);
-        template.load(event.getServer().registryAccess().lookupOrThrow(Registries.BLOCK), arenaTag());
+        template.load(event.getServer().registryAccess().lookupOrThrow(Registries.BLOCK), floorTemplate(ARENA_SIZE, ARENA_SIZE));
     }
 
-    private static CompoundTag arenaTag()
+    /**
+     * A test template: a smooth stone floor {@code sizeX} by {@code sizeZ} blocks with air above, under a barrier roof
+     * (see {@link #ROOF_Y}). The arena, and {@link ColossusFightGameTest}'s runway.
+     */
+    static CompoundTag floorTemplate(int sizeX, int sizeZ)
     {
         // The template's bottom layer (0) is the floor at relative y FLOOR_Y, so the roof is layer ROOF_Y - FLOOR_Y.
         int roofLayer = ROOF_Y - FLOOR_Y;
         CompoundTag tag = new CompoundTag();
-        tag.put("size", intList(ARENA_SIZE, roofLayer + 1, ARENA_SIZE));
+        tag.put("size", intList(sizeX, roofLayer + 1, sizeZ));
         ListTag palette = new ListTag();
         palette.add(NbtUtils.writeBlockState(Blocks.SMOOTH_STONE.defaultBlockState()));
         palette.add(NbtUtils.writeBlockState(Blocks.BARRIER.defaultBlockState()));
         tag.put("palette", palette);
         ListTag blocks = new ListTag();
-        for (int x = 0; x < ARENA_SIZE; x++)
+        for (int x = 0; x < sizeX; x++)
         {
-            for (int z = 0; z < ARENA_SIZE; z++)
+            for (int z = 0; z < sizeZ; z++)
             {
                 CompoundTag floor = new CompoundTag();
                 floor.put("pos", intList(x, 0, z));
