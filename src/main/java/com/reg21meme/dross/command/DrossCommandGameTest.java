@@ -7,6 +7,7 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.BossCommands;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyBlock;
+import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import net.minecraft.commands.CommandSourceStack;
@@ -42,10 +43,13 @@ import java.util.Set;
  * Headless test (GameTest) for the {@code /dross} command names and {@code /dross showcase trophies colossus}. Run it
  * with {@code .\gradlew.bat runGameTestServer --console=plain}. It only exists in the development environment.
  * <ul>
- *   <li><b>Names:</b> every command in the naming scheme ({@code goto <place>}, {@code showcase <kind> [<boss>]},
- *       {@code boss <action> <boss>}, {@code trader <action>}, {@code quest <action>}) parses to a runnable command,
- *       including the chat buttons' commands (the golem showcase's controls and the arena's summon button), and none
- *       of the old names do.</li>
+ *   <li><b>Names:</b> every command in the naming scheme ({@code goto <place>}, {@code goto biome <name>} and
+ *       {@code goto lair <boss>}, {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
+ *       {@code quest <action>}) parses to a runnable command, including the chat buttons' commands (the golem showcase's
+ *       controls and the arena's summon button), and none of the old names do (nor {@code goto biome} or
+ *       {@code goto lair} on its own, or with a name that isn't a Dross biome or a boss with a lair). Running
+ *       {@code goto biome} is checked by {@link GotoBiomeGameTest}, {@code goto lair colossus} by
+ *       {@link GotoLairGameTest}.</li>
  *   <li><b>Trophy showcase:</b> run far from everything else ({@link #SHOWCASE_X}, {@link #SHOWCASE_Z}), looking
  *       south, it places the 5 trophies in a row, each on a showcase pedestal, facing back north (toward the command),
  *       with a sign "No. N" and the design's name in front. Run again 10 blocks further north, the old row is gone
@@ -65,17 +69,22 @@ public final class DrossCommandGameTest
     /** Every command that must exist (without the slash). The controls and buttons are added from their own code. */
     private static final String[] NEW_COMMANDS = {
             "dross goto cathedral", "dross goto hub", "dross goto trader",
+            "dross goto biome silverwood_forest", "dross goto biome cinder_wastes", "dross goto biome blightwood",
+            "dross goto biome rimefall", "dross goto biome nether_scar", "dross goto biome gravecrags",
+            "dross goto lair colossus",
             "dross trader sendhome",
             "dross quest status", "dross quest reset", "dross quest complete",
             "dross showcase trader_huts", "dross showcase trader_skins", "dross showcase portal_shrines",
             "dross showcase boss_designs colossus", "dross showcase trophies colossus",
             "dross boss summon colossus", "dross boss arena colossus",
     };
-    /** The old names (and one unfinished command), which must not run. */
+    /** The old names (and unfinished or unknown commands), which must not run. */
     private static final String[] OLD_COMMANDS = {
             "dross site", "dross hub", "dross trader", "dross trader home", "dross boss arena",
             "dross showcase huts", "dross showcase skins", "dross showcase shrines", "dross showcase golems",
             "dross showcase golems erupt", "dross showcase trophies",
+            "dross goto biome", "dross goto biome not_a_biome", "dross goto biome dross_flats", "dross goto biome dross:gravecrags",
+            "dross goto lair", "dross goto lair cinder_colossus", "dross goto colossus",
     };
 
     /** Where the trophy showcase is tried: far from spawn, the site and the other tests. */
@@ -118,6 +127,10 @@ public final class DrossCommandGameTest
             expected.add(control.command().substring(1));
         }
         expected.add(BossCommands.SUMMON_COMMAND.substring(1));
+        for (String biome : DrossBiomes.names()) // every Dross biome has its goto biome literal, a future one too
+        {
+            expected.add("dross goto biome " + biome);
+        }
         for (String command : expected)
         {
             if (!runnable(dispatcher, source, command))

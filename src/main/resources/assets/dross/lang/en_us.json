@@ -195,5 +195,22 @@
   "biome.dross.rimefall": "Rimefall",
   "biome.dross.nether_scar": "Nether Scar",
   "biome.dross.gravecrags": "The Gravecrags",
-  "biome.dross.dross_flats": "Dross Flats"
+  "biome.dross.dross_flats": "Dross Flats",
+  "commands.dross.goto.biome.success_from_hub": "Teleported to the nearest part of %s at %s, %s, %s (%s blocks from the hub)",
+  "commands.dross.goto.biome.success_from_you": "Teleported to the nearest part of %s at %s, %s, %s (%s blocks from where you were)",
+  "commands.dross.goto.biome.already_there": "You're already in %s, so you weren't moved.",
+  "commands.dross.goto.biome.not_found_from_hub": "Found no part of %s within %s blocks of the hub",
+  "commands.dross.goto.biome.not_found_from_you": "Found no part of %s within %s blocks of you",
+  "commands.dross.goto.biome.no_safe_spot": "Couldn't find a safe spot in %s near %s, %s",
+  "commands.dross.goto.biome.no_safe_spot_old_land": "Couldn't find a safe spot in %s near %s, %s (the land there was made before the Dross had biomes; try from farther out)",
+  "commands.dross.goto.biome.no_dross": "The Dross dimension isn't loaded, so there's nowhere to go.",
+  "commands.dross.goto.biome.stopped": "Something stopped you from going to the Dross.",
+  "commands.dross.goto.lair.not_placed": "The Cinder Colossus's lair hasn't been placed in this world yet.",
+  "commands.dross.goto.lair.no_dross": "The Dross dimension isn't loaded, so there's no lair to go to.",
+  "commands.dross.goto.lair.stopped": "Something stopped you from going to the Dross.",
+  "commands.dross.goto.lair.success": "Teleported to the entrance of the Cinder Colossus's lair at %s, %s, %s. %s",
+  "commands.dross.goto.lair.ready": "It rises when you walk in.",
+  "commands.dross.goto.lair.waiting": "It was beaten recently and can rise again in %s minutes.",
+  "commands.dross.goto.lair.waiting_one": "It was beaten recently and can rise again in 1 minute.",
+  "commands.dross.goto.lair.peaceful": "It never rises on Peaceful."
 }

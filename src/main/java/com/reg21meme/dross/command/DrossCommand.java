@@ -6,6 +6,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.BossCommands;
+import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
 import com.reg21meme.dross.villager.TraderCommands;
@@ -15,9 +16,11 @@ import net.minecraft.commands.Commands;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -28,7 +31,8 @@ import net.minecraftforge.fml.common.Mod;
  * The {@code /dross} command. Owned by world-builder; other areas' logic lives in their own packages. All need cheats (level 2).
  * <p>
  * Names say what kind of thing a command is about and which one, so they stay clear as more bosses and places are
- * added: {@code goto <place>}, {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
+ * added: {@code goto <place>} (with {@code goto biome <name>} for the Dross's biomes and {@code goto lair <boss>} for
+ * the bosses' lairs), {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
  * {@code quest <action>}.
  * <ul>
  *   <li>{@code /dross goto cathedral}: teleports you in front of the castle's portal frame (the Fallen Cathedral, or
@@ -36,6 +40,15 @@ import net.minecraftforge.fml.common.Mod;
  *       ("hasn't been placed ... yet") and builds nothing: the site is built in the background a little while after a
  *       new world opens.</li>
  *   <li>{@code /dross goto hub}: teleports you to the hub in the Dross (portal area's {@link DrossHub}).</li>
+ *   <li>{@code /dross goto biome silverwood_forest|cinder_wastes|blightwood|rimefall|nether_scar|gravecrags}: teleports
+ *       you to the nearest place of that Dross biome, on safe ground and never on or right by the hub: searching from
+ *       where you stand if you're in the Dross, otherwise from the hub ({@link GotoBiome}; finding the biome is the
+ *       dimension area's {@code DrossBiomes}, safe ground the portal area's {@code DrossTeleporter.findSafeSpot}). It
+ *       never lands in or by the Cinder Colossus's lair either.</li>
+ *   <li>{@code /dross goto lair colossus}: teleports you to the entrance of the Cinder Colossus's lair in the Cinder
+ *       Wastes, facing into its tunnel, and says whether the Colossus will rise when you walk in or in how many minutes
+ *       ({@link GotoLair}; the lair is the boss area's {@code ColossusLair}). Before the lair has been built in this
+ *       world it fails ("hasn't been placed ... yet") and builds nothing, like {@code goto cathedral}.</li>
  *   <li>{@code /dross goto trader}: teleports you to the Dross trader. {@code /dross trader sendhome}: sends him home.
  *       From the villager area ({@link TraderCommands}).</li>
  *   <li>{@code /dross quest status|reset|complete}: shows, clears or finishes your quest progress.
@@ -65,7 +78,10 @@ import net.minecraftforge.fml.common.Mod;
  *       path must match it exactly.</li>
  * </ul>
  * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase trophies}, {@code boss summon}
- * and {@code boss arena}; a future place adds one under {@code goto}.
+ * and {@code boss arena} (and, once it has a lair, under {@code goto lair}); a future place adds one under
+ * {@code goto}. A future Dross biome gets its {@code goto biome <name>} by itself: there's one literal per biome in
+ * {@code DrossBiomes.ALL}, named by {@code DrossBiomes.name} (its id without {@code dross:}). Plain
+ * {@code goto biome} and {@code goto lair} aren't commands.
  * <p>
  * The shrine, skin, boss-design and trophy showcases and the boss commands use the command's position, rotation and
  * dimension, so they also work from the server console and command blocks (for example {@code execute in
@@ -98,7 +114,13 @@ public final class DrossCommand
                         // Portal area's hub (the logic lives in DrossHub).
                         .then(Commands.literal("hub").executes(DrossCommand::teleportToHub))
                         // Villager area's trader (the logic lives in TraderCommands).
-                        .then(Commands.literal("trader").executes(TraderCommands::teleportToTrader)))
+                        .then(Commands.literal("trader").executes(TraderCommands::teleportToTrader))
+                        // The Dross's biomes: goto biome <name>, one literal per biome (the logic lives in GotoBiome).
+                        .then(biomeGoto())
+                        // The bosses' lairs: goto lair <boss>, one literal per boss with a lair (the logic lives in
+                        // GotoLair; the lair itself is the boss area's ColossusLair).
+                        .then(Commands.literal("lair")
+                                .then(Commands.literal("colossus").executes(context -> GotoLair.colossus(context.getSource())))))
                 // Villager area's test commands: trader <action> (the logic lives in TraderCommands).
                 .then(Commands.literal("trader")
                         .requires(source -> source.hasPermission(2))
@@ -132,6 +154,21 @@ public final class DrossCommand
                         .then(Commands.literal("arena")
                                 .then(Commands.literal("colossus")
                                         .executes(context -> BossCommands.buildArena(context.getSource()))))));
+    }
+
+    /**
+     * {@code /dross goto biome <name>}: one literal per Dross biome ({@code silverwood_forest}, {@code cinder_wastes},
+     * {@code blightwood}, {@code rimefall}, {@code nether_scar}, {@code gravecrags}), so they tab-complete. Plain
+     * {@code /dross goto biome} isn't a command.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> biomeGoto()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> biome = Commands.literal("biome");
+        for (ResourceKey<Biome> key : DrossBiomes.ALL)
+        {
+            biome.then(Commands.literal(DrossBiomes.name(key)).executes(context -> GotoBiome.teleport(context.getSource(), key)));
+        }
+        return biome;
     }
 
     /**
