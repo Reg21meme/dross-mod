@@ -17,45 +17,58 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.LanternBlock;
-import net.minecraft.world.level.block.WallBlock;
+import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.LiquidBlockContainer;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.synth.ImprovedNoise;
+import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.Vec3;
 
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
 /**
- * Carves the Colossus's lair into the real world (its chunks must be loaded; server thread). In order:
+ * Builds the Colossus's lair into the real world: a volcano (its chunks must be loaded; server thread). In order:
  * <ol>
- *   <li>The plan is worked out again on the spot ({@link LairShape#plan}, from {@link #planningGround}): how deep the
- *       floor goes and which way the tunnel runs.</li>
+ *   <li>The plan ({@link LairShape#volcanoPlan}, from {@link #planningGround}): which way the cave mouth faces, the
+ *       floor's height (level with the land in front of the mouth), the rim's height and the land under the cone.</li>
  *   <li>Trees in the way (charred trees) are removed whole, so no floating bits are left.</li>
- *   <li>Where the dome would rise above the ground, a lumpy mound of rock covers it (filling only air, fluids and
- *       plants, down to the ground).</li>
- *   <li>The lining: everything within {@link LairTuning#SHELL_THICKNESS} blocks of the cavern (and under its floor)
- *       becomes Cinder rock: basalt, blackstone, smooth basalt.</li>
- *   <li>The cavern: a round floor 41 blocks across, walls {@link LairTuning#WALL_HEIGHT} high curving into a dome
- *       {@link LairTuning#DOME_HEIGHT} high, roughened a little; the floor in the boss arena's style (red nether
- *       bricks, a chiseled middle, rings of nether bricks with shroomlights).</li>
- *   <li>The tunnel: 3 wide and 5 tall, level for {@link LairTuning#TUNNEL_STRAIGHT} blocks out of the cavern, then
- *       climbing half a block per block on nether brick slabs to its mouth (a basalt and blackstone arch with two
- *       lanterns), and a short cut approach in front of it; lined with rock (built up into a covered passage where it
- *       comes out above the ground), dim magma lights in its walls.</li>
- *   <li>The skylight: a round shaft from the top of the dome to the sky, lined with rock, with a low wall round its top.</li>
- *   <li>Safety: any fluid touching the carved space is turned to rock (no lava can flow in), and plants left without
- *       ground are removed.</li>
- *   <li>Decoration: glowing magma veins up the walls and over the dome, and lava basins at the foot of the wall behind
- *       low walls (lava that can't flow anywhere). No fire, nothing that burns.</li>
+ *   <li>The cone: dark rock (basalt, blackstone, smooth basalt) from the land up to the volcano's surface: rough slopes
+ *       with lumps and ridges running down them, ash on its shoulders, glowing magma here and there near the top, a
+ *       jagged crest of obsidian and blackstone round the crater, and a brow of rock over the cave mouth.</li>
+ *   <li>The cavern (the arena): a round floor 41 blocks across, walls {@link LairTuning#WALL_HEIGHT} high curving into a
+ *       dome {@link LairTuning#DOME_HEIGHT} high, roughened, lined with rock.</li>
+ *   <li>The crater: a funnel from the jagged rim down to the throat in the top of the dome, its walls flecked with
+ *       obsidian and magma.</li>
+ *   <li>The floor: obsidian with patches of blackstone, a polished blackstone medallion, border and two rings of bricks
+ *       with magma blocks set evenly round them, a few more magma blocks scattered.</li>
+ *   <li>The way in: a cave mouth 9 wide and 8 tall in the flank (a jagged lip of obsidian and blackstone, obsidian teeth
+ *       hanging at its top, magma in its walls), narrowing to a passage 5 wide and 6 tall into the cavern; a gully cut
+ *       into the flank in front of it, a level apron and a blend to the land (at most a block's step at a time).</li>
+ *   <li>Obsidian stalactites hanging from the dome (never low over the middle).</li>
+ *   <li>Safety: any fluid touching the carved space is turned to rock, and plants left without ground are removed.</li>
+ *   <li>Magma veins up the walls and over the dome.</li>
+ *   <li>Lava under the floor: glowing fissures, glass in the floor with lava one block under it, sealed in rock (also
+ *       along the passage).</li>
+ *   <li>Lava outside: rivulets running down the slopes from just under the rim, stepping down corner to corner (lava
+ *       only touches the next block of the rivulet at a corner, so it can't flow), ending in pools at the foot; their
+ *       banks a glowing crust of magma and obsidian.</li>
+ *   <li>Every lava block is walled in (below and on its four sides: more lava or a block lava can't flow into), and
+ *       nothing that can burn is left near any of it.</li>
  * </ol>
  * Blocks with a block entity (chests...) are never changed. Blocks are set without poking their neighbours (nothing
- * starts flowing or falling), but players see every change.
+ * starts flowing or falling), but players see every change. The smoke rising from the crater is {@link LairSmoke}'s.
  */
 final class LairBuilder
 {
+    /** The lair's version: 1 was the R2c cavern with its tunnel (old worlds keep theirs), 2 is the volcano. */
+    static final int VERSION = 2;
     private static final int FLAGS = Block.UPDATE_CLIENTS;
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
+    private static final BlockState LAVA = Blocks.LAVA.defaultBlockState();
+    /** The fissures' glass: orange, so the lava under it glows like a hot crack. */
+    static final Block FISSURE_GLASS = Blocks.ORANGE_STAINED_GLASS;
+    private static final Direction[] LAVA_FLOWS = {Direction.DOWN, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
 
     private LairBuilder() {}
 
@@ -65,18 +78,22 @@ final class LairBuilder
      * @param centerX     the floor's middle block (X)
      * @param centerZ     the floor's middle block (Z)
      * @param floorY      the floor blocks' Y (players stand at floorY + 1)
-     * @param tunnel      the way the tunnel runs out of the cavern, towards its mouth
-     * @param descent     how many blocks the tunnel goes down from the mouth to the floor
-     * @param entrance    where a player arriving stands: on the approach in front of the mouth, feet position
-     * @param entranceYaw the way to face from there: into the tunnel
+     * @param tunnel      the way the way in runs out of the cavern, towards its mouth
+     * @param mouth       the cave mouth's distance from the middle (its lip)
+     * @param rimY        the crater rim's crest (Y)
+     * @param gullyEnd    where the gully in front of the mouth ends (its distance from the middle); the level apron and the
+     *                    blend to the land follow it
+     * @param entrance    where a player arriving stands: in the gully in front of the mouth, feet position
+     * @param entranceYaw the way to face from there: into the mouth
      */
-    record Layout(int centerX, int centerZ, int floorY, Direction tunnel, int descent, Vec3 entrance, float entranceYaw)
+    record Layout(int centerX, int centerZ, int floorY, Direction tunnel, int mouth, int rimY, int gullyEnd, Vec3 entrance,
+                  float entranceYaw)
     {
     }
 
     /** What building did: the layout, the plan it followed, and counts for the log. */
-    record Result(Layout layout, LairShape.Plan plan, int changed, int trees, int plants, int sealed, int basins, int veins,
-                  long millis)
+    record Result(Layout layout, LairShape.VolcanoPlan plan, int changed, int trees, int plants, int sealed, int veins,
+                  int fissureCells, int stalactites, int rivulets, int outsideLava, int fireGuarded, int gullyLength, long millis)
     {
     }
 
@@ -84,26 +101,21 @@ final class LairBuilder
     static Result build(ServerLevel level, int x, int z)
     {
         long start = Util.getMillis();
-        LairShape.Plan plan = LairShape.plan(x, z, planningGround(level));
         int lowest = level.getMinBuildHeight() + UNDER_FLOOR + FILL_DEPTH + 2;
-        int highest = level.getMaxBuildHeight() - MOUND_HEIGHT - (int) Math.ceil(MOUND_ROUGHNESS) - 4;
-        if (plan.floorY() < lowest || plan.floorY() > highest)
-        {
-            int floor = Mth.clamp(plan.floorY(), lowest, highest);
-            plan = new LairShape.Plan(plan.x(), plan.z(), floor, plan.tunnel(), plan.descent(), plan.exposure(), plan.highGround(),
-                    plan.mouthGround(), plan.buried());
-        }
+        int highest = level.getMaxBuildHeight() - (int) Math.ceil(RIM_TEETH) - 8;
+        LairShape.VolcanoPlan plan = LairShape.volcanoPlan(x, z, planningGround(level), lowest, highest);
         Work work = new Work(level, plan);
         work.run();
-        Layout layout = new Layout(x, z, plan.floorY(), plan.tunnel(), plan.descent(), work.entrance(),
+        Layout layout = new Layout(x, z, plan.floorY(), plan.tunnel(), work.mouth, plan.rimY(), work.gullyEnd, work.entranceSpot(),
                 plan.tunnel().getOpposite().toYRot());
-        return new Result(layout, plan, work.changed, work.trees, work.plants, work.sealed, work.basins, work.veins,
+        return new Result(layout, plan, work.changed, work.trees, work.plants, work.sealed, work.veins, work.fissureCells,
+                work.stalactites, work.rivulets, work.lava.size() - work.fissureCells, work.fireGuarded, work.gullyEnd - work.mouth,
                 Util.getMillis() - start);
     }
 
     /**
      * The ground the plan is made from: the lower of the real ground ({@link #groundTop}) and the world generator's own
-     * terrain (before trees, basalt spires and other features). So a spire or a boulder standing on the tunnel's mouth
+     * terrain (before trees, basalt spires and other features). So a spire or a boulder standing in front of the mouth
      * doesn't lift the floor, while an old world's flat chunks (lower than the new terrain) are still followed.
      */
     static LairShape.Ground planningGround(ServerLevel level)
@@ -138,10 +150,54 @@ final class LairBuilder
                 && state.isFaceSturdy(level, pos, Direction.UP);
     }
 
-    /** True for the lair's rock (the lining's blocks): veins may only replace these. */
+    /** True for the lair's rock (the lining's and the cone's blocks): veins may only replace these. */
     static boolean isLairRock(BlockState state)
     {
         return state.is(Blocks.BASALT) || state.is(Blocks.BLACKSTONE) || state.is(Blocks.SMOOTH_BASALT);
+    }
+
+    /**
+     * Minecraft's own rule for whether lava can flow into a block ({@code FlowingFluid.canHoldFluid}): anything that
+     * doesn't block movement (air, plants, fire...), except doors, signs, ladders, sugar cane, bubble columns and portals;
+     * a waterloggable block only takes water.
+     */
+    static boolean lavaCouldEnter(BlockGetter level, BlockPos pos, BlockState state)
+    {
+        Block block = state.getBlock();
+        if (block instanceof LiquidBlockContainer container)
+        {
+            return container.canPlaceLiquid(level, pos, state, Fluids.LAVA);
+        }
+        if (block instanceof DoorBlock || state.is(BlockTags.SIGNS) || state.is(Blocks.LADDER) || state.is(Blocks.SUGAR_CANE)
+                || state.is(Blocks.BUBBLE_COLUMN) || state.is(Blocks.NETHER_PORTAL) || state.is(Blocks.END_PORTAL)
+                || state.is(Blocks.END_GATEWAY) || state.is(Blocks.STRUCTURE_VOID))
+        {
+            return false;
+        }
+        @SuppressWarnings("deprecation")
+        boolean blocks = state.blocksMotion();
+        return !blocks;
+    }
+
+    /** True if lava next to this block could set it alight (Forge's flammability, or vanilla's "ignited by lava"). */
+    static boolean burns(BlockGetter level, BlockPos pos, BlockState state)
+    {
+        if (state.isAir())
+        {
+            return false;
+        }
+        if (state.ignitedByLava())
+        {
+            return true;
+        }
+        for (Direction face : Direction.values())
+        {
+            if (state.isFlammable(level, pos, face))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** A steady 0-1 number for a block (the same every time). */
@@ -154,8 +210,8 @@ final class LairBuilder
         return (h & 0xFFFF) / 65535.0F;
     }
 
-    /** True for the floor blocks that are lights on a ring: {@code count} of them, evenly spaced round it. */
-    private static boolean isLightSpot(int dx, int dz, int count)
+    /** True for a ring's block that is one of its {@code count} evenly spaced magma blocks. */
+    private static boolean isRingSpot(int dx, int dz, int count)
     {
         double angle = Math.atan2(dz, dx);
         double step = 2.0D * Math.PI / count;
@@ -163,27 +219,10 @@ final class LairBuilder
         return off * Math.sqrt(dx * dx + dz * dz) < 0.5D;
     }
 
-    /** The cavern floor's block at an offset from the middle (the boss arena's style, {@link com.reg21meme.dross.boss.BossArena}). */
-    static BlockState floorBlock(int dx, int dz, int x, int z)
+    /** The angle between two directions (radians, 0 to pi). */
+    static double angleBetween(double a, double b)
     {
-        double r = Math.sqrt(dx * dx + dz * dz);
-        if (r <= MEDALLION)
-        {
-            return Blocks.CHISELED_NETHER_BRICKS.defaultBlockState();
-        }
-        if (Math.abs(r - INNER_RING) < 0.5D)
-        {
-            return (isLightSpot(dx, dz, INNER_RING_LIGHTS) ? Blocks.SHROOMLIGHT : Blocks.NETHER_BRICKS).defaultBlockState();
-        }
-        if (Math.abs(r - OUTER_RING) < 0.5D)
-        {
-            return (isLightSpot(dx, dz, OUTER_RING_LIGHTS) ? Blocks.SHROOMLIGHT : Blocks.NETHER_BRICKS).defaultBlockState();
-        }
-        if (r >= LairShape.FLOOR_EDGE - 1.0D)
-        {
-            return Blocks.NETHER_BRICKS.defaultBlockState();
-        }
-        return (hash(x, 0, z) < CRACKED_SHARE ? Blocks.CRACKED_NETHER_BRICKS : Blocks.RED_NETHER_BRICKS).defaultBlockState();
+        return Math.abs(Math.IEEEremainder(a - b, 2.0D * Math.PI));
     }
 
     // ---------------------------------------------------------------- one build
@@ -191,38 +230,45 @@ final class LairBuilder
     private static final class Work
     {
         final ServerLevel level;
+        final LairShape.VolcanoPlan plan;
         final int cx;
         final int cz;
         final int floor;
+        final int rimY;
         final Direction dir;
         final Direction side;
-        final int descent;
         final int mouth;
-        final int entranceS;
         final ImprovedNoise noise;
         final RandomSource random;
         /** Every block this build made (or found) air in the lair's space, for the safety passes. */
         final LongOpenHashSet carved = new LongOpenHashSet();
-        final List<BlockPos> walls = new ArrayList<>();
+        /** Every lava block this build placed. */
+        final List<BlockPos> lava = new ArrayList<>();
         final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        /** Where the gully in front of the mouth ends (its distance from the middle). */
+        int gullyEnd;
         int changed;
         int trees;
         int plants;
         int sealed;
-        int basins;
         int veins;
+        int fissureCells;
+        int stalactites;
+        int rivulets;
+        int fireGuarded;
 
-        Work(ServerLevel level, LairShape.Plan plan)
+        Work(ServerLevel level, LairShape.VolcanoPlan plan)
         {
             this.level = level;
+            this.plan = plan;
             this.cx = plan.x();
             this.cz = plan.z();
             this.floor = plan.floorY();
+            this.rimY = plan.rimY();
             this.dir = plan.tunnel();
             this.side = dir.getClockWise();
-            this.descent = plan.descent();
-            this.mouth = LairShape.mouthDistance(descent);
-            this.entranceS = LairShape.entranceDistance(descent);
+            this.mouth = LairShape.volcanoMouth(plan);
+            this.gullyEnd = mouth;
             long seed = level.getSeed() ^ (cx * 341873128712L + cz * 132897987541L);
             this.noise = new ImprovedNoise(RandomSource.create(seed));
             this.random = RandomSource.create(seed + 1L);
@@ -231,23 +277,27 @@ final class LairBuilder
         void run()
         {
             removeTrees();
-            mound();
+            cone();
             shell();
             cavern();
+            crater();
             floor();
-            tunnel();
+            entrance();
             approach();
-            skylight();
+            stalactites();
             sealFluids();
             dropUnsupported();
             veins();
-            basins();
-            updateWalls();
+            fissures();
+            rivulets();
+            containLava();
+            fireGuard();
         }
 
-        Vec3 entrance()
+        Vec3 entranceSpot()
         {
-            return new Vec3(tx(entranceS, 0) + 0.5D, floor + descent + 1.0D, tz(entranceS, 0) + 0.5D);
+            int s = mouth + ENTRANCE_GAP;
+            return new Vec3(tx(s, 0) + 0.5D, floor + 1.0D, tz(s, 0) + 0.5D);
         }
 
         // ------------------------------------------------------------ helpers
@@ -260,6 +310,18 @@ final class LairBuilder
         int tz(int s, int l)
         {
             return cz + dir.getStepZ() * s + side.getStepZ() * l;
+        }
+
+        /** Distance along the way in (s) of a column offset from the middle. */
+        int along(int dx, int dz)
+        {
+            return dx * dir.getStepX() + dz * dir.getStepZ();
+        }
+
+        /** Distance to the side of the way in (l) of a column offset from the middle. */
+        int across(int dx, int dz)
+        {
+            return dx * side.getStepX() + dz * side.getStepZ();
         }
 
         BlockState get(int x, int y, int z)
@@ -294,42 +356,40 @@ final class LairBuilder
                     || !state.isSolid());
         }
 
-        /** The lair's rock at a block: basalt, blackstone or smooth basalt, mixed. */
+        /** The volcano's rock at a block: basalt, blackstone or smooth basalt, mixed. */
         BlockState rock(int x, int y, int z)
         {
             float h = hash(x, y, z);
-            if (h < 0.5F)
+            if (h < 0.48F)
             {
                 return Blocks.BASALT.defaultBlockState();
             }
-            return (h < 0.88F ? Blocks.BLACKSTONE : Blocks.SMOOTH_BASALT).defaultBlockState();
+            return (h < 0.87F ? Blocks.BLACKSTONE : Blocks.SMOOTH_BASALT).defaultBlockState();
         }
 
-        /** How far the walls and ceiling are carved past their smooth shape here (0 to {@link LairTuning#ROUGHNESS}). */
-        double rough(int x, int y, int z)
+        /** Dark, glassy rock round hot places (the rim, the mouth's lip, the crater): obsidian, blackstone, now and then magma. */
+        BlockState hotRock(int x, int y, int z, float magma)
         {
-            double n = noise.noise(x / ROUGHNESS_SCALE, y / ROUGHNESS_SCALE, z / ROUGHNESS_SCALE);
-            return Mth.clamp((n + 0.6D) / 1.2D, 0.0D, 1.0D) * ROUGHNESS;
+            float h = hash(x, y + 17, z);
+            if (h < magma)
+            {
+                return Blocks.MAGMA_BLOCK.defaultBlockState();
+            }
+            return (h < 0.5F ? Blocks.OBSIDIAN : h < 0.82F ? Blocks.BLACKSTONE : Blocks.BASALT).defaultBlockState();
+        }
+
+        /** A 0-1 roughness from a smooth noise ({@code salt} picks an independent one). */
+        double rough01(int x, int y, int z, double scale, double salt)
+        {
+            double n = noise.noise(x / scale + salt, y / scale, z / scale - salt);
+            return Mth.clamp((n + 0.6D) / 1.2D, 0.0D, 1.0D);
         }
 
         boolean inCavern(int x, int y, int z)
         {
             int dx = x - cx;
             int dz = z - cz;
-            return LairShape.inCavern(Math.sqrt(dx * dx + dz * dz), y - floor, rough(x, y, z));
-        }
-
-        /** True if the column (offset from the middle) is in the band of the tunnel and its approach, {@code half} either side. */
-        boolean inTunnelBand(int dx, int dz, int half)
-        {
-            int s = dx * dir.getStepX() + dz * dir.getStepZ();
-            int l = dx * side.getStepX() + dz * side.getStepZ();
-            return s >= FLOOR_RADIUS && s <= entranceS + 1 && Math.abs(l) <= half;
-        }
-
-        int surface(int x, int z)
-        {
-            return level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+            return LairShape.inCavern(Math.sqrt(dx * dx + dz * dz), y - floor, rough01(x, y, z, ROUGHNESS_SCALE, 0.0D) * ROUGHNESS);
         }
 
         /** Fills soft blocks under a column from {@code y} down, until solid ground (at most {@link LairTuning#FILL_DEPTH}). */
@@ -337,8 +397,7 @@ final class LairBuilder
         {
             for (int i = 0; i < FILL_DEPTH && y > level.getMinBuildHeight(); i++, y--)
             {
-                BlockState state = get(x, y, z);
-                if (!fillable(state))
+                if (!fillable(get(x, y, z)))
                 {
                     return;
                 }
@@ -346,23 +405,24 @@ final class LairBuilder
             }
         }
 
+        /** The half-width of the gully's floor (at the floor's level + 1) at distance {@code s}. */
+        double gullyHalf(int s)
+        {
+            return MOUTH_HALF_WIDTH + 0.5D + Math.max(0, s - mouth) * GULLY_FLARE;
+        }
+
         // ------------------------------------------------------------ 1. trees in the way
 
         void removeTrees()
         {
-            int reach = Math.max((int) Math.ceil(MOUND_RADIUS) + 1, entranceS + 2);
+            int reach = (int) Math.ceil(CONE_BASE_RADIUS) + BLEND + 2;
             for (int dx = -reach; dx <= reach; dx++)
             {
                 for (int dz = -reach; dz <= reach; dz++)
                 {
-                    boolean inMound = dx * dx + dz * dz <= (MOUND_RADIUS + 1.0D) * (MOUND_RADIUS + 1.0D);
-                    if (!inMound && !inTunnelBand(dx, dz, TUNNEL_HALF_WIDTH + 2))
-                    {
-                        continue;
-                    }
                     int x = cx + dx;
                     int z = cz + dz;
-                    int top = surface(x, z);
+                    int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
                     int ground = groundTop(level, x, z);
                     for (int y = top; y > ground; y--)
                     {
@@ -417,49 +477,102 @@ final class LairBuilder
             }
         }
 
-        // ------------------------------------------------------------ 2. the mound over the dome
+        // ------------------------------------------------------------ 2. the cone
 
-        void mound()
+        /** The volcano's surface (Y, before rounding) at a column: the smooth cone with its lumps, ridges, crest and brow. */
+        double surface(int x, int z)
         {
-            int reach = (int) Math.ceil(MOUND_RADIUS);
+            int dx = x - cx;
+            int dz = z - cz;
+            double r = Math.sqrt(dx * dx + dz * dz);
+            double top = plan.cone(dx, dz);
+            double theta = Math.atan2(dz, dx);
+            if (r > RIM_RADIUS)
+            {
+                double t = Math.min(1.0D, (r - RIM_RADIUS) / (CONE_BASE_RADIUS - RIM_RADIUS));
+                double grow = Math.min(1.0D, t * 3.0D);
+                top += LUMPS * grow * (1.0D - 0.6D * t) * noise.noise(x / LUMP_SCALE, 300.5D, z / LUMP_SCALE);
+                top += FINE_LUMPS * grow * noise.noise(x / FINE_LUMP_SCALE, 600.5D, z / FINE_LUMP_SCALE);
+                double twist = 2.2D * noise.noise(Math.cos(theta) * 1.7D, r / 14.0D, Math.sin(theta) * 1.7D + 50.0D);
+                double rib = Math.cos(RIBS * theta + twist);
+                top += RIB_HEIGHT * Math.pow(Math.max(0.0D, rib), 4.0D) * Math.sin(Math.PI * t);
+            }
+            if (r >= CRATER_RADIUS - 1.0D && r <= RIM_RADIUS + 2.0D)
+            {
+                double n = noise.noise(Math.cos(theta) * 2.6D, 1200.5D, Math.sin(theta) * 2.6D);
+                double teeth = n > 0.0D ? RIM_TEETH * Math.pow(Math.min(1.0D, n / 0.55D), 1.5D)
+                        : -RIM_NOTCHES * Math.pow(Math.min(1.0D, -n / 0.55D), 1.2D);
+                double spike = hash(x, 77, z) < 0.15F ? 1.0D + 2.0D * hash(x, 78, z) : 0.0D;
+                double middle = (CRATER_RADIUS + RIM_RADIUS) / 2.0D;
+                double crest = Mth.clamp(1.0D - Math.abs(r - middle) / ((RIM_RADIUS - CRATER_RADIUS) / 2.0D + 2.0D), 0.0D, 1.0D);
+                top += (teeth + spike) * crest;
+            }
+            if (r <= LairShape.SHELL_EDGE + 1.5D)
+            {
+                top = Math.max(top, floor + LairShape.shellTop(r) + MIN_COVER);
+            }
+            int s = along(dx, dz);
+            if (s >= FLOOR_RADIUS && s <= mouth)
+            {
+                double need = floor + LairShape.passageHeight(s, mouth) + 1 + BROW
+                        + 1.5D * noise.noise(x / 4.0D, 1500.5D, z / 4.0D);
+                double over = Math.abs(across(dx, dz)) - (LairShape.passageHalfWidth(s, mouth) + 1.5D);
+                if (over > 0.0D)
+                {
+                    need -= over * 1.2D;
+                }
+                top = Math.max(top, need);
+            }
+            return top;
+        }
+
+        /** The block on top of the cone at a column {@code r} blocks from the middle. */
+        BlockState surfaceBlock(int x, int y, int z, double r)
+        {
+            if (r <= RIM_RADIUS + 1.5D)
+            {
+                return hotRock(x, y, z, 0.06F);
+            }
+            if (r <= HOT_SLOPE_RADIUS && hash(x, y + 5, z) < HOT_SLOPE_MAGMA)
+            {
+                return Blocks.MAGMA_BLOCK.defaultBlockState();
+            }
+            if (hash(x, y + 31, z) < (r <= ASH_RADIUS ? SHOULDER_ASH : LOWER_ASH))
+            {
+                return ModBlocks.ASH.get().defaultBlockState();
+            }
+            return rock(x, y, z);
+        }
+
+        void cone()
+        {
+            int reach = (int) Math.ceil(CONE_BASE_RADIUS) + 1;
             for (int dx = -reach; dx <= reach; dx++)
             {
                 for (int dz = -reach; dz <= reach; dz++)
                 {
                     double r = Math.sqrt(dx * dx + dz * dz);
-                    if (r >= MOUND_RADIUS)
+                    if (r > CONE_BASE_RADIUS + 1.0D)
                     {
                         continue;
                     }
                     int x = cx + dx;
                     int z = cz + dz;
-                    double lumps = noise.noise(x / 8.0D, 1000.5D, z / 8.0D) * MOUND_ROUGHNESS;
-                    int top = floor + (int) Math.floor(LairShape.moundTop(r) + lumps);
-                    boolean first = true;
-                    int lowest = Math.max(level.getMinBuildHeight() + 1, floor - UNDER_FLOOR - FILL_DEPTH);
-                    for (int y = top; y >= lowest; y--)
+                    int top = (int) Math.floor(surface(x, z));
+                    int ground = groundTop(level, x, z);
+                    for (int y = ground + 1; y <= top; y++)
                     {
-                        BlockState state = get(x, y, z);
-                        if (fillable(state))
+                        if (inCavern(x, y, z) || !fillable(get(x, y, z)))
                         {
-                            boolean ash = first && hash(x, y, z) < 0.5F && get(x, y + 1, z).isAir();
-                            set(x, y, z, ash ? ModBlocks.ASH.get().defaultBlockState() : rock(x, y, z));
-                            first = false;
+                            continue;
                         }
-                        else if (y <= floor)
-                        {
-                            break;
-                        }
-                        else
-                        {
-                            first = false;
-                        }
+                        set(x, y, z, y == top ? surfaceBlock(x, y, z, r) : rock(x, y, z));
                     }
                 }
             }
         }
 
-        // ------------------------------------------------------------ 3. the rock lining
+        // ------------------------------------------------------------ 3. the cavern's rock lining
 
         void shell()
         {
@@ -487,7 +600,7 @@ final class LairBuilder
             }
         }
 
-        // ------------------------------------------------------------ 4. the cavern and its floor
+        // ------------------------------------------------------------ 4. the cavern and the crater
 
         void cavern()
         {
@@ -515,6 +628,102 @@ final class LairBuilder
             }
         }
 
+        /** How far the crater is open at a block (its radius there, roughened). */
+        double craterReach(int x, int y, int z)
+        {
+            return LairShape.craterRadius(y - floor, rimY - floor) + rough01(x, y, z, 4.0D, 21.5D) * CRATER_ROUGHNESS;
+        }
+
+        void crater()
+        {
+            int reach = (int) Math.ceil(CRATER_RADIUS + CRATER_ROUGHNESS + 2.0D);
+            int from = floor + DOME_HEIGHT - 3;
+            int to = rimY + (int) Math.ceil(RIM_TEETH) + 5;
+            for (int dx = -reach; dx <= reach; dx++)
+            {
+                for (int dz = -reach; dz <= reach; dz++)
+                {
+                    double r = Math.sqrt(dx * dx + dz * dz);
+                    int x = cx + dx;
+                    int z = cz + dz;
+                    for (int y = from; y <= to; y++)
+                    {
+                        if (r <= craterReach(x, y, z))
+                        {
+                            if (!get(x, y, z).isAir() || y <= rimY)
+                            {
+                                carve(x, y, z);
+                            }
+                        }
+                    }
+                }
+            }
+            // Its walls: obsidian and glowing magma among the rock.
+            for (int dx = -reach; dx <= reach; dx++)
+            {
+                for (int dz = -reach; dz <= reach; dz++)
+                {
+                    double r = Math.sqrt(dx * dx + dz * dz);
+                    int x = cx + dx;
+                    int z = cz + dz;
+                    for (int y = floor + DOME_HEIGHT + 2; y <= to; y++)
+                    {
+                        double open = craterReach(x, y, z);
+                        if (r > open && r <= open + 1.3D && isLairRock(get(x, y, z)))
+                        {
+                            set(x, y, z, hotRock(x, y, z, 0.14F));
+                        }
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------ 5. the floor
+
+        /** The cavern floor's block at an offset from the middle. */
+        BlockState floorBlock(int dx, int dz)
+        {
+            int x = cx + dx;
+            int z = cz + dz;
+            double r = Math.sqrt(dx * dx + dz * dz);
+            if (r < 0.5D)
+            {
+                return Blocks.CHISELED_POLISHED_BLACKSTONE.defaultBlockState();
+            }
+            if (r <= MEDALLION)
+            {
+                return Blocks.POLISHED_BLACKSTONE.defaultBlockState();
+            }
+            for (int i = 0; i < RINGS.length; i++)
+            {
+                if (Math.abs(r - RINGS[i]) < 0.5D)
+                {
+                    if (isRingSpot(dx, dz, RING_MAGMA[i]))
+                    {
+                        return Blocks.MAGMA_BLOCK.defaultBlockState();
+                    }
+                    return (hash(x, 3, z) < CRACKED_SHARE ? Blocks.CRACKED_POLISHED_BLACKSTONE_BRICKS : Blocks.POLISHED_BLACKSTONE_BRICKS)
+                            .defaultBlockState();
+                }
+            }
+            if (r >= LairShape.FLOOR_EDGE - BORDER)
+            {
+                return Blocks.POLISHED_BLACKSTONE.defaultBlockState();
+            }
+            return plainFloor(x, z);
+        }
+
+        /** Obsidian with patches of blackstone, and the odd magma block: the arena's floor and the passage's. */
+        BlockState plainFloor(int x, int z)
+        {
+            if (hash(x, 7, z) < SCATTERED_MAGMA)
+            {
+                return Blocks.MAGMA_BLOCK.defaultBlockState();
+            }
+            double n = noise.noise(x / PATCH_SCALE, 2100.5D, z / PATCH_SCALE);
+            return (n > BLACKSTONE_PATCHES ? Blocks.BLACKSTONE : Blocks.OBSIDIAN).defaultBlockState();
+        }
+
         void floor()
         {
             for (int dx = -FLOOR_RADIUS; dx <= FLOOR_RADIUS; dx++)
@@ -523,178 +732,283 @@ final class LairBuilder
                 {
                     if (dx * dx + dz * dz <= LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
                     {
-                        set(cx + dx, floor, cz + dz, floorBlock(dx, dz, cx + dx, cz + dz));
+                        set(cx + dx, floor, cz + dz, floorBlock(dx, dz));
                     }
                 }
             }
         }
 
-        // ------------------------------------------------------------ 5. the tunnel
+        // ------------------------------------------------------------ 6. the way in
 
-        void tunnel()
+        double entranceRough(int x, int y, int z)
         {
-            BlockState bricks = Blocks.NETHER_BRICKS.defaultBlockState();
-            BlockState slab = Blocks.NETHER_BRICK_SLAB.defaultBlockState();
-            for (int s = FLOOR_RADIUS + 1; s <= mouth; s++)
+            return rough01(x, y, z, 3.0D, 41.5D) * MOUTH_ROUGHNESS;
+        }
+
+        void entrance()
+        {
+            // Where the gully ends: where the flank in front of the mouth is no higher than the floor (+1).
+            gullyEnd = mouth + MAX_GULLY;
+            for (int s = mouth + 1; s <= mouth + MAX_GULLY; s++)
             {
-                double walk = floor + LairShape.walkTop(s, descent);
-                boolean half = walk != Math.floor(walk);
-                int support = half ? (int) Math.floor(walk) : (int) walk - 1;
-                int airFrom = support + 1;
-                int roof = airFrom + TUNNEL_HEIGHT;
-                int bottom = half ? support - 2 : support - 1;
-                boolean light = (s - FLOOR_RADIUS) % TUNNEL_LIGHT_SPACING == 0 && s > FLOOR_RADIUS + 2 && s < mouth;
-                for (int l = -TUNNEL_HALF_WIDTH - 1; l <= TUNNEL_HALF_WIDTH + 1; l++)
+                if (groundTop(level, tx(s, 0), tz(s, 0)) <= floor + 1)
+                {
+                    gullyEnd = s;
+                    break;
+                }
+            }
+            int maxSide = (int) Math.ceil(gullyHalf(gullyEnd) + (rimY - floor) * GULLY_WALL_SLOPE + 2.0D);
+            for (int s = FLOOR_RADIUS - 3; s <= gullyEnd; s++)
+            {
+                for (int l = -maxSide; l <= maxSide; l++)
                 {
                     int x = tx(s, l);
                     int z = tz(s, l);
-                    if (Math.abs(l) <= TUNNEL_HALF_WIDTH)
+                    int top = s <= mouth ? floor + MOUTH_HEIGHT + 3 : Math.max(groundTop(level, x, z),
+                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1);
+                    for (int y = floor + 1; y <= top; y++)
                     {
-                        set(x, bottom, z, rock(x, bottom, z));
-                        if (half)
-                        {
-                            set(x, support - 1, z, bricks);
-                            set(x, support, z, slab);
-                        }
-                        else
-                        {
-                            set(x, support, z, bricks);
-                        }
-                        for (int y = airFrom; y < roof; y++)
+                        if (LairShape.inEntrance(s, l, y - floor, mouth, entranceRough(x, y, z)))
                         {
                             carve(x, y, z);
                         }
-                        set(x, roof, z, rock(x, roof, z));
                     }
-                    else
+                    // The walkway's floor, level with the cavern's: also where the land dips below it (filled under).
+                    boolean walkway = LairShape.inEntrance(s, l, 1, mouth, entranceRough(x, floor + 1, z));
+                    int dx = x - cx;
+                    int dz = z - cz;
+                    if (walkway && dx * dx + dz * dz > LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
                     {
-                        for (int y = bottom; y <= roof; y++)
-                        {
-                            set(x, y, z, light && y == airFrom + 1 ? Blocks.MAGMA_BLOCK.defaultBlockState() : rock(x, y, z));
-                        }
+                        set(x, floor, z, s <= mouth ? plainFloor(x, z) : gullyFloor(x, z));
+                        set(x, floor - 1, z, rock(x, floor - 1, z));
+                        set(x, floor - 2, z, rock(x, floor - 2, z));
+                        fillDown(x, floor - 3, z);
                     }
-                    fillDown(x, bottom - 1, z);
-                }
-                if (s == mouth)
-                {
-                    arch(s, bottom, airFrom, roof);
                 }
             }
+            mouthLip(maxSide);
+            teeth();
+            passageLights();
         }
 
-        /** The mouth's arch: polished basalt pillars, a blackstone lintel, two lanterns hanging under it. */
-        void arch(int s, int bottom, int airFrom, int roof)
+        /** The gully's floor: blackstone and basalt under a scatter of ash (a worn path). */
+        BlockState gullyFloor(int x, int z)
         {
-            for (int l : new int[] {-TUNNEL_HALF_WIDTH - 1, TUNNEL_HALF_WIDTH + 1})
+            float h = hash(x, floor, z);
+            if (h < 0.45F)
             {
-                for (int y = bottom; y < roof; y++)
-                {
-                    set(tx(s, l), y, tz(s, l), Blocks.POLISHED_BASALT.defaultBlockState());
-                }
+                return ModBlocks.ASH.get().defaultBlockState();
             }
-            for (int l = -TUNNEL_HALF_WIDTH - 1; l <= TUNNEL_HALF_WIDTH + 1; l++)
-            {
-                set(tx(s, l), roof, tz(s, l), (l == 0 ? Blocks.CHISELED_POLISHED_BLACKSTONE : Blocks.POLISHED_BLACKSTONE_BRICKS)
-                        .defaultBlockState());
-            }
-            BlockState lantern = Blocks.LANTERN.defaultBlockState().setValue(LanternBlock.HANGING, true);
-            for (int l : new int[] {-TUNNEL_HALF_WIDTH, TUNNEL_HALF_WIDTH})
-            {
-                set(tx(s, l), roof - 1, tz(s, l), lantern);
-            }
+            return (h < 0.8F ? Blocks.BLACKSTONE : Blocks.BASALT).defaultBlockState();
         }
 
-        /** The level approach in front of the mouth: nether bricks at the mouth's height, cut open to the sky above. */
-        void approach()
+        /** The rock round the mouth (its lip and the brow's face) becomes obsidian, blackstone and the odd glowing magma. */
+        void mouthLip(int maxSide)
         {
-            int ground = floor + descent;
-            for (int s = mouth + 1; s <= entranceS; s++)
+            for (int s = mouth - 2; s <= mouth + 2; s++)
             {
-                for (int l = -TUNNEL_HALF_WIDTH; l <= TUNNEL_HALF_WIDTH; l++)
+                for (int l = -maxSide; l <= maxSide; l++)
                 {
                     int x = tx(s, l);
                     int z = tz(s, l);
-                    set(x, ground, z, Blocks.NETHER_BRICKS.defaultBlockState());
-                    fillDown(x, ground - 1, z);
-                    int top = Math.max(surface(x, z), ground + TUNNEL_HEIGHT);
-                    for (int y = ground + 1; y <= top; y++)
+                    for (int y = floor + 1; y <= floor + MOUTH_HEIGHT + BROW + 4; y++)
                     {
-                        carve(x, y, z);
+                        BlockState state = get(x, y, z);
+                        if (state.isAir() || !(isLairRock(state) || state.is(ModBlocks.ASH.get())) || !nextToCarved(x, y, z))
+                        {
+                            continue;
+                        }
+                        set(x, y, z, hotRock(x, y, z, LIP_MAGMA));
                     }
                 }
             }
         }
 
-        // ------------------------------------------------------------ 6. the skylight
-
-        void skylight()
+        boolean nextToCarved(int x, int y, int z)
         {
-            int reach = (int) Math.ceil(SKYLIGHT_RADIUS + SKYLIGHT_LINING + SKYLIGHT_RIM);
-            // The shaft.
-            for (int dx = -reach; dx <= reach; dx++)
+            for (Direction d : Direction.values())
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                if (carved.contains(BlockPos.asLong(x + d.getStepX(), y + d.getStepY(), z + d.getStepZ())))
                 {
-                    if (Math.sqrt(dx * dx + dz * dz) > SKYLIGHT_RADIUS)
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /** Obsidian teeth hanging from the top of the mouth (never over its middle three columns, never below 5 blocks up). */
+        void teeth()
+        {
+            int[] spots = {-3, 3, -2, 2, -4, 4};
+            int made = 0;
+            for (int i = 0; i < spots.length && made < MOUTH_TEETH; i++)
+            {
+                int l = spots[i];
+                for (int s : new int[] {mouth, mouth - 1})
+                {
+                    int x = tx(s, l);
+                    int z = tz(s, l);
+                    int y = floor + 2;
+                    while (y <= floor + MOUTH_HEIGHT + 3 && get(x, y, z).isAir())
+                    {
+                        y++;
+                    }
+                    if (y > floor + MOUTH_HEIGHT + 3)
                     {
                         continue;
                     }
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    int top = surface(x, z);
-                    for (int y = floor + 1; y <= top; y++)
+                    int length = 1 + (hash(x, y, z) < 0.5F ? 1 : 0);
+                    for (int k = 1; k <= length && y - k >= floor + 5; k++)
                     {
-                        carve(x, y, z);
+                        set(x, y - k, z, Blocks.OBSIDIAN.defaultBlockState());
+                    }
+                    if (s == mouth)
+                    {
+                        made++;
                     }
                 }
             }
-            // Its lining.
-            for (int dx = -reach; dx <= reach; dx++)
+        }
+
+        /** Dim magma lights in the passage's walls, both sides, every few blocks: the glow inside the mouth. */
+        void passageLights()
+        {
+            for (int s = FLOOR_RADIUS + 2; s <= mouth - 1; s += PASSAGE_LIGHT_SPACING)
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                for (int sign : new int[] {-1, 1})
                 {
-                    double r = Math.sqrt(dx * dx + dz * dz);
-                    if (r <= SKYLIGHT_RADIUS || r > SKYLIGHT_RADIUS + SKYLIGHT_LINING)
+                    for (int l = 1; l <= MOUTH_HALF_WIDTH + 3; l++)
+                    {
+                        int x = tx(s, sign * l);
+                        int z = tz(s, sign * l);
+                        BlockState state = get(x, floor + 2, z);
+                        if (state.isAir())
+                        {
+                            continue;
+                        }
+                        if (isLairRock(state) || state.is(Blocks.OBSIDIAN))
+                        {
+                            set(x, floor + 2, z, Blocks.MAGMA_BLOCK.defaultBlockState());
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------ 7. the apron and the blend to the land
+
+        void approach()
+        {
+            int apronEnd = gullyEnd + APRON;
+            double apronHalf = gullyHalf(gullyEnd);
+            int reachL = (int) Math.ceil(apronHalf) + BLEND;
+            for (int s = gullyEnd + 1; s <= apronEnd + BLEND; s++)
+            {
+                for (int l = -reachL; l <= reachL; l++)
+                {
+                    int d = Math.max(Math.max(0, s - apronEnd), Math.max(0, (int) Math.ceil(Math.abs(l) - apronHalf)));
+                    if (d > BLEND)
                     {
                         continue;
                     }
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    int top = surface(x, z);
-                    for (int y = floor + (int) Math.floor(LairShape.ceiling(r)); y <= top; y++)
+                    int x = tx(s, l);
+                    int z = tz(s, l);
+                    int ground = groundTop(level, x, z);
+                    int target = d == 0 ? floor : Mth.clamp(ground, floor - d, floor + d);
+                    int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+                    if (ground > target || d == 0)
                     {
-                        BlockState state = get(x, y, z);
-                        if (!state.isAir() && !inCavern(x, y, z))
+                        for (int y = target + 1; y <= Math.max(top, ground); y++)
                         {
-                            set(x, y, z, rock(x, y, z));
+                            carve(x, y, z);
+                        }
+                        set(x, target, z, d == 0 ? gullyFloor(x, z) : surfaceBlock(x, target, z, CONE_BASE_RADIUS));
+                        fillDown(x, target - 1, z);
+                    }
+                    else if (ground < target)
+                    {
+                        for (int y = ground + 1; y <= target; y++)
+                        {
+                            set(x, y, z, y == target ? surfaceBlock(x, y, z, CONE_BASE_RADIUS) : rock(x, y, z));
                         }
                     }
                 }
             }
-            // The low wall round its top.
-            BlockState wall = Blocks.POLISHED_BLACKSTONE_WALL.defaultBlockState();
-            for (int dx = -reach; dx <= reach; dx++)
+        }
+
+        // ------------------------------------------------------------ 8. stalactites
+
+        void stalactites()
+        {
+            double tunnelAngle = Math.atan2(dir.getStepZ(), dir.getStepX());
+            double inner2 = STALACTITE_MIN_RADIUS * STALACTITE_MIN_RADIUS;
+            double outer2 = STALACTITE_MAX_RADIUS * STALACTITE_MAX_RADIUS;
+            for (int tries = 0; tries < STALACTITES * 4 && stalactites < STALACTITES; tries++)
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                double r = Math.sqrt(inner2 + random.nextDouble() * (outer2 - inner2));
+                double a = random.nextDouble() * 2.0D * Math.PI;
+                if (angleBetween(a, tunnelAngle) < Math.toRadians(STALACTITE_TUNNEL_CLEARANCE_DEGREES))
                 {
-                    double r = Math.sqrt(dx * dx + dz * dz);
-                    if (r <= SKYLIGHT_RADIUS || r > SKYLIGHT_RADIUS + SKYLIGHT_RIM)
+                    continue;
+                }
+                int x = cx + (int) Math.round(r * Math.cos(a));
+                int z = cz + (int) Math.round(r * Math.sin(a));
+                int y = floor + 2;
+                while (y <= floor + DOME_HEIGHT + 3 && get(x, y, z).isAir())
+                {
+                    y++;
+                }
+                if (y > floor + DOME_HEIGHT + 3 || !get(x - 1, y, z).isSolid() && !get(x + 1, y, z).isSolid())
+                {
+                    continue; // no ceiling here (the throat), or it's a lone bump
+                }
+                int top = y - 1; // the highest air block under the ceiling
+                double rr = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(z - cz, 2));
+                // (its thick top and plus-shaped arms reach a block or two inwards of its middle)
+                int most = Math.min(STALACTITE_MAX_LENGTH, top - floor - LairShape.stalactiteClearance(rr - 1.5D));
+                if (most < STALACTITE_MIN_LENGTH)
+                {
+                    continue;
+                }
+                int length = STALACTITE_MIN_LENGTH + random.nextInt(most - STALACTITE_MIN_LENGTH + 1);
+                spike(x, top, z, length);
+                stalactites++;
+            }
+        }
+
+        /** One stalactite hanging from {@code top} down: thick at the top, a plus shape, then a point. */
+        void spike(int x, int top, int z, int length)
+        {
+            for (int k = 0; k < length; k++)
+            {
+                int y = top - k;
+                double share = k / (double) length;
+                int reach = share < STALACTITE_THICK_SHARE && length >= STALACTITE_THICK_LENGTH ? 2
+                        : share < STALACTITE_PLUS_SHARE ? 1 : 0;
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    for (int dz = -1; dz <= 1; dz++)
                     {
-                        continue;
-                    }
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    int y = surface(x, z) + 1;
-                    if (y > floor + LairShape.ceiling(r) + 1 && get(x, y, z).isAir())
-                    {
-                        set(x, y, z, wall);
-                        walls.add(new BlockPos(x, y, z));
+                        int far = Math.abs(dx) + Math.abs(dz);
+                        if (far > reach)
+                        {
+                            continue;
+                        }
+                        if (far > 0 && !get(x + dx, y, z + dz).isAir())
+                        {
+                            continue;
+                        }
+                        BlockState block = far == 0 || hash(x + dx, y, z + dz) < 0.7F ? Blocks.OBSIDIAN.defaultBlockState()
+                                : Blocks.BLACKSTONE.defaultBlockState();
+                        set(x + dx, y, z + dz, block);
+                        carved.remove(BlockPos.asLong(x + dx, y, z + dz));
                     }
                 }
             }
         }
 
-        // ------------------------------------------------------------ 7. safety
+        // ------------------------------------------------------------ 9. safety
 
         /** Any fluid touching the open space becomes rock, so no lava or water can flow in. */
         void sealFluids()
@@ -746,7 +1060,7 @@ final class LairBuilder
             }
         }
 
-        // ------------------------------------------------------------ 8. decoration
+        // ------------------------------------------------------------ 10. veins
 
         /** Glowing magma veins wandering up the walls and over the dome. */
         void veins()
@@ -767,7 +1081,7 @@ final class LairBuilder
                     int dy = startY + i;
                     double radius = dy <= WALL_HEIGHT ? LairShape.FLOOR_EDGE
                             : LairShape.FLOOR_EDGE * Math.sqrt(Math.max(0.0D, 1.0D - Math.pow((dy - WALL_HEIGHT) / (double) (DOME_HEIGHT - WALL_HEIGHT), 2.0D)));
-                    if (radius < SKYLIGHT_RADIUS + SKYLIGHT_LINING + 1.0D)
+                    if (radius < SKYLIGHT_RADIUS + 3.0D)
                     {
                         break;
                     }
@@ -796,105 +1110,314 @@ final class LairBuilder
             }
         }
 
-        /**
-         * Lava basins at the foot of the wall: three lava blocks just outside the floor's edge, one block up, in a niche,
-         * behind a low wall. The lava has rock under it and round it, and walls in front, so it can't flow anywhere.
-         */
-        void basins()
+        // ------------------------------------------------------------ 11. lava under the floor
+
+        /** Glowing fissures: glass in the floor with sealed lava one block under it, out from the medallion and along the way in. */
+        void fissures()
         {
-            double tunnelAngle = Math.atan2(dir.getStepZ(), dir.getStepX());
-            BlockState lava = Blocks.LAVA.defaultBlockState();
-            BlockState wall = Blocks.POLISHED_BLACKSTONE_WALL.defaultBlockState();
-            for (int k = 0; k < LAVA_BASINS; k++)
+            LongOpenHashSet columns = new LongOpenHashSet();
+            List<int[]> cells = new ArrayList<>();
+            double rotation = random.nextDouble() * 2.0D * Math.PI;
+            for (int k = 0; k < FISSURES; k++)
             {
-                double angle = tunnelAngle + Math.PI / LAVA_BASINS + k * 2.0D * Math.PI / LAVA_BASINS;
-                if (angleBetween(angle, tunnelAngle) < Math.toRadians(BASIN_TUNNEL_CLEARANCE_DEGREES))
+                double angle = rotation + k * 2.0D * Math.PI / FISSURES + (random.nextDouble() - 0.5D) * 0.6D;
+                double end = FISSURE_MIN_END + random.nextDouble() * (FISSURE_MAX_END - FISSURE_MIN_END);
+                crack(angle, FISSURE_START, end, true, columns, cells);
+            }
+            // Along the way in, from the cavern to just short of the mouth.
+            int l = 0;
+            for (int s = FLOOR_RADIUS - 2; s <= mouth - PASSAGE_FISSURE_SHORT; s++)
+            {
+                addCell(new int[] {tx(s, l), tz(s, l)}, columns, cells);
+                if (random.nextFloat() < 0.3F)
+                {
+                    l = Mth.clamp(l + (random.nextBoolean() ? 1 : -1), -1, 1);
+                    addCell(new int[] {tx(s, l), tz(s, l)}, columns, cells); // the jog sideways, so it stays one line
+                }
+            }
+            BlockState glass = FISSURE_GLASS.defaultBlockState();
+            for (int[] cell : cells)
+            {
+                int x = cell[0];
+                int z = cell[1];
+                int dx = x - cx;
+                int dz = z - cz;
+                double r = Math.sqrt(dx * dx + dz * dz);
+                int s = along(dx, dz);
+                int side = Math.abs(across(dx, dz));
+                boolean onFloor = r <= LairShape.FLOOR_EDGE - BORDER - 0.5D && r > MEDALLION + 0.5D;
+                boolean inPassage = r > LairShape.FLOOR_EDGE - BORDER - 0.5D && s <= mouth - PASSAGE_FISSURE_SHORT
+                        && side <= PASSAGE_HALF_WIDTH - 1;
+                if (!onFloor && !inPassage)
                 {
                     continue;
                 }
-                double ux = Math.cos(angle);
-                double uz = Math.sin(angle);
-                LongOpenHashSet cells = new LongOpenHashSet();
-                List<BlockPos> list = new ArrayList<>();
-                for (int t = -1; t <= 1; t++)
+                if (!get(x, floor + 1, z).isAir())
                 {
-                    int dx = (int) Math.round((FLOOR_RADIUS + 1) * ux - t * uz);
-                    int dz = (int) Math.round((FLOOR_RADIUS + 1) * uz + t * ux);
-                    if (dx * dx + dz * dz <= LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
+                    continue; // not under open floor (it never is, but a fissure must never be roofed)
+                }
+                set(x, floor, z, glass);
+                set(x, floor - 1, z, LAVA);
+                lava.add(new BlockPos(x, floor - 1, z));
+                fissureCells++;
+            }
+        }
+
+        void addCell(int[] cell, LongOpenHashSet columns, List<int[]> cells)
+        {
+            if (columns.add(BlockPos.asLong(cell[0], 0, cell[1])))
+            {
+                cells.add(cell);
+            }
+        }
+
+        /** One crack wandering outwards from {@code fromR} to {@code toR}, 4-connected (so it reads as one line). */
+        void crack(double angle, double fromR, double toR, boolean branches, LongOpenHashSet columns, List<int[]> cells)
+        {
+            double px = cx + 0.5D + fromR * Math.cos(angle);
+            double pz = cz + 0.5D + fromR * Math.sin(angle);
+            int[] last = {Mth.floor(px), Mth.floor(pz)};
+            addCell(last, columns, cells);
+            double a = angle;
+            for (int step = 0; step < 200; step++)
+            {
+                double radial = Math.atan2(pz - (cz + 0.5D), px - (cx + 0.5D));
+                a += (random.nextDouble() - 0.5D) * 2.0D * FISSURE_WOBBLE;
+                a = radial + Math.IEEEremainder(a - radial, 2.0D * Math.PI) * 0.75D; // keep heading outwards
+                px += Math.cos(a) * 0.8D;
+                pz += Math.sin(a) * 0.8D;
+                int[] cell = {Mth.floor(px), Mth.floor(pz)};
+                if (cell[0] == last[0] && cell[1] == last[1])
+                {
+                    continue;
+                }
+                if (cell[0] != last[0] && cell[1] != last[1])
+                {
+                    addCell(new int[] {cell[0], last[1]}, columns, cells);
+                }
+                addCell(cell, columns, cells);
+                last = cell;
+                double r = Math.hypot(px - (cx + 0.5D), pz - (cz + 0.5D));
+                if (r >= toR)
+                {
+                    return;
+                }
+                if (branches && random.nextDouble() < FISSURE_BRANCH_CHANCE)
+                {
+                    int length = FISSURE_BRANCH_MIN + random.nextInt(FISSURE_BRANCH_MAX - FISSURE_BRANCH_MIN + 1);
+                    crack(a + (random.nextBoolean() ? 0.9D : -0.9D), r, Math.min(toR, r + length), false, columns, cells);
+                }
+            }
+        }
+
+        // ------------------------------------------------------------ 12. lava outside
+
+        /** True if a column is in the way in's band (the gully, the apron and a margin round them): no lava there. */
+        boolean nearWayIn(int x, int z)
+        {
+            int dx = x - cx;
+            int dz = z - cz;
+            int s = along(dx, dz);
+            return s >= FLOOR_RADIUS - 4 && s <= gullyEnd + APRON + BLEND + 4
+                    && Math.abs(across(dx, dz)) <= gullyHalf(Math.min(s, gullyEnd)) + FIRE_GUARD_REACH + 3;
+        }
+
+        /** Places one lava block of a rivulet or pool: open above it, held up below. */
+        void placeLava(int x, int y, int z)
+        {
+            BlockState here = get(x, y, z);
+            if (here.hasBlockEntity() || here.getFluidState().is(Fluids.LAVA))
+            {
+                return;
+            }
+            set(x, y, z, LAVA);
+            lava.add(new BlockPos(x, y, z));
+            int top = Math.max(level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1, y);
+            for (int yy = y + 1; yy <= top; yy++)
+            {
+                if (!get(x, yy, z).isAir())
+                {
+                    set(x, yy, z, AIR);
+                }
+            }
+            fillDown(x, y - 1, z);
+        }
+
+        void rivulets()
+        {
+            double entranceAngle = Math.atan2(dir.getStepZ(), dir.getStepX());
+            double spread = 2.0D * Math.PI - 2.0D * Math.toRadians(RIVULET_CLEARANCE_DEGREES);
+            double spacing = spread / RIVULETS;
+            for (int k = 0; k < RIVULETS; k++)
+            {
+                double angle = entranceAngle + Math.PI + (k - (RIVULETS - 1) / 2.0D) * spacing
+                        + (random.nextDouble() - 0.5D) * Math.toRadians(16.0D);
+                double r0 = RIVULET_START + random.nextDouble() * 3.0D;
+                int x = cx + (int) Math.round(r0 * Math.cos(angle));
+                int z = cz + (int) Math.round(r0 * Math.sin(angle));
+                if (nearWayIn(x, z))
+                {
+                    continue;
+                }
+                int y = groundTop(level, x, z);
+                int lastX = 0;
+                int lastZ = 0;
+                for (int step = 0; step < RIVULET_MAX_STEPS; step++)
+                {
+                    placeLava(x, y, z);
+                    if (Math.hypot(x - cx, z - cz) >= POOL_DISTANCE)
+                    {
+                        break;
+                    }
+                    double out = Math.atan2(z - cz, x - cx) + RIVULET_MEANDER * 2.0D * noise.noise(step * 0.15D, k * 10.0D + 0.5D, 1500.5D);
+                    double ux = Math.cos(out);
+                    double uz = Math.sin(out);
+                    int sx = ux >= 0.0D ? 1 : -1;
+                    int sz = uz >= 0.0D ? 1 : -1;
+                    int ax = Math.abs(ux) >= Math.abs(uz) ? sx : 0;
+                    int az = ax == 0 ? sz : 0;
+                    // After a step down, an axis move must keep going the same way (never back beside the higher lava).
+                    if ((ax != 0 && ax == -lastX) || (az != 0 && az == -lastZ))
+                    {
+                        ax = ax != 0 ? 0 : lastX;
+                        az = az != 0 ? 0 : lastZ;
+                        if (ax == 0 && az == 0)
+                        {
+                            ax = lastX;
+                        }
+                    }
+                    int nx;
+                    int nz;
+                    if (groundTop(level, x + ax, z + az) >= y)
+                    {
+                        nx = x + ax; // level ground: on along it at the same height
+                        nz = z + az;
+                        lastX = 0;
+                        lastZ = 0;
+                    }
+                    else
+                    {
+                        nx = x + sx; // it falls away: one step down, corner to corner
+                        nz = z + sz;
+                        int drop = Mth.clamp(y - groundTop(level, nx, nz), 1, RIVULET_MAX_DROP);
+                        y -= drop;
+                        lastX = sx;
+                        lastZ = sz;
+                    }
+                    if (nearWayIn(nx, nz))
+                    {
+                        break;
+                    }
+                    x = nx;
+                    z = nz;
+                }
+                pool(x, y, z);
+                rivulets++;
+            }
+        }
+
+        /** A pool of lava at the rivulet's end, level at {@code y}. */
+        void pool(int x0, int y, int z0)
+        {
+            int reach = (int) Math.ceil(POOL_RADIUS + 1.0D);
+            for (int dx = -reach; dx <= reach; dx++)
+            {
+                for (int dz = -reach; dz <= reach; dz++)
+                {
+                    int x = x0 + dx;
+                    int z = z0 + dz;
+                    double edge = POOL_RADIUS + 0.8D * rough01(x, y, z, 2.5D, 61.5D);
+                    if (dx * dx + dz * dz > edge * edge || nearWayIn(x, z))
                     {
                         continue;
                     }
-                    BlockPos cell = new BlockPos(cx + dx, floor + 1, cz + dz);
-                    if (cells.add(cell.asLong()))
-                    {
-                        list.add(cell);
-                    }
+                    placeLava(x, y, z);
                 }
-                if (list.isEmpty())
-                {
-                    continue;
-                }
-                for (BlockPos cell : list)
-                {
-                    set(cell.getX(), floor, cell.getZ(), rock(cell.getX(), floor, cell.getZ()));
-                    set(cell.getX(), cell.getY(), cell.getZ(), lava);
-                    for (int y = cell.getY() + 1; y <= cell.getY() + BASIN_NICHE_HEIGHT; y++)
-                    {
-                        set(cell.getX(), y, cell.getZ(), AIR);
-                    }
-                }
-                for (BlockPos cell : list)
-                {
-                    for (Direction d : Direction.Plane.HORIZONTAL)
-                    {
-                        BlockPos next = cell.relative(d);
-                        if (cells.contains(next.asLong()))
-                        {
-                            continue;
-                        }
-                        BlockState state = level.getBlockState(next);
-                        if (!fillable(state))
-                        {
-                            continue;
-                        }
-                        int dx = next.getX() - cx;
-                        int dz = next.getZ() - cz;
-                        if (dx * dx + dz * dz <= LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
-                        {
-                            set(next.getX(), next.getY(), next.getZ(), wall);
-                            walls.add(next.immutable());
-                        }
-                        else
-                        {
-                            set(next.getX(), next.getY(), next.getZ(), rock(next.getX(), next.getY(), next.getZ()));
-                        }
-                    }
-                }
-                basins++;
             }
         }
 
-        /** Walls join up with their neighbours (they were placed without updating their shapes). */
-        void updateWalls()
+        /**
+         * Every lava block is walled in: below it and on its four sides there is more lava, or a block lava can't flow
+         * into (anything else becomes rock). So none of it can ever spread.
+         */
+        void containLava()
         {
-            for (BlockPos at : walls)
+            BlockPos.MutableBlockPos next = new BlockPos.MutableBlockPos();
+            lava.removeIf(at -> !level.getFluidState(at).is(Fluids.LAVA)); // (a pool may have opened up over a rivulet's last step)
+            for (BlockPos at : lava)
             {
-                BlockState state = level.getBlockState(at);
-                if (state.getBlock() instanceof WallBlock)
+                for (Direction d : LAVA_FLOWS)
                 {
-                    BlockState shaped = Block.updateFromNeighbourShapes(state, level, at);
-                    if (shaped != state)
+                    next.setWithOffset(at, d);
+                    BlockState state = level.getBlockState(next);
+                    if (state.getFluidState().is(Fluids.LAVA) && state.getFluidState().isSource())
                     {
-                        level.setBlock(at, shaped, FLAGS);
+                        continue;
+                    }
+                    if (lavaCouldEnter(level, next, state) || !state.getFluidState().isEmpty())
+                    {
+                        set(next.getX(), next.getY(), next.getZ(), rock(next.getX(), next.getY(), next.getZ()));
+                        sealed++;
+                    }
+                }
+            }
+            // The banks of the lava outside: a glowing crust of magma and cooled obsidian, so the streams show from afar.
+            for (BlockPos at : lava)
+            {
+                if (at.getY() == floor - 1)
+                {
+                    continue; // under the floor's fissures
+                }
+                for (Direction d : Direction.Plane.HORIZONTAL)
+                {
+                    next.setWithOffset(at, d);
+                    BlockState state = level.getBlockState(next);
+                    if (!isLairRock(state) && !state.is(ModBlocks.ASH.get()))
+                    {
+                        continue;
+                    }
+                    float h = hash(next.getX(), next.getY() + 9, next.getZ());
+                    if (h < BANK_MAGMA)
+                    {
+                        set(next.getX(), next.getY(), next.getZ(), Blocks.MAGMA_BLOCK.defaultBlockState());
+                    }
+                    else if (h < BANK_MAGMA + BANK_OBSIDIAN)
+                    {
+                        set(next.getX(), next.getY(), next.getZ(), Blocks.OBSIDIAN.defaultBlockState());
                     }
                 }
             }
         }
 
-        /** The angle between two directions (radians, 0 to pi). */
-        static double angleBetween(double a, double b)
+        /** Nothing that can burn is left within reach of the lava (lava sets fire to burnable blocks near it). */
+        void fireGuard()
         {
-            return Math.abs(Math.IEEEremainder(a - b, 2.0D * Math.PI));
+            BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
+            LongOpenHashSet seen = new LongOpenHashSet();
+            for (BlockPos source : lava)
+            {
+                for (int dx = -FIRE_GUARD_REACH; dx <= FIRE_GUARD_REACH; dx++)
+                {
+                    for (int dz = -FIRE_GUARD_REACH; dz <= FIRE_GUARD_REACH; dz++)
+                    {
+                        for (int dy = -1; dy <= FIRE_GUARD_UP; dy++)
+                        {
+                            at.set(source.getX() + dx, source.getY() + dy, source.getZ() + dz);
+                            if (!seen.add(at.asLong()))
+                            {
+                                continue;
+                            }
+                            BlockState state = level.getBlockState(at);
+                            if (!state.hasBlockEntity() && burns(level, at, state))
+                            {
+                                set(at.getX(), at.getY(), at.getZ(), state.canBeReplaced() || !state.isSolid() ? AIR
+                                        : rock(at.getX(), at.getY(), at.getZ()));
+                                fireGuarded++;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

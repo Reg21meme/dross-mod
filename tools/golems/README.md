@@ -147,6 +147,21 @@ The death cools it into obsidian from any stage.
   the rest pose and through the idle, walk, erupt and death animations and the fight's moves. Anything it finds is
   printed.
 
+## The lair's previews
+
+The Colossus's lair (a volcano in the Cinder Wastes) is built by the mod itself (`boss/lair/LairBuilder.java`), not
+by these tools. `lair_preview.py` draws it from a real test world, for `boss-previews/`:
+
+```
+$env:DROSS_LAIR_PREVIEWS="1"; .\gradlew.bat runGameTestServer -PgameTestWorld=<a new folder> --console=plain
+python tools/golems/lair_preview.py
+```
+
+The lair test (`ColossusLairGameTest`) writes the volcano's blocks to `build/lair/views/`; the script draws
+`lair_outside.png` (from above, then straight into the cave mouth and from the side) and `lair_cutaway.png` (cut in
+half along the way in: the cavern, the crater and the passage), with the terrain previews' block drawing
+(`tools/terrain/preview_sites.py`).
+
 ## Matching the game
 
 `kit/geo.py` and `kit/render.py` copy GeckoLib 4's own maths (x flipped, Z-Y-X rotation order, box-UV layout,

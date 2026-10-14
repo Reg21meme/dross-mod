@@ -45,10 +45,11 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  *   <li><b>Beaten</b>: any death counts, its normal death (statue, trophies, "Set in Stone") and {@code /kill} too (which
  *       gives no trophy, as always); the 10 minutes start then. One that's removed without dying (Peaceful) isn't
  *       beaten: the next player who walks in wakes a new one at once.</li>
- *   <li><b>Kept home</b>: it can't fit through the 3-wide tunnel, but a living lair Colossus found outside its cavern
- *       (teleported out with a command, say) is put back in the middle of the floor. If its saved UUID can't be found
+ *   <li><b>Kept home</b>: a living lair Colossus found outside its cavern (up the volcano's passage, which it fits
+ *       through, or teleported out with a command) is put back in the middle of the floor. If its saved UUID can't be found
  *       once the cavern's entities are loaded, it's gone (its statue crumbled, or it was removed) and is forgotten.</li>
- *   <li><b>No natural spawning</b> inside the cavern and the tunnel (wild golems included), so the fight stays clean.
+ *   <li><b>No natural spawning</b> inside the cavern, the way in and the gully in front of the mouth (wild golems
+ *       included), so the fight stays clean.
  *       Spawn eggs, spawners and commands still work there.</li>
  * </ul>
  */
@@ -72,8 +73,12 @@ public final class LairKeeper
 
     private LairKeeper() {}
 
-    /** The lair's space: where its cavern and tunnel are. */
-    record Volume(int cx, int cz, int floorY, Direction tunnel, int descent)
+    /**
+     * The lair's space: where its cavern and its way in are. {@code version} 1 is an old world's R2c lair (a 3-wide tunnel
+     * going down {@code descent} blocks), 2 the volcano (a passage and a cave mouth {@code mouth} blocks out, level with
+     * the floor, and a crater whose rim is at {@code rimY}).
+     */
+    record Volume(int cx, int cz, int floorY, Direction tunnel, int descent, int version, int mouth, int rimY)
     {
         /** Horizontal distance from the floor's middle (block middles: the middle block is 0). */
         double distance(double x, double z)
@@ -95,7 +100,7 @@ public final class LairKeeper
             return distance(feet.x, feet.z) <= LairShape.FLOOR_EDGE + HOME_MARGIN && feet.y >= floorY && feet.y <= floorY + DOME_HEIGHT + 1;
         }
 
-        /** True if natural spawning is barred here: the cavern (a little past its floor's edge) and the tunnel. */
+        /** True if natural spawning is barred here: the cavern (a little past its floor's edge) and the way in. */
         boolean noSpawn(BlockPos pos)
         {
             int dx = pos.getX() - cx;
@@ -112,8 +117,19 @@ public final class LairKeeper
             Direction side = tunnel.getClockWise();
             int s = dx * tunnel.getStepX() + dz * tunnel.getStepZ();
             int l = dx * side.getStepX() + dz * side.getStepZ();
+            if (version >= 2)
+            {
+                return s >= FLOOR_RADIUS && s <= mouth + NO_SPAWN_GULLY
+                        && Math.abs(l) <= MOUTH_HALF_WIDTH + 2 + Math.max(0, s - mouth) * GULLY_FLARE && dy <= MOUTH_HEIGHT + 2;
+            }
             return s >= FLOOR_RADIUS && s <= LairShape.entranceDistance(descent) && Math.abs(l) <= TUNNEL_HALF_WIDTH + 1
                     && dy <= descent + TUNNEL_HEIGHT + 1;
+        }
+
+        /** The crater's middle at its rim (version 2): where smoke rises from. */
+        Vec3 crater()
+        {
+            return new Vec3(cx + 0.5D, rimY, cz + 0.5D);
         }
 
         /** Where the Colossus rises: the middle of the floor (feet position). */
@@ -143,7 +159,8 @@ public final class LairKeeper
     /** Remembers the lair's space from its data (after loading, and once it's built). Server thread. */
     static void refresh(ColossusLairData data)
     {
-        volume = data.isPlaced() ? new Volume(data.centerX(), data.centerZ(), data.floorY(), data.tunnel(), data.descent()) : null;
+        volume = data.isPlaced() ? new Volume(data.centerX(), data.centerZ(), data.floorY(), data.tunnel(), data.descent(),
+                data.version(), data.mouth(), data.rimY()) : null;
     }
 
     static void clear()

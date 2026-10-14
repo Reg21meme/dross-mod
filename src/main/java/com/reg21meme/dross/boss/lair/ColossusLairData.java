@@ -14,8 +14,12 @@ import net.minecraft.world.phys.Vec3;
  * folder (the Overworld is always loaded), like the hub's and the trader's data.
  * <ul>
  *   <li>{@code Planned}, {@code PlannedX/Z}: the spot the search picked (kept if the world closes before it's built).</li>
- *   <li>{@code Placed}, {@code CenterX/Z}, {@code FloorY}, {@code Tunnel}, {@code Descent}, {@code EntranceX/Y/Z},
- *       {@code EntranceYaw}, {@code BuildMillis}: the built lair.</li>
+ *   <li>{@code Placed}, {@code CenterX/Z}, {@code FloorY}, {@code Tunnel}, {@code EntranceX/Y/Z}, {@code EntranceYaw},
+ *       {@code BuildMillis}: the built lair.</li>
+ *   <li>{@code Version}: what was built: 1 (or missing) the R2c cavern with its sloping tunnel ({@code Descent}: how far
+ *       the tunnel went down), 2 the volcano ({@code Mouth}: the cave mouth's distance from the middle, {@code RimY}: the
+ *       crater rim's crest, {@code GullyEnd}: where the gully in front of the mouth ends). Old worlds keep
+ *       the lair they have.</li>
  *   <li>{@code FailedSearches}: how many times no spot was found (it tries again at every start).</li>
  *   <li>{@code Boss} (UUID), {@code Beaten} (true once it's beaten, until the next one rises), {@code DefeatedAt} (the game
  *       time it was beaten), {@code Rises}.</li>
@@ -35,6 +39,10 @@ public final class ColossusLairData extends SavedData
     private int floorY;
     private Direction tunnel = Direction.NORTH;
     private int descent;
+    private int version = 1;
+    private int mouth;
+    private int rimY;
+    private int gullyEnd;
     private Vec3 entrance = Vec3.ZERO;
     private float entranceYaw;
     private long buildMillis = -1L;
@@ -63,6 +71,10 @@ public final class ColossusLairData extends SavedData
         Direction tunnel = Direction.byName(tag.getString("Tunnel"));
         data.tunnel = tunnel != null && tunnel.getAxis().isHorizontal() ? tunnel : Direction.NORTH;
         data.descent = tag.getInt("Descent");
+        data.version = tag.contains("Version") ? tag.getInt("Version") : 1;
+        data.mouth = tag.getInt("Mouth");
+        data.rimY = tag.getInt("RimY");
+        data.gullyEnd = tag.getInt("GullyEnd");
         data.entrance = new Vec3(tag.getDouble("EntranceX"), tag.getDouble("EntranceY"), tag.getDouble("EntranceZ"));
         data.entranceYaw = tag.getFloat("EntranceYaw");
         data.buildMillis = tag.contains("BuildMillis") ? tag.getLong("BuildMillis") : -1L;
@@ -86,6 +98,10 @@ public final class ColossusLairData extends SavedData
         tag.putInt("FloorY", floorY);
         tag.putString("Tunnel", tunnel.getName());
         tag.putInt("Descent", descent);
+        tag.putInt("Version", version);
+        tag.putInt("Mouth", mouth);
+        tag.putInt("RimY", rimY);
+        tag.putInt("GullyEnd", gullyEnd);
         tag.putDouble("EntranceX", entrance.x);
         tag.putDouble("EntranceY", entrance.y);
         tag.putDouble("EntranceZ", entrance.z);
@@ -153,7 +169,11 @@ public final class ColossusLairData extends SavedData
         centerZ = layout.centerZ();
         floorY = layout.floorY();
         tunnel = layout.tunnel();
-        descent = layout.descent();
+        descent = 0;
+        version = LairBuilder.VERSION;
+        mouth = layout.mouth();
+        rimY = layout.rimY();
+        gullyEnd = layout.gullyEnd();
         entrance = layout.entrance();
         entranceYaw = layout.entranceYaw();
         buildMillis = millis;
@@ -183,6 +203,30 @@ public final class ColossusLairData extends SavedData
     int descent()
     {
         return descent;
+    }
+
+    /** 1: the R2c cavern and tunnel (old worlds); 2: the volcano. */
+    int version()
+    {
+        return version;
+    }
+
+    /** The volcano's cave mouth: its distance from the middle (version 2). */
+    int mouth()
+    {
+        return mouth;
+    }
+
+    /** Where the volcano's gully in front of the mouth ends: its distance from the middle (version 2). */
+    int gullyEnd()
+    {
+        return gullyEnd;
+    }
+
+    /** The volcano's crater rim (Y, version 2). */
+    int rimY()
+    {
+        return rimY;
     }
 
     Vec3 entrance()

@@ -10,8 +10,9 @@ import net.minecraft.world.phys.Vec3;
  * The Cinder Colossus's lair in the Cinder Wastes, for other areas (world-builder's {@code /dross goto lair colossus}).
  * <p>
  * Each world gets one, placed in the background a little while after the world first starts with it (old worlds too):
- * a round domed cavern 41 blocks across with a skylight, carved into high ground, entered by a tunnel that slopes down a
- * little and then runs straight in. Its Colossus rises when a player walks in, and again for the next player once
+ * a volcano rising well above the land, with a jagged smoking crater at its top that opens into a round domed cavern 41
+ * blocks across (the arena), entered by a big cave mouth in its flank. Worlds that got the earlier lair (a cavern with a
+ * skylight and a narrow tunnel, round 2) keep it. Its Colossus rises when a player walks in, and again for the next player once
  * {@link LairTuning#LAIR_RESPAWN_TICKS} (10 minutes of game time) have passed since it was beaten.
  * <p>
  * Everything here is for the server thread (it reads the world's saved data).
@@ -25,11 +26,11 @@ public final class ColossusLair
      *
      * @param center          the floor's middle block (the cavern's centre at floor level; players stand one block above it)
      * @param arenaMiddle     where the Colossus rises: the middle of the floor, feet position
-     * @param entrance        a safe place to stand just outside the tunnel's mouth, on the surface (feet position: the
-     *                        middle of a nether brick block's top, two blocks of air above)
-     * @param entranceYaw     the way to face from {@code entrance}: into the tunnel, towards the cavern (Minecraft's yaw:
+     * @param entrance        a safe place to stand in front of the way in, open to the sky (feet position: the middle of a
+     *                        block's top, two blocks of air above): in the gully just outside the volcano's cave mouth
+     * @param entranceYaw     the way to face from {@code entrance}: into the mouth, towards the cavern (Minecraft's yaw:
      *                        0 south, 90 west, 180 north, -90/270 east)
-     * @param tunnelDirection the way the tunnel runs out of the cavern, towards its mouth (north, east, south or west)
+     * @param tunnelDirection the way the way in runs out of the cavern, towards its mouth (north, east, south or west)
      */
     public record Lair(BlockPos center, Vec3 arenaMiddle, Vec3 entrance, float entranceYaw, Direction tunnelDirection)
     {

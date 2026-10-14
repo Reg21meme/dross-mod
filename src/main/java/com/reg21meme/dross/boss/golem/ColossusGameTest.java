@@ -132,9 +132,10 @@ public final class ColossusGameTest
     private static final int TROPHY_IN_LAVA = 60;
     /**
      * The longest a test waits for its arena to finish loading ({@link #waitForArena}), in ticks, added to the time
-     * limit of each test that waits. (It's usually a few ticks, and none near spawn.)
+     * limit of each test that waits. (It's usually a few ticks, and none near spawn; but a busy server, such as an old
+     * world's first start while the lair is built, can take a few hundred. The wait ends as soon as it has loaded.)
      */
-    static final int ARENA_WAIT_TICKS = 100;
+    static final int ARENA_WAIT_TICKS = 600;
 
     private ColossusGameTest() {}
 

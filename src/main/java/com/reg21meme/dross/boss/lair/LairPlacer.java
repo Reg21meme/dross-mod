@@ -78,8 +78,9 @@ final class LairPlacer
             LairKeeper.refresh(data);
             if (data.isPlaced())
             {
-                LOGGER.info("Colossus lair: this world's lair is at {} {} (floor y {}, tunnel to the {}, entrance {} {} {}).",
-                        data.centerX(), data.centerZ(), data.floorY(), data.tunnel().getName(), Math.round(data.entrance().x),
+                LOGGER.info("Colossus lair: this world's lair is at {} {} ({}, floor y {}, way in to the {}, entrance {} {} {}).",
+                        data.centerX(), data.centerZ(), data.version() >= 2 ? "a volcano, rim y " + data.rimY()
+                                : "an R2c cavern, kept as it was built", data.floorY(), data.tunnel().getName(), Math.round(data.entrance().x),
                         Math.round(data.entrance().y), Math.round(data.entrance().z));
                 return;
             }
@@ -296,15 +297,16 @@ final class LairPlacer
             LairBuilder.Layout layout = result.layout();
             data.markPlaced(layout, result.millis());
             LairKeeper.refresh(data);
-            LOGGER.info("Colossus lair: built at {} {} in {} ms: floor y {}, tunnel to the {} going down {} blocks, entrance {} {} {}; "
-                            + "{}% of the dome inside natural rock; {} blocks changed, {} tree(s) removed, {} plant(s) without ground "
-                            + "removed, {} fluid block(s) sealed, {} lava basin(s), {} magma vein(s). Search {} ms, chunk loading {} s, "
+            LOGGER.info("Colossus lair: built a volcano at {} {} in {} ms: {}; cave mouth {} blocks out, gully {} blocks, entrance {} {} {}; "
+                            + "{} blocks changed, {} tree(s) removed, {} plant(s) without ground removed, {} block(s) sealed against "
+                            + "fluids, {} magma vein(s), {} stalactite(s), {} fissure block(s) of lava under the floor, {} lava "
+                            + "rivulet(s) with {} lava block(s) outside, {} burnable block(s) cleared. Search {} ms, chunk loading {} s, "
                             + "{} s after the server started.",
-                    layout.centerX(), layout.centerZ(), result.millis(), layout.floorY(), layout.tunnel().getName(), layout.descent(),
+                    layout.centerX(), layout.centerZ(), result.millis(), result.plan().describe(), layout.mouth(), result.gullyLength(),
                     Math.round(layout.entrance().x), Math.round(layout.entrance().y), Math.round(layout.entrance().z),
-                    Math.round(result.plan().buried() * 100.0D), result.changed(), result.trees(), result.plants(), result.sealed(),
-                    result.basins(), result.veins(), searchMillis, loadMillis < 0 ? "?" : Math.round(loadMillis / 1000.0D),
-                    Math.round((Util.getMillis() - startedAt) / 1000.0D));
+                    result.changed(), result.trees(), result.plants(), result.sealed(), result.veins(), result.stalactites(),
+                    result.fissureCells(), result.rivulets(), result.outsideLava(), result.fireGuarded(), searchMillis,
+                    loadMillis < 0 ? "?" : Math.round(loadMillis / 1000.0D), Math.round((Util.getMillis() - startedAt) / 1000.0D));
             if (area != null)
             {
                 HOLDS.add(new Hold(dross, area, ticketKey, server.getTickCount() + HOLD_AFTER_BUILD_TICKS));
