@@ -14,11 +14,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.LongPredicate;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -30,6 +33,8 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
@@ -53,12 +58,25 @@ import org.slf4j.Logger;
  *       Overworld is the hub itself, that means the forest beside the spire), and outside the Colossus lair (once it's
  *       built; {@link GotoLairGameTest} checks that part directly). The chat line is the "from the hub" one.</li>
  *   <li><b>Already there:</b> standing on the hub's arrival step (in the Silverwood Forest),
- *       {@code goto biome silverwood_forest} says so and doesn't move the player.</li>
+ *       {@code goto biome silverwood_forest} says so and doesn't move the player.
+ *       <br><b>In an old world</b> (made before Terrain v1) the hub stands on the old flat Dross (biome
+ *       {@code dross:dross_flats}, ground at y -60), so the step isn't in the Silverwood Forest even though the biome
+ *       noise says so there. Then {@code goto biome silverwood_forest} from the step must take the player to real
+ *       Silverwood Forest on new land (the "from where you were" line, every landing check above), and the same command
+ *       from where they landed says they're already there and doesn't move them.</li>
  *   <li><b>From inside the Dross</b> (the hub's arrival step), {@code goto biome cinder_wastes} lands in the Cinder
  *       Wastes, safe, not much further from where the player stood than the place the biome search
  *       ({@link DrossBiomes#findNearest}) gives (at most {@value #NOT_MUCH_FURTHER} blocks more), and outside the lair.
- *       The chat line is the "from where you were" one.</li>
+ *       The chat line is the "from where you were" one. (In an old world where that place is on old flat land, the
+ *       landing has to be further, past the old land, so the distance isn't checked there.)</li>
  * </ol>
+ * Every landing must also be on new land: its chunk isn't an old world's flat Dross ({@link GotoBiome#isOldLand}), and
+ * the biome where the player stands (what F3 shows) is the one asked for.
+ * <p>
+ * {@link #gotoBiomeBeyondOldLand} checks the search past old land in any world (fresh or old): it treats every chunk
+ * round the hub, out past where the usual tries can reach, as old land, and the landing search must still find the
+ * Silverwood Forest and the Cinder Wastes, on safe new land just beyond it.
+ * <p>
  * The stand-in is logged out at the end, also when a check fails. How long each teleport took is logged
  * ("[goto biome test]" lines).
  */
@@ -92,11 +110,75 @@ public final class GotoBiomeGameTest
             sequence = sequence.thenIdle(PAUSE_TICKS).thenExecute(() -> run.guard(() -> run.fromOverworld(biome)));
         }
         sequence.thenIdle(PAUSE_TICKS)
-                .thenExecute(() -> run.guard(run::alreadyThere))
+                .thenExecute(() -> run.guard(run::atTheHub))
                 .thenIdle(PAUSE_TICKS)
                 .thenExecute(() -> run.guard(run::fromInsideTheDross))
                 .thenExecute(run::cleanUp)
                 .thenSucceed();
+    }
+
+    /**
+     * The landing search past old land ({@link GotoBiome.Landing#beyondOldLand}), in any world: every chunk whose middle
+     * is within a circle round the hub is treated as an old world's flat Dross, the circle reaching past every place the
+     * usual tries look at. Searching from the hub, as the command does from the Overworld, the landing must be outside the
+     * circle (its chunk not "old"), in the biome where the player would stand, on safe ground, clear of the hub and the
+     * lair, and found by the search beyond the old land. Done for the Silverwood Forest (all round the hub: like a player
+     * at an old world's hub, on old land the noise calls Silverwood) and the Cinder Wastes.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_goto_biome", timeoutTicks = 600)
+    public static void gotoBiomeBeyondOldLand(GameTestHelper helper)
+    {
+        MinecraftServer server = helper.getLevel().getServer();
+        ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
+        if (dross == null)
+        {
+            throw new GameTestAssertException("there's no Dross level");
+        }
+        BoundingBox hubZone = DrossHub.layout(server).map(DrossHub.Layout::footprint)
+                .orElseThrow(() -> new GameTestAssertException("the hub has no layout")).inflatedBy(GotoBiome.HUB_CLEARANCE);
+        BlockPos origin = DrossHub.CENTER.atY(GotoBiome.HUB_SEARCH_Y);
+        for (ResourceKey<Biome> biome : List.of(DrossBiomes.SILVERWOOD_FOREST, DrossBiomes.CINDER_WASTES))
+        {
+            String where = "beyond pretend old land, " + DrossBiomes.name(biome);
+            BlockPos place = DrossBiomes.findNearest(dross, origin, biome)
+                    .orElseThrow(() -> new GameTestAssertException(where + ": the biome search finds none from the hub"));
+            // Past everything the usual tries can reach: round the place, and FURTHER_TRIES more places further on.
+            double placeDistance = GotoBiome.horizontalDistance(origin, Vec3.atBottomCenterOf(place));
+            double radius = placeDistance + GotoBiome.FURTHER_TRIES * GotoBiome.FURTHER_STEP + 2 * GotoBiome.LANDING_RADIUS + GotoBiome.RING_STEP;
+            LongPredicate pretendOld = chunk -> {
+                double dx = ChunkPos.getX(chunk) * 16 + 8 - (origin.getX() + 0.5D);
+                double dz = ChunkPos.getZ(chunk) * 16 + 8 - (origin.getZ() + 0.5D);
+                return dx * dx + dz * dz <= radius * radius;
+            };
+            long started = Util.getMillis();
+            GotoBiome.Landing landing = new GotoBiome.Landing(dross, null, biome, origin.getY()).pretendOld(pretendOld);
+            Optional<Vec3> spot = landing.find(origin, place);
+            long took = Util.getMillis() - started;
+            if (spot.isEmpty())
+            {
+                throw new GameTestAssertException(where + ": found no landing spot past old land " + Math.round(radius) + " blocks round the hub ("
+                        + landing.describe() + ")");
+            }
+            Vec3 at = spot.get();
+            BlockPos feet = BlockPos.containing(at);
+            if (!landing.lookedBeyondOldLand())
+            {
+                throw new GameTestAssertException(where + ": landed at " + feet.toShortString() + " without the search beyond old land ("
+                        + landing.describe() + ")");
+            }
+            if (pretendOld.test(ChunkPos.asLong(SectionPos.blockToSectionCoord(feet.getX()), SectionPos.blockToSectionCoord(feet.getZ()))))
+            {
+                throw new GameTestAssertException(where + ": landed at " + feet.toShortString() + ", on the pretend old land");
+            }
+            checkSafeGround(dross, null, at, where);
+            checkNewLandInBiome(dross, feet, biome, where);
+            checkClearOfHub(hubZone, feet, where);
+            checkClearOfLair(server, at, where);
+            LOGGER.info("[goto biome test] {}: old land {} blocks round the hub (the biome search's place is {} blocks out); landed at {}, {} "
+                    + "blocks out ({} ms; {})", where, Math.round(radius), Math.round(placeDistance), feet.toShortString(),
+                    Math.round(GotoBiome.horizontalDistance(origin, at)), took, landing.describe());
+        }
+        helper.succeed();
     }
 
     /** The test's state: the stand-in player, the Dross and the hub's footprint. */
@@ -185,29 +267,72 @@ public final class GotoBiomeGameTest
             note(where, took, player);
         }
 
-        /** Standing on the hub's arrival step (Silverwood Forest), {@code goto biome silverwood_forest} doesn't move them. */
-        void alreadyThere()
+        /**
+         * On the hub's arrival step. A new world's hub stands in the Silverwood Forest: {@code goto biome silverwood_forest}
+         * says so and doesn't move them. An old world's hub stands on the old flat Dross: see {@link #fromOldLand}.
+         */
+        void atTheHub()
         {
             ServerPlayer player = requirePlayer();
             if (!DrossHub.teleportToHub(player) || player.level() != dross)
             {
                 throw new GameTestAssertException("couldn't put the stand-in on the hub's arrival step");
             }
-            if (!dross.getBiome(player.blockPosition()).is(DrossBiomes.SILVERWOOD_FOREST))
+            Holder<Biome> step = dross.getBiome(player.blockPosition());
+            if (step.is(ModDimensions.DROSS_FLATS_BIOME))
             {
-                throw new GameTestAssertException("the hub's arrival step at " + player.blockPosition().toShortString()
-                        + " isn't in the Silverwood Forest");
+                LOGGER.info("[goto biome test] The hub's arrival step at {} is on an old world's flat Dross ({}): checking the command from old "
+                        + "land instead of \"already there\".", player.blockPosition().toShortString(), biomeId(step));
+                fromOldLand();
+                return;
             }
+            if (!step.is(DrossBiomes.SILVERWOOD_FOREST))
+            {
+                throw new GameTestAssertException("the hub's arrival step at " + player.blockPosition().toShortString() + " is in "
+                        + biomeId(step) + ", neither the Silverwood Forest nor an old world's flat Dross");
+            }
+            expectAlreadyThere(player, "already in the Silverwood Forest (the hub's arrival step)");
+        }
+
+        /**
+         * An old world: standing on the hub's step on the old flat Dross (where the biome noise says Silverwood Forest),
+         * {@code goto biome silverwood_forest} takes the player to real Silverwood Forest on new land; there, the same
+         * command says they're already there.
+         */
+        void fromOldLand()
+        {
+            ServerPlayer player = requirePlayer();
+            BlockPos origin = GotoBiome.searchOrigin(dross, player.blockPosition());
+            Chat chat = new Chat();
+            long started = Util.getMillis();
+            int result = run(chat, player, "dross goto biome silverwood_forest");
+            long took = Util.getMillis() - started;
+            String where = "from the hub's arrival step on old flat land, goto biome silverwood_forest";
+            if (result != 1)
+            {
+                throw new GameTestAssertException(where + ": the command gave " + result + " (" + chat + ")");
+            }
+            chat.expectLast(GotoBiome.SUCCESS_FROM_YOU, where);
+            checkLanding(player, DrossBiomes.SILVERWOOD_FOREST, where);
+            LOGGER.info("[goto biome test] {}: landed {} blocks from the step, on new land.", where,
+                    Math.round(GotoBiome.horizontalDistance(origin, player.position())));
+            note(where, took, player);
+            expectAlreadyThere(player, "already in the Silverwood Forest (where it landed, after old land)");
+        }
+
+        /** {@code goto biome silverwood_forest} where the player stands (in the Silverwood Forest) doesn't move them. */
+        void expectAlreadyThere(ServerPlayer player, String where)
+        {
             Vec3 before = player.position();
             Chat chat = new Chat();
             int result = run(chat, player, "dross goto biome silverwood_forest");
             if (result != 0 || player.level() != dross || player.position().distanceToSqr(before) > 1.0E-6D)
             {
-                throw new GameTestAssertException("already in the Silverwood Forest: the command gave " + result + " and moved the player from "
-                        + before + " to " + player.position() + " (" + chat + ")");
+                throw new GameTestAssertException(where + ": the command gave " + result + " and moved the player from " + before + " to "
+                        + player.position() + " (" + chat + ")");
             }
-            chat.expectLast(GotoBiome.ALREADY_THERE, "already in the Silverwood Forest");
-            LOGGER.info("[goto biome test] Already in the Silverwood Forest (the hub's arrival step): told so, not moved.");
+            chat.expectLast(GotoBiome.ALREADY_THERE, where);
+            LOGGER.info("[goto biome test] {}: told so, not moved.", where);
         }
 
         /** From the hub's arrival step, {@code goto biome cinder_wastes}: near where the biome search points. */
@@ -222,6 +347,8 @@ public final class GotoBiomeGameTest
             BlockPos found = DrossBiomes.findNearest(dross, origin, DrossBiomes.CINDER_WASTES)
                     .orElseThrow(() -> new GameTestAssertException("the biome search finds no Cinder Wastes from the hub"));
             double foundDistance = GotoBiome.horizontalDistance(origin, Vec3.atBottomCenterOf(found));
+            // In an old world the biome search's place can be on old flat land; the landing is then past it, further out.
+            boolean foundOnOldLand = GotoBiome.isOldLand(dross, SectionPos.blockToSectionCoord(found.getX()), SectionPos.blockToSectionCoord(found.getZ()));
             Chat chat = new Chat();
             long started = Util.getMillis();
             int result = run(chat, player, "dross goto biome cinder_wastes");
@@ -234,17 +361,17 @@ public final class GotoBiomeGameTest
             chat.expectLast(GotoBiome.SUCCESS_FROM_YOU, where);
             checkLanding(player, DrossBiomes.CINDER_WASTES, where);
             double distance = GotoBiome.horizontalDistance(origin, player.position());
-            if (distance > foundDistance + NOT_MUCH_FURTHER)
+            if (!foundOnOldLand && distance > foundDistance + NOT_MUCH_FURTHER)
             {
                 throw new GameTestAssertException(where + ": landed " + Math.round(distance) + " blocks away, but the biome search found it "
                         + Math.round(foundDistance) + " blocks away (at " + found.getX() + ", " + found.getZ() + ")");
             }
-            LOGGER.info("[goto biome test] {}: the biome search found it {} blocks away, the player landed {} blocks away.", where,
-                    Math.round(foundDistance), Math.round(distance));
+            LOGGER.info("[goto biome test] {}: the biome search found it {} blocks away{}, the player landed {} blocks away.", where,
+                    Math.round(foundDistance), foundOnOldLand ? " (on old flat land, so the distance isn't checked)" : "", Math.round(distance));
             note(where, took, player);
         }
 
-        /** In the Dross, in the biome, on safe ground, clear of the hub and the lair. */
+        /** In the Dross, on safe ground, on new land in the biome, clear of the hub and the lair. */
         void checkLanding(ServerPlayer player, ResourceKey<Biome> biome, String where)
         {
             if (player.level() != dross)
@@ -254,16 +381,8 @@ public final class GotoBiomeGameTest
             Vec3 at = player.position();
             BlockPos feet = player.blockPosition();
             checkSafeGround(dross, player, at, where);
-            if (!dross.getBiome(feet).is(biome))
-            {
-                throw new GameTestAssertException(where + ": landed at " + feet.toShortString() + " in "
-                        + dross.getBiome(feet).unwrapKey().map(key -> key.location().toString()).orElse("?") + ", not " + DrossBiomes.name(biome));
-            }
-            if (feet.getX() >= hubZone.minX() && feet.getX() <= hubZone.maxX() && feet.getZ() >= hubZone.minZ() && feet.getZ() <= hubZone.maxZ())
-            {
-                throw new GameTestAssertException(where + ": landed at " + feet.toShortString() + ", on the hub's footprint or within "
-                        + GotoBiome.HUB_CLEARANCE + " blocks of it (" + hubZone + ")");
-            }
+            checkNewLandInBiome(dross, feet, biome, where);
+            checkClearOfHub(hubZone, feet, where);
             checkClearOfLair(server, at, where);
         }
 
@@ -295,12 +414,48 @@ public final class GotoBiomeGameTest
     // Shared with GotoLairGameTest
     // ---------------------------------------------------------------------------------------------
 
-    /** Something solid right under the feet, and two blocks of room (a player's width) with no block or fluid in it. */
-    static void checkSafeGround(ServerLevel level, ServerPlayer player, Vec3 at, String where)
+    /**
+     * The landing is on new land (its chunk isn't an old world's flat Dross, {@link GotoBiome#isOldLand}) and the biome
+     * where the player stands (what F3 shows) is {@code biome}.
+     */
+    static void checkNewLandInBiome(ServerLevel dross, BlockPos feet, ResourceKey<Biome> biome, String where)
+    {
+        if (GotoBiome.isOldLand(dross, SectionPos.blockToSectionCoord(feet.getX()), SectionPos.blockToSectionCoord(feet.getZ())))
+        {
+            throw new GameTestAssertException(where + ": landed at " + feet.toShortString() + ", on an old world's flat Dross");
+        }
+        Holder<Biome> here = dross.getBiome(feet);
+        if (!here.is(biome))
+        {
+            throw new GameTestAssertException(where + ": landed at " + feet.toShortString() + " in " + biomeId(here) + ", not " + DrossBiomes.name(biome));
+        }
+    }
+
+    /** Not on the hub's footprint or within {@value GotoBiome#HUB_CLEARANCE} blocks of it ({@code hubZone}: the footprint and that margin). */
+    static void checkClearOfHub(BoundingBox hubZone, BlockPos feet, String where)
+    {
+        if (feet.getX() >= hubZone.minX() && feet.getX() <= hubZone.maxX() && feet.getZ() >= hubZone.minZ() && feet.getZ() <= hubZone.maxZ())
+        {
+            throw new GameTestAssertException(where + ": landed at " + feet.toShortString() + ", on the hub's footprint or within "
+                    + GotoBiome.HUB_CLEARANCE + " blocks of it (" + hubZone + ")");
+        }
+    }
+
+    /** A biome's id, for messages. */
+    static String biomeId(Holder<Biome> biome)
+    {
+        return biome.unwrapKey().map(key -> key.location().toString()).orElse("?");
+    }
+
+    /**
+     * Something solid right under the feet, and two blocks of room (a player's width) with no block or fluid in it.
+     * {@code entity}: who stands there (null: just the blocks in the room).
+     */
+    static void checkSafeGround(ServerLevel level, @Nullable Entity entity, Vec3 at, String where)
     {
         AABB room = new AABB(at.x - PLAYER_WIDTH / 2.0D, at.y, at.z - PLAYER_WIDTH / 2.0D, at.x + PLAYER_WIDTH / 2.0D, at.y + FREE_HEIGHT,
                 at.z + PLAYER_WIDTH / 2.0D);
-        if (!level.noCollision(player, room))
+        if (!level.noCollision(entity, room))
         {
             throw new GameTestAssertException(where + ": no room to stand at " + at + " (a block is in the two blocks above the feet)");
         }

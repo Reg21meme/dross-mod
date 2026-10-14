@@ -6,12 +6,14 @@ import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.lair.ColossusLair;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.Polygon;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -58,7 +60,9 @@ import org.slf4j.Logger;
  *   <li>{@code biomes_<seed>.png} for each fixed test seed, and {@code biomes_world.png} for this world (its seed changes
  *       every run, so its file keeps one name and shows the seed in its title): the biome map, {@value #MAP_HALF} blocks
  *       every way from the hub, {@value #MAP_CELL} blocks a pixel; the hub marked, rings at 200, 450, 600, 850 and 1500
- *       blocks (the hub's falloff radii); a legend.</li>
+ *       blocks (the hub's falloff radii); a legend. This world's maps also mark the Cinder Colossus's lair (an orange
+ *       triangle; read from the boss area's {@link ColossusLair#plannedSite}, waiting up to {@value #LAIR_WAIT_MILLIS} ms
+ *       for its background search).</li>
  *   <li>{@code relief_<seed>.png} and {@code relief_world.png}: the same area's land, lit from the north-west and coloured
  *       by biome, with a contour line every 16 blocks; higher land is lighter, snow above y 200 white.</li>
  *   <li>{@code overview.png}: the seeds' biome maps side by side.</li>
@@ -104,6 +108,13 @@ public final class TerrainPreviewGameTest
     private static final int HUB_VIEW_Z = 2;
     /** A view's blocks reach this far below its lowest ground. */
     private static final int VIEW_BELOW_GROUND = 3;
+    /**
+     * How long to wait (real time) for the Colossus lair's spot to be picked before drawing this world's maps without it
+     * (the boss area's background search picks it a few seconds after a world starts).
+     */
+    private static final long LAIR_WAIT_MILLIS = 60_000L;
+    /** The lair's triangle on the maps: this many pixels from its middle to each corner. */
+    private static final int LAIR_MARK = 9;
 
     private TerrainPreviewGameTest() {}
 
@@ -124,11 +135,25 @@ public final class TerrainPreviewGameTest
         }
         Path out = FMLPaths.GAMEDIR.get().toAbsolutePath().getParent().resolve("terrain-previews");
         long started = Util.getMillis();
-        CompletableFuture<JsonObject> maps = CompletableFuture.supplyAsync(() -> drawMaps(dross, out));
+        // The Colossus lair's spot (boss/lair/ColossusLair, read on the server thread): the maps start once it's known.
+        CompletableFuture<Optional<BlockPos>> lair = new CompletableFuture<>();
+        CompletableFuture<JsonObject> maps = lair.thenApplyAsync(site -> drawMaps(dross, out, site));
+        long lairDeadline = Util.getMillis() + LAIR_WAIT_MILLIS;
         CompletableFuture<Map<ResourceKey<Biome>, BlockPos>> sites = CompletableFuture.supplyAsync(() -> TerrainChunksGameTest.findSites(TerrainProbe.forWorld(dross)));
         long deadline = Util.getMillis() + TerrainSamplingGameTest.TIMEOUT_MILLIS;
         JsonObject chunkStats = new JsonObject();
         GameTestSequence sequence = helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (ColossusLair.plannedSite(dross.getServer()).isEmpty() && Util.getMillis() < lairDeadline)
+                    {
+                        throw new GameTestAssertException("waiting for the Colossus lair's spot");
+                    }
+                })
+                .thenExecute(() -> {
+                    Optional<BlockPos> site = ColossusLair.plannedSite(dross.getServer());
+                    LOGGER.info("[terrain previews] the Colossus lair: {}", site.map(p -> "at " + p.getX() + ", " + p.getZ()).orElse("not picked yet (not marked)"));
+                    lair.complete(site);
+                })
                 .thenWaitUntil(() -> {
                     if ((!maps.isDone() || !sites.isDone()) && Util.getMillis() < deadline)
                     {
@@ -176,7 +201,8 @@ public final class TerrainPreviewGameTest
     // Maps from the noise (off the server thread)
     // ---------------------------------------------------------------------------------------------
 
-    private static JsonObject drawMaps(ServerLevel dross, Path out)
+    /** @param lair this world's Colossus lair (X and Z), marked on this world's maps; empty: not marked */
+    private static JsonObject drawMaps(ServerLevel dross, Path out, Optional<BlockPos> lair)
     {
         try
         {
@@ -222,11 +248,14 @@ public final class TerrainPreviewGameTest
             });
             String label = "seed " + seed + (seed == dross.getSeed() ? " (this world)" : "");
             BufferedImage biomeMap = biomeImage(biomes, n);
+            BufferedImage relief = reliefImage(biomes, heights, n);
+            // the lair belongs to this world only (the other seeds' worlds would put it elsewhere)
+            BlockPos lairHere = seed == dross.getSeed() ? lair.filter(p -> markLair(biomeMap, p) & markLair(relief, p)).orElse(null) : null;
             biomeMaps.add(biomeMap);
             // this world's seed changes every run: a fixed name, so a refresh replaces its maps instead of adding new files
             String fileName = seed == dross.getSeed() ? "world" : Long.toString(seed);
-            saveWithLegend(biomeMap, out.resolve("biomes_" + fileName + ".png"), "Dross biomes, " + label, true);
-            saveWithLegend(reliefImage(biomes, heights, n), out.resolve("relief_" + fileName + ".png"), "Dross relief, " + label, false);
+            saveWithLegend(biomeMap, out.resolve("biomes_" + fileName + ".png"), "Dross biomes, " + label, true, lairHere);
+            saveWithLegend(relief, out.resolve("relief_" + fileName + ".png"), "Dross relief, " + label, false, lairHere);
         }
         saveOverview(biomeMaps, seeds, dross.getSeed(), out.resolve("overview.png"));
 
@@ -262,6 +291,15 @@ public final class TerrainPreviewGameTest
         averages.addProperty("mountain_peak_median", round(TerrainSurvey.percentile(peaks, 50)));
         stats.add("averages", averages);
         text.append("Averages over ").append(surveys.size()).append(" seeds: ").append(averages).append('\n');
+        if (lair.isPresent())
+        {
+            BlockPos p = lair.get();
+            double away = Math.hypot(p.getX() - DrossHub.CENTER.getX(), p.getZ() - DrossHub.CENTER.getZ());
+            stats.addProperty("colossus_lair", p.getX() + ", " + p.getZ());
+            stats.addProperty("colossus_lair_from_hub", round(away));
+            text.append(String.format(Locale.ROOT, "%nThe Cinder Colossus's lair (this world, seed %d): %d, %d, %.0f blocks from the hub%n",
+                    dross.getSeed(), p.getX(), p.getZ(), away));
+        }
         write(out.resolve("stats.txt"), text.toString());
         return stats;
     }
@@ -373,7 +411,43 @@ public final class TerrainPreviewGameTest
         g.dispose();
     }
 
-    private static void saveWithLegend(BufferedImage map, Path file, String title, boolean biomes)
+    /**
+     * Marks the Colossus lair on a map from the noise (an orange triangle, like a volcano, outlined in black). False (and
+     * nothing drawn) if it lies off the map.
+     */
+    private static boolean markLair(BufferedImage img, BlockPos lair)
+    {
+        double px = (lair.getX() - (DrossHub.CENTER.getX() - MAP_HALF)) / (double) MAP_CELL;
+        double pz = (lair.getZ() - (DrossHub.CENTER.getZ() - MAP_HALF)) / (double) MAP_CELL;
+        if (px < 0 || pz < 0 || px >= img.getWidth() || pz >= img.getHeight())
+        {
+            return false;
+        }
+        Graphics2D g = img.createGraphics();
+        g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        drawLairMark(g, px, pz);
+        g.dispose();
+        return true;
+    }
+
+    /** The lair's mark: a triangle centred on px, pz. */
+    private static void drawLairMark(Graphics2D g, double px, double pz)
+    {
+        Polygon triangle = new Polygon();
+        for (int corner = 0; corner < 3; corner++)
+        {
+            double a = Math.toRadians(-90 + 120 * corner);
+            triangle.addPoint((int) Math.round(px + LAIR_MARK * Math.cos(a)), (int) Math.round(pz + LAIR_MARK * Math.sin(a) + 1));
+        }
+        g.setColor(new Color(DrossColors.PREVIEW_LAIR));
+        g.fillPolygon(triangle);
+        g.setColor(new Color(DrossColors.PREVIEW_BACKGROUND));
+        g.setStroke(new BasicStroke(1.5F));
+        g.drawPolygon(triangle);
+    }
+
+    /** @param lair this world's Colossus lair, if it's marked on the map (null: no legend entry for it) */
+    private static void saveWithLegend(BufferedImage map, Path file, String title, boolean biomes, BlockPos lair)
     {
         int w = map.getWidth() + LEGEND_WIDTH;
         BufferedImage img = new BufferedImage(w, map.getHeight(), BufferedImage.TYPE_INT_RGB);
@@ -400,6 +474,13 @@ public final class TerrainPreviewGameTest
             g.fillRect(x, y - 11, 16, 14);
             g.setColor(new Color(DrossColors.PREVIEW_TEXT));
             g.drawString(prettyName(b), x + 24, y);
+            y += 22;
+        }
+        if (lair != null)
+        {
+            drawLairMark(g, x + 8, y - 5);
+            g.setColor(new Color(DrossColors.PREVIEW_TEXT));
+            g.drawString("Colossus lair (" + lair.getX() + ", " + lair.getZ() + ")", x + 24, y);
             y += 22;
         }
         y += 10;

@@ -15,6 +15,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+import java.util.function.LongPredicate;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
@@ -22,6 +25,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.QuartPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
@@ -31,6 +37,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
@@ -43,8 +51,8 @@ import org.slf4j.Logger;
  * {@link DrossBiomes#findNearest}, and what counts as safe ground is the portal area's {@link DrossTeleporter#findSafeSpot}.
  * <ol>
  *   <li><b>Where the search starts:</b> where the player stands, if they're in the Dross; from any other dimension, the
- *       hub's centre ({@link DrossHub#CENTER}). A player who is already standing in that biome in the Dross is told so
- *       and isn't moved.</li>
+ *       hub's centre ({@link DrossHub#CENTER}). A player who is already standing in that biome in the Dross (the biome
+ *       F3 shows, so never on an old world's flat land) is told so and isn't moved.</li>
  *   <li><b>The nearest place</b> of the biome: {@link DrossBiomes#findNearest} (Minecraft's own biome search, like
  *       {@code /locate biome}: it only reads the biome noise, makes no chunks, and looks up to
  *       {@value DrossBiomes#SEARCH_RADIUS} blocks out). It gives a place a little way inside the biome's near edge.</li>
@@ -68,6 +76,14 @@ import org.slf4j.Logger;
  *       If no column there will do, up to {@value #FURTHER_TRIES} more places are tried, each {@value #FURTHER_STEP}
  *       blocks further on along the line from where the search started (further into the biome). The search gives up
  *       after looking at {@value #MAX_CHUNKS} chunks.</li>
+ *   <li><b>Old worlds:</b> land made before the new terrain existed stays the old flat Dross (biome
+ *       {@link ModDimensions#DROSS_FLATS_BIOME}, ground at y -60), even where the biome noise now says another biome. The
+ *       biome search only reads the noise, so the place it gives can be on that old land. Old chunks are recognised from
+ *       the save without loading them ({@link #isOldLand}) and skipped whole, and the landing spot's own biome is always
+ *       checked, so nobody ever lands on old land. If the tries above found only old land, the search looks
+ *       {@linkplain Landing#beyondOldLand beyond it}: places of the biome every {@value #RING_STEP} blocks, in rings
+ *       outwards from where the search started (nearest first), until one is on new land with a landing spot round it.
+ *       It gives up after finding {@value #MAX_OLD_CHUNKS} old chunks (or the chunk limit above).</li>
  *   <li><b>The teleport:</b> like vanilla's {@code /tp} (it keeps the landing chunk loaded for a moment, gets you off a
  *       mount or out of bed), facing away from where the search started, so you look further into the biome. No arrival
  *       title or notes: those are only for travelling through the portal (the same as {@code /dross goto hub}).</li>
@@ -147,9 +163,17 @@ public final class GotoBiome
     public static final int MAX_CHUNKS = 64;
     /**
      * ...or after finding this many chunks of an old world's flat Dross (land made before the new terrain existed, which
-     * has none of the new biomes). They're only read from the save, which is quicker, and skipped whole.
+     * has none of the new biomes). They're only read from the save (nothing is loaded into the world), which takes well
+     * under a millisecond each, and skipped whole. 4,096 is old land about 1,000 blocks across.
      */
-    public static final int MAX_OLD_CHUNKS = 256;
+    public static final int MAX_OLD_CHUNKS = 4096;
+    /**
+     * Beyond old land ({@link Landing#beyondOldLand}): the places looked at lie on a grid this many blocks apart, in square
+     * rings round where the search started (the same spacing as the biome search, {@link DrossBiomes#SEARCH_HORIZONTAL_STEP}).
+     */
+    public static final int RING_STEP = DrossBiomes.SEARCH_HORIZONTAL_STEP;
+    /** The id of the old flat biome, as a save writes it (for reading old chunks straight from the save). */
+    private static final String FLATS_ID = ModDimensions.DROSS_FLATS_BIOME.location().toString();
     /** The hub's footprint is only looked up when the search comes within this many blocks (along X and Z) of its centre. */
     private static final int HUB_LOOKUP_DISTANCE = 256;
     /** If the hub has no layout (its exit portal is gone), the search keeps this far (along X and Z) from its centre instead. */
@@ -332,14 +356,66 @@ public final class GotoBiome
     }
 
     /**
+     * True if this chunk is an old world's flat Dross: land made before the new terrain existed, which keeps the old flat
+     * biome ({@link ModDimensions#DROSS_FLATS_BIOME}) wherever the biome noise now puts another one. It only looks: a chunk
+     * that's loaded is read where it is, any other is read straight from the save (nothing is loaded into the world or
+     * made). A chunk that isn't in the save yet is new land, and so is one saved before its biomes were filled in (it
+     * gets the new biomes when it's finished). A chunk that can't be read counts as new land: the landing spot's own biome
+     * is still checked. Server thread (the save is read on Minecraft's file thread; this waits for it).
+     */
+    static boolean isOldLand(ServerLevel dross, int chunkX, int chunkZ)
+    {
+        LevelChunk loaded = dross.getChunkSource().getChunkNow(chunkX, chunkZ);
+        if (loaded != null)
+        {
+            for (LevelChunkSection section : loaded.getSections())
+            {
+                if (section.getBiomes().maybeHas(biome -> biome.is(ModDimensions.DROSS_FLATS_BIOME)))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        Optional<CompoundTag> saved;
+        try
+        {
+            saved = dross.getChunkSource().chunkMap.read(new ChunkPos(chunkX, chunkZ)).join();
+        }
+        catch (CompletionException | CancellationException e)
+        {
+            LOGGER.warn("[goto biome] couldn't read the Dross chunk {}, {} from the save; treating it as new land", chunkX, chunkZ, e);
+            return false;
+        }
+        if (saved.isEmpty())
+        {
+            return false;
+        }
+        ListTag sections = saved.get().getList("sections", Tag.TAG_COMPOUND);
+        for (int i = 0; i < sections.size(); i++)
+        {
+            ListTag palette = sections.getCompound(i).getCompound("biomes").getList("palette", Tag.TAG_STRING);
+            for (int j = 0; j < palette.size(); j++)
+            {
+                if (FLATS_ID.equals(palette.getString(j)))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
      * One search for a landing spot (see the class comment): the columns it has tried, the chunks it has looked at, the
      * biome noise it has read (one read per 4x4 columns, the size of a biome cell), and why columns were turned down (for
      * the log).
      * <p>
      * Old worlds: land made before the new terrain existed stays the old flat Dross, whose only biome is
-     * {@link ModDimensions#DROSS_FLATS_BIOME}, even where the noise now says another biome. A chunk like that is skipped
-     * whole the first time one of its columns shows it, and doesn't count towards {@link #MAX_CHUNKS} (it was only read
-     * from the save), so the search carries on further out to the new land.
+     * {@link ModDimensions#DROSS_FLATS_BIOME}, even where the noise now says another biome. A chunk like that is
+     * recognised from the save ({@link #isOldLand}, nothing loaded) and skipped whole the first time one of its columns
+     * comes up; it doesn't count towards {@link #MAX_CHUNKS}. If the places round where the biome search pointed were all
+     * old land, the search carries on {@linkplain #beyondOldLand beyond it}.
      */
     static final class Landing
     {
@@ -350,11 +426,18 @@ public final class GotoBiome
         /** The height the biome noise is read at (the search's own; the biomes are the same at every height). */
         private final int sampleY;
         private final LongOpenHashSet tried = new LongOpenHashSet();
-        /** The chunks looked at (not counting old flat land). */
+        /** The chunks looked at for a landing spot (loaded, or made if they're new; not counting old flat land). */
         private final LongOpenHashSet chunks = new LongOpenHashSet();
-        /** The chunks found to be an old world's flat Dross. */
-        private final LongOpenHashSet oldChunks = new LongOpenHashSet();
+        /** For every chunk checked for old land: true if it's an old world's flat Dross. */
+        private final Long2BooleanOpenHashMap oldByChunk = new Long2BooleanOpenHashMap();
         private final Long2BooleanOpenHashMap biomeByCell = new Long2BooleanOpenHashMap();
+        /** Tests only: chunks to treat as old land as well (by {@link ChunkPos#toLong}); null: none. */
+        @Nullable
+        private LongPredicate pretendOld;
+        /** How many chunks were found to be old land. */
+        private int oldChunks;
+        /** How many places beyond old land were looked round ({@link #beyondOldLand}); -1: that search wasn't needed. */
+        private int placesBeyondOldLand = -1;
         @Nullable
         private BoundingBox hubZone;
         /** The circle kept clear round the Colossus lair (null: none), worked out the first time it's needed. */
@@ -382,8 +465,19 @@ public final class GotoBiome
         }
 
         /**
+         * Tests only: also treat the chunks {@code old} says yes to (given {@link ChunkPos#toLong}) as an old world's flat
+         * Dross, to check the search past old land in any world. Call it before {@link #find}.
+         */
+        Landing pretendOld(LongPredicate old)
+        {
+            this.pretendOld = old;
+            return this;
+        }
+
+        /**
          * A landing spot near {@code place} (where the biome search found the biome), searching from {@code origin}: round
-         * the place itself first, then further on along the line from the origin through it. Use each Landing once.
+         * the place itself first, then further on along the line from the origin through it; if all that was old land (an
+         * old world's flat Dross), the nearest place of the biome beyond it ({@link #beyondOldLand}). Use each Landing once.
          */
         Optional<Vec3> find(BlockPos origin, BlockPos place)
         {
@@ -414,7 +508,87 @@ public final class GotoBiome
                     return spot;
                 }
             }
+            if (!this.gaveUp && sawOldLand())
+            {
+                return beyondOldLand(origin);
+            }
             return Optional.empty();
+        }
+
+        /**
+         * Old worlds, when the places round where the biome search pointed were old land: the nearest place of the biome
+         * on new land. Looks at places every {@value #RING_STEP} blocks in square rings round {@code origin}, ring by ring
+         * outwards (nearest first within a ring) up to {@value DrossBiomes#SEARCH_RADIUS} blocks; a place counts if the
+         * biome noise puts the biome there and its chunk isn't old land, and then the usual landing search runs round it.
+         * Only noise is read and old chunks are only read from the save, until a place on new land turns up.
+         */
+        private Optional<Vec3> beyondOldLand(BlockPos origin)
+        {
+            this.placesBeyondOldLand = 0;
+            for (int radius = 0; radius <= DrossBiomes.SEARCH_RADIUS && !this.gaveUp; radius += RING_STEP)
+            {
+                for (int[] offset : ring(radius))
+                {
+                    int x = origin.getX() + offset[0];
+                    int z = origin.getZ() + offset[1];
+                    if (!isBiomeHere(x, z) || isOld(SectionPos.blockToSectionCoord(x), SectionPos.blockToSectionCoord(z)))
+                    {
+                        if (this.gaveUp)
+                        {
+                            return Optional.empty();
+                        }
+                        continue;
+                    }
+                    this.placesBeyondOldLand++;
+                    Optional<Vec3> spot = around(x, z);
+                    if (spot.isPresent() || this.gaveUp)
+                    {
+                        return spot;
+                    }
+                }
+            }
+            return Optional.empty();
+        }
+
+        /**
+         * The offsets (along X and Z) on the square ring {@code radius} blocks round the middle, every {@value #RING_STEP}
+         * blocks, nearest first (equally near ones in a fixed order); just the middle for radius 0.
+         */
+        private static List<int[]> ring(int radius)
+        {
+            if (radius == 0)
+            {
+                return List.of(new int[] {0, 0});
+            }
+            List<int[]> offsets = new ArrayList<>(8 * radius / RING_STEP);
+            for (int along = -radius; along < radius; along += RING_STEP)
+            {
+                offsets.add(new int[] {along, -radius}); // north side, west to east
+                offsets.add(new int[] {radius, along}); // east side, north to south
+                offsets.add(new int[] {-along, radius}); // south side, east to west
+                offsets.add(new int[] {-radius, -along}); // west side, south to north
+            }
+            offsets.sort(Comparator.<int[]>comparingInt(o -> o[0] * o[0] + o[1] * o[1]).thenComparingInt(o -> o[1]).thenComparingInt(o -> o[0]));
+            return offsets;
+        }
+
+        /**
+         * True if this chunk is an old world's flat Dross ({@link GotoBiome#isOldLand}, or {@link #pretendOld} in a test),
+         * checked once per chunk. Sets {@link #gaveUp} once {@value #MAX_OLD_CHUNKS} old chunks have been found.
+         */
+        private boolean isOld(int chunkX, int chunkZ)
+        {
+            long chunk = ChunkPos.asLong(chunkX, chunkZ);
+            if (!this.oldByChunk.containsKey(chunk))
+            {
+                boolean old = (this.pretendOld != null && this.pretendOld.test(chunk)) || isOldLand(this.dross, chunkX, chunkZ);
+                this.oldByChunk.put(chunk, old);
+                if (old && ++this.oldChunks >= MAX_OLD_CHUNKS)
+                {
+                    this.gaveUp = true;
+                }
+            }
+            return this.oldByChunk.get(chunk);
         }
 
         /** The first good column round (x, z), nearest first, up to {@link #LANDING_RADIUS} blocks away. */
@@ -444,11 +618,16 @@ public final class GotoBiome
                 }
                 int chunkX = SectionPos.blockToSectionCoord(x);
                 int chunkZ = SectionPos.blockToSectionCoord(z);
-                long chunk = ChunkPos.asLong(chunkX, chunkZ);
-                if (this.oldChunks.contains(chunk))
+                // An old world's flat land is skipped whole (only read from the save, so it isn't counted below).
+                if (isOld(chunkX, chunkZ))
                 {
-                    continue; // an old world's flat land, seen already
+                    if (this.gaveUp)
+                    {
+                        return Optional.empty();
+                    }
+                    continue;
                 }
+                long chunk = ChunkPos.asLong(chunkX, chunkZ);
                 if (!this.chunks.contains(chunk))
                 {
                     if (this.chunks.size() >= MAX_CHUNKS)
@@ -456,20 +635,7 @@ public final class GotoBiome
                         this.gaveUp = true;
                         return Optional.empty();
                     }
-                    this.chunks.add(chunk);
-                    // Loads it (makes it, if it's new). An old world's flat land is skipped whole, and isn't counted.
-                    if (this.dross.getChunk(chunkX, chunkZ).getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(this.sampleY),
-                            QuartPos.fromBlock(z)).is(ModDimensions.DROSS_FLATS_BIOME))
-                    {
-                        this.chunks.remove(chunk);
-                        this.oldChunks.add(chunk);
-                        if (this.oldChunks.size() >= MAX_OLD_CHUNKS)
-                        {
-                            this.gaveUp = true;
-                            return Optional.empty();
-                        }
-                        continue;
-                    }
+                    this.chunks.add(chunk); // findSafeSpot loads it (makes it, if it's new)
                 }
                 this.checked++;
                 Optional<Vec3> spot = DrossTeleporter.findSafeSpot(this.dross, this.entity, x, z, 0);
@@ -544,16 +710,24 @@ public final class GotoBiome
         /** True if some of the land it looked at was an old world's flat Dross. */
         boolean sawOldLand()
         {
-            return !this.oldChunks.isEmpty();
+            return this.oldChunks > 0;
+        }
+
+        /** True if the places round where the biome search pointed were all old land, so it looked beyond it ({@link #beyondOldLand}). */
+        boolean lookedBeyondOldLand()
+        {
+            return this.placesBeyondOldLand >= 0;
         }
 
         /** For the log: how much it looked at, and why columns were turned down. */
         String describe()
         {
-            return this.checked + " column(s) checked in " + this.chunks.size() + " chunk(s)" + (this.gaveUp ? " (gave up: chunk limit)" : "")
+            String gaveUpWhy = this.oldChunks >= MAX_OLD_CHUNKS ? " (gave up: old land limit)" : " (gave up: chunk limit)";
+            return this.checked + " column(s) checked in " + this.chunks.size() + " chunk(s)" + (this.gaveUp ? gaveUpWhy : "")
                     + "; turned down: " + this.unsafe + " unsafe, " + this.otherBiome + " another biome where you'd stand (a border), "
                     + this.raised + " on top of something, " + this.byTheHub + " by the hub, " + this.byTheLair + " by the Colossus lair"
-                    + (this.oldChunks.isEmpty() ? "" : "; skipped " + this.oldChunks.size() + " chunk(s) of this old world's flat Dross");
+                    + (this.oldChunks == 0 ? "" : "; skipped " + this.oldChunks + " chunk(s) of this old world's flat Dross")
+                    + (lookedBeyondOldLand() ? "; looked beyond the old land round " + this.placesBeyondOldLand + " place(s)" : "");
         }
     }
 }

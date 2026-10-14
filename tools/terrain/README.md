@@ -182,7 +182,11 @@ feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bar
   hub's natural ground nearly flat, no gaps in any column, the generator's height matching the noise's, and the same
   biomes when sampled in a different order. Plus `findNearestFindsEveryBiome` (`DrossBiomes.findNearest`).
 - `dimension/TerrainChunksGameTest`: real chunks at a sample site of each biome: the right biome, bedrock floor, no air
-  pockets, the biome's own surface blocks; logs the generation time per chunk next to the vanilla Overworld's.
+  pockets, the biome's own surface blocks; logs the generation time per chunk next to the vanilla Overworld's. The
+  Nether Scar's cracks are judged on the netherrack ground its soul and nylium patches leave (5-92% of it must be
+  Scarred Netherrack, about 56% normally), not on the whole site, where the patches make the share swing from about 4%
+  to 63%. If you change `SCARRED_PATCH`, `SCARRED_SPECKLE` or the Scar's patch thresholds a lot, re-check those limits
+  (`SCAR_CRACKED_MIN` and its notes).
 - `dimension/TerrainFeaturesGameTest`: what grows and lies on the land, and the ores (see the FEATURES section below).
 - `dimension/TerrainPreviewGameTest`: the previews (only with `DROSS_TERRAIN_PREVIEWS=1`).
 

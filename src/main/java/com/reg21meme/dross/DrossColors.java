@@ -235,6 +235,8 @@ public final class DrossColors {
     public static final int PREVIEW_TEXT = 0xE8ECF4;
     /** Terrain previews: the snowy tint mixed into the relief maps above the snow line (snow white with a hint of blue). */
     public static final int PREVIEW_SNOW = 0xF4F8FF;
+    /** Terrain previews: the Cinder Colossus's lair, a small triangle on this world's maps (lava orange). */
+    public static final int PREVIEW_LAIR = 0xFF7A1A;
 
     // ---------------------------------------------------------------- Boss (boss-builder)
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.

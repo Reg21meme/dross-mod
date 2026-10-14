@@ -54,7 +54,9 @@ import org.slf4j.Logger;
  *       real top isn't used for this);</li>
  *   <li>the ground's top blocks: at least 99% are the biome's own ({@link #GROUND}: its ground cover and rock, and what its
  *       features add to the ground, such as boulders, pond shores and vents), its ground cover (not bare rock) covers at
- *       least 60%, and its own signature block is there (at least 15%; 40% Cragstone or snow in the Gravecrags);</li>
+ *       least 60%, and its own signature block is there (at least 15%; 40% Cragstone or snow in the Gravecrags); in the
+ *       Nether Scar, instead, the netherrack ground its soul and nylium patches leave is there (at least 3% of the site)
+ *       and 5-92% of it is Scarred Netherrack (the cracks mixed with plain netherrack; see SCAR_CRACKED_MIN for why);</li>
  *   <li>every fluid is a still source, lava has something solid (or lava) on every side and below, and the Nether
  *       Scar has no lava or fire; every plant, vine, lichen and snow layer could stay where it is.</li>
  * </ul>
@@ -111,20 +113,49 @@ public final class TerrainChunksGameTest
             DrossBiomes.RIMEFALL, new Ground(Set.of("dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice", "dross:duskstone",
                     "minecraft:ice"),
                     Set.of("dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"), 0.60D, Set.of("dross:hoarfrost"), 0.15D),
-            // (Scarred Netherrack lies in patches among plain netherrack, about a third of the ground: see SCAR_MIX below)
+            // (Scarred Netherrack lies in clusters among plain netherrack, on the ground the soul and nylium patches leave: its
+            // share of a whole site swings too much to judge, so it's judged by the cracks' own mix instead: SCAR_* below)
             DrossBiomes.NETHER_SCAR, new Ground(Set.of("dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium",
                     "minecraft:soul_soil", "minecraft:soul_sand", "minecraft:netherrack", "dross:scar_vent"),
                     Set.of("dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium", "minecraft:soul_soil",
-                            "minecraft:soul_sand", "minecraft:netherrack"), 0.60D, Set.of("dross:scarred_netherrack"), 0.10D),
+                            "minecraft:soul_sand", "minecraft:netherrack"), 0.60D, Set.of("dross:scarred_netherrack"), 0.0D),
             DrossBiomes.GRAVECRAGS, new Ground(Set.of("dross:cragstone", "minecraft:snow_block", "minecraft:gravel", "minecraft:moss_block"),
                     Set.of("dross:cragstone", "minecraft:snow_block", "minecraft:gravel", "minecraft:moss_block"), 0.60D,
                     Set.of("dross:cragstone", "minecraft:snow_block"), 0.40D));
 
-    /**
-     * The Nether Scar's cracked ground is mixed with plain netherrack (the user found it too busy all cracked): a Scar
-     * site must have at least this share of its top blocks plain netherrack too, so the mix really ran.
+    /*
+     * The Nether Scar's cracks. Its top is decided in this order (SURFACE in tools/terrain/worldgen.py): soul soil and soul
+     * sand patches, then crimson and warped nylium patches, then, on the ground those leave (its "crack ground"), Scarred
+     * Netherrack in ragged clusters mixed with plain netherrack (SCARRED_PATCH, SCARRED_SPECKLE: about 55% cracked; the
+     * user found it too busy when it was all cracked). The patches can cover most of an 80-block site, so the cracked share
+     * of a whole site swings a lot (from about 4% to 63%; 6.8% on the seed where the old 10% check failed), but the cracked
+     * share of its crack ground is the cracks' own rules at work, and steadier.
+     *
+     * Measured (round 2, R6) with the surface rules' own noises and thresholds (which match real generated chunks to
+     * 0.3%), on 5,317 sites like these (80 blocks square, all Nether Scar for 64 blocks round) on 405 seeds, 405 of them
+     * the very sites this test picks:
+     *   cracked share of the crack ground: lowest 11.0% (then 12.3%, 18.2%), 1 in 1000 below 20%, middle 56%, highest
+     *   82.7% (the sites this test picks: 24% to 80%);
+     *   crack ground share of the site: lowest 6.9%, 1 in 1000 below 13% (the sites this test picks: 13.5% at least);
+     *   the old check (Scarred Netherrack on 10% of the whole site) failed on 1.4% of them (6 of the 405 picked sites),
+     *   and the one before it (plain netherrack on 5%) on 0.2%.
+     * The limits below sit well outside all of that, so they only fail when the rules really change.
      */
-    private static final double SCAR_PLAIN_NETHERRACK = 0.05D;
+    /**
+     * At least this share of a Scar site's crack ground must be Scarred Netherrack (else it looks like plain netherrack):
+     * under half the lowest measured (11%).
+     */
+    private static final double SCAR_CRACKED_MIN = 0.05D;
+    /**
+     * At most this share of it may be (else the cracks aren't mixed with plain netherrack any more, as before round 2):
+     * above the highest measured (82.7%).
+     */
+    private static final double SCAR_CRACKED_MAX = 0.92D;
+    /**
+     * At least this share of a Scar site must be crack ground at all (else the soul and nylium patches have taken over the
+     * Scar): under half the lowest measured (6.9%).
+     */
+    private static final double SCAR_CRACK_GROUND_MIN = 0.03D;
 
     private TerrainChunksGameTest() {}
 
@@ -401,10 +432,9 @@ public final class TerrainChunksGameTest
         {
             problems.add(String.format(Locale.ROOT, "%s: its own %s covers only %.1f%% (%s)", where, want.signature(), 100.0D * signature / columns, tops));
         }
-        if (biome.equals(DrossBiomes.NETHER_SCAR) && tops.getOrDefault("minecraft:netherrack", 0) < SCAR_PLAIN_NETHERRACK * columns)
+        if (biome.equals(DrossBiomes.NETHER_SCAR))
         {
-            problems.add(String.format(Locale.ROOT, "%s: plain netherrack covers only %.1f%%, so the cracked ground isn't mixed with it (%s)",
-                    where, 100.0D * tops.getOrDefault("minecraft:netherrack", 0) / columns, tops));
+            checkScarCracks(where, tops, columns, problems);
         }
         if (noBedrock > 0 || highBedrock > 0)
         {
@@ -442,6 +472,37 @@ public final class TerrainChunksGameTest
         LOGGER.info("[terrain chunks] {} ({} chunks, {} ms per chunk): ground y {}..{}; steep (bare rock) {}% of the columns; top blocks {}",
                 where, chunks.size(), String.format(Locale.ROOT, "%.1f", msPerChunk), lowest, highest,
                 String.format(Locale.ROOT, "%.1f", inner == 0 ? 0.0D : 100.0D * steep / inner), sorted(tops, columns));
+    }
+
+    /**
+     * The Nether Scar's cracks (see SCAR_CRACKED_MIN): its crack ground (Scarred Netherrack and plain netherrack on top: what
+     * the soul and nylium patches leave) is there, and is a mix of the two.
+     */
+    private static void checkScarCracks(String where, Map<String, Integer> tops, int columns, List<String> problems)
+    {
+        int cracked = tops.getOrDefault("dross:scarred_netherrack", 0);
+        int plain = tops.getOrDefault("minecraft:netherrack", 0);
+        int ground = cracked + plain;
+        if (ground < SCAR_CRACK_GROUND_MIN * columns)
+        {
+            problems.add(String.format(Locale.ROOT, "%s: only %.1f%% of it is netherrack or Scarred Netherrack, the soul and nylium patches cover the rest (%s)",
+                    where, 100.0D * ground / columns, tops));
+            return;
+        }
+        double share = cracked / (double) ground;
+        if (share < SCAR_CRACKED_MIN)
+        {
+            problems.add(String.format(Locale.ROOT, "%s: only %.1f%% of its netherrack ground is Scarred Netherrack, so it looks like plain netherrack (%s)",
+                    where, 100.0D * share, tops));
+        }
+        else if (share > SCAR_CRACKED_MAX)
+        {
+            problems.add(String.format(Locale.ROOT, "%s: %.1f%% of its netherrack ground is Scarred Netherrack, so the cracks aren't mixed with plain netherrack (%s)",
+                    where, 100.0D * share, tops));
+        }
+        LOGGER.info("[terrain chunks] {}: its crack ground (netherrack and Scarred Netherrack, {}% of the site) is {}% cracked (allowed {}-{}%)",
+                where, String.format(Locale.ROOT, "%.1f", 100.0D * ground / columns), String.format(Locale.ROOT, "%.1f", 100.0D * share),
+                Math.round(100 * SCAR_CRACKED_MIN), Math.round(100 * SCAR_CRACKED_MAX));
     }
 
     /**

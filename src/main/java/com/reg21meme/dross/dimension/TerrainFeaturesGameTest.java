@@ -591,8 +591,10 @@ public final class TerrainFeaturesGameTest
     /**
      * The Silverwood Forest's pond and the Cinder Wastes' lava pool (configured features {@code dross:pond_silverwood}
      * and {@code dross:lava_pool}) placed on flat prepared ground in the test arena: each forms, every fluid block is a
-     * still source held in on every side and below, and the pond gets its mud or clay shore. Then the same pond (same
-     * shape) with a tree trunk standing where its water would be: it doesn't form at all, and the trunk stays whole.
+     * still source held in on every side and below, and the pond gets its mud or clay shore. Its top is water, or ice
+     * exactly where the arena's Overworld biome freezes water (an old world's arena can stand in a snowy biome; a pond
+     * freezes over there as it forms). Then the same pond (same shape) with a tree trunk standing where its surface would
+     * be: it doesn't form at all (no water, no ice), and the trunk stays whole.
      */
     @GameTest(template = TerrainBlocksGameTest.ARENA, batch = "dross_terrain_ponds")
     public static void pondsHoldTheirFluidAndNeverCutTrees(GameTestHelper helper)
@@ -615,25 +617,56 @@ public final class TerrainFeaturesGameTest
             throw new GameTestAssertException("a pond should form on open, flat ground (it didn't: " + PondFeature.lastRefusal() + ")");
         }
         List<BlockPos> water = blocksOf(helper, Blocks.WATER);
+        List<BlockPos> ice = blocksOf(helper, Blocks.ICE);
         int shore = blocksOf(helper, Blocks.MUD).size() + blocksOf(helper, Blocks.CLAY).size();
         checkHeld(helper, water, FluidTags.WATER, "pond water");
         if (shore == 0)
         {
             throw new GameTestAssertException("the pond should have a mud or clay shore");
         }
+        // Its surface (the ground's top layer) is water, or ice where the arena's biome freezes water: the arena stands in
+        // whatever Overworld biome the test world has there (plains in a new test world, but an old world's arena can be in
+        // a snowy taiga), and a pond freezes over as it forms in the cold (PondFeature, step 4). Ice only ever on its top.
+        String arenaBiome = level.getBiome(helper.absolutePos(new BlockPos(1, POND_GROUND_TOP, 1))).unwrapKey()
+                .map(k -> k.location().toString()).orElse("an unnamed biome");
+        List<BlockPos> surface = new ArrayList<>();
+        for (BlockPos w : water)
+        {
+            if (w.getY() == POND_GROUND_TOP)
+            {
+                surface.add(w);
+            }
+        }
+        for (BlockPos i : ice)
+        {
+            if (i.getY() != POND_GROUND_TOP)
+            {
+                throw new GameTestAssertException("the pond has ice at " + i + ", below its top (" + arenaBiome + ")");
+            }
+            surface.add(i);
+        }
+        for (BlockPos s : surface)
+        {
+            boolean frozen = helper.getBlockState(s).is(Blocks.ICE);
+            if (frozen != freezes(level, helper.absolutePos(s)))
+            {
+                throw new GameTestAssertException("the pond's top at " + s + " is " + (frozen ? "ice" : "water") + ", but the arena's biome ("
+                        + arenaBiome + ") " + (frozen ? "doesn't freeze" : "freezes") + " water there");
+            }
+        }
 
         // 2. The same pond where a tree trunk stands in its water: it mustn't form.
         BlockPos trunk = null;
-        for (BlockPos w : water)
+        for (BlockPos s : surface)
         {
-            if (w.getY() == POND_GROUND_TOP && (trunk == null || Math.abs(w.getX() - 8) + Math.abs(w.getZ() - 8) < Math.abs(trunk.getX() - 8) + Math.abs(trunk.getZ() - 8)))
+            if (trunk == null || Math.abs(s.getX() - 8) + Math.abs(s.getZ() - 8) < Math.abs(trunk.getX() - 8) + Math.abs(trunk.getZ() - 8))
             {
-                trunk = w.above();   // standing on the ground right where the pond's surface was
+                trunk = s.above();   // standing on the ground right where the pond's surface was
             }
         }
         if (trunk == null)
         {
-            throw new GameTestAssertException("the pond had no water at the ground's top");
+            throw new GameTestAssertException("the pond had no water (or ice) at the ground's top (" + arenaBiome + ")");
         }
         prepareGround(helper, ModBlocks.SILVERMOSS.get(), Blocks.DIRT);
         for (int y = 0; y < 5; y++)
@@ -644,9 +677,10 @@ public final class TerrainFeaturesGameTest
         {
             throw new GameTestAssertException("a pond formed with a tree trunk standing in it (at " + trunk + ")");
         }
-        if (!blocksOf(helper, Blocks.WATER).isEmpty() || blocksOf(helper, ModBlocks.SILVERWOOD_LOG.get()).size() != 5)
+        if (!blocksOf(helper, Blocks.WATER).isEmpty() || !blocksOf(helper, Blocks.ICE).isEmpty()
+                || blocksOf(helper, ModBlocks.SILVERWOOD_LOG.get()).size() != 5)
         {
-            throw new GameTestAssertException("the pond that didn't form still changed something (water placed or the trunk cut)");
+            throw new GameTestAssertException("the pond that didn't form still changed something (water or ice placed, or the trunk cut)");
         }
 
         // 3. A lava pool on flat Ash.
@@ -657,9 +691,19 @@ public final class TerrainFeaturesGameTest
         }
         List<BlockPos> lava = blocksOf(helper, Blocks.LAVA);
         checkHeld(helper, lava, FluidTags.LAVA, "lava");
-        LOGGER.info("[terrain features] On prepared ground: a pond of {} water blocks with {} shore blocks; with a trunk in it, no pond; "
-                + "a lava pool of {} lava blocks, all held in", water.size(), shore, lava.size());
+        LOGGER.info("[terrain features] On prepared ground ({}): a pond of {} water blocks{} with {} shore blocks; with a trunk in it, no pond; "
+                + "a lava pool of {} lava blocks, all held in", arenaBiome, water.size(),
+                ice.isEmpty() ? "" : " under " + ice.size() + " ice (the biome is cold, so its top froze)", shore, lava.size());
         helper.succeed();
+    }
+
+    /**
+     * True if water would freeze here as a pond forms: what {@code PondFeature} checks ({@code Biome.shouldFreeze} without
+     * the edge rule: a biome too cold for rain, and not lit by a block light of 10 or more).
+     */
+    private static boolean freezes(ServerLevel level, BlockPos pos)
+    {
+        return !level.getBiome(pos).value().warmEnoughToRain(pos) && level.getBrightness(LightLayer.BLOCK, pos) < 10;
     }
 
     /** The arena's ground made flat: {@code soil} up to just under {@link #POND_GROUND_TOP}, {@code cover} on top, air above. */
