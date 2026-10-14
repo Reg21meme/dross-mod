@@ -304,6 +304,33 @@ public final class ColossusTuning
     /** A wild golem with nothing to fight wanders about at this share of its speed (1 = its full speed). */
     public static final double WILD_GOLEM_WANDER_SPEED = 1.0D;
 
+    // ---------------------------------------------------------------- the lava golem top-up (WildLavaGolemTopUp)
+    // Lava is rare in the Cinder Wastes, so natural spawning alone makes far fewer lava golems than stone golems. The
+    // top-up adds wild lava golems next to lava near players in the Cinder Wastes until they are about this share.
+
+    /** Lava golems should be about this share of the wild golems near a player (0.2 = 1 in 5; the nearest whole number). */
+    public static final double WILD_LAVA_GOLEM_SHARE = 0.2D;
+    /** It checks every player this often (ticks: 5 seconds) and adds at most one lava golem per player each time. */
+    public static final int WILD_TOP_UP_INTERVAL = 100;
+    /** It counts the wild stone and lava golems within this many blocks of the player. */
+    public static final double WILD_TOP_UP_COUNT_RANGE = 64.0D;
+    /** It looks for lava at most this many blocks from the player sideways... */
+    public static final int WILD_TOP_UP_LAVA_RANGE = 48;
+    /** ...and this many blocks above or below the player. No lava there: nothing is added. */
+    public static final int WILD_TOP_UP_LAVA_UP_DOWN = 24;
+    /** Never closer than this to any player (blocks; Minecraft's own rule for natural spawning). */
+    public static final double WILD_TOP_UP_PLAYER_GAP = 24.0D;
+    /**
+     * A spot is at most this many blocks sideways from its lava block (well inside {@link #WILD_LAVA_SEARCH_SIDEWAYS},
+     * the lava golem's own spawn rule, which every spot must still pass). Lava blocks this close to one already tried
+     * count as the same pool and are skipped.
+     */
+    public static final int WILD_TOP_UP_SPOT_SPREAD = 4;
+    /** It tries at most this many pools (nearest first)... */
+    public static final int WILD_TOP_UP_LAVA_TRIES = 8;
+    /** ...and this many random spots round each. */
+    public static final int WILD_TOP_UP_SPOTS_PER_LAVA = 4;
+
     // ---------------------------------------------------------------- death
 
     /** After it has cooled into an obsidian statue it stands this many ticks (2 minutes), then crumbles away. */

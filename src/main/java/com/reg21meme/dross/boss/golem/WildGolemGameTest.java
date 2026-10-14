@@ -2,6 +2,7 @@ package com.reg21meme.dross.boss.golem;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.registry.ModEntities;
+import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
@@ -21,10 +22,13 @@ import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
+
+import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -46,12 +50,17 @@ import java.util.List;
  *       without breaking a block.</li>
  *   <li>{@link #wildGolemsDespawnSummonedOnesStay}: wild golems (natural or from a spawn egg) despawn when the only
  *       player is far away; a Colossus's summoned golem doesn't.</li>
+ *   <li>{@link #lavaGolemTopUpKeepsOneInFive}: with 12 wild stone golems and a lava pool in the arena, and a stand-in
+ *       player 30 blocks away, the top-up ({@link WildLavaGolemTopUp}) adds lava golems next to the lava until they are
+ *       about 1 in 5 (15-25%) and then stops; every one spawns near the lava and at least 24 blocks from the player;
+ *       with the lava gone it adds none.</li>
  * </ul>
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
 public final class WildGolemGameTest
 {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final BlockPos MIDDLE = ColossusGameTest.MIDDLE;
     /** Block light at least this strong counts as bright (a zombie needs 0 in the Overworld). */
     private static final int BRIGHT = 12;
@@ -70,6 +79,16 @@ public final class WildGolemGameTest
     /** A distance far beyond the despawn distance, to ask {@code removeWhenFarAway} with. */
     private static final double FAR_AWAY = 200.0D;
     private static final float YAW_WEST = 90.0F;
+    /** The top-up test: this many wild stone golems in the arena... */
+    private static final int TOP_UP_STONE_GOLEMS = 12;
+    /** ...lava this many blocks west of the middle (so its spots stay on the arena's floor)... */
+    private static final int TOP_UP_LAVA_OFFSET = -4;
+    /** ...the stand-in player this many blocks east of the middle (in the rock: only its position counts)... */
+    private static final int TOP_UP_PLAYER_OFFSET = 30;
+    /** ...and this many top-up rounds (more than 1 in 5 needs, to show it stops there). */
+    private static final int TOP_UP_ROUNDS = 8;
+    private static final double TOP_UP_MIN_SHARE = 0.15D;
+    private static final double TOP_UP_MAX_SHARE = 0.25D;
 
     private WildGolemGameTest() {}
 
@@ -333,6 +352,110 @@ public final class WildGolemGameTest
                     if (summonedGone)
                     {
                         helper.fail("a Colossus's summoned golem should never despawn");
+                    }
+                })
+                .thenSucceed();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The lava golem top-up
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = ColossusGameTest.ARENA, batch = "dross_wild_golem_top_up",
+            timeoutTicks = ColossusGameTest.ARENA_WAIT_TICKS + 20)
+    public static void lavaGolemTopUpKeepsOneInFive(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, WildGolemGameTest::lavaGolemTopUpKeepsOneInFive))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        BlockPos lavaSpot = MIDDLE.offset(TOP_UP_LAVA_OFFSET, 0, 0);
+        BlockPos player = helper.absolutePos(MIDDLE.offset(TOP_UP_PLAYER_OFFSET, 0, 0));
+        // Only the arena's own lava counts (the test room is underground in a normal world, maybe next to cave lava).
+        BoundingBox arena = BoundingBox.fromCorners(helper.absolutePos(new BlockPos(0, 0, 0)),
+                helper.absolutePos(new BlockPos(ColossusGameTest.ARENA_SIZE - 1, ColossusGameTest.ARENA_HEIGHT,
+                        ColossusGameTest.ARENA_SIZE - 1)));
+        List<Entity> made = new ArrayList<>();
+        helper.startSequence()
+                .thenExecute(() -> {
+                    try
+                    {
+                        int stone = 0;
+                        for (int x = 10; x <= 14 && stone < TOP_UP_STONE_GOLEMS; x += 2)
+                        {
+                            for (int z = 2; z <= 14 && stone < TOP_UP_STONE_GOLEMS; z += 4)
+                            {
+                                StoneGolem golem = ModEntities.STONE_GOLEM.get().spawn(level,
+                                        helper.absolutePos(new BlockPos(x, MIDDLE.getY(), z)), MobSpawnType.NATURAL);
+                                if (golem == null)
+                                {
+                                    helper.fail("a stone golem couldn't be spawned");
+                                    return;
+                                }
+                                made.add(golem);
+                                stone++;
+                            }
+                        }
+                        basin(helper, lavaSpot, Blocks.LAVA);
+                        int lava = 0;
+                        for (int round = 0; round < TOP_UP_ROUNDS; round++)
+                        {
+                            LavaGolem golem = WildLavaGolemTopUp.topUpNear(level, player, level.random, false, arena);
+                            if (golem == null)
+                            {
+                                continue;
+                            }
+                            made.add(golem);
+                            lava++;
+                            BlockPos at = golem.blockPosition();
+                            double gap = Math.sqrt(at.distSqr(player));
+                            if (!WildGolemSpawns.isLavaNear(level, at))
+                            {
+                                helper.fail("a topped-up lava golem spawned at " + at.toShortString() + ", far from lava");
+                            }
+                            if (gap < ColossusTuning.WILD_TOP_UP_PLAYER_GAP)
+                            {
+                                helper.fail("a topped-up lava golem spawned " + gap + " blocks from the player (too close)");
+                            }
+                        }
+                        double share = (double) lava / (lava + stone);
+                        LOGGER.info("[dross top-up] {} stone golem(s); after {} rounds the top-up added {} lava golem(s): {}%",
+                                stone, TOP_UP_ROUNDS, lava, Math.round(share * 100.0D));
+                        if (share < TOP_UP_MIN_SHARE || share > TOP_UP_MAX_SHARE)
+                        {
+                            helper.fail("with " + stone + " stone golems the top-up should bring lava golems to about 1 in 5,"
+                                    + " but it added " + lava + " (" + Math.round(share * 100.0D) + "%)");
+                        }
+                        // The lava golems gone and the lava with them: some are wanted again, but there's no lava to add one at.
+                        made.removeIf(entity -> {
+                            if (entity instanceof LavaGolem)
+                            {
+                                entity.discard();
+                                return true;
+                            }
+                            return false;
+                        });
+                        clear(helper, lavaSpot);
+                        if (WildLavaGolemTopUp.lavaGolemsWanted(level, player) <= 0)
+                        {
+                            helper.fail("with no lava golems left, the top-up should want some again");
+                        }
+                        for (int round = 0; round < TOP_UP_ROUNDS; round++)
+                        {
+                            LavaGolem golem = WildLavaGolemTopUp.topUpNear(level, player, level.random, false, arena);
+                            if (golem != null)
+                            {
+                                made.add(golem);
+                                helper.fail("with no lava near, the top-up added a lava golem at "
+                                        + golem.blockPosition().toShortString());
+                            }
+                        }
+                    }
+                    finally
+                    {
+                        clear(helper, lavaSpot);
+                        discardAll(made);
                     }
                 })
                 .thenSucceed();
