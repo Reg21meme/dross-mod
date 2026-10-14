@@ -131,11 +131,17 @@ public final class ColossusGameTest
     /** Ticks a trophy is left in lava. */
     private static final int TROPHY_IN_LAVA = 60;
     /**
-     * The longest a test waits for its arena to finish loading ({@link #waitForArena}), in ticks, added to the time
-     * limit of each test that waits. (It's usually a few ticks, and none near spawn; but a busy server, such as an old
-     * world's first start while the lair is built, can take a few hundred. The wait ends as soon as it has loaded.)
+     * The longest a test waits for its arena to finish loading ({@link #waitForArena}), in real time: usually a few
+     * ticks, and none near spawn; but a busy server (an old world's first start while the lair is built, or a slow
+     * machine) can take many seconds, while the test server runs through hundreds of ticks a second. The wait ends as
+     * soon as it has loaded.
      */
-    static final int ARENA_WAIT_TICKS = 600;
+    static final long ARENA_WAIT_MILLIS = 120_000L;
+    /**
+     * Added to the time limit (ticks) of each test that waits for its arena: only a backstop behind
+     * {@link #ARENA_WAIT_MILLIS} (R6b: a limit of 600 ticks ran out in a few seconds on a busy machine).
+     */
+    static final int ARENA_WAIT_TICKS = 20_000;
 
     private ColossusGameTest() {}
 
@@ -807,15 +813,21 @@ public final class ColossusGameTest
         {
             return false;
         }
+        long deadline = net.minecraft.Util.getMillis() + ARENA_WAIT_MILLIS;
         helper.startSequence()
                 .thenWaitUntil(() -> {
                     String loading = arenaStillLoading(helper, sizeX, sizeZ);
-                    if (loading != null)
+                    if (loading != null && net.minecraft.Util.getMillis() < deadline)
                     {
-                        helper.fail(loading); // keeps waiting (it only fails the test if it's still loading at the end)
+                        helper.fail(loading); // keeps waiting
                     }
                 })
                 .thenExecute(() -> {
+                    String loading = arenaStillLoading(helper, sizeX, sizeZ);
+                    if (loading != null)
+                    {
+                        throw new GameTestAssertException(loading + " after " + ARENA_WAIT_MILLIS / 1000 + " s");
+                    }
                     try
                     {
                         test.accept(helper);

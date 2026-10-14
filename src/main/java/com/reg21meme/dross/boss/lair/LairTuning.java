@@ -246,9 +246,20 @@ public final class LairTuning
     public static final double GULLY_WALL_SLOPE = 0.45D;
     /** ...until the flank is no higher than the floor, at most this many blocks out from the mouth. */
     public static final int MAX_GULLY = 20;
-    /** Then a level apron this many blocks long, and a blend to the land: each block further out may be one higher or lower. */
+    /**
+     * Then a level apron this many blocks long, and a blend to the land at least this long: a column n blocks out from
+     * the apron stays within n blocks of the floor, and no column is ever more than a block above or below the next
+     * (north, east, south or west), so the way in can always be walked (R6b: before, steep or uneven land could leave a
+     * 2-block step in the blend).
+     */
     public static final int APRON = 4;
     public static final int BLEND = 8;
+    /**
+     * Where the land just beyond the blend is still more than a block above or below it (steep or uneven land in front),
+     * the shaped land goes on out, a ramp of at most a block per step, until it meets the land: at most this many rows
+     * further. If it still can't meet the land, the mouth faces the next best way ({@link LairShape#volcanoPlans}).
+     */
+    public static final int APPROACH_MAX_EXTRA = 24;
     /** The direction of the way in is picked where the land in front of the flank is lowest and most even (between these). */
     public static final int APPROACH_SURVEY_FROM = 32;
     public static final int APPROACH_SURVEY_TO = 50;
@@ -298,8 +309,11 @@ public final class LairTuning
 
     // ---------------------------------------------------------------- building it
 
-    /** Chunks this many blocks round the middle are loaded (generated if new) before it's built. */
-    public static final int LOAD_RADIUS = 80;
+    /**
+     * Chunks this many blocks round the middle are loaded (generated if new) before it's built: the cone, and the way in
+     * at its longest (the mouth 40 out, a 20-block gully, the apron, the blend and its ramp: about 97 out, 22 to the side).
+     */
+    public static final int LOAD_RADIUS = 104;
     /** If they still aren't loaded after this long (3 minutes, real time), it's built anyway (the rest load then). */
     public static final long LOAD_TIMEOUT_MILLIS = 3 * 60 * 1000L;
     /** After building, the chunks stay loaded this many ticks (15 seconds) so their lighting is done before they're saved. */

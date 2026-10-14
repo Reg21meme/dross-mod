@@ -29,6 +29,8 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnPlacements;
@@ -36,6 +38,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.synth.ImprovedNoise;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.level.material.Fluids;
 import net.minecraft.world.phys.AABB;
@@ -54,12 +57,16 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  * <ul>
  *   <li>{@link #siteRuleForFixedSeeds}: for a few fixed seeds, from the noise alone: three directions 120 degrees apart
  *       each find a spot, every spot's whole footprint is Cinder Wastes, each lies in its direction's cone and far from
- *       the hub, and the one used is the furthest of the three.</li>
+ *       the hub, and the one used is the furthest of the three. Then, from the noise alone, the volcano and its way in
+ *       are planned at every spot found and at spots nudged round each ({@link #checkPlannedWayIn}).</li>
+ *   <li>{@link #wayInIsWalkableOnHardGround}: the way in planned on 224 made-up hard grounds (steep, terraced, bumpy,
+ *       mesas, cliffs, ditches): walkable everywhere, never a step of more than a block, and meeting the land.</li>
  *   <li>{@link #lairIsBuiltAndShapedRight}: the test world's real lair gets built (waits for it) and is a volcano: a round
  *       floor 41 blocks across, mostly obsidian with sparse magma and glowing fissures (glass over sealed lava); room over
  *       the middle for the lobs and room for the Colossus everywhere; obsidian stalactites; the crater open to the sky over
  *       the middle and standing well above the land; a cave mouth at least 9 wide and 8 tall; the way in walkable from the
- *       land to the floor (a block's step at most outside, 0.6 inside); the open space closed except up the crater and out
+ *       land to the floor along its middle and both sides of the passage (a block's step at most outside, 0.6 inside),
+ *       and the land shaped in front of the mouth never stepping more than a block between neighbours; the open space closed except up the crater and out
  *       of the mouth, with no lava touching any of it; every lava block (under the floor and outside on the slopes) walled
  *       in by Minecraft's flow rule, none in front of the mouth and nothing burnable near it; no natural spawning inside.
  *       With {@code DROSS_LAIR_PREVIEWS} set it writes the blocks for the preview images (tools/golems/lair_preview.py).
@@ -75,8 +82,25 @@ public final class ColossusLairGameTest
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** The fixed seeds of the site check. */
-    private static final long[] SEEDS = {1L, 4242L, 20261012L};
+    /**
+     * The fixed seeds of the site check (the last is the world where R6's check found a 2-block step in front of the
+     * mouth: its land in front is steep, tilted 0.34, and uneven).
+     */
+    private static final long[] SEEDS = {1L, 4242L, 20261012L, -8826770357676534336L};
+    /** The way in is also planned at each searched spot moved by these offsets (more kinds of ground, no extra search). */
+    private static final int[][] WAY_IN_NUDGES = {{0, 0}, {24, -24}, {-24, 24}};
+    /** The made-up hard grounds: these slopes (blocks down per block)... */
+    private static final double[] HARD_TILTS = {0.0D, 0.15D, 0.35D, 0.5D};
+    /** ...falling towards this many directions, the first this many degrees round from east (so none lines up with the mouth)... */
+    private static final int HARD_DIRECTIONS = 8;
+    private static final double HARD_FIRST_DIRECTION = 10.0D;
+    /** ...round a site here, at this height, with the volcano's noise from this seed. */
+    private static final int HARD_X = 4000;
+    private static final int HARD_Z = -3000;
+    private static final int HARD_BASE = 100;
+    private static final long HARD_SEED = 0x6861726447726FL;
+    /** A failing check names at most this many problems. */
+    private static final int MAX_REPORTED = 8;
     /** The site check's searches get at most this long (real time). */
     private static final long SEARCH_TIMEOUT_MILLIS = 5 * 60 * 1000L;
     /** The lair is built in the background a little after the world starts: wait at most this long (real time). */
@@ -145,6 +169,8 @@ public final class ColossusLairGameTest
             runs.add(CompletableFuture.supplyAsync(() -> LairSearch.run(context, () -> false)));
         }
         long deadline = Util.getMillis() + SEARCH_TIMEOUT_MILLIS;
+        List<CompletableFuture<WayInReport>> wayIns = new ArrayList<>();
+        long[] wayInStart = new long[1];
         helper.startSequence()
                 .thenWaitUntil(() -> {
                     if (!runs.stream().allMatch(CompletableFuture::isDone) && Util.getMillis() < deadline)
@@ -166,6 +192,58 @@ public final class ColossusLairGameTest
                     if (!problems.isEmpty())
                     {
                         throw new GameTestAssertException("the lair's site rule isn't kept: " + String.join("; ", problems));
+                    }
+                    // Then the way in at every spot found (and at spots nudged round each), planned from the noise.
+                    wayInStart[0] = Util.getMillis();
+                    int lowest = LairBuilder.lowestFloor(dross);
+                    int highest = LairBuilder.highestRim(dross);
+                    for (int i = 0; i < SEEDS.length; i++)
+                    {
+                        LairSearch.Context context = contexts.get(i);
+                        for (Optional<LairSearch.Candidate> found : runs.get(i).join().directions())
+                        {
+                            if (found.isEmpty())
+                            {
+                                continue;
+                            }
+                            LairSearch.Candidate c = found.get();
+                            for (int[] nudge : WAY_IN_NUDGES)
+                            {
+                                int x = c.x() + nudge[0];
+                                int z = c.z() + nudge[1];
+                                String name = String.format("seed %d, direction %d, spot %d %d", SEEDS[i], c.direction() + 1, x, z);
+                                wayIns.add(CompletableFuture.supplyAsync(() -> planWayIn(name, context, x, z, lowest, highest)));
+                            }
+                        }
+                    }
+                })
+                .thenWaitUntil(() -> {
+                    if (!wayIns.stream().allMatch(CompletableFuture::isDone) && Util.getMillis() < deadline)
+                    {
+                        throw new GameTestAssertException("still planning the ways in");
+                    }
+                })
+                .thenExecute(() -> {
+                    List<String> problems = new ArrayList<>();
+                    WayInStats stats = new WayInStats();
+                    for (CompletableFuture<WayInReport> run : wayIns)
+                    {
+                        if (!run.isDone())
+                        {
+                            problems.add("planning the ways in took more than " + SEARCH_TIMEOUT_MILLIS / 1000 + " s");
+                            break;
+                        }
+                        WayInReport report = run.join();
+                        problems.addAll(report.problems());
+                        stats.add(report);
+                    }
+                    LOGGER.info("[lair test] The way in planned from the noise at {} searched (and nudged) spots in {} ms on up to {} "
+                                    + "thread(s): {}", wayIns.size(), Util.getMillis() - wayInStart[0],
+                            java.util.concurrent.ForkJoinPool.getCommonPoolParallelism(), stats.describe());
+                    if (!problems.isEmpty())
+                    {
+                        throw new GameTestAssertException("a planned way in isn't walkable: " + String.join("; ",
+                                problems.subList(0, Math.min(problems.size(), MAX_REPORTED))));
                     }
                 })
                 .thenSucceed();
@@ -245,6 +323,203 @@ public final class ColossusLairGameTest
     }
 
     // ---------------------------------------------------------------------------------------------
+    // The way in, planned on many sites (maths only)
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * The way in planned (by {@link LairBuilder#plan}, exactly as the builder plans it) on hard made-up ground: slopes
+     * falling up to 0.5 blocks per block (steeper than the cone's {@link LairTuning#MAX_BASE_TILT}) in eight directions,
+     * each plain, in 2-block terraces, bumpy, on a mesa top, with a 5- or 12-block cliff or a ditch across the front;
+     * every one must be walkable ({@link #checkPlannedWayIn}).
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_lair_way_in", timeoutTicks = BACKSTOP_TICKS)
+    public static void wayInIsWalkableOnHardGround(GameTestHelper helper)
+    {
+        long start = Util.getMillis();
+        ServerLevel dross = drossOf(helper);
+        int lowest = LairBuilder.lowestFloor(dross);
+        int highest = LairBuilder.highestRim(dross);
+        ImprovedNoise bumps = new ImprovedNoise(RandomSource.create(HARD_SEED));
+        List<String> problems = new ArrayList<>();
+        WayInStats stats = new WayInStats();
+        for (double tilt : HARD_TILTS)
+        {
+            for (int k = 0; k < HARD_DIRECTIONS; k++)
+            {
+                double degrees = HARD_FIRST_DIRECTION + k * 360.0D / HARD_DIRECTIONS;
+                double angle = Math.toRadians(degrees);
+                for (HardGround kind : HardGround.values())
+                {
+                    LairShape.Ground ground = (x, z) -> kind.height(tilt, angle, bumps, x - HARD_X, z - HARD_Z);
+                    String name = String.format("%s ground falling %.2f towards %.0f degrees", kind.name().toLowerCase(java.util.Locale.ROOT),
+                            tilt, degrees);
+                    LairBuilder.Site site = LairBuilder.plan(HARD_X, HARD_Z, ground, HARD_SEED, lowest, highest);
+                    List<String> found = new ArrayList<>();
+                    checkPlannedWayIn(name, site, ground, found);
+                    problems.addAll(found);
+                    stats.add(new WayInReport(name, site, LairShape.volcanoPlan(HARD_X, HARD_Z, ground, lowest, highest).tunnel(), found));
+                }
+            }
+        }
+        LOGGER.info("[lair test] The way in planned on {} hard made-up grounds in {} ms: {}", stats.sites, Util.getMillis() - start,
+                stats.describe());
+        if (!problems.isEmpty())
+        {
+            throw new GameTestAssertException(problems.size() + " problem(s) with the way in on hard ground: " + String.join("; ",
+                    problems.subList(0, Math.min(problems.size(), MAX_REPORTED))));
+        }
+        helper.succeed();
+    }
+
+    /** Made-up ground for {@link #wayInIsWalkableOnHardGround}, round a site's middle (dx, dz from it). */
+    private enum HardGround
+    {
+        PLANE, TERRACES, BUMPS, MESA, CLIFF_5, CLIFF_12, DITCH;
+
+        /** The Y of the top block, on ground falling {@code tilt} blocks per block towards {@code angle}. */
+        int height(double tilt, double angle, ImprovedNoise bumps, int dx, int dz)
+        {
+            double along = dx * Math.cos(angle) + dz * Math.sin(angle);
+            double across = -dx * Math.sin(angle) + dz * Math.cos(angle);
+            double y = HARD_BASE - tilt * along;
+            switch (this)
+            {
+                case TERRACES -> y = HARD_BASE - 2.0D * Math.floor(tilt * along / 2.0D) + (Math.floorMod((int) Math.floor(across), 12) < 6 ? 2 : 0);
+                case BUMPS -> y += 4.0D * bumps.noise(dx / 6.0D, 0.5D, dz / 6.0D);
+                case MESA -> {
+                    double a = Math.atan2(dz, dx);
+                    double edge = 56.0D + 6.0D * bumps.noise(Math.cos(a) * 2.0D, 7.5D, Math.sin(a) * 2.0D);
+                    y += 12.0D * Mth.clamp((edge - Math.hypot(dx, dz)) / 3.0D, 0.0D, 1.0D);
+                }
+                case CLIFF_5 -> y -= along > 60.0D ? 5.0D : 0.0D;
+                case CLIFF_12 -> y -= along > 64.0D ? 12.0D : 0.0D;
+                case DITCH -> y -= Math.abs(along - 60.0D) < 2.0D ? 3.0D : 0.0D;
+                default -> { }
+            }
+            return (int) Math.floor(y);
+        }
+    }
+
+    /** One planned way in: the site, which way the mouth would have faced without the way in's say, and what's wrong. */
+    private record WayInReport(String name, LairBuilder.Site site, Direction firstChoice, List<String> problems)
+    {
+    }
+
+    /** Counts over many planned ways in, for the log. */
+    private static final class WayInStats
+    {
+        int sites;
+        int ramps;
+        int longest;
+        int turned;
+        int mostChanged;
+        int steepest;
+        String steepestName = "";
+        String turnedName = "";
+        String longestName = "";
+
+        void add(WayInReport report)
+        {
+            LairShape.Approach a = report.site().approach();
+            sites++;
+            int past = a.end() - a.apronEnd();
+            ramps += past > BLEND ? 1 : 0;
+            if (past > longest)
+            {
+                longest = past;
+                longestName = report.name();
+            }
+            if (report.site().plan().tunnel() != report.firstChoice())
+            {
+                turned++;
+                turnedName = report.name() + ", to the " + report.site().plan().tunnel().getName() + " instead of the "
+                        + report.firstChoice().getName();
+            }
+            mostChanged = Math.max(mostChanged, a.maxChange());
+            double tilt = Math.hypot(report.site().plan().tiltX(), report.site().plan().tiltZ());
+            if (Math.round(tilt * 100.0D) > steepest)
+            {
+                steepest = (int) Math.round(tilt * 100.0D);
+                steepestName = report.name();
+            }
+        }
+
+        String describe()
+        {
+            return String.format("%d site(s); %d needed a ramp past the blend (the longest %d past the apron: %s); %d had the mouth "
+                            + "turned to another side (e.g. %s); columns raised or lowered by at most %d; the steepest land under a cone "
+                            + "tilted %.2f (%s)", sites, ramps, longest, longestName, turned, turnedName, mostChanged, steepest / 100.0D,
+                    steepestName);
+        }
+    }
+
+    /** Plans the volcano and its way in at {@code x}, {@code z} from a seed's noise alone (any thread) and checks the way in. */
+    private static WayInReport planWayIn(String name, LairSearch.Context context, int x, int z, int lowest, int highest)
+    {
+        java.util.Map<Long, Integer> cache = new java.util.HashMap<>();
+        LairShape.Ground ground = (gx, gz) -> cache.computeIfAbsent(((long) gx << 32) ^ (gz & 0xFFFFFFFFL), k -> context.ground(gx, gz));
+        LairBuilder.Site site = LairBuilder.plan(x, z, ground, context.seed(), lowest, highest);
+        List<String> problems = new ArrayList<>();
+        checkPlannedWayIn(name, site, ground, problems);
+        return new WayInReport(name, site, LairShape.volcanoPlan(x, z, ground, lowest, highest).tunnel(), problems);
+    }
+
+    /**
+     * Checks a way in as planned (maths only, from {@code ground}, the land before anything is built): on the land
+     * shaped in front of the gully no column is more than a block above or below its neighbours (north, east, south,
+     * west) or further from the floor than from the apron (so the apron is level with the floor, and the gully's floor
+     * meets it); and its last row meets the land just beyond within a block across the passage's width. So the way in
+     * can be walked from the land to the mouth without a jump of more than a block.
+     */
+    private static void checkPlannedWayIn(String name, LairBuilder.Site site, LairShape.Ground ground, List<String> problems)
+    {
+        LairShape.VolcanoPlan plan = site.plan();
+        LairShape.Approach a = site.approach();
+        Direction dir = plan.tunnel();
+        Direction side = dir.getClockWise();
+        int floor = plan.floorY();
+        int found = 0;
+        String example = null;
+        for (int s = a.first(); s <= a.end(); s++)
+        {
+            for (int l = -a.reachL(); l <= a.reachL(); l++)
+            {
+                int h = a.height(s, l);
+                int n = a.apronDistance(s, l);
+                if (Math.abs(h - floor) > n)
+                {
+                    found++;
+                    example = example == null ? String.format("y %d at %d out, %d to the side, is %d from the floor (y %d) but only %d "
+                            + "from the apron", h, s, l, Math.abs(h - floor), floor, n) : example;
+                }
+                if (l < a.reachL() && Math.abs(h - a.height(s, l + 1)) > 1 || s < a.end() && Math.abs(h - a.height(s + 1, l)) > 1)
+                {
+                    found++;
+                    example = example == null ? String.format("a step of more than a block next to %d out, %d to the side", s, l) : example;
+                }
+            }
+        }
+        int s = a.end() + 1;
+        for (int l = -PASSAGE_HALF_WIDTH; l <= PASSAGE_HALF_WIDTH; l++)
+        {
+            int x = plan.x() + dir.getStepX() * s + side.getStepX() * l;
+            int z = plan.z() + dir.getStepZ() * s + side.getStepZ() * l;
+            int land = Math.max(ground.top(x, z), site.surface().top(x, z));
+            int step = Math.abs(a.height(a.end(), l) - land);
+            if (step > 1)
+            {
+                found++;
+                example = example == null ? String.format("a step of %d blocks onto the land %d out, %d to the side", step, s, l) : example;
+            }
+        }
+        if (found > 0)
+        {
+            problems.add(String.format("%s: %d problem(s), e.g. %s (mouth to the %s, floor y %d; %s)", name, found, example, dir.getName(),
+                    floor, a.describe()));
+        }
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // The real lair's shape
     // ---------------------------------------------------------------------------------------------
 
@@ -272,15 +547,16 @@ public final class ColossusLairGameTest
                     shape.checkCrater(problems);
                     shape.checkMouth(problems);
                     shape.checkWayIn(problems);
+                    shape.checkShapedLand(problems);
                     shape.checkEnclosedAndLavaOutOfReach(problems);
                     shape.checkLava(problems);
                     shape.checkNoSpawns(problems);
                     LOGGER.info("[lair test] The lair, cut along its way in (left: the far wall, right: the gully), and seen from above "
                             + "at 2 blocks over the floor (# rock, O obsidian, = polished blackstone, g glass, m magma, ~ lava, "
                             + ": ash, n natural ground, o other):{}{}", shape.drawCut(), shape.drawPlan());
-                    LOGGER.info("[lair test] The volcano at {} {} (floor y {}, rim y {}, mouth {} blocks out to the {}, gully to {}) was "
-                                    + "built in {} ms; {}", data.centerX(), data.centerZ(), data.floorY(), data.rimY(), data.mouth(),
-                            data.tunnel().getName(), data.gullyEnd(), data.buildMillis(),
+                    LOGGER.info("[lair test] The volcano at {} {} (floor y {}, rim y {}, mouth {} blocks out to the {}, gully to {}, shaped "
+                                    + "land to {}) was built in {} ms; {}", data.centerX(), data.centerZ(), data.floorY(), data.rimY(),
+                            data.mouth(), data.tunnel().getName(), data.gullyEnd(), data.approachEnd(), data.buildMillis(),
                             problems.isEmpty() ? "every shape check passed" : problems.size() + " problem(s)");
                     if (System.getenv(PREVIEW_ENV) != null)
                     {
@@ -304,6 +580,10 @@ public final class ColossusLairGameTest
         final int rimY;
         final int mouth;
         final int gullyEnd;
+        /** The last row of the land shaped in front of the mouth. */
+        final int approachEnd;
+        /** True for a volcano built since R6b, whose way in was planned to meet the land ({@link ColossusLairData#hasPlannedApproach}). */
+        final boolean planned;
         final Direction dir;
         final Direction side;
 
@@ -316,10 +596,12 @@ public final class ColossusLairGameTest
             this.rimY = data.rimY();
             this.mouth = data.mouth();
             this.gullyEnd = data.gullyEnd();
+            this.approachEnd = data.approachEnd();
+            this.planned = data.hasPlannedApproach();
             this.dir = data.tunnel();
             this.side = dir.getClockWise();
             // Load every chunk the checks read (a height map of an unloaded chunk reads as the bottom of the world).
-            int reach = (int) CONE_BASE_RADIUS + 16;
+            int reach = Math.max((int) CONE_BASE_RADIUS + 16, approachEnd + 4);
             for (int x = (cx - reach) >> 4; x <= (cx + reach) >> 4; x++)
             {
                 for (int z = (cz - reach) >> 4; z <= (cz + reach) >> 4; z++)
@@ -351,7 +633,7 @@ public final class ColossusLairGameTest
             for (int y = rimY + 8; y >= floor - UNDER_FLOOR - 1; y--)
             {
                 out.append(String.format("%n  %4d ", y));
-                for (int s = -(int) CONE_BASE_RADIUS; s <= gullyEnd + APRON + BLEND; s++)
+                for (int s = -(int) CONE_BASE_RADIUS; s <= approachEnd + 1; s++)
                 {
                     out.append(glyph(at(tx(s, 0), y, tz(s, 0))));
                 }
@@ -663,22 +945,40 @@ public final class ColossusLairGameTest
         }
 
         /**
-         * Walks in from the land beyond the apron to the cavern's floor along the middle of the way in: outside the mouth
-         * no step higher than a block (and the entrance spot on the way, open to the sky), inside none over 0.6; room for
-         * a player all the way, no fluid.
+         * Walks in from the land to the cavern's floor along the middle of the way in and along both sides of the passage:
+         * outside the mouth no step higher than a block (and the entrance spot on the way, open to the sky), inside none
+         * over 0.6; room for a player all the way, no fluid. A volcano built since R6b is walked from the land just beyond
+         * the shaped land (its ground as the builder reads it, {@link LairBuilder#planningGround}), so the last step onto
+         * the land counts too; an older one from the blend's last row (its land isn't the builder's to answer for).
          */
         void checkWayIn(List<String> problems)
         {
-            int start = gullyEnd + APRON + BLEND;
-            int x0 = tx(start, 0);
-            int z0 = tz(start, 0);
-            double previous = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x0, z0);
+            for (int l : new int[] {0, -PASSAGE_HALF_WIDTH, PASSAGE_HALF_WIDTH})
+            {
+                walkIn(l, problems);
+            }
+        }
+
+        void walkIn(int l, List<String> problems)
+        {
+            int start;
+            double previous;
+            if (planned)
+            {
+                start = approachEnd + 1;
+                previous = LairBuilder.planningGround(level).top(tx(start, l), tz(start, l)) + 1;
+            }
+            else
+            {
+                start = gullyEnd + APRON + BLEND;
+                previous = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, tx(start, l), tz(start, l));
+            }
             int steps = 0;
             double highest = 0.0D;
             for (int s = start - 1; s >= FLOOR_RADIUS - 2; s--)
             {
-                int x = tx(s, 0);
-                int z = tz(s, 0);
+                int x = tx(s, l);
+                int z = tz(s, l);
                 double here = surface(x, z, (int) Math.floor(previous));
                 if (Double.isNaN(here))
                 {
@@ -689,8 +989,8 @@ public final class ColossusLairGameTest
                 double allowed = s > mouth ? OUTSIDE_STEP : PLAYER_STEP;
                 if (step > allowed + 1.0E-6D)
                 {
-                    problems.add(String.format("a step of %.1f blocks on the way in at %d %.1f %d (%d blocks out; at most %.1f there)",
-                            here - previous, x, here, z, s, allowed));
+                    problems.add(String.format("a step of %.1f blocks on the way in at %d %.1f %d (%d blocks out, %d to the side; at most "
+                            + "%.1f there)", here - previous, x, here, z, s, l, allowed));
                     return;
                 }
                 steps += step > 1.0E-6D ? 1 : 0;
@@ -701,7 +1001,7 @@ public final class ColossusLairGameTest
                     problems.add("no room for a player on the way in at " + x + " " + here + " " + z);
                     return;
                 }
-                if (s == mouth + ENTRANCE_GAP && (Math.abs(here - (floor + 1)) > 1.0E-6D
+                if (l == 0 && s == mouth + ENTRANCE_GAP && (Math.abs(here - (floor + 1)) > 1.0E-6D
                         || level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) > floor + 1))
                 {
                     problems.add("the entrance spot at " + x + " " + z + " isn't on the floor's level open to the sky");
@@ -712,7 +1012,71 @@ public final class ColossusLairGameTest
             {
                 problems.add("the way in ends at " + previous + ", not on the floor (" + (floor + 1) + ")");
             }
-            LOGGER.info("[lair test] Walked in from {} blocks out: {} step(s) up or down, the biggest {} block(s).", start, steps, highest);
+            LOGGER.info("[lair test] Walked in {} the middle from {} blocks out{}: {} step(s) up or down, the biggest {} block(s).",
+                    l == 0 ? "along" : l + " blocks to the side of", start, planned ? " (the land beyond the shaped land)" : "", steps,
+                    highest);
+        }
+
+        /**
+         * The land shaped in front of the mouth (a volcano built since R6b): the apron level with the floor, and no column
+         * more than a block above or below its neighbour (north, east, south or west) anywhere on it, so it can be walked
+         * every way, not just along the middle.
+         */
+        void checkShapedLand(List<String> problems)
+        {
+            if (!planned)
+            {
+                return;
+            }
+            double apronHalf = LairShape.gullyHalf(gullyEnd, mouth);
+            int reachL = (int) Math.ceil(apronHalf) + BLEND;
+            int first = gullyEnd + 1;
+            int[][] tops = new int[approachEnd - first + 1][2 * reachL + 1];
+            for (int s = first; s <= approachEnd; s++)
+            {
+                for (int l = -reachL; l <= reachL; l++)
+                {
+                    tops[s - first][l + reachL] = LairBuilder.groundTop(level, tx(s, l), tz(s, l));
+                }
+            }
+            int bad = 0;
+            int biggest = 0;
+            String example = null;
+            for (int s = first; s <= approachEnd; s++)
+            {
+                for (int l = -reachL; l <= reachL; l++)
+                {
+                    int h = tops[s - first][l + reachL];
+                    if (LairShape.apronDistance(s, l, gullyEnd + APRON, apronHalf) == 0 && h != floor)
+                    {
+                        bad++;
+                        example = example == null ? String.format("the apron at %d %d %d isn't level with the floor (y %d)", tx(s, l), h,
+                                tz(s, l), floor) : example;
+                    }
+                    int[][] next = {{s + 1, l}, {s, l + 1}};
+                    for (int[] n : next)
+                    {
+                        if (n[0] > approachEnd || n[1] > reachL)
+                        {
+                            continue;
+                        }
+                        int step = Math.abs(h - tops[n[0] - first][n[1] + reachL]);
+                        biggest = Math.max(biggest, step);
+                        if (step > 1)
+                        {
+                            bad++;
+                            example = example == null ? String.format("a step of %d blocks between %d %d %d and %d %d %d", step, tx(s, l), h,
+                                    tz(s, l), tx(n[0], n[1]), tops[n[0] - first][n[1] + reachL], tz(n[0], n[1])) : example;
+                        }
+                    }
+                }
+            }
+            if (bad > 0)
+            {
+                problems.add(bad + " problem(s) on the land shaped in front of the mouth (e.g. " + example + ")");
+            }
+            LOGGER.info("[lair test] The land shaped in front of the mouth: rows {} to {} ({} past the apron), {} wide; the biggest step "
+                    + "between neighbours {} block(s).", first, approachEnd, approachEnd - gullyEnd - APRON, 2 * reachL + 1, biggest);
         }
 
         /** The top of whatever a player would stand on in a column, looking down from just above {@code around}. */

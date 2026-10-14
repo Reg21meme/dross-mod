@@ -297,16 +297,24 @@ final class LairPlacer
             LairBuilder.Layout layout = result.layout();
             data.markPlaced(layout, result.millis());
             LairKeeper.refresh(data);
-            LOGGER.info("Colossus lair: built a volcano at {} {} in {} ms: {}; cave mouth {} blocks out, gully {} blocks, entrance {} {} {}; "
+            LOGGER.info("Colossus lair: built a volcano at {} {} in {} ms: {}; cave mouth {} blocks out, gully {} blocks, way in: {}, entrance {} {} {}; "
                             + "{} blocks changed, {} tree(s) removed, {} plant(s) without ground removed, {} block(s) sealed against "
                             + "fluids, {} magma vein(s), {} stalactite(s), {} fissure block(s) of lava under the floor, {} lava "
                             + "rivulet(s) with {} lava block(s) outside, {} burnable block(s) cleared. Search {} ms, chunk loading {} s, "
                             + "{} s after the server started.",
                     layout.centerX(), layout.centerZ(), result.millis(), result.plan().describe(), layout.mouth(), result.gullyLength(),
+                    result.approach().describe(),
                     Math.round(layout.entrance().x), Math.round(layout.entrance().y), Math.round(layout.entrance().z),
                     result.changed(), result.trees(), result.plants(), result.sealed(), result.veins(), result.stalactites(),
                     result.fissureCells(), result.rivulets(), result.outsideLava(), result.fireGuarded(), searchMillis,
                     loadMillis < 0 ? "?" : Math.round(loadMillis / 1000.0D), Math.round((Util.getMillis() - startedAt) / 1000.0D));
+            if (!result.approach().meetsLand())
+            {
+                LOGGER.warn("Colossus lair: the land in front of the volcano at {} {} is too steep for the way in to meet it within {} "
+                                + "blocks of the apron in any direction: the last step onto the land is {} blocks (the way in itself never "
+                                + "steps more than 1).", layout.centerX(), layout.centerZ(), BLEND + APPROACH_MAX_EXTRA,
+                        result.approach().seam());
+            }
             if (area != null)
             {
                 HOLDS.add(new Hold(dross, area, ticketKey, server.getTickCount() + HOLD_AFTER_BUILD_TICKS));

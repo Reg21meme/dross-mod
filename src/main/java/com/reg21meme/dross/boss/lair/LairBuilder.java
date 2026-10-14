@@ -14,6 +14,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
@@ -30,8 +31,9 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
 /**
  * Builds the Colossus's lair into the real world: a volcano (its chunks must be loaded; server thread). In order:
  * <ol>
- *   <li>The plan ({@link LairShape#volcanoPlan}, from {@link #planningGround}): which way the cave mouth faces, the
- *       floor's height (level with the land in front of the mouth), the rim's height and the land under the cone.</li>
+ *   <li>The plan ({@link #plan}, from {@link #planningGround}): which way the cave mouth faces, the floor's height
+ *       (level with the land in front of the mouth), the rim's height, the land under the cone, and the way in outside
+ *       the mouth ({@link LairShape#approach}: where the gully ends and the height of every column in front of it).</li>
  *   <li>Trees in the way (charred trees) are removed whole, so no floating bits are left.</li>
  *   <li>The cone: dark rock (basalt, blackstone, smooth basalt) from the land up to the volcano's surface: rough slopes
  *       with lumps and ridges running down them, ash on its shoulders, glowing magma here and there near the top, a
@@ -44,7 +46,8 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  *       with magma blocks set evenly round them, a few more magma blocks scattered.</li>
  *   <li>The way in: a cave mouth 9 wide and 8 tall in the flank (a jagged lip of obsidian and blackstone, obsidian teeth
  *       hanging at its top, magma in its walls), narrowing to a passage 5 wide and 6 tall into the cavern; a gully cut
- *       into the flank in front of it, a level apron and a blend to the land (at most a block's step at a time).</li>
+ *       into the flank in front of it, a level apron and the land in front shaped out to the land beyond, never a step
+ *       of more than a block anywhere (on steep land a ramp).</li>
  *   <li>Obsidian stalactites hanging from the dome (never low over the middle).</li>
  *   <li>Safety: any fluid touching the carved space is turned to rock, and plants left without ground are removed.</li>
  *   <li>Magma veins up the walls and over the dome.</li>
@@ -83,46 +86,189 @@ final class LairBuilder
      * @param rimY        the crater rim's crest (Y)
      * @param gullyEnd    where the gully in front of the mouth ends (its distance from the middle); the level apron and the
      *                    blend to the land follow it
+     * @param approachEnd the last row of the land shaped in front of the mouth (its distance from the middle): the way in
+     *                    meets the land just beyond it
      * @param entrance    where a player arriving stands: in the gully in front of the mouth, feet position
      * @param entranceYaw the way to face from there: into the mouth
      */
-    record Layout(int centerX, int centerZ, int floorY, Direction tunnel, int mouth, int rimY, int gullyEnd, Vec3 entrance,
-                  float entranceYaw)
+    record Layout(int centerX, int centerZ, int floorY, Direction tunnel, int mouth, int rimY, int gullyEnd, int approachEnd,
+                  Vec3 entrance, float entranceYaw)
     {
     }
 
-    /** What building did: the layout, the plan it followed, and counts for the log. */
-    record Result(Layout layout, LairShape.VolcanoPlan plan, int changed, int trees, int plants, int sealed, int veins,
-                  int fissureCells, int stalactites, int rivulets, int outsideLava, int fireGuarded, int gullyLength, long millis)
+    /** What building did: the layout, the plan it followed, the way in it shaped, and counts for the log. */
+    record Result(Layout layout, LairShape.VolcanoPlan plan, LairShape.Approach approach, int changed, int trees, int plants,
+                  int sealed, int veins, int fissureCells, int stalactites, int rivulets, int outsideLava, int fireGuarded,
+                  int gullyLength, long millis)
     {
+    }
+
+    /**
+     * The volcano's outer surface: the smooth cone with its lumps, the ridges running down its slopes, the jagged crest
+     * round the crater and the brow of rock over the mouth. Plain maths from the plan and the world's seed, so the
+     * headless checks can plan a way in exactly as the builder does without building anything.
+     */
+    static final class Surface
+    {
+        final LairShape.VolcanoPlan plan;
+        /** The cave mouth's distance from the middle ({@link LairShape#volcanoMouth}). */
+        final int mouth;
+        /** The lair's own noise (its lumps; also the builder's roughness, patches and rivulets). */
+        final ImprovedNoise noise;
+        private final Direction dir;
+        private final Direction side;
+
+        Surface(LairShape.VolcanoPlan plan, long worldSeed)
+        {
+            this.plan = plan;
+            this.mouth = LairShape.volcanoMouth(plan);
+            this.noise = new ImprovedNoise(RandomSource.create(seed(worldSeed, plan.x(), plan.z())));
+            this.dir = plan.tunnel();
+            this.side = dir.getClockWise();
+        }
+
+        /** The lair's seed: the world's, mixed with where it is. */
+        static long seed(long worldSeed, int cx, int cz)
+        {
+            return worldSeed ^ (cx * 341873128712L + cz * 132897987541L);
+        }
+
+        /** The surface's height (Y, before rounding) at a column. */
+        double at(int x, int z)
+        {
+            int dx = x - plan.x();
+            int dz = z - plan.z();
+            int floor = plan.floorY();
+            double r = Math.sqrt(dx * dx + dz * dz);
+            double top = plan.cone(dx, dz);
+            double theta = Math.atan2(dz, dx);
+            if (r > RIM_RADIUS)
+            {
+                double t = Math.min(1.0D, (r - RIM_RADIUS) / (CONE_BASE_RADIUS - RIM_RADIUS));
+                double grow = Math.min(1.0D, t * 3.0D);
+                top += LUMPS * grow * (1.0D - 0.6D * t) * noise.noise(x / LUMP_SCALE, 300.5D, z / LUMP_SCALE);
+                top += FINE_LUMPS * grow * noise.noise(x / FINE_LUMP_SCALE, 600.5D, z / FINE_LUMP_SCALE);
+                double twist = 2.2D * noise.noise(Math.cos(theta) * 1.7D, r / 14.0D, Math.sin(theta) * 1.7D + 50.0D);
+                double rib = Math.cos(RIBS * theta + twist);
+                top += RIB_HEIGHT * Math.pow(Math.max(0.0D, rib), 4.0D) * Math.sin(Math.PI * t);
+            }
+            if (r >= CRATER_RADIUS - 1.0D && r <= RIM_RADIUS + 2.0D)
+            {
+                double n = noise.noise(Math.cos(theta) * 2.6D, 1200.5D, Math.sin(theta) * 2.6D);
+                double teeth = n > 0.0D ? RIM_TEETH * Math.pow(Math.min(1.0D, n / 0.55D), 1.5D)
+                        : -RIM_NOTCHES * Math.pow(Math.min(1.0D, -n / 0.55D), 1.2D);
+                double spike = hash(x, 77, z) < 0.15F ? 1.0D + 2.0D * hash(x, 78, z) : 0.0D;
+                double middle = (CRATER_RADIUS + RIM_RADIUS) / 2.0D;
+                double crest = Mth.clamp(1.0D - Math.abs(r - middle) / ((RIM_RADIUS - CRATER_RADIUS) / 2.0D + 2.0D), 0.0D, 1.0D);
+                top += (teeth + spike) * crest;
+            }
+            if (r <= LairShape.SHELL_EDGE + 1.5D)
+            {
+                top = Math.max(top, floor + LairShape.shellTop(r) + MIN_COVER);
+            }
+            int s = dx * dir.getStepX() + dz * dir.getStepZ();
+            if (s >= FLOOR_RADIUS && s <= mouth)
+            {
+                double need = floor + LairShape.passageHeight(s, mouth) + 1 + BROW
+                        + 1.5D * noise.noise(x / 4.0D, 1500.5D, z / 4.0D);
+                double over = Math.abs(dx * side.getStepX() + dz * side.getStepZ()) - (LairShape.passageHalfWidth(s, mouth) + 1.5D);
+                if (over > 0.0D)
+                {
+                    need -= over * 1.2D;
+                }
+                top = Math.max(top, need);
+            }
+            return top;
+        }
+
+        /** The Y of the cone's top block in a column (what the cone is built up to), or {@link Integer#MIN_VALUE} past its foot. */
+        int top(int x, int z)
+        {
+            int dx = x - plan.x();
+            int dz = z - plan.z();
+            return dx * dx + dz * dz <= (CONE_BASE_RADIUS + 1.0D) * (CONE_BASE_RADIUS + 1.0D) ? (int) Math.floor(at(x, z))
+                    : Integer.MIN_VALUE;
+        }
+    }
+
+    /** A volcano planned for a spot: its plan, its outer surface and its way in. */
+    record Site(LairShape.VolcanoPlan plan, Surface surface, LairShape.Approach approach)
+    {
+        int mouth()
+        {
+            return surface.mouth;
+        }
+    }
+
+    /**
+     * Plans the volcano at {@code x}, {@code z} from {@code ground} (the land before anything is built): the best of
+     * {@link LairShape#volcanoPlans} (the mouth facing the lowest, most even land) whose way in
+     * ({@link LairShape#approach}, planned over the land with the cone on it) meets the land beyond; where none does,
+     * the one that comes closest. Pure maths: the same for the builder and the headless checks.
+     */
+    static Site plan(int x, int z, LairShape.Ground ground, long worldSeed, int lowestFloor, int highestRim)
+    {
+        Site best = null;
+        for (LairShape.VolcanoPlan plan : LairShape.volcanoPlans(x, z, ground, lowestFloor, highestRim))
+        {
+            Surface surface = new Surface(plan, worldSeed);
+            LairShape.Approach approach = LairShape.approach(plan, surface.mouth,
+                    (gx, gz) -> Math.max(ground.top(gx, gz), surface.top(gx, gz)));
+            Site site = new Site(plan, surface, approach);
+            if (approach.meetsLand())
+            {
+                return site;
+            }
+            if (best == null || approach.seam() < best.approach().seam())
+            {
+                best = site;
+            }
+        }
+        return best;
+    }
+
+    /** The lowest floor the world's height allows (room under it for its rock and the fills). */
+    static int lowestFloor(LevelHeightAccessor level)
+    {
+        return level.getMinBuildHeight() + UNDER_FLOOR + FILL_DEPTH + 2;
+    }
+
+    /** The highest rim the world's height allows (room over it for its teeth and smoke). */
+    static int highestRim(LevelHeightAccessor level)
+    {
+        return level.getMaxBuildHeight() - (int) Math.ceil(RIM_TEETH) - 8;
     }
 
     /** Builds the lair with its floor's middle at {@code x}, {@code z}. */
     static Result build(ServerLevel level, int x, int z)
     {
         long start = Util.getMillis();
-        int lowest = level.getMinBuildHeight() + UNDER_FLOOR + FILL_DEPTH + 2;
-        int highest = level.getMaxBuildHeight() - (int) Math.ceil(RIM_TEETH) - 8;
-        LairShape.VolcanoPlan plan = LairShape.volcanoPlan(x, z, planningGround(level), lowest, highest);
-        Work work = new Work(level, plan);
+        Site site = plan(x, z, planningGround(level), level.getSeed(), lowestFloor(level), highestRim(level));
+        LairShape.VolcanoPlan plan = site.plan();
+        Work work = new Work(level, site);
         work.run();
-        Layout layout = new Layout(x, z, plan.floorY(), plan.tunnel(), work.mouth, plan.rimY(), work.gullyEnd, work.entranceSpot(),
-                plan.tunnel().getOpposite().toYRot());
-        return new Result(layout, plan, work.changed, work.trees, work.plants, work.sealed, work.veins, work.fissureCells,
-                work.stalactites, work.rivulets, work.lava.size() - work.fissureCells, work.fireGuarded, work.gullyEnd - work.mouth,
-                Util.getMillis() - start);
+        Layout layout = new Layout(x, z, plan.floorY(), plan.tunnel(), work.mouth, plan.rimY(), work.gullyEnd, site.approach().end(),
+                work.entranceSpot(), plan.tunnel().getOpposite().toYRot());
+        return new Result(layout, plan, site.approach(), work.changed, work.trees, work.plants, work.sealed, work.veins,
+                work.fissureCells, work.stalactites, work.rivulets, work.lava.size() - work.fissureCells, work.fireGuarded,
+                work.gullyEnd - work.mouth, Util.getMillis() - start);
     }
 
     /**
      * The ground the plan is made from: the lower of the real ground ({@link #groundTop}) and the world generator's own
      * terrain (before trees, basalt spires and other features). So a spire or a boulder standing in front of the mouth
-     * doesn't lift the floor, while an old world's flat chunks (lower than the new terrain) are still followed.
+     * doesn't lift the floor, while an old world's flat chunks (lower than the new terrain) are still followed. A column
+     * whose chunk isn't loaded (only if loading timed out) is read from the generator alone.
      */
     static LairShape.Ground planningGround(ServerLevel level)
     {
         LairSearch.Context noise = level.getChunkSource().getGenerator() instanceof net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
                 ? LairSearch.forWorld(level) : null;
         return (x, z) -> {
+            if (noise != null && !level.hasChunk(x >> 4, z >> 4))
+            {
+                return noise.ground(x, z);
+            }
             int real = groundTop(level, x, z);
             return noise == null ? real : Math.min(real, noise.ground(x, z));
         };
@@ -238,6 +384,10 @@ final class LairBuilder
         final Direction dir;
         final Direction side;
         final int mouth;
+        /** The volcano's outer surface. */
+        final Surface shape;
+        /** The way in outside the mouth, as planned: the gully's end and the shaped land in front. */
+        final LairShape.Approach wayIn;
         final ImprovedNoise noise;
         final RandomSource random;
         /** Every block this build made (or found) air in the lair's space, for the safety passes. */
@@ -257,21 +407,22 @@ final class LairBuilder
         int rivulets;
         int fireGuarded;
 
-        Work(ServerLevel level, LairShape.VolcanoPlan plan)
+        Work(ServerLevel level, Site site)
         {
             this.level = level;
-            this.plan = plan;
+            this.plan = site.plan();
             this.cx = plan.x();
             this.cz = plan.z();
             this.floor = plan.floorY();
             this.rimY = plan.rimY();
             this.dir = plan.tunnel();
             this.side = dir.getClockWise();
-            this.mouth = LairShape.volcanoMouth(plan);
-            this.gullyEnd = mouth;
-            long seed = level.getSeed() ^ (cx * 341873128712L + cz * 132897987541L);
-            this.noise = new ImprovedNoise(RandomSource.create(seed));
-            this.random = RandomSource.create(seed + 1L);
+            this.mouth = site.mouth();
+            this.shape = site.surface();
+            this.wayIn = site.approach();
+            this.gullyEnd = wayIn.gullyEnd();
+            this.noise = shape.noise;
+            this.random = RandomSource.create(Surface.seed(level.getSeed(), cx, cz) + 1L);
         }
 
         void run()
@@ -408,7 +559,7 @@ final class LairBuilder
         /** The half-width of the gully's floor (at the floor's level + 1) at distance {@code s}. */
         double gullyHalf(int s)
         {
-            return MOUTH_HALF_WIDTH + 0.5D + Math.max(0, s - mouth) * GULLY_FLARE;
+            return LairShape.gullyHalf(s, mouth);
         }
 
         // ------------------------------------------------------------ 1. trees in the way
@@ -420,17 +571,29 @@ final class LairBuilder
             {
                 for (int dz = -reach; dz <= reach; dz++)
                 {
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
-                    int ground = groundTop(level, x, z);
-                    for (int y = top; y > ground; y--)
-                    {
-                        if (get(x, y, z).is(BlockTags.LOGS))
-                        {
-                            removeTree(new BlockPos(x, y, z));
-                        }
-                    }
+                    removeTreesAt(cx + dx, cz + dz);
+                }
+            }
+            // ...and on the land shaped in front of the mouth (it can reach further out on steep land).
+            for (int s = reach + 1; s <= wayIn.end() + 2; s++)
+            {
+                for (int l = -wayIn.reachL() - 2; l <= wayIn.reachL() + 2; l++)
+                {
+                    removeTreesAt(tx(s, l), tz(s, l));
+                }
+            }
+        }
+
+        /** Removes every tree with a log in this column. */
+        void removeTreesAt(int x, int z)
+        {
+            int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+            int ground = groundTop(level, x, z);
+            for (int y = top; y > ground; y--)
+            {
+                if (get(x, y, z).is(BlockTags.LOGS))
+                {
+                    removeTree(new BlockPos(x, y, z));
                 }
             }
         }
@@ -482,48 +645,7 @@ final class LairBuilder
         /** The volcano's surface (Y, before rounding) at a column: the smooth cone with its lumps, ridges, crest and brow. */
         double surface(int x, int z)
         {
-            int dx = x - cx;
-            int dz = z - cz;
-            double r = Math.sqrt(dx * dx + dz * dz);
-            double top = plan.cone(dx, dz);
-            double theta = Math.atan2(dz, dx);
-            if (r > RIM_RADIUS)
-            {
-                double t = Math.min(1.0D, (r - RIM_RADIUS) / (CONE_BASE_RADIUS - RIM_RADIUS));
-                double grow = Math.min(1.0D, t * 3.0D);
-                top += LUMPS * grow * (1.0D - 0.6D * t) * noise.noise(x / LUMP_SCALE, 300.5D, z / LUMP_SCALE);
-                top += FINE_LUMPS * grow * noise.noise(x / FINE_LUMP_SCALE, 600.5D, z / FINE_LUMP_SCALE);
-                double twist = 2.2D * noise.noise(Math.cos(theta) * 1.7D, r / 14.0D, Math.sin(theta) * 1.7D + 50.0D);
-                double rib = Math.cos(RIBS * theta + twist);
-                top += RIB_HEIGHT * Math.pow(Math.max(0.0D, rib), 4.0D) * Math.sin(Math.PI * t);
-            }
-            if (r >= CRATER_RADIUS - 1.0D && r <= RIM_RADIUS + 2.0D)
-            {
-                double n = noise.noise(Math.cos(theta) * 2.6D, 1200.5D, Math.sin(theta) * 2.6D);
-                double teeth = n > 0.0D ? RIM_TEETH * Math.pow(Math.min(1.0D, n / 0.55D), 1.5D)
-                        : -RIM_NOTCHES * Math.pow(Math.min(1.0D, -n / 0.55D), 1.2D);
-                double spike = hash(x, 77, z) < 0.15F ? 1.0D + 2.0D * hash(x, 78, z) : 0.0D;
-                double middle = (CRATER_RADIUS + RIM_RADIUS) / 2.0D;
-                double crest = Mth.clamp(1.0D - Math.abs(r - middle) / ((RIM_RADIUS - CRATER_RADIUS) / 2.0D + 2.0D), 0.0D, 1.0D);
-                top += (teeth + spike) * crest;
-            }
-            if (r <= LairShape.SHELL_EDGE + 1.5D)
-            {
-                top = Math.max(top, floor + LairShape.shellTop(r) + MIN_COVER);
-            }
-            int s = along(dx, dz);
-            if (s >= FLOOR_RADIUS && s <= mouth)
-            {
-                double need = floor + LairShape.passageHeight(s, mouth) + 1 + BROW
-                        + 1.5D * noise.noise(x / 4.0D, 1500.5D, z / 4.0D);
-                double over = Math.abs(across(dx, dz)) - (LairShape.passageHalfWidth(s, mouth) + 1.5D);
-                if (over > 0.0D)
-                {
-                    need -= over * 1.2D;
-                }
-                top = Math.max(top, need);
-            }
-            return top;
+            return shape.at(x, z);
         }
 
         /** The block on top of the cone at a column {@code r} blocks from the middle. */
@@ -747,16 +869,7 @@ final class LairBuilder
 
         void entrance()
         {
-            // Where the gully ends: where the flank in front of the mouth is no higher than the floor (+1).
-            gullyEnd = mouth + MAX_GULLY;
-            for (int s = mouth + 1; s <= mouth + MAX_GULLY; s++)
-            {
-                if (groundTop(level, tx(s, 0), tz(s, 0)) <= floor + 1)
-                {
-                    gullyEnd = s;
-                    break;
-                }
-            }
+            // The gully ends where the flank in front of the mouth is no higher than the floor (+1): the plan's gullyEnd.
             int maxSide = (int) Math.ceil(gullyHalf(gullyEnd) + (rimY - floor) * GULLY_WALL_SLOPE + 2.0D);
             for (int s = FLOOR_RADIUS - 3; s <= gullyEnd; s++)
             {
@@ -898,43 +1011,72 @@ final class LairBuilder
 
         // ------------------------------------------------------------ 7. the apron and the blend to the land
 
+        /**
+         * Shapes the land in front of the gully to the plan ({@link LairShape#approach}): the level apron, and the blend
+         * (and, on steep land, the ramp) out to the land, never stepping more than a block. Every column ends up with its
+         * top block exactly at the planned height: anything over it is cut away (a spire, a lump of the cone), and under it
+         * is filled with rock. Columns already at their height keep their own ground; on the walkway straight out from the
+         * apron anything there that would trip a player (a drift of ash, a fallen log) is cleared.
+         */
         void approach()
         {
-            int apronEnd = gullyEnd + APRON;
-            double apronHalf = gullyHalf(gullyEnd);
-            int reachL = (int) Math.ceil(apronHalf) + BLEND;
-            for (int s = gullyEnd + 1; s <= apronEnd + BLEND; s++)
+            for (int s = wayIn.first(); s <= wayIn.end(); s++)
             {
-                for (int l = -reachL; l <= reachL; l++)
+                for (int l = -wayIn.reachL(); l <= wayIn.reachL(); l++)
                 {
-                    int d = Math.max(Math.max(0, s - apronEnd), Math.max(0, (int) Math.ceil(Math.abs(l) - apronHalf)));
-                    if (d > BLEND)
-                    {
-                        continue;
-                    }
                     int x = tx(s, l);
                     int z = tz(s, l);
+                    level.getChunk(x >> 4, z >> 4); // (loaded already, unless the chunk loading timed out: its heights must be real)
+                    int h = wayIn.height(s, l);
+                    boolean apron = wayIn.apronDistance(s, l) == 0;
+                    boolean walkway = apron || Math.abs(l) <= wayIn.apronHalf();
                     int ground = groundTop(level, x, z);
-                    int target = d == 0 ? floor : Mth.clamp(ground, floor - d, floor + d);
-                    int top = level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
-                    if (ground > target || d == 0)
+                    int top = Math.max(ground, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1);
+                    if (ground == h && !apron)
                     {
-                        for (int y = target + 1; y <= Math.max(top, ground); y++)
+                        if (needsClearing(x, h, z, top, walkway))
                         {
-                            carve(x, y, z);
+                            for (int y = h + 1; y <= top; y++)
+                            {
+                                carve(x, y, z);
+                            }
                         }
-                        set(x, target, z, d == 0 ? gullyFloor(x, z) : surfaceBlock(x, target, z, CONE_BASE_RADIUS));
-                        fillDown(x, target - 1, z);
+                        continue;
                     }
-                    else if (ground < target)
+                    for (int y = h + 1; y <= top; y++)
                     {
-                        for (int y = ground + 1; y <= target; y++)
-                        {
-                            set(x, y, z, y == target ? surfaceBlock(x, y, z, CONE_BASE_RADIUS) : rock(x, y, z));
-                        }
+                        carve(x, y, z);
+                    }
+                    for (int y = ground + 1; y < h; y++)
+                    {
+                        set(x, y, z, rock(x, y, z));
+                    }
+                    set(x, h, z, apron ? gullyFloor(x, z) : surfaceBlock(x, h, z, CONE_BASE_RADIUS));
+                    if (ground >= h)
+                    {
+                        fillDown(x, h - 1, z);
                     }
                 }
             }
+        }
+
+        /**
+         * True if a column of the shaped land already at its height {@code h} must still be cleared above it: lava or
+         * water stands on it (a natural pool: ground under a fluid is its bottom; left there, the fluid would be sealed to
+         * rock next to the cut land, a block or two above it), or, on the walkway, something a player would trip over.
+         */
+        boolean needsClearing(int x, int h, int z, int top, boolean walkway)
+        {
+            for (int y = h + 1; y <= top; y++)
+            {
+                pos.set(x, y, z);
+                BlockState state = level.getBlockState(pos);
+                if (!state.getFluidState().isEmpty() || walkway && y <= h + 2 && !state.getCollisionShape(level, pos).isEmpty())
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         // ------------------------------------------------------------ 8. stalactites
@@ -1212,14 +1354,18 @@ final class LairBuilder
 
         // ------------------------------------------------------------ 12. lava outside
 
-        /** True if a column is in the way in's band (the gully, the apron and a margin round them): no lava there. */
+        /** True if a column is in the way in's band (the gully, the shaped land in front and a margin round them): no lava there. */
         boolean nearWayIn(int x, int z)
         {
             int dx = x - cx;
             int dz = z - cz;
             int s = along(dx, dz);
-            return s >= FLOOR_RADIUS - 4 && s <= gullyEnd + APRON + BLEND + 4
-                    && Math.abs(across(dx, dz)) <= gullyHalf(Math.min(s, gullyEnd)) + FIRE_GUARD_REACH + 3;
+            double reach = gullyHalf(Math.min(s, gullyEnd)) + FIRE_GUARD_REACH + 3;
+            if (s > gullyEnd)
+            {
+                reach = Math.max(reach, wayIn.reachL() + 2);
+            }
+            return s >= FLOOR_RADIUS - 4 && s <= Math.max(gullyEnd + APRON + BLEND, wayIn.end()) + 4 && Math.abs(across(dx, dz)) <= reach;
         }
 
         /** Places one lava block of a rivulet or pool: open above it, held up below. */

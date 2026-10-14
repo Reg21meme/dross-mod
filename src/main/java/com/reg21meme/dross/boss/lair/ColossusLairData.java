@@ -18,8 +18,9 @@ import net.minecraft.world.phys.Vec3;
  *       {@code BuildMillis}: the built lair.</li>
  *   <li>{@code Version}: what was built: 1 (or missing) the R2c cavern with its sloping tunnel ({@code Descent}: how far
  *       the tunnel went down), 2 the volcano ({@code Mouth}: the cave mouth's distance from the middle, {@code RimY}: the
- *       crater rim's crest, {@code GullyEnd}: where the gully in front of the mouth ends). Old worlds keep
- *       the lair they have.</li>
+ *       crater rim's crest, {@code GullyEnd}: where the gully in front of the mouth ends, {@code ApproachEnd}: the last row
+ *       of the land shaped in front of it; missing in volcanoes built before R6b, whose blend always ended
+ *       {@link LairTuning#APRON} + {@link LairTuning#BLEND} past the gully). Old worlds keep the lair they have.</li>
  *   <li>{@code FailedSearches}: how many times no spot was found (it tries again at every start).</li>
  *   <li>{@code Boss} (UUID), {@code Beaten} (true once it's beaten, until the next one rises), {@code DefeatedAt} (the game
  *       time it was beaten), {@code Rises}.</li>
@@ -43,6 +44,8 @@ public final class ColossusLairData extends SavedData
     private int mouth;
     private int rimY;
     private int gullyEnd;
+    /** The last row of the land shaped in front of the mouth; -1 where it wasn't saved (built before R6b). */
+    private int approachEnd = -1;
     private Vec3 entrance = Vec3.ZERO;
     private float entranceYaw;
     private long buildMillis = -1L;
@@ -75,6 +78,7 @@ public final class ColossusLairData extends SavedData
         data.mouth = tag.getInt("Mouth");
         data.rimY = tag.getInt("RimY");
         data.gullyEnd = tag.getInt("GullyEnd");
+        data.approachEnd = tag.contains("ApproachEnd") ? tag.getInt("ApproachEnd") : -1;
         data.entrance = new Vec3(tag.getDouble("EntranceX"), tag.getDouble("EntranceY"), tag.getDouble("EntranceZ"));
         data.entranceYaw = tag.getFloat("EntranceYaw");
         data.buildMillis = tag.contains("BuildMillis") ? tag.getLong("BuildMillis") : -1L;
@@ -102,6 +106,10 @@ public final class ColossusLairData extends SavedData
         tag.putInt("Mouth", mouth);
         tag.putInt("RimY", rimY);
         tag.putInt("GullyEnd", gullyEnd);
+        if (approachEnd >= 0)
+        {
+            tag.putInt("ApproachEnd", approachEnd);
+        }
         tag.putDouble("EntranceX", entrance.x);
         tag.putDouble("EntranceY", entrance.y);
         tag.putDouble("EntranceZ", entrance.z);
@@ -174,6 +182,7 @@ public final class ColossusLairData extends SavedData
         mouth = layout.mouth();
         rimY = layout.rimY();
         gullyEnd = layout.gullyEnd();
+        approachEnd = layout.approachEnd();
         entrance = layout.entrance();
         entranceYaw = layout.entranceYaw();
         buildMillis = millis;
@@ -221,6 +230,21 @@ public final class ColossusLairData extends SavedData
     int gullyEnd()
     {
         return gullyEnd;
+    }
+
+    /**
+     * The last row of the land shaped in front of the volcano's mouth (its distance from the middle, version 2): the way
+     * in meets the land just beyond it. For a volcano built before R6b (not saved), where its blend ended.
+     */
+    int approachEnd()
+    {
+        return approachEnd >= 0 ? approachEnd : gullyEnd + LairTuning.APRON + LairTuning.BLEND;
+    }
+
+    /** True if this volcano's way in was planned to meet the land (built since R6b; see {@link #approachEnd}). */
+    boolean hasPlannedApproach()
+    {
+        return approachEnd >= 0;
     }
 
     /** The volcano's crater rim (Y, version 2). */

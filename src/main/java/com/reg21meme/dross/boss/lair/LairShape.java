@@ -2,8 +2,11 @@ package com.reg21meme.dross.boss.lair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.IntBinaryOperator;
 import net.minecraft.core.Direction;
+import net.minecraft.util.Mth;
 
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
@@ -16,7 +19,10 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  * the volcano's flank, and a gully cut into the flank leads out to the land.
  * <ul>
  *   <li>{@link #volcanoPlan}: the volcano's plan for a spot (the builder's): which way the mouth faces, the floor's
- *       height, the rim's height and the land under the cone.</li>
+ *       height, the rim's height and the land under the cone ({@link #volcanoPlans}: one for each way the mouth could
+ *       face).</li>
+ *   <li>{@link #approach}: the way in outside the mouth: where the gully ends, the level apron, and the land in front
+ *       shaped so it never steps more than a block, out to where it meets the land.</li>
  *   <li>{@link #plan}: the R2c lair's plan, still used by the site search to score spots (it prefers high ground, so
  *       the cavern is carved into rock), and the R2c tunnel's distances for old worlds' lairs ({@link #entranceDistance}).</li>
  * </ul>
@@ -221,10 +227,18 @@ final class LairShape
      */
     static VolcanoPlan volcanoPlan(int x, int z, Ground ground, int lowestFloor, int highestRim)
     {
-        Direction best = Direction.NORTH;
-        double bestCost = Double.MAX_VALUE;
-        int bestFloor = 0;
-        int bestSpread = 0;
+        return volcanoPlans(x, z, ground, lowestFloor, highestRim).get(0);
+    }
+
+    /**
+     * The volcano's plan for each of the four ways its mouth could face, best first (the lowest and most even land in
+     * front; {@link #volcanoPlan} is the first). The builder takes the next one only where the land in front of the
+     * first can't be reached by a walkable way in ({@link #approach}).
+     */
+    static List<VolcanoPlan> volcanoPlans(int x, int z, Ground ground, int lowestFloor, int highestRim)
+    {
+        List<double[]> fronts = new ArrayList<>(); // {direction index, cost, median, spread}, in Direction.Plane.HORIZONTAL order
+        List<Direction> directions = new ArrayList<>();
         for (Direction direction : Direction.Plane.HORIZONTAL)
         {
             Direction side = direction.getClockWise();
@@ -241,14 +255,11 @@ final class LairShape
             int median = sorted[sorted.length / 2];
             int spread = sorted[(int) (sorted.length * 0.9D)] - sorted[(int) (sorted.length * 0.1D)];
             double cost = median + 0.5D * spread;
-            if (cost < bestCost - 1.0E-9D)
-            {
-                bestCost = cost;
-                best = direction;
-                bestFloor = median;
-                bestSpread = spread;
-            }
+            fronts.add(new double[] {directions.size(), cost, median, spread});
+            directions.add(direction);
         }
+        // Best first; equal costs keep the north, east, south, west order (a stable sort).
+        fronts.sort(Comparator.comparingDouble(f -> f[1]));
 
         // The land round the cone's foot, as a plane (least squares).
         List<double[]> ring = new ArrayList<>();
@@ -325,10 +336,15 @@ final class LairShape
         int[] sortedInner = inner.stream().mapToInt(Integer::intValue).sorted().toArray();
         int high = sortedInner[(int) (sortedInner.length * 0.9D)];
 
-        int floor = Math.max(lowestFloor, Math.min(bestFloor, highestRim - RIM_HEIGHT));
-        int rim = Math.min(Math.max(floor + RIM_HEIGHT, high + RIM_RISE), Math.min(floor + MAX_RIM_HEIGHT, highestRim));
-        baseY = Math.min(baseY, rim - 1.0D);
-        return new VolcanoPlan(x, z, floor, best, rim, baseY, tiltX, tiltZ, high, bestSpread);
+        List<VolcanoPlan> plans = new ArrayList<>();
+        for (double[] front : fronts)
+        {
+            int floor = Math.max(lowestFloor, Math.min((int) front[2], highestRim - RIM_HEIGHT));
+            int rim = Math.min(Math.max(floor + RIM_HEIGHT, high + RIM_RISE), Math.min(floor + MAX_RIM_HEIGHT, highestRim));
+            plans.add(new VolcanoPlan(x, z, floor, directions.get((int) front[0]), rim, Math.min(baseY, rim - 1.0D), tiltX, tiltZ,
+                    high, (int) front[3]));
+        }
+        return plans;
     }
 
     /**
@@ -348,6 +364,224 @@ final class LairShape
             }
         }
         return MAX_MOUTH_DISTANCE;
+    }
+
+    // ---------------------------------------------------------------- the way in outside the mouth
+
+    /** The half-width of the gully's floor (at the floor's level + 1) at distance {@code s}, mouth at {@code mouth}. */
+    static double gullyHalf(int s, int mouth)
+    {
+        return MOUTH_HALF_WIDTH + 0.5D + Math.max(0, s - mouth) * GULLY_FLARE;
+    }
+
+    /**
+     * How far a column in front of the gully is from the level apron (0 on the apron), counted the way a player walks:
+     * the shaped land {@code n} blocks from the apron stays within {@code n} blocks above or below the floor.
+     */
+    static int apronDistance(int s, int l, int apronEnd, double apronHalf)
+    {
+        return Math.max(Math.max(0, s - apronEnd), Math.max(0, (int) Math.ceil(Math.abs(l) - apronHalf)));
+    }
+
+    /**
+     * The way in outside the cave mouth, planned from the ground (R6b): where the gully ends, and the height of every
+     * column of the land shaped in front of it. Columns are addressed by their distance along the way in ({@code s},
+     * rows {@link #first} to {@link #end}) and to its side ({@code l}, up to {@link #reachL} either way).
+     *
+     * @param gullyEnd  where the gully ends (its last row); the level apron starts on the next row
+     * @param apronEnd  the apron's last row
+     * @param apronHalf the apron's half-width
+     * @param reachL    how far to each side the shaped land reaches
+     * @param end       the shaped land's last row (at least {@link LairTuning#BLEND} past the apron, further where the land
+     *                  in front is steep or uneven)
+     * @param heights   the Y of each column's top block, row by row ({@link #height})
+     * @param seam      the biggest step from the last row to the land just beyond it, across the passage's width (5
+     *                  blocks: the way in's narrowest part)
+     * @param changed   how many columns differ from the land
+     * @param maxChange the most any column was raised or lowered
+     */
+    record Approach(int gullyEnd, int apronEnd, double apronHalf, int reachL, int end, int[] heights, int seam, int changed,
+                    int maxChange)
+    {
+        int first()
+        {
+            return gullyEnd + 1;
+        }
+
+        int width()
+        {
+            return 2 * reachL + 1;
+        }
+
+        boolean contains(int s, int l)
+        {
+            return s >= first() && s <= end && Math.abs(l) <= reachL;
+        }
+
+        /** The Y of the top block of the column at {@code s}, {@code l} (inside: {@link #contains}). */
+        int height(int s, int l)
+        {
+            return heights[(s - first()) * width() + l + reachL];
+        }
+
+        int apronDistance(int s, int l)
+        {
+            return LairShape.apronDistance(s, l, apronEnd, apronHalf);
+        }
+
+        /** True if the way in meets the land beyond it (a block's step at most, across the passage's width). */
+        boolean meetsLand()
+        {
+            return seam <= 1;
+        }
+
+        String describe()
+        {
+            return String.format("gully to %d, apron to %d, the land shaped out to %d (%d past the apron, %d wide), %d column(s) "
+                            + "raised or lowered (at most %d), meeting the land beyond within %d", gullyEnd, apronEnd, end,
+                    end - apronEnd, width(), changed, maxChange, seam);
+        }
+    }
+
+    /**
+     * Plans the way in outside the mouth from {@code terrain} (the ground with the volcano's cone on it, before the way in
+     * is cut), so that nobody ever has to climb or drop more than a block anywhere on it:
+     * <ol>
+     *   <li>The gully runs out from the mouth until the ground in front is no higher than the floor (+1), at most
+     *       {@link LairTuning#MAX_GULLY} blocks; then the level apron, {@link LairTuning#APRON} rows at the floor's
+     *       level.</li>
+     *   <li>Round the apron the land is held within {@code n} blocks of the floor {@code n} blocks out
+     *       ({@link #apronDistance}) and then made a staircase: of all the heights that never step more than a block
+     *       between neighbours (north, east, south, west), the one that changes the land least (half-way between the
+     *       highest such heights under the land and the lowest over it). Land that already steps a block at most is
+     *       left as it is.</li>
+     *   <li>It reaches {@link LairTuning#BLEND} rows past the apron, or further (up to
+     *       {@link LairTuning#APPROACH_MAX_EXTRA} more) until its last row meets the land beyond within a block across the
+     *       passage's width (5 blocks): on steep or uneven land it becomes a ramp out to the land.</li>
+     * </ol>
+     */
+    static Approach approach(VolcanoPlan plan, int mouth, Ground terrain)
+    {
+        Direction dir = plan.tunnel();
+        Direction side = dir.getClockWise();
+        int floor = plan.floorY();
+        IntBinaryOperator land = (s, l) -> terrain.top(plan.x() + dir.getStepX() * s + side.getStepX() * l,
+                plan.z() + dir.getStepZ() * s + side.getStepZ() * l);
+        int gullyEnd = mouth + MAX_GULLY;
+        for (int s = mouth + 1; s <= mouth + MAX_GULLY; s++)
+        {
+            if (land.applyAsInt(s, 0) <= floor + 1)
+            {
+                gullyEnd = s;
+                break;
+            }
+        }
+        int apronEnd = gullyEnd + APRON;
+        double apronHalf = gullyHalf(gullyEnd, mouth);
+        int reachL = (int) Math.ceil(apronHalf) + BLEND;
+        int width = 2 * reachL + 1;
+        int first = gullyEnd + 1;
+        int shortest = apronEnd + BLEND;
+        int longest = shortest + APPROACH_MAX_EXTRA;
+        int[][] rows = new int[longest + 2 - first][]; // the land, read a row at a time as it's needed
+        Approach best = null;
+        for (int end = shortest; end <= longest; end++)
+        {
+            for (int s = first; s <= end + 1; s++)
+            {
+                if (rows[s - first] == null)
+                {
+                    int[] row = new int[width];
+                    for (int l = -reachL; l <= reachL; l++)
+                    {
+                        row[l + reachL] = land.applyAsInt(s, l);
+                    }
+                    rows[s - first] = row;
+                }
+            }
+            int[] heights = staircase(floor, first, end, apronEnd, apronHalf, reachL, rows);
+            int seam = 0;
+            for (int l = -PASSAGE_HALF_WIDTH; l <= PASSAGE_HALF_WIDTH; l++)
+            {
+                seam = Math.max(seam, Math.abs(heights[(end - first) * width + l + reachL] - rows[end + 1 - first][l + reachL]));
+            }
+            int changed = 0;
+            int maxChange = 0;
+            for (int i = 0; i < heights.length; i++)
+            {
+                int change = Math.abs(heights[i] - rows[i / width][i % width]);
+                changed += change > 0 ? 1 : 0;
+                maxChange = Math.max(maxChange, change);
+            }
+            Approach approach = new Approach(gullyEnd, apronEnd, apronHalf, reachL, end, heights, seam, changed, maxChange);
+            if (approach.meetsLand())
+            {
+                return approach;
+            }
+            if (best == null || seam < best.seam())
+            {
+                best = approach;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * The shaped land's heights for rows {@code first} to {@code end} (see {@link #approach}). {@code rows} holds the
+     * land, a row per {@code s} from {@code first}.
+     */
+    private static int[] staircase(int floor, int first, int end, int apronEnd, double apronHalf, int reachL, int[][] rows)
+    {
+        int width = 2 * reachL + 1;
+        int count = end - first + 1;
+        int[] below = new int[count * width]; // the highest staircase under the land
+        int[] above = new int[count * width]; // the lowest staircase over it
+        for (int r = 0; r < count; r++)
+        {
+            for (int c = 0; c < width; c++)
+            {
+                int n = apronDistance(first + r, c - reachL, apronEnd, apronHalf);
+                int h = Mth.clamp(rows[r][c], floor - n, floor + n);
+                below[r * width + c] = h;
+                above[r * width + c] = h;
+            }
+        }
+        // A block's step between neighbours: two sweeps along each row, then two along each column (exact for N/E/S/W steps).
+        for (int r = 0; r < count; r++)
+        {
+            for (int c = 1; c < width; c++)
+            {
+                relax(below, above, r * width + c, r * width + c - 1);
+            }
+            for (int c = width - 2; c >= 0; c--)
+            {
+                relax(below, above, r * width + c, r * width + c + 1);
+            }
+        }
+        for (int c = 0; c < width; c++)
+        {
+            for (int r = 1; r < count; r++)
+            {
+                relax(below, above, r * width + c, (r - 1) * width + c);
+            }
+            for (int r = count - 2; r >= 0; r--)
+            {
+                relax(below, above, r * width + c, (r + 1) * width + c);
+            }
+        }
+        int[] heights = new int[count * width];
+        for (int i = 0; i < heights.length; i++)
+        {
+            heights[i] = Math.floorDiv(below[i] + above[i], 2);
+        }
+        return heights;
+    }
+
+    /** Keeps a column within a block of its neighbour: the "below" staircase only drops, the "above" one only rises. */
+    private static void relax(int[] below, int[] above, int at, int from)
+    {
+        below[at] = Math.min(below[at], below[from] + 1);
+        above[at] = Math.max(above[at], above[from] - 1);
     }
 
     // ---------------------------------------------------------------- the plan for a spot
