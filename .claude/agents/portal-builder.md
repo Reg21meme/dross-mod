@@ -19,6 +19,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - The **frame block** `dross:dross_portal_frame` and the **portal block** `dross:dross_portal`: their registration (add to `registry/ModBlocks`), blockstates, models, textures, tags, and particles.
 - The **Rift Key** item (`ModItems`, model, texture, lang) and lighting a frame with it.
 - The portal's look, teleporting both ways, the **hub** at Dross 0,0 (`portal/DrossHub`) and its exit portal, and blocking portal lighting inside the Dross.
+- **The hub on the terrain** (`portal/DrossHubBuilder`, `DrossHubLayouts`, `DrossHubData`): the Shattered Spire fitted with world-builder's `GroundFit` (levelled at the median height, a staircase blend at most 1 block per step over `HUB_BLEND_MARGIN`, touching trees removed whole), and `DrossHub.layout(server)` (footprint, exit, arrival, rest spots), which `villager-builder`'s survivors read; plus `DrossTeleporter.findSafeSpot`, which `/dross goto biome` uses. Headless check: `DrossHubGameTest` (fresh and old worlds).
 - The frame's **creative-only block item** (`ModItems.DROSS_PORTAL_FRAME`), and the frame and Rift Key entries in the "Dross" creative tab (`registry/ModCreativeTabs`).
 - The **arrival sequence** in `portal/DrossArrival.java` (title, piano notes), including *when* `dross:entered_the_dross` is granted and the Guide Book is given.
 - Your colors in `DrossColors` (`PORTAL_PARTICLE`, `ARRIVAL_TITLE`), and the shared "Palette" section (you add it; its values change only when the user asks).

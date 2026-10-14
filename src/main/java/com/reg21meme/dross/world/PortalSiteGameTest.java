@@ -26,6 +26,7 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraftforge.event.server.ServerStartedEvent;
@@ -48,8 +49,12 @@ import org.slf4j.Logger;
  *       {@code /dross goto cathedral} takes him in front of the frame.</li>
  *   <li><b>A new world</b> (the site is still being placed in the background): nothing is said on joining,
  *       {@code /dross goto cathedral} fails with "hasn't been placed ... yet" and builds nothing; then, once the site
- *       is placed (about a minute; the test waits at most {@link #PLACEMENT_TIMEOUT_MILLIS} of real time), the player
- *       has been told where it is exactly once, and {@code /dross goto cathedral} works.</li>
+ *       is placed (usually 20 seconds to 3 minutes, but once over 6 minutes when the computer was busy), the player
+ *       has been told where it is exactly once, and {@code /dross goto cathedral} works. While it waits, every
+ *       {@link #RECHECK_EVERY_MILLIS} it checks the "not placed yet" behaviour again (no message, the command refuses)
+ *       and logs how long it has waited. It keeps waiting as long as the placement is still at work
+ *       ({@link PortalSitePlacer#isWorking}), up to the placement's own worst case
+ *       ({@link PortalSitePlacer#worstCaseMillis}); it fails at once if the placement stops without a site.</li>
  * </ul>
  * The wait is measured in real time, not in game ticks: the game test server runs its ticks as fast as it can (it
  * doesn't wait 50 ms between them), so 6,000 ticks there can pass in well under a minute, while the site's background
@@ -68,13 +73,14 @@ public final class PortalSiteGameTest
      */
     public static final String EMPTY = "portal_site_test_empty";
     private static final ResourceLocation EMPTY_ID = new ResourceLocation(Dross.MODID, EMPTY);
-    /** In a new world the site is built in the background, about a minute after it opens: wait at most 5 minutes (real time). */
-    private static final long PLACEMENT_TIMEOUT_MILLIS = 5 * 60 * 1000L;
+    /** While it waits for the placement, the test re-checks the "not placed yet" behaviour (and logs) this often (real time). */
+    private static final long RECHECK_EVERY_MILLIS = 60_000L;
     /**
-     * The test's tick limit is only a backstop behind {@link #PLACEMENT_TIMEOUT_MILLIS}: the game test server can run
-     * several hundred ticks a second while it waits, so this is far more than 5 minutes' worth.
+     * The test's tick limit is only a backstop behind the real-time limit ({@link PortalSitePlacer#worstCaseMillis}): the
+     * game test server can run several hundred ticks a second while it waits, so no tick count is safely long enough.
+     * {@code GameTestInfo} compares it as a {@code long}, so the largest {@code int} doesn't overflow.
      */
-    private static final int BACKSTOP_TIMEOUT_TICKS = 1_000_000;
+    private static final int BACKSTOP_TIMEOUT_TICKS = Integer.MAX_VALUE;
     /** After {@link #SITE_COMMAND}, the player must be within this many blocks (on each of X, Y and Z) of the opening's middle. */
     private static final int NEAR_FRAME = 8;
     /** The command that takes a player to the portal site (without the slash). */
@@ -105,19 +111,55 @@ public final class PortalSiteGameTest
             expectSiteMessages(player, 0, overworld, "on joining before the site is placed");
             expectSiteCommandFails(player, overworld);
         });
-        long deadline = Util.getMillis() + PLACEMENT_TIMEOUT_MILLIS;
+        long started = Util.getMillis();
+        long limit = PortalSitePlacer.worstCaseMillis();
+        long[] nextRecheck = {started + RECHECK_EVERY_MILLIS};
+        // Why the wait ended without a site (a failed re-check, the placement stopping, or the limit), or null.
+        String[] problem = {null};
         helper.startSequence()
                 .thenWaitUntil(() -> {
-                    if (!PortalSite.isPlaced(overworld) && Util.getMillis() < deadline)
+                    if (PortalSite.isPlaced(overworld) || problem[0] != null)
                     {
-                        throw new GameTestAssertException("Waiting for the site to be placed");
+                        return;
                     }
+                    long now = Util.getMillis();
+                    long waited = (now - started) / 1000;
+                    if (!PortalSitePlacer.isWorking(overworld))
+                    {
+                        problem[0] = "the placement stopped without placing the site (after " + waited + " s; see the log)";
+                        return;
+                    }
+                    if (now - started >= limit)
+                    {
+                        problem[0] = "the site was never placed (waited " + waited + " s, the placement's own worst case)";
+                        return;
+                    }
+                    if (now >= nextRecheck[0])
+                    {
+                        nextRecheck[0] = now + RECHECK_EVERY_MILLIS;
+                        LOGGER.info("[site test] Still waiting for the site to be placed ({} s so far); checking again that "
+                                + "nothing was said and /{} still refuses.", waited, SITE_COMMAND);
+                        try
+                        {
+                            expectSiteMessages(player, 0, overworld, "while waiting for the site (" + waited + " s)");
+                            expectSiteCommandFails(player, overworld);
+                        }
+                        catch (GameTestAssertException e)
+                        {
+                            // Not thrown here: thenWaitUntil would just retry it. The next step fails with it.
+                            problem[0] = e.getMessage();
+                            return;
+                        }
+                    }
+                    // Thrown to keep waiting (thenWaitUntil runs this again next tick).
+                    throw new GameTestAssertException("Waiting for the site to be placed");
                 })
                 .thenExecute(() -> checked(player, () -> {
-                    if (!PortalSite.isPlaced(overworld))
+                    if (problem[0] != null)
                     {
-                        throw new GameTestAssertException("The site was never placed (waited " + PLACEMENT_TIMEOUT_MILLIS / 1000 + " s)");
+                        throw new GameTestAssertException(problem[0]);
                     }
+                    LOGGER.info("[site test] The site was placed {} s after the test began waiting.", (Util.getMillis() - started) / 1000);
                 }))
                 .thenExecute(() -> checked(player, () -> {
                     expectSiteMessages(player, 1, overworld, "after the site was placed");
@@ -246,6 +288,9 @@ public final class PortalSiteGameTest
             Connection connection = new Connection(PacketFlow.SERVERBOUND);
             new EmbeddedChannel(connection); // opens the in-memory channel; packets sent to him just pile up in it
             level.getServer().getPlayerList().placeNewPlayer(connection, player);
+            // The GameTest server puts new players in survival, low down with monsters about; he may wait minutes for
+            // the site, so he's made creative (monsters ignore him, nothing hurts him) and can't die before the checks.
+            player.setGameMode(GameType.CREATIVE);
             return player;
         }
 

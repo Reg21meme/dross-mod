@@ -19,8 +19,12 @@ You test the `dross` Forge mod (Minecraft 1.20.1, Forge 47.4.10, Java 17). Read 
 - If the very first setup fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, that's a flaky parallel download. Re-run once before reporting it.
 
 ## Headless world check (no player needed)
-- `.\gradlew.bat runGameTestServer --console=plain` (foreground) starts a server with a real world, runs zero tests and stops by itself in about a minute. Use it to check server-side loading without the user.
-- In its `run/logs/latest.log`, look for `Dross hub: built the placeholder hub; exit portal at ...`, `[Dross] Waiting for the village at ...` and `dross:dross` being saved. A missing `server.properties` message is normal here.
+- `.\gradlew.bat runGameTestServer --console=plain` (foreground) starts a server with a real world, runs every mod GameTest (about 80; several minutes) and stops by itself. Use it to check server-side loading and behaviour without the user.
+- **Pass only if the log has `All N required tests passed :)`.** A datapack load failure can still exit 0, and a failed test prints its name and message: copy those.
+- **Fresh world:** add `-PgameTestWorld=<folder>` with a folder name under `run/` that doesn't exist yet (for example `world_check_<stage>_1`). Worldgen, hub, lair and site changes only show in a new world. **Old world:** copy an existing test world to a new folder and pass that name (never run on the original, never touch `run/saves`).
+- The test server ticks as fast as it can, so flaky timing failures usually mean a test waits in ticks instead of real time: report the test and its message, and run it again once to see if it repeats.
+- Only one Gradle run at a time: the game (`runClient`) and the test server share `run/` and the compiled classes. If the user's game is open, wait.
+- In its `run/logs/latest.log`, look for the hub being built (the Shattered Spire fitted onto the ground; a fallback placeholder is an ERROR to report), the survivors spawning, the Colossus lair being placed (`boss.lair` lines), `[Dross] Waiting for the village at ...` and `dross:dross` being saved. A missing `server.properties` message is normal here.
 - **Castle (portal site) log lines** (loggers under `com.reg21meme.dross.world`, all start with `Dross portal site:`). In a fresh world, expect exactly one of these:
   - No template file: `no castle template (dross:portal_castle = ...), so the placeholder shrine is used.` followed by `built the placeholder ruined shrine; frame corner x, y, z axis x (opening 2x3)`.
   - Template file present and valid: `placed the castle template dross:portal_castle at ... (size ...); frame corner x, y, z axis x|z (opening WxH)`.

@@ -11,6 +11,7 @@ import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -99,8 +100,18 @@ public final class DeathforgedGearGameTest
     @Nullable
     static Mob raiseOne(ServerPlayer owner, RisenType type, int level)
     {
+        return raiseOne(owner, type, level, null);
+    }
+
+    /**
+     * {@link #raiseOne(ServerPlayer, RisenType, int)}, sent after {@code firstTarget} (the mob the owner just hit), as
+     * Necromancy's swing does. Used by {@link RisenTargetGameTest}.
+     */
+    @Nullable
+    static Mob raiseOne(ServerPlayer owner, RisenType type, int level, @Nullable LivingEntity firstTarget)
+    {
         Set<Mob> before = new HashSet<>(RisenUndead.active());
-        if (!RisenUndead.raise(owner, type, level, null))
+        if (!RisenUndead.raise(owner, type, level, firstTarget))
         {
             return null;
         }

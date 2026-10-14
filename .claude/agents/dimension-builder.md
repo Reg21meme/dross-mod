@@ -1,6 +1,6 @@
 ---
 name: dimension-builder
-description: Builds and changes the Dross dimension for the dross Forge 1.20.1 mod — the superflat, permanent-night dimension, its biome/mob spawning (including the no-spawn safe zone around the hub), and the netherite gear on zombies and skeletons there. Use for anything about the Dross dimension itself (not the portal into it).
+description: Builds and changes the Dross dimension for the dross Forge 1.20.1 mod — its terrain (noise generator, six biomes, surface rules, world-generation features, ores), the 38 terrain blocks and 3 materials with their textures (tools/terrain), the night sky and fog, its mob spawning (including the no-spawn safe zone around the hub and the Cinder Wastes' golem-only list), the netherite gear on zombies and skeletons there, and the biome finder behind /dross goto biome. Use for anything about the Dross dimension itself (not the portal into it, the hub structure or the bosses).
 model: opus
 ---
 
@@ -15,48 +15,35 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - Explain simply (the user is a beginner). Don't commit.
 
 ## Your area
-- Java: `com.reg21meme.dross.dimension.*`
-- Data: `src/main/resources/data/dross/dimension/`, `dimension_type/`, `worldgen/` (biome etc.)
-- The equipment logic for zombies and skeletons in the Dross dimension.
-- Mob spawning rules in the Dross, including the hub's safe zone.
+- Java: `com.reg21meme.dross.dimension.*`:
+  - `ModDimensions` (the level and dimension-type keys: your public API, keep the names stable), `DrossMobGear`, `DrossHubSafeZone`.
+  - `DrossBiomes` (the six biome keys and `findNearest`, used by world-builder's `/dross goto biome`), `TerrainProbe` / `TerrainSurvey` / `TerrainSetup` (reading the terrain from the noise without generating chunks).
+  - `dimension/block/` (the terrain blocks' classes; `TerrainBlocks` registers them), `dimension/worldgen/` (features, tree decorators, `HubFalloff`, `NotNearHubFilter`, `SilverwoodTreeGrower`), `dimension/client/` (`DrossSkyEffects`, `DrossSkyRendering`: sky, fog, light tint; every part has a switch and turns itself off on an error).
+- Registries (add only): `registry/ModFeatures`, `ModTreeDecorators`, `ModDensityFunctions`, `ModPlacementModifiers`, and your entries in `ModBlocks`, `ModItems` and `ModCreativeTabs` (terrain blocks at the end of group 1, the materials in group 7).
+- Data: `data/dross/dimension/`, `dimension_type/`, `worldgen/` (noise, noise settings, density functions, biomes, configured and placed features), the terrain blocks' tags, recipes and loot tables, and their assets (block states, models, textures, lang keys).
+- **Generated files:** almost all of the worldgen JSON is written by `tools/terrain/worldgen.py`, and the blocks' models/states/loot/tags/recipes by `tools/terrain/block_data.py`; textures by `tools/terrain/draw_blocks.py`. Change the Python (every tuning number is a labeled constant at the top of `worldgen.py`: TREES, TERRAIN, BIOMES, SURFACE, FEATURES), re-run it, never hand-edit its output. `python -B tools/terrain/check_assets.py` checks every block has its files. See `tools/terrain/README.md` and `TERRAIN_DESIGN.md`.
+- Previews: `block-previews/` (`preview_trees.py` etc.) and `terrain-previews/` (written by `TerrainPreviewGameTest` when `DROSS_TERRAIN_PREVIEWS=1`; keep the stable file names so refreshes don't churn git).
+- Mob spawning in the Dross: each biome's spawn list (generated), the hub's safe zone, and the Cinder Wastes' list (only the boss area's stone and lava golems; their spawn rules and the lava-golem top-up belong to `boss-builder`).
 
-Not yours: the portal, teleporting, the hub structure and its exit portal (`portal-builder`; read its `DrossHub.CENTER`), the portal site, the trader, and the `/dross` command.
+Not yours: the portal, teleporting, the hub structure and its fitting onto the ground (`portal-builder`; read `DrossHub.CENTER` and `DrossHub.layout`), the portal site and `GroundFit` (`world-builder`; it reads the Dross ground through your tags `#dross:fit_surface` and `#dross:fit_soil`, so keep new ground blocks in them), the survivors and the trader (`villager-builder`), the golems and the Colossus lair (`boss-builder`), and the `/dross` command (`world-builder`).
 
-## What to build
-The design is in `CLAUDE.md`, "The plan", steps 1 and 5. Items 1–3 are built and must keep working. Item 4 is your part of the early-game build ("Build order", step 5). Build only what the task you're given describes.
+## How it works (built, keep working)
+1. **Dimension `dross:dross`**: `dimension_type/dross.json` (overworld-like, `fixed_time: 18000`, overworld monster light rules); `dimension/dross.json` uses `minecraft:noise` with the noise settings `dross:dross` and an inline `multi_noise` biome source (the biomes' climate slots hold our own noises). Players see "The Dross" (`dimension.dross.dross`).
+2. **The terrain** is a 2D height field (no caves, carvers, aquifers, overhangs or floating land): `final_density` is roughly (height - y) / 32 plus a gated jag. `dross:hub_falloff` (a custom density function type, `HubFalloff`) flattens the land round 0,0 so the hub fits. `dross:rock_faces` paints cliff faces. Old worlds' generated chunks stay flat; the old `dross:dross_flats` biome stays registered so they still load.
+3. **Six biomes** (CLAUDE.md step 1 and "Terrain v1"): Silverwood Forest (always round the hub), Cinder Wastes, Blightwood, Rimefall, Nether Scar, The Gravecrags (never within about 750 blocks of the hub). Each has its own ground cover (surface rules), features, ores, fog/sky/water colours (from `DrossColors`, copied in by `worldgen.py`), particles and sounds.
+4. **Mob gear** (`DrossMobGear`, `EntityJoinLevelEvent`, server side, skipping mobs loaded from disk; not `FinalizeSpawn`, which fires before vanilla picks gear): `minecraft:zombie` full netherite + netherite sword, `minecraft:skeleton` full netherite + its bow; nothing enchanted, drop chance 0; only those two types; risen undead skipped; geared mobs are tagged for `hasDrossGear` (Deathforged book drops).
+5. **Spawning**: the plains monster list minus slimes, creepers and spiders in every biome except the Cinder Wastes (stone golem 80 / lava golem 20, groups of 1, a `spawn_costs` crowding limit). **Hub safe zone** (`DrossHubSafeZone`): no natural monster spawns within 48 blocks (X and Z) of `DrossHub.CENTER`; spawn eggs, spawners, commands and mobs walking in aren't blocked.
 
-### Built (keep working)
-1. **Dimension `dross:dross`**, defined with data JSON:
-   - `data/dross/dimension_type/dross.json`: start from overworld values, but `fixed_time: 18000` (permanent night) and `coordinate_scale: 1.0`. Keep overworld-like monster spawn light rules so hostile mobs spawn at normal rates.
-   - `data/dross/dimension/dross.json`: `minecraft:flat` generator (superflat).
-   - Its **own biome**, `dross:dross_flats`, under `data/dross/worldgen/biome/`, with the plains monster spawn list and weights **minus slimes, creepers and spiders** (the user removed them). This keeps mob spawning and terrain swappable later.
-   - Players see the dimension named **"The Dross"** via the lang key `dimension.dross.dross` (in the shared `en_us.json`).
-   - The flat ground surface is **y = -60** (grass top at y = -61, bedrock at y = -64).
-2. **Keys class** `com.reg21meme.dross.dimension.ModDimensions` with `public static final ResourceKey<Level> DROSS_LEVEL` (and the dimension-type key). The portal agent will use `DROSS_LEVEL`. This is your public API, so keep the name stable.
-3. **Mob gear**, applied only in the Dross dimension, in `dimension/DrossMobGear.java`. It uses `EntityJoinLevelEvent` (server side, skipping mobs loaded from disk). Don't switch to `MobSpawnEvent.FinalizeSpawn`: in Forge 1.20.1 it fires *before* vanilla picks gear and enchantments, so vanilla would overwrite ours.
-   - `minecraft:zombie` gets a full netherite helmet, chestplate, leggings and boots, plus a netherite sword.
-   - `minecraft:skeleton` gets full netherite armor and **keeps a bow** in its main hand.
-   - **No enchantments at all.** Vanilla can enchant spawn gear (including the skeleton's bow) based on difficulty, so make sure the final items are plain, unenchanted stacks.
-   - **Nothing drops on death:** set the drop chance to 0 for every equipment slot you fill.
-   - Only those two exact mob types. Leave husks, strays, drowned, zombie villagers etc. vanilla, and mention this in your report.
-   - Skip risen undead (from Necromancy): their gear comes only from Deathforged. Geared mobs are tagged so `DrossMobGear.hasDrossGear` can find them (`enchant-builder`'s Deathforged book drops use it).
-
-### Early-game build [to build]
-4. **Hub safe zone**:
-   - No **natural** hostile mob spawning within **48 blocks** (X and Z) of `portal-builder`'s `DrossHub.CENTER` in the Dross. Keep the radius as a labeled constant.
-   - Use Forge's spawn events (for example `MobSpawnEvent.SpawnPlacementCheck` or `MobSpawnEvent.FinalizeSpawn`, only for natural spawns: `MobSpawnType.NATURAL` and `CHUNK_GENERATION`), and only for monsters (`MobCategory.MONSTER`).
-   - Spawn eggs, spawners, commands and mobs walking in from outside are not blocked.
-   - If `DrossHub` doesn't exist yet, report "Needs from portal".
-
-## "Upgradeable later" means
-- Terrain lives in data JSON, not hard-coded Java. Swapping `minecraft:flat` for a noise generator later (parked: "old-Minecraft-style terrain") should only touch files under `data/dross/`.
-- The biome is our own, so spawns and terrain can change without affecting vanilla.
-- Keep the keys in `ModDimensions` as the single source of truth.
+## Checking your work
+- `.\gradlew.bat build --console=plain`, `python -B tools/terrain/check_assets.py`, then the headless tests: `.\gradlew.bat runGameTestServer -PgameTestWorld=<new folder> --console=plain` (a brand-new world; the folder under `run/` must not exist yet). Worldgen changes only show in **new chunks**, so always check a fresh world, and also an old-world copy if you change anything an old world loads (pass a copy's folder name; never touch `run/saves` or worlds you didn't make).
+- Confirm the `All N required tests passed :)` line: a broken datapack file can still exit 0.
+- The test server runs as fast as it can, so a test that waits must wait in real time, not in ticks.
+- Look at the previews you regenerate before reporting.
 
 ## Testing tips to include in your report
-- Go through the portal (`/dross goto cathedral`, then throw in a Rift Key from the creative "Dross" tab), or use `/dross goto hub` or `/execute in dross:dross run tp @s 0 -60 0` (cheats on). Don't teleport to y = 100: the ground is at y = -60, so that's a deadly fall in survival.
-- Confirm it stays night, mobs spawn (no slimes, creepers or spiders), zombies and skeletons have unenchanted netherite gear, and killing them drops no gear.
-- Stand at the hub at night: no hostile mobs spawn within 48 blocks, but they still spawn farther out (`/tp` 100 blocks away to compare).
+- New world, cheats on: `/dross goto hub`, then `/dross goto biome <name>` for each biome (`silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall`, `nether_scar`, `gravecrags`).
+- Confirm it stays night, the fog and sky match the biome, mobs spawn (no slimes, creepers or spiders; only golems in the Cinder Wastes), zombies and skeletons have unenchanted netherite gear that doesn't drop.
+- Stand at the hub at night: no hostile mobs spawn within 48 blocks.
 
 ## Report format
 1. What you built, in plain words.

@@ -1,6 +1,6 @@
 # Dross
 
-A Minecraft Forge mod that adds **the Dross**: a dangerous dimension of endless night, reached through an electric blue rift portal. Getting there takes a quest. You find an old letter in the Nether, prove yourself to a strange villager, and have him forge the key that opens the rift. The mod also adds two necromancy enchantments that raise the undead to fight for you.
+A Minecraft Forge mod that adds **the Dross**: a dangerous dimension of endless night, with its own forests, wastes and mountains, reached through an electric blue rift portal. Getting there takes a quest. You find an old letter in the Nether, prove yourself to a strange villager, and have him forge the key that opens the rift. The mod also adds two necromancy enchantments that raise the undead to fight for you.
 
 The Dross is a **mid-to-late game** place. You reach it after surviving the Nether, the deep dark, the ocean and the End, not after beating every boss. There is one way in (the portal at the Fallen Cathedral) and one way out (the hub's portal).
 
@@ -31,8 +31,9 @@ How a player moves through the mod, from a normal survival world to the Dross.
 4. **The three tributes** (any order). Right-click him while holding the full amount: **1 wither skeleton skull**, **3 echo shards** and **15 end stone**. If you hold too few, he tells you how many to bring. If you hold more, he takes exactly what he needs. Once all three are in, he gives you the **Dross Compass**, which points at the cathedral's portal. He says he knows how to forge a key but needs materials. *Advancement: Proven Worthy.*
 5. **The key materials** (any order, same rules): **1 trident**, **1 Heart of the Sea** and **8 amethyst shards**. He forges the **Rift Key**, tells you to be careful what you let out, and mentions he has books that can help in there. *Advancement: Keymaster.* His shop opens for you.
 6. **Opening the rift.** Follow the compass to the Fallen Cathedral and throw the Rift Key into the frame's opening. The key is used up and the portal lights, staying open for everyone, permanently.
-7. **The Dross.** Stepping through takes you to the **Shattered Spire**, the hub at Dross 0,0. The words "The Dross" fade in over four low piano notes. *Advancement: Enter the Dross*, the main achievement. On your first arrival you also get the **Dross Guide Book**.
-8. **Necromancy.** The trader sells the Necromancy and Deathforged enchanted books, and Deathforged books also drop in the Dross. Raising your first undead earns *Rise!*
+7. **The Dross.** Stepping through takes you to the **Shattered Spire**, the hub at Dross 0,0. The words "The Dross" fade in over four low piano notes. *Advancement: Enter the Dross*, the main achievement. On your first arrival you also get the **Dross Guide Book**. Two survivors, the Blind Oracle and the Ragged Seeker, keep watch at the spire.
+8. **Exploring.** Round the hub lies the Silverwood Forest; further out are the Cinder Wastes, Blightwood, Rimefall, the Nether Scar and the Gravecrags' peaks. Somewhere in the Cinder Wastes a volcano holds the **Cinder Colossus**. *Advancement: Set in Stone.*
+9. **Necromancy.** The trader sells the Necromancy and Deathforged enchanted books, and Deathforged books also drop in the Dross. Raising your first undead earns *Rise!*
 
 **Lost items:**
 - If you lose the compass, the trader gives you a new one for free.
@@ -44,9 +45,19 @@ How a player moves through the mod, from a normal survival world to the Dross.
 ## The Dross (the dimension)
 
 - **Dimension ID:** `dross:dross`, shown in game as **"The Dross"**.
-- **Terrain:** a flat world with its own biome, defined in data files (`data/dross/dimension/`, `dimension_type/`, `worldgen/`).
+- **Terrain:** real land, surface only (no caves): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and snow-capped mountain peaks (about y 230-260) in the Gravecrags. It's Minecraft's own terrain generator, set up in data files (`data/dross/dimension/`, `dimension_type/`, `worldgen/`) written by `tools/terrain/worldgen.py`, where every tuning number lives.
+- **Six biomes**, regions about 600-670 blocks across:
+  - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds.
+  - **Cinder Wastes**: ash, basalt and magma, enclosed lava pools, basalt spires, charred trees, Emberweed and Cinder Vents. Home of the Cinder Colossus's volcano.
+  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog.
+  - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds.
+  - **Nether Scar** (smaller patches, about 240 blocks across): netherrack with clusters of blue-cracked Scarred Netherrack, crimson and warped fungi, Soulwicks and Scar Vents.
+  - **The Gravecrags**: the mountains, Cragstone cliffs with glowing Storm Lichen and Crag Thistles, snow on the peaks. Never near the hub.
+- **Ores** under every biome, in Duskstone (the Dross's stone): coal, gold (drops nuggets), **Moonsilver** (Raw Moonsilver, smelted into Moonsilver Ingots) and **Stormite** (glowing Stormite Shards; needs an iron pickaxe). Moonsilver and Stormite are for gear that comes later.
+- **Sky and fog:** each biome has its own night fog, sky and water colours, particles and ambient sounds, with a blue glow over the night sky and no clouds.
+- **Old worlds:** chunks that were already generated flat stay flat; new chunks get the terrain, so there's a wall where they meet. Start a new world for the real thing.
 - **Time:** permanent night (fixed at time 18000). The sun never rises.
-- **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders.
+- **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only the Cinder Colossus's **stone golems** spawn there, with **lava golems** (about 1 in 5, always next to lava). Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
   - **Zombies** spawn in full netherite armor with a netherite sword.
   - **Skeletons** spawn in full netherite armor and keep their bows.
   - None of it is enchanted, and none of it drops when they die.
@@ -104,7 +115,7 @@ The site's position and the frame's direction are available to the rest of the m
 
 ## The hub: the Shattered Spire
 
-- Built once per world at **Dross 0,0**: a tall, broken spire.
+- Built once per world at **Dross 0,0**: a tall, broken spire, levelled into the forest. The ground round it steps back to the natural land at most 1 block at a time (no cliffs or dirt walls), and only trees touching it are removed, each one whole.
 - Its portal frame is lit as the **exit portal**, facing south.
 - You arrive inside the spire's hall, on the top step in front of the exit portal, facing the gate.
 - **Arrival sequence**, every time you come through the portal:
@@ -113,6 +124,13 @@ The site's position and the frame's direction are available to the rest of the m
   - Two seconds after the last note, you get the *Enter the Dross* advancement.
   - On your **first arrival only**, you get the **Dross Guide Book** (dropped at your feet if your inventory is full).
 - **Fallback:** if the spire can't be built, an 11 × 11 platform with a lit 4 × 5 exit portal is built instead.
+
+### The survivors
+Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the trader's candidate skins (8 and 3).
+- They start on the dais beside the arrival step and walk together in and around the spire and out of its gate, never more than 20 blocks outside its walls.
+- Right-click one and he says his next line in chat.
+- Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them, and Necromancy never raises undead from hitting them.
+- No trades.
 
 ---
 
@@ -171,9 +189,11 @@ Unlimited uses, no restocking, no XP.
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
 | **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon and the Wither) while still counting as your kill. Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
 | **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
-| **Stone Golem / Lava Golem Spawn Eggs** | Spawn the Colossus's minions on their own (a lava golem still blows up after a few seconds). |
+| **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
+| **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent; Cragstone, Storm Lichen, Crag Thistle). |
+| **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores, for gear that comes later. Raw Moonsilver smelts into an ingot. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem), **weapons and tools** (the Admin Sword), then the **enchanted books** (Necromancy I-V, then Deathforged I-X). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem), **weapons and tools** (the Admin Sword), the **enchanted books** (Necromancy I-V, then Deathforged I-X), then the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -192,7 +212,7 @@ Both are **swords only** and **treasure enchantments**. They never come from the
 | IV | 30% | 6 | 250 | + chicken jockey, spider jockey, skeleton horseman |
 | V (admin, testing) | 100% | 10 | infinite | same as IV |
 
-- **Which hits count:** only a melee hit with the sword in your main hand, on the main target of the swing. Sweep hits never count. Hitting a player, the trader or your own risen undead never raises any.
+- **Which hits count:** only a melee hit with the sword in your main hand, on the main target of the swing. Sweep hits never count. Hitting a player, the trader, the hub's survivors or your own risen undead never raises any.
 - **How many rise:**
   - If none of yours are alive, a successful hit raises the full max. Otherwise it raises half the max, rounded up, never going over the max.
   - Each one costs **1 soul**. Jockeys and horsemen cost 2.
@@ -210,7 +230,7 @@ Both are **swords only** and **treasure enchantments**. They never come from the
   4. any fight another of your risen undead is in.
 
   Otherwise they follow you. Once fighting, they stick with their target until it dies, then help allies before coming back to you.
-- **Who they leave alone:** they never hurt players, the trader, villagers, wandering traders or each other. Your own hits never hurt them.
+- **Who they leave alone:** they never hurt players, the trader, the hub's survivors, villagers, wandering traders or each other. Your own hits never hurt them.
 - **Mobs fight back:** any mob they damage turns on them, even other undead.
 - **Risen drowned** fight on land, day or night.
 - **How long they last:** they crumble into blue particles after **60 seconds**, or early if you log out, die or change dimension.
@@ -264,10 +284,25 @@ out along their own angle, and its craters always hold glowing lava. Previews ar
 (`all_golems.png`, `01_saddleback_sheet.png`, the fight page `01_saddleback_fight.png` and `minions.png`; the other
 candidates are in `boss-previews/round1/` to `round3/`).
 
-It doesn't appear in the world by itself yet (the Dross terrain comes first). For now you get one from the
+It lives in its **lair**, a volcano in the Cinder Wastes (below). For testing you can also get one from the
 **Cinder Colossus Spawn Egg** (Dross creative tab) or `/dross boss summon colossus`, and `/dross boss arena colossus` builds a
 placeholder arena to fight it in: a round floor of red nether bricks, 31 blocks across, with a low wall (four gaps)
 and lights set in the floor.
+
+### The lair
+- **Where:** once per world, the mod looks out from the hub in three directions for the nearest Cinder Wastes high
+  ground in each, and builds the lair at the one **furthest** from the hub. `/dross goto lair colossus` takes you to its
+  entrance.
+- **Outside:** a volcano rising about 40 blocks over its arena, with a jagged crater that smokes and throws embers, lava
+  streams and pools round its foot (they never spread), and a big cave mouth with obsidian teeth. The way in never
+  steps more than 1 block: on steep land a rock ramp leads to the mouth.
+- **Inside:** a domed cavern about 41 blocks across under the crater, with an obsidian and magma floor, lava glowing
+  through sealed fissures below it, and obsidian stalactites. No lava can be reached from the floor, and nothing
+  spawns inside by itself.
+- **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). After it's beaten it rises
+  again for the next player who walks in **10 minutes** later (a stand-in for a boss revive feature to come).
+- Worlds that got the first version of the lair (a domed cavern with a skylight and a slab tunnel) keep it.
+- Previews: `boss-previews/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
 
 ### The fight
 It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
@@ -275,15 +310,27 @@ within 40 blocks. The fight has three stages:
 1. **Shell** (down to 60% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
    second; 2 in the Cracking stage and 2.8 in the Lava Core stage). It swipes at you up close, tears rocks
    out of the ground and throws them (they shatter; they never place a block), raises both fists for a moment and
-   slams the ground (little damage, but the shockwave throws you far), and charges about 10 blocks in a straight line,
-   on all fours, head first.
+   slams the ground (little damage, but the shockwave throws you far), and charges on all fours, head first, from up
+   to 32 blocks away, running all the way to where you stood when it started.
 2. **Cracking** (60% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
    and its shell starts breaking up, plates knocked loose and lava glowing through, more with every hit. A bit faster
    and more aggressive. Its volcanoes also spit **lava blobs** that land near you (never on you) and leave small pools
-   of lava for 20-40 seconds, and it pounds the ground to raise **three stone golems** (left, right, in front of it).
+   of lava for 20-40 seconds, and it pounds the ground to raise **three stone golems** (left, right, in front of it). As it enters this stage,
+   **four stone golems** climb out at once, and from now on its charge leaves a short **trail of fire**.
 3. **Lava Core** (35% to 0%; lava red): its shell bursts off (it can't be hurt while it does). Faster and angrier:
-   **every hit sets you on fire**, its charge leaves a **trail of fire**, its rocks are molten, and it raises
-   **lava golems**, which blow up a few seconds later unless you kill them first.
+   **every hit sets you on fire**, its charge leaves a longer **trail of fire**, it stops throwing rocks, and it raises
+   **lava golems**, which blow up a few seconds later unless you kill them first. As it enters this stage its
+   volcanoes spew **four lava blobs** round you.
+
+**The roar:** the first time it's hurt, and at both stage changes, it roars and a ring of dust throws every player
+within 15 blocks back about 15 blocks (no damage).
+
+**How it picks a move:** by how far away you are (close, mid, far, very far) and its stage, with the chances in
+`ColossusTuning` (the user's table): up close it swipes and slams, further out it charges, throws and lobs, and very
+far away it mostly charges.
+
+**Against Necromancy:** with your risen undead nearby it raises one golem for every two of them (never more than 6),
+its golems go for the risen undead first, and when three or more of them crowd it, it slams more often.
 
 It's a slow stone brute, so it can't be beaten easily from afar: **arrows and other projectiles** (tridents,
 fireballs, snowballs, your risen skeletons' arrows) deal only **50%** of their damage in the Shell stage, **35%** in
@@ -303,8 +350,8 @@ grass, flowers and thin snow), never touch chests or other blocks with contents,
 the area is unloaded and loaded again. Nothing in the fight breaks blocks. Its sounds are vanilla stone, iron golem,
 ravager and lava sounds pitched down: deep rumbles and grinding stone.
 
-All its numbers (health, damage, speeds, cooldowns, ranges, minion counts, pool size and time, the stage thresholds,
-the trophy design it drops) are labeled constants in `boss/golem/ColossusTuning.java` and `ColossusStage.java`.
+All its numbers (health, damage, speeds, cooldowns, ranges, move chances, the roar, minion counts, pool size and time,
+the stage thresholds, the trophy design it drops, the wild golems' spawning) are labeled constants in `boss/golem/ColossusTuning.java` and `ColossusStage.java`.
 
 ### The trophies
 The **Cinder Colossus Trophy** (`dross:colossus_trophy`) is a decorative block: a miniature of the boss, its own model
@@ -385,6 +432,8 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto cathedral` | Teleports you in front of the Fallen Cathedral's frame, facing it. Before the site is built, it says so instead. |
 | `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross. |
 | `/dross goto trader` | Teleports you to the trader, even if his area isn't loaded. |
+| `/dross goto biome <name>` | Teleports you to safe ground in the nearest example of a Dross biome: `silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall`, `nether_scar` or `gravecrags`. |
+| `/dross goto lair colossus` | Teleports you to the Cinder Colossus's lair entrance. Before the lair is built, it says so instead. |
 | `/dross trader sendhome` | Sends the trader home. |
 | `/dross quest status` | Shows your quest progress. |
 | `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!* and *Set in Stone*). |
@@ -411,6 +460,7 @@ From the project folder, on Windows:
 | Build the mod jar (`build/libs/dross-<version>.jar`) | `.\gradlew.bat build --console=plain` |
 | Run the game with the mod | `.\gradlew.bat runClient --console=plain` |
 | Run the automated in-game checks | `.\gradlew.bat runGameTestServer --console=plain` |
+| The same checks in a brand-new world | `.\gradlew.bat runGameTestServer -PgameTestWorld=world_check_1 --console=plain` (pick a folder name under `run/` that doesn't exist yet) |
 
 - **Logs:** `run/logs/latest.log`. **Crash reports:** `run/crash-reports/`.
 - **Commands in-game:** create the world with **Allow Cheats: ON** to use the commands.
@@ -421,9 +471,15 @@ From the project folder, on Windows:
   - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
   - See `tools/shrines/README.md`.
 - **`tools/skins/`:** draws the 10 trader skins (`textures/entity/trader/`) and renders the front and back previews in `skin-previews/`.
+- **`tools/terrain/`:** the Dross's terrain and blocks.
+  - `worldgen.py` writes all the terrain data files (noise, biomes, ground cover, features, ores, spawn lists); every tuning number is a labeled constant at its top.
+  - `draw_blocks.py` draws the terrain blocks' textures and `block_data.py` writes their models, block states, loot, tags and recipes; previews go to `block-previews/`.
+  - Top-down maps of a generated area are in `terrain-previews/`.
+  - See `tools/terrain/README.md` (and `TERRAIN_DESIGN.md` for the design).
 - **`tools/golems/`:** generates the Cinder Colossus designs and its trophies.
   - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/`, and writes `GolemDesigns.java`.
   - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
+  - `lair_preview.py` renders the lair previews (`boss-previews/lair_*.png`).
   - See `tools/golems/README.md`.
 
 ---
@@ -434,14 +490,14 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 
 | Package | What's in it |
 |---|---|
-| `dimension` | The Dross dimension, mob gear, the hub's safe zone |
-| `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub, the arrival sequence |
+| `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators and the hub falloff (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
+| `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (fitted onto the terrain), the arrival sequence |
 | `world` | The portal site: location search, the Fallen Cathedral, ground fitting, the leak (`world/shrine` holds the shrine designs) |
-| `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` holds the hut designs) |
+| `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` holds the hut designs), the hub's survivors |
 | `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
 | `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
-| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the logic of `/dross boss` |
+| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss` |
 | `command` | The `/dross` command and its showcases |
-| `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, the creative tab |
+| `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, world generation features, tree decorators, density functions, placement modifiers, the creative tab |
 
 Mod metadata is in `src/main/resources/META-INF/mods.toml`, filled from `gradle.properties`. All player-facing text is in `assets/dross/lang/en_us.json`.

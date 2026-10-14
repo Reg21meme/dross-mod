@@ -6,12 +6,13 @@ import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.villager.Survivor;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.SectionPos;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.GameTestSequence;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
@@ -23,7 +24,6 @@ import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.projectile.Arrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
@@ -47,9 +47,10 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
  * but without the survivor rule in {@link RisenUndead} the pack AI would still pick one, then stay stuck on a target
  * it can never set; the watch catches that. Each test collects every problem it finds and reports them all at the end.
  *
- * <p>Both use {@link RisenTargetGameTest}'s arena and stand-in owner. They wait until the arena has finished loading
- * (far from spawn a test can start before its chunks are ready, and nothing in them moves until then), and each has
- * its own batch, like the other risen undead tests.
+ * <p>Both use {@link RisenTargetGameTest}'s closed arena and stand-in owner (in creative mode, so the monsters of the
+ * test server's survival world leave him alone). They wait until the arena has finished loading, in real time (far
+ * from spawn a test can start before its chunks are ready, and nothing in them moves until then), the watch counts the
+ * risen undead's own ticks ({@link RisenTestWait}), and each test has its own batch, like the other risen undead tests.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -59,11 +60,8 @@ public final class RisenSurvivorGameTest
     // Test setup (20 ticks = 1 second).
     // ---------------------------------------------------------------------------------------------
 
-    /**
-     * Height (relative to the test) the mobs stand at. The test's structure block is at relative y 0 and the arena's
-     * floor (the template's bottom layer) at relative y 1, so y 2 is standing on the floor.
-     */
-    private static final int STAND_Y = 2;
+    /** Height (relative to the test) the mobs stand at: on the arena's floor. */
+    private static final int STAND_Y = RisenTargetGameTest.STAND_Y;
     /** Where the owner stands; the risen undead rise up to 3 blocks from him. */
     private static final BlockPos OWNER_POS = new BlockPos(7, STAND_Y, 4);
     /** Where the survivor stands: 6 blocks from the owner. */
@@ -79,16 +77,15 @@ public final class RisenSurvivorGameTest
     private static final float TEST_HIT_DAMAGE = 4.0F;
 
     /**
-     * How long the pack is watched after the owner hits the survivor: 2 seconds. That's about 20 target decisions (one
-     * every other tick) and 4 pack searches (every {@link RisenTargetGoal#SEARCH_INTERVAL_TICKS}), all inside the
-     * {@link RisenTargetGoal#OWNER_TARGET_MEMORY_TICKS} the owner's hit counts as "the owner's target".
+     * How long the pack is watched after the owner hits the survivor, in the risen undead's own ticks: 2 seconds of
+     * their life. That's about 20 target decisions (one every other tick) and 4 pack searches (every
+     * {@link RisenTargetGoal#SEARCH_INTERVAL_TICKS}), all inside the {@link RisenTargetGoal#OWNER_TARGET_MEMORY_TICKS}
+     * the owner's hit counts as "the owner's target". Counting their own ticks means the watch can't end before their
+     * AI has really run.
      */
     private static final int WATCH_TICKS = 40;
-    /** After the watch, each risen undead must have ticked at least this often, or its AI never really ran. */
-    private static final int MIN_TICKS_LIVED = WATCH_TICKS / 2;
-    /** How long the arena may take to finish loading. */
-    private static final int ARENA_WAIT_TICKS = 200;
-    private static final int TIMEOUT_TICKS = ARENA_WAIT_TICKS + WATCH_TICKS + 60;
+    /** Each test's own tick limit: only a backstop behind its waits (see {@link RisenTestWait}). */
+    private static final int TIMEOUT_TICKS = RisenTestWait.TEST_TIMEOUT_TICKS;
 
     private RisenSurvivorGameTest() {}
 
@@ -106,35 +103,33 @@ public final class RisenSurvivorGameTest
     public static void necromancyHitOnASurvivorRaisesNothing(GameTestHelper helper)
     {
         Scene scene = new Scene();
-        helper.startSequence()
-                .thenWaitUntil(() -> waitForArena(helper))
-                .thenExecute(step(scene, () -> {
-                    Survivor survivor = scene.spawnSurvivor(helper);
-                    Pig pig = helper.spawnWithNoFreeWill(EntityType.PIG, PIG_POS);
-                    scene.others.add(pig);
+        startWhenArenaLoaded(helper, scene, () -> {
+            Survivor survivor = scene.spawnSurvivor(helper);
+            Pig pig = helper.spawnWithNoFreeWill(EntityType.PIG, PIG_POS);
+            scene.others.add(pig);
 
-                    // A survivor: nothing may rise.
-                    ServerPlayer owner = scene.newOwner(helper);
-                    owner.setItemInHand(InteractionHand.MAIN_HAND, necromancySword());
-                    hit(owner, survivor);
-                    int fromSurvivor = RisenUndead.countAlive(owner.getUUID());
-                    if (fromSurvivor != 0)
-                    {
-                        scene.problems.add("hitting a survivor with Necromancy " + NECROMANCY_LEVEL + " raised " + fromSurvivor + " undead");
-                    }
+            // A survivor: nothing may rise.
+            ServerPlayer owner = scene.newOwner(helper);
+            owner.setItemInHand(InteractionHand.MAIN_HAND, necromancySword());
+            hit(owner, survivor);
+            int fromSurvivor = RisenUndead.countAlive(owner.getUUID());
+            if (fromSurvivor != 0)
+            {
+                scene.problems.add("hitting a survivor with Necromancy " + NECROMANCY_LEVEL + " raised " + fromSurvivor + " undead");
+            }
 
-                    // A pig: they must rise.
-                    owner = scene.newOwner(helper);
-                    owner.setItemInHand(InteractionHand.MAIN_HAND, necromancySword());
-                    hit(owner, pig);
-                    if (RisenUndead.countAlive(owner.getUUID()) == 0)
-                    {
-                        scene.problems.add("the same sword raised nothing from a pig either, so this test can't tell (is the test world on Peaceful?)");
-                    }
+            // A pig: they must rise.
+            owner = scene.newOwner(helper);
+            owner.setItemInHand(InteractionHand.MAIN_HAND, necromancySword());
+            hit(owner, pig);
+            if (RisenUndead.countAlive(owner.getUUID()) == 0)
+            {
+                scene.problems.add("the same sword raised nothing from a pig either, so this test can't tell (is the test world on Peaceful?)");
+            }
 
-                    scene.cleanUp();
-                    scene.failIfProblems();
-                }))
+            scene.cleanUp();
+            scene.failIfProblems();
+        })
                 .thenSucceed();
     }
 
@@ -142,61 +137,55 @@ public final class RisenSurvivorGameTest
      * A risen zombie and a risen skeleton next to a survivor. At once: the survivor must not be a valid target for
      * either, and their blow, the skeleton's arrow and an arrow whose skeleton has crumbled must do it no harm. Then the
      * owner hits the survivor (so it's "the owner's target") and the zombie is told the survivor hurt it ("fight
-     * back"). For {@link #WATCH_TICKS} ticks neither may target the survivor, neither's pack AI may be busy (there's
-     * nothing else here to fight), and the survivor may not lose health. Last, both must really have ticked, so the
-     * watch meant something.
+     * back"). For {@link #WATCH_TICKS} of their own ticks neither may target the survivor, neither's pack AI may be busy
+     * (there's nothing else here to fight), and the survivor may not lose health.
      */
     @GameTest(template = RisenTargetGameTest.ARENA, batch = "dross_risen_survivor_safe", timeoutTicks = TIMEOUT_TICKS)
     public static void risenNeverTargetOrHurtASurvivor(GameTestHelper helper)
     {
         Scene scene = new Scene();
-        helper.startSequence()
-                .thenWaitUntil(() -> waitForArena(helper))
-                .thenExecute(step(scene, () -> {
-                    Survivor survivor = scene.spawnSurvivor(helper);
-                    ServerPlayer owner = scene.newOwner(helper);
-                    Mob zombie = DeathforgedGearGameTest.raiseOne(owner, RisenType.ZOMBIE, DEATHFORGED_LEVEL);
-                    Mob skeleton = DeathforgedGearGameTest.raiseOne(owner, RisenType.SKELETON, DEATHFORGED_LEVEL);
-                    if (zombie == null || skeleton == null)
-                    {
-                        throw new GameTestAssertException("the risen undead couldn't be spawned");
-                    }
-                    scene.risen.add(zombie);
-                    scene.risen.add(skeleton);
+        RisenTestWait watch = new RisenTestWait(helper, RisenTestWait.AI_MILLIS);
+        startWhenArenaLoaded(helper, scene, () -> {
+            Survivor survivor = scene.spawnSurvivor(helper);
+            ServerPlayer owner = scene.newOwner(helper);
+            Mob zombie = DeathforgedGearGameTest.raiseOne(owner, RisenType.ZOMBIE, DEATHFORGED_LEVEL);
+            Mob skeleton = DeathforgedGearGameTest.raiseOne(owner, RisenType.SKELETON, DEATHFORGED_LEVEL);
+            if (zombie == null || skeleton == null)
+            {
+                throw new GameTestAssertException("the risen undead couldn't be spawned");
+            }
+            scene.risen.add(zombie);
+            scene.risen.add(skeleton);
 
-                    // Never a valid target.
-                    for (Mob mob : scene.risen)
-                    {
-                        if (RisenUndead.isValidTarget(mob, survivor))
-                        {
-                            scene.problems.add("a survivor is a valid target for a risen " + RisenTargetGameTest.name(mob));
-                        }
-                    }
+            // Never a valid target.
+            for (Mob mob : scene.risen)
+            {
+                if (RisenUndead.isValidTarget(mob, survivor))
+                {
+                    scene.problems.add("a survivor is a valid target for a risen " + RisenTargetGameTest.name(mob));
+                }
+            }
 
-                    // Their blows and arrows do it no harm. An arrow outlives the skeleton that shot it, so it carries
-                    // the owner's id itself (set when it's shot; set by hand here, since this one is never shot).
-                    ServerLevel level = helper.getLevel();
-                    Arrow shot = new Arrow(level, skeleton);
-                    Arrow leftOver = new Arrow(EntityType.ARROW, level);
-                    leftOver.getPersistentData().putUUID(RisenUndead.PROJECTILE_OWNER_KEY, owner.getUUID());
-                    scene.expectNoHarm(survivor.damageSources().mobAttack(zombie), "a risen zombie's blow");
-                    scene.expectNoHarm(survivor.damageSources().arrow(shot, skeleton), "a risen skeleton's arrow");
-                    scene.expectNoHarm(survivor.damageSources().arrow(leftOver, null), "an arrow whose risen skeleton has crumbled");
+            // Their blows and arrows do it no harm. An arrow outlives the skeleton that shot it, so it carries
+            // the owner's id itself (set when it's shot; set by hand here, since this one is never shot).
+            ServerLevel level = helper.getLevel();
+            Arrow shot = new Arrow(level, skeleton);
+            Arrow leftOver = new Arrow(EntityType.ARROW, level);
+            leftOver.getPersistentData().putUUID(RisenUndead.PROJECTILE_OWNER_KEY, owner.getUUID());
+            scene.expectNoHarm(survivor.damageSources().mobAttack(zombie), "a risen zombie's blow");
+            scene.expectNoHarm(survivor.damageSources().arrow(shot, skeleton), "a risen skeleton's arrow");
+            scene.expectNoHarm(survivor.damageSources().arrow(leftOver, null), "an arrow whose risen skeleton has crumbled");
 
-                    // The owner hits it, and it "hurt" the zombie: watched below.
-                    hit(owner, survivor);
-                    zombie.setLastHurtByMob(survivor);
-                    scene.healthBeforeWatch = survivor.getHealth();
-                }))
-                .thenExecuteFor(WATCH_TICKS, step(scene, scene::watch))
-                .thenExecute(step(scene, () -> {
-                    for (Mob mob : scene.risen)
+            // The owner hits it, and it "hurt" the zombie: watched below.
+            hit(owner, survivor);
+            zombie.setLastHurtByMob(survivor);
+            scene.healthBeforeWatch = survivor.getHealth();
+        })
+                .thenWaitUntil(scene.guard.poll(watch, scene::watch))
+                .thenExecute(scene.guard.step(() -> {
+                    if (watch.problem() != null)
                     {
-                        if (mob.tickCount < MIN_TICKS_LIVED)
-                        {
-                            scene.problems.add("a risen " + RisenTargetGameTest.name(mob) + " only ticked " + mob.tickCount
-                                    + " times, so its AI never really ran and the watch proved nothing");
-                        }
+                        scene.problems.add(watch.problem());
                     }
                     scene.cleanUp();
                     scene.failIfProblems();
@@ -229,56 +218,19 @@ public final class RisenSurvivorGameTest
     }
 
     /**
-     * Throws (so the sequence keeps waiting) until every chunk under the arena has loaded its mobs and ticks them. Until
-     * then nothing has been added to the test, so a time-out leaves nothing behind.
+     * The start of a test: wait until the arena has finished loading (in real time, {@link RisenTestWait}), then one
+     * step that checks it did and runs {@code firstStep}. Nothing is added to the world before that. Every step and
+     * wait goes through the scene's guard, so the test reports its first failure, cleaned up.
      */
-    private static void waitForArena(GameTestHelper helper)
+    private static GameTestSequence startWhenArenaLoaded(GameTestHelper helper, Scene scene, Runnable firstStep)
     {
-        ServerLevel level = helper.getLevel();
-        int far = RisenTargetGameTest.ARENA_SIZE - 1;
-        BlockPos corner = helper.absolutePos(new BlockPos(0, STAND_Y, 0));
-        BlockPos opposite = helper.absolutePos(new BlockPos(far, STAND_Y, far));
-        int minX = SectionPos.blockToSectionCoord(Math.min(corner.getX(), opposite.getX()));
-        int maxX = SectionPos.blockToSectionCoord(Math.max(corner.getX(), opposite.getX()));
-        int minZ = SectionPos.blockToSectionCoord(Math.min(corner.getZ(), opposite.getZ()));
-        int maxZ = SectionPos.blockToSectionCoord(Math.max(corner.getZ(), opposite.getZ()));
-        for (int x = minX; x <= maxX; x++)
-        {
-            for (int z = minZ; z <= maxZ; z++)
-            {
-                ChunkPos chunk = new ChunkPos(x, z);
-                if (!level.areEntitiesLoaded(chunk.toLong()) || !level.isPositionEntityTicking(chunk.getWorldPosition()))
-                {
-                    throw new GameTestAssertException("the arena's chunk " + x + ", " + z + " hasn't finished loading");
-                }
-            }
-        }
-    }
-
-    /**
-     * One step of a test. A failed check fails the test; anything else that goes wrong becomes a failure too, instead
-     * of stopping the test server. Either way the scene is cleaned up first, so no stand-in player is left behind.
-     */
-    private static Runnable step(Scene scene, Runnable body)
-    {
-        return () -> {
-            try
-            {
-                body.run();
-            }
-            catch (GameTestAssertException failure)
-            {
-                scene.cleanUp();
-                throw failure;
-            }
-            catch (RuntimeException e)
-            {
-                scene.cleanUp();
-                GameTestAssertException failure = new GameTestAssertException("the test threw " + e);
-                failure.initCause(e);
-                throw failure;
-            }
-        };
+        RisenTestWait arena = new RisenTestWait(helper, RisenTestWait.ARENA_MILLIS);
+        return helper.startSequence()
+                .thenWaitUntil(scene.guard.poll(arena, RisenTestWait.arenaLoaded(helper, RisenTargetGameTest.ARENA_SIZE, STAND_Y)))
+                .thenExecute(scene.guard.step(() -> {
+                    arena.failIfWrong("");
+                    firstStep.run();
+                }));
     }
 
     /** What a test works with (filled in once its arena has loaded), and the problems it found. */
@@ -295,10 +247,11 @@ public final class RisenSurvivorGameTest
         final List<String> problems = new ArrayList<>();
         /** The survivor's health when the watch starts (it must not drop during the watch). */
         float healthBeforeWatch;
-        /** Ticks watched so far, and the first problem the watch found (only the first is reported). */
-        int watchedTicks;
+        /** Each risen undead's own tick count when the watch began (null until it begins). */
         @Nullable
-        String watchProblem;
+        Map<Mob, Integer> watchStart;
+        /** Every step and wait goes through it: the test's first failure is the one it reports, cleaned up. */
+        final RisenTestWait.Guard guard = new RisenTestWait.Guard(this::cleanUp);
 
         /** A survivor with no AI of its own (so it stays put), standing on the arena's floor. */
         Survivor spawnSurvivor(GameTestHelper helper)
@@ -309,8 +262,8 @@ public final class RisenSurvivorGameTest
         }
 
         /**
-         * A fresh stand-in owner ({@link RisenTargetGameTest#addOwner}), moved onto the arena's floor (that helper puts
-         * him at relative y 1, inside the floor's own layer). Any earlier owner leaves first; his risen undead crumble.
+         * A fresh stand-in owner ({@link RisenTargetGameTest#addOwner}, in creative mode), standing on the arena's floor
+         * at this test's own spot. Any earlier owner leaves first; his risen undead crumble.
          */
         ServerPlayer newOwner(GameTestHelper helper)
         {
@@ -338,20 +291,25 @@ public final class RisenSurvivorGameTest
             }
         }
 
-        /** One tick of the watch: notes the first thing that goes wrong (and when). */
-        void watch()
+        /**
+         * One tick of the watch, for its {@link RisenTestWait}: it ends at the first thing that goes wrong (and says
+         * when), or once both risen undead have lived {@link #WATCH_TICKS} of their own ticks since it began.
+         */
+        RisenTestWait.Look watch()
         {
-            this.watchedTicks++;
-            if (this.watchProblem != null)
+            if (this.watchStart == null)
             {
-                return;
+                this.watchStart = RisenTestWait.mark(this.risen);
             }
+            int watched = RisenTestWait.fewestTicksSince(this.watchStart);
             String problem = this.findProblem();
             if (problem != null)
             {
-                this.watchProblem = problem;
-                this.problems.add("after " + this.watchedTicks + " tick(s) of the watch, " + problem);
+                return RisenTestWait.Look.failed("after " + watched + " of their ticks of the watch, " + problem);
             }
+            return watched < WATCH_TICKS
+                    ? RisenTestWait.Look.waiting("the risen undead have been watched for " + watched + " of their " + WATCH_TICKS + " ticks")
+                    : RisenTestWait.Look.DONE;
         }
 
         /** What's wrong right now, or null. */

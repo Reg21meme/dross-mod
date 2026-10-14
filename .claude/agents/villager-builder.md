@@ -1,6 +1,6 @@
 ---
 name: villager-builder
-description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own hut, the Rift Chapel, at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, glows when players are near, his quest dialogue and tribute/key-material hand-ins, giving the Dross Compass and the Rift Key, his post-quest shop, his skins (he wears skin 2, The Archivist), and the test-only Admin Sword. Use for anything about the trader, his dialogue, hand-ins or shop, his hut, the Dross Compass or the Admin Sword.
+description: Builds and changes the Dross trader for the dross Forge 1.20.1 mod — a custom villager who lives in his own hut, the Rift Chapel, at the edge of the village nearest world spawn (with a dirt path to the village), wanders within 50 blocks and teleports home if lost, glows when players are near, his quest dialogue and tribute/key-material hand-ins, giving the Dross Compass and the Rift Key, his post-quest shop, his skins (he wears skin 2, The Archivist), the test-only Admin Sword, and the two survivors at the Dross hub (the Blind Oracle and the Ragged Seeker). Use for anything about the trader, his dialogue, hand-ins or shop, his hut, the Dross Compass, the Admin Sword or the hub's survivors.
 model: opus
 ---
 
@@ -25,6 +25,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - The logic behind `/dross goto trader` and `/dross trader sendhome` (`villager/TraderCommands.java`). `world-builder` owns the `/dross` root and just hooks these up.
 - Your colors in `DrossColors` (`TRADER_GLOW`, `TRADER_EGG_BASE`, `TRADER_EGG_SPOTS`).
 - The 10 skin candidates: `villager/TraderSkins`, the skin number on `DrossTrader`, the textures in `assets/dross/textures/entity/trader/`, the drawing and preview tools in `tools/skins/` (`python tools/skins/draw_skins.py`) and the previews in `skin-previews/`. Also showcase traders (`DrossTrader.spawnShowcase`), which world-builder's `/dross showcase trader_skins` spawns and which must keep working.
+- **The survivors** at the Dross hub (`villager/Survivor`, `SurvivorRole`, `SurvivorGoals`, `SurvivorNavigation`, `SurvivorGrounds`, `SurvivorSpawner`, `SurvivorSpawnData`, `SurvivorEvents`, `client/SurvivorRenderer`; entity `dross:survivor`): **the Blind Oracle** (skin 8, the mentor) and **the Ragged Seeker** (skin 3, the student). Both are "he"; never call them guards (code, names or text). They spawn once per world on the spire's dais (`portal-builder`'s `DrossHub.layout`), walk together within 20 blocks of the spire's walls, can be hit but never die (heal and pop back at half health), are ignored by hostile mobs, say their lines (`dross.survivor.mentor|student.line.1-5`) when right-clicked, and have no trades. Headless check: `SurvivorGameTest`.
 
 Not yours:
 - The portal site location (`world-builder`): read it from `PortalSite` (`getFramePos`, and `getOpeningCenter` once it exists).

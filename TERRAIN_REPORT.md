@@ -1,26 +1,74 @@
-# Terrain v1: overnight build report
+# Terrain v1: report
 
-Branch: `terrain-v1` (made from `main` at 5cbdfde). Nothing was pushed.
+Branch: `terrain-v1` (made from `main` at 5cbdfde). Nothing was pushed; merge it into `main` when you're happy.
 
-This file is the running log of the overnight build. It is updated after every stage, and finished at the end with every design choice and a test checklist.
+The Dross used to be a flat, always-night world. It is now real terrain with six biomes, 38 new blocks, dense forests, ores, a hub that sits properly on the land, two survivors at the hub, the Cinder Colossus in a volcano lair, and test commands to get around. This file has a summary, your in-game checklist, where to tweak things, and the full build log with every choice made.
 
-## Your answers (from the planning round)
-- Biomes about 400-800 blocks across; Nether Scar in smaller patches.
-- Small ponds only: dark water in Silverwood, murky water in Blightwood, frozen ponds in Rimefall. No seas or rivers.
-- The mountain area is **The Gravecrags** (`dross:gravecrags`).
-- The two hub NPCs are **survivors**, not guards: the **Blind Oracle** (skin 8) is the mentor, the **Ragged Seeker** (skin 3) the student. They walk together in and around the spire and out of its front gate, never more than 20 blocks outside its walls. Like the trader they can be hit but never die, and hostile mobs ignore them. No trades.
+## What's in the game now
+- **Terrain** (surface only, no caves): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and the Gravecrags' snow-capped peaks (about y 230-260). Always night; each biome has its own fog, sky and water colours, particles and sounds; a blue glow over the night sky; thicker fog in Blightwood.
+- **Six biomes**, regions about 600-670 blocks across:
+  - **Silverwood Forest** (the main biome, round the hub): dense, dark three-layer forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs, dark ponds.
+  - **Cinder Wastes**: ash, basalt, magma, enclosed lava pools, basalt spires, charred trees, Emberweed, Cinder Vents. The only mobs are the Colossus's **stone golems**, with **lava golems** about 1 in 5 (always near lava).
+  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, towering blightcaps, Gloomcaps, Sporepods, murky ponds, green fog.
+  - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms, frozen ponds.
+  - **Nether Scar** (patches about 240 across): netherrack with clusters of blue-cracked Scarred Netherrack, crimson and warped fungi, Soulwicks, Scar Vents. No fire or lava.
+  - **The Gravecrags** (the mountains, at least ~750 blocks from the hub): Cragstone cliffs, glowing Storm Lichen, Crag Thistles, snow on the peaks.
+- **Blocks** (38) and **materials**: Duskstone and its coal, gold (drops nuggets), Moonsilver and Stormite ores; the silverwood wood set and sapling; every biome's ground covers and plants. All in the creative Dross tab (blocks in group 1, the ore materials in a new group 7).
+- **The hub** (the Shattered Spire at 0,0) is levelled into the land with a staircase blend (at most 1 block per step), trees removed whole; the safe zone and arrivals work as before.
+- **The survivors**: the **Blind Oracle** (mentor) and the **Ragged Seeker** (student) walk together round the spire, can't die, are ignored by hostile mobs, and talk when right-clicked.
+- **The Cinder Colossus lair**: a volcano in the Cinder Wastes, the furthest of the nearest Cinder Wastes in three directions from the hub. Big cave mouth, a domed cavern with an obsidian and magma floor, lava under the floor, obsidian stalactites; the Colossus rises when you step onto the floor and comes back 10 minutes after it's beaten.
+- **The fight rework**: a 15-block push-back roar at the first hit and both stage changes, 4 golems on entering Cracking, 4 lava blobs on entering the Lava Core, a gap-closing charge (7-32 blocks), your move-chance table, and counters to Necromancy minions.
+- **Commands** (cheats on): `/dross goto biome <name>` (`silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall`, `nether_scar`, `gravecrags`) and `/dross goto lair colossus`.
+
+## Your in-game checklist (new world, Allow Cheats ON)
+Old worlds keep their flat Dross chunks, their old hub and (if they had one) their first-version lair, so test in a **new world**. Wait about a minute after it loads (the hub, then the lair, are built in the background).
+1. `/dross goto hub`: you land on the step inside the Shattered Spire; the spire sits level in a forest clearing with no cliffs or dirt walls round it; the Blind Oracle and the Ragged Seeker stand beside you. Right-click each a few times (their lines; the Seeker calls the Oracle "he"). Hit one to half health: both pop back with blue particles. Walk out of the gate: they wander together, never far.
+2. Look at the night sky and fog in the forest (blue glow, deep blue fog), and at Stormvine glowing on the trunks. No hostile mobs spawn within 48 blocks of the hub.
+3. `/dross goto biome <name>` for each of the six: you land on safe ground in that biome. Check each biome's look (above), fog and particles. Blightwood should look poisonous (green, maroon, beige); the Nether Scar's cracks should be calm clusters.
+4. In Survival at night: zombies and skeletons (netherite) spawn in the five other biomes as before; in the Cinder Wastes only stone golems, and lava golems near lava (about 1 in 5). A wild lava golem hisses and blows up only when you're close (no blocks broken).
+5. `/dross goto lair colossus`: the volcano (smoke from the crater, lava streams and pools at its foot), the big cave mouth, the cavern (obsidian and magma floor, glowing fissures with lava below, stalactites). Step onto the floor in Survival: the Colossus rises. The first time it's hurt it roars and throws you back about 15 blocks; it charges you from far away; at 60% it erupts, roars and 4 golems climb out; at 35% the shell breaks, it roars and spews 4 lava blobs; in the Lava Core it never throws rocks. Beat it: a trophy and "Set in Stone"; walk in again within 10 minutes: nothing rises; after 10 minutes it rises again.
+6. Blocks: take a few from the creative Dross tab; strip silverwood logs with an axe; grow a sapling with bone meal (four in a square make a great silverwood); mine the ores (gold ore drops nuggets; Stormite needs an iron pickaxe).
+7. Anything that looks off: tell me, with the coordinates (F3).
+
+## Where to tweak things
+- **Terrain, biomes, ground cover, features, ores, spawn lists:** labeled constants in `tools/terrain/worldgen.py` (TREES, TERRAIN, BIOMES, SURFACE, FEATURES). Change a number, run `python tools/terrain/worldgen.py`, then build. Guide: `tools/terrain/README.md`; design: `tools/terrain/TERRAIN_DESIGN.md`.
+- **Block textures:** `tools/terrain/draw_blocks.py` (then `python tools/terrain/block_data.py` if blocks changed); previews in `block-previews/`.
+- **Colours** (fog, sky, water, particles): the Dimension section of `DrossColors.java` (the generator copies them into the biome files).
+- **The Colossus fight:** `boss/golem/ColossusTuning.java` (roar, charge, move chances, stage-change attacks, golems, the lava golem top-up).
+- **The lair:** `boss/lair/LairTuning.java` (site search, volcano, cavern, respawn time).
+- **Previews:** run the tests with `DROSS_TERRAIN_PREVIEWS=1` (terrain) or `DROSS_LAIR_PREVIEWS=1` (lair; then `python tools/golems/lair_preview.py`).
+
+## Previews
+- `terrain-previews/`: `biomes_world.png` and `relief_world.png` (this world) and `biomes_1-3` / `relief_1-3` (fixed seeds): biome and shaded height maps of 8,192 x 8,192 blocks round the hub; `overview.png`; `hub_area.png` and `site_<biome>.png` (real blocks from above); `view_hub.png` and `view_<biome>.png` (night views of real blocks); `stats.txt`.
+- `block-previews/`: `blocks.png`, `blocks_3d.png`, `trees.png`.
+- `boss-previews/`: `lair_outside.png`, `lair_cutaway.png`.
 
 ## Stage log
 | Stage | What | Result | Commit |
 |---|---|---|---|
-| 0 | Branch, plan written into CLAUDE.md ("Terrain v1"), old test world moved to `run/world_before_terrain_v1` | done | 86ce2c5 |
-| 1 | Base stone, ores, materials, silverwood set, Stormvine, Silverwood Forest plants, tree shapes, texture tools | build OK, asset check OK, 26/26 headless tests in a fresh world | 2724f73 |
-| 2 | The other five biomes' blocks (22) | build OK, asset check OK; the 13 new tests passed in all 4 fresh worlds; 2 of 4 runs had one older test fail (see "Flaky older tests") | c09fd13 |
-| 3 | The hub fitted onto the ground (staircase blend), Dross ground in GroundFit, hub layout API, safe-landing finder, the flaky older tests fixed | build OK, asset check OK, 46/46 tests in 7 fresh worlds and 3 old-world copies | eb0d1eb |
-| 4 | The survivors (the Blind Oracle and the Ragged Seeker); Necromancy and risen undead leave them alone | build OK, 54/54 tests in fresh worlds and old-world copies | 7b23d51 |
-| 5 | The terrain: six biomes, cliffs, mesas, the Gravecrags, the hub area, sky/fog/light, previews | build OK, generator matches, 58/58 tests on a quiet PC (fresh and old world); 3 older tests time out when the PC is busy (fixed next) | 83965e6 |
-| - | Survivor and trader tests wait in real time (test-only fix) | 58/58 in two fresh worlds | 3d8bc1e |
-| 6 | Trees, plants, ponds, lava pools, giant mushrooms, dead trees, fungi, lichen, boulders and ores in every biome | build OK, generator matches, 60/60 tests in fresh and old worlds | (see git log) |
+| 0 | Branch, plan written into CLAUDE.md, old test world moved to `run/world_before_terrain_v1` | done | 86ce2c5 |
+| 1 | Base stone, ores, materials, silverwood set, Stormvine, Silverwood Forest plants, tree shapes, texture tools | 26/26 tests | 2724f73 |
+| 2 | The other five biomes' blocks (22) | 39/39; two older flaky tests found | c09fd13 |
+| 3 | The hub fitted onto the ground, Dross ground in GroundFit, hub layout API, safe-landing finder, flaky tests fixed | 46/46 (fresh and old worlds) | eb0d1eb |
+| 4 | The survivors; Necromancy leaves them alone | 54/54 | 7b23d51 |
+| 5 | The terrain: six biomes, sky/fog/light, previews | 58/58 (quiet PC) | 83965e6 |
+| - | Survivor and trader tests wait in real time | 58/58 | 3d8bc1e |
+| 6 | Trees, plants, ponds, lava pools, mushrooms, dead trees, fungi, lichen, boulders, ores | 60/60 (fresh and old) | 37b1a1b |
+| - | Round 2 decisions in CLAUDE.md | - | 0814339 |
+| R1 | Calmer Nether Scar, poison-green Blightwood, survivors "he", stable preview names | 60/60 (fresh and old) | 21c5892 |
+| R2a/b | Golems are the Cinder Wastes' only mobs | 67/67 (fresh and old) | 08a3610 |
+| R2c | The Colossus lair (first version) | 70/70 (fresh and old) | 0b0098d |
+| R3 | `/dross goto biome` and `/dross goto lair colossus` | 72/72 | 061f545 |
+| R4a | The fight rework | 78/78 | 7714ddc |
+| R4b | The volcanic lair | 78/78 | 8a8911c |
+| R5 | Lava golems about 1 in 5 | 79/79 | a04ec09 |
+| R6a | Old-world test fixes, steadier Nether Scar check, final previews (lair on the map) | 80/80 (fresh and old) | 292d894 |
+| R6b | The lair's way in never steps more than 1 block | 81/81 (fresh, old, rebuilt site) | 4d5f81d |
+| R6c + R7 | Steadier Necromancy and portal-site tests; docs (this report, CLAUDE.md, README, agent files, the Guide Book page) | 81/81 (fresh and old) | the last commit |
+
+Usage limits cut two runs short during the build (Stage 2 and Stage 6); both were resumed without losing work.
+
+# Build log (every stage and choice)
 
 ## Stage 1: blocks, part 1 (dimension-builder)
 **Built:** Duskstone; Duskstone Coal Ore, Duskstone Gold Ore (2-6 gold nuggets), Moonsilver Ore (Raw Moonsilver, Moonsilver Ingot), Stormite Ore (Stormite Shard, glowing crystals); the silverwood log, wood, stripped log, stripped wood, planks, leaves and sapling; Stormvine; Silvermoss, Glimmer Fern, Wispbloom. Three tree shapes and the `dross:stormvine` tree decorator. Tools in `tools/terrain/` (`worldgen.py`, `draw_blocks.py`, `block_data.py`, `check_assets.py`, `preview_trees.py`), previews in `block-previews/`.
@@ -171,9 +219,25 @@ The user fought the Colossus in its lair and said: the lair doesn't feel volcani
 - **Previews:** `boss-previews/lair_outside.png` (from above, into the mouth, from the side) and `boss-previews/lair_cutaway.png` (cut in half along the way in). Redraw with `DROSS_LAIR_PREVIEWS=1` on a test run, then `python tools/golems/lair_preview.py`.
 - **Numbers:** all in `boss/lair/LairTuning.java`. The build takes about 0.5-0.9 s once per world (about 110,000 blocks); the search about 7-40 s in the background.
 - **Checks:** 78/78 tests in fresh worlds (the lair shape test rewritten: floor materials and magma share, room over the middle, the stalactites, the crater open to the sky, the mouth at least 9 x 8, walkable from the land to the floor, the cavern enclosed except crater and mouth with no lava touching any open space, all lava walled in, nothing burnable near it, no spawns inside).
-- **Found:** on copies of an old world, two older tests from other areas fail (the `goto biome` test expects the hub to stand in Silverwood, but an old world's flat hub doesn't; and a pond test). Neither touches the lair; to fix in R6.
+- **Found:** on copies of an old world, two older tests from other areas fail (the `goto biome` test expects the hub to stand in Silverwood, but an old world's flat hub doesn't; and a pond test). Neither touches the lair; fixed in R6.
 
 ### R5: lava golems about 1 in 5 (boss-builder)
 - The user found lava golems too rare: lava pools are rare, so "1 in 5 of the spawns near lava" made them far rarer than 1 in 5 overall. Now a light **top-up** runs every 5 s for each player in the Cinder Wastes: it counts the wild golems within 64 blocks and, if lava golems are under about 1 in 5, adds one wild lava golem **next to the nearest lava** within 48 blocks (on solid ground, at least 24 blocks from every player, never inside the lair, never on Peaceful, never past the monster cap). Far from lava there are still only stone golems. Numbers: `WILD_TOP_UP_*` and `WILD_LAVA_GOLEM_SHARE` in `boss/golem/ColossusTuning.java`.
 - **Checks:** 79/79 tests in a fresh world (new: 12 stone golems and a lava pool get exactly 3 lava golems added, 20%, all next to the lava; with no lava, none). Committed on the builder's run so the user could play; the independent check is part of R6.
-- **Found:** `TerrainChunksGameTest.realChunksPerBiome` failed once on a seed where a Nether Scar site had only 6.8% scarred netherrack (since R1 mixes in plain netherrack); to fix in R6.
+- **Found:** `TerrainChunksGameTest.realChunksPerBiome` failed once on a seed where a Nether Scar site had only 6.8% scarred netherrack (since R1 mixes in plain netherrack); fixed in R6.
+
+## R6: test fixes, final previews, full check
+- **`/dross goto biome` in old worlds** (world-builder): the test wrongly expected an old world's flat hub to stand in Silverwood. The command never landed anyone on old flat land, but after skipping it only looked about 340 blocks further; now it recognises old chunks from the save (without loading them) and keeps searching outward past old land. New test `gotoBiomeBeyondOldLand`.
+- **Pond test** (dimension-builder): in the old test world the test arena is a snowy taiga, so the pond froze on top as designed. The test now expects ice exactly where the biome freezes water.
+- **Nether Scar check** (dimension-builder): measured over 5,317 sites and 405 seeds; it now checks the cracked share of the netherrack ground (5-92%) and the netherrack ground's share of the site (at least 3%), instead of 10% of the whole site. The look is unchanged.
+- **Previews:** refreshed; the world maps mark the Colossus lair (this world: 654, 406, about 770 blocks from the hub).
+- **The lair's way in** (boss-builder, found by mod-tester on a steep site: a 2-block step 60 blocks out): the land in front of the cave mouth is now planned as a staircase (at most 1 block between neighbouring columns); on steep land a rock ramp runs out to meet the land; only as a last resort does the mouth face another side. New and stronger checks (3 walking lines, neighbour steps, 36 planned sites over 4 seeds, 224 made-up hard grounds). Volcanoes built before keep their land.
+- **Steadier tests:** the two Necromancy tests (wild cave monsters wandered into the test and its waits counted server ticks: the stand-in owner is now creative, the arena walled, the waits in real time); the Colossus arena wait; the portal-site test (it gave up after 5 minutes while a busy machine took 383 s to place the site; it now waits while the placement is still working). None of them was a game bug.
+- **Checks:** 81/81 in fresh worlds and old-world copies.
+
+## R7: docs
+- This report: summary, your checklist, where to tweak things, stage log.
+- CLAUDE.md: the terrain, survivors, lair and fight rework moved into The plan (steps 1, 4, 5, 6, 8), the Areas table, rules 2 and 9, Status, Verify over time, Parked.
+- README.md: the Dross's terrain and biomes, the survivors, the lair, the fight changes, the new commands, blocks and materials, tools and layout.
+- The agent files (`.claude/agents/`): the dimension agent rewritten for the terrain; the others updated for the survivors, the lair, `goto biome`/`goto lair` and the headless check routine.
+- The Guide Book's second page no longer calls the Dross "a flat land".

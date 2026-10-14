@@ -171,6 +171,35 @@ public final class PortalSitePlacer
         return frame;
     }
 
+    /**
+     * True while this world's site is still being placed in the background (a search, a chunk load or a check is under
+     * way). False once it's placed, and also if placing stopped without a site (only after an error in the last resort;
+     * then it's built when it's first needed). Server thread.
+     */
+    static boolean isWorking(ServerLevel overworld)
+    {
+        Job j = job;
+        return j != null && j.level == overworld && !j.done;
+    }
+
+    /**
+     * A search can run a little past {@link SiteRules#MAX_SEARCH_MILLIS}: it finishes the tile it's on first, which is
+     * slow when the computer is busy (a search that took 157 s instead of 120 was seen in the GameTest run).
+     */
+    private static final long SEARCH_OVERRUN_MILLIS = 60_000L;
+
+    /**
+     * The longest a background placement can take by its own limits: every step of the ladder with all its searches
+     * (each overrunning a little) and all its spot checks waiting the full chunk-load timeout. About 2.5 hours, far
+     * longer than any real placement (usually 20 seconds to a few minutes); the site GameTest uses it as its limit.
+     */
+    static long worstCaseMillis()
+    {
+        long perLevel = SEARCHES_PER_LEVEL * (SiteRules.MAX_SEARCH_MILLIS + SEARCH_OVERRUN_MILLIS)
+                + SiteRules.MAX_CHECKS_PER_LEVEL * LOAD_TIMEOUT_MILLIS;
+        return SiteRules.LADDER.size() * perLevel;
+    }
+
     // ---------------------------------------------------------------- events
 
     @SubscribeEvent
