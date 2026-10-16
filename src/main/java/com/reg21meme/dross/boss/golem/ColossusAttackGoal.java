@@ -1,5 +1,7 @@
 package com.reg21meme.dross.boss.golem;
 
+import com.reg21meme.dross.boss.BossChase;
+import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
@@ -38,9 +40,9 @@ import java.util.Set;
  *       places a block);</li>
  *   <li><b>slam</b>: both fists raised high for about a second (the warning), then a shockwave that does little damage
  *       but throws players far;</li>
- *   <li><b>charge</b>: head down, it paws the ground, then gallops head first to the spot where its target stood when
- *       the charge started (up to 32 blocks), hitting everything in its way; in the Cracking and Lava Core stages it
- *       leaves a trail of fire;</li>
+ *   <li><b>charge</b>: head down, it paws the ground (its eyes on its target), then gallops head first to the spot
+ *       where its target stood half a second before the gallop (up to 32 blocks), hitting everything in its way; in
+ *       the Cracking and Lava Core stages it leaves a trail of fire;</li>
  *   <li><b>lob</b> (Cracking and Lava Core): its volcanoes spit lava blobs ({@link LavaBlob}) that land a few blocks
  *       from the player and leave pools of temporary lava;</li>
  *   <li><b>summon</b> (Cracking and Lava Core, and any stage while a player's risen undead are near): it pounds the
@@ -51,6 +53,10 @@ import java.util.Set;
  * ({@link #weights}). A move always plays to its end (even if its target dies), except when the Colossus changes stage
  * ({@link #interrupt}); the stage changes have their own attacks ({@link #stageChangeSummon}, {@link #stageChangeLob}).
  * Every hit it lands in the Lava Core stage sets you on fire. It never breaks a block.
+ * <p>
+ * It faces its target nearly all the time (the user's wish: about 90% of the fight): it walks straight at it when the
+ * way is clear ({@link BossChase}), turns to it standing and through its moves ({@link #tracks}), except the moment a
+ * move commits to a direction and the charge's gallop, and after a charge it wheels round to face it again.
  * <p>
  * Against Necromancy's risen undead (when they're within {@link ColossusTuning#RISEN_RANGE} blocks): a summon raises
  * one golem for every two of them, the golems go for them first, and while it has fewer golems than half of them it may
@@ -151,10 +157,12 @@ public class ColossusAttackGoal extends Goal
     private int repath;
     /** Ticks left of stepping in for a swipe it picked from a little out of reach (0: not stepping in). */
     private int stepIn;
+    /** Ticks left of wheeling round to face its target after a charge (0: not wheeling). */
+    private int wheel;
     /** Where its target was last seen: a move keeps aiming there if the target dies or vanishes mid-move. */
     @Nullable
     private Vec3 lastSeen;
-    /** The charge: the spot it runs to (where its target stood when it started), where it set off, the way it gallops, how far it runs, and what it has already hit (each thing once). */
+    /** The charge: the spot it runs to (where its target stood when the wind-up locked it), where it set off, the way it gallops, how far it runs, and what it has already hit (each thing once). */
     @Nullable
     private Vec3 chargeSpot;
     private Vec3 chargeFrom = Vec3.ZERO;
@@ -230,6 +238,7 @@ public class ColossusAttackGoal extends Goal
     {
         this.current = null;
         this.stepIn = 0;
+        this.wheel = 0;
         this.chargeHits.clear();
         this.pause = this.golem.stage().attackPause;
     }
@@ -294,13 +303,15 @@ public class ColossusAttackGoal extends Goal
     }
 
     /**
-     * Starts a move at a target. The charge fixes the spot it runs to now (where the target stands); the summon works
-     * out how many minions it raises. Package-private for {@link ColossusGameTest}, which starts moves itself.
+     * Starts a move at a target. The charge aims at the target now (its wind-up keeps following it until the spot
+     * locks, see {@link #runCharge}); the summon works out how many minions it raises. Package-private for
+     * {@link ColossusGameTest}, which starts moves itself.
      */
     void begin(Move move, LivingEntity target)
     {
         this.current = move;
         this.stepIn = 0;
+        this.wheel = 0;
         this.lastSeen = target.position();
         this.golem.getNavigation().stop();
         if (move == Move.CHARGE)
@@ -529,6 +540,20 @@ public class ColossusAttackGoal extends Goal
     /** Walks up to the target, or stands and faces it once it's close enough to hit. */
     private void approach(LivingEntity target, double dist)
     {
+        if (this.wheel > 0)
+        {
+            // Just after a charge (it has run to where its target was): it digs in and wheels round to face it before
+            // it walks on.
+            this.wheel--;
+            this.golem.getNavigation().stop();
+            this.golem.turnTowards(target.position(), this.golem.stage().turnSpeed * ColossusTuning.CHARGE_WHEEL_TURN);
+            if (Math.abs(Mth.degreesDifference(this.golem.getYRot(), yawTo(this.golem.position(), target.position())))
+                    <= ColossusTuning.CHARGE_WHEEL_DONE)
+            {
+                this.wheel = 0;
+            }
+            return;
+        }
         double edge = dist - this.golem.getBbWidth() / 2.0D - target.getBbWidth() / 2.0D;
         if (edge <= ColossusTuning.SWIPE_REACH * STOP_SHARE)
         {
@@ -537,11 +562,8 @@ public class ColossusAttackGoal extends Goal
             return;
         }
         this.golem.getLookControl().setLookAt(target, 30.0F, 30.0F);
-        if (--this.repath <= 0)
-        {
-            this.repath = REPATH_TICKS;
-            this.golem.getNavigation().moveTo(target, 1.0D);
-        }
+        // Straight at it when the way is clear (facing it as it walks), else along a path.
+        this.repath = BossChase.chase(this.golem, target, 1.0D, this.repath, REPATH_TICKS);
     }
 
     // ---------------------------------------------------------------- running a move
@@ -558,13 +580,14 @@ public class ColossusAttackGoal extends Goal
         GolemDesigns.Moves m = this.golem.getDesign().moves();
         ColossusStage stage = this.golem.stage();
         Vec3 aim = target != null && target.isAlive() ? target.position() : this.lastSeen;
+        if (aim != null && this.tracks(t, m))
+        {
+            // It keeps its body turned to its target through its moves (the user's wish: facing it about 90% of the fight).
+            this.golem.turnTowards(aim, stage.turnSpeed);
+        }
         switch (this.current)
         {
             case SWIPE -> {
-                if (t < at(m.swipeHit()) - 2 && aim != null)
-                {
-                    this.golem.turnTowards(aim, stage.turnSpeed);
-                }
                 if (t == at(m.swipeHit()) - 4)
                 {
                     this.golem.sound(ModSounds.COLOSSUS_SWIPE.get(), 2.0F, 0.9F);
@@ -579,10 +602,6 @@ public class ColossusAttackGoal extends Goal
                 }
             }
             case THROW -> {
-                if (t < at(m.throwRelease()) && aim != null)
-                {
-                    this.golem.turnTowards(aim, stage.turnSpeed);
-                }
                 if (t == at(m.throwGrab()))
                 {
                     this.ripRock();
@@ -597,10 +616,6 @@ public class ColossusAttackGoal extends Goal
                 }
             }
             case SLAM -> {
-                if (t < at(m.slamRaised()) && aim != null)
-                {
-                    this.golem.turnTowards(aim, stage.turnSpeed);
-                }
                 if (t == at(m.slamRaised()))
                 {
                     this.golem.sound(ModSounds.COLOSSUS_ROAR.get(), 3.0F, 1.0F);
@@ -619,15 +634,11 @@ public class ColossusAttackGoal extends Goal
                     this.finish();
                 }
             }
-            case CHARGE -> this.runCharge(t, m, stage);
+            case CHARGE -> this.runCharge(t, m, stage, target);
             case LOB -> {
                 if (t == at(0))
                 {
                     this.golem.sound(ModSounds.COLOSSUS_RUMBLE.get(), 3.0F, 1.0F);
-                }
-                if (t < at(m.lobRelease()) && aim != null)
-                {
-                    this.golem.turnTowards(aim, stage.turnSpeed);
                 }
                 if (t == at(m.lobRelease()))
                 {
@@ -657,6 +668,33 @@ public class ColossusAttackGoal extends Goal
                 }
             }
         }
+    }
+
+    /**
+     * True if the move in progress lets it turn to face its target this tick: every moment except when the move has
+     * committed to a direction: the last {@link ColossusTuning#SWIPE_COMMIT_TICKS} before the swipe's hit and the last
+     * {@link ColossusTuning#SLAM_COMMIT_TICKS} before the slam's (so a dodge counts), the throw's and the lob's release,
+     * and the whole charge ({@link #runCharge} turns it itself: towards its target in the wind-up, then the gallop runs
+     * straight).
+     */
+    private boolean tracks(int t, GolemDesigns.Moves m)
+    {
+        return switch (this.current)
+        {
+            case SWIPE -> t < at(m.swipeHit()) - ColossusTuning.SWIPE_COMMIT_TICKS || t > at(m.swipeHit());
+            case SLAM -> t < at(m.slamHit()) - ColossusTuning.SLAM_COMMIT_TICKS || t > at(m.slamHit());
+            case THROW -> t != at(m.throwRelease());
+            case LOB -> t != at(m.lobRelease());
+            case SUMMON -> true;
+            case CHARGE -> false;
+        };
+    }
+
+    /** True while its charge gallops in its straight line (from the end of the wind-up until it stops). */
+    boolean isGalloping()
+    {
+        return this.current == Move.CHARGE
+                && this.golem.ticksInAction() >= at(this.golem.getDesign().moves().chargeStartTicks());
     }
 
     /** The move is over: back to standing, its cooldown starts and it pauses before the next one. */
@@ -796,20 +834,24 @@ public class ColossusAttackGoal extends Goal
     }
 
     /**
-     * The charge: during the wind-up it turns towards the spot where its target stood when the charge started
-     * ({@link #begin}), then gallops in a straight line all the way to that spot (at most
-     * {@link ColossusTuning#CHARGE_MAX_DISTANCE} blocks), unless it runs into something solid (then it's dazed for a
-     * moment) or runs out of time.
+     * The charge: during the wind-up it keeps turning to face its target, and {@link ColossusTuning#CHARGE_AIM_LOCK_TICKS}
+     * before the gallop it fixes the spot it will run to (where its target stands then) and lines up on it; then it
+     * gallops in a straight line all the way to that spot (at most {@link ColossusTuning#CHARGE_MAX_DISTANCE} blocks),
+     * unless it runs into something solid (then it's dazed for a moment) or runs out of time.
      */
-    private void runCharge(int t, GolemDesigns.Moves m, ColossusStage stage)
+    private void runCharge(int t, GolemDesigns.Moves m, ColossusStage stage, @Nullable LivingEntity target)
     {
         int windup = at(m.chargeStartTicks());
+        if (t < windup - ColossusTuning.CHARGE_AIM_LOCK_TICKS && target != null && target.isAlive())
+        {
+            this.chargeSpot = target.position(); // not locked yet: it follows its target with its eyes
+        }
         Vec3 spot = this.chargeSpot != null ? this.chargeSpot : this.lastSeen;
         if (t < windup - 2)
         {
             if (spot != null)
             {
-                this.golem.turnTowards(spot, stage.turnSpeed * 1.5F);
+                this.golem.turnTowards(spot, stage.turnSpeed * ColossusTuning.CHARGE_WINDUP_TURN);
             }
             return;
         }
@@ -843,6 +885,7 @@ public class ColossusAttackGoal extends Goal
         if (t > windup && (gone >= this.chargeRun - ARRIVED || t > windup + this.chargeTicks))
         {
             this.stopCharge(); // there (or it gave up)
+            this.wheel = ColossusTuning.CHARGE_WHEEL_TICKS; // then it wheels round to face its target
             return;
         }
         // The last stride is just long enough to stop on the spot.
@@ -945,11 +988,13 @@ public class ColossusAttackGoal extends Goal
     void stageChangeLob()
     {
         List<Vec3> centres = new ArrayList<>();
-        for (Player player : this.playersNear(ColossusTuning.BOSS_BAR_RANGE))
+        LivingEntity target = this.golem.getTarget();
+        // (Raged by the Rage Wand and fighting a raged mob, it ignores the players: the blobs land round its enemy.)
+        boolean ragedFight = Rage.areEnemies(this.golem, target);
+        for (Player player : ragedFight ? List.<Player>of() : this.playersNear(ColossusTuning.BOSS_BAR_RANGE))
         {
             centres.add(player.position());
         }
-        LivingEntity target = this.golem.getTarget();
         if (centres.isEmpty() && target != null && target.isAlive())
         {
             centres.add(target.position());
@@ -1196,6 +1241,12 @@ public class ColossusAttackGoal extends Goal
                     0.1D, spread, 0.2D);
         }
         level.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 0.3D, at.z, 4, spread * 0.6D, 0.1D, spread * 0.6D, 0.01D);
+    }
+
+    /** The yaw (Minecraft's: 0 south, 90 west) that faces from one spot towards another. */
+    private static float yawTo(Vec3 from, Vec3 to)
+    {
+        return (float) (Mth.atan2(to.z - from.z, to.x - from.x) * Mth.RAD_TO_DEG) - 90.0F;
     }
 
     private static Vec3 flat(Vec3 v)

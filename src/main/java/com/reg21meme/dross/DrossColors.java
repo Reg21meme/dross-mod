@@ -91,6 +91,13 @@ public final class DrossColors {
      */
     public static final int GOLEM_SHOWCASE_BUTTON = 0xFFA328;
 
+    /**
+     * The clickable control buttons of /dross showcase boss_designs ratking and /dross showcase rats ([Sleep],
+     * [Rage!]...). Poison green, not the Dross blue: the Rat King serves the Plague Necromancer. Used in
+     * command/RatKingShowcase and command/RatShowcase.
+     */
+    public static final int RAT_SHOWCASE_BUTTON = 0x8FD14F;
+
     // ---------------------------------------------------------------- Dimension (dimension-builder)
     // The Dross's own blocks and plants. (Their texture colors live in the Python palettes in tools/terrain/draw_blocks.py.)
 
@@ -307,6 +314,27 @@ public final class DrossColors {
     /** Lava Golem spawn egg spots: bright lava. Used in registry/ModItems. */
     public static final int LAVA_GOLEM_EGG_SPOTS = 0xFFA328;
 
+    /** Rat King spawn egg base: his sewer grey-green fur. Used in registry/ModItems. */
+    public static final int RAT_KING_EGG_BASE = 0x41493C;
+
+    /** Rat King spawn egg spots: his blood-red cape. Used in registry/ModItems. */
+    public static final int RAT_KING_EGG_SPOTS = 0x87191C;
+
+    /** The green sparks where the Rat King's staff strikes the ground in his rage. Used in boss/ratking/RatKing. */
+    public static final int RAT_KING_SLAM_SPARK = 0x79C93A;
+
+    /** Plague Rat spawn egg base: its mangy grey-green fur. Used in registry/ModItems. */
+    public static final int RAT_EGG_BASE = 0x525A45;
+
+    /** Plague Rat spawn egg spots: its sickly green pustules. Used in registry/ModItems. */
+    public static final int RAT_EGG_SPOTS = 0x8AA83A;
+
+    /** Plague Ravager spawn egg base: its dark grey-green fur. Used in registry/ModItems. */
+    public static final int ENRAGED_RAT_EGG_BASE = 0x2C3224;
+
+    /** Plague Ravager spawn egg spots: its glowing green boils. Used in registry/ModItems. */
+    public static final int ENRAGED_RAT_EGG_SPOTS = 0xA6EC5B;
+
     /** Cinder Colossus trophy: the item's name, lava orange. Used in boss/trophy/ColossusTrophyItem. */
     public static final int TROPHY_NAME = 0xFF8A1F;
 
@@ -324,6 +352,52 @@ public final class DrossColors {
 
     /** Cinder Colossus, Lava Core stage: the embers left when an arrow (any projectile) burns up in its lava. Used in boss/golem/CinderColossus. */
     public static final int COLOSSUS_RANGED_EMBER = 0xFF6A1F;
+
+    /** Rat King: the green sparks along the arc his staff sweeps through. Used in boss/ratking/RatKingAttackGoal. */
+    public static final int RAT_KING_SWEEP_TRAIL = 0x79C93A;
+
+    /** Rat King's poison ball: its brownish-green trail and burst dust, and the darker specks in it. Used in boss/ratking/PlagueBall. */
+    public static final int PLAGUE_BALL_TRAIL = 0x6E7A34;
+    public static final int PLAGUE_BALL_TRAIL_DARK = 0x4A4A22;
+
+    /** Rat King's poison cloud: its brownish-green dust, and the darker specks in it. Used in boss/ratking/PoisonCloud. */
+    public static final int POISON_CLOUD = 0x7F8A3C;
+    public static final int POISON_CLOUD_DARK = 0x575A2A;
+
+    /** Rat King's boss bar: the name over it, normal and in the Rage (as the bar previews draw it). Used in boss/client/DrossBossBars. */
+    public static final int RAT_KING_BAR_NAME = 0xFFFFFF;
+    public static final int RAT_KING_BAR_NAME_RAGE = 0xFFBEB0;
+
+    /** The "[Summon the Rat King]" button in /dross boss arena ratking's chat message: poison green. Used in boss/BossCommands. */
+    public static final int RAT_KING_COMMAND_BUTTON = 0x8FD14F;
+
+    /** /dross showcase bossbars ratking: the [1]..[8] buttons, and the one being shown. Used in boss/ratking/RatKingBarShowcase. */
+    public static final int RAT_KING_BAR_BUTTON = 0x8FD14F;
+    public static final int RAT_KING_BAR_BUTTON_SHOWN = 0xFFFFFF;
+
+    /** Rage Wand: its tooltip line saying what it does. Used in boss/rage/RageWandItem. */
+    public static final ChatFormatting RAGE_WAND_TOOLTIP = ChatFormatting.GRAY;
+
+    /** The Rage effect's colour, an angry red (its swirl is hidden; raged mobs show angry particles). Used in boss/rage/RageEffect. */
+    public static final int RAGE_EFFECT = 0xD01C1C;
+
+    /** Rat King trophy: the item's name, poison green. Used in boss/ratking/trophy/RatKingTrophyItem. */
+    public static final int RAT_KING_TROPHY_NAME = 0x8FD14F;
+
+    /** Rat King trophy: the tooltip line naming its design. Used in boss/ratking/trophy/RatKingTrophyItem. */
+    public static final ChatFormatting RAT_KING_TROPHY_TOOLTIP = ChatFormatting.GRAY;
+
+    /** Rat King trophy: the tooltip hint "Right-click to change its pose". Used in boss/ratking/trophy/RatKingTrophyItem. */
+    public static final ChatFormatting RAT_KING_TROPHY_HINT = ChatFormatting.GRAY;
+
+    /** Rat King trophy: the green dust puffed out when it's right-clicked to a new pose. Used in boss/ratking/trophy/RatKingTrophyBlock. */
+    public static final int RAT_KING_TROPHY_CYCLE_DUST = 0x79C93A;
+
+    /** Rat King trophy: the little glint of poison green at his staff's orb now and then. Used in boss/ratking/trophy/client/RatKingTrophyParticles. */
+    public static final int RAT_KING_TROPHY_GLINT = 0xA6EC5B;
+
+    /** Rat King trophy (Ground Pound): the green dust where his staff's foot strikes. Used in boss/ratking/trophy/client/RatKingTrophyParticles. */
+    public static final int RAT_KING_TROPHY_SLAM_DUST = 0x79C93A;
 
     // ---------------------------------------------------------------- Helpers
 

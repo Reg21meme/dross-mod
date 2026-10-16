@@ -1,6 +1,7 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophies;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
 import com.reg21meme.dross.enchant.NecromancyScheme;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
@@ -98,6 +99,11 @@ public final class ModCreativeTabs
                         {
                             output.accept(design.stack());
                         }
+                        // Boss area: the Rat King trophy, every design (he gives design RatKingTuning.TROPHY_DROP_DESIGN)
+                        for (RatKingTrophies.Design design : RatKingTrophies.DESIGNS)
+                        {
+                            output.accept(design.stack());
+                        }
 
                         // 4. Spawn eggs
                         // Villager area: the Dross Trader
@@ -106,10 +112,16 @@ public final class ModCreativeTabs
                         output.accept(ModItems.CINDER_COLOSSUS_SPAWN_EGG.get());
                         output.accept(ModItems.STONE_GOLEM_SPAWN_EGG.get());
                         output.accept(ModItems.LAVA_GOLEM_SPAWN_EGG.get());
+                        // Boss area: the Rat King and his rats (the Plague Rat and the Plague Ravager)
+                        output.accept(ModItems.RAT_KING_SPAWN_EGG.get());
+                        output.accept(ModItems.RAT_SPAWN_EGG.get());
+                        output.accept(ModItems.ENRAGED_RAT_SPAWN_EGG.get());
 
                         // 5. Weapons and tools
                         // Villager area: the test-only Admin Sword
                         output.accept(ModItems.ADMIN_SWORD.get());
+                        // Boss area: the Rage Wand (hit mobs and they fight each other)
+                        output.accept(ModItems.RAGE_WAND.get());
 
                         // 6. Enchanted books
                         // Enchantments area: a book for every level of Necromancy (I-V), then Deathforged (I-X).

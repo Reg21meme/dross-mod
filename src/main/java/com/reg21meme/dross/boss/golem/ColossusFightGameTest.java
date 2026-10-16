@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.golem;
 
+import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.registry.ModBlocks;
@@ -11,6 +12,7 @@ import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -24,12 +26,15 @@ import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.gametest.ForgeGameTestHooks;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import static com.reg21meme.dross.boss.golem.ColossusGameTest.ARENA;
@@ -57,14 +62,19 @@ import static com.reg21meme.dross.boss.golem.ColossusGameTest.waitForArena;
  *       risen undead attacking move 20 points from the swipe to the slam.</li>
  *   <li>{@link #risenUndeadBringGolems}: with 4 risen undead near, it may summon even in the Shell, a summon raises 2
  *       golems and they go for the risen undead; with 3 of them attacking up close, the slam's share rises.</li>
+ *   <li>{@link #facesItsTargetMostOfTheTime}: fighting a stand-in player who walks round it (in each stage in turn), its
+ *       body faces them (within 30 degrees) at least 90% of the time, its charge's gallop not counted (the user's
+ *       wish after a play test).</li>
  * </ul>
- * The charge tests run on a long runway ({@link #RUNWAY}), made in memory like the arena.
+ * The charge tests run on a long runway ({@link #RUNWAY}) and the facing test on a wide square floor ({@link #RING}),
+ * both made in memory like the arena.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class ColossusFightGameTest
 {
+    private static final Logger LOGGER = LogUtils.getLogger();
     /** A long, narrow test floor for the charge (same floor, roof and height as the arena). */
     static final String RUNWAY = "colossus_test_runway";
     private static final ResourceLocation RUNWAY_ID = new ResourceLocation(Dross.MODID, RUNWAY);
@@ -93,6 +103,30 @@ public final class ColossusFightGameTest
     /** Samples per stage and band in the chance test, and how far a share may be from the table's. */
     private static final int SAMPLES = 20000;
     private static final double SHARE_TOLERANCE = 0.02D;
+    /** A wide, square test floor for the facing test (same floor, roof and height as the arena). */
+    static final String RING = "colossus_test_ring";
+    private static final ResourceLocation RING_ID = new ResourceLocation(Dross.MODID, RING);
+    private static final int RING_SIZE = 33;
+    /**
+     * The facing tests (the user's wish: each boss faces the player it fights about 90% of the time): a body counts as
+     * facing its target when it's turned within this many degrees of it (seen from above)...
+     */
+    public static final float FACING_TOLERANCE = 30.0F;
+    /** ...and it must face it at least this share of the ticks measured. */
+    public static final double FACING_SHARE = 0.9D;
+    /** At least this share of the ticks must be measured (the rest: the charge's gallop, under the ground...). */
+    public static final double FACING_MIN_SHARE_COUNTED = 0.5D;
+    /** Ticks the Colossus fights in each of its three stages. */
+    private static final int FACING_STAGE_TICKS = 400;
+    /**
+     * The stand-in player walks round the middle of the floor at a walking pace (blocks a tick: a walking player is
+     * 0.215), on a circle whose radius swings between 3 and 11 blocks and back every this many ticks (so the fight
+     * goes from close up to the middle distances: swipes, slams, throws, lobs, charges, summons).
+     */
+    public static final double FACING_WALK_SPEED = 0.2D;
+    public static final double FACING_RADIUS_MID = 7.0D;
+    public static final double FACING_RADIUS_SWING = 4.0D;
+    public static final int FACING_RADIUS_PERIOD = 300;
 
     private ColossusFightGameTest() {}
 
@@ -655,6 +689,139 @@ public final class ColossusFightGameTest
     }
 
     // ---------------------------------------------------------------------------------------------
+    // Facing its target
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = RING, batch = "dross_colossus_facing",
+            timeoutTicks = ARENA_WAIT_TICKS + 3 * FACING_STAGE_TICKS + 100)
+    public static void facesItsTargetMostOfTheTime(GameTestHelper helper)
+    {
+        if (waitForArena(helper, ColossusFightGameTest::facesItsTargetMostOfTheTime, RING_SIZE, RING_SIZE))
+        {
+            return;
+        }
+        BlockPos middle = new BlockPos(RING_SIZE / 2, FLOOR_Y + 1, RING_SIZE / 2);
+        CinderColossus golem = CinderColossus.spawnBoss(helper.getLevel(), helper.absoluteVec(Vec3.atBottomCenterOf(middle)), 0.0F);
+        if (golem == null || golem.attackGoal() == null)
+        {
+            helper.fail("the Colossus couldn't be spawned");
+            return;
+        }
+        ServerPlayer player = joinPlayer(helper, "colossus-facing-test", middle.offset((int) FACING_RADIUS_MID, 0, 0), YAW_WEST);
+        // It can't hurt this stand-in (it would die and the fight would end), so it's always the one it fights: an
+        // invulnerable player is never picked as a target by itself, so nothing takes it away.
+        player.getAbilities().invulnerable = true;
+        List<ServerPlayer> players = List.of(player);
+        golem.setTarget(player);
+        Vec3 centre = helper.absoluteVec(Vec3.atBottomCenterOf(middle));
+        ColossusStage[] stages = {ColossusStage.SHELL, ColossusStage.CRACKING, ColossusStage.LAVA_CORE};
+        GolemPhase[] phases = {GolemPhase.DORMANT, GolemPhase.ERUPTED, GolemPhase.CORE};
+        int[] tick = {0};
+        double[] walked = {0.0D};
+        int[] counted = new int[stages.length];
+        int[] facing = new int[stages.length];
+        Map<String, int[]> breakdown = new TreeMap<>();
+        helper.startSequence()
+                .thenExecuteFor(stages.length * FACING_STAGE_TICKS, () -> {
+                    int k = tick[0]++;
+                    int s = Math.min(stages.length - 1, k / FACING_STAGE_TICKS);
+                    if (k % FACING_STAGE_TICKS == 0)
+                    {
+                        golem.setPhase(phases[s]);
+                        golem.applyStage(stages[s]);
+                    }
+                    walked[0] = walkRound(player, centre, k, walked[0]);
+                    if (golem.getTarget() != player)
+                    {
+                        golem.setTarget(player);
+                    }
+                    // The charge's straight gallop doesn't count (it runs where it aimed), nor a target inside its body.
+                    if (!golem.isAlive() || golem.isTransforming() || golem.attackGoal().isGalloping()
+                            || flatDistance(golem.position(), player.position()) <= golem.getBbWidth() / 2.0D + player.getBbWidth() / 2.0D)
+                    {
+                        return;
+                    }
+                    counted[s]++;
+                    boolean faced = faces(golem, player.position());
+                    if (faced)
+                    {
+                        facing[s]++;
+                    }
+                    // What it was doing (and whether it was walking), for the log.
+                    String label = stages[s] + " " + golem.getAction() + (isWalking(golem) ? " walking" : "");
+                    int[] row = breakdown.computeIfAbsent(label, x -> new int[2]);
+                    row[0]++;
+                    row[1] += faced ? 1 : 0;
+                })
+                .thenExecute(() -> {
+                    int all = 0;
+                    int faced = 0;
+                    StringBuilder shares = new StringBuilder();
+                    for (int s = 0; s < stages.length; s++)
+                    {
+                        all += counted[s];
+                        faced += facing[s];
+                        shares.append(String.format(" %s %d/%d (%.1f%%)", stages[s], facing[s], counted[s],
+                                100.0D * facing[s] / Math.max(1, counted[s])));
+                    }
+                    double share = (double) faced / Math.max(1, all);
+                    breakdown.forEach((key, row) -> LOGGER.info("[colossus test] facing while {}: {} of {} ticks", key, row[1], row[0]));
+                    LOGGER.info("[colossus test] it faced its target (within {} degrees) {}% of {} ticks:{}", FACING_TOLERANCE,
+                            String.format("%.1f", 100.0D * share), all, shares);
+                    cleanUp(helper, golem, players);
+                    if (all < FACING_MIN_SHARE_COUNTED * stages.length * FACING_STAGE_TICKS)
+                    {
+                        helper.fail("too few ticks counted to measure its facing: " + all);
+                    }
+                    else if (share < FACING_SHARE)
+                    {
+                        helper.fail("it should face its target at least " + Math.round(FACING_SHARE * 100.0D) + "% of the time, but"
+                                + " faced it " + String.format("%.1f", 100.0D * share) + "%:" + shares);
+                    }
+                })
+                .thenSucceed();
+    }
+
+    /**
+     * Moves a stand-in player one tick along its walk round the middle of the floor: a circle whose radius swings
+     * between {@link #FACING_RADIUS_MID} minus and plus {@link #FACING_RADIUS_SWING}, at {@link #FACING_WALK_SPEED}
+     * blocks a tick (a walking player's pace). Also used by the Rat King's facing test.
+     *
+     * @return the angle walked so far (radians), for the next tick
+     */
+    public static double walkRound(ServerPlayer player, Vec3 centre, int tick, double walked)
+    {
+        double r = FACING_RADIUS_MID + FACING_RADIUS_SWING * Math.sin(2.0D * Math.PI * tick / FACING_RADIUS_PERIOD);
+        double angle = walked + FACING_WALK_SPEED / r;
+        player.setOldPosAndRot();
+        player.setPos(centre.x + Math.cos(angle) * r, centre.y, centre.z + Math.sin(angle) * r);
+        player.setDeltaMovement(Vec3.ZERO);
+        return angle;
+    }
+
+    /** True if a mob's body faces a spot (seen from above) within {@link #FACING_TOLERANCE} degrees. */
+    public static boolean faces(LivingEntity mob, Vec3 spot)
+    {
+        double dx = spot.x - mob.getX();
+        double dz = spot.z - mob.getZ();
+        float wanted = (float) (Mth.atan2(dz, dx) * Mth.RAD_TO_DEG) - 90.0F;
+        return Math.abs(Mth.degreesDifference(mob.yBodyRot, wanted)) <= FACING_TOLERANCE;
+    }
+
+    /** True if a mob moved (sideways) this tick. */
+    public static boolean isWalking(LivingEntity mob)
+    {
+        return mob.getX() != mob.xo || mob.getZ() != mob.zo;
+    }
+
+    public static double flatDistance(Vec3 a, Vec3 b)
+    {
+        double dx = a.x - b.x;
+        double dz = a.z - b.z;
+        return Math.sqrt(dx * dx + dz * dz);
+    }
+
+    // ---------------------------------------------------------------------------------------------
     // Helpers and the runway template
     // ---------------------------------------------------------------------------------------------
 
@@ -679,5 +846,8 @@ public final class ColossusFightGameTest
         StructureTemplate template = event.getServer().getStructureManager().getOrCreate(RUNWAY_ID);
         template.load(event.getServer().registryAccess().lookupOrThrow(Registries.BLOCK),
                 ColossusGameTest.floorTemplate(RUNWAY_LENGTH, RUNWAY_WIDTH));
+        StructureTemplate ring = event.getServer().getStructureManager().getOrCreate(RING_ID);
+        ring.load(event.getServer().registryAccess().lookupOrThrow(Registries.BLOCK),
+                ColossusGameTest.floorTemplate(RING_SIZE, RING_SIZE));
     }
 }

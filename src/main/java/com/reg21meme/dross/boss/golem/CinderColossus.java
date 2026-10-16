@@ -1,6 +1,8 @@
 package com.reg21meme.dross.boss.golem;
 
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.boss.rage.RageLeader;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
 import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.DrossAdvancements;
@@ -22,6 +24,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.BossEvent;
@@ -103,7 +106,7 @@ import java.util.UUID;
  * have no boss bar and never grant the advancement. Right-clicking one moves it on to its next stage (dormant: erupts;
  * erupted: breaks out of its shell; lava or statue: dormant again); sneak + right-click makes it die.
  */
-public class CinderColossus extends Monster implements GeoEntity
+public class CinderColossus extends Monster implements GeoEntity, RageLeader
 {
     private static final EntityDataAccessor<Integer> DATA_DESIGN = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_PHASE = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.INT);
@@ -428,8 +431,9 @@ public class CinderColossus extends Monster implements GeoEntity
     /**
      * Damage that would take it past its stage's threshold stops there, and it starts the next stage (the eruption,
      * or the shell bursting). Damage that bypasses invulnerability ({@code /kill}, the void) isn't stopped. Ranged
-     * damage ({@link #isRanged}) is first cut to its stage's {@link ColossusStage#rangedDamageTaken} (its armour then
-     * counts as usual).
+     * damage ({@link #isRanged}) is first cut to its stage's {@link ColossusStage#rangedDamageTaken}, and a pickaxe's
+     * blow ({@link #isPickaxeBlow}) in the Shell and Cracking stages multiplied by
+     * {@link ColossusTuning#PICKAXE_DAMAGE_TAKEN} (its armour then counts as usual).
      */
     @Override
     protected void actuallyHurt(DamageSource source, float amount)
@@ -445,6 +449,11 @@ public class CinderColossus extends Monster implements GeoEntity
             // Arrows, tridents, fireballs... barely hurt it, less with every stage (melee is never reduced).
             amount *= this.stage().rangedDamageTaken;
             this.rangedHitEffect(source);
+        }
+        else if (isPickaxeBlow(source) && this.stage() != ColossusStage.LAVA_CORE)
+        {
+            // A pickaxe cracks its rock shell (the Shell and Cracking stages): double damage, before its armour.
+            amount *= ColossusTuning.PICKAXE_DAMAGE_TAKEN;
         }
         super.actuallyHurt(source, amount);
         this.noteCredit(source);
@@ -474,6 +483,23 @@ public class CinderColossus extends Monster implements GeoEntity
     static boolean isRanged(DamageSource source)
     {
         return source.is(DamageTypeTags.IS_PROJECTILE) && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY);
+    }
+
+    /**
+     * True for a melee blow (a player's or a mob's own hit, not a projectile, thorns or an explosion they caused) from
+     * someone holding a pickaxe in their main hand: anything in the {@code minecraft:pickaxes} item tag, so other mods'
+     * pickaxes count too. {@link ColossusTuning#PICKAXE_DAMAGE_TAKEN} multiplies it while the shell is on.
+     */
+    static boolean isPickaxeBlow(DamageSource source)
+    {
+        if (isRanged(source) || source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
+                || !(source.is(DamageTypes.PLAYER_ATTACK) || source.is(DamageTypes.MOB_ATTACK)
+                || source.is(DamageTypes.MOB_ATTACK_NO_AGGRO)))
+        {
+            return false;
+        }
+        return source.getEntity() instanceof LivingEntity attacker && source.getDirectEntity() == attacker
+                && attacker.getMainHandItem().is(ItemTags.PICKAXES);
     }
 
     /**
@@ -730,6 +756,16 @@ public class CinderColossus extends Monster implements GeoEntity
         return this.level().getEntitiesOfClass(GolemMinion.class, area, m -> m.isAlive() && m.belongsTo(this));
     }
 
+    /**
+     * The Rage Wand ({@code boss.rage}): when it's raged, its golems join its side. A raged Colossus fights the other
+     * raged mobs with its own moves (its fighting AI takes any target), and an idle one starts fighting.
+     */
+    @Override
+    public List<? extends Mob> rageFollowers()
+    {
+        return this.minions();
+    }
+
     // ---------------------------------------------------------------- the fight: boss bar
 
     /** Shows its boss bar to the players near it (and hides it from the ones who left); keeps its name and fill up to date. */
@@ -812,6 +848,10 @@ public class CinderColossus extends Monster implements GeoEntity
         int elapsed = this.ticksInAction();
         GolemDesigns.Design design = this.getDesign();
         this.stageSounds(elapsed, design);
+        if (this.isFighting() && this.isTransforming())
+        {
+            this.trackTarget(); // its fighting AI waits while a stage change plays: it keeps glaring at its target
+        }
         switch (this.getAction())
         {
             case ERUPT -> {
@@ -862,6 +902,16 @@ public class CinderColossus extends Monster implements GeoEntity
     private boolean isFighting()
     {
         return !this.isShowcase() && this.isAlive() && this.attackGoal != null;
+    }
+
+    /** Turns it towards its target (if it has a live one here) at its stage's turn speed. */
+    private void trackTarget()
+    {
+        LivingEntity target = this.getTarget();
+        if (target != null && target.isAlive() && target.level() == this.level())
+        {
+            this.turnTowards(target.position(), this.stage().turnSpeed);
+        }
     }
 
     /**
@@ -941,10 +991,16 @@ public class CinderColossus extends Monster implements GeoEntity
                 }
             }
             case BREAK_SHELL -> {
-                if (elapsed == ANIMATION_BLEND_TICKS + design.burstTicks())
+                int burst = ANIMATION_BLEND_TICKS + design.burstTicks();
+                // Its roar starts as it rears up and opens its jaw (BREAK_ROAR_LEAD before the burst), so it comes out
+                // of its open mouth; the shell cracks off and the roar's shockwave rolls out at the burst.
+                if (elapsed == Math.max(0, burst - Math.round(ColossusTuning.BREAK_ROAR_LEAD * 20.0F)))
+                {
+                    this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.8F);
+                }
+                if (elapsed == burst)
                 {
                     this.playSound(ModSounds.COLOSSUS_SHELL_BREAK.get(), LOUD, 0.9F);
-                    this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.8F);
                     this.roar(false);
                 }
             }
@@ -1173,11 +1229,17 @@ public class CinderColossus extends Monster implements GeoEntity
         return new Vec3(Mth.cos(yaw), 0.0D, Mth.sin(yaw));
     }
 
-    /** Something its attacks may hit: alive, not itself or another Colossus, not one of the minions. */
+    /**
+     * Something its attacks may hit: alive, not itself, not a spectator; not another Colossus or a golem, unless the
+     * Rage Wand has made that one its enemy ({@link Rage#areEnemies}: raged, on another side).
+     */
     boolean canHit(Entity entity)
     {
-        return entity != this && entity.isAlive() && !(entity instanceof CinderColossus) && !(entity instanceof GolemMinion)
-                && !entity.isSpectator() && entity instanceof LivingEntity;
+        if (entity == this || !entity.isAlive() || entity.isSpectator() || !(entity instanceof LivingEntity))
+        {
+            return false;
+        }
+        return !(entity instanceof CinderColossus) && !(entity instanceof GolemMinion) || Rage.areEnemies(this, entity);
     }
 
     /** In the Lava Core stage every hit sets you on fire. */

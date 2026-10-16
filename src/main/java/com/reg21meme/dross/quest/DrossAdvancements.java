@@ -19,8 +19,8 @@ import java.util.List;
  * <p>Example (from any area): {@code DrossAdvancements.grant(player, DrossAdvancements.RISE);}</p>
  *
  * <p>The Dross tab, in order: {@link #ROOT} (silent, unlocks the tab) → {@link #WEATHERED_LETTER} →
- * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose children are {@link #RISE}
- * and {@link #SET_IN_STONE}.</p>
+ * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose children are {@link #RISE},
+ * {@link #SET_IN_STONE} and {@link #DOWN_THE_DRAIN}.</p>
  */
 public final class DrossAdvancements
 {
@@ -40,8 +40,10 @@ public final class DrossAdvancements
     public static final String RISE = "rise";
     /** "Set in Stone": the boss area grants it when a player defeats the Cinder Colossus. Not part of the quest. */
     public static final String SET_IN_STONE = "set_in_stone";
+    /** "Down the Drain": the boss area grants it when a player defeats the Rat King. Not part of the quest. */
+    public static final String DOWN_THE_DRAIN = "down_the_drain";
 
-    /** The advancements {@code /dross quest reset} takes away ("Rise!" and "Set in Stone" stay: they're about Necromancy and the boss, not the quest). */
+    /** The advancements {@code /dross quest reset} takes away ("Rise!", "Set in Stone" and "Down the Drain" stay: they're about Necromancy and the bosses, not the quest). */
     static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, PROVEN_WORTHY, KEYMASTER, ENTERED_THE_DROSS);
 
     private DrossAdvancements() {}

@@ -1,0 +1,285 @@
+package com.reg21meme.dross.boss.ratking.client;
+
+import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.Dross;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.levelgen.WorldOptions;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import org.slf4j.Logger;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * TEMPORARY test helper (to be deleted after the in-game check): when the DROSS_RAT_PHOTOS environment variable is set,
+ * the client makes a superflat creative world ("Rat King Showcase"), spawns the Rat King and rat showcases, plays
+ * their animations and takes screenshots (run/screenshots/rk_*.png), leaves the rows standing and quits. Does nothing
+ * otherwise.
+ */
+@Mod.EventBusSubscriber(modid = Dross.MODID, value = Dist.CLIENT)
+public final class RatPhotoBooth
+{
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String TAG = System.getenv("DROSS_RAT_PHOTOS");
+    private static final String WORLD = "Rat King Showcase";
+
+    private record Step(int tick, String command, String shot) {}
+
+    private static boolean worldStarted;
+    private static int inWorldTicks;
+    private static final List<Step> STEPS = new ArrayList<>();
+    private static int next;
+    private static String pendingShot;
+    private static int shotDelay;
+    private static float holdYaw;
+    private static float holdPitch;
+
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event)
+    {
+        if (TAG == null || TAG.isEmpty() || event.phase != TickEvent.Phase.END)
+        {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (!worldStarted && mc.screen instanceof TitleScreen && mc.level == null)
+        {
+            worldStarted = true;
+            mc.getWindow().setWindowed(1600, 900);
+            LOGGER.info("Rat photo booth: creating world {}", WORLD);
+            LevelSettings settings = new LevelSettings(WORLD, GameType.CREATIVE, false, Difficulty.PEACEFUL, true,
+                    new GameRules(), WorldDataConfiguration.DEFAULT);
+            mc.createWorldOpenFlows().createFreshLevel(WORLD, settings, new WorldOptions(20261014L, false, false),
+                    access -> access.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.FLAT).value()
+                            .createWorldDimensions());
+            return;
+        }
+        if (mc.level == null || mc.player == null)
+        {
+            return;
+        }
+        inWorldTicks++;
+        if (inWorldTicks == 1)
+        {
+            buildScript();
+        }
+        mc.player.getAbilities().flying = next < STEPS.size() - 1;
+        while (next < STEPS.size() && STEPS.get(next).tick <= inWorldTicks)
+        {
+            Step step = STEPS.get(next++);
+            if (step.command != null)
+            {
+                LOGGER.info("Rat photo booth: /{}", step.command);
+                if (step.command.startsWith("tp @s "))
+                {
+                    String[] parts = step.command.split(" ");
+                    holdYaw = Float.parseFloat(parts[5]);
+                    holdPitch = Float.parseFloat(parts[6]);
+                }
+                mc.player.connection.sendCommand(step.command);
+            }
+            if (step.shot != null)
+            {
+                pendingShot = step.shot;
+                shotDelay = 2;
+            }
+        }
+        holdView(mc);
+        if (next >= STEPS.size() && pendingShot == null)
+        {
+            LOGGER.info("Rat photo booth: done");
+            mc.stop();
+        }
+    }
+
+    /** Keeps the camera where the last teleport pointed it (a stray mouse can't turn it). */
+    private static void holdView(Minecraft mc)
+    {
+        if (mc.player == null)
+        {
+            return;
+        }
+        mc.player.setYRot(holdYaw);
+        mc.player.setXRot(holdPitch);
+        mc.player.yRotO = holdYaw;
+        mc.player.xRotO = holdPitch;
+        mc.player.setYHeadRot(holdYaw);
+        mc.player.yHeadRotO = holdYaw;
+    }
+
+    @SubscribeEvent
+    public static void onRenderTick(TickEvent.RenderTickEvent event)
+    {
+        if (TAG == null || event.phase != TickEvent.Phase.END || pendingShot == null)
+        {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        holdView(mc);
+        if (shotDelay-- > 0)
+        {
+            return;
+        }
+        Screenshot.grab(mc.gameDirectory, "rk_" + pendingShot + ".png", mc.getMainRenderTarget(),
+                message -> LOGGER.info("Rat photo booth: {}", message.getString()));
+        pendingShot = null;
+    }
+
+    private static void buildScript()
+    {
+        Minecraft.getInstance().options.hideGui = true;
+        double ox = 200.5;
+        double oz = 200.5;
+        double rowZ = oz + 9;          // the kings stand 9 blocks south of where the command runs
+        int t = 60;
+        add(t, "gamerule doDaylightCycle false", null);
+        add(t + 1, "time set 6000", null);
+        add(t + 2, "weather clear", null);
+        add(t + 3, "gamerule doMobSpawning false", null);
+        add(t + 4, tp(ox, -60, oz, 0, 0), null);
+        t += 40;
+        add(t, "dross showcase boss_designs ratking", null);
+        t += 40;
+        // The whole row, then each king close up from the front, three-quarter and back.
+        String row = tp(ox, -54, oz - 6, 0, 22);
+        add(t, row, null);
+        t += 30;
+        add(t, null, "kings_row");
+        t += 5;
+        for (int i = 0; i < 6; i++)
+        {
+            double x = ox + 15 - 6 * i;
+            int n = i + 1;
+            add(t, tp(x, -58.5, rowZ - 6.5, 0, 8), null);
+            t += 20;
+            add(t, null, n + "_front");
+            t += 5;
+            add(t, tp(x - 4.5, -58, rowZ - 5, -42, 10), null);
+            t += 20;
+            add(t, null, n + "_34");
+            t += 5;
+            add(t, tp(x, -58.5, rowZ + 7.5, 180, 8), null);
+            t += 20;
+            add(t, null, n + "_back");
+            t += 5;
+        }
+        // Each animation, the whole row, from closer in front (kings 3 and 4 fill the middle).
+        String mid = tp(ox, -56.5, oz - 1, 0, 14);
+        add(t, mid, null);
+        t += 10;
+        t = anim(t, "sleep", new int[] {40});
+        t = anim(t, "wake", new int[] {10, 30, 50, 52, 60, 80});
+        t = anim(t, "walk", new int[] {14, 24});
+        t = anim(t, "burrow", new int[] {14, 28, 38, 50, 70});
+        t = anim(t, "popup", new int[] {14, 26, 33, 38, 50});
+        t = anim(t, "rage", new int[] {14, 28, 34, 46, 62, 80});
+        // The rage close up (red eyes, steam), the death close up (X eyes, tongue).
+        add(t, tp(ox + 3, -57, rowZ - 4.5, 0, 12), null);
+        add(t + 2, "dross showcase boss_designs ratking rage", null);
+        add(t + 34, null, "rage_close_steam");
+        add(t + 60, null, "rage_close_eyes");
+        t += 90;
+        add(t, tp(ox, -54, oz - 2, 0, 24), null);
+        add(t + 2, "dross showcase boss_designs ratking die", null);
+        for (int s : new int[] {20, 28, 34, 44, 60, 80})
+        {
+            add(t + 2 + s, null, "row_die_" + s);
+        }
+        t += 90;
+        add(t, tp(ox + 3, -56, rowZ - 2, 0, 50), null);
+        t += 20;
+        add(t, null, "dead_close_top");
+        t += 5;
+        add(t, tp(ox + 6.5, -58.5, rowZ + 1, 90, 12), null);
+        t += 20;
+        add(t, null, "dead_close_side");
+        t += 5;
+        // Night: the row standing, then enraged.
+        add(t, "dross showcase boss_designs ratking idle", null);
+        add(t + 1, "time set 18000", null);
+        add(t + 2, row, null);
+        t += 40;
+        add(t, null, "night_row");
+        add(t + 2, "dross showcase boss_designs ratking rage", null);
+        t += 100;
+        add(t, null, "night_enraged");
+        add(t + 2, "dross showcase boss_designs ratking sleep", null);
+        add(t + 3, mid, null);
+        t += 60;
+        add(t, null, "night_sleep");
+        add(t + 2, "time set 6000", null);
+        t += 10;
+        // The rats, 40 blocks further south.
+        double rz = oz + 40;
+        add(t, tp(ox, -60, rz, 0, 0), null);
+        t += 20;
+        add(t, "dross showcase rats", null);
+        t += 40;
+        add(t, tp(ox, -57.5, rz, 0, 20), null);
+        t += 25;
+        add(t, null, "rats_row");
+        t += 5;
+        add(t, tp(ox + 5, -58.3, rz + 2.6, 0, 18), null);
+        t += 20;
+        add(t, null, "rats_regular_close");
+        t += 5;
+        add(t, tp(ox - 6, -58.0, rz + 2.4, 0, 20), null);
+        t += 20;
+        add(t, null, "rats_enraged_close");
+        t += 5;
+        add(t, "dross showcase rats run", null);
+        add(t + 12, null, "rats_enraged_run");
+        add(t + 14, tp(ox + 5, -58.3, rz + 2.6, 0, 18), null);
+        add(t + 30, null, "rats_regular_run");
+        t += 40;
+        add(t, "dross showcase rats idle", null);
+        add(t + 1, "time set 18000", null);
+        add(t + 2, tp(ox, -57.5, rz, 0, 20), null);
+        t += 30;
+        add(t, null, "rats_night");
+        add(t + 2, "time set 6000", null);
+        t += 10;
+        // Leave the world ready for the user: the kings standing, the player in front of them.
+        add(t, tp(ox, -60, oz, 0, 0), null);
+        add(t + 2, "dross showcase boss_designs ratking idle", null);
+        add(t + 40, null, "final");
+    }
+
+    /** Plays one control on the whole row and takes shots at these ticks after it. Returns the tick after the last. */
+    private static int anim(int t, String control, int[] shots)
+    {
+        add(t, "dross showcase boss_designs ratking " + control, null);
+        int last = 0;
+        for (int s : shots)
+        {
+            add(t + s, null, "row_" + control + "_" + s);
+            last = Math.max(last, s);
+        }
+        return t + last + 15;
+    }
+
+    private static String tp(double x, double y, double z, float yaw, float pitch)
+    {
+        return String.format(Locale.ROOT, "tp @s %.2f %.2f %.2f %.1f %.1f", x, y, z, yaw, pitch);
+    }
+
+    private static void add(int tick, String command, String shot)
+    {
+        STEPS.add(new Step(tick, command, shot));
+    }
+
+    private RatPhotoBooth() {}
+}

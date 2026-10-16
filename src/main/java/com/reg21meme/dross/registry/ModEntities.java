@@ -6,6 +6,10 @@ import com.reg21meme.dross.boss.golem.ColossusRock;
 import com.reg21meme.dross.boss.golem.LavaBlob;
 import com.reg21meme.dross.boss.golem.LavaGolem;
 import com.reg21meme.dross.boss.golem.StoneGolem;
+import com.reg21meme.dross.boss.ratking.PlagueBall;
+import com.reg21meme.dross.boss.ratking.PoisonCloud;
+import com.reg21meme.dross.boss.ratking.Rat;
+import com.reg21meme.dross.boss.ratking.RatKing;
 import com.reg21meme.dross.villager.DrossTrader;
 import com.reg21meme.dross.villager.Survivor;
 import net.minecraft.world.entity.EntityType;
@@ -74,6 +78,43 @@ public final class ModEntities
                     .sized(0.6F, 1.95F)
                     .clientTrackingRange(10)
                     .build("survivor"));
+
+    /**
+     * Boss area: the Rat King, the Plague Necromancer's servant: his fight (spawn egg, /dross boss summon ratking) and
+     * the design showcase (/dross showcase boss_designs ratking). About 1.5 blocks wide with his cape and staff, 3 to 4 tall.
+     */
+    public static final RegistryObject<EntityType<RatKing>> RAT_KING = ENTITY_TYPES.register("rat_king",
+            () -> EntityType.Builder.<RatKing>of(RatKing::new, MobCategory.MONSTER)
+                    .sized(1.2F, 3.4F)
+                    .clientTrackingRange(10)
+                    .build("rat_king"));
+
+    // Boss area: the Rat King's rats, a regular rat and the enraged breed (he calls them in his fight; /dross showcase rats)
+    public static final RegistryObject<EntityType<Rat>> RAT = ENTITY_TYPES.register("rat",
+            () -> EntityType.Builder.<Rat>of(Rat::new, MobCategory.MONSTER)
+                    .sized(0.55F, 0.5F)
+                    .clientTrackingRange(8)
+                    .build("rat"));
+    public static final RegistryObject<EntityType<Rat>> ENRAGED_RAT = ENTITY_TYPES.register("enraged_rat",
+            () -> EntityType.Builder.<Rat>of(Rat::new, MobCategory.MONSTER)
+                    .sized(0.8F, 0.75F)
+                    .clientTrackingRange(8)
+                    .build("enraged_rat"));
+
+    // Boss area: the Rat King's poison ball (his cast) and the poison cloud it bursts into
+    public static final RegistryObject<EntityType<PlagueBall>> PLAGUE_BALL = ENTITY_TYPES.register("plague_ball",
+            () -> EntityType.Builder.<PlagueBall>of(PlagueBall::new, MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(6)
+                    .updateInterval(10)
+                    .build("plague_ball"));
+    public static final RegistryObject<EntityType<PoisonCloud>> POISON_CLOUD = ENTITY_TYPES.register("poison_cloud",
+            () -> EntityType.Builder.<PoisonCloud>of(PoisonCloud::new, MobCategory.MISC)
+                    .sized(1.0F, 0.5F)
+                    .fireImmune()
+                    .clientTrackingRange(6)
+                    .updateInterval(Integer.MAX_VALUE)
+                    .build("poison_cloud"));
 
     private ModEntities() {}
 }

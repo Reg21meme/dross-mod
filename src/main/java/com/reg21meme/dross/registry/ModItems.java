@@ -2,6 +2,8 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.rage.RageWandItem;
+import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyItem;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyItem;
 import com.reg21meme.dross.portal.RiftKeyItem;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
@@ -51,9 +53,29 @@ public final class ModItems
             () -> new ForgeSpawnEggItem(ModEntities.LAVA_GOLEM, DrossColors.LAVA_GOLEM_EGG_BASE, DrossColors.LAVA_GOLEM_EGG_SPOTS,
                     new Item.Properties()));
 
+    // Boss area: the Rat King (he wanders about: his fight isn't built yet)
+    public static final RegistryObject<Item> RAT_KING_SPAWN_EGG = ITEMS.register("rat_king_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.RAT_KING, DrossColors.RAT_KING_EGG_BASE, DrossColors.RAT_KING_EGG_SPOTS,
+                    new Item.Properties()));
+
+    // Boss area: the Rat King's rats' spawn eggs, each the user's pick of its kind (the Plague Rat, the Plague Ravager)
+    public static final RegistryObject<Item> RAT_SPAWN_EGG = ITEMS.register("rat_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.RAT, DrossColors.RAT_EGG_BASE, DrossColors.RAT_EGG_SPOTS,
+                    new Item.Properties()));
+    public static final RegistryObject<Item> ENRAGED_RAT_SPAWN_EGG = ITEMS.register("enraged_rat_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.ENRAGED_RAT, DrossColors.ENRAGED_RAT_EGG_BASE,
+                    DrossColors.ENRAGED_RAT_EGG_SPOTS, new Item.Properties()));
+
     // Boss area: the Cinder Colossus trophy (its design is in the item; fireproof, never despawns)
     public static final RegistryObject<Item> COLOSSUS_TROPHY = ITEMS.register("colossus_trophy",
             () -> new ColossusTrophyItem(ModBlocks.COLOSSUS_TROPHY.get()));
+
+    // Boss area: the Rat King trophy (its design is in the item; fireproof, never despawns)
+    public static final RegistryObject<Item> RAT_KING_TROPHY = ITEMS.register("rat_king_trophy",
+            () -> new RatKingTrophyItem(ModBlocks.RAT_KING_TROPHY.get()));
+
+    // Boss area: the Rage Wand, a creative-only test tool (no recipe): hit mobs and they fight each other
+    public static final RegistryObject<Item> RAGE_WAND = ITEMS.register("rage_wand", RageWandItem::new);
 
     // Dimension area: block items for the Dross's terrain blocks (stone, ores, silverwood, Stormvine, Silvermoss, plants)
     public static final RegistryObject<Item> DUSKSTONE = ITEMS.register("duskstone", () -> new BlockItem(ModBlocks.DUSKSTONE.get(), new Item.Properties()));

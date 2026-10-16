@@ -1,11 +1,14 @@
 package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.BossCommands;
+import com.reg21meme.dross.boss.client.RatKingBarStyles;
+import com.reg21meme.dross.boss.ratking.RatKingBarShowcase;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
@@ -67,17 +70,38 @@ import net.minecraftforge.fml.common.Mod;
  *       {@code /dross showcase boss_designs colossus dormant|erupt|erupted|break|core|die|walk|idle} switches them
  *       between their three stages and replays the eruption, the shell breaking and the death ({@link GolemShowcase};
  *       the designs are the boss area's {@code GolemDesigns}).</li>
+ *   <li>{@code /dross showcase boss_designs ratking}: spawns one frozen Rat King per design in a row in front of
+ *       you, each with a numbered sign; {@code /dross showcase boss_designs ratking
+ *       sleep|wake|idle|walk|burrow|popup|rage|die} plays one of their animations ({@link RatKingShowcase}; the designs
+ *       are the boss area's {@code RatKingDesigns}).</li>
+ *   <li>{@code /dross showcase rats}: spawns the Rat King's rats in a row in front of you, each on a pedestal with a
+ *       sign: four regular rats, then four of the enraged breed; {@code /dross showcase rats idle|run} switches their
+ *       animation ({@link RatShowcase}; the designs are the boss area's {@code RatDesigns}).</li>
+ *   <li>{@code /dross showcase boss_sounds ratking}: lists every Rat King and rat sound in chat, each with a button
+ *       that plays it ({@link RatSoundShowcase}; the list is the boss area's {@code RatKingSounds}).</li>
+ *   <li>{@code /dross showcase bossbars ratking [<option>]}: shows one of the Rat King's boss bar designs (option 1
+ *       without a number), its normal and Rage looks, on your screen for a while, the health draining and refilling,
+ *       with chat buttons for the others ({@code RatKingBarShowcase}; the designs are the boss area's
+ *       {@code RatKingBarStyles}).</li>
  *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
  *       you, each on a pedestal facing you with a sign giving its number and name ({@link TrophyShowcase}; the designs
  *       are the boss area's {@code ColossusTrophies}).</li>
+ *   <li>{@code /dross showcase trophies ratking}: places the 5 Rat King trophy designs the same way
+ *       ({@link TrophyShowcase#placeRatKingTrophies}; the designs are the boss area's {@code RatKingTrophies}).</li>
  *   <li>{@code /dross boss summon colossus}: summons a fighting Cinder Colossus in front of you, facing you (not on
  *       Peaceful). From the boss area ({@link BossCommands#summonColossus}).</li>
  *   <li>{@code /dross boss arena colossus}: builds the placeholder Colossus arena round you, with a chat button that
  *       summons the Colossus. From the boss area ({@link BossCommands#buildArena}; the arena itself is
  *       {@code BossArena}). The button runs {@link BossCommands#SUMMON_COMMAND}, so the {@code boss summon colossus}
  *       path must match it exactly.</li>
+ *   <li>{@code /dross boss summon ratking}: summons a fighting Rat King in front of you, asleep, facing you (not on
+ *       Peaceful); {@code /dross boss arena ratking} builds his placeholder arena (a round dirt and coarse dirt floor)
+ *       round you, with a chat button that summons him. From the boss area ({@link BossCommands#summonRatKing},
+ *       {@link BossCommands#buildRatKingArena}). The button runs {@link BossCommands#SUMMON_RAT_KING_COMMAND}, so the
+ *       {@code boss summon ratking} path must match it exactly.</li>
  * </ul>
- * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase trophies}, {@code boss summon}
+ * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase boss_sounds}, {@code showcase bossbars},
+ * {@code showcase trophies}, {@code boss summon}
  * and {@code boss arena} (and, once it has a lair, under {@code goto lair}); a future place adds one under
  * {@code goto}. A future Dross biome gets its {@code goto biome <name>} by itself: there's one literal per biome in
  * {@code DrossBiomes.ALL}, named by {@code DrossBiomes.name} (its id without {@code dross:}). Plain
@@ -132,7 +156,8 @@ public final class DrossCommand
                         .then(Commands.literal("reset").executes(QuestCommands::reset))
                         .then(Commands.literal("complete").executes(QuestCommands::complete)))
                 // Test showcases that build things side by side to compare them: showcase <kind> [<boss>]
-                // (the logic lives in HutShowcase, SkinShowcase, ShrineShowcase, GolemShowcase and TrophyShowcase).
+                // (the logic lives in HutShowcase, SkinShowcase, ShrineShowcase, GolemShowcase, RatKingShowcase, RatShowcase,
+                // RatSoundShowcase, RatKingBarShowcase and TrophyShowcase).
                 .then(Commands.literal("showcase")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("trader_huts").executes(HutShowcase::buildHuts))
@@ -140,20 +165,38 @@ public final class DrossCommand
                         .then(Commands.literal("portal_shrines").executes(ShrineShowcase::buildShrines))
                         // Boss area's designs, one literal per boss.
                         .then(Commands.literal("boss_designs")
-                                .then(colossusDesignShowcase()))
+                                .then(colossusDesignShowcase())
+                                .then(ratKingDesignShowcase()))
+                        // Boss area's Rat King's rats (regular and enraged), with their controls (RatShowcase).
+                        .then(ratShowcase())
+                        // Boss area's sounds, one literal per boss (RatSoundShowcase).
+                        .then(Commands.literal("boss_sounds")
+                                .then(Commands.literal("ratking").executes(RatSoundShowcase::list)))
+                        // Boss area's boss bar designs, one literal per boss (RatKingBarShowcase).
+                        .then(Commands.literal("bossbars")
+                                .then(Commands.literal("ratking").executes(context -> RatKingBarShowcase.list(context.getSource()))
+                                        .then(Commands.argument("option", IntegerArgumentType.integer(1, RatKingBarStyles.ALL.size()))
+                                                .executes(context -> RatKingBarShowcase.show(context.getSource(),
+                                                        IntegerArgumentType.getInteger(context, "option"))))))
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
-                                .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))))
+                                .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))
+                                .then(Commands.literal("ratking").executes(TrophyShowcase::placeRatKingTrophies))))
                 // Boss area's test commands: boss <action> <boss> (the logic lives in BossCommands). The arena's chat
-                // button runs BossCommands.SUMMON_COMMAND ("/dross boss summon colossus"), so keep that path exactly as it is.
+                // buttons run BossCommands.SUMMON_COMMAND ("/dross boss summon colossus") and SUMMON_RAT_KING_COMMAND
+                // ("/dross boss summon ratking"), so keep those paths exactly as they are.
                 .then(Commands.literal("boss")
                         .requires(source -> source.hasPermission(2))
                         .then(Commands.literal("summon")
                                 .then(Commands.literal("colossus")
-                                        .executes(context -> BossCommands.summonColossus(context.getSource()))))
+                                        .executes(context -> BossCommands.summonColossus(context.getSource())))
+                                .then(Commands.literal("ratking")
+                                        .executes(context -> BossCommands.summonRatKing(context.getSource()))))
                         .then(Commands.literal("arena")
                                 .then(Commands.literal("colossus")
-                                        .executes(context -> BossCommands.buildArena(context.getSource()))))));
+                                        .executes(context -> BossCommands.buildArena(context.getSource())))
+                                .then(Commands.literal("ratking")
+                                        .executes(context -> BossCommands.buildRatKingArena(context.getSource()))))));
     }
 
     /**
@@ -183,6 +226,31 @@ public final class DrossCommand
             colossus.then(Commands.literal(control.word()).executes(context -> GolemShowcase.control(context, control)));
         }
         return colossus;
+    }
+
+    /**
+     * {@code /dross showcase boss_designs ratking} and its controls ({@code sleep}, {@code wake}, {@code rage},
+     * {@code die}...), one per {@link RatKingShowcase.Control}.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> ratKingDesignShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> ratking = Commands.literal("ratking").executes(RatKingShowcase::spawnKings);
+        for (RatKingShowcase.Control control : RatKingShowcase.Control.values())
+        {
+            ratking.then(Commands.literal(control.word()).executes(context -> RatKingShowcase.control(context, control)));
+        }
+        return ratking;
+    }
+
+    /** {@code /dross showcase rats} and its controls ({@code idle}, {@code run}), one per {@link RatShowcase.Control}. */
+    private static LiteralArgumentBuilder<CommandSourceStack> ratShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> rats = Commands.literal("rats").executes(RatShowcase::spawnRats);
+        for (RatShowcase.Control control : RatShowcase.Control.values())
+        {
+            rats.then(Commands.literal(control.word()).executes(context -> RatShowcase.control(context, control)));
+        }
+        return rats;
     }
 
     private static int teleportToHub(CommandContext<CommandSourceStack> context) throws CommandSyntaxException

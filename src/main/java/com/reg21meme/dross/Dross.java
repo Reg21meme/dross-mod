@@ -5,6 +5,7 @@ import com.reg21meme.dross.registry.ModBlockEntities;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModCreativeTabs;
 import com.reg21meme.dross.registry.ModDensityFunctions;
+import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModFeatures;
@@ -43,6 +44,7 @@ public class Dross
         ModDensityFunctions.DENSITY_FUNCTION_TYPES.register(modEventBus);
         ModFeatures.FEATURES.register(modEventBus);
         ModPlacementModifiers.PLACEMENT_MODIFIERS.register(modEventBus);
+        ModEffects.MOB_EFFECTS.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

@@ -41,7 +41,7 @@ Old worlds keep their flat Dross chunks, their old hub and (if they had one) the
 ## Previews
 - `terrain-previews/`: `biomes_world.png` and `relief_world.png` (this world) and `biomes_1-3` / `relief_1-3` (fixed seeds): biome and shaded height maps of 8,192 x 8,192 blocks round the hub; `overview.png`; `hub_area.png` and `site_<biome>.png` (real blocks from above); `view_hub.png` and `view_<biome>.png` (night views of real blocks); `stats.txt`.
 - `block-previews/`: `blocks.png`, `blocks_3d.png`, `trees.png`.
-- `boss-previews/`: `lair_outside.png`, `lair_cutaway.png`.
+- `boss-previews/cinder_colossus/`: `lair_outside.png`, `lair_cutaway.png`.
 
 ## Stage log
 | Stage | What | Result | Commit |
@@ -216,7 +216,7 @@ The user fought the Colossus in its lair and said: the lair doesn't feel volcani
 - **A big cave mouth** in its flank, 9 wide and 8-9 tall (an arch), with a jagged obsidian and blackstone lip (a quarter glowing magma) and obsidian teeth hanging from its top, narrowing to a 5 x 6 passage into the cavern, lit by magma in the walls and a glowing fissure along the floor. A gully, then a level apron, leads up to it, blending back to the land at most 1 block per step. The Colossus fits through the mouth now; the lair still puts it back in the middle if it leaves the floor. `/dross goto lair colossus` puts you in the gully, 4 blocks from the lip, facing in.
 - **Inside:** the 41-wide floor is **obsidian** with blackstone patches, a polished blackstone medallion and border, and two rings of polished blackstone bricks with **magma blocks** spaced along them (sparse, since magma burns if you don't sneak). **Lava under the floor** shows through 5 wandering fissures of orange stained glass with lava one block below, sealed in rock (it can't be touched or fallen into). About 30 **obsidian stalactites** hang from the dome (never lower than 16 blocks above the floor near the middle, where the lava lobs fly). The red nether bricks, shroomlights, fences and wall-foot lava basins are gone: **no lava anywhere a player can reach inside**, so the roar never throws anyone into it.
 - **Old worlds** keep their first-version lair (rebuilding over it isn't safe); new worlds get the volcano.
-- **Previews:** `boss-previews/lair_outside.png` (from above, into the mouth, from the side) and `boss-previews/lair_cutaway.png` (cut in half along the way in). Redraw with `DROSS_LAIR_PREVIEWS=1` on a test run, then `python tools/golems/lair_preview.py`.
+- **Previews:** `boss-previews/cinder_colossus/lair_outside.png` (from above, into the mouth, from the side) and `boss-previews/cinder_colossus/lair_cutaway.png` (cut in half along the way in). Redraw with `DROSS_LAIR_PREVIEWS=1` on a test run, then `python tools/golems/lair_preview.py`.
 - **Numbers:** all in `boss/lair/LairTuning.java`. The build takes about 0.5-0.9 s once per world (about 110,000 blocks); the search about 7-40 s in the background.
 - **Checks:** 78/78 tests in fresh worlds (the lair shape test rewritten: floor materials and magma share, room over the middle, the stalactites, the crater open to the sky, the mouth at least 9 x 8, walkable from the land to the floor, the cavern enclosed except crater and mouth with no lava touching any open space, all lava walled in, nothing burnable near it, no spawns inside).
 - **Found:** on copies of an old world, two older tests from other areas fail (the `goto biome` test expects the hub to stand in Silverwood, but an old world's flat hub doesn't; and a pond test). Neither touches the lair; fixed in R6.

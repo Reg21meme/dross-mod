@@ -1,7 +1,9 @@
 package com.reg21meme.dross.boss.client;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.ratking.RatKingTuning;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
@@ -13,23 +15,34 @@ import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Draws the Dross bosses' boss bars ourselves (client only): Minecraft's own bars come in seven colours and none of
- * them is lava orange. The server sends a normal boss bar (the Cinder Colossus's {@code ServerBossEvent}); its name
- * is a translation key starting {@code boss.dross.}, which is how a bar is recognised here. Minecraft's drawing of it
- * is cancelled and this draws the name and the bar in its place, styled by the key's last part:
+ * them is lava orange. The server sends a normal boss bar (a {@code ServerBossEvent}); its name is a translation key,
+ * which is how a bar is recognised here (by the whole key, so one boss's bars never take another's look). Minecraft's
+ * drawing of it is cancelled and this draws the name and the bar in its place:
  * <ul>
- *   <li>{@code shell}: obsidian purple, with glassy glints;</li>
- *   <li>{@code cracking}: the same obsidian, split by glowing orange cracks;</li>
- *   <li>{@code core}: lava red, with brighter streaks flowing along it.</li>
+ *   <li>the Cinder Colossus ({@code boss.dross.cinder_colossus.}...): {@code shell}, obsidian purple with glassy
+ *       glints; {@code cracking}, the same obsidian split by glowing orange cracks; {@code core}, lava red with brighter
+ *       streaks flowing along it;</li>
+ *   <li>the Rat King ({@code boss.dross.rat_king.option<n>}, {@code .rage} in his Rage, and the showcase's
+ *       {@code boss.dross.rat_king.showcase.option<n>[.rage]}): design {@code n} of {@link RatKingBarStyles}, drawn from
+ *       its texture (the empty bar, the full bar cut off at his health, the decorations, the name).</li>
  * </ul>
- * Every colour comes from {@link DrossColors} (the "Boss" section).
+ * Any other bar is left to Minecraft. Every colour comes from {@link DrossColors} (the "Boss" section).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, value = Dist.CLIENT)
 public final class DrossBossBars
 {
-    /** The start of the name keys this draws (one per boss and stage, for example boss.dross.cinder_colossus.core). */
-    private static final String KEY_PREFIX = "boss.dross.";
+    /** The Cinder Colossus's bar names, one per stage. */
+    private static final String COLOSSUS_SHELL = "boss.dross.cinder_colossus.shell";
+    private static final String COLOSSUS_CRACKING = "boss.dross.cinder_colossus.cracking";
+    private static final String COLOSSUS_CORE = "boss.dross.cinder_colossus.core";
+    /** The Rat King's bar names: his fight's ({@code option<n>[.rage]}) and the showcase's ({@code showcase.option<n>[.rage]}). */
+    private static final Pattern RAT_KING_KEY = Pattern.compile(Pattern.quote(RatKingTuning.BAR_KEY_PREFIX)
+            + "(?:showcase\\.)?option(\\d+)(\\.rage)?");
     /** Minecraft's boss bar size: 182 pixels wide, 5 tall, the name 9 pixels above it. */
     private static final int WIDTH = 182;
     private static final int HEIGHT = 5;
@@ -48,14 +61,67 @@ public final class DrossBossBars
     public static void onBossBar(CustomizeGuiOverlayEvent.BossEventProgress event)
     {
         LerpingBossEvent bar = event.getBossEvent();
-        if (!(bar.getName().getContents() instanceof TranslatableContents contents) || !contents.getKey().startsWith(KEY_PREFIX))
+        if (!(bar.getName().getContents() instanceof TranslatableContents contents))
         {
             return;
         }
-        event.setCanceled(true);
         String key = contents.getKey();
-        String style = key.substring(key.lastIndexOf('.') + 1);
-        draw(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), style, event.getPartialTick());
+        String colossus = switch (key)
+        {
+            case COLOSSUS_SHELL -> "shell";
+            case COLOSSUS_CRACKING -> "cracking";
+            case COLOSSUS_CORE -> "core";
+            default -> null;
+        };
+        if (colossus != null)
+        {
+            event.setCanceled(true);
+            draw(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), colossus,
+                    event.getPartialTick());
+            return;
+        }
+        Matcher ratKing = RAT_KING_KEY.matcher(key);
+        if (ratKing.matches())
+        {
+            event.setCanceled(true);
+            RatKingBarStyles.Style style = RatKingBarStyles.byNumber(Integer.parseInt(ratKing.group(1)));
+            boolean rage = ratKing.group(2) != null;
+            drawRatKing(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), style, rage);
+            event.setIncrement(style.height());
+        }
+    }
+
+    /**
+     * One of the Rat King's bars ({@link RatKingBarStyles}): the empty bar, the full bar cut off at the health, the
+     * decorations and the name. A design whose name stands higher than vanilla's is moved down so its name sits where
+     * vanilla's would (it never runs off the top of the screen); each takes {@link RatKingBarStyles.Style#height()}.
+     */
+    private static void drawRatKing(GuiGraphics g, int x, int barY, float progress, Component name, RatKingBarStyles.Style style,
+                                    boolean rage)
+    {
+        RatKingBarStyles.Look look = rage ? style.rage() : style.normal();
+        int y = barY + Math.max(0, -style.nameY() - NAME_ABOVE);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        blitPart(g, style, look.empty(), x, y);
+        int filled = Math.round(Math.max(0.0F, Math.min(1.0F, progress)) * look.fillWidth());
+        if (filled > 0)
+        {
+            RatKingBarStyles.Part full = look.full();
+            g.blit(style.texture(), x + full.x() + look.fillLeft(), y + full.y(), full.u() + look.fillLeft(), full.v(), filled,
+                    full.height(), style.textureWidth(), style.textureHeight());
+        }
+        blitPart(g, style, look.decorations(), x, y);
+        RenderSystem.disableBlend();
+        Font font = Minecraft.getInstance().font;
+        int nameColor = rage ? DrossColors.RAT_KING_BAR_NAME_RAGE : DrossColors.RAT_KING_BAR_NAME;
+        g.drawString(font, name, x + WIDTH / 2 - font.width(name) / 2, y + style.nameY(), nameColor, true);
+    }
+
+    private static void blitPart(GuiGraphics g, RatKingBarStyles.Style style, RatKingBarStyles.Part part, int x, int y)
+    {
+        g.blit(style.texture(), x + part.x(), y + part.y(), part.u(), part.v(), part.width(), part.height(),
+                style.textureWidth(), style.textureHeight());
     }
 
     private static void draw(GuiGraphics g, int x, int y, float progress, Component name, String style, float partialTick)

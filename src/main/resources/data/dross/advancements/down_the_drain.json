@@ -1,0 +1,28 @@
+{
+  "parent": "dross:entered_the_dross",
+  "display": {
+    "icon": {
+      "item": "dross:rat_king_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.dross.down_the_drain.title"
+    },
+    "description": {
+      "translate": "advancements.dross.down_the_drain.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "defeated": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "defeated"
+    ]
+  ]
+}

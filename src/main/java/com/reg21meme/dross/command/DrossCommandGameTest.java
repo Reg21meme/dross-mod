@@ -75,7 +75,10 @@ public final class DrossCommandGameTest
             "dross trader sendhome",
             "dross quest status", "dross quest reset", "dross quest complete",
             "dross showcase trader_huts", "dross showcase trader_skins", "dross showcase portal_shrines",
-            "dross showcase boss_designs colossus", "dross showcase trophies colossus",
+            "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",
+            "dross showcase boss_designs ratking", "dross showcase rats", "dross showcase boss_sounds ratking",
+            "dross showcase bossbars ratking", "dross showcase bossbars ratking 9",
+            "dross boss summon ratking", "dross boss arena ratking",
             "dross boss summon colossus", "dross boss arena colossus",
     };
     /** The old names (and unfinished or unknown commands), which must not run. */
@@ -126,7 +129,16 @@ public final class DrossCommandGameTest
         {
             expected.add(control.command().substring(1));
         }
+        for (RatKingShowcase.Control control : RatKingShowcase.Control.values())
+        {
+            expected.add(control.command().substring(1));
+        }
+        for (RatShowcase.Control control : RatShowcase.Control.values())
+        {
+            expected.add(control.command().substring(1));
+        }
         expected.add(BossCommands.SUMMON_COMMAND.substring(1));
+        expected.add(BossCommands.SUMMON_RAT_KING_COMMAND.substring(1));
         for (String biome : DrossBiomes.names()) // every Dross biome has its goto biome literal, a future one too
         {
             expected.add("dross goto biome " + biome);

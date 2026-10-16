@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.CinderFireBlock;
 import com.reg21meme.dross.boss.golem.CinderLavaBlock;
+import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyBlock;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyBlock;
 import com.reg21meme.dross.dimension.block.TerrainBlocks;
 import com.reg21meme.dross.portal.DrossPortalBlock;
@@ -26,6 +27,9 @@ public final class ModBlocks
 
     // Boss area: the Cinder Colossus trophy (a miniature of the boss in one of five designs; the boss drops one)
     public static final RegistryObject<Block> COLOSSUS_TROPHY = BLOCKS.register("colossus_trophy", ColossusTrophyBlock::new);
+
+    // Boss area: the Rat King trophy (a miniature of him in one of five poses; he gives one to every player who helped)
+    public static final RegistryObject<Block> RAT_KING_TROPHY = BLOCKS.register("rat_king_trophy", RatKingTrophyBlock::new);
 
     // Dimension area: Duskstone, the Dross's base stone (properties in dimension/block/TerrainBlocks)
     public static final RegistryObject<Block> DUSKSTONE = BLOCKS.register("duskstone", TerrainBlocks::duskstone);

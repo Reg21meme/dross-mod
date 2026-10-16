@@ -2,6 +2,7 @@ package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophies;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
 import com.reg21meme.dross.boss.trophy.TrophyStyle;
 import com.reg21meme.dross.registry.ModBlocks;
@@ -31,10 +32,15 @@ import java.util.function.Predicate;
 
 /**
  * {@code /dross showcase trophies <boss>} (test tool, cheats only): places every trophy design of a boss in a row in
- * front of you, so they can be compared and one picked. Today there's one boss:
- * {@code /dross showcase trophies colossus} places the 5 Cinder Colossus trophies (the boss area's
- * {@code boss.trophy.ColossusTrophies}). A future boss adds one literal in {@code DrossCommand} and one small method
- * here that turns its designs into {@link Trophy} entries for {@link #placeRow}.
+ * front of you, so they can be compared and one picked:
+ * <ul>
+ *   <li>{@code /dross showcase trophies colossus} places the 5 Cinder Colossus trophies (the boss area's
+ *       {@code boss.trophy.ColossusTrophies});</li>
+ *   <li>{@code /dross showcase trophies ratking} places the 5 Rat King trophies (the boss area's
+ *       {@code boss.ratking.trophy.RatKingTrophies}).</li>
+ * </ul>
+ * A future boss adds one literal in {@code DrossCommand} and one small method here that turns its designs into
+ * {@link Trophy} entries for {@link #placeRow}.
  * <p>
  * The layout, seen from where the command was run:
  * <ul>
@@ -97,6 +103,17 @@ public final class TrophyShowcase
         }
         return placeRow(context.getSource(), "Cinder Colossus", trophies,
                 state -> state.is(ModBlocks.COLOSSUS_TROPHY.get()));
+    }
+
+    /** Runs {@code /dross showcase trophies ratking}: the 5 Rat King trophy designs. */
+    public static int placeRatKingTrophies(CommandContext<CommandSourceStack> context)
+    {
+        List<Trophy> trophies = new ArrayList<>();
+        for (RatKingTrophies.Design design : RatKingTrophies.DESIGNS)
+        {
+            trophies.add(new Trophy(design.number(), design.displayName(), design.look(), design::blockState));
+        }
+        return placeRow(context.getSource(), "Rat King", trophies, state -> state.is(ModBlocks.RAT_KING_TROPHY.get()));
     }
 
     /** The sign's word for a Colossus trophy's look. */

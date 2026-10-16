@@ -188,12 +188,14 @@ Unlimited uses, no restocking, no XP.
 | **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
 | **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon and the Wither) while still counting as your kill. Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
+| **Rage Wand** | A creative-only testing wand. Hit a mob with it (no damage) to give it **Rage**: raged mobs fight each other, every mob for itself, until one is left, which calms down after about 10 seconds. They ignore players while they have a raged enemy. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and the minions they summon fight on their side. No cure, not even milk. See [The Rage Wand](#the-rage-wand). |
 | **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
+| **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
 | **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
 | **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent; Cragstone, Storm Lichen, Crag Thistle). |
 | **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores, for gear that comes later. Raw Moonsilver smelts into an ingot. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem), **weapons and tools** (the Admin Sword), the **enchanted books** (Necromancy I-V, then Deathforged I-X), then the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager), **weapons and tools** (the Admin Sword, the Rage Wand), the **enchanted books** (Necromancy I-V, then Deathforged I-X), then the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -280,9 +282,9 @@ one behind it), horns and spikes, and **volcanoes on its back**. After three rou
 **3G Saddleback**, a variation of Old Calderon (No. 3 of the first five designs): two great volcanoes grow out of its
 back and merge into one saddle of rock, big obsidian spikes stand in the saddle and down its lower back, it has horns,
 spikes pointing up off its shoulders and a beard of obsidian shards, all in dark scorched stone. Its volcanoes erupt
-out along their own angle, and its craters always hold glowing lava. Previews are in `boss-previews/`
+out along their own angle, and its craters always hold glowing lava. Previews are in `boss-previews/cinder_colossus/`
 (`all_golems.png`, `01_saddleback_sheet.png`, the fight page `01_saddleback_fight.png` and `minions.png`; the other
-candidates are in `boss-previews/round1/` to `round3/`).
+candidates are in `boss-previews/cinder_colossus/round1/` to `round3/`).
 
 It lives in its **lair**, a volcano in the Cinder Wastes (below). For testing you can also get one from the
 **Cinder Colossus Spawn Egg** (Dross creative tab) or `/dross boss summon colossus`, and `/dross boss arena colossus` builds a
@@ -302,7 +304,7 @@ and lights set in the floor.
 - **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). After it's beaten it rises
   again for the next player who walks in **10 minutes** later (a stand-in for a boss revive feature to come).
 - Worlds that got the first version of the lair (a domed cavern with a skylight and a slab tunnel) keep it.
-- Previews: `boss-previews/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
+- Previews: `boss-previews/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
 
 ### The fight
 It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
@@ -311,7 +313,7 @@ within 40 blocks. The fight has three stages:
    second; 2 in the Cracking stage and 2.8 in the Lava Core stage). It swipes at you up close, tears rocks
    out of the ground and throws them (they shatter; they never place a block), raises both fists for a moment and
    slams the ground (little damage, but the shockwave throws you far), and charges on all fours, head first, from up
-   to 32 blocks away, running all the way to where you stood when it started.
+   to 32 blocks away, running all the way to where you stood half a second before it set off.
 2. **Cracking** (60% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
    and its shell starts breaking up, plates knocked loose and lava glowing through, more with every hit. A bit faster
    and more aggressive. Its volcanoes also spit **lava blobs** that land near you (never on you) and leave small pools
@@ -337,7 +339,9 @@ fireballs, snowballs, your risen skeletons' arrows) deal only **50%** of their d
 Cracking and **15%** in the Lava Core. You can tell: they clink off the stone with a few sparks, and in the Lava Core
 they hiss and burn up in a puff of smoke. Melee hits are never reduced, and its minions take full damage from
 anything. The minions are quick on their feet: stone golems walk about 3 blocks a second and lava golems about 4.6
-(a player walks 4.3 and sprints 5.6).
+(a player walks 4.3 and sprints 5.6). **Pickaxes crack the shell:** in the Shell and Cracking stages a pickaxe hit
+(any pickaxe, modded ones too) does **twice** its damage; in the Lava Core it's a normal hit. The Colossus keeps facing
+the player it's fighting nearly all the time, except while it gallops.
 
 A big hit never skips a stage: its health stops at 60% and at 35%. When it dies it screams, sinks down and **cools
 into an obsidian statue**, which stands for 2 minutes and then crumbles; its minions crumble with it. It drops 50
@@ -356,7 +360,7 @@ the stage thresholds, the trophy design it drops, the wild golems' spawning) are
 ### The trophies
 The **Cinder Colossus Trophy** (`dross:colossus_trophy`) is a decorative block: a miniature of the boss, its own model
 scaled down to fit one block (about a sixth of its size), with no base or pedestal. It has five designs, each a
-different pose and look (previews: `boss-previews/trophies.png`), and every trophy can show any of them:
+different pose and look (previews: `boss-previews/cinder_colossus/trophies.png`), and every trophy can show any of them:
 
 | No. | Name | Pose | Look |
 |---|---|---|---|
@@ -392,6 +396,78 @@ animations: the dormant shell, the eruption, the shell breaking off, the lava co
 
 ---
 
+## The Rat King
+
+The Rat King is one of the Plague Necromancer's three servants: a lean, sly giant rat standing upright, 3 to 4 blocks
+tall, with a staff, a crown and a red cape. **His look, sounds, fight and trophies are built** and play-tested. After two rounds
+of designs the user picked **Gnawrick, build 1C**: sewer grey-green, broad shoulders and a wide chest, a cocked
+three-point crown, a ragged moth-eaten cape, and a twisted staff whose green claw holds a glowing green orb.
+
+He sleeps curled up on the ground (with floating Zzz and snores), wakes up and picks up his staff, stands, walks on
+tiptoe, burrows into the ground (the dirt mound is where his head went in) and pops back up out of it, flies into a
+rage (stomping, pumping his fist in the air, red eyes, steam out of his ears with a choo-choo train whistle, smashing
+his staff into the ground) and dies a silly death (flat on his back, tongue out, X eyes). His staff never goes through
+him, his ears or the floor. His rats: the **Plague Rat** and the bigger, enraged **Plague Ravager**, each with an idle
+and a run. All three have spawn eggs in the Dross tab.
+
+All their sounds are original (made by `tools/ratking/sounds.py`, nothing from Minecraft), including several versions of
+each attack sound for the fight, to pick from later.
+
+**The fight** (every number is in `RatKingTuning`):
+- **Asleep:** he starts curled up asleep. Come within 12 blocks (8 if you sneak) or hit him and he wakes (that hit does
+  no damage, and he can't be hurt while he gets up). Then his boss bar appears: a rusty sewer pipe with a rat peeking
+  over it (the user's pick of nine designs), shown within 40 blocks.
+- **200 health**, armour 6, quicker than the Colossus (about 4 blocks a second, 5.7 in his Rage). He keeps facing you.
+- **Staff sweep** up close: 4.5 blocks in front of him, 9 damage (11 in his Rage), with a strong knockback. **Poison shot** from 5 to 24 blocks: a clumpy plague ball that
+  bursts into a small poison cloud (a steady Poison I while you stand in it); in his Rage, a fan of three.
+- **Burrow:** every 30 health he loses, he digs and dives into the ground. While he tunnels towards you (a dirt trail
+  moves over the ground) he can't be hurt, and **10 rats** burst out of the ground round you (7 Plague Ravagers in his
+  Rage), however many of his rats are already about. Then he pops straight up
+  4 blocks from you, facing you, without knocking you back.
+- **Rage** at 40% health (he can't be hurt while it plays): stomping, red eyes, steam and the train whistle. Then he's
+  faster and hits harder, throws three balls at once, burrows every 20 health and calls **Plague Ravagers**, whose
+  bites poison.
+- **Death:** a silly death; his rats crumble, he vanishes after 10 seconds; no drops except a trophy (below). The advancement **Down the Drain**
+  ("End the Rat King's reign beneath Blightwood.") goes to whoever killed him and everyone within 40 blocks.
+- His rats: summoned ones attack you and crumble when he dies. A wild Plague Rat (spawn egg) never attacks; a wild
+  Plague Ravager does.
+- `/dross boss arena ratking` builds a round dirt arena round you with a chat button to summon him;
+  `/dross boss summon ratking` summons him asleep 14 blocks in front of you. His spawn egg makes a sleeping one too.
+- **Trophies:** beating him gives everyone who helped a **Rat King Trophy**, a one-block miniature of him (his orb
+  glows). It comes as *Belly Up*; right-click a placed one to change its pose: 1 Fast Asleep, 2 Tantrum, 3 Ground
+  Pound, 4 Pop Goes the King, 5 Belly Up (the user's five picks from ten). It works like the Colossus trophy: it goes
+  straight into your inventory (or drops in front of you, kept for you), and it's fireproof and never despawns.
+  `/dross showcase trophies ratking` places all five in a row.
+
+- `/dross showcase boss_designs ratking` spawns him frozen with a sign; the chat buttons (or
+  `/dross showcase boss_designs ratking sleep|wake|idle|walk|burrow|popup|rage|die`) play an animation, and
+  right-clicking him plays his next one (sneak + right-click: he dies).
+- `/dross showcase rats` puts the two rats on pedestals; `idle` / `run` switch them.
+- `/dross showcase boss_sounds ratking` lists every sound with a button that plays it.
+- Previews: `boss-previews/rat_king/` (the rats in `rats/`, the sounds in `sounds/`: open `index.html` to listen;
+  the earlier rounds in `round1/` and `round2/`). They're made by `tools/ratking/`.
+- `/dross showcase bossbars ratking` shows his boss bar designs on your screen (pick one with the chat buttons).
+
+---
+
+## The Rage Wand
+
+A creative-only testing tool in the Dross tab (after the Admin Sword). Hitting a mob with it does no damage; it gives
+the mob **Rage** (angry red particles), which never wears off and can't be cured, not even with milk.
+
+- Raged mobs fight **each other**, every mob for itself: hit three zombies and they fight until one is left. Each one
+  goes for the nearest raged mob within 48 blocks. While they have a raged enemy they **ignore players**, even ones who
+  hit them.
+- The last one left calms down after about 10 seconds with no raged enemy near (time enough to rage the next mob) and
+  goes back to normal.
+- No new animations: every mob uses its own attacks (zombies swing, skeletons shoot, creepers explode, golems smash).
+  Animals with no attack of their own (cows, pigs, sheep, chickens, villagers...) **headbutt** for 1 heart.
+- **Bosses** work too: raging the Cinder Colossus makes it fight; raging the sleeping Rat King wakes him. The golems or
+  rats they summon while raged fight **on their side**, never them or each other.
+- It won't rage players, showcase mobs, the Ender Dragon, the trader or the hub's survivors.
+
+---
+
 ## Advancements
 
 All Dross advancements live in their own **Dross** tab, which stays hidden until you pick up a Weathered Letter.
@@ -405,6 +481,7 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
 | Rise! | Raise the undead with Necromancy | Challenge |
 | Set in Stone | Defeat the Cinder Colossus | Challenge, under *Enter the Dross*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
+| Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Enter the Dross*. Goes to the player who killed him and everyone within 40 blocks when he dies |
 
 ---
 
@@ -436,7 +513,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto lair colossus` | Teleports you to the Cinder Colossus's lair entrance. Before the lair is built, it says so instead. |
 | `/dross trader sendhome` | Sends the trader home. |
 | `/dross quest status` | Shows your quest progress. |
-| `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!* and *Set in Stone*). |
+| `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*, *Set in Stone* and *Down the Drain*). |
 | `/dross quest complete` | Finishes the quest for you. |
 | `/dross showcase trader_huts` | Builds the 10 candidate hut designs in a row, with numbered signs. |
 | `/dross showcase trader_skins` | Lines up 10 frozen traders wearing the 10 candidate skins. Right-click one for its name. |
@@ -446,8 +523,17 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase boss_designs colossus erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
 | `/dross showcase boss_designs colossus walk` / `idle` | Knuckle-walking on the spot / standing. |
 | `/dross showcase trophies colossus` | Places the five Cinder Colossus trophy designs in a row in front of you, each on a pedestal facing you with a sign giving its number and name. Running it again replaces the row. |
+| `/dross showcase trophies ratking` | Places the Rat King's five trophy designs in a row in front of you, each on a pedestal facing you with a sign. Running it again replaces the row. |
+| `/dross showcase boss_designs ratking` | Spawns the Rat King (Gnawrick 1C) frozen, with signs and clickable animation buttons in chat. Right-click one to play his next animation; sneak + right-click: he dies. |
+| `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
+| `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
+| `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
+| `/dross showcase bossbars ratking` / `... <option>` | Shows one of the Rat King's boss bar designs on your screen for 40 seconds, normal and Rage, draining and refilling; chat buttons switch designs. |
+| `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
+| `/dross boss summon ratking` | Summons a fighting Rat King, asleep, 14 blocks in front of you, facing you (not on Peaceful). |
+| `/dross boss arena ratking` | Builds the Rat King's placeholder arena round you (a 31-block round floor of dirt and coarse dirt), with a chat button to summon him. |
 
 ---
 
@@ -477,10 +563,15 @@ From the project folder, on Windows:
   - Top-down maps of a generated area are in `terrain-previews/`.
   - See `tools/terrain/README.md` (and `TERRAIN_DESIGN.md` for the design).
 - **`tools/golems/`:** generates the Cinder Colossus designs and its trophies.
-  - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/`, and writes `GolemDesigns.java`.
-  - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
-  - `lair_preview.py` renders the lair previews (`boss-previews/lair_*.png`).
+  - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/cinder_colossus/`, and writes `GolemDesigns.java`.
+  - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/cinder_colossus/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
+  - `lair_preview.py` renders the lair previews (`boss-previews/cinder_colossus/lair_*.png`).
   - See `tools/golems/README.md`.
+- **`tools/ratking/`:** generates the Rat King design candidates and his rats (models, animations, textures, the Zzz
+  particle, `RatKingDesigns.java` and `RatDesigns.java`) and renders the previews in `boss-previews/rat_king/`; its
+  `sounds.py` makes all their sounds from scratch. It reuses the golem kit. See `tools/ratking/README.md`.
+- **Making a new boss:** follow `BOSS_GUIDE.md` (the whole process, from design candidates to the user's pick).
+  Every boss's previews go in its own folder under `boss-previews/`.
 
 ---
 

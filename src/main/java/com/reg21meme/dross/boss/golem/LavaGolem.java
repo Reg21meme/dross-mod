@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.golem;
 
+import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -159,7 +160,7 @@ public class LavaGolem extends GolemMinion
     /**
      * Its blast: everything within {@link ColossusTuning#LAVA_GOLEM_BLAST_RADIUS} blocks (most at the middle) is hurt,
      * knocked back and set on fire. No blocks are broken: it isn't a Minecraft explosion, just its damage and looks.
-     * Its own Colossus and the other minions aren't hurt.
+     * Its own Colossus and the other minions aren't hurt (unless the Rage Wand has made them its enemies).
      */
     private void blowUp()
     {
@@ -171,7 +172,8 @@ public class LavaGolem extends GolemMinion
         double radius = ColossusTuning.LAVA_GOLEM_BLAST_RADIUS;
         DamageSource source = this.damageSources().explosion(this, this);
         for (LivingEntity victim : level.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(radius),
-                e -> e != this && e.isAlive() && !(e instanceof CinderColossus) && !(e instanceof GolemMinion)))
+                e -> e != this && e.isAlive()
+                        && (!(e instanceof CinderColossus) && !(e instanceof GolemMinion) || Rage.areEnemies(this, e))))
         {
             double dist = victim.position().add(0.0D, victim.getBbHeight() / 2.0D, 0.0D).distanceTo(at);
             if (dist > radius)

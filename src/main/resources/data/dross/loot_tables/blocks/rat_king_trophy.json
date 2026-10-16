@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:block",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "dross:rat_king_trophy",
+          "functions": [
+            {
+              "function": "minecraft:copy_state",
+              "block": "dross:rat_king_trophy",
+              "properties": [ "design" ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

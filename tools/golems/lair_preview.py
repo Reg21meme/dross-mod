@@ -1,5 +1,5 @@
 """
-Draws the Cinder Colossus's lair (the volcano) from its real blocks in a test world, for boss-previews/:
+Draws the Cinder Colossus's lair (the volcano) from its real blocks in a test world, for boss-previews/cinder_colossus/:
     lair_outside.png   the volcano from above and the south-east (turned so its cave mouth faces the camera's left),
                        and below that two straight side views: looking into the cave mouth, and from the side
     lair_cutaway.png   a straight view of the volcano cut in half along the way in: the cavern, the crater above it,
@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 VIEWS = os.path.join(ROOT, "build", "lair", "views")
-OUT = os.path.join(ROOT, "boss-previews")
+OUT = os.path.join(ROOT, "boss-previews", "cinder_colossus")
 NIGHT = 0.55          # how bright an unlit block is (the game's night is darker; this shows the shape)
 MAX_WIDTH = 1800      # wider images are scaled down to this
 PX = 8                # a block's size in the straight views (pixels)

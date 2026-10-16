@@ -14,5 +14,8 @@ public final class ModParticles
     // Portal area: electric blue swirl particles around the Dross portal
     public static final RegistryObject<SimpleParticleType> DROSS_PORTAL = PARTICLE_TYPES.register("dross_portal", () -> new SimpleParticleType(false));
 
+    // Boss area: the "Z" that floats up from a sleeping Rat King's head
+    public static final RegistryObject<SimpleParticleType> ZZZ = PARTICLE_TYPES.register("zzz", () -> new SimpleParticleType(false));
+
     private ModParticles() {}
 }

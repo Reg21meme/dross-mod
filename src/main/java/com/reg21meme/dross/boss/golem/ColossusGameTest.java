@@ -66,6 +66,9 @@ import java.util.function.Consumer;
  *       statue (vanilla would remove it after a second).</li>
  *   <li>{@link #rangedHitsAreWeakerEachStage}: an arrow's hit takes 50% of its damage in the Shell stage, 35% in
  *       Cracking and 15% in the Lava Core (before its armour); a melee hit of the same damage isn't reduced.</li>
+ *   <li>{@link #pickaxeHitsCrackTheShell}: a blow from someone holding a pickaxe does twice its damage (before armour)
+ *       in the Shell and Cracking stages and the usual in the Lava Core; bare hands and a sword the usual; an arrow
+ *       from a pickaxe holder only the ranged share.</li>
  *   <li>{@link #minionsCrumbleWithTheirColossus}: its minions crumble when it dies.</li>
  *   <li>{@link #lavaPoolStaysSmallAndCoolsAway}: a lava pool reaches at most 3 blocks from its middle, never replaces a
  *       chest or a solid block, and is gone after its time.</li>
@@ -93,7 +96,7 @@ import java.util.function.Consumer;
 public final class ColossusGameTest
 {
     /** The arena: a flat floor under a roof, made in memory when the server starts (no structure file needed). */
-    static final String ARENA = "colossus_test_arena";
+    public static final String ARENA = "colossus_test_arena";
     private static final ResourceLocation ARENA_ID = new ResourceLocation(Dross.MODID, ARENA);
     /** Arena width and depth (blocks), and height (floor included): room for the 4 x 5 Colossus. */
     static final int ARENA_SIZE = 17;
@@ -102,9 +105,9 @@ public final class ColossusGameTest
      * The floor's height: the test's structure block sits at relative y 0, so the template's bottom layer (the floor)
      * is at relative y 1...
      */
-    static final int FLOOR_Y = 1;
+    public static final int FLOOR_Y = 1;
     /** ...and the middle of the arena just above it. */
-    static final BlockPos MIDDLE = new BlockPos(8, FLOOR_Y + 1, 8);
+    public static final BlockPos MIDDLE = new BlockPos(8, FLOOR_Y + 1, 8);
     /**
      * A roof of barrier blocks just above the arena (relative height). The test server's world is a normal, random
      * one, and the test framework clears the room for each test deep underground, often right under a cave: gravel or
@@ -121,6 +124,11 @@ public final class ColossusGameTest
     private static final float HEALTH_TOLERANCE = 0.01F;
     /** The damage of each hit in the ranged test (small enough to stay above every stage's threshold). */
     private static final float TEST_HIT = 10.0F;
+    /**
+     * "About twice": in the Shell and Cracking stages a pickaxe's hit takes at least this many times a bare-handed one
+     * (its armour takes a little less off a bigger hit, so it's a touch more than twice).
+     */
+    private static final float PICKAXE_AT_LEAST = 1.9F;
     /** A dropped trophy lies (horizontally) this close to where it should be (blocks). */
     private static final double DROP_SPOT_TOLERANCE = 0.3D;
     /** Minecraft's yaw for facing east (+X) and west (-X). */
@@ -141,7 +149,7 @@ public final class ColossusGameTest
      * Added to the time limit (ticks) of each test that waits for its arena: only a backstop behind
      * {@link #ARENA_WAIT_MILLIS} (R6b: a limit of 600 ticks ran out in a few seconds on a busy machine).
      */
-    static final int ARENA_WAIT_TICKS = 20_000;
+    public static final int ARENA_WAIT_TICKS = 20_000;
 
     private ColossusGameTest() {}
 
@@ -279,6 +287,75 @@ public final class ColossusGameTest
     }
 
     /** Hits it once at full health (no invulnerability left from the last hit) and says how much health it lost. */
+    @GameTest(template = ARENA, batch = "dross_colossus_pickaxe", timeoutTicks = 100)
+    public static void pickaxeHitsCrackTheShell(GameTestHelper helper)
+    {
+        ServerLevel level = helper.getLevel();
+        CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), 0.0F);
+        // The attackers (and the arrow) are never added to the world: a damage source only needs them to exist.
+        Vec3 at = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(4, 0, 0)));
+        Zombie miner = EntityType.ZOMBIE.create(level);
+        Zombie bareHanded = EntityType.ZOMBIE.create(level);
+        Zombie swordsman = EntityType.ZOMBIE.create(level);
+        if (golem == null || miner == null || bareHanded == null || swordsman == null)
+        {
+            helper.fail("the Colossus or the test zombies couldn't be made");
+            return;
+        }
+        for (Zombie zombie : List.of(miner, bareHanded, swordsman))
+        {
+            zombie.moveTo(at.x, at.y, at.z, YAW_WEST, 0.0F);
+        }
+        miner.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.IRON_PICKAXE));
+        swordsman.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.IRON_SWORD));
+        Arrow arrow = new Arrow(level, at.x, at.y + 1.0D, at.z);
+        arrow.setOwner(miner);
+        helper.startSequence()
+                .thenExecute(() -> {
+                    GolemPhase[] phases = {GolemPhase.DORMANT, GolemPhase.ERUPTED, GolemPhase.CORE};
+                    for (GolemPhase phase : phases)
+                    {
+                        golem.setPhase(phase);
+                        ColossusStage stage = golem.stage();
+                        golem.applyStage(stage);
+                        float armor = golem.getArmorValue();
+                        float toughness = (float) golem.getAttributeValue(Attributes.ARMOR_TOUGHNESS);
+                        // The shell (Shell and Cracking) takes a pickaxe's blow twice over; the Lava Core doesn't.
+                        float times = stage == ColossusStage.LAVA_CORE ? 1.0F : ColossusTuning.PICKAXE_DAMAGE_TAKEN;
+                        float pick = healthLost(golem, level.damageSources().mobAttack(miner));
+                        float expectedPick = CombatRules.getDamageAfterAbsorb(TEST_HIT * times, armor, toughness);
+                        if (Math.abs(pick - expectedPick) > HEALTH_TOLERANCE)
+                        {
+                            helper.fail(stage + ": a pickaxe hit of " + TEST_HIT + " should take " + expectedPick + " health ("
+                                    + times + " times it, then armour), but it took " + pick);
+                        }
+                        float bare = healthLost(golem, level.damageSources().mobAttack(bareHanded));
+                        float sword = healthLost(golem, level.damageSources().mobAttack(swordsman));
+                        float expectedBare = CombatRules.getDamageAfterAbsorb(TEST_HIT, armor, toughness);
+                        if (Math.abs(bare - expectedBare) > HEALTH_TOLERANCE || Math.abs(sword - expectedBare) > HEALTH_TOLERANCE)
+                        {
+                            helper.fail(stage + ": a bare-handed or sword hit of " + TEST_HIT + " should take " + expectedBare
+                                    + " health, but they took " + bare + " and " + sword);
+                        }
+                        if (stage != ColossusStage.LAVA_CORE && pick < PICKAXE_AT_LEAST * bare)
+                        {
+                            helper.fail(stage + ": a pickaxe hit should do about twice a bare-handed one, but it did " + pick
+                                    + " against " + bare);
+                        }
+                        // An arrow from someone holding a pickaxe is still a projectile: only the ranged share.
+                        float shot = healthLost(golem, level.damageSources().arrow(arrow, miner));
+                        float expectedShot = CombatRules.getDamageAfterAbsorb(TEST_HIT * stage.rangedDamageTaken, armor, toughness);
+                        if (Math.abs(shot - expectedShot) > HEALTH_TOLERANCE)
+                        {
+                            helper.fail(stage + ": an arrow from a pickaxe holder should take " + expectedShot
+                                    + " health (the ranged share), but it took " + shot);
+                        }
+                    }
+                    golem.discard();
+                })
+                .thenSucceed();
+    }
+
     private static float healthLost(CinderColossus golem, DamageSource source)
     {
         golem.setHealth(golem.getMaxHealth());
@@ -747,7 +824,7 @@ public final class ColossusGameTest
      * {@code makeMockServerPlayerInLevel} crashes under Forge, so he gets an in-memory network channel, like the
      * enchant area's test owner), facing {@code yaw}. He isn't ticked, so he never picks anything up.
      */
-    static ServerPlayer joinPlayer(GameTestHelper helper, String name, BlockPos at, float yaw)
+    public static ServerPlayer joinPlayer(GameTestHelper helper, String name, BlockPos at, float yaw)
     {
         ServerLevel level = helper.getLevel();
         ServerPlayer player = new ServerPlayer(level.getServer(), level, new GameProfile(UUID.randomUUID(), name));
@@ -766,7 +843,7 @@ public final class ColossusGameTest
     }
 
     /** Logs the stand-in players out. Safe to call twice. */
-    static void leaveAll(List<ServerPlayer> players)
+    public static void leaveAll(List<ServerPlayer> players)
     {
         for (ServerPlayer player : players)
         {
@@ -801,13 +878,13 @@ public final class ColossusGameTest
      * @return true if the arena is still loading (the test goes on later, so the caller just returns); false if the
      *         test can go ahead now
      */
-    static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
+    public static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
     {
         return waitForArena(helper, test, ARENA_SIZE, ARENA_SIZE);
     }
 
     /** {@link #waitForArena(GameTestHelper, Consumer)} for a test template of another size (blocks along x and z). */
-    static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test, int sizeX, int sizeZ)
+    public static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test, int sizeX, int sizeZ)
     {
         if (arenaStillLoading(helper, sizeX, sizeZ) == null)
         {
@@ -901,7 +978,7 @@ public final class ColossusGameTest
      * A test template: a smooth stone floor {@code sizeX} by {@code sizeZ} blocks with air above, under a barrier roof
      * (see {@link #ROOF_Y}). The arena, and {@link ColossusFightGameTest}'s runway.
      */
-    static CompoundTag floorTemplate(int sizeX, int sizeZ)
+    public static CompoundTag floorTemplate(int sizeX, int sizeZ)
     {
         // The template's bottom layer (0) is the floor at relative y FLOOR_Y, so the roof is layer ROOF_Y - FLOOR_Y.
         int roofLayer = ROOF_Y - FLOOR_Y;

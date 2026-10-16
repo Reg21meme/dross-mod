@@ -17,23 +17,23 @@ It writes (for each design NN_<id>):
                                                                   .../<id>_statue.png  cooled obsidian
                                                                   .../<id>_flow.png    lava poured over it
                                                                   .../<id>_cracks.png  the fight's Cracking stage
-  boss-previews/NN_<id>_<phase>_<front|side|back>.png, NN_<id>_sheet.png and NN_<id>_fight.png, plus all_golems.png
+  boss-previews/cinder_colossus/NN_<id>_<phase>_<front|side|back>.png, NN_<id>_sheet.png and NN_<id>_fight.png, plus all_golems.png
   src/main/java/com/reg21meme/dross/boss/golem/GolemDesigns.java                    (all designs, and the minions)
 and the minions the Colossus summons (designs/minions.py: the stone golem and the lava golem):
   .../geo/entity/golem_minion/<id>.geo.json, .../animations/entity/golem_minion/<id>.animation.json,
-  .../textures/entity/golem_minion/<id>.png and <id>_glow.png, and boss-previews/minions.png
+  .../textures/entity/golem_minion/<id>.png and <id>_glow.png, and boss-previews/cinder_colossus/minions.png
 
     python tools/golems/build.py --minions-only        # only the minions (GolemDesigns.java is left alone)
 
 and the five trophy designs made from the boss (kit/trophies.py: the model again, held poses, lava stream textures,
-boss-previews/trophies.png and boss/trophy/TrophyModels.java):
+boss-previews/cinder_colossus/trophies.png and boss/trophy/TrophyModels.java):
   .../geo/block/ and geo/item/colossus_trophy.geo.json, .../animations/block/colossus_trophy.animation.json,
   .../textures/block/colossus_trophy/design_<n>_flow.png and design_<n>_flow_base.png
 
     python tools/golems/build.py --trophies-only       # only the trophies (about a minute; the boss's files are left alone)
 
 The user picked 3G, Saddleback, from round 3 (four variations of No. 3, Old Calderon); it's the only design built
-now. Earlier rounds are kept in designs/round1/, round2/ and round3/ (and their previews in boss-previews/round1/,
+now. Earlier rounds are kept in designs/round1/, round2/ and round3/ (and their previews in boss-previews/cinder_colossus/round1/,
 round2/ and round3/) but aren't built.
 
 Needs Python 3 with numpy, scipy and Pillow.
@@ -63,7 +63,7 @@ TEX_DIR = os.path.join(ASSETS, "textures", "entity", "cinder_colossus")
 MINION_GEO_DIR = os.path.join(ASSETS, "geo", "entity", "golem_minion")
 MINION_ANIM_DIR = os.path.join(ASSETS, "animations", "entity", "golem_minion")
 MINION_TEX_DIR = os.path.join(ASSETS, "textures", "entity", "golem_minion")
-PREVIEW_DIR = os.path.join(ROOT, "boss-previews")
+PREVIEW_DIR = os.path.join(ROOT, "boss-previews", "cinder_colossus")
 JAVA_LIST = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "golem", "GolemDesigns.java")
 # The trophies (kit/trophies.py): outside the cinder_colossus folders, so remove_stale_files never deletes them.
 TROPHY_GEO_DIR = os.path.join(ASSETS, "geo")  # geo/block/ and geo/item/

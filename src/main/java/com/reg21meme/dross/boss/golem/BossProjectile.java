@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.golem;
 
+import com.reg21meme.dross.boss.rage.Rage;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.Projectile;
@@ -88,10 +89,15 @@ public abstract class BossProjectile extends Projectile
     {
     }
 
+    /**
+     * Never another of the bosses' projectiles; never a Colossus or a golem, unless the Rage Wand has made it an enemy
+     * of whoever threw this ({@link Rage#areEnemies}: both raged, on different sides).
+     */
     @Override
     protected boolean canHitEntity(Entity entity)
     {
-        if (entity instanceof CinderColossus || entity instanceof GolemMinion || entity instanceof BossProjectile)
+        if (entity instanceof BossProjectile
+                || (entity instanceof CinderColossus || entity instanceof GolemMinion) && !Rage.areEnemies(this.getOwner(), entity))
         {
             return false;
         }

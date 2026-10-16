@@ -45,6 +45,8 @@ public final class ColossusTuning
     public static final double SWIPE_LIFT = 0.35D;
     /** Ticks before it can swipe again. */
     public static final int SWIPE_COOLDOWN = 25;
+    /** It stops turning to face its target this many ticks before the swipe's hit (the blow is committed: a dodge counts). */
+    public static final int SWIPE_COMMIT_TICKS = 2;
 
     // ---------------------------------------------------------------- thrown cobblestone
 
@@ -74,14 +76,35 @@ public final class ColossusTuning
     public static final double SLAM_TRIGGER_RANGE = 7.0D;
     /** ...at most this often (ticks). */
     public static final int SLAM_COOLDOWN = 200;
+    /**
+     * With its fists raised it keeps turning to face its target, until this many ticks before they come down (the
+     * slam is committed then).
+     */
+    public static final int SLAM_COMMIT_TICKS = 6;
 
     // ---------------------------------------------------------------- charge (it closes the gap)
 
     /**
-     * It charges at the spot where its target stood when the charge started (the target may have moved by the time it
-     * gallops) and runs all the way to that spot, head first, at most this far...
+     * It charges at the spot where its target stood {@link #CHARGE_AIM_LOCK_TICKS} before the gallop (the target may
+     * have moved by the time it gallops) and runs all the way to that spot, head first, at most this far...
      */
     public static final double CHARGE_MAX_DISTANCE = 32.0D;
+    /**
+     * During the charge's wind-up (head down, pawing the ground) it keeps turning to face its target, until this many
+     * ticks (half a second) before the gallop: then the spot it runs to is fixed (where its target stands then), which
+     * leaves time to dodge.
+     */
+    public static final int CHARGE_AIM_LOCK_TICKS = 10;
+    /** In the wind-up it turns this many times faster than its stage's turn speed (it lines up on the spot). */
+    public static final float CHARGE_WINDUP_TURN = 1.5F;
+    /**
+     * When the charge has run its course (at the spot, where its target was), it digs in and wheels round on the spot
+     * to face its target again, this many times faster than its stage's turn speed, for at most this many ticks or
+     * until it faces it within this many degrees; then it walks on.
+     */
+    public static final float CHARGE_WHEEL_TURN = 2.0F;
+    public static final int CHARGE_WHEEL_TICKS = 20;
+    public static final float CHARGE_WHEEL_DONE = 10.0F;
     /** ...this fast (blocks a tick: 0.6 is 12 blocks a second). */
     public static final double CHARGE_SPEED = 0.6D;
     /** It gives up a charge this many ticks after it should have arrived (if something slows it down). */
@@ -186,6 +209,22 @@ public final class ColossusTuning
     public static final double ROAR_LIFT = 0.75D;
     /** Ticks its ring of dust takes to roll out to {@link #ROAR_RADIUS}. */
     public static final int ROAR_RING_TICKS = 6;
+    /**
+     * In the shell bursting (entering the Lava Core) its roar sound starts this many seconds before the burst, when it
+     * starts raising its arms and opening its jaw (the break_shell animation's rise, in tools/golems/kit/anims.py, starts
+     * 0.45 s before the burst), so the roar comes out of its open mouth. The crack of the shell and the roar's
+     * shockwave stay at the burst.
+     */
+    public static final float BREAK_ROAR_LEAD = 0.45F;
+
+    // ---------------------------------------------------------------- pickaxes (the user's wish: they crack the shell)
+
+    /**
+     * While it still has its rock shell (the Shell and Cracking stages) a melee hit from someone holding a pickaxe
+     * (anything in the {@code minecraft:pickaxes} item tag, so other mods' pickaxes too) does this many times its
+     * damage, before its armour counts. Never for projectiles; the Lava Core takes pickaxe hits like any other.
+     */
+    public static final float PICKAXE_DAMAGE_TAKEN = 2.0F;
 
     // ---------------------------------------------------------------- choosing a move: chances by distance
 
