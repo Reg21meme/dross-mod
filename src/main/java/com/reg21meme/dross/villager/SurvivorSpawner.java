@@ -41,14 +41,22 @@ public final class SurvivorSpawner
         {
             return;
         }
-        try
+        // The hub is built in the background after a new world starts: wait for it instead of forcing it now.
+        DrossHub.whenBuilt(server, built ->
         {
-            spawn(server, data);
-        }
-        catch (RuntimeException e)
-        {
-            LOGGER.error("[Dross] Survivors: spawning them at the hub failed; trying again the next time the world starts.", e);
-        }
+            if (data.hasSpawned())
+            {
+                return;
+            }
+            try
+            {
+                spawn(server, data);
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("[Dross] Survivors: spawning them at the hub failed; trying again the next time the world starts.", e);
+            }
+        });
     }
 
     private static void spawn(MinecraftServer server, SurvivorSpawnData data)

@@ -13,15 +13,14 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * Remembers (in the world save) whether the hub has been built, where its exit portal is, and how the hub is laid out.
- * Saved as data/dross_hub.dat in the Overworld's save folder (the Overworld is always loaded).
+ * Saved as data/dross_hub.dat in the Overworld's save folder (the Overworld is always loaded). Everything is saved
+ * together when the hub is built ({@link #markBuilt}):
  * <ul>
- *   <li>{@code Built}, {@code ExitX/Y/Z}, {@code ExitAxis}, {@code ExitWidth/Height}: the exit portal's opening (older
- *       saves have no width and height).</li>
- *   <li>Since Terrain v1, the layout: {@code Kind} (which hub was built), {@code Footprint} (the box it covers: min X, Y,
- *       Z, max X, Y, Z), {@code GroundY} (the ground level it stands on), {@code Fitted} (its ground was levelled and
- *       blended into the terrain with a staircase), {@code BuildMillis} (how long building it took) and the arrival spot
- *       ({@code ArrivalX/Y/Z}, {@code ArrivalYaw}). Older saves have none of these: {@link DrossHub#layout} works them
- *       out once from the real frame and saves them (it never changes any blocks).</li>
+ *   <li>{@code Built}, and the exit portal's opening: {@code ExitX/Y/Z}, {@code ExitAxis}, {@code ExitWidth/Height}
+ *       (none if the hub has no exit portal: building it failed).</li>
+ *   <li>The layout: {@code Kind} (which hub was built), {@code Footprint} (the box it covers: min X, Y, Z, max X, Y, Z),
+ *       {@code GroundY} (the ground level it stands on), {@code Fitted} (its ground was levelled and blended into the
+ *       terrain with a staircase) and the arrival spot ({@code ArrivalX/Y/Z}, {@code ArrivalYaw}).</li>
  * </ul>
  */
 public class DrossHubData extends SavedData
@@ -32,19 +31,17 @@ public class DrossHubData extends SavedData
     @Nullable
     private BlockPos exitPortal;
     private Direction.Axis exitAxis = Direction.Axis.X;
-    /** The exit opening's size. 0 in saves from before the size was remembered (it then counts as 1x1). */
+    /** The exit opening's size. */
     private int exitWidth;
     private int exitHeight;
 
-    /** Which hub was built; null in saves from before the layout was remembered. */
+    /** Which hub was built; null if building it failed. */
     @Nullable
     private DrossHub.Kind kind;
     @Nullable
     private BoundingBox footprint;
     private int groundY;
     private boolean fitted;
-    /** How long building the hub took, in milliseconds; -1 if unknown (built before this was remembered). */
-    private long buildMillis = -1L;
     @Nullable
     private Vec3 arrival;
     private float arrivalYaw;
@@ -79,7 +76,6 @@ public class DrossHubData extends SavedData
         }
         data.groundY = tag.getInt("GroundY");
         data.fitted = tag.getBoolean("Fitted");
-        data.buildMillis = tag.contains("BuildMillis") ? tag.getLong("BuildMillis") : -1L;
         if (tag.contains("ArrivalX"))
         {
             data.arrival = new Vec3(tag.getDouble("ArrivalX"), tag.getDouble("ArrivalY"), tag.getDouble("ArrivalZ"));
@@ -112,10 +108,6 @@ public class DrossHubData extends SavedData
         }
         tag.putInt("GroundY", this.groundY);
         tag.putBoolean("Fitted", this.fitted);
-        if (this.buildMillis >= 0L)
-        {
-            tag.putLong("BuildMillis", this.buildMillis);
-        }
         if (this.arrival != null)
         {
             tag.putDouble("ArrivalX", this.arrival.x);
@@ -158,7 +150,7 @@ public class DrossHubData extends SavedData
 
     /**
      * Where the exit portal's opening is, as remembered when the hub was built (whether or not its frame is still
-     * there), or null if the hub has no exit portal. Old saves didn't remember the size: then it counts as 1x1.
+     * there), or null if the hub has no exit portal.
      */
     @Nullable
     PortalOpening getRememberedExit()
@@ -167,52 +159,35 @@ public class DrossHubData extends SavedData
         {
             return null;
         }
-        return new PortalOpening(this.exitPortal, this.exitAxis, Math.max(1, this.exitWidth), Math.max(1, this.exitHeight));
+        return new PortalOpening(this.exitPortal, this.exitAxis, this.exitWidth, this.exitHeight);
     }
 
-    /** Remembers a freshly built hub: its exit portal (if it has one), what was built and how long it took. */
-    void markBuilt(DrossHubBuilder.Result result, long millis)
+    /**
+     * Remembers a freshly built hub: its exit portal and the arrival spot in front of it (if it has one), and what was
+     * built. Saved all at once, so a hub with an exit portal always has its layout and arrival spot.
+     */
+    void markBuilt(DrossHubBuilder.Result result, @Nullable Vec3 arrivalSpot, float yaw)
     {
         this.built = true;
-        if (result.exit() != null)
+        PortalOpening exit = result.exit();
+        if (exit != null && arrivalSpot != null)
         {
-            rememberExit(result.exit());
+            this.exitPortal = exit.minCorner().immutable();
+            this.exitAxis = exit.axis();
+            this.exitWidth = exit.width();
+            this.exitHeight = exit.height();
+            this.arrival = arrivalSpot;
+            this.arrivalYaw = yaw;
         }
         this.kind = result.kind();
         this.footprint = copy(result.footprint());
         this.groundY = result.groundY();
         this.fitted = result.fitted();
-        this.buildMillis = millis;
         this.builtThisSession = true;
         setDirty();
     }
 
-    /** Remembers the exit portal's real opening (older saves didn't have its size). */
-    void rememberExit(PortalOpening exit)
-    {
-        this.exitPortal = exit.minCorner().immutable();
-        this.exitAxis = exit.axis();
-        this.exitWidth = exit.width();
-        this.exitHeight = exit.height();
-        setDirty();
-    }
-
-    /** Remembers a layout worked out for a hub built before layouts were saved. */
-    void rememberLayout(DrossHub.Kind kind, BoundingBox footprint, int groundY)
-    {
-        this.kind = kind;
-        this.footprint = copy(footprint);
-        this.groundY = groundY;
-        this.fitted = false;
-        setDirty();
-    }
-
-    /** True once the hub's kind and footprint are known (always for hubs built since Terrain v1). */
-    boolean hasLayout()
-    {
-        return this.kind != null && this.footprint != null;
-    }
-
+    /** Which hub was built (null if building it failed). */
     @Nullable
     DrossHub.Kind getKind()
     {
@@ -236,17 +211,12 @@ public class DrossHubData extends SavedData
         return this.fitted;
     }
 
-    long getBuildMillis()
-    {
-        return this.buildMillis;
-    }
-
     boolean wasBuiltThisSession()
     {
         return this.builtThisSession;
     }
 
-    /** Where a player arriving through the hub's portal lands, or null if it isn't known yet. */
+    /** Where a player arriving through the hub's portal lands, or null if the hub isn't built or has no exit portal. */
     @Nullable
     Vec3 getArrival()
     {
@@ -256,13 +226,6 @@ public class DrossHubData extends SavedData
     float getArrivalYaw()
     {
         return this.arrivalYaw;
-    }
-
-    void setArrival(Vec3 spot, float yaw)
-    {
-        this.arrival = spot;
-        this.arrivalYaw = yaw;
-        setDirty();
     }
 
     @Nullable

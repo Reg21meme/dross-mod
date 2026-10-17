@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.IntPredicate;
 import javax.annotation.Nullable;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
@@ -22,7 +23,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import org.slf4j.Logger;
 
 /**
- * Builds the hub at Dross 0,0, once per world (see {@link DrossHub} for when). Which hub, first match wins:
+ * Builds the hub at Dross 0,0, once per world (see {@link DrossHub} for when, and {@link DrossHubPlacer} for how it's
+ * spread over several server ticks). Which hub, first match wins:
  * <ol>
  *   <li>The user's own design, if the template {@code data/dross/structures/dross_hub.nbt} exists: centred on
  *       {@link DrossHub#CENTER}, on fitted ground (below), with its Dross frame found and lit.</li>
@@ -35,8 +37,10 @@ import org.slf4j.Logger;
  * {@value DrossHub#HUB_BLEND_MARGIN} blocks around the footprint is surveyed (trees, plants, Stormvine, huge mushrooms
  * and snow are looked through), the footprint is levelled at the natural ground's median height, the edges become a
  * staircase back to the natural terrain (at most one block per step), and trees, huge mushrooms and the like that touch
- * it are removed whole. On the flat Dross that changes nothing. The plan, what was removed and the time taken are logged,
- * with a warning if the ground was rough.
+ * it are removed whole. The plan, what was removed and the time taken are logged, with a warning if the ground was rough.
+ * <p>
+ * A {@link Build} does it in three steps, one per server tick when it's spread out: survey the ground, plan it, build.
+ * Only the last one changes the world.
  */
 final class DrossHubBuilder
 {
@@ -47,6 +51,11 @@ final class DrossHubBuilder
     private static final int WARN_RING_CHANGE = 8;
     /** Warn in the log if a dip deeper than this (blocks) under the footprint has to be filled. */
     private static final int WARN_DIP = 8;
+    /**
+     * The chunks this many blocks past the surveyed ring are loaded before building too: removing a tree that touches
+     * the hub follows its leaves out past the surveyed ring, and those chunks should be ready as well.
+     */
+    static final int LOAD_PAST_SURVEY = 16;
 
     // The user's own template
     /**
@@ -65,14 +74,14 @@ final class DrossHubBuilder
 
     // Placeholder hub
     /** The platform reaches this many blocks out from the centre on each side (5 -> 11x11). */
-    static final int PLATFORM_RADIUS = 5;
+    private static final int PLATFORM_RADIUS = 5;
     /** Air cleared above the platform. */
-    static final int CLEAR_HEIGHT = 6;
+    private static final int CLEAR_HEIGHT = 6;
     /** Under the platform, fill up to this many blocks of air/liquid so it never floats over a drop. */
-    static final int SUPPORT_DEPTH = 3;
+    private static final int SUPPORT_DEPTH = 3;
     /** Exit portal frame, corners included: 4 wide x 5 tall (opening 2x3, like the smallest nether portal). */
-    static final int EXIT_FRAME_WIDTH = 4;
-    static final int EXIT_FRAME_HEIGHT = 5;
+    private static final int EXIT_FRAME_WIDTH = 4;
+    private static final int EXIT_FRAME_HEIGHT = 5;
     /**
      * The staircase around a placeholder built next to something that already stands (a spire whose frame failed, or
      * the user's template without a frame): none, so it never cuts into that.
@@ -85,17 +94,17 @@ final class DrossHubBuilder
      * What was built.
      *
      * @param exit      the lit exit portal, or null if the hub has none (only if even the placeholder failed)
-     * @param kind      which hub it is
+     * @param kind      which hub it is (null only if nothing was built)
      * @param footprint the box it covers (null only if nothing was built)
      * @param groundY   the Y of the ground block it stands on (its levelled ground)
      * @param fitted    true if the ground under and around {@code footprint} was fitted (levelled, with a staircase)
      */
-    record Result(@Nullable PortalOpening exit, DrossHub.Kind kind, @Nullable BoundingBox footprint, int groundY, boolean fitted)
+    record Result(@Nullable PortalOpening exit, @Nullable DrossHub.Kind kind, @Nullable BoundingBox footprint, int groundY, boolean fitted)
     {
         /** Building failed completely: no hub, no exit portal. */
         static Result failed()
         {
-            return new Result(null, DrossHub.Kind.UNKNOWN, null, 0, false);
+            return new Result(null, null, null, 0, false);
         }
     }
 
@@ -104,57 +113,267 @@ final class DrossHubBuilder
 
     private DrossHubBuilder() {}
 
-    /** Builds the hub (the user's template, the spire, or the placeholder). Server thread only; can take a few seconds. */
-    static Result build(ServerLevel dross)
+    // ------------------------------------------------------------------ one build, a step at a time
+
+    /**
+     * One hub build, in three steps ({@link #step}, one per server tick when it's spread out; {@link DrossHubPlacer}
+     * loads the chunks first, in the background):
+     * <ol>
+     *   <li><b>survey</b> the ground under and around the footprint (reads blocks, changes nothing);</li>
+     *   <li><b>plan</b> it: the ground level and the staircase (changes nothing);</li>
+     *   <li><b>build</b>: trees removed, the ground fitted, the hub placed and its exit portal lit, or a fallback if
+     *       anything goes wrong. The only step that changes the world, all in one go.</li>
+     * </ol>
+     * Which hub it builds is decided when it's made. Server thread only.
+     */
+    static final class Build
     {
-        // 1. The user's own hub design.
-        Optional<StructureTemplate> template = dross.getStructureManager().get(DrossHub.TEMPLATE);
-        if (template.isPresent())
+        private static final String[] STEP_NAMES = {"survey", "plan", "build"};
+
+        private final ServerLevel dross;
+        /** What's planned: the user's template, the spire, or (if the spire's design or template is missing) the placeholder. */
+        private final DrossHub.Kind planned;
+        @Nullable
+        private final StructureTemplate template;
+        @Nullable
+        private final ShrineDesign spire;
+        /** The footprint's columns (only X and Z count: the ground level isn't known yet). */
+        private final BoundingBox columns;
+        private final IntPredicate fits;
+        private final String what;
+        @Nullable
+        private GroundFit.Plan plan;
+        @Nullable
+        private GroundFit.Survey survey;
+        /** Surveying or planning failed: the placeholder is built at the centre instead. */
+        private boolean groundFailed;
+        @Nullable
+        private Result result;
+        private int stepsDone;
+        private long millis;
+        private long longestStep = -1L;
+        private String longestStepName = "";
+        private final List<String> stepTimes = new ArrayList<>();
+
+        Build(ServerLevel dross)
         {
-            return buildTemplate(dross, template.get());
+            this.dross = dross;
+            Optional<StructureTemplate> own = dross.getStructureManager().get(DrossHub.TEMPLATE);
+            Optional<ShrineDesign> design = ShrineDesign.byId(SPIRE_DESIGN_ID);
+            if (own.isPresent())
+            {
+                // 1. The user's own hub design.
+                Vec3i size = own.get().getSize();
+                int minX = DrossHub.CENTER.getX() - size.getX() / 2;
+                int minZ = DrossHub.CENTER.getZ() - size.getZ() / 2;
+                this.planned = DrossHub.Kind.TEMPLATE;
+                this.template = own.get();
+                this.spire = null;
+                this.columns = new BoundingBox(minX, 0, minZ, minX + size.getX() - 1, 0, minZ + size.getZ() - 1);
+                this.fits = y -> templateFits(dross, y, size);
+                this.what = "the " + DrossHub.TEMPLATE + " template";
+            }
+            else if (design.isPresent() && dross.getStructureManager().get(design.get().template()).isPresent())
+            {
+                // 2. The Shattered Spire. Only X and Z of its box matter for the survey: the ground level isn't known yet.
+                ShrineDesign found = design.get();
+                this.planned = DrossHub.Kind.SPIRE;
+                this.template = null;
+                this.spire = found;
+                this.columns = found.footprintForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), 0, SPIRE_FACING);
+                this.fits = y -> found.fitsHeightAt(dross, y);
+                this.what = "the " + found.name();
+            }
+            else
+            {
+                // Checked first so that nothing is built at all: the placeholder then has the centre to itself.
+                if (design.isEmpty())
+                {
+                    LOGGER.error("Dross hub: there's no shrine design called '{}' (world.shrine.ShrineDesigns), so the placeholder hub is built instead.",
+                            SPIRE_DESIGN_ID);
+                }
+                else
+                {
+                    LOGGER.error("Dross hub: the {}'s template {} is missing (data/dross/structures/shrine/{}.nbt), so the placeholder hub is built instead.",
+                            design.get().name(), design.get().template(), design.get().id());
+                }
+                this.planned = DrossHub.Kind.PLACEHOLDER;
+                this.template = null;
+                this.spire = null;
+                this.columns = placeholderColumns(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ());
+                this.fits = y -> placeholderFits(dross, y);
+                this.what = "the placeholder hub";
+            }
         }
 
-        // 2. The Shattered Spire.
-        Optional<ShrineDesign> spire = ShrineDesign.byId(SPIRE_DESIGN_ID);
-        if (spire.isEmpty())
+        /** The columns whose chunks the build reads and changes (only X and Z count): the footprint, the surveyed ring and a bit more. */
+        BoundingBox loadArea()
         {
-            LOGGER.error("Dross hub: there's no shrine design called '{}' (world.shrine.ShrineDesigns), so the placeholder hub is built instead.",
-                    SPIRE_DESIGN_ID);
-            return placeholderAtCenter(dross);
+            return columns.inflatedBy(GroundFit.surveyMargin(DrossHub.HUB_BLEND_MARGIN) + LOAD_PAST_SURVEY);
         }
-        return buildSpire(dross, spire.get());
+
+        /** The columns the survey reads (only X and Z count): the footprint and the surveyed ring round it. */
+        BoundingBox surveyArea()
+        {
+            return columns.inflatedBy(GroundFit.surveyMargin(DrossHub.HUB_BLEND_MARGIN));
+        }
+
+        /** What it's going to build (a fallback may still be built instead if something goes wrong). */
+        DrossHub.Kind planned()
+        {
+            return planned;
+        }
+
+        /**
+         * Runs the next step.
+         *
+         * @return true once the build is finished ({@link #result})
+         */
+        boolean step()
+        {
+            if (result != null)
+            {
+                return true;
+            }
+            String name = STEP_NAMES[Math.min(stepsDone, STEP_NAMES.length - 1)];
+            long start = Util.getMillis();
+            try
+            {
+                switch (stepsDone)
+                {
+                    case 0 -> survey();
+                    case 1 -> plan();
+                    default -> result = build();
+                }
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("Dross hub: building the hub failed, so this world has no hub (arrivals land on safe ground near its centre).", e);
+                result = Result.failed();
+            }
+            long took = Util.getMillis() - start;
+            stepsDone++;
+            millis += took;
+            stepTimes.add(name + " " + took + " ms");
+            if (took > longestStep)
+            {
+                longestStep = took;
+                longestStepName = name;
+            }
+            return result != null;
+        }
+
+        boolean done()
+        {
+            return result != null;
+        }
+
+        /** What was built; only once {@link #done}. */
+        Result result()
+        {
+            if (result == null)
+            {
+                throw new IllegalStateException("The hub isn't built yet");
+            }
+            return result;
+        }
+
+        /** How many steps have run (one tick each when spread out). */
+        int steps()
+        {
+            return stepsDone;
+        }
+
+        /** The time all the steps took together, in milliseconds. */
+        long millis()
+        {
+            return millis;
+        }
+
+        /** The longest one step took, in milliseconds: the most hub work one server tick did when it was spread out. */
+        long longestStep()
+        {
+            return Math.max(0L, longestStep);
+        }
+
+        String longestStepName()
+        {
+            return longestStepName;
+        }
+
+        /** Each step's time, for the log: "survey 40 ms, plan 3 ms, build 650 ms". */
+        String stepTimes()
+        {
+            return String.join(", ", stepTimes);
+        }
+
+        private void survey()
+        {
+            try
+            {
+                survey = GroundFit.survey(dross, columns, GroundFit.surveyMargin(DrossHub.HUB_BLEND_MARGIN));
+            }
+            catch (RuntimeException e)
+            {
+                groundFailed("surveying", e);
+            }
+        }
+
+        private void plan()
+        {
+            if (groundFailed || survey == null)
+            {
+                return;
+            }
+            try
+            {
+                plan = planFrom(dross, survey, DrossHub.HUB_BLEND_MARGIN, fits, what);
+            }
+            catch (RuntimeException e)
+            {
+                groundFailed("planning", e);
+            }
+            survey = null; // the plan keeps what it needs
+        }
+
+        /** Surveying or planning the ground failed: nothing was changed, and the placeholder is built at the centre instead. */
+        private void groundFailed(String doing, RuntimeException e)
+        {
+            if (planned == DrossHub.Kind.PLACEHOLDER)
+            {
+                throw e; // nothing left to fall back on
+            }
+            LOGGER.error("Dross hub: {} the ground for {} failed (nothing was changed), so the placeholder hub is built instead.", doing, what, e);
+            groundFailed = true;
+        }
+
+        private Result build()
+        {
+            if (groundFailed || plan == null)
+            {
+                return placeholderAtCenter(dross);
+            }
+            return switch (planned)
+            {
+                case TEMPLATE -> buildTemplate(dross, template, columns, plan);
+                case SPIRE -> buildSpire(dross, spire, plan);
+                case PLACEHOLDER ->
+                {
+                    Placed placed = placePlaceholder(dross, DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), plan);
+                    yield new Result(placed.exit(), DrossHub.Kind.PLACEHOLDER, placed.box(), placed.floorY(), true);
+                }
+            };
+        }
     }
 
     // ------------------------------------------------------------------ the Shattered Spire
 
     /**
-     * Builds the Shattered Spire on fitted ground with its frame opening centred on the hub centre, and lights that
+     * Builds the Shattered Spire on the planned ground with its frame opening centred on the hub centre, and lights that
      * frame. Falls back to the placeholder (with an error in the log) if the spire can't be built or its frame can't be lit.
      */
-    private static Result buildSpire(ServerLevel dross, ShrineDesign spire)
+    private static Result buildSpire(ServerLevel dross, ShrineDesign spire, GroundFit.Plan plan)
     {
-        if (dross.getStructureManager().get(spire.template()).isEmpty())
-        {
-            // Checked first so that nothing is built at all: the placeholder then has the centre to itself.
-            LOGGER.error("Dross hub: the {}'s template {} is missing (data/dross/structures/shrine/{}.nbt), so the placeholder hub is built instead.",
-                    spire.name(), spire.template(), spire.id());
-            return placeholderAtCenter(dross);
-        }
-
-        // Only X and Z of this box matter for the survey: the ground level isn't known yet.
-        BoundingBox columns = spire.footprintForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), 0, SPIRE_FACING);
-        GroundFit.Plan plan;
-        try
-        {
-            plan = planGround(dross, columns, DrossHub.HUB_BLEND_MARGIN, y -> spire.fitsHeightAt(dross, y), "the " + spire.name());
-        }
-        catch (RuntimeException e)
-        {
-            LOGGER.error("Dross hub: surveying the ground for the {} failed (nothing was changed), so the placeholder hub is built instead.",
-                    spire.name(), e);
-            return placeholderAtCenter(dross);
-        }
-
         BlockPos center = spire.centerForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), plan.groundY, SPIRE_FACING);
         Optional<GroundFit.Report> report;
         try
@@ -228,33 +447,15 @@ final class DrossHubBuilder
         return exit;
     }
 
-    /** How far the spire's frame opening sits above its ground level (9). Pure arithmetic. */
-    static int spireOpeningAboveGround(ShrineDesign spire)
-    {
-        BlockPos center = spire.centerForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), 0, SPIRE_FACING);
-        return spire.built(center, SPIRE_FACING).openingMin().getY();
-    }
-
     // ------------------------------------------------------------------ the user's template
 
-    /** Places the user's template centred on the hub centre, on fitted ground, then finds (and lights) its exit portal. */
-    private static Result buildTemplate(ServerLevel dross, StructureTemplate template)
+    /** Places the user's template centred on the hub centre, on the planned ground, then finds (and lights) its exit portal. */
+    private static Result buildTemplate(ServerLevel dross, StructureTemplate template, BoundingBox columns, GroundFit.Plan plan)
     {
         Vec3i size = template.getSize();
-        int minX = DrossHub.CENTER.getX() - size.getX() / 2;
-        int minZ = DrossHub.CENTER.getZ() - size.getZ() / 2;
-        BoundingBox columns = new BoundingBox(minX, 0, minZ, minX + size.getX() - 1, 0, minZ + size.getZ() - 1);
+        int minX = columns.minX();
+        int minZ = columns.minZ();
         String what = "the " + DrossHub.TEMPLATE + " template";
-        GroundFit.Plan plan;
-        try
-        {
-            plan = planGround(dross, columns, DrossHub.HUB_BLEND_MARGIN, y -> templateFits(dross, y, size), what);
-        }
-        catch (RuntimeException e)
-        {
-            LOGGER.error("Dross hub: surveying the ground for {} failed (nothing was changed), so the placeholder hub is built instead.", what, e);
-            return placeholderAtCenter(dross);
-        }
         int originY = plan.groundY + 1 + TEMPLATE_Y_OFFSET;
         int clearTop = Math.min(originY + size.getY() - 1 + TEMPLATE_CLEAR_ABOVE, dross.getMaxBuildHeight() - 1);
         GroundFit.Report report = GroundFit.apply(dross, plan, clearTop);
@@ -320,7 +521,7 @@ final class DrossHubBuilder
 
     // ------------------------------------------------------------------ the placeholder
 
-    /** The placeholder on its own at the hub centre, on fitted ground. */
+    /** The placeholder on its own at the hub centre, on fitted ground (surveyed, planned and built at once: a fallback). */
     private static Result placeholderAtCenter(ServerLevel dross)
     {
         Placed placed = buildPlaceholder(dross, DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), DrossHub.HUB_BLEND_MARGIN);
@@ -339,6 +540,19 @@ final class DrossHubBuilder
         return new Result(placed.exit(), DrossHub.Kind.PLACEHOLDER, both, placed.floorY(), false);
     }
 
+    /** The placeholder centred on {@code cx}/{@code cz}, its ground surveyed and planned first (a staircase {@code blendMargin} wide). */
+    private static Placed buildPlaceholder(ServerLevel dross, int cx, int cz, int blendMargin)
+    {
+        GroundFit.Plan plan = planGround(dross, placeholderColumns(cx, cz), blendMargin, y -> placeholderFits(dross, y), "the placeholder hub");
+        return placePlaceholder(dross, cx, cz, plan);
+    }
+
+    /** The placeholder's 11x11 columns round its centre column (only X and Z count). */
+    private static BoundingBox placeholderColumns(int cx, int cz)
+    {
+        return new BoundingBox(cx - PLATFORM_RADIUS, 0, cz - PLATFORM_RADIUS, cx + PLATFORM_RADIUS, 0, cz + PLATFORM_RADIUS);
+    }
+
     /**
      * The placeholder: an 11x11 platform whose top is level with the (levelled) ground, with the exit portal frame in
      * the middle. The frame's bottom row is set into the platform, so you walk straight into the portal.
@@ -350,13 +564,11 @@ final class DrossHubBuilder
      *   # . . . . . . . . . #    arrival: one block in front (+Z), facing away from the portal
      *   # # # # # # # # # # #
      * </pre>
-     * {@code cx}/{@code cz} is its centre column. The ground is fitted first ({@link GroundFit}: levelled at the natural
-     * ground's median, trees touching it removed whole, a staircase {@code blendMargin} blocks wide around it).
+     * {@code cx}/{@code cz} is its centre column. The ground is fitted first ({@link GroundFit}, with {@code plan}: levelled
+     * at the natural ground's median, trees touching it removed whole, a staircase around it).
      */
-    private static Placed buildPlaceholder(ServerLevel dross, int cx, int cz, int blendMargin)
+    private static Placed placePlaceholder(ServerLevel dross, int cx, int cz, GroundFit.Plan plan)
     {
-        BoundingBox columns = new BoundingBox(cx - PLATFORM_RADIUS, 0, cz - PLATFORM_RADIUS, cx + PLATFORM_RADIUS, 0, cz + PLATFORM_RADIUS);
-        GroundFit.Plan plan = planGround(dross, columns, blendMargin, y -> placeholderFits(dross, y), "the placeholder hub");
         int floorY = plan.groundY;
         int ground = floorY + 1;
         GroundFit.Report report = GroundFit.apply(dross, plan, floorY + CLEAR_HEIGHT);
@@ -420,7 +632,7 @@ final class DrossHubBuilder
     }
 
     /** The box a placeholder covers: its 11x11 platform, the support under it and the air cleared above it. */
-    static BoundingBox placeholderBox(int cx, int cz, int floorY)
+    private static BoundingBox placeholderBox(int cx, int cz, int floorY)
     {
         return new BoundingBox(cx - PLATFORM_RADIUS, floorY - SUPPORT_DEPTH, cz - PLATFORM_RADIUS,
                 cx + PLATFORM_RADIUS, floorY + CLEAR_HEIGHT, cz + PLATFORM_RADIUS);
@@ -435,13 +647,21 @@ final class DrossHubBuilder
     // ------------------------------------------------------------------ fitting the ground
 
     /**
-     * Surveys the ground under and around {@code columns} (only its X and Z matter) and plans it at the natural ground's
-     * median (or the nearest level that fits in the world's height), with a staircase {@code blendMargin} blocks wide.
-     * Logs the plan, and warns if the ground is rough. Changes nothing; loads (and if needed generates) the chunks.
+     * Surveys the ground under and around {@code columns} (only its X and Z matter) and plans it ({@link #planFrom}).
+     * Changes nothing; loads (and if needed generates) the chunks.
      */
     private static GroundFit.Plan planGround(ServerLevel dross, BoundingBox columns, int blendMargin, IntPredicate fits, String what)
     {
         GroundFit.Survey survey = GroundFit.survey(dross, columns, GroundFit.surveyMargin(blendMargin));
+        return planFrom(dross, survey, blendMargin, fits, what);
+    }
+
+    /**
+     * Plans the surveyed ground at the natural ground's median (or the nearest level that fits in the world's height), with
+     * a staircase {@code blendMargin} blocks wide. Logs the plan, and warns if the ground is rough. Changes nothing.
+     */
+    private static GroundFit.Plan planFrom(ServerLevel dross, GroundFit.Survey survey, int blendMargin, IntPredicate fits, String what)
+    {
         GroundFit.Plan plan = GroundFit.plan(survey, blendMargin, DrossHub.HUB_WATER_CLEARANCE);
         if (!fits.test(plan.groundY))
         {
@@ -450,6 +670,7 @@ final class DrossHubBuilder
                     + "levelled at y {} instead.", what, plan.groundY, level);
             plan = GroundFit.plan(survey, level, blendMargin, DrossHub.HUB_WATER_CLEARANCE);
         }
+        BoundingBox columns = survey.footprint();
         LOGGER.info("Dross hub: ground plan for {} (footprint X {}..{}, Z {}..{}): {}", what, columns.minX(), columns.maxX(),
                 columns.minZ(), columns.maxZ(), plan.summary());
         warnIfRough(plan, what);

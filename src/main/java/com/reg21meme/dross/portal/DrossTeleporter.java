@@ -288,8 +288,8 @@ public class DrossTeleporter implements ITeleporter
     }
 
     /**
-     * The last resort in the Dross: the hub's remembered arrival spot; if there is none, in front of its remembered exit
-     * portal; if the hub has no exit portal at all, the ground at X/Z, whatever it is.
+     * The last resort in the Dross: the hub's remembered arrival spot (saved with its exit portal); if the hub has no exit
+     * portal at all, the ground at X/Z, whatever it is.
      */
     private static PortalInfo hubFallback(ServerLevel dross, Entity entity, int x, int z)
     {
@@ -298,15 +298,6 @@ public class DrossTeleporter implements ITeleporter
         if (arrival != null)
         {
             return new PortalInfo(arrival, Vec3.ZERO, data.getArrivalYaw(), 0.0F);
-        }
-        PortalOpening exit = data.getRememberedExit();
-        if (exit != null)
-        {
-            BlockPos min = exit.minCorner();
-            Vec3 front = exit.axis() == Direction.Axis.X
-                    ? new Vec3(exit.centerAlong(), min.getY(), min.getZ() + 1.5D)
-                    : new Vec3(min.getX() + 1.5D, min.getY(), exit.centerAlong());
-            return new PortalInfo(front, Vec3.ZERO, frontYaw(exit), 0.0F);
         }
         Vec3 surface = surfaceSpot(dross, x, z);
         return new PortalInfo(surface != null ? surface : new Vec3(x + 0.5D, dross.getSeaLevel(), z + 0.5D), Vec3.ZERO,

@@ -49,10 +49,10 @@ import org.slf4j.Logger;
  * Headless tests (GameTests) for the hub at Dross 0,0 and for finding safe ground. Run them with
  * {@code .\gradlew.bat runGameTestServer --console=plain}. They only exist in the development environment.
  * <ul>
- *   <li>{@link #hubLayout}: the hub has a layout; its kind matches its exit portal (a hub built in this run must be the
- *       Shattered Spire on fitted ground; an older world's 2x3 exit is the placeholder); its footprint is what the exit
- *       implies (the spire's: X -25..49, Z -34..38); the spire's arrival spot is on the step in front of the frame,
- *       facing the gate; the two rest spots are side by side, free to stand in, off the walkway out of the portal and
+ *   <li>{@link #hubLayout}: the hub has a layout; its kind matches its exit portal (a 3x5 exit on the centre is the
+ *       Shattered Spire, which a hub built in this run must be, on fitted ground; a 2x3 exit is the placeholder); its
+ *       footprint is what the exit implies (the spire's: X -25..49, Z -34..38); the spire's arrival spot is on the step
+ *       in front of the frame, facing the gate; the two rest spots are side by side, free to stand in, off the walkway out of the portal and
  *       not by the arrival spot (the spire's: (3, ground+8, 1) and (3, ground+8, 2)).</li>
  *   <li>{@link #arrivalThroughPortal}: an armor stand sent from the Overworld through {@link DrossTeleporter} lands on the
  *       layout's arrival spot (the spire's: the exit's corner + (1.5, 0, 1.5)), facing its way (south), standing on the
@@ -62,7 +62,10 @@ import org.slf4j.Logger;
  *   <li>{@link #groundAroundTheHub}: if the hub's ground was fitted, the ground round it is surveyed again: every dry
  *       column d blocks outside the footprint (d up to 15) is within d blocks of the hub's ground level, no two
  *       neighbouring dry columns within 16 blocks differ by 3 or more, and none within 4 by 2 or more. Trivial while the
- *       Dross is flat; the real check once it has terrain. An older world's hub (not fitted) is skipped, with a log line.</li>
+ *       Dross is flat; the real check once it has terrain. A placeholder built next to something else (not fitted) is
+ *       skipped, with a log line.</li>
+ *   <li>{@link #whenBuiltOnceTheHubIs}: once the hub is built, {@link DrossHub#isBuilt} says so and
+ *       {@link DrossHub#whenBuilt} runs straight away with the same layout (the hub's survivors spawn through it).</li>
  *   <li>{@link #safeLandingOnRoughGround}: on a platform built high in the Dross's sky far from the hub, with a tree, a
  *       block floating 20 blocks up, a column of lava and a giant blightcap, {@link DrossTeleporter#findSafeSpot} lands
  *       under the floating block on the platform, never in the trunk's, the lava's or the stem's column, never on leaves,
@@ -154,7 +157,11 @@ public final class DrossHubGameTest
         }
         else
         {
-            DrossHub.Kind expected = spireExit ? DrossHub.Kind.SPIRE : placeholderExit ? DrossHub.Kind.PLACEHOLDER : DrossHub.Kind.UNKNOWN;
+            DrossHub.Kind expected = spireExit ? DrossHub.Kind.SPIRE : placeholderExit ? DrossHub.Kind.PLACEHOLDER : null;
+            if (expected == null)
+            {
+                problems.add("the exit portal (" + describe(exit) + ") is neither the spire's nor the placeholder's");
+            }
             expect(problems, layout.kind() == expected, "the exit portal (" + describe(exit) + ") makes it " + expected + ", but its layout says "
                     + layout.kind());
             if (data.wasBuiltThisSession())
@@ -334,8 +341,8 @@ public final class DrossHubGameTest
         DrossHub.Layout layout = layoutOf(server);
         if (!layout.fitted())
         {
-            LOGGER.info("[hub test] groundAroundTheHub skipped: this world's hub ({}) wasn't built on fitted ground (an older world's hub, or a "
-                    + "fallback built next to something else)", layout.kind());
+            LOGGER.info("[hub test] groundAroundTheHub skipped: this world's hub ({}) wasn't built on fitted ground (a fallback built next to "
+                    + "something else)", layout.kind());
             helper.succeed();
             return;
         }
@@ -400,6 +407,34 @@ public final class DrossHubGameTest
         LOGGER.info("[hub test] The ground round the hub ({} dry columns checked, {} water/lava): every column up to {} out is within its "
                         + "distance of the ground level {} (the most any is off: {}); the steepest step up to {} out is {} (overflow {})",
                 checked, wet, STAIRCASE_REACH, ground, furthest, NO_CLIFF_REACH, steepest, again.overflow);
+        helper.succeed();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // Waiting for the hub
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH)
+    public static void whenBuiltOnceTheHubIs(GameTestHelper helper)
+    {
+        MinecraftServer server = helper.getLevel().getServer();
+        DrossHub.Layout layout = layoutOf(server); // finishes the hub at once if it's still being built
+        List<String> problems = new ArrayList<>();
+        expect(problems, DrossHub.isBuilt(server), "the hub has a layout, but DrossHub.isBuilt says it isn't built");
+        List<Optional<DrossHub.Layout>> told = new ArrayList<>();
+        DrossHub.whenBuilt(server, told::add);
+        if (told.size() != 1 || told.get(0).isEmpty())
+        {
+            problems.add("DrossHub.whenBuilt didn't run straight away with the layout once the hub was built (it ran " + told.size() + " time(s))");
+        }
+        else
+        {
+            DrossHub.Layout given = told.get(0).get();
+            expect(problems, given.kind() == layout.kind() && given.exit().equals(layout.exit()) && given.arrival().equals(layout.arrival())
+                    && given.footprint().equals(layout.footprint()), "DrossHub.whenBuilt gave a different layout: " + DrossHub.describe(given));
+        }
+        fail(problems);
+        LOGGER.info("[hub test] The hub is built, and DrossHub.whenBuilt runs straight away with its layout");
         helper.succeed();
     }
 

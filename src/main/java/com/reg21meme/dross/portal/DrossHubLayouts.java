@@ -1,10 +1,8 @@
 package com.reg21meme.dross.portal;
 
-import com.reg21meme.dross.world.shrine.ShrineDesign;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -12,17 +10,11 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Works out the parts of the hub's layout ({@link DrossHub#layout}) that aren't simply saved:
- * <ul>
- *   <li>{@link #derive}: for a hub built before layouts were saved, which hub it is and what it covers, read from its
- *       real exit frame. Never changes any blocks.</li>
- *   <li>{@link #restSpots}: two free cells side by side near the exit portal, where the hub's two survivors (Villager
- *       area) rest.</li>
- * </ul>
+ * Works out the part of the hub's layout ({@link DrossHub#layout}) that isn't simply saved: {@link #restSpots}, two free
+ * cells side by side near the exit portal, where the hub's two survivors (Villager area) rest.
  */
 final class DrossHubLayouts
 {
@@ -35,70 +27,6 @@ final class DrossHubLayouts
     private static final EntityDimensions REST_SIZE = EntityType.VILLAGER.getDimensions();
 
     private DrossHubLayouts() {}
-
-    /** A layout worked out from an older hub's frame. */
-    record Derived(DrossHub.Kind kind, BoundingBox footprint, int groundY) {}
-
-    /**
-     * What an older hub is, from its real exit frame:
-     * <ul>
-     *   <li>a 3x5 opening along X exactly where the Shattered Spire's frame is (its middle column on the hub centre): the
-     *       spire, standing on ground 9 blocks under the opening, covering its design's footprint;</li>
-     *   <li>a 2x3 opening: the placeholder, an 11x11 platform round it;</li>
-     *   <li>anything else: unknown, the box round its frame and 5 blocks more each way.</li>
-     * </ul>
-     */
-    static Derived derive(PortalOpening exit)
-    {
-        Optional<ShrineDesign> spire = ShrineDesign.byId(DrossHubBuilder.SPIRE_DESIGN_ID);
-        if (spire.isPresent())
-        {
-            ShrineDesign design = spire.get();
-            int ground = exit.minCorner().getY() - DrossHubBuilder.spireOpeningAboveGround(design);
-            ShrineDesign.Built built = design.built(design.centerForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), ground,
-                    DrossHubBuilder.SPIRE_FACING), DrossHubBuilder.SPIRE_FACING);
-            if (built.openingMin().equals(exit.minCorner()) && built.frameAxis() == exit.axis()
-                    && built.openingWidth() == exit.width() && built.openingHeight() == exit.height())
-            {
-                return new Derived(DrossHub.Kind.SPIRE, built.footprint(), ground);
-            }
-        }
-        int floorY = exit.minCorner().getY() - 1;
-        if (exit.width() == 2 && exit.height() == 3)
-        {
-            return new Derived(DrossHub.Kind.PLACEHOLDER, placeholderBoxAround(exit), floorY);
-        }
-        return new Derived(DrossHub.Kind.UNKNOWN, boxAroundFrame(exit), floorY);
-    }
-
-    /**
-     * The placeholder's 11x11 platform for its 2x3 opening (the opening is the middle two of its four frame columns;
-     * the platform's centre column is the opening's second column).
-     */
-    static BoundingBox placeholderBoxAround(PortalOpening exit)
-    {
-        BlockPos min = exit.minCorner();
-        boolean alongX = exit.axis() == Direction.Axis.X;
-        int cx = alongX ? min.getX() + 1 : min.getX();
-        int cz = alongX ? min.getZ() : min.getZ() + 1;
-        return DrossHubBuilder.placeholderBox(cx, cz, min.getY() - 1);
-    }
-
-    /** The exit frame (the opening and its frame) and {@link DrossHubBuilder#PLATFORM_RADIUS} blocks more on every side. */
-    static BoundingBox boxAroundFrame(PortalOpening exit)
-    {
-        BlockPos min = exit.minCorner();
-        boolean alongX = exit.axis() == Direction.Axis.X;
-        int r = DrossHubBuilder.PLATFORM_RADIUS;
-        int alongMin = (alongX ? min.getX() : min.getZ()) - 1 - r;
-        int alongMax = (alongX ? min.getX() : min.getZ()) + exit.width() + r;
-        int perp = alongX ? min.getZ() : min.getX();
-        int minY = min.getY() - 1 - DrossHubBuilder.SUPPORT_DEPTH;
-        int maxY = min.getY() + exit.height() + 1;
-        return alongX
-                ? new BoundingBox(alongMin, minY, perp - r, alongMax, maxY, perp + r)
-                : new BoundingBox(perp - r, minY, alongMin, perp + r, maxY, alongMax);
-    }
 
     // ------------------------------------------------------------------ rest spots
 

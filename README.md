@@ -150,7 +150,7 @@ The site's position and the frame's direction are available to the rest of the m
 
 ## The hub: the Shattered Spire
 
-- Built once per world at **Dross 0,0**: a tall, broken spire, levelled into the forest. The ground round it steps back to the natural land at most 1 block at a time (no cliffs or dirt walls), and only trees touching it are removed, each one whole.
+- Built once per world at **Dross 0,0**: a tall, broken spire, levelled into the forest. It's built in the background a few seconds after a new world starts, so creating the world doesn't wait for it (going through a portal sooner finishes it on the spot). The ground round it steps back to the natural land at most 1 block at a time (no cliffs or dirt walls), and only trees touching it are removed, each one whole.
 - Its portal frame is lit as the **exit portal**, facing south.
 - You arrive inside the spire's hall, on the top step in front of the exit portal, facing the gate.
 - **Arrival sequence**, every time you come through the portal:

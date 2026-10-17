@@ -19,7 +19,7 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 - The **frame block** `dross:dross_portal_frame` and the **portal block** `dross:dross_portal`: their registration (add to `registry/ModBlocks`), blockstates, models, textures, tags, and particles.
 - The **Rift Key** item (`ModItems`, model, texture, lang) and lighting a frame with it.
 - The portal's look, teleporting both ways, the **hub** at Dross 0,0 (`portal/DrossHub`) and its exit portal, and blocking portal lighting inside the Dross.
-- **The hub on the terrain** (`portal/DrossHubBuilder`, `DrossHubLayouts`, `DrossHubData`): the Shattered Spire fitted with world-builder's `GroundFit` (levelled at the median height, a staircase blend at most 1 block per step over `HUB_BLEND_MARGIN`, touching trees removed whole), and `DrossHub.layout(server)` (footprint, exit, arrival, rest spots), which `villager-builder`'s survivors read; plus `DrossTeleporter.findSafeSpot`, which `/dross goto biome` uses. Headless check: `DrossHubGameTest` (fresh and old worlds).
+- **The hub on the terrain** (`portal/DrossHubBuilder`, `DrossHubPlacer`, `DrossHubLayouts`, `DrossHubData`): built in the background after a new world starts (chunks loaded with tickets, then survey, plan and build a step a tick; `DrossHub.ensureBuilt`/`layout` finish it at once when something needs it sooner, `DrossHub.whenBuilt` waits), the Shattered Spire fitted with world-builder's `GroundFit` (levelled at the median height, a staircase blend at most 1 block per step over `HUB_BLEND_MARGIN`, touching trees removed whole), and `DrossHub.layout(server)` (footprint, exit, arrival, rest spots), which `villager-builder`'s survivors read; plus `DrossTeleporter.findSafeSpot`, which `/dross goto biome` uses. Headless check: `DrossHubGameTest` (a fresh test world, or the reused `run/world`).
 - The frame's **creative-only block item** (`ModItems.DROSS_PORTAL_FRAME`), and the frame and Rift Key entries in the "Dross" creative tab (`registry/ModCreativeTabs`).
 - The **arrival sequence** in `portal/DrossArrival.java` (title, piano notes), including *when* `dross:entered_the_dross` is granted and the Guide Book is given.
 - Your colors in `DrossColors` (`PORTAL_PARTICLE`, `ARRIVAL_TITLE`), and the shared "Palette" section (you add it; its values change only when the user asks).
@@ -72,7 +72,7 @@ The design is in `CLAUDE.md`, "The plan", steps 2 and 5 (and the "look" section)
 7. **No portals inside the Dross**: the Rift Key does nothing there, and lighting a nether portal there is blocked (cancel `BlockEvent.PortalSpawnEvent` in `ModDimensions.DROSS_LEVEL`). Otherwise a nether portal would be a second way out.
 8. **The hub** (`portal/DrossHub`), at Dross 0,0:
    - `public static final` center constant `DrossHub.CENTER` (X/Z 0, 0). `dimension-builder` reads it for the safe zone, so keep the name stable.
-   - Built **once per world**, remembered in your own `SavedData`, and made sure it exists before anyone arrives.
+   - Built **once per world**, in the background after a new world starts, remembered in your own `SavedData`, and finished at once (never half-built) if anyone arrives before then.
    - If `data/dross/structures/dross_hub.nbt` exists, place that template (the user designs it later with a structure block) and find its lit exit portal. Otherwise build a simple **placeholder**: a platform on the Dross surface with a lit exit portal of `dross:dross_portal_frame` at its center.
    - Remember the exit portal's position and axis.
 9. **Travel** in `DrossTeleporter` / `DrossPortalTravel`:

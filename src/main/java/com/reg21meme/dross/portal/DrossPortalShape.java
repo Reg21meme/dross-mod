@@ -212,12 +212,6 @@ public class DrossPortalShape
         return this.axis;
     }
 
-    /** Lowest opening block on the "left" side (as seen by vanilla's rules). */
-    public BlockPos getBottomLeft()
-    {
-        return this.bottomLeft;
-    }
-
     /** The opening block with the lowest X, Y and Z (the corner {@code BlockPos.betweenClosed} would start at). */
     public BlockPos getMinCorner()
     {

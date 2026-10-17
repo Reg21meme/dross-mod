@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.WeakHashMap;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -42,13 +41,6 @@ import org.slf4j.Logger;
 public final class DrossPortalTravel
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-
-    /**
-     * Old saved data from before the hub existed (the portal an entity left from). No longer used;
-     * it's removed from an entity the next time it travels, to keep saves tidy.
-     */
-    private static final String OLD_TAG_RETURN_PORTAL = "dross_return_portal";
-    private static final String OLD_TAG_RETURN_DIM = "dross_return_dim";
 
     private static final Map<Entity, PortalTimer> TIMERS = new WeakHashMap<>();
     private static boolean warnedMissingDimension = false;
@@ -165,10 +157,6 @@ public final class DrossPortalTravel
             entity.setPortalCooldown();
             return;
         }
-
-        CompoundTag data = entity.getPersistentData();
-        data.remove(OLD_TAG_RETURN_PORTAL);
-        data.remove(OLD_TAG_RETURN_DIM);
 
         entity.setPortalCooldown();
         Entity arrived = entity.changeDimension(dest, new DrossTeleporter());
