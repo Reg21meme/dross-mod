@@ -69,14 +69,7 @@ public final class QuestProgress
      * @param outcome     what happened
      * @param requirement the requirement the held item counts towards, or null for {@link Outcome#NOT_WANTED}
      */
-    public record HandInResult(Outcome outcome, @Nullable QuestRequirement requirement)
-    {
-        /** True if items were taken from the player's stack. */
-        public boolean tookItems()
-        {
-            return outcome == Outcome.ACCEPTED || outcome == Outcome.TRIBUTES_COMPLETE || outcome == Outcome.KEY_FORGED;
-        }
-    }
+    public record HandInResult(Outcome outcome, @Nullable QuestRequirement requirement) {}
 
     // ------------------------------------------------------------------ Reading progress
 

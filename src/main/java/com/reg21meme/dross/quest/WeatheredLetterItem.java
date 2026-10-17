@@ -28,8 +28,7 @@ import java.util.List;
  *   <li>The text is written when the letter is made (in the chest). A letter without text (for example from
  *       the creative tab) gets its text as soon as it's in a player's inventory. A letter written before his
  *       hut was built (the vague text) rewrites itself once, the next time it's in a player's inventory
- *       after he has spawned. A letter from before the four-page text also rewrites itself once. Letters
- *       that already show the current text and a real location are never rewritten.</li>
+ *       after he has spawned. Letters that already show a real location are never rewritten.</li>
  *   <li>Having one in your inventory grants "A Weathered Letter" (and silently unlocks the Dross advancement tab).</li>
  * </ul>
  * All wording is in {@code en_us.json} under {@code book.dross.weathered_letter.*} and {@code book.dross.direction.*}.
@@ -47,8 +46,6 @@ public class WeatheredLetterItem extends ReadableItem
     private static final String KEY = "book.dross.weathered_letter.";
     /** The location page used while his hut isn't built yet. Letters with it rewrite themselves once he has spawned. */
     private static final String UNKNOWN_KEY = KEY + "location_unknown";
-    /** How many pages the current text has. A letter with fewer was written by an older version and rewrites itself. */
-    private static final int PAGE_COUNT = 4;
 
     /** Lang keys for the 8 directions, starting at north and going clockwise. North is -Z, east is +X. */
     private static final String[] DIRECTION_KEYS = {
@@ -90,9 +87,7 @@ public class WeatheredLetterItem extends ReadableItem
         if (player.tickCount % CHECK_INTERVAL == 0)
         {
             // Written before his hut existed? Now that he has spawned, fill in the real location (once).
-            // Written by an older version (the old, shorter text)? Rewrite it with the current text (once).
-            if ((hasUnknownLocation(stack) && TraderSpawnData.get(player.server.overworld()).hasSpawned())
-                    || isOldText(stack))
+            if (hasUnknownLocation(stack) && TraderSpawnData.get(player.server.overworld()).hasSpawned())
             {
                 setPages(stack, writePages(player.server));
             }
@@ -102,8 +97,7 @@ public class WeatheredLetterItem extends ReadableItem
 
     /**
      * True if this letter was written before his hut was built (its text uses the "unknown location" page).
-     * Checked by looking for that page's lang key in the stored pages, so it also works for letters
-     * written by older versions of the mod.
+     * Checked by looking for that page's lang key in the stored pages.
      */
     private static boolean hasUnknownLocation(ItemStack stack)
     {
@@ -120,12 +114,6 @@ public class WeatheredLetterItem extends ReadableItem
             }
         }
         return false;
-    }
-
-    /** True if this letter was written by an older version of the mod (fewer pages than the current text). */
-    private static boolean isOldText(ItemStack stack)
-    {
-        return hasPages(stack) && stack.getTag().getList(PAGES_TAG, Tag.TAG_STRING).size() < PAGE_COUNT;
     }
 
     /** The letter's pages, using where the trader's hut is right now (read from the villager area's saved data). */
