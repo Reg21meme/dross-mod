@@ -5,7 +5,9 @@ import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.shrine.GroundFit;
 import com.reg21meme.dross.world.shrine.ShrineDesign;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.IntPredicate;
 import javax.annotation.Nullable;
@@ -39,8 +41,9 @@ import org.slf4j.Logger;
  * staircase back to the natural terrain (at most one block per step), and trees, huge mushrooms and the like that touch
  * it are removed whole. The plan, what was removed and the time taken are logged, with a warning if the ground was rough.
  * <p>
- * A {@link Build} does it in three steps, one per server tick when it's spread out: survey the ground, plan it, build.
- * Only the last one changes the world.
+ * A {@link Build} does it a step at a time, one per server tick when it's spread out: survey the ground, plan it, then
+ * build the spire in short steps (felling, levelling, the template...) and light its frame. Only the build steps change
+ * the world.
  */
 final class DrossHubBuilder
 {
@@ -116,20 +119,21 @@ final class DrossHubBuilder
     // ------------------------------------------------------------------ one build, a step at a time
 
     /**
-     * One hub build, in three steps ({@link #step}, one per server tick when it's spread out; {@link DrossHubPlacer}
+     * One hub build, a step at a time ({@link #step}, one per server tick when it's spread out; {@link DrossHubPlacer}
      * loads the chunks first, in the background):
      * <ol>
      *   <li><b>survey</b> the ground under and around the footprint (reads blocks, changes nothing);</li>
      *   <li><b>plan</b> it: the ground level and the staircase (changes nothing);</li>
-     *   <li><b>build</b>: trees removed, the ground fitted, the hub placed and its exit portal lit, or a fallback if
-     *       anything goes wrong. The only step that changes the world, all in one go.</li>
+     *   <li><b>build</b>: the spire is built a step at a time (world-builder's {@link ShrineDesign.FittedBuild}: felling the
+     *       trees that touch, in steps of at most about {@link GroundFit#STEP_MILLIS} ms, then levelling, sealing, snow,
+     *       the template in one step, snow inside), then its <b>frame</b> is lit on a step of its own. The user's template
+     *       and the placeholder are built in one step. Or a fallback if anything goes wrong.</li>
      * </ol>
-     * Which hub it builds is decided when it's made. Server thread only.
+     * The world only changes in the build steps, from the first tree removed on ({@link #changedWorld}): a build that has
+     * got that far must be finished, never dropped. Which hub it builds is decided when it's made. Server thread only.
      */
     static final class Build
     {
-        private static final String[] STEP_NAMES = {"survey", "plan", "build"};
-
         private final ServerLevel dross;
         /** What's planned: the user's template, the spire, or (if the spire's design or template is missing) the placeholder. */
         private final DrossHub.Kind planned;
@@ -147,13 +151,19 @@ final class DrossHubBuilder
         private GroundFit.Survey survey;
         /** Surveying or planning failed: the placeholder is built at the centre instead. */
         private boolean groundFailed;
+        /** The spire being built a step at a time, once its build has started. */
+        @Nullable
+        private ShrineDesign.FittedBuild fitted;
+        @Nullable
+        private BlockPos spireCenter;
         @Nullable
         private Result result;
         private int stepsDone;
         private long millis;
         private long longestStep = -1L;
         private String longestStepName = "";
-        private final List<String> stepTimes = new ArrayList<>();
+        /** Each kind of step's total time (ms), how many steps (ticks) and the longest one, in the order they ran. */
+        private final Map<String, long[]> stepTimes = new LinkedHashMap<>();
 
         Build(ServerLevel dross)
         {
@@ -235,15 +245,25 @@ final class DrossHubBuilder
             {
                 return true;
             }
-            String name = STEP_NAMES[Math.min(stepsDone, STEP_NAMES.length - 1)];
+            String name = stepName();
             long start = Util.getMillis();
             try
             {
-                switch (stepsDone)
+                if (stepsDone == 0)
                 {
-                    case 0 -> survey();
-                    case 1 -> plan();
-                    default -> result = build();
+                    survey();
+                }
+                else if (stepsDone == 1)
+                {
+                    plan();
+                }
+                else if (fitted != null)
+                {
+                    result = stepSpire();
+                }
+                else
+                {
+                    result = build();
                 }
             }
             catch (RuntimeException e)
@@ -254,13 +274,43 @@ final class DrossHubBuilder
             long took = Util.getMillis() - start;
             stepsDone++;
             millis += took;
-            stepTimes.add(name + " " + took + " ms");
+            long[] times = stepTimes.computeIfAbsent(name, key -> new long[3]);
+            times[0] += took;
+            times[1]++;
+            times[2] = Math.max(times[2], took);
             if (took > longestStep)
             {
                 longestStep = took;
                 longestStepName = name;
             }
             return result != null;
+        }
+
+        /** What the next step does, for the log. */
+        private String stepName()
+        {
+            if (stepsDone == 0)
+            {
+                return "survey";
+            }
+            if (stepsDone == 1)
+            {
+                return "plan";
+            }
+            if (fitted != null)
+            {
+                return fitted.done() ? "frame" : fitted.stageName();
+            }
+            return "build";
+        }
+
+        /**
+         * True while the spire is half built: the world has changed (from the first tree removed on) but the build isn't
+         * finished. Such a build must be finished ({@link DrossHubPlacer} does so when the server stops), never dropped.
+         */
+        boolean changedWorld()
+        {
+            return result == null && fitted != null && fitted.changedWorld();
         }
 
         boolean done()
@@ -301,10 +351,16 @@ final class DrossHubBuilder
             return longestStepName;
         }
 
-        /** Each step's time, for the log: "survey 40 ms, plan 3 ms, build 650 ms". */
+        /**
+         * Each kind of step's time, for the log: "survey 40 ms, plan 3 ms, felling 900 ms in 23 steps (the longest 41 ms),
+         * levelling 25 ms, ..., template 110 ms, snow inside 2 ms, frame 1 ms".
+         */
         String stepTimes()
         {
-            return String.join(", ", stepTimes);
+            List<String> parts = new ArrayList<>();
+            stepTimes.forEach((name, times) -> parts.add(name + " " + times[0] + " ms"
+                    + (times[1] > 1 ? " in " + times[1] + " steps (the longest " + times[2] + " ms)" : "")));
+            return String.join(", ", parts);
         }
 
         private void survey()
@@ -356,7 +412,7 @@ final class DrossHubBuilder
             return switch (planned)
             {
                 case TEMPLATE -> buildTemplate(dross, template, columns, plan);
-                case SPIRE -> buildSpire(dross, spire, plan);
+                case SPIRE -> startSpire();
                 case PLACEHOLDER ->
                 {
                     Placed placed = placePlaceholder(dross, DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), plan);
@@ -364,34 +420,72 @@ final class DrossHubBuilder
                 }
             };
         }
+
+        /**
+         * Starts building the Shattered Spire on the planned ground, its frame opening centred on the hub centre. Nothing
+         * is changed yet: its first step runs on the next tick (this one may load the build's classes).
+         *
+         * @return null while it's being built (the next steps carry on), or the fallback if it can't be built
+         */
+        @Nullable
+        private Result startSpire()
+        {
+            BlockPos center = spire.centerForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), plan.groundY, SPIRE_FACING);
+            spireCenter = center;
+            Optional<ShrineDesign.FittedBuild> started;
+            try
+            {
+                started = spire.startFitted(dross, center, SPIRE_FACING, plan);
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("Dross hub: building the {} failed, so the placeholder hub is built in front of where its gate would be.", spire.name(), e);
+                return placeholderBesideSpire(dross, spire, center);
+            }
+            if (started.isEmpty())
+            {
+                // startFitted has logged why, and changed nothing.
+                LOGGER.error("Dross hub: the {} couldn't be built (see the error above), so the placeholder hub is built instead.", spire.name());
+                return placeholderAtCenter(dross);
+            }
+            fitted = started.get();
+            return null;
+        }
+
+        /**
+         * The spire's next step; once it's all built, its frame is lit on a step of its own.
+         *
+         * @return null while it's being built, or what was built (the spire, or a fallback if something went wrong)
+         */
+        @Nullable
+        private Result stepSpire()
+        {
+            if (!fitted.done())
+            {
+                try
+                {
+                    fitted.step();
+                }
+                catch (RuntimeException e)
+                {
+                    LOGGER.error("Dross hub: building the {} failed, so the placeholder hub is built in front of where its gate would be.", spire.name(), e);
+                    return placeholderBesideSpire(dross, spire, spireCenter);
+                }
+                return null;
+            }
+            return finishSpire(dross, spire, spireCenter, plan, fitted.report());
+        }
     }
 
     // ------------------------------------------------------------------ the Shattered Spire
 
     /**
-     * Builds the Shattered Spire on the planned ground with its frame opening centred on the hub centre, and lights that
-     * frame. Falls back to the placeholder (with an error in the log) if the spire can't be built or its frame can't be lit.
+     * The Shattered Spire is built on the planned ground with its frame opening centred on the hub centre: lights that
+     * frame. Falls back to the placeholder (with an error in the log) if its frame can't be lit.
      */
-    private static Result buildSpire(ServerLevel dross, ShrineDesign spire, GroundFit.Plan plan)
+    private static Result finishSpire(ServerLevel dross, ShrineDesign spire, BlockPos center, GroundFit.Plan plan, GroundFit.Report report)
     {
-        BlockPos center = spire.centerForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), plan.groundY, SPIRE_FACING);
-        Optional<GroundFit.Report> report;
-        try
-        {
-            report = spire.buildFitted(dross, center, SPIRE_FACING, plan);
-        }
-        catch (RuntimeException e)
-        {
-            LOGGER.error("Dross hub: building the {} failed, so the placeholder hub is built in front of where its gate would be.", spire.name(), e);
-            return placeholderBesideSpire(dross, spire, center);
-        }
-        if (report.isEmpty())
-        {
-            // buildFitted has logged why, and changed nothing.
-            LOGGER.error("Dross hub: the {} couldn't be built (see the error above), so the placeholder hub is built instead.", spire.name());
-            return placeholderAtCenter(dross);
-        }
-        LOGGER.info("Dross hub: trees and the like cleared for the {}: {}", spire.name(), report.get().felling().summary());
+        LOGGER.info("Dross hub: trees and the like cleared for the {}: {}", spire.name(), report.felling().summary());
 
         ShrineDesign.Built placed = spire.built(center, SPIRE_FACING);
         PortalOpening exit = lightSpireFrame(dross, placed);

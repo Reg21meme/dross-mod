@@ -2,10 +2,13 @@ package com.reg21meme.dross.world.shrine;
 
 import com.reg21meme.dross.Dross;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.Registries;
@@ -743,22 +746,235 @@ public final class GroundFit
     }
 
     /**
-     * Applies a plan: fells what touches the footprint or the reshaped ring, levels the footprint (clearing everything
-     * above its ground up to at least {@code clearTop}), shapes the staircase, seals off water and puts back snow.
+     * Applies a plan, all at once: fells what touches the footprint or the reshaped ring, levels the footprint (clearing
+     * everything above its ground up to at least {@code clearTop}), shapes the staircase, seals off water and puts back
+     * snow. The same work, in the same order, as a {@link Fitting} done a step at a time.
      */
     public static Report apply(ServerLevel level, Plan plan, int clearTop)
     {
-        Applier applier = new Applier(level, plan);
-        TreeFelling.Result felling = TreeFelling.fell(level, plan);
-        Survey s = plan.survey;
-        for (int i = 0; i < s.sizeX; i++)
+        Fitting fitting = new Fitting(level, plan, clearTop);
+        fitting.finish();
+        return fitting.report();
+    }
+
+    // ---------------------------------------------------------------- applying a plan a step at a time
+
+    /**
+     * How long one step of a build spread over several server ticks may work (milliseconds) before it stops for that
+     * tick: felling trees and levelling the ground stop when this is used up (a step can run over by one tree, about a
+     * millisecond). A tick is 50 ms, so this leaves the rest of the tick to the game.
+     */
+    public static final long STEP_MILLIS = 40L;
+
+    /** A time limit for one step of work. */
+    static final class Budget
+    {
+        private static final Budget UNLIMITED = new Budget(0L, true);
+        private final long deadline;
+        private final boolean unlimited;
+
+        private Budget(long deadline, boolean unlimited)
         {
-            for (int k = 0; k < s.sizeZ; k++)
+            this.deadline = deadline;
+            this.unlimited = unlimited;
+        }
+
+        /** Work for at most about {@code millis} milliseconds from now (0: one piece of work, then stop). */
+        static Budget millis(long millis)
+        {
+            return new Budget(System.nanoTime() + millis * 1_000_000L, false);
+        }
+
+        /** No limit: everything that's left. */
+        static Budget unlimited()
+        {
+            return UNLIMITED;
+        }
+
+        /** True once the time is up. */
+        boolean spent()
+        {
+            return !unlimited && System.nanoTime() - deadline >= 0L;
+        }
+    }
+
+    /**
+     * Applying a plan a step at a time ({@link #step}, one per server tick when it's spread out), so no single tick does
+     * much of it. Exactly the work {@link #apply} does, in exactly the same order, only cut into pieces:
+     * <ol>
+     *   <li><b>felling</b>: what touches is worked out, then removed whole ({@link TreeFelling.Felling}); the longest
+     *       part, cut into many steps;</li>
+     *   <li><b>levelling</b>: the footprint cut and filled, the staircase shaped, column by column;</li>
+     *   <li><b>sealing</b>: water and lava next to cleared space sealed off, column by column;</li>
+     *   <li><b>snow outside</b>: snow put back where trees stood outside the footprint (in a cold biome).</li>
+     * </ol>
+     * A step never works on two of these: when one finishes, the next starts with the next step. Server thread only;
+     * nothing else should change these blocks between the steps (the chunks are loaded but not ticking).
+     */
+    static final class Fitting
+    {
+        private enum Stage
+        {
+            FELLING("felling"), LEVELLING("levelling"), SEALING("sealing"), SNOW("snow outside"), DONE("done");
+
+            final String label;
+
+            Stage(String label)
             {
+                this.label = label;
+            }
+        }
+
+        private final ServerLevel level;
+        private final Plan plan;
+        private final Survey s;
+        private final int clearTop;
+        private final Applier applier;
+        private final TreeFelling.Felling felling;
+        private Stage stage = Stage.FELLING;
+        /** Where the current stage has got to (a column index, or an index into {@link #snowColumns}). */
+        private int cursor;
+        private int highestNatural;
+        private long[] snowColumns = new long[0];
+        private int snowed;
+        private final long[] stageNanos = new long[Stage.values().length];
+        private final int[] stageSteps = new int[Stage.values().length];
+        @Nullable
+        private Report report;
+
+        Fitting(ServerLevel level, Plan plan, int clearTop)
+        {
+            this.level = level;
+            this.plan = plan;
+            this.s = plan.survey;
+            this.clearTop = clearTop;
+            this.applier = new Applier(level, plan);
+            this.felling = new TreeFelling.Felling(level, plan);
+        }
+
+        /**
+         * Does the next piece of the current stage, until it's done or {@code budget} is spent.
+         *
+         * @return true once everything is done ({@link #report})
+         */
+        boolean step(Budget budget)
+        {
+            if (stage == Stage.DONE)
+            {
+                return true;
+            }
+            Stage now = stage;
+            long start = System.nanoTime();
+            boolean finished = switch (now)
+            {
+                case FELLING -> felling.step(budget);
+                case LEVELLING -> level(budget);
+                case SEALING -> seal(budget);
+                default -> snow(budget);
+            };
+            stageNanos[now.ordinal()] += System.nanoTime() - start;
+            stageSteps[now.ordinal()]++;
+            if (finished)
+            {
+                next();
+            }
+            return stage == Stage.DONE;
+        }
+
+        /** Everything that's left, at once. */
+        void finish()
+        {
+            while (!step(Budget.unlimited()))
+            {
+                // the remaining stages, one after another
+            }
+        }
+
+        /** True once the first block in the world has been changed (the first tree removed). */
+        boolean changedWorld()
+        {
+            return stage != Stage.FELLING || felling.changedWorld();
+        }
+
+        /** What the next step works on, for the log: "felling", "levelling", "sealing", "snow outside" (or "done"). */
+        String stageName()
+        {
+            return stage.label;
+        }
+
+        /** What was done; only once every stage is done. */
+        Report report()
+        {
+            if (report == null)
+            {
+                throw new IllegalStateException("The ground isn't fitted yet");
+            }
+            return report;
+        }
+
+        /** How long each stage took and in how many steps, for the log. */
+        String timings()
+        {
+            List<String> parts = new ArrayList<>();
+            for (Stage each : Stage.values())
+            {
+                if (each == Stage.DONE || stageSteps[each.ordinal()] == 0)
+                {
+                    continue;
+                }
+                String part = each.label + " " + millis(stageNanos[each.ordinal()]) + " ms"
+                        + (stageSteps[each.ordinal()] > 1 ? " in " + stageSteps[each.ordinal()] + " steps" : "");
+                if (each == Stage.FELLING)
+                {
+                    part += " (working out what goes " + millis(felling.nanosWorkingOut()) + " ms, removing it "
+                            + millis(felling.nanosRemoving()) + " ms)";
+                }
+                parts.add(part);
+            }
+            return String.join(", ", parts);
+        }
+
+        private void next()
+        {
+            cursor = 0;
+            switch (stage)
+            {
+                case FELLING ->
+                {
+                    stage = Stage.LEVELLING;
+                }
+                case LEVELLING ->
+                {
+                    highestNatural = applier.highestNatural();
+                    stage = Stage.SEALING;
+                }
+                case SEALING ->
+                {
+                    snowColumns = felling.result().columns().toLongArray();
+                    stage = Stage.SNOW;
+                }
+                default ->
+                {
+                    report = new Report(felling.result(), applier.footprintCut, applier.footprintFilled, applier.ringCut,
+                            applier.ringFilled, applier.removed, applier.placed, applier.dips, applier.sealed,
+                            applier.snowed + snowed, s.deepFill);
+                    stage = Stage.DONE;
+                }
+            }
+        }
+
+        /** The footprint cut and filled, the staircase shaped: column by column, in the survey's order. */
+        private boolean level(Budget budget)
+        {
+            int total = s.sizeX * s.sizeZ;
+            while (cursor < total)
+            {
+                int i = cursor / s.sizeZ;
+                int k = cursor % s.sizeZ;
+                cursor++;
                 int x = s.minX + i;
                 int z = s.minZ + k;
-                int d = s.distance(x, z);
-                if (d == 0)
+                if (s.distance(x, z) == 0)
                 {
                     applier.footprintColumn(x, z, clearTop);
                 }
@@ -766,21 +982,59 @@ public final class GroundFit
                 {
                     applier.ringColumn(x, z);
                 }
+                else
+                {
+                    continue;
+                }
+                if (cursor < total && budget.spent())
+                {
+                    return false;
+                }
             }
+            return true;
         }
-        applier.seal(clearTop);
-        int snowed = 0;
-        for (long column : felling.columns())
+
+        /** Water and lava next to cleared space sealed off: column by column, in the survey's order. */
+        private boolean seal(Budget budget)
         {
-            int x = BlockPos.getX(column);
-            int z = BlockPos.getZ(column);
-            if (!(s.contains(x, z) && s.distance(x, z) == 0) && snowIfCold(level, x, z))
+            int total = s.sizeX * s.sizeZ;
+            while (cursor < total)
             {
-                snowed++;
+                int i = cursor / s.sizeZ;
+                int k = cursor % s.sizeZ;
+                cursor++;
+                if (applier.sealColumn(i, k, clearTop, highestNatural) && cursor < total && budget.spent())
+                {
+                    return false;
+                }
             }
+            return true;
         }
-        return new Report(felling, applier.footprintCut, applier.footprintFilled, applier.ringCut, applier.ringFilled,
-                applier.removed, applier.placed, applier.dips, applier.sealed, applier.snowed + snowed, s.deepFill);
+
+        /** Snow put back on the columns trees were removed from, outside the footprint (in a cold biome). */
+        private boolean snow(Budget budget)
+        {
+            while (cursor < snowColumns.length)
+            {
+                long column = snowColumns[cursor++];
+                int x = BlockPos.getX(column);
+                int z = BlockPos.getZ(column);
+                if (!(s.contains(x, z) && s.distance(x, z) == 0) && snowIfCold(level, x, z))
+                {
+                    snowed++;
+                }
+                if (cursor < snowColumns.length && budget.spent())
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static long millis(long nanos)
+        {
+            return nanos / 1_000_000L;
+        }
     }
 
     /**
@@ -972,62 +1226,66 @@ public final class GroundFit
             }
         }
 
-        /**
-         * Water or lava right next to space that was cleared (above the footprint's ground, or where the staircase cut
-         * down) would pour in: it's turned into the ground around it. With the site rules there is none.
-         */
-        void seal(int clearTop)
+        /** The highest natural ground in the surveyed area (sealing looks this high above the footprint). */
+        int highestNatural()
         {
-            int highestNatural = Integer.MIN_VALUE;
+            int highest = Integer.MIN_VALUE;
             for (int value : s.surface)
             {
-                highestNatural = Math.max(highestNatural, value);
+                highest = Math.max(highest, value);
             }
-            for (int i = 0; i < s.sizeX; i++)
+            return highest;
+        }
+
+        /**
+         * Water or lava right next to space that was cleared (above the footprint's ground, or where the staircase cut
+         * down) would pour in: it's turned into the ground around it. With the site rules there is none. One surveyed
+         * column ({@code i}, {@code k}: its place in the survey); run for every column, in the survey's order.
+         *
+         * @return false if the column had no cleared space (nothing was looked at)
+         */
+        boolean sealColumn(int i, int k, int clearTop, int highestNatural)
+        {
+            int x = s.minX + i;
+            int z = s.minZ + k;
+            int index = i * s.sizeZ + k;
+            int d = s.distance(x, z);
+            int low;
+            int high;
+            if (d == 0)
             {
-                for (int k = 0; k < s.sizeZ; k++)
+                low = plan.groundY + 1;
+                high = Math.min(clearTop, highestNatural + 1);
+            }
+            else if (plan.changed[index] && plan.target[index] < s.surface[index])
+            {
+                low = plan.target[index] + 1;
+                high = s.surface[index];
+            }
+            else
+            {
+                return false;
+            }
+            for (Direction dir : Direction.Plane.HORIZONTAL)
+            {
+                int nx = x + dir.getStepX();
+                int nz = z + dir.getStepZ();
+                if (s.contains(nx, nz) && s.distance(nx, nz) == 0)
                 {
-                    int x = s.minX + i;
-                    int z = s.minZ + k;
-                    int index = i * s.sizeZ + k;
-                    int d = s.distance(x, z);
-                    int low;
-                    int high;
-                    if (d == 0)
+                    continue; // cleared too
+                }
+                for (int y = low; y <= high; y++)
+                {
+                    BlockState state = level.getBlockState(pos.set(nx, y, nz));
+                    if (!state.getFluidState().isEmpty())
                     {
-                        low = plan.groundY + 1;
-                        high = Math.min(clearTop, highestNatural + 1);
-                    }
-                    else if (plan.changed[index] && plan.target[index] < s.surface[index])
-                    {
-                        low = plan.target[index] + 1;
-                        high = s.surface[index];
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                    for (Direction dir : Direction.Plane.HORIZONTAL)
-                    {
-                        int nx = x + dir.getStepX();
-                        int nz = z + dir.getStepZ();
-                        if (s.contains(nx, nz) && s.distance(nx, nz) == 0)
-                        {
-                            continue; // cleared too
-                        }
-                        for (int y = low; y <= high; y++)
-                        {
-                            BlockState state = level.getBlockState(pos.set(nx, y, nz));
-                            if (!state.getFluidState().isEmpty())
-                            {
-                                BlockState seal = s.contains(nx, nz) ? s.underFor(s.index(nx, nz)) : s.deepFill;
-                                level.setBlock(pos, seal, FLAGS);
-                                sealed++;
-                            }
-                        }
+                        BlockState seal = s.contains(nx, nz) ? s.underFor(s.index(nx, nz)) : s.deepFill;
+                        level.setBlock(pos, seal, FLAGS);
+                        sealed++;
                     }
                 }
             }
+            return true;
         }
 
         private void set(int x, int y, int z, BlockState state)

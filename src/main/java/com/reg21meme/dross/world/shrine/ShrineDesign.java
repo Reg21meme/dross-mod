@@ -3,6 +3,7 @@ package com.reg21meme.dross.world.shrine;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import java.util.Optional;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -35,9 +36,10 @@ import org.slf4j.Logger;
  *       choose ({@link #buildWithFrameAt} uses this).</li>
  *   <li>{@link #buildWithFrameAt}: with its frame <b>opening on a given column</b>, at the ground level the natural
  *       terrain there calls for (the portal site uses this as its very last resort).</li>
- *   <li>{@link #buildFitted}: on ground that's already nearly flat, with a {@link GroundFit.Plan} (the portal site uses
- *       this): whole trees removed where they touch, the footprint levelled by a block or two, and a one-block-per-step
- *       staircase back to the natural terrain.</li>
+ *   <li>{@link #buildFitted}: on ground that's already nearly flat, with a {@link GroundFit.Plan}: whole trees removed
+ *       where they touch, the footprint levelled by a block or two, and a one-block-per-step staircase back to the
+ *       natural terrain. {@link #startFitted} does the same work a step at a time ({@link FittedBuild}), one per server
+ *       tick: the portal site's cathedral and the Dross hub are built that way, so no tick does much of it.</li>
  * </ul>
  * The first two prepare the ground with {@link ShrineGround}: cut down and filled up to the ground level, sloped back
  * to the natural terrain around the footprint, and sealed against water and lava, so the design never floats or
@@ -331,16 +333,31 @@ public final class ShrineDesign
     }
 
     /**
-     * Builds the design on ground that is already nearly flat, gently (the portal site uses this): the ground is
-     * prepared by a {@link GroundFit.Plan} made for this footprint (whole trees removed where they touch, the footprint
-     * levelled at {@code center}'s Y, a one-block-per-step staircase back to the natural terrain), then the template is
-     * placed, then open natural ground inside it gets snow in a cold biome. Server thread only.
+     * Builds the design on ground that is already nearly flat, gently, all at once: the ground is prepared by a
+     * {@link GroundFit.Plan} made for this footprint (whole trees removed where they touch, the footprint levelled at
+     * {@code center}'s Y, a one-block-per-step staircase back to the natural terrain), then the template is placed, then
+     * open natural ground inside it gets snow in a cold biome. The same work as a {@link FittedBuild} done a step at a
+     * time ({@link #startFitted}), all in this call. Server thread only.
      *
      * @return the ground report, or empty (and an error in the log, nothing changed) if the template file is missing, the
      *         plan was made for another footprint or ground level, or the design doesn't fit in the world's height at
      *         that ground level ({@link #fitsHeightAt})
      */
     public Optional<GroundFit.Report> buildFitted(ServerLevel level, BlockPos center, Direction facing, GroundFit.Plan plan)
+    {
+        Optional<FittedBuild> build = startFitted(level, center, facing, plan);
+        build.ifPresent(FittedBuild::finish);
+        return build.map(FittedBuild::report);
+    }
+
+    /**
+     * Gets {@link #buildFitted} ready to be done a step at a time ({@link FittedBuild#step}, one per server tick), so no
+     * single tick does much of it (the Overworld's cathedral and the Dross hub use this). Nothing is changed yet.
+     *
+     * @return the build, or empty (and an error in the log) if the template file is missing, the plan was made for
+     *         another footprint or ground level, or the design doesn't fit in the world's height at that ground level
+     */
+    public Optional<FittedBuild> startFitted(ServerLevel level, BlockPos center, Direction facing, GroundFit.Plan plan)
     {
         Optional<StructureTemplate> found = level.getStructureManager().get(template);
         if (found.isEmpty())
@@ -365,18 +382,195 @@ public final class ShrineDesign
             return Optional.empty();
         }
         int clearTop = Math.min(box.maxY() + CLEAR_ABOVE, level.getMaxBuildHeight() - 1);
-        GroundFit.Report ground = GroundFit.apply(level, plan, clearTop);
+        return Optional.of(new FittedBuild(level, found.get(), center.immutable(), front, plan, clearTop));
+    }
 
-        StructurePlaceSettings settings = new StructurePlaceSettings()
-                .setRotation(rotationFor(front))
-                .setRotationPivot(pivot())
-                .setIgnoreEntities(true);
-        BlockPos origin = center.offset(-width / 2, -groundLayer, -depth / 2);
-        found.get().placeInWorld(level, origin, origin, settings, level.getRandom(), Block.UPDATE_CLIENTS);
-        int snowed = GroundFit.snowFootprint(level, plan);
-        LOGGER.info("Shrine design {} ({}) built at {} facing {} ({} x {} x {}) on fitted ground: {}; {} snow layers in the open inside",
-                number, name, center.toShortString(), front.getName(), width, depth, height, ground.summary(), snowed);
-        return Optional.of(ground);
+    /**
+     * The design built on fitted ground a step at a time ({@link #step}, one per server tick when it's spread out):
+     * <ol>
+     *   <li>the ground ({@link GroundFit}): <b>felling</b> the trees that touch (the long part, cut into steps of at most
+     *       about {@link GroundFit#STEP_MILLIS} ms), <b>levelling</b>, <b>sealing</b>, <b>snow outside</b>;</li>
+     *   <li>the <b>template</b>, placed in one go (one step: about a tenth of a second for the big designs);</li>
+     *   <li><b>snow inside</b>: open natural ground inside it gets snow in a cold biome.</li>
+     * </ol>
+     * A step never works on two of these. The work and its order are exactly {@link #buildFitted}'s, so the result is the
+     * same as long as nothing else changes these blocks between the steps (their chunks loaded, but not ticking). The
+     * world changes from the first tree removed on, so a build that has started should be finished ({@link #finish}),
+     * for example when the server stops, never left half done. Checking the frame is the caller's job. Server thread only.
+     */
+    public final class FittedBuild
+    {
+        private final ServerLevel level;
+        private final StructureTemplate structure;
+        private final BlockPos center;
+        private final Direction front;
+        private final GroundFit.Plan plan;
+        private final GroundFit.Fitting ground;
+        /** 0: the ground; 1: the template; 2: snow inside; 3: done. */
+        private int stage;
+        @Nullable
+        private GroundFit.Report report;
+        private int steps;
+        private long nanos;
+        private long longestNanos = -1L;
+        private String longestStage = "";
+        private long templateNanos;
+        private long snowNanos;
+
+        private FittedBuild(ServerLevel level, StructureTemplate structure, BlockPos center, Direction front, GroundFit.Plan plan,
+                            int clearTop)
+        {
+            this.level = level;
+            this.structure = structure;
+            this.center = center;
+            this.front = front;
+            this.plan = plan;
+            this.ground = new GroundFit.Fitting(level, plan, clearTop);
+        }
+
+        /**
+         * Does the next piece of work: at most about {@link GroundFit#STEP_MILLIS} ms of the ground's work, or the whole
+         * template, or the snow inside.
+         *
+         * @return true once it's all built ({@link #report})
+         */
+        public boolean step()
+        {
+            return step(GroundFit.Budget.millis(GroundFit.STEP_MILLIS));
+        }
+
+        /** Everything that's left, now. */
+        public void finish()
+        {
+            while (!step(GroundFit.Budget.unlimited()))
+            {
+                // the remaining steps, one after another
+            }
+        }
+
+        public boolean done()
+        {
+            return stage >= 3;
+        }
+
+        /**
+         * True once something in the world has been changed (from the first tree removed on): from then on it must be
+         * finished, never dropped.
+         */
+        public boolean changedWorld()
+        {
+            return stage > 0 || ground.changedWorld();
+        }
+
+        /**
+         * What the next step works on, for the log: "felling", "levelling", "sealing", "snow outside", "template",
+         * "snow inside" (or "done").
+         */
+        public String stageName()
+        {
+            return switch (stage)
+            {
+                case 0 -> ground.stageName();
+                case 1 -> "template";
+                case 2 -> "snow inside";
+                default -> "done";
+            };
+        }
+
+        /** What the ground fitting did; only once it's {@link #done}. */
+        public GroundFit.Report report()
+        {
+            if (report == null || !done())
+            {
+                throw new IllegalStateException("The shrine isn't built yet");
+            }
+            return report;
+        }
+
+        /** Where everything ends up ({@link ShrineDesign#built}). */
+        public Built built()
+        {
+            return ShrineDesign.this.built(center, front);
+        }
+
+        /** How many steps have run. */
+        public int steps()
+        {
+            return steps;
+        }
+
+        /** All the steps' time together, in milliseconds. */
+        public long millis()
+        {
+            return nanos / 1_000_000L;
+        }
+
+        /** The longest one step took, in milliseconds (the most one server tick did when it was spread out). */
+        public long longestStepMillis()
+        {
+            return Math.max(0L, longestNanos) / 1_000_000L;
+        }
+
+        /** What the longest step worked on. */
+        public String longestStepStage()
+        {
+            return longestStage;
+        }
+
+        private boolean step(GroundFit.Budget budget)
+        {
+            if (done())
+            {
+                return true;
+            }
+            String working = stageName();
+            long start = System.nanoTime();
+            if (stage == 0)
+            {
+                if (ground.step(budget))
+                {
+                    report = ground.report();
+                    stage = 1;
+                }
+            }
+            else if (stage == 1)
+            {
+                StructurePlaceSettings settings = new StructurePlaceSettings()
+                        .setRotation(rotationFor(front))
+                        .setRotationPivot(pivot())
+                        .setIgnoreEntities(true);
+                BlockPos origin = center.offset(-width / 2, -groundLayer, -depth / 2);
+                structure.placeInWorld(level, origin, origin, settings, level.getRandom(), Block.UPDATE_CLIENTS);
+                templateNanos = System.nanoTime() - start;
+                stage = 2;
+            }
+            else
+            {
+                int snowed = GroundFit.snowFootprint(level, plan);
+                snowNanos = System.nanoTime() - start;
+                stage = 3;
+                countStep(working, System.nanoTime() - start);
+                LOGGER.info("Shrine design {} ({}) built at {} facing {} ({} x {} x {}) on fitted ground: {}; {} snow layers in the open "
+                                + "inside; {} ms of work in {} steps ({}, template {} ms, snow inside {} ms), the longest step {} ms ({})",
+                        number, name, center.toShortString(), front.getName(), width, depth, height, report.summary(), snowed,
+                        millis(), steps, ground.timings(), templateNanos / 1_000_000L, snowNanos / 1_000_000L,
+                        longestStepMillis(), longestStage);
+                return true;
+            }
+            countStep(working, System.nanoTime() - start);
+            return false;
+        }
+
+        private void countStep(String working, long took)
+        {
+            steps++;
+            nanos += took;
+            if (took > longestNanos)
+            {
+                longestNanos = took;
+                longestStage = working;
+            }
+        }
     }
 
     private ShrineGround.GroundChoice chooseGround(ServerLevel level, int x, int z, Direction front)

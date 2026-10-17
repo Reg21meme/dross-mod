@@ -39,7 +39,10 @@ import org.slf4j.Logger;
  *   <li><b>Load</b>: the spot's chunks are generated in the background (chunk tickets).</li>
  *   <li><b>Check</b> ({@link SiteCheck}) in the real world: real heights, lakes, biomes, villages and other structures.
  *       If the spot fails, the next one is tried (and the failed one is remembered, so it's never tried again).</li>
- *   <li><b>Build</b>: the castle template or the Fallen Cathedral on fitted ground, then the leak effects.</li>
+ *   <li><b>Build</b>: the castle template or the Fallen Cathedral on fitted ground, then the leak effects. The cathedral
+ *       is built a step a tick ({@link PortalCathedral.Building}: its trees felled in short steps, the ground levelled,
+ *       the template placed, its frame checked), so no tick does much of it. If the server stops after its first tree
+ *       was removed, the rest is finished at once before the world is saved.</li>
  * </ol>
  * The number of checks is bounded. If nothing passes, the rules are relaxed step by step ({@link SiteRules#LADDER},
  * with a WARN each time); the last resort builds on the best spot found, on whatever ground is there, so a world is
@@ -123,7 +126,8 @@ public final class PortalSitePlacer
         LOGGER.info("Dross portal site: needed right now, so it's finished without waiting for the background work.");
         for (int guard = 0; !j.done && guard < 10_000; guard++)
         {
-            if (System.currentTimeMillis() - begin > NOW_TOTAL_MILLIS)
+            // (A cathedral being built is always finished first: never a second site on top of a half-built one.)
+            if (j.building == null && System.currentTimeMillis() - begin > NOW_TOTAL_MILLIS)
             {
                 j.lastResort("it was needed right away and finding a good spot took too long");
                 break;
@@ -241,8 +245,25 @@ public final class PortalSitePlacer
     public static void onServerStopping(ServerStoppingEvent event)
     {
         Job j = job;
-        if (j != null)
+        if (j != null && j.building != null && j.building.changedWorld())
         {
+            // Half built: the rest is done now (the world is still there, and saved after this), so the site is never
+            // left half built or built again on top of a half-felled forest.
+            LOGGER.info("Dross portal site: the server is stopping while the Fallen Cathedral is half built; finishing it now.");
+            try
+            {
+                j.sync = true;
+                j.stepBuilding();
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("Dross portal site: finishing the half-built cathedral as the server stopped failed.", e);
+            }
+            j.cancelled.set(true);
+        }
+        else if (j != null)
+        {
+            // Searching, loading, checking, or working out which trees go: nothing in the world has changed yet.
             j.cancelled.set(true);
             LOGGER.info("Dross portal site: the server stopped before the site was built; it carries on next time{}.",
                     PortalSiteData.get(j.level).isPlanned() ? " from the planned spot" : "");
@@ -291,6 +312,11 @@ public final class PortalSitePlacer
         /** A spot that passed its check, built on the next step (so checking and building never share one tick). */
         @Nullable
         SiteCheck.Result passed;
+        /** The cathedral being built a step a tick, and the site column it's built on. */
+        @Nullable
+        PortalCathedral.Building building;
+        int buildX;
+        int buildZ;
 
         Job(ServerLevel level, boolean sync)
         {
@@ -333,12 +359,16 @@ public final class PortalSitePlacer
             {
                 return;
             }
+            if (building != null)
+            {
+                stepBuilding();
+                return;
+            }
             if (passed != null)
             {
                 SiteCheck.Result spot = passed;
                 passed = null;
                 build(spot.x(), spot.z(), spot.plan());
-                finish();
                 return;
             }
             if (search != null)
@@ -506,48 +536,95 @@ public final class PortalSitePlacer
             passed = check;
         }
 
-        /** Builds at a checked spot: the castle template if there's a usable one, else the cathedral, else the placeholder. */
+        /**
+         * Builds at a checked spot: the castle template if there's a usable one (at once), else the cathedral (a step a
+         * tick from now on: {@link #stepBuilding}; at once when it's needed right away), else the placeholder (at once).
+         */
         private void build(int x, int z, GroundFit.Plan plan)
         {
             long begin = System.currentTimeMillis();
-            SiteFrame frame = null;
-            String kind = PortalSiteData.KIND_PLACEHOLDER;
             if (PortalSiteData.KIND_TEMPLATE.equals(layout.kind()))
             {
                 Optional<StructureTemplate> template = level.getStructureManager().get(PortalSite.CASTLE_TEMPLATE);
                 if (template.isPresent())
                 {
-                    frame = PortalCastle.place(level, template.get(), x, z, plan);
-                    kind = PortalSiteData.KIND_TEMPLATE;
+                    SiteFrame frame = PortalCastle.place(level, template.get(), x, z, plan);
+                    if (frame != null)
+                    {
+                        placed(frame, PortalSiteData.KIND_TEMPLATE, x, z, System.currentTimeMillis() - begin, "");
+                        finish();
+                        return;
+                    }
                 }
             }
-            if (frame == null)
+            PortalCathedral.Building started = PortalCathedral.start(level, x, z,
+                    PortalSiteData.KIND_CATHEDRAL.equals(layout.kind()) ? plan : null, rules());
+            if (started == null)
             {
-                frame = PortalCathedral.place(level, x, z, PortalSiteData.KIND_CATHEDRAL.equals(layout.kind()) ? plan : null, rules());
-                kind = PortalSiteData.KIND_CATHEDRAL;
+                buildPlaceholder(x, z, System.currentTimeMillis() - begin);
+                return;
             }
-            if (frame == null)
+            building = started;
+            buildX = x;
+            buildZ = z;
+            if (sync)
             {
-                LOGGER.error("Dross portal site: the Fallen Cathedral couldn't be used (see the error above), so the small placeholder "
-                        + "shrine is built instead.");
-                frame = PortalShrine.build(level, PortalSiteBuilder.placeholderFramePos(level, x, z));
-                kind = PortalSiteData.KIND_PLACEHOLDER;
+                stepBuilding(); // needed right away: the rest at once
             }
-            placed(frame, kind, x, z, System.currentTimeMillis() - begin);
         }
 
-        private void placed(SiteFrame frame, String kind, int x, int z, long buildMillis)
+        /**
+         * The cathedral's next step (all that's left at once in sync mode); once it's done, the site is placed (or the
+         * placeholder built, if the cathedral couldn't be).
+         */
+        void stepBuilding()
+        {
+            PortalCathedral.Building current = building;
+            if (current == null)
+            {
+                return;
+            }
+            if (sync)
+            {
+                current.finish();
+            }
+            else if (!current.step())
+            {
+                return;
+            }
+            building = null;
+            SiteFrame frame = current.frame();
+            if (frame == null)
+            {
+                buildPlaceholder(buildX, buildZ, current.millis());
+                return;
+            }
+            placed(frame, PortalSiteData.KIND_CATHEDRAL, buildX, buildZ, current.millis(), " of work " + current.describeSteps());
+            finish();
+        }
+
+        private void buildPlaceholder(int x, int z, long millisSoFar)
+        {
+            LOGGER.error("Dross portal site: the Fallen Cathedral couldn't be used (see the error above), so the small placeholder "
+                    + "shrine is built instead.");
+            long begin = System.currentTimeMillis();
+            SiteFrame frame = PortalShrine.build(level, PortalSiteBuilder.placeholderFramePos(level, x, z));
+            placed(frame, PortalSiteData.KIND_PLACEHOLDER, x, z, millisSoFar + System.currentTimeMillis() - begin, "");
+            finish();
+        }
+
+        private void placed(SiteFrame frame, String kind, int x, int z, long buildMillis, String how)
         {
             SiteLeak.apply(level, frame);
             data.markPlaced(frame, kind);
             plannedCache = null;
             BlockPos spawn = level.getSharedSpawnPos();
             LOGGER.info("Dross portal site: placed the {} at {} {} ({} blocks from spawn, rules '{}', {} real-world check(s), {} search(es)); "
-                            + "frame corner {} axis {}, opening centre {}; built in {} ms, {} s after starting",
+                            + "frame corner {} axis {}, opening centre {}; built in {} ms{}, {} s after starting",
                     kind, x, z, Math.round(Math.sqrt((double) (x - spawn.getX()) * (x - spawn.getX())
                             + (double) (z - spawn.getZ()) * (z - spawn.getZ()))),
                     rules().name(), checks, searches, frame.corner().toShortString(), frame.axis(),
-                    frame.openingCenter().toShortString(), buildMillis, Math.round((System.currentTimeMillis() - startedAt) / 1000.0D));
+                    frame.openingCenter().toShortString(), buildMillis, how, Math.round((System.currentTimeMillis() - startedAt) / 1000.0D));
             // Tell everyone online where it is ("Dross portal site is at X, Y, Z").
             SiteAnnouncer.announcePlaced(level);
         }
@@ -581,6 +658,7 @@ public final class PortalSitePlacer
             releaseTickets();
             current = null;
             passed = null;
+            building = null;
             queue.clear();
             BlockPos spawn = level.getSharedSpawnPos();
             int x = best != null ? best.x() : data.isPlanned() ? data.getSiteX() : fallbackX(level);
@@ -613,7 +691,7 @@ public final class PortalSitePlacer
                 kind = PortalSiteData.KIND_PLACEHOLDER;
             }
             data.setPlanned(x, z, frame.corner().getY(), SiteRules.LADDER.size());
-            placed(frame, kind, x, z, System.currentTimeMillis() - begin);
+            placed(frame, kind, x, z, System.currentTimeMillis() - begin, "");
             finish();
         }
 

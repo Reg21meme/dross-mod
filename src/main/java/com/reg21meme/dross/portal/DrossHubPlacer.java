@@ -34,17 +34,20 @@ import org.slf4j.Logger;
  *   <li><b>Load</b>: when the world has started, the hub's chunks (its footprint, the ground round it and a bit more:
  *       {@link DrossHubBuilder.Build#loadArea}) get chunk tickets, so the world generator's threads make them while the
  *       game runs. They're loaded but not ticking: nothing grows, decays or spawns in them meanwhile.</li>
- *   <li><b>Build</b> a step a tick ({@link DrossHubBuilder.Build}: survey, plan, build), then save it
- *       ({@link DrossHubData}) and keep its chunks loaded {@value #HOLD_AFTER_BUILD_TICKS} more ticks for their lighting.</li>
+ *   <li><b>Build</b> a step a tick ({@link DrossHubBuilder.Build}: survey, plan, then the spire in short steps (felling
+ *       the trees in the way, levelling, the template...) and its frame lit), then save it ({@link DrossHubData}) and keep
+ *       its chunks loaded {@value #HOLD_AFTER_BUILD_TICKS} more ticks for their lighting.</li>
  * </ol>
  * Anything that needs the hub before it's finished ({@link DrossHub#ensureBuilt}: an arrival through a portal,
  * {@code /dross goto hub}, {@link DrossHub#layout}) has the rest done at once ({@link #finishNow}): the surveyed area's
  * chunks still missing are loaded (in parallel, as fast as the world generator can) and the remaining steps run in that
  * tick, as before this was spread out. Nobody ever gets a half-built hub. {@link DrossHub#whenBuilt} waits instead.
  * <p>
- * Only the last step changes the world, all in one tick. So if the server stops while the hub is still loading or being
- * planned, nothing has changed yet: it's simply built the next time the world starts. It's never built twice: the
- * saved {@link DrossHubData#isBuilt} flag is checked first, and there's only ever one build at a time.
+ * Only the build steps change the world, from the first tree removed on. If the server stops before that (the hub still
+ * loading, being planned, or its trees being worked out), nothing has changed yet: it's simply built the next time the
+ * world starts. If it stops after that, the rest is finished at once before the world is saved, so it's never left half
+ * built or built again on top. It's never built twice: the saved {@link DrossHubData#isBuilt} flag is checked first, and
+ * there's only ever one build at a time.
  * <p>
  * The log says how long each step took, the longest one tick's share, and how long the chunks took to load.
  */
@@ -157,9 +160,31 @@ final class DrossHubPlacer
     public static void onServerStopping(ServerStoppingEvent event)
     {
         MinecraftServer server = event.getServer();
-        if (job != null)
+        Job current = job;
+        if (current != null && current.build.changedWorld())
         {
-            // Only the build's last step changes the world, and that's all done in one tick: nothing has changed yet.
+            // Half built: the rest is done now (the world is still there, and saved after this), so it's never built again
+            // on top of a half-felled forest. Whoever waits is told the next time the world starts.
+            LOGGER.info("Dross hub: the server is stopping while the hub is half built; finishing it now.");
+            long started = Util.getMillis();
+            working = true;
+            try
+            {
+                current.finishNow();
+                finish(server, current, "the stopping server", Util.getMillis() - started);
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("Dross hub: finishing the half-built hub as the server stopped failed.", e);
+            }
+            finally
+            {
+                working = false;
+            }
+        }
+        else if (current != null)
+        {
+            // Still loading, surveying, planning or working out which trees go: nothing in the world has changed yet.
             LOGGER.info("Dross hub: the server is stopping before the hub was built (nothing in the world has changed yet); it's built the "
                     + "next time the world starts.");
         }
@@ -395,7 +420,8 @@ final class DrossHubPlacer
 
         /**
          * Everything that's left, now: the surveyed area's missing chunks (as fast as the world generator can make them;
-         * the rest keep loading in the background, and the build loads any it needs), then every step.
+         * the rest keep loading in the background, and the build loads any it needs), then every remaining step, one
+         * after another in this tick.
          */
         void finishNow()
         {
