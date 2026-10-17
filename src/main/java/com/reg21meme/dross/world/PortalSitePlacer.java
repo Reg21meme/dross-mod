@@ -36,7 +36,7 @@ import org.slf4j.Logger;
  *       to 10,000 blocks from spawn that look right (biome, flat ground, no village anywhere near). The best one is
  *       saved at once as the world's <b>planned</b> spot ({@link PortalSiteData}), which {@link PortalSite} reports
  *       until the site is built.</li>
- *   <li><b>Load</b>: the spot's chunks are generated in the background (chunk tickets, like the shrine showcase).</li>
+ *   <li><b>Load</b>: the spot's chunks are generated in the background (chunk tickets).</li>
  *   <li><b>Check</b> ({@link SiteCheck}) in the real world: real heights, lakes, biomes, villages and other structures.
  *       If the spot fails, the next one is tried (and the failed one is remembered, so it's never tried again).</li>
  *   <li><b>Build</b>: the castle template or the Fallen Cathedral on fitted ground, then the leak effects.</li>

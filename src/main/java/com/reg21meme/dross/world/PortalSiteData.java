@@ -14,11 +14,8 @@ import net.minecraft.world.level.saveddata.SavedData;
  * <ul>
  *   <li><b>Planned</b>: the spot picked for this world (its site column X/Z and ground level), chosen once when the
  *       world is new and kept for good. {@link PortalSite} reports the frame there until it's built.</li>
- *   <li><b>Placed</b>: the site is built; the frame's corner, axis and opening size are stored. Worlds that already
- *       have a site (Placed) keep it: they never get a planned spot.</li>
+ *   <li><b>Placed</b>: the site is built; the frame's corner, axis and opening size are stored, and kept for good.</li>
  * </ul>
- * Worlds saved before the castle existed only have Placed and FrameX/Y/Z: they get the old bare frame's
- * values (axis X, opening 2x3, kind "bare frame").
  */
 public class PortalSiteData extends SavedData
 {
@@ -28,14 +25,14 @@ public class PortalSiteData extends SavedData
     public static final String KIND_TEMPLATE = "castle template";
     public static final String KIND_CATHEDRAL = "fallen cathedral";
     public static final String KIND_PLACEHOLDER = "placeholder shrine";
-    public static final String KIND_BARE_FRAME = "bare frame (old world)";
 
     private boolean placed;
     private BlockPos framePos = BlockPos.ZERO;
     private Direction.Axis axis = PortalSite.FRAME_AXIS;
     private int openingWidth = PortalSite.FRAME_WIDTH - 2;
     private int openingHeight = PortalSite.FRAME_HEIGHT - 2;
-    private String kind = KIND_BARE_FRAME;
+    /** What was built ({@link #KIND_CATHEDRAL} and so on); empty until the site is placed. */
+    private String kind = "";
 
     private boolean planned;
     private int siteX;
@@ -57,18 +54,9 @@ public class PortalSiteData extends SavedData
         data.framePos = new BlockPos(tag.getInt("FrameX"), tag.getInt("FrameY"), tag.getInt("FrameZ"));
         Direction.Axis axis = Direction.Axis.byName(tag.getString("Axis"));
         data.axis = axis == Direction.Axis.Z ? Direction.Axis.Z : Direction.Axis.X;
-        if (tag.getInt("OpeningWidth") > 0)
-        {
-            data.openingWidth = tag.getInt("OpeningWidth");
-        }
-        if (tag.getInt("OpeningHeight") > 0)
-        {
-            data.openingHeight = tag.getInt("OpeningHeight");
-        }
-        if (tag.contains("Kind"))
-        {
-            data.kind = tag.getString("Kind");
-        }
+        data.openingWidth = tag.getInt("OpeningWidth");
+        data.openingHeight = tag.getInt("OpeningHeight");
+        data.kind = tag.getString("Kind");
         data.planned = tag.getBoolean("Planned");
         data.siteX = tag.getInt("SiteX");
         data.siteZ = tag.getInt("SiteZ");

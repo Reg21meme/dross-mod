@@ -44,7 +44,7 @@ import org.slf4j.Logger;
  *
  * <p>It works in both kinds of world (the GameTest server uses the world named in {@code run/server.properties}):
  * <ul>
- *   <li><b>The site is already placed</b> (for example {@code run/world}, an old world with the small shrine): a player
+ *   <li><b>The site is already placed</b> (for example {@code run/world}, after an earlier run placed it): a player
  *       who joins is told "Dross portal site is at X, Y, Z" once, with the opening's middle, and
  *       {@code /dross goto cathedral} takes him in front of the frame.</li>
  *   <li><b>A new world</b> (the site is still being placed in the background): nothing is said on joining,

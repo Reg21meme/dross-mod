@@ -46,8 +46,8 @@ import java.util.Set;
  *   <li><b>Names:</b> every command in the naming scheme ({@code goto <place>}, {@code goto biome <name>} and
  *       {@code goto lair <boss>}, {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
  *       {@code quest <action>}) parses to a runnable command, including the chat buttons' commands (the golem showcase's
- *       controls and the arena's summon button), and none of the old names do (nor {@code goto biome} or
- *       {@code goto lair} on its own, or with a name that isn't a Dross biome or a boss with a lair). Running
+ *       controls and the arena's summon button), and {@code goto biome} or {@code goto lair} on its own, or with a
+ *       name that isn't a Dross biome or a boss with a lair, doesn't. Running
  *       {@code goto biome} is checked by {@link GotoBiomeGameTest}, {@code goto lair colossus} by
  *       {@link GotoLairGameTest}.</li>
  *   <li><b>Trophy showcase:</b> run far from everything else ({@link #SHOWCASE_X}, {@link #SHOWCASE_Z}), looking
@@ -74,19 +74,14 @@ public final class DrossCommandGameTest
             "dross goto lair colossus", "dross goto lair ratking", "dross goto sewer",
             "dross trader sendhome",
             "dross quest status", "dross quest reset", "dross quest complete",
-            "dross showcase trader_huts", "dross showcase trader_skins", "dross showcase portal_shrines",
             "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",
             "dross showcase boss_designs ratking", "dross showcase rats", "dross showcase boss_sounds ratking",
-            "dross showcase bossbars ratking", "dross showcase bossbars ratking 9",
             "dross boss summon ratking", "dross boss arena ratking",
             "dross boss summon colossus", "dross boss arena colossus",
     };
-    /** The old names (and unfinished or unknown commands), which must not run. */
-    private static final String[] OLD_COMMANDS = {
-            "dross site", "dross hub", "dross trader", "dross trader home", "dross boss arena",
-            "dross showcase huts", "dross showcase skins", "dross showcase shrines", "dross showcase golems",
-            "dross showcase golems erupt", "dross showcase trophies",
-            "dross goto biome", "dross goto biome not_a_biome", "dross goto biome dross_flats", "dross goto biome dross:gravecrags",
+    /** Unfinished or unknown commands, which must not run. */
+    private static final String[] NOT_COMMANDS = {
+            "dross goto biome", "dross goto biome not_a_biome", "dross goto biome dross:gravecrags",
             "dross goto lair", "dross goto lair cinder_colossus", "dross goto colossus",
     };
 
@@ -150,14 +145,14 @@ public final class DrossCommandGameTest
                 throw new GameTestAssertException("/" + command + " should be a command, but isn't");
             }
         }
-        for (String command : OLD_COMMANDS)
+        for (String command : NOT_COMMANDS)
         {
             if (runnable(dispatcher, source, command))
             {
-                throw new GameTestAssertException("/" + command + " should not run (an old name), but it does");
+                throw new GameTestAssertException("/" + command + " should not run (unfinished or unknown), but it does");
             }
         }
-        LOGGER.info("[command test] {} commands parse, {} old names are gone", expected.size(), OLD_COMMANDS.length);
+        LOGGER.info("[command test] {} commands parse, {} unfinished or unknown ones don't", expected.size(), NOT_COMMANDS.length);
         helper.succeed();
     }
 

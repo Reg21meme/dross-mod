@@ -1,8 +1,8 @@
 """Builds the shrine templates and their preview images.
 
-  python build.py            all designs
-  python build.py 3 7        only designs 3 and 7
-  python build.py --check 3  also writes a back view to the scratch folder (for reviewing)
+  python build.py            both designs
+  python build.py 2          only design 2
+  python build.py --check 2  also writes a back view to the scratch folder (for reviewing)
 
 Templates go to src/main/resources/data/dross/structures/shrine/<id>.nbt,
 previews to shrine-previews/, and a manifest (sizes, ground layer, frame) to tools/shrines/out/manifest.json.
@@ -28,14 +28,6 @@ SCRATCH = os.environ.get("SHRINE_SCRATCH", os.path.join(HERE, "out", "check"))
 DESIGNS = [
     "d01_cathedral",
     "d02_spire",
-    "d03_sunken_temple",
-    "d04_colosseum",
-    "d05_citadel",
-    "d06_colossus",
-    "d07_monolith_ring",
-    "d08_world_tree",
-    "d09_ziggurat",
-    "d10_observatory",
 ]
 
 

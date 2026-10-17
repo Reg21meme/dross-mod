@@ -19,9 +19,8 @@ import org.slf4j.Logger;
  *       built (the Fallen Cathedral, the small fallback shrine or a castle template; in the background a little while
  *       after a new world opens, or on the spot by {@link PortalSiteBuilder#ensurePlaced} when someone leaves the
  *       Dross before that). {@link PortalSitePlacer} calls {@link #announcePlaced}.</li>
- *   <li><b>On joining:</b> a player who joins a world where the site is already placed is told. Old worlds count as
- *       placed (their bare frame or small shrine). Before the site is placed nothing is said on joining: the message
- *       above covers it once it's built.</li>
+ *   <li><b>On joining:</b> a player who joins a world where the site is already placed is told. Before the site is
+ *       placed nothing is said on joining: the message above covers it once it's built.</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)

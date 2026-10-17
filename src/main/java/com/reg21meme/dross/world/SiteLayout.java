@@ -2,7 +2,6 @@ package com.reg21meme.dross.world;
 
 import com.reg21meme.dross.world.shrine.ShrineDesign;
 import java.util.Optional;
-import net.minecraft.core.BlockPos;
 import net.minecraft.core.Vec3i;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -57,12 +56,6 @@ record SiteLayout(String kind, int minDX, int minDZ, int maxDX, int maxDZ)
     BoundingBox footprintAt(int x, int z, int minY, int maxY)
     {
         return new BoundingBox(x + minDX, minY, z + minDZ, x + maxDX, maxY, z + maxDZ);
-    }
-
-    /** The footprint's middle column with the site column at {@code x}/{@code z}. */
-    BlockPos middleAt(int x, int z)
-    {
-        return new BlockPos(x + (minDX + maxDX) / 2, 0, z + (minDZ + maxDZ) / 2);
     }
 
     int width()

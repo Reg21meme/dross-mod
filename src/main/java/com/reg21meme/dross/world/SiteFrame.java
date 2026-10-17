@@ -42,19 +42,6 @@ record SiteFrame(BlockPos corner, Direction.Axis axis, int openingWidth, int ope
         return openingMin().relative(positive(axis), (openingWidth - 1) / 2);
     }
 
-    /** The exact middle of the opening along the frame (can be between two blocks). */
-    double centerAlong()
-    {
-        BlockPos min = openingMin();
-        return (axis == Direction.Axis.X ? min.getX() : min.getZ()) + openingWidth / 2.0D;
-    }
-
-    /** The middle of the frame's thickness across it (the block's centre line you walk through along). */
-    double centerAcross()
-    {
-        return (axis == Direction.Axis.X ? corner.getZ() : corner.getX()) + 0.5D;
-    }
-
     static Direction positive(Direction.Axis axis)
     {
         return Direction.fromAxisAndDirection(axis, Direction.AxisDirection.POSITIVE);

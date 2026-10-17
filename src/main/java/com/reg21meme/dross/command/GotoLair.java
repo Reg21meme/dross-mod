@@ -226,12 +226,6 @@ public final class GotoLair
         }
     }
 
-    /** True while the player's {@code goto lair colossus} is still waiting (tests). */
-    static boolean isWaiting(ServerPlayer player)
-    {
-        return PENDING.containsKey(player.getUUID());
-    }
-
     /**
      * Teleports the player to a built lair's entrance (or the nearest safe spot round it), facing in, with the chat line.
      *

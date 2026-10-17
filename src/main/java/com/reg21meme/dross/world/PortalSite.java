@@ -17,10 +17,10 @@ import org.slf4j.Logger;
  * <p><b>Where:</b> each new world picks its own random spot, {@link SiteRules#MIN_DISTANCE} to
  * {@link SiteRules#MAX_DISTANCE} blocks from world spawn, on flat ground in an allowed biome and away from villages
  * (the rules are in {@link SiteRules}; the search and building are {@link PortalSitePlacer}'s). The spot is saved in
- * the world ({@link PortalSiteData}). Worlds that already had a site keep it (old worlds: at 0, 0).
+ * the world ({@link PortalSiteData}).
  *
  * <p>The castle frame, built once per world (the user's castle template if there is one, otherwise the Fallen
- * Cathedral, or the small placeholder shrine if the cathedral can't be built; old worlds keep what they have):
+ * Cathedral, or the small placeholder shrine if the cathedral can't be built):
  * <ul>
  *   <li>A nether-portal-shaped frame of {@code dross:dross_portal_frame} with an empty (air) opening, standing
  *       along the X axis or the Z axis ({@link #getFrameAxis}). The Fallen Cathedral's frame runs along X with a
@@ -50,7 +50,7 @@ public final class PortalSite
     public static final int FRAME_WIDTH = 4;
     public static final int FRAME_HEIGHT = 5;
     /**
-     * The axis of the cathedral's and the placeholder shrine's frame (and of old worlds' bare frame). A castle
+     * The axis of the cathedral's and the placeholder shrine's frame. A castle
      * template's frame can run along Z instead: use {@link #getFrameAxis} for the real one.
      */
     public static final Direction.Axis FRAME_AXIS = Direction.Axis.X;
@@ -70,7 +70,7 @@ public final class PortalSite
 
     /**
      * The direction the frame runs along: {@code X} (players walk through it along Z) or {@code Z}
-     * (players walk through it along X). Old worlds, the cathedral and the placeholder: {@code X}.
+     * (players walk through it along X). The cathedral and the placeholder: {@code X}.
      */
     public static Direction.Axis getFrameAxis(ServerLevel anyLevel)
     {
@@ -91,12 +91,6 @@ public final class PortalSite
     public static int getOpeningWidth(ServerLevel anyLevel)
     {
         return frame(anyLevel).openingWidth();
-    }
-
-    /** How many blocks tall the opening is: 5 for the cathedral, 3 for the small 4x5 frame. */
-    public static int getOpeningHeight(ServerLevel anyLevel)
-    {
-        return frame(anyLevel).openingHeight();
     }
 
     /** True once the site has been built in this world. */

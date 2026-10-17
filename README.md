@@ -490,7 +490,6 @@ each attack sound for the fight, to pick from later.
 - `/dross showcase boss_sounds ratking` lists every sound with a button that plays it.
 - Previews: `boss-previews/rat_king/` (the rats in `rats/`, the sounds in `sounds/`: open `index.html` to listen;
   the earlier rounds in `round1/` and `round2/`). They're made by `tools/ratking/`.
-- `/dross showcase bossbars ratking` shows his boss bar designs on your screen (pick one with the chat buttons).
 
 ---
 
@@ -562,9 +561,6 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross quest status` | Shows your quest progress. |
 | `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*, *Set in Stone* and *Down the Drain*). |
 | `/dross quest complete` | Finishes the quest for you. |
-| `/dross showcase trader_huts` | Builds the 10 candidate hut designs in a row, with numbered signs. |
-| `/dross showcase trader_skins` | Lines up 10 frozen traders wearing the 10 candidate skins. Right-click one for its name. |
-| `/dross showcase portal_shrines` | Builds the 10 grand shrine designs in a row, with signs and clickable teleports in chat. |
 | `/dross showcase boss_designs colossus` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
 | `/dross showcase boss_designs colossus dormant` / `erupted` / `core` | Puts every showcase golem nearby into that stage. |
 | `/dross showcase boss_designs colossus erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
@@ -575,7 +571,6 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
 | `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
 | `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
-| `/dross showcase bossbars ratking` / `... <option>` | Shows one of the Rat King's boss bar designs on your screen for 40 seconds, normal and Rage, draining and refilling; chat buttons switch designs. |
 | `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
@@ -600,7 +595,7 @@ From the project folder, on Windows:
 - **First-time setup:** if it fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, re-run the same command.
 
 ### Tools (Python)
-- **`tools/shrines/`:** generates the 10 grand shrine designs, including the Fallen Cathedral and the Shattered Spire.
+- **`tools/shrines/`:** generates the two grand shrine designs, the Fallen Cathedral and the Shattered Spire (the user's picks from ten; the other eight were removed).
   - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
   - See `tools/shrines/README.md`.
 - **`tools/skins/`:** draws the 10 trader skins (`textures/entity/trader/`) and renders the front and back previews in `skin-previews/`.

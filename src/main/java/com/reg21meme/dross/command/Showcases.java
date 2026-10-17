@@ -14,7 +14,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Small helpers shared by the showcase commands ({@link ShrineShowcase}, {@link SkinShowcase}, {@link GolemShowcase},
+ * Small helpers shared by the showcase commands ({@link GolemShowcase}, {@link RatKingShowcase}, {@link RatShowcase},
  * {@link TrophyShowcase}).
  */
 final class Showcases

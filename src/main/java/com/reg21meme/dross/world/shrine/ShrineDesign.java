@@ -17,8 +17,8 @@ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemp
 import org.slf4j.Logger;
 
 /**
- * One design for a grand ruined portal shrine (see {@link ShrineDesigns} for all of them). No. 1, the Fallen
- * Cathedral, is the Overworld portal site (the castle).
+ * One design for a grand ruined portal shrine (see {@link ShrineDesigns} for both). No. 1, the Fallen Cathedral, is
+ * the Overworld portal site (the castle); No. 2, the Shattered Spire, is the Dross hub.
  * <p>
  * Each design is a structure template, {@code data/dross/structures/shrine/<id>.nbt}, made by the generator in
  * {@code tools/shrines/} (which also draws its preview images in {@code shrine-previews/}). Every template:
@@ -32,9 +32,9 @@ import org.slf4j.Logger;
  * Three ways to build one:
  * <ul>
  *   <li>{@link #build}: by its <b>center</b> (the ground block in the middle of the footprint), at a ground level you
- *       choose (the showcase uses this).</li>
+ *       choose ({@link #buildWithFrameAt} uses this).</li>
  *   <li>{@link #buildWithFrameAt}: with its frame <b>opening on a given column</b>, at the ground level the natural
- *       terrain there calls for (the Dross hub uses this, and the portal site as its very last resort).</li>
+ *       terrain there calls for (the portal site uses this as its very last resort).</li>
  *   <li>{@link #buildFitted}: on ground that's already nearly flat, with a {@link GroundFit.Plan} (the portal site uses
  *       this): whole trees removed where they touch, the footprint levelled by a block or two, and a one-block-per-step
  *       staircase back to the natural terrain.</li>
@@ -48,11 +48,6 @@ public final class ShrineDesign
     private static final Logger LOGGER = LogUtils.getLogger();
     /** Blocks of air cleared above the design's top, so tree tops or overhangs don't hang over it. */
     private static final int CLEAR_ABOVE = 4;
-    /**
-     * How far (in blocks) around the footprint building a design may change the ground (the slopes back to the
-     * natural terrain). Load the chunks this far out first if the build mustn't wait for chunks.
-     */
-    public static final int GROUND_MARGIN = ShrineGround.BLEND_MARGIN;
 
     private final int number;
     private final String id;
@@ -102,13 +97,7 @@ public final class ShrineDesign
         return ShrineDesigns.ALL.stream().filter(design -> design.id.equals(id)).findFirst();
     }
 
-    /** The design with this number, 1 to 10. */
-    public static Optional<ShrineDesign> byNumber(int number)
-    {
-        return ShrineDesigns.ALL.stream().filter(design -> design.number == number).findFirst();
-    }
-
-    /** 1 to 10. */
+    /** 1 or 2. */
     public int number()
     {
         return number;
@@ -247,20 +236,11 @@ public final class ShrineDesign
     }
 
     /**
-     * The ground level for the design built with its frame opening's middle column at {@code x}/{@code z}: the median
-     * height of the natural ground under the whole footprint (trees, plants and ice ignored, water counts at its top),
-     * or one block above the water if most of the footprint is water. On flat ground it's simply the ground. Loads
-     * (and if needed generates) the chunks under the footprint.
-     */
-    public int groundLevelForFrameAt(ServerLevel level, int x, int z, Direction facing)
-    {
-        return chooseGround(level, x, z, horizontal(facing)).groundY();
-    }
-
-    /**
      * Builds the design on the natural terrain with its frame opening's middle column at {@code x}/{@code z}: picks
-     * the ground level ({@link #groundLevelForFrameAt}), prepares the ground (cut, fill, slopes, sealing) and places
-     * the template. Server thread only; it can take a few seconds (chunks are loaded or generated as needed).
+     * the ground level (the median height of the natural ground under the whole footprint, trees, plants and ice
+     * ignored, water counted at its top, or one block above the water if most of the footprint is water), prepares the
+     * ground (cut, fill, slopes, sealing) and places the template. Server thread only; it can take a few seconds
+     * (chunks are loaded or generated as needed).
      *
      * @return where everything ended up (the frame's opening and axis, to light it or store it), or empty (and an
      *         error in the log) if the template file is missing
@@ -452,16 +432,5 @@ public final class ShrineDesign
     public record Built(ShrineDesign design, BlockPos center, Direction facing, BoundingBox footprint, BlockPos openingMin,
                         Direction.Axis frameAxis, int openingWidth, int openingHeight)
     {
-        /** The middle block of the opening's bottom row (for an even width, the one with the lower X or Z). */
-        public BlockPos openingCenter()
-        {
-            return openingMin.relative(Direction.fromAxisAndDirection(frameAxis, Direction.AxisDirection.POSITIVE), (openingWidth - 1) / 2);
-        }
-
-        /** The frame's bottom corner block with the lowest X and Z (one below and one before the opening). */
-        public BlockPos frameCorner()
-        {
-            return openingMin.below().relative(Direction.fromAxisAndDirection(frameAxis, Direction.AxisDirection.NEGATIVE));
-        }
     }
 }

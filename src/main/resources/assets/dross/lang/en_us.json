@@ -263,7 +263,6 @@
   "commands.dross.goto.biome.not_found_from_hub": "Found no part of %s within %s blocks of the hub",
   "commands.dross.goto.biome.not_found_from_you": "Found no part of %s within %s blocks of you",
   "commands.dross.goto.biome.no_safe_spot": "Couldn't find a safe spot in %s near %s, %s",
-  "commands.dross.goto.biome.no_safe_spot_old_land": "Couldn't find a safe spot in %s near %s, %s (the land there was made before the Dross had biomes; try from farther out)",
   "commands.dross.goto.biome.no_dross": "The Dross dimension isn't loaded, so there's nowhere to go.",
   "commands.dross.goto.biome.stopped": "Something stopped you from going to the Dross.",
   "commands.dross.goto.lair.searching": "Looking for the nearest Cinder Colossus lair...",

@@ -1,14 +1,11 @@
 package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.BossCommands;
-import com.reg21meme.dross.boss.client.RatKingBarStyles;
-import com.reg21meme.dross.boss.ratking.RatKingBarShowcase;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
@@ -39,7 +36,7 @@ import net.minecraftforge.fml.common.Mod;
  * {@code quest <action>}.
  * <ul>
  *   <li>{@code /dross goto cathedral}: teleports you in front of the castle's portal frame (the Fallen Cathedral, or
- *       an old world's bare frame or small shrine), facing it. Before the site has been built in this world it fails
+ *       the small fallback shrine), facing it. Before the site has been built in this world it fails
  *       ("hasn't been placed ... yet") and builds nothing: the site is built in the background a little while after a
  *       new world opens.</li>
  *   <li>{@code /dross goto hub}: teleports you to the hub in the Dross (portal area's {@link DrossHub}).</li>
@@ -65,15 +62,6 @@ import net.minecraftforge.fml.common.Mod;
  *       From the villager area ({@link TraderCommands}).</li>
  *   <li>{@code /dross quest status|reset|complete}: shows, clears or finishes your quest progress.
  *       From the quest area ({@link QuestCommands}).</li>
- *   <li>{@code /dross showcase trader_huts}: builds every candidate design for the trader's hut in a row in front of
- *       you, each with a numbered sign, to compare them ({@link HutShowcase}; the designs are the villager area's).</li>
- *   <li>{@code /dross showcase trader_skins}: spawns one frozen trader per candidate skin in a row in front of you,
- *       each on a pedestal with a numbered sign; old showcase traders nearby are removed first, never the real trader
- *       ({@link SkinShowcase}; the skins are the villager area's {@code TraderSkins}).</li>
- *   <li>{@code /dross showcase portal_shrines}: builds the 10 candidate designs for a grander portal shrine in a row to
- *       your right (about 1,000 blocks long, so use a superflat world), one at a time from the server tick, each with
- *       a numbered sign. A chat line appears as each one is finished; click it to teleport in front of that shrine
- *       ({@link ShrineShowcase}; the designs are in {@code world.shrine}).</li>
  *   <li>{@code /dross showcase boss_designs colossus}: spawns one frozen Cinder Colossus per design in a row in front
  *       of you, dormant in their rock shells, each with a numbered sign;
  *       {@code /dross showcase boss_designs colossus dormant|erupt|erupted|break|core|die|walk|idle} switches them
@@ -84,14 +72,10 @@ import net.minecraftforge.fml.common.Mod;
  *       sleep|wake|idle|walk|burrow|popup|rage|die} plays one of their animations ({@link RatKingShowcase}; the designs
  *       are the boss area's {@code RatKingDesigns}).</li>
  *   <li>{@code /dross showcase rats}: spawns the Rat King's rats in a row in front of you, each on a pedestal with a
- *       sign: four regular rats, then four of the enraged breed; {@code /dross showcase rats idle|run} switches their
- *       animation ({@link RatShowcase}; the designs are the boss area's {@code RatDesigns}).</li>
+ *       sign: the Plague Rat, then the Plague Ravager (the enraged breed); {@code /dross showcase rats idle|run}
+ *       switches their animation ({@link RatShowcase}; the designs are the boss area's {@code RatDesigns}).</li>
  *   <li>{@code /dross showcase boss_sounds ratking}: lists every Rat King and rat sound in chat, each with a button
  *       that plays it ({@link RatSoundShowcase}; the list is the boss area's {@code RatKingSounds}).</li>
- *   <li>{@code /dross showcase bossbars ratking [<option>]}: shows one of the Rat King's boss bar designs (option 1
- *       without a number), its normal and Rage looks, on your screen for a while, the health draining and refilling,
- *       with chat buttons for the others ({@code RatKingBarShowcase}; the designs are the boss area's
- *       {@code RatKingBarStyles}).</li>
  *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
  *       you, each on a pedestal facing you with a sign giving its number and name ({@link TrophyShowcase}; the designs
  *       are the boss area's {@code ColossusTrophies}).</li>
@@ -109,17 +93,16 @@ import net.minecraftforge.fml.common.Mod;
  *       {@link BossCommands#buildRatKingArena}). The button runs {@link BossCommands#SUMMON_RAT_KING_COMMAND}, so the
  *       {@code boss summon ratking} path must match it exactly.</li>
  * </ul>
- * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase boss_sounds}, {@code showcase bossbars},
+ * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase boss_sounds},
  * {@code showcase trophies}, {@code boss summon}
  * and {@code boss arena} (and, once it has a lair, under {@code goto lair}); a future place adds one under
  * {@code goto}. A future Dross biome gets its {@code goto biome <name>} by itself: there's one literal per biome in
  * {@code DrossBiomes.ALL}, named by {@code DrossBiomes.name} (its id without {@code dross:}). Plain
  * {@code goto biome} and {@code goto lair} aren't commands.
  * <p>
- * The shrine, skin, boss-design and trophy showcases and the boss commands use the command's position, rotation and
+ * The boss-design, rat and trophy showcases and the boss commands use the command's position, rotation and
  * dimension, so they also work from the server console and command blocks (for example {@code execute in
- * minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase trader_skins}). The trader huts showcase needs
- * a player.
+ * minecraft:overworld positioned 0 -60 0 rotated 0 0 run dross showcase trophies colossus}).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossCommand
@@ -169,13 +152,9 @@ public final class DrossCommand
                         .then(Commands.literal("reset").executes(QuestCommands::reset))
                         .then(Commands.literal("complete").executes(QuestCommands::complete)))
                 // Test showcases that build things side by side to compare them: showcase <kind> [<boss>]
-                // (the logic lives in HutShowcase, SkinShowcase, ShrineShowcase, GolemShowcase, RatKingShowcase, RatShowcase,
-                // RatSoundShowcase, RatKingBarShowcase and TrophyShowcase).
+                // (the logic lives in GolemShowcase, RatKingShowcase, RatShowcase, RatSoundShowcase and TrophyShowcase).
                 .then(Commands.literal("showcase")
                         .requires(source -> source.hasPermission(2))
-                        .then(Commands.literal("trader_huts").executes(HutShowcase::buildHuts))
-                        .then(Commands.literal("trader_skins").executes(SkinShowcase::spawnSkins))
-                        .then(Commands.literal("portal_shrines").executes(ShrineShowcase::buildShrines))
                         // Boss area's designs, one literal per boss.
                         .then(Commands.literal("boss_designs")
                                 .then(colossusDesignShowcase())
@@ -185,12 +164,6 @@ public final class DrossCommand
                         // Boss area's sounds, one literal per boss (RatSoundShowcase).
                         .then(Commands.literal("boss_sounds")
                                 .then(Commands.literal("ratking").executes(RatSoundShowcase::list)))
-                        // Boss area's boss bar designs, one literal per boss (RatKingBarShowcase).
-                        .then(Commands.literal("bossbars")
-                                .then(Commands.literal("ratking").executes(context -> RatKingBarShowcase.list(context.getSource()))
-                                        .then(Commands.argument("option", IntegerArgumentType.integer(1, RatKingBarStyles.ALL.size()))
-                                                .executes(context -> RatKingBarShowcase.show(context.getSource(),
-                                                        IntegerArgumentType.getInteger(context, "option"))))))
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))

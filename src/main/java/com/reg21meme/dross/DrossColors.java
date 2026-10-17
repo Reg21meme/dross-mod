@@ -82,9 +82,6 @@ public final class DrossColors {
 
     // ---------------------------------------------------------------- World site (world-builder)
 
-    /** Clickable "teleport there" lines in a showcase command's chat output (any RGB works in chat). Used in command/ShrineShowcase. */
-    public static final int SHOWCASE_LINK = PALETTE_HIGHLIGHT;
-
     /**
      * The clickable control buttons of /dross showcase boss_designs colossus ([Dormant], [Erupt!], [Break shell]...).
      * Lava orange, not the Dross blue: the golems serve the Fire Necromancer. Used in command/GolemShowcase.

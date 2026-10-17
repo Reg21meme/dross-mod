@@ -109,13 +109,6 @@ final class SiteRules
             }
             return false;
         }
-
-        /** The same rules with a different biome list (tests use this to ask for one biome). */
-        Level withBiomes(Set<ResourceKey<Biome>> only)
-        {
-            return new Level(number, name + " (" + only.size() + " biome(s) only)", only, maxVariation, blendMargin,
-                    staircaseRequired, maxDipFill, maxRingChange, minDistance, maxDistance);
-        }
     }
 
     /** Oceans (frozen ones too), rivers (frozen too), beaches and swamps: never. */

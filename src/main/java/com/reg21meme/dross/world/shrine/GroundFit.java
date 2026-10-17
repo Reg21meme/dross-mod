@@ -178,12 +178,6 @@ public final class GroundFit
             return footprint;
         }
 
-        /** How far around the footprint it reaches (blocks). */
-        public int margin()
-        {
-            return margin;
-        }
-
         /** What deep new ground is made of here: the level's base block ({@link #deepFillBlock}). */
         public BlockState deepFill()
         {
@@ -210,12 +204,6 @@ public final class GroundFit
         public boolean liquidAt(int x, int z)
         {
             return liquid[index(x, z)];
-        }
-
-        /** True if an ice spike or a boulder stood on this column. */
-        public boolean protrudingAt(int x, int z)
-        {
-            return protruding[index(x, z)];
         }
 
         /** How far the column is outside the footprint (0 inside it), rounded down. */
