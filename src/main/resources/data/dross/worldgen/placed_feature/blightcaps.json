@@ -17,6 +17,9 @@
       "heightmap": "OCEAN_FLOOR"
     },
     {
+      "type": "dross:not_near_sewer_entrance"
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

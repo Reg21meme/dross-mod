@@ -3,6 +3,7 @@ package com.reg21meme.dross.dimension.block;
 import com.reg21meme.dross.dimension.worldgen.SilverwoodTreeGrower;
 import com.reg21meme.dross.registry.ModBlocks;
 import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.valueproviders.UniformInt;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
@@ -17,6 +18,7 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.properties.NoteBlockInstrument;
 import net.minecraft.world.level.material.MapColor;
 import net.minecraft.world.level.material.PushReaction;
+import net.minecraftforge.common.util.ForgeSoundType;
 
 /**
  * Makes the Dross's terrain blocks (registered in {@code registry/ModBlocks}). Every block's properties (hardness,
@@ -97,6 +99,14 @@ public final class TerrainBlocks
     private static final int SCARRED_NETHERRACK_LIGHT = 0;
     private static final int SOULWICK_LIGHT = 10;
     private static final int SCAR_VENT_LIGHT = 4;
+    /**
+     * The Blight Vent's light (the green glow of the Rat King's grand entrance, seen at night). The boss area lets rats
+     * spawn at low block light in the sewers; the vents are only at his entrance, its pool room and the ground round it.
+     */
+    public static final int BLIGHT_VENT_LIGHT = 12;
+    /** Blight Vent: like stone (1.5, blast resistance 6). */
+    private static final float BLIGHT_VENT_HARDNESS = 1.5F;
+    private static final float BLIGHT_VENT_RESISTANCE = 6.0F;
     /** Storm Lichen gives this light only where it covers at least one side (like glow lichen's 7). */
     private static final int STORM_LICHEN_LIGHT = 7;
 
@@ -109,6 +119,20 @@ public final class TerrainBlocks
     private static final int SOULWICK_STEW_SECONDS = 5;
     /** Suspicious stew: Crag Thistle gives Resistance (its spines guard you), for this many seconds. */
     private static final int CRAG_THISTLE_STEW_SECONDS = 4;
+
+    // --- The sewers under Blightwood ---
+
+    /**
+     * Sewer Sludge slows anything walking through it to this share of its speed: less than soul sand (0.4, the user's
+     * rule: "slows you down, but less than soul sand"); 1 would be no slowing at all.
+     */
+    public static final float SEWER_SLUDGE_SPEED = 0.65F;
+    /** Sewer Sludge: soft like mud (0.5), a little tougher (it's thick). */
+    private static final float SEWER_SLUDGE_HARDNESS = 0.6F;
+    /** Its sounds: mud's, a little deeper (pitch) and squelchier (a slime block's steps and falls). */
+    private static final float SEWER_SLUDGE_SOUND_PITCH = 0.8F;
+    private static final SoundType SEWER_SLUDGE_SOUND = new ForgeSoundType(1.0F, SEWER_SLUDGE_SOUND_PITCH, () -> SoundEvents.MUD_BREAK,
+            () -> SoundEvents.SLIME_BLOCK_STEP, () -> SoundEvents.MUD_PLACE, () -> SoundEvents.MUD_HIT, () -> SoundEvents.SLIME_BLOCK_FALL);
 
     private TerrainBlocks() {}
 
@@ -566,5 +590,36 @@ public final class TerrainBlocks
                         .offsetType(BlockBehaviour.OffsetType.XZ)
                         .ignitedByLava()
                         .pushReaction(PushReaction.DESTROY));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The sewers under Blightwood
+    // ---------------------------------------------------------------------------------------------
+
+    /** Blight Vent: sludge-caked stone split by a glowing poison-green crack that breathes spores (pickaxe). Harmless. */
+    public static Block blightVent()
+    {
+        return new BlightVentBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.COLOR_GREEN)
+                .instrument(NoteBlockInstrument.BASEDRUM)
+                .requiresCorrectToolForDrops()
+                .strength(BLIGHT_VENT_HARDNESS, BLIGHT_VENT_RESISTANCE)
+                .sound(SoundType.TUFF)
+                .lightLevel(state -> BLIGHT_VENT_LIGHT));
+    }
+
+    /** Sewer Sludge: murky brownish-green muck in the sewers; you sink into it a little and it slows you (shovel). */
+    public static Block sewerSludge()
+    {
+        return new SewerSludgeBlock(BlockBehaviour.Properties.of()
+                .mapColor(MapColor.TERRACOTTA_GREEN)
+                .instrument(NoteBlockInstrument.BASEDRUM)
+                .strength(SEWER_SLUDGE_HARDNESS)
+                .speedFactor(SEWER_SLUDGE_SPEED)
+                .sound(SEWER_SLUDGE_SOUND)
+                .isValidSpawn((state, level, pos, type) -> true)
+                .isRedstoneConductor((state, level, pos) -> true)
+                .isViewBlocking((state, level, pos) -> true)
+                .isSuffocating((state, level, pos) -> true));
     }
 }

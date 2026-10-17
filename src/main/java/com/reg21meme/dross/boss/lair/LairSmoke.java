@@ -15,7 +15,7 @@ import net.minecraftforge.fml.common.Mod;
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
 /**
- * Smoke and embers rising from the volcano's crater (the lair's version 2), for players within
+ * Smoke and embers rising from every built volcano's crater, for players within
  * {@link LairTuning#SMOKE_RANGE} blocks of it: tall plumes of campfire signal smoke (the kind that rises about 20 blocks
  * and can be seen from far away), a dark puff now and then, lava pops and small flames.
  * <p>
@@ -31,10 +31,9 @@ final class LairSmoke
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event)
     {
-        LairKeeper.Volume lair = LairKeeper.volume();
+        java.util.List<LairKeeper.Volume> lairs = LairKeeper.volumes();
         MinecraftServer server = event.getServer();
-        if (event.phase != TickEvent.Phase.END || lair == null || lair.version() < 2
-                || server.getTickCount() % SMOKE_INTERVAL_TICKS != 0)
+        if (event.phase != TickEvent.Phase.END || lairs.isEmpty() || server.getTickCount() % SMOKE_INTERVAL_TICKS != 0)
         {
             return;
         }
@@ -43,12 +42,15 @@ final class LairSmoke
         {
             return;
         }
-        Vec3 crater = lair.crater();
-        for (ServerPlayer player : dross.players())
+        for (LairKeeper.Volume lair : lairs)
         {
-            if (player.distanceToSqr(crater) <= SMOKE_RANGE * SMOKE_RANGE)
+            Vec3 crater = lair.crater();
+            for (ServerPlayer player : dross.players())
             {
-                puff(dross, player, crater, dross.random);
+                if (player.distanceToSqr(crater) <= SMOKE_RANGE * SMOKE_RANGE)
+                {
+                    puff(dross, player, crater, dross.random);
+                }
             }
         }
     }

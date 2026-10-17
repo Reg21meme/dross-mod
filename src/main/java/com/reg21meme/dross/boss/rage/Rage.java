@@ -1,8 +1,10 @@
 package com.reg21meme.dross.boss.rage;
 
+import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.villager.DrossTrader;
 import com.reg21meme.dross.villager.Survivor;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -15,30 +17,29 @@ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.UUID;
 
 /**
- * The Rage Wand's Rage (the user's request, a creative-only test tool): what it means for a mob to be raged, and who
- * its enemies are. Every number is in {@link RageTuning}.
+ * The Rage Wand's Rage (the user's request, a creative-only test tool): what it means for a mob to be raged, which team
+ * it's on, and who its enemies are. Every number is in {@link RageTuning}.
  * <ul>
  *   <li><b>Raged</b>: it has the {@link RageEffect} (infinite, no cure). The wand gives it ({@link #enrage}).</li>
- *   <li><b>Sides</b>: every raged mob is on a side, saved in its persistent data as {@link #TAG_SIDE} (a UUID); a mob
- *       without one is its own side (its own UUID). A raged boss's minions join its side ({@link RageLeader},
- *       {@link #recruit}).</li>
- *   <li><b>Enemies</b>: two raged mobs on different sides. It's a free-for-all: a raged mob goes for the nearest enemy
- *       within {@link RageTuning#RAGE_RANGE} blocks, and while it has any it ignores players (it never targets one,
- *       even one that hits it). The fighting itself is each mob's own: its own attacks, moves and movement
- *       ({@link RageAi}); a mob with no attack of its own (cows, pigs, villagers...) headbutts
- *       ({@link RageHeadbuttGoal}).</li>
- *   <li><b>Calming down</b>: a raged mob with no enemy near for {@link RageTuning#RAGE_CALM_TICKS} loses its Rage and
- *       behaves normally again ({@link #calm}). So the last one standing (or the last side) calms down.</li>
+ *   <li><b>Teams</b>: every raged mob is on one of the wand's {@link RageTeam}s, saved in its persistent data as
+ *       {@link #TAG_TEAM}: the wand's team when it hit the mob (hit again with another team, it switches). A raged
+ *       boss's minions join its team ({@link RageLeader}, {@link #recruit}). The Rage and the team never wear off ("they
+ *       stay their team forever: this is a creative-only test item").</li>
+ *   <li><b>Enemies</b>: two raged mobs on different teams. A raged mob goes for the nearest enemy within
+ *       {@link RageTuning#RAGE_RANGE} blocks, and while it has any it ignores players (it never targets one, even one
+ *       that hits it). It never targets or hurts a raged mob of its own team. With no enemy near it behaves normally
+ *       (keeping its team). The fighting itself is each mob's own: its own attacks, moves and movement ({@link RageAi});
+ *       a mob with no attack of its own (cows, pigs, villagers...) headbutts ({@link RageHeadbuttGoal}).</li>
  * </ul>
+ * A mob given the Rage some other way (a command) has no team: it fights nobody and nobody fights it.
  * Everything here is server side (a mob's effects aren't sent to the clients).
  */
 public final class Rage
 {
-    /** Persistent data key: the side a raged mob fights for (a UUID). Missing: its own side. */
-    public static final String TAG_SIDE = "RageSide";
+    /** Persistent data key: the team a raged mob fights for ({@link RageTeam#id()}). */
+    public static final String TAG_TEAM = "RageTeam";
 
     private Rage() {}
 
@@ -50,20 +51,38 @@ public final class Rage
         return entity instanceof LivingEntity living && living.hasEffect(ModEffects.RAGE.get());
     }
 
-    /** The side a mob fights for: its saved {@link #TAG_SIDE}, or its own UUID. */
-    public static UUID sideOf(Entity entity)
+    /** The team a mob is on (saved with it), or null if none. */
+    @Nullable
+    public static RageTeam teamOf(@Nullable Entity entity)
     {
-        return entity.getPersistentData().hasUUID(TAG_SIDE) ? entity.getPersistentData().getUUID(TAG_SIDE) : entity.getUUID();
+        return entity == null ? null : RageTeam.byId(entity.getPersistentData().getString(TAG_TEAM));
     }
 
     /**
-     * True if the Rage has made these two enemies: both raged, on different sides. The bosses' blows and projectiles
-     * use this so they can hit a raged enemy of their own kind (another boss, or golems and rats of another side),
-     * which they never do otherwise.
+     * True if the Rage has made these two enemies: both raged, on two different teams. The bosses' blows and projectiles
+     * use this so they can hit a raged enemy of their own kind (another boss, or golems and rats of another team), which
+     * they never do otherwise.
      */
     public static boolean areEnemies(@Nullable Entity a, @Nullable Entity b)
     {
-        return a != null && b != null && a != b && isRaged(a) && isRaged(b) && !sideOf(a).equals(sideOf(b));
+        if (a == null || b == null || a == b || !isRaged(a) || !isRaged(b))
+        {
+            return false;
+        }
+        RageTeam ta = teamOf(a);
+        RageTeam tb = teamOf(b);
+        return ta != null && tb != null && ta != tb;
+    }
+
+    /** True if these two are raged on the same team: they never fight each other. */
+    public static boolean areTeammates(@Nullable Entity a, @Nullable Entity b)
+    {
+        if (a == null || b == null || a == b || !isRaged(a) || !isRaged(b))
+        {
+            return false;
+        }
+        RageTeam ta = teamOf(a);
+        return ta != null && ta == teamOf(b);
     }
 
     /**
@@ -77,17 +96,17 @@ public final class Rage
                 && !(mob instanceof Survivor);
     }
 
-    // ---------------------------------------------------------------- raging and calming
+    // ---------------------------------------------------------------- raging
 
     /**
-     * The wand's hit: rages a mob (it fights for itself), with a burst of red angry particles and a small growl. A mob
-     * that's raged already keeps its side (the burst plays again). A raged {@link RageLeader} (a boss) also gets its
-     * followers onto its side, and wakes up if it was asleep. A mob that can't be raged ({@link #canBeRaged}) only
-     * gets a dull click and a puff of smoke.
+     * The wand's hit: rages a mob onto the wand's team (a raged mob of another team switches to this one), with a burst
+     * of the team's colour and a small growl. A raged {@link RageLeader} (a boss) also gets its followers onto its team,
+     * and wakes up if it was asleep. A mob that can't be raged ({@link #canBeRaged}) only gets a dull click and a puff of
+     * smoke.
      *
-     * @return true if the mob is raged now
+     * @return true if the mob is raged on that team now
      */
-    public static boolean enrage(Mob mob)
+    public static boolean enrage(Mob mob, RageTeam team)
     {
         if (!(mob.level() instanceof ServerLevel level))
         {
@@ -98,17 +117,14 @@ public final class Rage
             fizzle(level, mob);
             return false;
         }
-        if (!isRaged(mob))
+        if (!isRaged(mob) && (!mob.addEffect(rageEffect()) || !isRaged(mob)))
         {
-            mob.getPersistentData().remove(TAG_SIDE); // the wand's mob fights for itself
-            if (!mob.addEffect(rageEffect()) || !isRaged(mob))
-            {
-                fizzle(level, mob); // something refused it (the Wither refuses every effect)
-                return false;
-            }
+            fizzle(level, mob); // something refused it (the Wither refuses every effect)
+            return false;
         }
+        setTeam(mob, team);
         RageAi.ensureInstalled(mob);
-        angryParticles(level, mob, RageTuning.RAGE_BURST_PARTICLES);
+        teamParticles(level, mob, team, RageTuning.RAGE_BURST_PARTICLES);
         level.playSound(null, mob.getX(), mob.getY(), mob.getZ(), SoundEvents.RAVAGER_ROAR, mob.getSoundSource(),
                 RageTuning.RAGE_SOUND_VOLUME, RageTuning.RAGE_SOUND_PITCH);
         if (mob instanceof RageLeader leader)
@@ -116,49 +132,56 @@ public final class Rage
             leader.onRaged();
             for (Mob follower : leader.rageFollowers())
             {
-                join(follower, mob);
+                join(follower, team);
             }
         }
         return true;
     }
 
     /**
-     * A boss's summon code calls this for each minion it makes (before adding it to the world): if the boss is raged,
-     * the minion joins its side (see {@link RageLeader}).
+     * A boss's summon code calls this for each minion it makes (before adding it to the world): if the boss is raged on a
+     * team, the minion joins that team (see {@link RageLeader}).
      */
     public static void recruit(Mob follower, Mob leader)
     {
-        if (isRaged(leader))
+        RageTeam team = teamOf(leader);
+        if (isRaged(leader) && team != null)
         {
-            join(follower, leader);
+            join(follower, team);
         }
     }
 
-    /** {@code follower} is raged and joins {@code leader}'s side (it never fights it or the others on that side). */
-    static boolean join(Mob follower, Mob leader)
+    /** {@code follower} is raged and joins this team (it never fights the others on it). */
+    static boolean join(Mob follower, RageTeam team)
     {
-        if (follower == leader || !follower.isAlive())
+        if (!follower.isAlive())
         {
             return false;
         }
-        follower.getPersistentData().putUUID(TAG_SIDE, sideOf(leader));
         if (!isRaged(follower) && (!follower.addEffect(rageEffect()) || !isRaged(follower)))
         {
-            follower.getPersistentData().remove(TAG_SIDE);
             return false;
         }
+        setTeam(follower, team);
         RageAi.ensureInstalled(follower);
+        if (follower.level() instanceof ServerLevel level)
+        {
+            teamParticles(level, follower, team, RageTuning.JOIN_BURST_PARTICLES);
+        }
         return true;
     }
 
-    /** It calms down: the Rage and its side are gone, its rage goals too, and it behaves normally again. */
-    public static void calm(Mob mob)
+    /** Puts a mob on a team (saved with it). A target that's now its teammate is let go of (its rage goal drops it). */
+    private static void setTeam(Mob mob, RageTeam team)
     {
-        mob.removeEffect(ModEffects.RAGE.get());
-        RageAi.uninstall(mob);
+        mob.getPersistentData().putString(TAG_TEAM, team.id());
+        if (areTeammates(mob, mob.getTarget()))
+        {
+            mob.setTarget(null);
+        }
     }
 
-    /** The Rage as the wand gives it: for ever, its swirl hidden (the mob shows angry particles instead), its icon shown. */
+    /** The Rage as the wand gives it: for ever, its swirl hidden (the mob shows its team's colour instead), its icon shown. */
     static MobEffectInstance rageEffect()
     {
         return new MobEffectInstance(ModEffects.RAGE.get(), MobEffectInstance.INFINITE_DURATION, 0, false, false, true);
@@ -166,7 +189,7 @@ public final class Rage
 
     // ---------------------------------------------------------------- enemies
 
-    /** True if {@code other} is an enemy that's in the fight: alive, with its AI (not a frozen showcase mob), raged on another side. */
+    /** True if {@code other} is an enemy that's in the fight: alive, with its AI (not a frozen showcase mob), raged on another team. */
     static boolean isLiveEnemy(Mob mob, @Nullable Entity other)
     {
         return other instanceof Mob enemy && enemy != mob && enemy.isAlive() && !enemy.isNoAi() && areEnemies(mob, enemy);
@@ -188,7 +211,7 @@ public final class Rage
     /** True if a raged mob has any enemy within {@link RageTuning#RAGE_RANGE} blocks: it ignores players then. */
     public static boolean hasEnemyNear(Mob mob)
     {
-        return isRaged(mob) && !enemiesNear(mob).isEmpty();
+        return isRaged(mob) && teamOf(mob) != null && !enemiesNear(mob).isEmpty();
     }
 
     /** True if a raged mob can go for this one now: a live enemy in range that can be seen as an enemy (not under the ground, not invulnerable). */
@@ -221,12 +244,13 @@ public final class Rage
 
     // ---------------------------------------------------------------- looks
 
-    /** Red angry particles (Minecraft's angry villager ones) over its head. */
-    static void angryParticles(ServerLevel level, Mob mob, int count)
+    /** Dust in its team's colour over its head (so the teams can be told apart). */
+    static void teamParticles(ServerLevel level, Mob mob, RageTeam team, int count)
     {
         double spread = mob.getBbWidth() * RageTuning.PARTICLE_SPREAD;
-        level.sendParticles(ParticleTypes.ANGRY_VILLAGER, mob.getX(), mob.getEyeY() + RageTuning.PARTICLE_ABOVE_EYES, mob.getZ(),
-                count, spread, spread * 0.5D, spread, 0.0D);
+        DustParticleOptions dust = new DustParticleOptions(DrossColors.vector(team.color()), RageTuning.TEAM_PARTICLE_SIZE);
+        level.sendParticles(dust, mob.getX(), mob.getEyeY() + RageTuning.PARTICLE_ABOVE_EYES, mob.getZ(), count, spread,
+                spread * 0.5D, spread, 0.0D);
     }
 
     /** The wand can't rage this one: a dull click and a little smoke. */

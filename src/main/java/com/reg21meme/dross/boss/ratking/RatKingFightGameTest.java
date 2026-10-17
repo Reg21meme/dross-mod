@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.gametest.framework.GameTestSequence;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerLevel;
@@ -65,13 +66,24 @@ import static com.reg21meme.dross.boss.golem.ColossusGameTest.waitForArena;
  *   <li>{@link #rageBurrowsEveryTwentyWithEnragedRats}: in the Rage every 20 health, 50 ticks under, 7 enraged rats.</li>
  *   <li>{@link #castsOneBallThenThreeInRage}: a cast throws one poison ball, three in the Rage; a ball bursts into a
  *       poison cloud.</li>
+ *   <li>{@link #runsAtTheUsersSpeeds}: he runs at about 4.8 blocks a second, 6.4 in the Rage (measured).</li>
+ *   <li>{@link #movesFollowTheUsersTable}: thousands of rolls in each distance band give the user's shares (within a
+ *       few points), in both phases; a move on its cooldown drops out and the others share its chance; between his
+ *       sweep's reach and the mid band he doesn't roll.</li>
+ *   <li>{@link #chargeLocksTheSpotAndRunsToIt}: the spear charge locks his target's spot at the end of the wind-up (not
+ *       before), dashes straight to it at 9 blocks a second (11 in the Rage) and stops on it; missed, he recovers for
+ *       0.5 s, then the charge's cooldown runs (5 s, 3.5 s in the Rage).</li>
+ *   <li>{@link #chargeHitsThenSweeps}: the lance hits the first thing in his way for 6 (8 in the Rage) and he goes
+ *       straight into a sweep (9, 11 in the Rage); then the sweep's cooldown runs (22, 16 in the Rage).</li>
+ *   <li>{@link #wallStopsTheCharge}: no charge with a wall in the way; made anyway, the wall stops him (and he
+ *       recovers).</li>
  *   <li>{@link #cloudPoisonsBrieflyAndSkipsRats}: the cloud's poison lasts at most 50 ticks, never reaches a rat or
  *       anything outside it, and the cloud is gone after its time.</li>
  *   <li>{@link #cloudPoisonIsSteady}: standing in a cloud for its whole life is a steady Poison I (one point of damage
  *       every 25 ticks: at most 3 in its 60 ticks), not a hit every time the cloud tops the poison up.</li>
  *   <li>{@link #facesHisTargetMostOfTheTime}: fighting a stand-in player who walks round him (with a burrow, his rage
  *       and a burrow in the Rage), his body faces them (within 30 degrees) at least 90% of the time, his time under the
- *       ground not counted (the user's wish after a play test).</li>
+ *       ground and his charges' dashes (he runs where he aimed) not counted (the user's wish after a play test).</li>
  *   <li>{@link #enragedBitesPoison}: an enraged rat's bite poisons for 40 ticks; a regular rat's doesn't.</li>
  *   <li>{@link #wildRatsTargetOnlyIfEnraged}: a wild enraged rat goes for a player, a wild regular rat never does.</li>
  *   <li>{@link #summonedRatsCrumbleWithTheirKing}: his rats crumble when he dies (a wild rat stays).</li>
@@ -122,6 +134,31 @@ public final class RatKingFightGameTest
     private static final int FACING_BURROW_AT = 100;
     private static final int FACING_RAGE_AT = 360;
     private static final int FACING_RAGE_BURROW_AT = 560;
+    /** The speed test: he runs at a target far off for this long; his speed is measured between these two ticks. */
+    private static final int SPEED_FROM_TICK = 12;
+    private static final int SPEED_TO_TICK = 36;
+    /** The user's speeds (blocks a second), and how close the measured ones must be. */
+    private static final double USER_RUN_SPEED = 4.8D;
+    private static final double USER_RAGE_RUN_SPEED = 6.4D;
+    private static final double SPEED_TOLERANCE = 0.4D;
+    /** Rolls of his move choice per band and phase, and how close (share) each one's share must be to the table's. */
+    private static final int ROLLS = 4000;
+    private static final double SHARE_TOLERANCE = 0.03D;
+    /** The charge tests: where he stands (west side of the wide arena, facing east) and how far his target is. */
+    private static final int CHARGE_FROM_X = 2;
+    private static final int CHARGE_TARGET_DISTANCE = 12;
+    /** The wind-up's target steps aside this far (blocks) a few ticks in, before the spot locks. */
+    private static final int CHARGE_STEP_ASIDE = 3;
+    private static final int CHARGE_STEP_ASIDE_AFTER = 3;
+    /** The dash stops this close (blocks) to the locked spot, and lasts its run at its speed within this many ticks. */
+    private static final double CHARGE_SPOT_TOLERANCE = 0.3D;
+    private static final int CHARGE_TICK_TOLERANCE = 1;
+    /** The hit test: the target's health (it must take every blow). */
+    private static final float SWEEP_TEST_HEALTH = 100.0F;
+    /** The wall test: the wall's distance in front of him, its half width and its height (blocks). */
+    private static final int WALL_AT = 7;
+    private static final int WALL_HALF_WIDTH = 2;
+    private static final int WALL_HEIGHT = 4;
 
     private RatKingFightGameTest() {}
 
@@ -482,6 +519,467 @@ public final class RatKingFightGameTest
                 .thenSucceed();
     }
 
+    // ---------------------------------------------------------------------------------------------
+    // His speed, and which move he makes
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = RAT_ARENA, batch = "dross_ratking_speed", timeoutTicks = ARENA_WAIT_TICKS + 2 * SPEED_TO_TICK + 100)
+    public static void runsAtTheUsersSpeeds(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RatKingFightGameTest::runsAtTheUsersSpeeds, RAT_ARENA_SIZE, RAT_ARENA_SIZE))
+        {
+            return;
+        }
+        int z = RAT_ARENA_SIZE / 2;
+        BlockPos from = new BlockPos(1, FLOOR_Y + 1, z);
+        RatKing king = spawnKing(helper, from);
+        // Far beyond his moves' reach (more than 24 blocks): he only runs at it.
+        Pig target = dummyTarget(helper, new BlockPos(RAT_ARENA_SIZE - 2, FLOOR_Y + 1, z));
+        if (king == null || target == null)
+        {
+            return;
+        }
+        if (Math.abs(king.getAttributeBaseValue(Attributes.MOVEMENT_SPEED) - RatKingTuning.SPEED) > 1.0E-6D)
+        {
+            helper.fail("his speed should be " + RatKingTuning.SPEED + ", but it's " + king.getAttributeBaseValue(Attributes.MOVEMENT_SPEED));
+            return;
+        }
+        king.startFightNow();
+        king.setTarget(target);
+        // Only running: his moves on their cooldowns.
+        holdMoves(king);
+        double[] measured = new double[2];
+        Vec3[] mark = new Vec3[1];
+        Vec3 start = helper.absoluteVec(Vec3.atBottomCenterOf(from));
+        helper.startSequence()
+                .thenExecuteAfter(SPEED_FROM_TICK, () -> mark[0] = king.position())
+                .thenExecuteAfter(SPEED_TO_TICK - SPEED_FROM_TICK, () -> {
+                    measured[0] = RatKingAttackGoal.flatDistance(mark[0], king.position()) * 20.0D / (SPEED_TO_TICK - SPEED_FROM_TICK);
+                    // Again in the Rage, from the start.
+                    king.skipToRage();
+                    king.moveTo(start.x, start.y, start.z, YAW_EAST, 0.0F);
+                    king.setDeltaMovement(Vec3.ZERO);
+                    king.setTarget(target);
+                    holdMoves(king);
+                })
+                .thenExecuteAfter(SPEED_FROM_TICK, () -> mark[0] = king.position())
+                .thenExecuteAfter(SPEED_TO_TICK - SPEED_FROM_TICK, () -> {
+                    measured[1] = RatKingAttackGoal.flatDistance(mark[0], king.position()) * 20.0D / (SPEED_TO_TICK - SPEED_FROM_TICK);
+                    LOGGER.info("[rat king test] he runs at {} blocks a second, {} in the Rage (the user's {} and {})",
+                            String.format("%.2f", measured[0]), String.format("%.2f", measured[1]), USER_RUN_SPEED, USER_RAGE_RUN_SPEED);
+                    cleanUp(helper, king, target);
+                    if (Math.abs(measured[0] - USER_RUN_SPEED) > SPEED_TOLERANCE)
+                    {
+                        helper.fail("he should run at about " + USER_RUN_SPEED + " blocks a second, but ran at " + measured[0]);
+                    }
+                    else if (Math.abs(measured[1] - USER_RAGE_RUN_SPEED) > SPEED_TOLERANCE)
+                    {
+                        helper.fail("in the Rage he should run at about " + USER_RAGE_RUN_SPEED + " blocks a second, but ran at "
+                                + measured[1]);
+                    }
+                })
+                .thenSucceed();
+    }
+
+    @GameTest(template = RAT_ARENA, batch = "dross_ratking_move_table", timeoutTicks = ARENA_WAIT_TICKS + 40)
+    public static void movesFollowTheUsersTable(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RatKingFightGameTest::movesFollowTheUsersTable, RAT_ARENA_SIZE, RAT_ARENA_SIZE))
+        {
+            return;
+        }
+        int z = RAT_ARENA_SIZE / 2;
+        RatKing king = spawnKing(helper, new BlockPos(1, FLOOR_Y + 1, z));
+        // Targets in each band (blocks from his middle): close 3, between 4.5, mid 10, far 20, beyond 27.
+        Pig close = dummyTarget(helper, new BlockPos(4, FLOOR_Y + 1, z));
+        Pig between = dummyTarget(helper, new BlockPos(5, FLOOR_Y + 1, z + 2));
+        Pig mid = dummyTarget(helper, new BlockPos(11, FLOOR_Y + 1, z));
+        Pig far = dummyTarget(helper, new BlockPos(21, FLOOR_Y + 1, z));
+        Pig beyond = dummyTarget(helper, new BlockPos(28, FLOOR_Y + 1, z));
+        if (king == null || close == null || between == null || mid == null || far == null || beyond == null)
+        {
+            return;
+        }
+        RatKingAttackGoal goal = king.attackGoal();
+        // 4.3 blocks ahead and 2 aside: out of his sweep's reach (more than 4 blocks to its edge), nearer than the mid band.
+        between.moveTo(king.getX() + 4.3D, king.getY(), king.getZ() + 2.0D);
+        List<LivingEntity> spawned = List.of(close, between, mid, far, beyond);
+        String problem = null;
+        Map<RatKingAttackGoal.Band, Pig> targets = Map.of(RatKingAttackGoal.Band.CLOSE, close, RatKingAttackGoal.Band.MID, mid,
+                RatKingAttackGoal.Band.FAR, far, RatKingAttackGoal.Band.BEYOND, beyond);
+        for (boolean rage : new boolean[] {false, true})
+        {
+            if (rage)
+            {
+                king.skipToRage();
+            }
+            for (RatKingAttackGoal.Band band : RatKingAttackGoal.Band.values())
+            {
+                Pig target = targets.get(band);
+                if (goal.band(target) != band)
+                {
+                    problem = "a target " + RatKingAttackGoal.flatDistance(king.position(), target.position()) + " blocks away should be in the "
+                            + band + " band, but it's in " + goal.band(target);
+                    break;
+                }
+                RatKingTuning.Chances line = RatKingAttackGoal.chances(rage, band);
+                problem = checkShares(goal, target, Map.of(RatKingAttackGoal.Choice.SWEEP, line.sweep(),
+                        RatKingAttackGoal.Choice.CHARGE, line.charge(), RatKingAttackGoal.Choice.POISON, line.poison(),
+                        RatKingAttackGoal.Choice.RUN_IN, line.runIn()), (rage ? "Rage " : "first phase ") + band);
+                if (problem != null)
+                {
+                    break;
+                }
+            }
+            if (problem == null)
+            {
+                // The charge on its cooldown: the poison shot and running in share its chance.
+                RatKingTuning.Chances line = RatKingAttackGoal.chances(rage, RatKingAttackGoal.Band.MID);
+                goal.setCooldown(RatKingAttackGoal.Move.CHARGE, 1000);
+                problem = checkShares(goal, mid, Map.of(RatKingAttackGoal.Choice.SWEEP, 0, RatKingAttackGoal.Choice.CHARGE, 0,
+                        RatKingAttackGoal.Choice.POISON, line.poison(), RatKingAttackGoal.Choice.RUN_IN, line.runIn()),
+                        (rage ? "Rage" : "first phase") + " mid, the charge on its cooldown");
+                goal.setCooldown(RatKingAttackGoal.Move.CHARGE, 0);
+            }
+            if (problem == null && (goal.band(between) != null || goal.choose(between) != null))
+            {
+                problem = "between his sweep's reach and the mid band he should just run in (no roll), but he picked "
+                        + goal.choose(between);
+            }
+            if (problem == null)
+            {
+                goal.setCooldown(RatKingAttackGoal.Move.SWEEP, 1000);
+                if (goal.choose(close) != null)
+                {
+                    problem = "up close with his sweep on its cooldown he should pick nothing, but he picked " + goal.choose(close);
+                }
+                goal.setCooldown(RatKingAttackGoal.Move.SWEEP, 0);
+            }
+            if (problem != null)
+            {
+                break;
+            }
+        }
+        spawned.forEach(LivingEntity::discard);
+        king.discard();
+        if (problem != null)
+        {
+            helper.fail(problem);
+            return;
+        }
+        helper.succeed();
+    }
+
+    /** Puts his moves on long cooldowns (so he only runs). */
+    private static void holdMoves(RatKing king)
+    {
+        for (RatKingAttackGoal.Move move : RatKingAttackGoal.Move.values())
+        {
+            king.attackGoal().setCooldown(move, 1000);
+        }
+    }
+
+    /** Rolls his choice at a target {@link #ROLLS} times: null if each choice's share is its weight's (rescaled), else what's wrong. */
+    @Nullable
+    private static String checkShares(RatKingAttackGoal goal, LivingEntity target, Map<RatKingAttackGoal.Choice, Integer> weights,
+                                      String what)
+    {
+        Map<RatKingAttackGoal.Choice, Integer> counts = new TreeMap<>();
+        for (int i = 0; i < ROLLS; i++)
+        {
+            RatKingAttackGoal.Choice choice = goal.choose(target);
+            if (choice == null)
+            {
+                return what + ": he picked nothing";
+            }
+            counts.merge(choice, 1, Integer::sum);
+        }
+        int total = weights.values().stream().mapToInt(Integer::intValue).sum();
+        StringBuilder shares = new StringBuilder();
+        for (RatKingAttackGoal.Choice choice : RatKingAttackGoal.Choice.values())
+        {
+            double want = weights.getOrDefault(choice, 0) / (double) total;
+            double got = counts.getOrDefault(choice, 0) / (double) ROLLS;
+            shares.append(String.format(" %s %.1f%% (table %.1f%%)", choice, 100.0D * got, 100.0D * want));
+            if (Math.abs(got - want) > SHARE_TOLERANCE)
+            {
+                return what + ": " + choice + " should be picked " + Math.round(100.0D * want) + "% of the time, but was "
+                        + String.format("%.1f", 100.0D * got) + "%";
+            }
+        }
+        LOGGER.info("[rat king test] {}:{}", what, shares);
+        return null;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The spear charge
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = RAT_ARENA, batch = "dross_ratking_charge_miss", timeoutTicks = ARENA_WAIT_TICKS + 400)
+    public static void chargeLocksTheSpotAndRunsToIt(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RatKingFightGameTest::chargeLocksTheSpotAndRunsToIt, RAT_ARENA_SIZE, RAT_ARENA_SIZE))
+        {
+            return;
+        }
+        int z = RAT_ARENA_SIZE / 2;
+        BlockPos from = new BlockPos(CHARGE_FROM_X, FLOOR_Y + 1, z);
+        RatKing king = spawnKing(helper, from);
+        BlockPos firstSpot = from.offset(CHARGE_TARGET_DISTANCE, 0, 0);
+        Pig target = dummyTarget(helper, firstSpot);
+        if (king == null || target == null)
+        {
+            return;
+        }
+        king.startFightNow();
+        king.setTarget(target);
+        GameTestSequence sequence = helper.startSequence();
+        chargeMiss(helper, sequence, king, target, from, firstSpot, false);
+        sequence.thenExecute(() -> king.skipToRage());
+        chargeMiss(helper, sequence, king, target, from, firstSpot, true);
+        sequence.thenExecute(() -> cleanUp(helper, king, target)).thenSucceed();
+    }
+
+    /**
+     * One missed charge: he starts it at {@code target} (on {@code spot}); a few ticks in, the target steps aside; when
+     * the spot locks (at the end of the wind-up) it must be where the target stepped to; then the target steps right out
+     * of the way, and he must dash to the locked spot at his dash speed, stop on it, recover for
+     * {@link RatKingTuning#CHARGE_RECOVER_TICKS} and put the charge on its cooldown.
+     */
+    private static void chargeMiss(GameTestHelper helper, GameTestSequence sequence, RatKing king, Pig target, BlockPos from,
+                                   BlockPos spot, boolean rage)
+    {
+        String phase = rage ? "in the Rage" : "in the first phase";
+        Vec3 start = helper.absoluteVec(Vec3.atBottomCenterOf(from));
+        Vec3 aside = helper.absoluteVec(Vec3.atBottomCenterOf(spot.offset(0, 0, CHARGE_STEP_ASIDE)));
+        Vec3 away = helper.absoluteVec(Vec3.atBottomCenterOf(spot.offset(0, 0, -RAT_ARENA_SIZE / 2 + 1)));
+        long[] skidAt = new long[1];
+        boolean[] actedWhileRecovering = new boolean[1];
+        sequence.thenExecute(() -> {
+                    king.moveTo(start.x, start.y, start.z, YAW_EAST, 0.0F);
+                    king.face(YAW_EAST);
+                    king.setDeltaMovement(Vec3.ZERO);
+                    Vec3 p = helper.absoluteVec(Vec3.atBottomCenterOf(spot));
+                    target.moveTo(p.x, p.y, p.z);
+                    king.setTarget(target);
+                    begin(helper, king, RatKingAttackGoal.Move.CHARGE, target);
+                })
+                .thenExecuteAfter(CHARGE_STEP_ASIDE_AFTER, () -> {
+                    if (king.attackGoal().chargeSpot() != null)
+                    {
+                        helper.fail("the charge's spot locked before the end of the wind-up (" + phase + ")");
+                    }
+                    target.moveTo(aside.x, aside.y, aside.z);
+                })
+                .thenWaitUntil(() -> helper.assertTrue(king.attackGoal().chargeSpot() != null, "waiting for the spot to lock"))
+                .thenExecute(() -> {
+                    Vec3 locked = king.attackGoal().chargeSpot();
+                    if (RatKingAttackGoal.flatDistance(locked, aside) > 1.0E-3D)
+                    {
+                        helper.fail("the charge should lock where his target stood at the end of the wind-up " + aside
+                                + ", but locked " + locked + " (" + phase + ")");
+                    }
+                    target.moveTo(away.x, away.y, away.z); // it dodges right out of the way: a miss
+                })
+                .thenWaitUntil(() -> helper.assertTrue(king.getAction() == RatKingAction.CHARGE_SKID, "waiting for the dash to end"))
+                .thenExecute(() -> {
+                    skidAt[0] = helper.getLevel().getGameTime();
+                    RatKingAttackGoal.Dash dash = king.attackGoal().lastDash();
+                    double speed = rage ? RatKingTuning.RAGE_CHARGE_SPEED : RatKingTuning.CHARGE_SPEED;
+                    double run = RatKingAttackGoal.flatDistance(dash.from(), dash.spot());
+                    int expected = (int) Math.ceil(run / speed);
+                    LOGGER.info("[rat king test] charge {}: locked at tick {} of the wind-up, ran {} blocks in {} ticks ({} blocks a "
+                                    + "second), stopped {} from the spot", phase, dash.lockedAt(), String.format("%.2f", run), dash.ticks(),
+                            String.format("%.1f", run * 20.0D / Math.max(1, dash.ticks())),
+                            String.format("%.3f", RatKingAttackGoal.flatDistance(dash.end(), dash.spot())));
+                    if (dash.lockedAt() != RatKingTuning.CHARGE_WINDUP_TICKS)
+                    {
+                        helper.fail("the spot should lock at tick " + RatKingTuning.CHARGE_WINDUP_TICKS + " of the wind-up, but locked at "
+                                + dash.lockedAt() + " (" + phase + ")");
+                    }
+                    if (dash.hit() != null || dash.wall())
+                    {
+                        helper.fail("the dash should have missed (nothing in its way), but hit " + dash.hit() + " (wall " + dash.wall() + ")");
+                    }
+                    if (RatKingAttackGoal.flatDistance(king.position(), dash.spot()) > CHARGE_SPOT_TOLERANCE)
+                    {
+                        helper.fail("he should stop on the locked spot, but stopped "
+                                + RatKingAttackGoal.flatDistance(king.position(), dash.spot()) + " blocks from it (" + phase + ")");
+                    }
+                    if (Math.abs(dash.ticks() - expected) > CHARGE_TICK_TOLERANCE)
+                    {
+                        helper.fail("at " + speed * 20.0D + " blocks a second the dash should take " + expected + " ticks, but took "
+                                + dash.ticks() + " (" + phase + ")");
+                    }
+                })
+                .thenWaitUntil(() -> {
+                    if (king.attackGoal().current() == RatKingAttackGoal.Move.CHARGE && king.getAction() != RatKingAction.CHARGE_SKID)
+                    {
+                        actedWhileRecovering[0] = true;
+                    }
+                    helper.assertTrue(king.attackGoal().current() != RatKingAttackGoal.Move.CHARGE, "waiting for him to recover");
+                })
+                .thenExecute(() -> {
+                    if (actedWhileRecovering[0])
+                    {
+                        helper.fail("while he recovers he should do nothing else (" + phase + ")");
+                    }
+                    long recovered = helper.getLevel().getGameTime() - skidAt[0];
+                    int cooldown = rage ? RatKingTuning.RAGE_CHARGE_COOLDOWN : RatKingTuning.CHARGE_COOLDOWN;
+                    int left = king.attackGoal().cooldownLeft(RatKingAttackGoal.Move.CHARGE);
+                    if (Math.abs(recovered - RatKingTuning.CHARGE_RECOVER_TICKS) > CHARGE_TICK_TOLERANCE)
+                    {
+                        helper.fail("he should recover for " + RatKingTuning.CHARGE_RECOVER_TICKS + " ticks, but took " + recovered);
+                    }
+                    if (left < cooldown - 2 || left > cooldown)
+                    {
+                        helper.fail("after a charge its cooldown should be " + cooldown + " ticks, but it's " + left + " (" + phase + ")");
+                    }
+                    if (king.attackGoal().fits(RatKingAttackGoal.Move.CHARGE, target))
+                    {
+                        helper.fail("on its cooldown he shouldn't be able to charge again");
+                    }
+                });
+    }
+
+    @GameTest(template = RAT_ARENA, batch = "dross_ratking_charge_hit", timeoutTicks = ARENA_WAIT_TICKS + 400)
+    public static void chargeHitsThenSweeps(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RatKingFightGameTest::chargeHitsThenSweeps, RAT_ARENA_SIZE, RAT_ARENA_SIZE))
+        {
+            return;
+        }
+        int z = RAT_ARENA_SIZE / 2;
+        BlockPos from = new BlockPos(CHARGE_FROM_X, FLOOR_Y + 1, z);
+        RatKing king = spawnKing(helper, from);
+        Pig target = dummyTarget(helper, from.offset(CHARGE_TARGET_DISTANCE, 0, 0));
+        if (king == null || target == null)
+        {
+            return;
+        }
+        target.setInvulnerable(false);
+        target.getAttribute(Attributes.MAX_HEALTH).setBaseValue(SWEEP_TEST_HEALTH);
+        king.startFightNow();
+        king.setTarget(target);
+        GameTestSequence sequence = helper.startSequence();
+        chargeHit(helper, sequence, king, target, from, false);
+        sequence.thenExecute(() -> king.skipToRage());
+        chargeHit(helper, sequence, king, target, from, true);
+        sequence.thenExecute(() -> cleanUp(helper, king, target)).thenSucceed();
+    }
+
+    /** One charge that hits: the jab's damage, straight into a sweep and its damage, then the sweep's cooldown. */
+    private static void chargeHit(GameTestHelper helper, GameTestSequence sequence, RatKing king, Pig target, BlockPos from,
+                                  boolean rage)
+    {
+        String phase = rage ? "in the Rage" : "in the first phase";
+        float jab = rage ? RatKingTuning.RAGE_CHARGE_DAMAGE : RatKingTuning.CHARGE_DAMAGE;
+        float sweep = rage ? RatKingTuning.RAGE_SWEEP_DAMAGE : RatKingTuning.SWEEP_DAMAGE;
+        int sweepCooldown = rage ? RatKingTuning.RAGE_SWEEP_COOLDOWN : RatKingTuning.SWEEP_COOLDOWN;
+        Vec3 start = helper.absoluteVec(Vec3.atBottomCenterOf(from));
+        Vec3 spot = helper.absoluteVec(Vec3.atBottomCenterOf(from.offset(CHARGE_TARGET_DISTANCE, 0, 0)));
+        sequence.thenExecute(() -> {
+                    king.moveTo(start.x, start.y, start.z, YAW_EAST, 0.0F);
+                    king.face(YAW_EAST);
+                    king.setDeltaMovement(Vec3.ZERO);
+                    target.moveTo(spot.x, spot.y, spot.z);
+                    target.setHealth(SWEEP_TEST_HEALTH);
+                    target.invulnerableTime = 0;
+                    king.setTarget(target);
+                    begin(helper, king, RatKingAttackGoal.Move.CHARGE, target);
+                })
+                .thenWaitUntil(() -> {
+                    RatKingAttackGoal.Dash dash = king.attackGoal().lastDash();
+                    helper.assertTrue(dash != null && dash.hit() == target && king.getAction() != RatKingAction.CHARGE,
+                            "waiting for the lance to hit");
+                })
+                .thenExecute(() -> {
+                    float taken = SWEEP_TEST_HEALTH - target.getHealth();
+                    if (Math.abs(taken - jab) > HEALTH_TOLERANCE)
+                    {
+                        helper.fail("the charge's lance should hit for " + jab + " (" + phase + "), but took " + taken);
+                    }
+                    if (king.getAction() != RatKingAction.SWEEP || king.attackGoal().current() != RatKingAttackGoal.Move.SWEEP)
+                    {
+                        helper.fail("after the lance's hit (his target in reach) he should go straight into a sweep, but he's "
+                                + king.getAction());
+                    }
+                })
+                .thenWaitUntil(() -> helper.assertTrue(king.attackGoal().current() == null, "waiting for the sweep to end"))
+                .thenExecute(() -> {
+                    float taken = SWEEP_TEST_HEALTH - target.getHealth();
+                    LOGGER.info("[rat king test] charge {}: the lance and the sweep took {} (jab {}, sweep {})", phase, taken, jab, sweep);
+                    if (Math.abs(taken - jab - sweep) > HEALTH_TOLERANCE)
+                    {
+                        helper.fail("the lance and the sweep after it should take " + (jab + sweep) + " (" + phase + "), but took " + taken);
+                    }
+                    int left = king.attackGoal().cooldownLeft(RatKingAttackGoal.Move.SWEEP);
+                    if (left < sweepCooldown - 2 || left > sweepCooldown)
+                    {
+                        helper.fail("after a sweep its cooldown should be " + sweepCooldown + " ticks, but it's " + left + " (" + phase + ")");
+                    }
+                    if (king.attackGoal().cooldownLeft(RatKingAttackGoal.Move.CHARGE) <= 0)
+                    {
+                        helper.fail("the charge should be on its cooldown after it hit");
+                    }
+                });
+    }
+
+    @GameTest(template = RAT_ARENA, batch = "dross_ratking_charge_wall", timeoutTicks = ARENA_WAIT_TICKS + 200)
+    public static void wallStopsTheCharge(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RatKingFightGameTest::wallStopsTheCharge, RAT_ARENA_SIZE, RAT_ARENA_SIZE))
+        {
+            return;
+        }
+        int z = RAT_ARENA_SIZE / 2;
+        BlockPos from = new BlockPos(CHARGE_FROM_X, FLOOR_Y + 1, z);
+        RatKing king = spawnKing(helper, from);
+        Pig target = dummyTarget(helper, from.offset(2 * WALL_AT, 0, 0));
+        if (king == null || target == null)
+        {
+            return;
+        }
+        List<BlockPos> wall = new java.util.ArrayList<>();
+        for (int dz = -WALL_HALF_WIDTH; dz <= WALL_HALF_WIDTH; dz++)
+        {
+            for (int dy = 0; dy < WALL_HEIGHT; dy++)
+            {
+                BlockPos at = from.offset(WALL_AT, dy, dz);
+                helper.setBlock(at, Blocks.STONE);
+                wall.add(at);
+            }
+        }
+        king.startFightNow();
+        king.setTarget(target);
+        double wallX = helper.absolutePos(from.offset(WALL_AT, 0, 0)).getX();
+        helper.startSequence()
+                .thenExecute(() -> {
+                    if (king.attackGoal().fits(RatKingAttackGoal.Move.CHARGE, target))
+                    {
+                        helper.fail("with a wall in the way he shouldn't charge");
+                    }
+                    begin(helper, king, RatKingAttackGoal.Move.CHARGE, target); // made anyway
+                })
+                .thenWaitUntil(() -> helper.assertTrue(king.getAction() == RatKingAction.CHARGE_SKID, "waiting for the wall to stop him"))
+                .thenExecute(() -> {
+                    RatKingAttackGoal.Dash dash = king.attackGoal().lastDash();
+                    if (dash == null || !dash.wall() || dash.hit() != null)
+                    {
+                        helper.fail("the wall should have stopped the dash (wall " + (dash != null && dash.wall()) + ")");
+                    }
+                    if (king.getBoundingBox().maxX > wallX + 1.0E-3D)
+                    {
+                        helper.fail("he should stop in front of the wall, but he's at " + king.getX());
+                    }
+                    LOGGER.info("[rat king test] the wall stopped his charge after {} ticks, {} blocks from where he set off",
+                            dash == null ? -1 : dash.ticks(), dash == null ? 0 : String.format("%.2f", RatKingAttackGoal.flatDistance(dash.from(), dash.end())));
+                    wall.forEach(at -> helper.setBlock(at, Blocks.AIR));
+                    cleanUp(helper, king, target);
+                })
+                .thenSucceed();
+    }
+
     private static void begin(GameTestHelper helper, RatKing king, RatKingAttackGoal.Move move, LivingEntity target)
     {
         RatKingAttackGoal goal = king.attackGoal();
@@ -677,8 +1175,9 @@ public final class RatKingFightGameTest
                     {
                         king.setTarget(player);
                     }
-                    // Under the ground (diving, tunnelling, until he bursts out) doesn't count, nor a target inside him.
-                    if (!king.isAlive() || !king.isFightActive() || king.isUnderground()
+                    // Under the ground (diving, tunnelling, until he bursts out) doesn't count, nor his charges' dashes (he
+                    // runs where he aimed), nor a target inside him.
+                    if (!king.isAlive() || !king.isFightActive() || king.isUnderground() || king.attackGoal().isDashing()
                             || ColossusFightGameTest.flatDistance(king.position(), player.position())
                             <= king.getBbWidth() / 2.0D + player.getBbWidth() / 2.0D)
                     {

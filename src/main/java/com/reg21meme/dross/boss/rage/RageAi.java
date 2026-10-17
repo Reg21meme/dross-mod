@@ -40,8 +40,8 @@ import java.util.WeakHashMap;
  *   <li><b>Slimes and magma cubes</b> only hurt players and iron golems by touching them in Minecraft; a raged one
  *       hurts its raged enemy the same way.</li>
  * </ul>
- * Every raged mob shows a red angry particle now and then, and calms down after {@link RageTuning#RAGE_CALM_TICKS}
- * without an enemy near. While it goes for a raged enemy, its follow range is at least
+ * Every raged mob shows a few specks of its team's colour now and then; its Rage and team never wear off (with no
+ * enemy near it behaves normally, keeping its team). While it goes for a raged enemy, its follow range is at least
  * {@link RageTuning#MIN_FOLLOW_RANGE} so it can find its way to an enemy across {@link RageTuning#RAGE_RANGE}
  * ({@link #boostFollowRange}); with no enemy it's back to its own.
  */
@@ -65,8 +65,6 @@ public final class RageAi
         final boolean brainFighter;
         /** True if a raged enemy was within range at its last check (it ignores players then). */
         boolean enemyNear;
-        /** Ticks it has been without an enemy near (it calms down at {@link RageTuning#RAGE_CALM_TICKS}). */
-        int alone;
         /** Ticks until its next check for enemies near. */
         int scanIn;
 
@@ -139,10 +137,10 @@ public final class RageAi
         return state;
     }
 
-    /** Takes a mob's rage goals away (it calmed down, or its Rage was cleared) and forgets its side. Server side. */
+    /** Takes a mob's rage goals away (its Rage was cleared, with {@code /effect clear}) and forgets its team. Server side. */
     static void uninstall(Mob mob)
     {
-        mob.getPersistentData().remove(Rage.TAG_SIDE);
+        mob.getPersistentData().remove(Rage.TAG_TEAM);
         State state = STATES.remove(mob);
         if (state == null)
         {
@@ -225,18 +223,10 @@ public final class RageAi
             state.scanIn = RageTuning.ENEMY_SCAN_TICKS;
             state.enemyNear = Rage.hasEnemyNear(mob);
         }
-        if (state.enemyNear)
+        RageTeam team = Rage.teamOf(mob);
+        if (team != null && (mob.tickCount + mob.getId()) % RageTuning.RAGE_PARTICLE_EVERY == 0)
         {
-            state.alone = 0;
-        }
-        else if (++state.alone >= RageTuning.RAGE_CALM_TICKS)
-        {
-            Rage.calm(mob); // no enemy left near it: the last one standing calms down
-            return;
-        }
-        if ((mob.tickCount + mob.getId()) % RageTuning.RAGE_PARTICLE_EVERY == 0)
-        {
-            Rage.angryParticles(level, mob, 1);
+            Rage.teamParticles(level, mob, team, RageTuning.RAGE_PARTICLES);
         }
         LivingEntity target = state.targetGoal.target();
         if (target != null && target.isAlive())

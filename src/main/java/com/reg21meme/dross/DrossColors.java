@@ -131,6 +131,12 @@ public final class DrossColors {
     /** The Sporepod spores: the color they fade to (murky dark green). Used in dimension/block/SporepodBlock. */
     public static final int SPOREPOD_SPORE_FADE = 0x3F5A14;
 
+    /** The Rat King's sewer: the spores a Blight Vent breathes out of its grand entrance (bright poison green). Used in dimension/block/BlightVentBlock. */
+    public static final int BLIGHT_VENT_SPORE = 0xA8F046;
+
+    /** The Blight Vent's spores: the color they fade to as they drift up (dark poison green). Used in dimension/block/BlightVentBlock. */
+    public static final int BLIGHT_VENT_SPORE_FADE = 0x3C6A12;
+
     /** Nether Scar: the red embers a Scar Vent puffs out (hot red-orange). Used in dimension/block/ScarVentBlock. */
     public static final int SCAR_VENT_EMBER_RED = 0xFF5A2A;
 
@@ -208,6 +214,15 @@ public final class DrossColors {
     /** The Gravecrags: under water. */
     public static final int GRAVECRAGS_WATER_FOG = 0x0A111E;
 
+    /** The sewers under Blightwood (biome dross:sewers, the Blightwood underground): the haze in their tunnels, a murky dark green (and thick: see DrossSkyRendering). */
+    public static final int SEWERS_FOG = 0x1B2310;
+    /** The sewers: sky (never seen underground). */
+    public static final int SEWERS_SKY = 0x2F3F17;
+    /** The sewers: their water, murky brownish green (the user: "murky green, not normal blue"). */
+    public static final int SEWERS_WATER = 0x56602A;
+    /** The sewers: under their water, a dark murky green. */
+    public static final int SEWERS_WATER_FOG = 0x1C2108;
+
     // The Dross's night sky and light (dimension/client/DrossSkyEffects). Vanilla draws the night sky black overhead,
     // fading into the fog color at the horizon; DrossSkyEffects lays a see-through glow over it, so it fades from the fog
     // color at the horizon to a dark blue overhead instead of black.
@@ -244,6 +259,21 @@ public final class DrossColors {
     public static final int PREVIEW_SNOW = 0xF4F8FF;
     /** Terrain previews: the Cinder Colossus's lair, a small triangle on this world's maps (lava orange). */
     public static final int PREVIEW_LAIR = 0xFF7A1A;
+
+    // The boss-site planner's map (terrain-previews/boss_sites.png, drawn by the headless dimension/sites/BossSitesGameTest)
+
+    /** Boss sites map: a boss biome's patch outline and its number (near white). */
+    public static final int PREVIEW_PATCH_LINE = 0xF2F2F2;
+    /** Boss sites map: the patch with its group's current boss (the Colossus's lair, the Rat King's sewer), a gold ring. */
+    public static final int PREVIEW_BOSS_SITE = 0xFFC83C;
+    /** Boss sites map: a regular sewer in a patch kept for a future boss (copper green). */
+    public static final int PREVIEW_REGULAR_SEWER = 0x46D2A8;
+    /** Boss sites map: a patch kept for a future boss whose roll came up but no sewer fits there (grey). */
+    public static final int PREVIEW_NO_FIT = 0x9A9AA6;
+    /** Boss sites map: each patch's group number next to its label ("g3"; pale electric blue). */
+    public static final int PREVIEW_GROUP_LINE = PALETTE_HIGHLIGHT;
+    /** Boss sites map: the land that isn't a boss biome (dark grey-blue). */
+    public static final int PREVIEW_OTHER_LAND = 0x23262F;
 
     // ---------------------------------------------------------------- Boss (boss-builder)
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
@@ -378,7 +408,7 @@ public final class DrossColors {
     /** Rage Wand: its tooltip line saying what it does. Used in boss/rage/RageWandItem. */
     public static final ChatFormatting RAGE_WAND_TOOLTIP = ChatFormatting.GRAY;
 
-    /** The Rage effect's colour, an angry red (its swirl is hidden; raged mobs show angry particles). Used in boss/rage/RageEffect. */
+    /** The Rage effect's colour, an angry red (its swirl is hidden; raged mobs show their team's colour). Used in boss/rage/RageEffect. */
     public static final int RAGE_EFFECT = 0xD01C1C;
 
     /** Rat King trophy: the item's name, poison green. Used in boss/ratking/trophy/RatKingTrophyItem. */
@@ -398,6 +428,21 @@ public final class DrossColors {
 
     /** Rat King trophy (Ground Pound): the green dust where his staff's foot strikes. Used in boss/ratking/trophy/client/RatKingTrophyParticles. */
     public static final int RAT_KING_TROPHY_SLAM_DUST = 0x79C93A;
+
+    /**
+     * Rage Wand teams (the user's request, October 16): each team's colour, for the dust over its raged mobs, the burst
+     * when one is raged or switches team, and the team's name on the action bar and in the wand's tooltip. Used in
+     * boss/rage/RageTeam. (The wand's crystal in each colour is drawn by tools/ragewand/draw.py.) Blue is the Dross's
+     * own electric blue.
+     */
+    public static final int RAGE_TEAM_BLUE = PALETTE_MAIN;
+    public static final int RAGE_TEAM_RED = 0xE8261F;
+    public static final int RAGE_TEAM_GREEN = 0x3CCF3A;
+    public static final int RAGE_TEAM_YELLOW = 0xFFD22E;
+    public static final int RAGE_TEAM_PURPLE = 0xA642EA;
+
+    /** Rage Wand: the gray hint line "Right-click to change team" in its tooltip. Used in boss/rage/RageWandItem. */
+    public static final ChatFormatting RAGE_WAND_HINT = ChatFormatting.DARK_GRAY;
 
     // ---------------------------------------------------------------- Helpers
 

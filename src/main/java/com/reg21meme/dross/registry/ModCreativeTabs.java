@@ -82,6 +82,10 @@ public final class ModCreativeTabs
                         output.accept(ModItems.CRAGSTONE.get());
                         output.accept(ModItems.STORM_LICHEN.get());
                         output.accept(ModItems.CRAG_THISTLE.get());
+                        // Dimension area: the sewers under Blightwood
+                        output.accept(ModItems.SEWER_SLUDGE.get());
+                        // Dimension area: the Rat King's sewer
+                        output.accept(ModItems.BLIGHT_VENT.get());
 
                         // 2. Quest items
                         // Quest area: a Weathered Letter (gets its text once it's in your inventory)

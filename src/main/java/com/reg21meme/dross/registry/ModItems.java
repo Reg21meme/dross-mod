@@ -154,6 +154,10 @@ public final class ModItems
     public static final RegistryObject<Item> STORM_LICHEN = ITEMS.register("storm_lichen", () -> new BlockItem(ModBlocks.STORM_LICHEN.get(), new Item.Properties()));
     // Dimension area: Crag Thistle
     public static final RegistryObject<Item> CRAG_THISTLE = ITEMS.register("crag_thistle", () -> new BlockItem(ModBlocks.CRAG_THISTLE.get(), new Item.Properties()));
+    // Dimension area, the sewers: Sewer Sludge
+    public static final RegistryObject<Item> SEWER_SLUDGE = ITEMS.register("sewer_sludge", () -> new BlockItem(ModBlocks.SEWER_SLUDGE.get(), new Item.Properties()));
+    // Dimension area, the Rat King's sewer: Blight Vent
+    public static final RegistryObject<Item> BLIGHT_VENT = ITEMS.register("blight_vent", () -> new BlockItem(ModBlocks.BLIGHT_VENT.get(), new Item.Properties()));
 
     // Dimension area: Stormite Shard (a glowing blue crystal from Stormite Ore; for special arrows and the Great Mystic Bow later)
     public static final RegistryObject<Item> STORMITE_SHARD = ITEMS.register("stormite_shard", () -> new Item(new Item.Properties()));

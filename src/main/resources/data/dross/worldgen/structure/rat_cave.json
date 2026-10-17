@@ -1,0 +1,26 @@
+{
+  "type": "dross:sewers",
+  "biomes": "#dross:has_structure/sewers",
+  "spawn_overrides": {},
+  "step": "underground_structures",
+  "terrain_adaptation": "none",
+  "rat_cave": true,
+  "min_cover": 16,
+  "floor_min_y": -40,
+  "floor_max_y": 50,
+  "air_max_y": 58,
+  "rat_cave_monsters": [
+    {
+      "type": "dross:rat",
+      "weight": 25,
+      "minCount": 2,
+      "maxCount": 4
+    },
+    {
+      "type": "dross:enraged_rat",
+      "weight": 75,
+      "minCount": 1,
+      "maxCount": 2
+    }
+  ]
+}

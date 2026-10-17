@@ -2,6 +2,7 @@ package com.reg21meme.dross.dimension;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.sewer.Sewers;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import java.util.ArrayList;
@@ -34,6 +35,7 @@ import net.minecraft.world.level.block.VineBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.material.FluidState;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -60,6 +62,8 @@ import org.slf4j.Logger;
  *   <li>every fluid is a still source, lava has something solid (or lava) on every side and below, and the Nether
  *       Scar has no lava or fire; every plant, vine, lichen and snow layer could stay where it is.</li>
  * </ul>
+ * A sewer network under a Blightwood site (the only open space underground; its waterfalls flow) is left out of these
+ * checks, block by block, and so are the columns its pipes stand on: {@link SewersGameTest} checks the sewers.
  * The time to generate each site is logged ("[terrain chunks]"), per chunk (with every feature: trees, plants, ponds,
  * ores). The sites are also what {@link TerrainPreviewGameTest} draws. What grows on the land is checked in detail by
  * {@link TerrainFeaturesGameTest}.
@@ -338,6 +342,11 @@ public final class TerrainChunksGameTest
         int highest = Integer.MIN_VALUE;
         Map<Long, Integer> groundAt = new HashMap<>();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        // A sewer network under Blightwood (dimension/sewer) is the only open space underground: its own blocks (air,
+        // water, its pipes standing on the ground) are skipped here; SewersGameTest checks them.
+        List<BoundingBox> sewers = Sewers.pieceBoxes(dross, chunks.stream().map(LevelChunk::getPos).toList());
+        List<BoundingBox> pipes = Sewers.pipeBoxes(dross, chunks.stream().map(LevelChunk::getPos).toList());
+        int sewerBlocks = 0;
         for (LevelChunk chunk : chunks)
         {
             int bx = chunk.getPos().getMinBlockX();
@@ -346,6 +355,10 @@ public final class TerrainChunksGameTest
             {
                 for (int z = bz; z < bz + 16; z++)
                 {
+                    if (Sewers.columnInAny(pipes, x, z))
+                    {
+                        continue; // a sewer pipe stands here
+                    }
                     columns++;
                     if (!chunk.getBlockState(pos.set(x, minY, z)).is(Blocks.BEDROCK))
                     {
@@ -366,6 +379,11 @@ public final class TerrainChunksGameTest
                     for (int y = surface; y >= minY; y--)
                     {
                         BlockState state = chunk.getBlockState(pos.set(x, y, z));
+                        if (Sewers.inAny(sewers, x, y, z))
+                        {
+                            sewerBlocks++;
+                            continue;
+                        }
                         if (y < naturalTop - AIR_DEPTH && state.isAir())
                         {
                             air++;
@@ -469,9 +487,10 @@ public final class TerrainChunksGameTest
                 steep++;
             }
         }
-        LOGGER.info("[terrain chunks] {} ({} chunks, {} ms per chunk): ground y {}..{}; steep (bare rock) {}% of the columns; top blocks {}",
+        LOGGER.info("[terrain chunks] {} ({} chunks, {} ms per chunk): ground y {}..{}; steep (bare rock) {}% of the columns; top blocks {}{}",
                 where, chunks.size(), String.format(Locale.ROOT, "%.1f", msPerChunk), lowest, highest,
-                String.format(Locale.ROOT, "%.1f", inner == 0 ? 0.0D : 100.0D * steep / inner), sorted(tops, columns));
+                String.format(Locale.ROOT, "%.1f", inner == 0 ? 0.0D : 100.0D * steep / inner), sorted(tops, columns),
+                sewers.isEmpty() ? "" : "; a sewer network under it (" + sewerBlocks + " of its blocks skipped, " + pipes.size() + " pipe(s))");
     }
 
     /**

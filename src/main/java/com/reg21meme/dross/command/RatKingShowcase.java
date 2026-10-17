@@ -43,7 +43,7 @@ import java.util.List;
  * <p>
  * Controls (every showcase Rat King within {@link #REMOVE_RADIUS} blocks; also clickable in chat after spawning), one
  * per animation: {@code sleep}, {@code wake}, {@code idle}, {@code walk}, {@code burrow}, {@code popup}, {@code rage},
- * {@code die} (for example {@code /dross showcase boss_designs ratking rage}). Right-clicking one Rat King plays his
+ * {@code charge} (the spear charge on the spot), {@code die} (for example {@code /dross showcase boss_designs ratking rage}). Right-clicking one Rat King plays his
  * next animation; sneak + right-click: he dies. They can't be hurt except by {@code /kill}.
  * <p>
  * It uses the command's position, rotation and dimension, so it also works from the server console and command blocks.
@@ -82,6 +82,7 @@ public final class RatKingShowcase
         BURROW(RatKingAction.BURROW, "Burrow", "Dig, dive into the ground head first; the dirt mound stays", "burrowing"),
         POPUP(RatKingAction.POPUP, "Pop up", "Pop up out of the ground (best after Burrow)", "popping up"),
         RAGE(RatKingAction.RAGE, "Rage!", "Stomp, eyes turn red, steam out of the ears (sleep calms them down)", "flying into a rage"),
+        CHARGE(RatKingAction.CHARGE_START, "Charge", "Crouch with the staff levelled like a spear, dash (on the spot), skid", "charging"),
         DIE(RatKingAction.DEATH, "Die", "The silly death: flat on the back, tongue out, X eyes", "dying, very dramatically");
 
         private final RatKingAction action;

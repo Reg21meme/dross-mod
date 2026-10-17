@@ -38,6 +38,14 @@ public final class DrossBiomes
     public static final ResourceKey<Biome> NETHER_SCAR = key("nether_scar");
     public static final ResourceKey<Biome> GRAVECRAGS = key("gravecrags");
 
+    /**
+     * The sewers under Blightwood (biome {@code dross:sewers}, "The Sewers"): not a surface biome, but the Blightwood
+     * underground from {@code SEWER_BIOME_DEPTH} blocks under the ground down (tools/terrain/worldgen.py, SEWERS). It's solid
+     * rock except for the sewer networks, so it only shows in them: their murky green water and fog, and their spawns
+     * (rats only). Not in {@link #ALL} ({@code /dross goto biome} is for the six surface biomes): the surface map is as before.
+     */
+    public static final ResourceKey<Biome> SEWERS = key("sewers");
+
     /** All six, Silverwood Forest first (the order the command lists them in). */
     public static final List<ResourceKey<Biome>> ALL = List.of(SILVERWOOD_FOREST, CINDER_WASTES, BLIGHTWOOD, RIMEFALL, NETHER_SCAR,
             GRAVECRAGS);
@@ -47,7 +55,10 @@ public final class DrossBiomes
     public static final int SEARCH_RADIUS = 6400;
     /** The search samples every this many blocks along X and Z (a biome region is hundreds of blocks across). */
     public static final int SEARCH_HORIZONTAL_STEP = 32;
-    /** ...and every this many blocks up and down (the Dross's biomes are the same at every height, so few are needed). */
+    /**
+     * ...and every this many blocks up and down (the Dross's surface biomes are the same at every height, so few are needed;
+     * only the sewers lie under Blightwood).
+     */
     public static final int SEARCH_VERTICAL_STEP = 64;
     /**
      * The search stops at the first place it finds, at the region's near edge; the place given is moved up to this many

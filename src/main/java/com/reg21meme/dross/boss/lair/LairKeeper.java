@@ -5,6 +5,8 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.CinderColossus;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModSounds;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
@@ -35,29 +37,27 @@ import org.slf4j.Logger;
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
 /**
- * Looks after the built lair's Colossus (server side):
+ * Looks after every built lair's Colossus (server side):
  * <ul>
  *   <li><b>It rises</b> in the middle of the floor, facing them, when a player (not a spectator; creative counts, so
- *       testers see it) walks into the cavern and the lair has no living Colossus, unless the last one was beaten less
- *       than {@link LairTuning#LAIR_RESPAWN_TICKS} (10 minutes of game time) ago. Never on Peaceful. It's the same fighting
- *       Colossus as {@code /dross boss summon colossus} makes ({@link CinderColossus#spawnBoss}), with a rumble, a roar and
- *       a burst of rock dust.</li>
+ *       testers see it) walks into the cavern and the lair has no living Colossus and has never been beaten. Never on
+ *       Peaceful. It's the same fighting Colossus as {@code /dross boss summon colossus} makes
+ *       ({@link CinderColossus#spawnBoss}), with a rumble, a roar and a burst of rock dust.</li>
  *   <li><b>Beaten</b>: any death counts, its normal death (statue, trophies, "Set in Stone") and {@code /kill} too (which
- *       gives no trophy, as always); the 10 minutes start then. One that's removed without dying (Peaceful) isn't
- *       beaten: the next player who walks in wakes a new one at once.</li>
+ *       gives no trophy, as always). <b>No respawn</b> (the user's decision, October 16): a beaten lair stays empty for
+ *       good. One that's removed without dying (Peaceful) isn't beaten: the next player who walks in wakes a new one.</li>
  *   <li><b>Kept home</b>: a living lair Colossus found outside its cavern (up the volcano's passage, which it fits
  *       through, or teleported out with a command) is put back in the middle of the floor. If its saved UUID can't be found
  *       once the cavern's entities are loaded, it's gone (its statue crumbled, or it was removed) and is forgotten.</li>
- *   <li><b>No natural spawning</b> inside the cavern, the way in and the gully in front of the mouth (wild golems
- *       included), so the fight stays clean.
- *       Spawn eggs, spawners and commands still work there.</li>
+ *   <li><b>No natural spawning</b> inside any lair's cavern, its way in and the gully in front of its mouth (wild golems
+ *       included), so the fight stays clean. Spawn eggs, spawners and commands still work there.</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class LairKeeper
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    /** A lair Colossus carries this mark in its own saved data (besides the UUID in the lair's data). */
+    /** A lair Colossus carries its lair's id in its own saved data under this name (besides the UUID in the lair's data). */
     static final String LAIR_TAG = "DrossLairColossus";
     /** The rock dust it rises in. */
     private static final int RISE_DUST = 160;
@@ -65,20 +65,18 @@ public final class LairKeeper
     private static final float RISE_VOLUME = 3.0F;
 
     /**
-     * The built lair's space, for the spawn check (which can run on world-generation threads, so it never reads the
-     * saved data itself). Null when there's no lair (yet) or no server.
+     * The built lairs' spaces, for the spawn check (which can run on world-generation threads, so it never reads the saved
+     * data itself). Replaced whole (never changed in place). Empty when there's no lair (yet) or no server.
      */
-    @Nullable
-    private static volatile Volume volume;
+    private static volatile List<Volume> volumes = List.of();
 
     private LairKeeper() {}
 
     /**
-     * The lair's space: where its cavern and its way in are. {@code version} 1 is an old world's R2c lair (a 3-wide tunnel
-     * going down {@code descent} blocks), 2 the volcano (a passage and a cave mouth {@code mouth} blocks out, level with
+     * A lair's space: where its cavern and its way in are (a passage and a cave mouth {@code mouth} blocks out, level with
      * the floor, and a crater whose rim is at {@code rimY}).
      */
-    record Volume(int cx, int cz, int floorY, Direction tunnel, int descent, int version, int mouth, int rimY)
+    record Volume(long id, int cx, int cz, int floorY, Direction tunnel, int mouth, int rimY)
     {
         /** Horizontal distance from the floor's middle (block middles: the middle block is 0). */
         double distance(double x, double z)
@@ -106,7 +104,7 @@ public final class LairKeeper
             int dx = pos.getX() - cx;
             int dz = pos.getZ() - cz;
             int dy = pos.getY() - floorY;
-            if (dy < 0)
+            if (dy < 0 || Math.abs(dx) > mouth + NO_SPAWN_GULLY + MOUTH_HALF_WIDTH + 16 || Math.abs(dz) > mouth + NO_SPAWN_GULLY + MOUTH_HALF_WIDTH + 16)
             {
                 return false;
             }
@@ -117,16 +115,11 @@ public final class LairKeeper
             Direction side = tunnel.getClockWise();
             int s = dx * tunnel.getStepX() + dz * tunnel.getStepZ();
             int l = dx * side.getStepX() + dz * side.getStepZ();
-            if (version >= 2)
-            {
-                return s >= FLOOR_RADIUS && s <= mouth + NO_SPAWN_GULLY
-                        && Math.abs(l) <= MOUTH_HALF_WIDTH + 2 + Math.max(0, s - mouth) * GULLY_FLARE && dy <= MOUTH_HEIGHT + 2;
-            }
-            return s >= FLOOR_RADIUS && s <= LairShape.entranceDistance(descent) && Math.abs(l) <= TUNNEL_HALF_WIDTH + 1
-                    && dy <= descent + TUNNEL_HEIGHT + 1;
+            return s >= FLOOR_RADIUS && s <= mouth + NO_SPAWN_GULLY
+                    && Math.abs(l) <= MOUTH_HALF_WIDTH + 2 + Math.max(0, s - mouth) * GULLY_FLARE && dy <= MOUTH_HEIGHT + 2;
         }
 
-        /** The crater's middle at its rim (version 2): where smoke rises from. */
+        /** The crater's middle at its rim: where smoke rises from. */
         Vec3 crater()
         {
             return new Vec3(cx + 0.5D, rimY, cz + 0.5D);
@@ -156,31 +149,54 @@ public final class LairKeeper
         }
     }
 
-    /** Remembers the lair's space from its data (after loading, and once it's built). Server thread. */
+    /** Remembers every built lair's space from the data (after loading, and whenever one is built). Server thread. */
     static void refresh(ColossusLairData data)
     {
-        volume = data.isPlaced() ? new Volume(data.centerX(), data.centerZ(), data.floorY(), data.tunnel(), data.descent(),
-                data.version(), data.mouth(), data.rimY()) : null;
+        List<Volume> list = new ArrayList<>();
+        for (ColossusLairData.Entry e : data.all())
+        {
+            list.add(volumeOf(e));
+        }
+        volumes = List.copyOf(list);
+    }
+
+    static Volume volumeOf(ColossusLairData.Entry e)
+    {
+        return new Volume(e.id(), e.centerX(), e.centerZ(), e.floorY(), e.tunnel(), e.mouth(), e.rimY());
     }
 
     static void clear()
     {
-        volume = null;
+        volumes = List.of();
     }
 
-    @Nullable
-    static Volume volume()
+    /** Every built lair's space. */
+    static List<Volume> volumes()
     {
-        return volume;
+        return volumes;
     }
 
-    // ---------------------------------------------------------------- the boss
+    /** The space of the built lair with this id, or null. */
+    @Nullable
+    static Volume volume(long id)
+    {
+        for (Volume v : volumes)
+        {
+            if (v.id() == id)
+            {
+                return v;
+            }
+        }
+        return null;
+    }
+
+    // ---------------------------------------------------------------- the bosses
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event)
     {
-        Volume lair = volume;
-        if (event.phase != TickEvent.Phase.END || lair == null || event.getServer().getTickCount() % CHECK_INTERVAL_TICKS != 0)
+        List<Volume> lairs = volumes;
+        if (event.phase != TickEvent.Phase.END || lairs.isEmpty() || event.getServer().getTickCount() % CHECK_INTERVAL_TICKS != 0)
         {
             return;
         }
@@ -190,22 +206,29 @@ public final class LairKeeper
         {
             return;
         }
-        try
+        ColossusLairData data = ColossusLairData.get(server);
+        for (Volume lair : lairs)
         {
-            check(server, dross, lair);
-        }
-        catch (RuntimeException e)
-        {
-            LOGGER.error("Colossus lair: looking after the lair's Colossus failed.", e);
+            try
+            {
+                ColossusLairData.Entry entry = data.lair(lair.id());
+                if (entry != null)
+                {
+                    check(server, dross, data, entry, lair);
+                }
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("Colossus lair {}: looking after its Colossus failed.", lair.middle(), e);
+            }
         }
     }
 
-    /** One look at the lair: its Colossus (kept home, or forgotten if gone), then whether a player has walked in. */
-    static void check(MinecraftServer server, ServerLevel dross, Volume lair)
+    /** One look at a lair: its Colossus (kept home, or forgotten if gone), then whether a player has walked in. */
+    static void check(MinecraftServer server, ServerLevel dross, ColossusLairData data, ColossusLairData.Entry entry, Volume lair)
     {
-        ColossusLairData data = ColossusLairData.get(server);
         long now = server.overworld().getGameTime();
-        UUID id = data.boss();
+        UUID id = entry.boss();
         if (id != null)
         {
             Entity entity = dross.getEntity(id);
@@ -219,9 +242,9 @@ public final class LairKeeper
                     }
                     return; // it's awake: nothing more rises
                 }
-                if (!data.beaten())
+                if (!entry.beaten())
                 {
-                    data.recordDefeat(now); // dead (cooling, or a statue), but its death wasn't seen
+                    data.recordDefeat(entry, now); // dead (cooling, or a statue), but its death wasn't seen
                 }
             }
             else
@@ -230,15 +253,15 @@ public final class LairKeeper
                 {
                     return; // can't tell yet whether it's there
                 }
-                LOGGER.info("Colossus lair: its Colossus ({}) is gone{}.", id, !data.beaten()
-                        ? " without being beaten (removed), so the next player who walks in wakes a new one at once"
-                        : " (beaten; its statue has crumbled)");
-                data.forgetBoss();
+                LOGGER.info("Colossus lair {}: its Colossus ({}) is gone{}.", where(lair), id, !entry.beaten()
+                        ? " without being beaten (removed), so the next player who walks in wakes a new one"
+                        : " (beaten; its statue has crumbled; the lair stays empty)");
+                data.forgetBoss(entry);
             }
         }
-        if (dross.getDifficulty() == Difficulty.PEACEFUL || !data.respawnReady(now))
+        if (dross.getDifficulty() == Difficulty.PEACEFUL || entry.beaten())
         {
-            return;
+            return; // no respawn: a beaten lair stays empty for good
         }
         ServerPlayer walker = null;
         for (ServerPlayer player : dross.players())
@@ -249,11 +272,11 @@ public final class LairKeeper
                 break;
             }
         }
-        if (walker == null || !lair.entitiesLoaded(dross) || (data.boss() != null && isAliveColossus(dross, data.boss())))
+        if (walker == null || !lair.entitiesLoaded(dross) || (entry.boss() != null && isAliveColossus(dross, entry.boss())))
         {
             return;
         }
-        rise(dross, data, lair, walker, now);
+        rise(dross, data, entry, lair, walker, now);
     }
 
     private static boolean isAliveColossus(ServerLevel dross, UUID id)
@@ -262,61 +285,71 @@ public final class LairKeeper
     }
 
     /** The lair's Colossus rises in the middle of the floor, facing the player who walked in. */
-    private static void rise(ServerLevel dross, ColossusLairData data, Volume lair, ServerPlayer walker, long now)
+    private static void rise(ServerLevel dross, ColossusLairData data, ColossusLairData.Entry entry, Volume lair, ServerPlayer walker, long now)
     {
         Vec3 feet = lair.middle();
         float yaw = (float) (Mth.atan2(walker.getZ() - feet.z, walker.getX() - feet.x) * Mth.RAD_TO_DEG) - 90.0F;
         CinderColossus boss = CinderColossus.spawnBoss(dross, feet, yaw);
         if (boss == null)
         {
-            LOGGER.warn("Colossus lair: the Cinder Colossus couldn't be created.");
+            LOGGER.warn("Colossus lair {}: the Cinder Colossus couldn't be created.", where(lair));
             return;
         }
-        boss.getPersistentData().putBoolean(LAIR_TAG, true);
-        data.setRisen(boss.getUUID());
+        boss.getPersistentData().putLong(LAIR_TAG, lair.id());
+        data.setRisen(entry, boss.getUUID());
         dross.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.BASALT.defaultBlockState()), feet.x, feet.y + 0.5D, feet.z,
                 RISE_DUST, 2.0D, 0.6D, 2.0D, 0.15D);
         dross.sendParticles(ParticleTypes.LARGE_SMOKE, feet.x, feet.y + 1.0D, feet.z, RISE_SMOKE, 2.0D, 1.0D, 2.0D, 0.02D);
         dross.playSound(null, feet.x, feet.y, feet.z, ModSounds.COLOSSUS_RUMBLE.get(), SoundSource.HOSTILE, RISE_VOLUME, 0.8F);
         dross.playSound(null, feet.x, feet.y, feet.z, ModSounds.COLOSSUS_ROAR.get(), SoundSource.HOSTILE, RISE_VOLUME, 0.9F);
-        LOGGER.info("Colossus lair: the Cinder Colossus rises at {} for {} (rise {} in this world, game time {}).",
-                BlockPos.containing(feet).toShortString(), walker.getGameProfile().getName(), data.rises(), now);
+        LOGGER.info("Colossus lair {}: the Cinder Colossus rises for {} (game time {}).", where(lair), walker.getGameProfile().getName(), now);
     }
 
     /** Puts a living lair Colossus that has left its cavern back in the middle of the floor. */
     private static void bringHome(CinderColossus boss, Volume lair)
     {
         Vec3 home = lair.middle();
-        LOGGER.info("Colossus lair: its Colossus was found outside the cavern at {}; it's put back in the middle.",
+        LOGGER.info("Colossus lair {}: its Colossus was found outside the cavern at {}; it's put back in the middle.", where(lair),
                 boss.blockPosition().toShortString());
         boss.getNavigation().stop();
         boss.setDeltaMovement(Vec3.ZERO);
         boss.teleportTo(home.x, home.y, home.z);
     }
 
-    /** True if this Colossus is the lair's (by the saved UUID, or its own mark). */
-    static boolean isLairColossus(CinderColossus boss, ColossusLairData data)
+    /** The id of the lair this Colossus belongs to (from its own saved data), or null if it's not a lair's. */
+    @Nullable
+    static Long lairOf(CinderColossus boss)
     {
-        return boss.getUUID().equals(data.boss()) || boss.getPersistentData().getBoolean(LAIR_TAG);
+        return boss.getPersistentData().contains(LAIR_TAG) ? boss.getPersistentData().getLong(LAIR_TAG) : null;
+    }
+
+    private static String where(Volume lair)
+    {
+        return lair.cx() + " " + lair.cz();
     }
 
     @SubscribeEvent
     public static void onDeath(LivingDeathEvent event)
     {
         if (!(event.getEntity() instanceof CinderColossus boss) || boss.level().isClientSide || boss.isShowcase()
-                || !(boss.level() instanceof ServerLevel level) || volume == null)
+                || !(boss.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        Long id = lairOf(boss);
+        if (id == null)
         {
             return;
         }
         ColossusLairData data = ColossusLairData.get(level.getServer());
-        if (!isLairColossus(boss, data))
+        ColossusLairData.Entry entry = data.lair(id);
+        if (entry == null || entry.boss() != null && !entry.boss().equals(boss.getUUID()))
         {
-            return;
+            return; // not a lair we know, or an old copy of its Colossus
         }
-        long now = level.getServer().overworld().getGameTime();
-        data.recordDefeat(now);
-        LOGGER.info("Colossus lair: its Colossus was beaten ({}); a new one can rise after {} ticks ({} minutes of game time).",
-                event.getSource().getMsgId(), LAIR_RESPAWN_TICKS, LAIR_RESPAWN_TICKS / 1200);
+        data.recordDefeat(entry, level.getServer().overworld().getGameTime());
+        LOGGER.info("Colossus lair {} {}: its Colossus was beaten ({}); the lair stays empty for good (no respawn).", entry.centerX(),
+                entry.centerZ(), event.getSource().getMsgId());
     }
 
     // ---------------------------------------------------------------- no natural spawning inside
@@ -325,8 +358,8 @@ public final class LairKeeper
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onSpawnPlacementCheck(MobSpawnEvent.SpawnPlacementCheck event)
     {
-        Volume lair = volume;
-        if (lair == null)
+        List<Volume> lairs = volumes;
+        if (lairs.isEmpty())
         {
             return;
         }
@@ -339,9 +372,13 @@ public final class LairKeeper
         {
             return;
         }
-        if (lair.noSpawn(event.getPos()))
+        for (Volume lair : lairs)
         {
-            event.setResult(Event.Result.DENY);
+            if (lair.noSpawn(event.getPos()))
+            {
+                event.setResult(Event.Result.DENY);
+                return;
+            }
         }
     }
 }

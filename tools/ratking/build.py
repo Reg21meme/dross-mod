@@ -12,6 +12,7 @@ Run from the project folder:
     python tools/ratking/build.py --quick <dir>   # quick still views of the kings into <dir> (no animations)
     python tools/ratking/build.py --clip 1 4      # the clipping check (ratkit/clip.py) on these builds only
     python tools/ratking/build.py --ball          # only his poison ball (ratkit/ball.py)
+    python tools/ratking/build.py --charge <dir>  # only the spear charge's page (side views) into <dir>
     python tools/ratking/build.py --bars          # only the boss bar options (bossbars.py)
     python tools/ratking/build.py --trophies-only # only his five trophies (ratkit/trophies.py; a few minutes)
     python tools/ratking/build.py --trophies-only --candidates   # the ten trophy candidates' previews again (the
@@ -21,7 +22,8 @@ It writes:
   src/main/resources/assets/dross/geo/entity/rat_king/<id>.geo.json                the model
   src/main/resources/assets/dross/animations/entity/rat_king/<id>.animation.json   sleep, wake, idle, walk, burrow,
                                                                                     burrowed, popup, rage, death, dead,
-                                                                                    and the fight's run, sweep, cast
+                                                                                    and the fight's run, sweep, cast,
+                                                                                    charge_start, charge, charge_skid
   src/main/resources/assets/dross/{geo,animations,textures}/entity/plague_ball/... his poison ball (ratkit/ball.py)
   src/main/resources/assets/dross/textures/gui/rat_king_bar/option_<n>.png         the boss bar options (bossbars.py)
   src/main/java/com/reg21meme/dross/boss/client/RatKingBarStyles.java              (generated, bossbars.py)
@@ -207,8 +209,11 @@ STRIPS = {
     "run": (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875),
     "sweep": (0.15, 0.28, 0.38, 0.42, 0.46, 0.5, 0.55, 0.62, 0.72, 0.9),
     "cast": (0.3, 0.55, 0.68, 0.72, 0.74, 0.78, 0.84, 0.95, 1.1),
+    "charge_start": (0.0, 0.1, 0.2),
+    "charge": (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875),
+    "charge_skid": (0.0, 0.1, 0.2, 0.3),
 }
-CYCLES = ("walk", "run")      # loops whose strips show fractions of one stride cycle
+CYCLES = ("walk", "run", "charge")      # loops whose strips show fractions of one stride cycle
 TITLES = {
     "sleep": "Sleeping (the mod floats Zzz up from his head)",
     "wake": "Waking up: startles, looks round, stretches and yawns, grabs his staff, stands",
@@ -224,6 +229,12 @@ TITLES = {
              "orb's path sketched), back to his hold",
     "cast": "Cast: holds the staff out, aims, draws back and flicks; the poison ball leaves the orb at {release:.2f} s "
             "(sketched)",
+    "charge_start": "Spear charge, the wind-up's coil (in the game 0.4 s: GeckoLib's 0.2 s blend into this crouch, then "
+                    "these 0.2 s), the staff levelled like a spear",
+    "charge": "Spear charge, the dash (on the spot; fractions of one stride cycle): the staff held out like a lance, its "
+              "orb {reach:.1f} blocks in front of him",
+    "charge_skid": "Spear charge missed: he skids to a stop and straightens up (in the game 0.5 s: the blend into the "
+                   "brace, then these 0.3 s)",
 }
 TRAIL_SECONDS = 0.1           # the sweep's sketched orb trail: how far back it reaches...
 TRAIL_AROUND_HIT = 0.12       # ...shown this long either side of the hit
@@ -281,6 +292,73 @@ def king_sheet(d, m, tex, anims, out_path):
                                          markers=markers(name, t, a.meta, m, a)), lab, 15, V.DIM))
         parts_.append((TITLES[name].format(**a.meta), V.grid(frames, len(frames))))
     V.page(f"The Rat King, No. {d.LABEL}: {d.NAME}", d.BLURB, parts_, out_path)
+
+
+BLEND_SECONDS = 0.2           # GeckoLib's blend into each new animation (RatKing.ANIMATION_BLEND_TICKS)
+
+
+def lerp_pose(a, b, u):
+    """Between two sampled poses, the way GeckoLib blends into a new animation (each value in a straight line)."""
+    zero, one = (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)
+    out = {}
+    for bone in set(a) | set(b):
+        va = a.get(bone, (zero, zero, one))
+        vb = b.get(bone, (zero, zero, one))
+        out[bone] = tuple(tuple(x0 + (x1 - x0) * u for x0, x1 in zip(ca, cb)) for ca, cb in zip(va, vb))
+    return out
+
+
+def charge_page(d, m, tex, anims, out_path):
+    """ratking_<label>_<id>_charge.png: the spear charge from the side, as the game plays it (with GeckoLib's blends):
+    the wind-up, the dash, the miss (the skid) and the hit (straight into the sweep)."""
+    st, ch, sk, sw, idle = anims["charge_start"], anims["charge"], anims["charge_skid"], anims["sweep"], anims["idle"]
+    blend = BLEND_SECONDS
+
+    def windup(t):
+        if t < blend:
+            return lerp_pose(idle.sample(0.0), st.sample(0.0), t / blend)
+        return st.sample(t - blend)
+
+    def dash(t):
+        return ch.sample(t % ch.length)
+
+    def after(t, nxt):
+        """From the dash into the next animation (t from the moment it starts)."""
+        if t < blend:
+            return lerp_pose(dash(0.0), nxt.sample(0.0), t / blend)
+        return nxt.sample(t - blend)
+
+    rows = [
+        ("The wind-up, from the side (seconds from the start of the move): the blend into the crouch, the coil; at 0.4 s "
+         "the target's spot locks and he dashes", [(f"{t:.1f} s", windup(t)) for t in (0.0, 0.1, 0.2, 0.3, 0.4)]),
+        (f"The dash (one stride, {ch.length:.2f} s; {ch.meta['stride_blocks'] / ch.length:.1f} blocks a second as made, "
+         f"played as fast as he really goes): the lance's orb {ch.meta['reach']:.1f} blocks ahead of him",
+         [(f"{f:.3f}", dash(f * ch.length)) for f in (0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875)]),
+        ("A miss: he skids to a stop and straightens up (seconds from the end of the dash; he can't act until 0.5 s)",
+         [(f"{t:.1f} s", after(t, sk)) for t in (0.0, 0.1, 0.2, 0.3, 0.4, 0.5)]),
+        (f"A hit: straight into the staff sweep (its hit {blend + sw.meta['hit']:.2f} s after the lance strikes)",
+         [(f"{t:.2f} s", after(t, sw)) for t in (0.0, 0.1, 0.2, 0.35, blend + sw.meta["hit"], 0.8)]),
+    ]
+    parts_ = []
+    for title, frames_ in rows:
+        poses = [p for _l, p in frames_]
+        bounds = V.fit(m, poses, 90.0, 8.0, figure=False)
+        ims = [V.label(V.draw(m, tex, pose=p, yaw=90.0, elevation=8.0, scale=3, bounds=bounds, figure=False), lab, 15,
+                       V.DIM) for lab, p in frames_]
+        parts_.append((title, V.grid(ims, len(ims))))
+    views = []
+    for label, yaw, el, pose in (("wind-up, three-quarter", 35.0, 14.0, windup(0.4)),
+                                 ("wind-up, from the front", 0.0, 8.0, windup(0.4)),
+                                 ("dash, three-quarter", 35.0, 14.0, dash(0.0)),
+                                 ("dash, from the front", 0.0, 8.0, dash(0.0)),
+                                 ("dash, at night", 35.0, 14.0, dash(0.0))):
+        kw = dict(world_light=V.NIGHT_LIGHT, background=V.NIGHT_BG) if "night" in label else {}
+        views.append(V.label(V.draw(m, tex, pose=pose, yaw=yaw, elevation=el, scale=3, **kw), label, 15, V.DIM))
+    parts_.append(("The wind-up and the dash from other sides", V.grid(views, len(views))))
+    V.page(f"The Rat King, No. {d.LABEL}: the spear charge", "He crouches with his staff levelled like a spear, locks "
+           "his target's spot and dashes straight to it, the staff held out like a lance; the first thing in his way is "
+           "hit and he goes straight into a staff sweep; if he misses he skids to a stop. The previews blend between "
+           "animations the way GeckoLib does in the game.", parts_, out_path)
 
 
 def build_king(d, verbose=True):
@@ -401,6 +479,13 @@ def main(argv):
         return
     if "--frames" in argv:
         frames(argv[argv.index("--frames") + 1:])
+        return
+    if "--charge" in argv:
+        out = argv[argv.index("--charge") + 1]
+        os.makedirs(out, exist_ok=True)
+        d = king(1)
+        m, b, rig, anims, tex = build_king(d)
+        charge_page(d, m, tex, anims, os.path.join(out, f"ratking_{d.LABEL.lower()}_{d.ID}_charge.png"))
         return
     if "--sheet" in argv:
         i = argv.index("--sheet")
@@ -552,6 +637,7 @@ def build_everything(king_numbers=None, rats=True, previews_only=False):
         stem = f"ratking_{d.LABEL.lower()}_{d.ID}"
         single_views(m, tex, stem, PREVIEWS)
         king_sheet(d, m, tex, anims, os.path.join(PREVIEWS, f"{stem}_sheet.png"))
+        charge_page(d, m, tex, anims, os.path.join(PREVIEWS, f"{stem}_charge.png"))
         built.append((d, m, b, rig, anims, tex))
     if all_kings and built:
         overview(built, os.path.join(PREVIEWS, "ratking_all.png"))

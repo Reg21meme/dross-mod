@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.ratking;
 
 import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.dimension.sewer.RatCaves;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
@@ -15,6 +16,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
@@ -24,6 +26,9 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -37,6 +42,7 @@ import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -101,6 +107,13 @@ public class Rat extends Monster implements GeoEntity
     private static final float CRUMBLE_VOLUME = 0.6F;
     /** A summoned rat starts checking its king after this many ticks (it might be called before he's loaded). */
     private static final int MASTER_GRACE_TICKS = 40;
+    /**
+     * The saved attribute modifiers that make a rat cave's own Plague Ravagers stronger
+     * ({@link RatKingTuning#RAT_CAVE_ENRAGED_HEALTH_MULTIPLIER}, {@link RatKingTuning#RAT_CAVE_ENRAGED_DAMAGE_MULTIPLIER}).
+     * Fixed ids, so a rat never gets one twice and they're found again after a reload.
+     */
+    private static final UUID CAVE_HEALTH_ID = UUID.fromString("5d0c8a3e-6f2b-4c51-9a7e-1b3f2d4c6e81");
+    private static final UUID CAVE_DAMAGE_ID = UUID.fromString("8e2f4b6a-1c3d-4e5f-8a9b-0c1d2e3f4a52");
 
     /** Ticks GeckoLib blends idle into running and back. */
     private static final int BLEND_TICKS = 3;
@@ -248,6 +261,54 @@ public class Rat extends Monster implements GeoEntity
         return this.entityData.get(DATA_SHOWCASE);
     }
 
+    // ---------------------------------------------------------------- the rat caves' own Plague Ravagers
+
+    /**
+     * A Plague Ravager that spawns by itself (a natural spawn) inside a rat cave ({@link RatCaves#isInRatCave}) is one of
+     * the cave's own, stronger than the ones elsewhere: {@link RatKingTuning#RAT_CAVE_ENRAGED_HEALTH_MULTIPLIER} times the
+     * health (it starts at full health) and {@link RatKingTuning#RAT_CAVE_ENRAGED_DAMAGE_MULTIPLIER} times the bite
+     * damage, kept as saved attribute modifiers. A Rat King's summoned rats, spawn eggs, {@code /summon} and every rat
+     * outside a rat cave stay normal.
+     */
+    @Override
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType reason,
+                                        @Nullable SpawnGroupData data, @Nullable CompoundTag tag)
+    {
+        SpawnGroupData result = super.finalizeSpawn(level, difficulty, reason, data, tag);
+        if (reason == MobSpawnType.NATURAL && this.isEnraged() && !this.isShowcase()
+                && RatCaves.isInRatCave(level.getLevel(), this.blockPosition()))
+        {
+            this.strengthenForCave();
+        }
+        return result;
+    }
+
+    /** Makes this rat one of a rat cave's stronger Plague Ravagers (once), at full health. */
+    void strengthenForCave()
+    {
+        addModifier(this.getAttribute(Attributes.MAX_HEALTH), CAVE_HEALTH_ID, "Rat cave Plague Ravager health",
+                RatKingTuning.RAT_CAVE_ENRAGED_HEALTH_MULTIPLIER);
+        addModifier(this.getAttribute(Attributes.ATTACK_DAMAGE), CAVE_DAMAGE_ID, "Rat cave Plague Ravager damage",
+                RatKingTuning.RAT_CAVE_ENRAGED_DAMAGE_MULTIPLIER);
+        this.setHealth(this.getMaxHealth());
+    }
+
+    private static void addModifier(@Nullable AttributeInstance attribute, UUID id, String name, double multiplier)
+    {
+        if (attribute != null && attribute.getModifier(id) == null)
+        {
+            // MULTIPLY_BASE adds base x amount: base x 1.5 needs an amount of 0.5.
+            attribute.addPermanentModifier(new AttributeModifier(id, name, multiplier - 1.0D, AttributeModifier.Operation.MULTIPLY_BASE));
+        }
+    }
+
+    /** True for one of a rat cave's stronger Plague Ravagers ({@link #finalizeSpawn}). */
+    public boolean isCaveRavager()
+    {
+        AttributeInstance health = this.getAttribute(Attributes.MAX_HEALTH);
+        return health != null && health.getModifier(CAVE_HEALTH_ID) != null;
+    }
+
     // ---------------------------------------------------------------- summoned by a Rat King
 
     /**
@@ -270,7 +331,7 @@ public class Rat extends Monster implements GeoEntity
         ForgeEventFactory.onFinalizeSpawn(rat, level, level.getCurrentDifficultyAt(BlockPos.containing(feet)),
                 MobSpawnType.MOB_SUMMONED, null, null);
         rat.master = king.getUUID();
-        Rage.recruit(rat, king); // the Rage Wand: a raged Rat King's new rat joins his side
+        Rage.recruit(rat, king); // the Rage Wand: a raged Rat King's new rat joins his team
         rat.setDeltaMovement(0.0D, RatKingTuning.RAT_HOP, 0.0D);
         LivingEntity target = king.getTarget();
         if (target != null && target.isAlive())

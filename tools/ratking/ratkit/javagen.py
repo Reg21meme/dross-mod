@@ -15,7 +15,8 @@ import java.util.List;
  * action does); the mod times its particles, effects and sounds to them: the Zzz and snores while asleep, the startle
  * and the yawn, the dirt flying while he digs and dives and when he bursts out, his eyes turning red, the train whistle
  * and the steam out of his ears in the rage, the thud, the staff's clatter and the crown's clink in the death; and in
- * the fight, the sweep's hit and the moment (and the spot) his cast lets the poison ball go.
+ * the fight, the sweep's hit, the moment (and the spot) his cast lets the poison ball go, and his spear charge's dash
+ * (its speed and reach).
  */
 public final class RatKingDesigns
 {{
@@ -44,6 +45,15 @@ public final class RatKingDesigns
      * @param castRight   ...and to his right
      * @param popupHoleForward how far in front of his feet (blocks) the hole he pops up out of is: right under him
      *                    (under his head as he stands straight up, so he comes straight up out of it)
+     * @param chargeStartTicks the spear charge's wind-up animation (it follows GeckoLib's blend; the mod's wind-up is
+     *                    RatKingTuning.CHARGE_WINDUP_TICKS, from the start of the move)
+     * @param chargeBlocks how far one loop of his dash would carry him (blocks): play it at
+     *                    (blocks a tick he moves) / (chargeBlocks / chargeTicks) times its speed so his feet don't slide
+     * @param chargeTicks the dash loop's length
+     * @param chargeReach how far in front of his middle (blocks) the staff's orb leads in the dash: the charge hits
+     *                    what's within it
+     * @param chargeSkidTicks the skid when the charge misses (it follows GeckoLib's blend; the mod's recovery is
+     *                    RatKingTuning.CHARGE_RECOVER_TICKS)
      */
     public record Design(int number, String label, String id, String name, String mood, boolean curledSleep,
                          boolean hasGlow, int wakeTicks, int wakeStartle, int burrowTicks, int digFrom, int digTo,
@@ -53,7 +63,9 @@ public final class RatKingDesigns
                          int sleepTicks, int wakeYawn, int wakeGrab, int rageScreech, int deathClatter,
                          int deathCrown, float slamForward, float slamRight, float runBlocks, int runTicks,
                          int sweepTicks, int sweepHit, float sweepReach, int castTicks, int castRelease,
-                         float castForward, float castUp, float castRight, float popupHoleForward)
+                         float castForward, float castUp, float castRight, float popupHoleForward,
+                         int chargeStartTicks, float chargeBlocks, int chargeTicks, float chargeReach,
+                         int chargeSkidTicks)
     {{
     }}
 
@@ -156,7 +168,8 @@ def king_entry(d, anims, has_glow):
             "                    {death}, {fall}, {tongue}, {xeyes}, {walk_blocks}F, {walk_ticks},\n"
             "                    {sleep}, {yawn}, {grab}, {screech}, {clatter}, {crown}, {slam_f}F, {slam_r}F,\n"
             "                    {run_blocks}F, {run_ticks}, {sweep}, {sweep_hit}, {sweep_reach}F, {cast}, {release},\n"
-            "                    {cast_f}F, {cast_u}F, {cast_r}F, {popup_hole}F)").format(
+            "                    {cast_f}F, {cast_u}F, {cast_r}F, {popup_hole}F,\n"
+            "                    {charge_start}, {charge_blocks}F, {charge_ticks}, {charge_reach}F, {charge_skid})").format(
         n=d.NUMBER, label=_str(d.LABEL), id=_str(d.ID), name=_str(d.NAME), mood=_str(d.MOOD),
         curled="true" if curled else "false", glow="true" if has_glow else "false",
         wake=ticks(w.length), startle=ticks(w.meta["startle"]), burrow=ticks(b.length),
@@ -174,7 +187,10 @@ def king_entry(d, anims, has_glow):
         sweep_reach=f"{anims['sweep'].meta['reach']:.3f}", cast=ticks(anims["cast"].length),
         release=ticks(anims["cast"].meta["release"]), cast_f=f"{anims['cast'].meta['cast_forward']:.3f}",
         cast_u=f"{anims['cast'].meta['cast_up']:.3f}", cast_r=f"{anims['cast'].meta['cast_right']:.3f}",
-        popup_hole=f"{p.meta['hole_forward'] / 16.0:.4f}")
+        popup_hole=f"{p.meta['hole_forward'] / 16.0:.4f}",
+        charge_start=ticks(anims["charge_start"].length),
+        charge_blocks=f"{anims['charge'].meta['stride_blocks']:.3f}", charge_ticks=ticks(anims["charge"].length),
+        charge_reach=f"{anims['charge'].meta['reach']:.3f}", charge_skid=ticks(anims["charge_skid"].length))
 
 
 def rat_entry(number, d, anims, has_glow):

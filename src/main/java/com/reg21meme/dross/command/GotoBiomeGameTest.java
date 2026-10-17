@@ -471,23 +471,26 @@ public final class GotoBiomeGameTest
         }
     }
 
-    /** Outside the Colossus lair: further from its middle than its entrance is (its cavern, dome, tunnel and mouth). */
+    /** Outside every built Colossus lair: further from its middle than its entrance is (its cavern, dome, tunnel and mouth). */
     static void checkClearOfLair(MinecraftServer server, Vec3 at, String where)
     {
-        Optional<ColossusLair.Lair> lair = ColossusLair.get(server);
-        if (lair.isEmpty())
+        List<ColossusLair.Lair> lairs = ColossusLair.all(server);
+        if (lairs.isEmpty())
         {
-            LOGGER.info("[goto biome test] {}: the Colossus lair isn't built yet, so there's no lair to keep clear of (GotoLairGameTest "
-                    + "checks that part once it is).", where);
+            LOGGER.info("[goto biome test] {}: no Colossus lair is built yet, so there's no lair to keep clear of (GotoLairGameTest "
+                    + "checks that part once one is).", where);
             return;
         }
-        Vec3 middle = Vec3.atBottomCenterOf(lair.get().center());
-        double reach = Math.hypot(lair.get().entrance().x - middle.x, lair.get().entrance().z - middle.z);
-        double distance = Math.hypot(at.x - middle.x, at.z - middle.z);
-        if (distance <= reach)
+        for (ColossusLair.Lair lair : lairs)
         {
-            throw new GameTestAssertException(where + ": landed at " + BlockPos.containing(at).toShortString() + ", " + Math.round(distance)
-                    + " blocks from the Colossus lair's middle, inside its reach (" + Math.round(reach) + " blocks, to its entrance)");
+            double reach = lair.reach();
+            double distance = lair.distanceTo(at.x, at.z);
+            if (distance <= reach)
+            {
+                throw new GameTestAssertException(where + ": landed at " + BlockPos.containing(at).toShortString() + ", " + Math.round(distance)
+                        + " blocks from the middle of the Colossus lair at " + lair.center().toShortString() + ", inside its reach ("
+                        + Math.round(reach) + " blocks, to its entrance)");
+            }
         }
     }
 

@@ -2,20 +2,16 @@ package com.reg21meme.dross.boss.rage;
 
 /**
  * Every number of the Rage Wand and its Rage (the user's request: a creative-only test tool that makes mobs fight each
- * other). Ticks are game ticks (20 a second).
+ * other, in teams). Ticks are game ticks (20 a second). The Rage and a mob's team never wear off (the user, October 16:
+ * "they stay their team forever"), so there's no calming down any more.
  */
 public final class RageTuning
 {
     // ---------------------------------------------------------------- who fights whom
 
-    /** A raged mob looks for raged enemies (raged mobs of another side) this far away (blocks). */
-    public static final double RAGE_RANGE = 48.0D;
-    /**
-     * A raged mob with no raged enemy within {@link #RAGE_RANGE} for this long calms down: its Rage is removed and it
-     * behaves normally again (10 seconds: time for the user to hit the next mob after the first).
-     */
-    public static final int RAGE_CALM_TICKS = 200;
-    /** How often (ticks) a raged mob checks whether any raged enemy is still near (for calming down). */
+    /** A raged mob looks for raged enemies (raged mobs of another team) this far away (blocks; the user: 40). */
+    public static final double RAGE_RANGE = 40.0D;
+    /** How often (ticks) a raged mob checks whether any raged enemy is near (while one is, it ignores players). */
     public static final int ENEMY_SCAN_TICKS = 10;
     /** How often (ticks) a raged mob without a target looks for the nearest raged enemy to go for. */
     public static final int TARGET_SEARCH_TICKS = 5;
@@ -59,10 +55,14 @@ public final class RageTuning
 
     // ---------------------------------------------------------------- looks and sounds
 
-    /** A raged mob shows a red angry particle over its head every this many ticks. */
-    public static final int RAGE_PARTICLE_EVERY = 30;
-    /** Angry particles in the burst when the wand rages a mob. */
-    public static final int RAGE_BURST_PARTICLES = 6;
+    /** A raged mob shows a few specks of its team's colour over its head every this many ticks... */
+    public static final int RAGE_PARTICLE_EVERY = 20;
+    public static final int RAGE_PARTICLES = 2;
+    /** ...a burst of them when the wand rages it or switches its team, a smaller one when it joins its boss's team... */
+    public static final int RAGE_BURST_PARTICLES = 14;
+    public static final int JOIN_BURST_PARTICLES = 6;
+    /** ...each this big (Minecraft's dust size). */
+    public static final float TEAM_PARTICLE_SIZE = 1.3F;
     /** The particles appear this far (blocks) above its eyes. */
     public static final double PARTICLE_ABOVE_EYES = 0.5D;
     /** The particles spread this share of its width round its head. */
@@ -74,6 +74,12 @@ public final class RageTuning
     public static final float FIZZLE_VOLUME = 0.6F;
     public static final float FIZZLE_PITCH = 1.4F;
     public static final int FIZZLE_SMOKE = 6;
+
+    // ---------------------------------------------------------------- the wand's teams
+
+    /** Right-clicking with the wand moves it to the next team: a small click (a stone button, pitched up). */
+    public static final float TEAM_CLICK_VOLUME = 0.5F;
+    public static final float TEAM_CLICK_PITCH = 1.6F;
 
     private RageTuning() {}
 }

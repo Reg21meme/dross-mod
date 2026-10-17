@@ -1,9 +1,11 @@
 package com.reg21meme.dross.boss.ratking;
 
+import java.util.List;
+
 /**
  * Every number of the Rat King's fight (CLAUDE.md, "The plan", step 9), in one place so they're easy to tune. Times
  * are in ticks (20 a second), distances in blocks, speeds are Minecraft's movement speed attribute (a walking mob covers
- * about speed x speed x 2.2 blocks a tick: 0.30 is about 4 blocks a second, a walking player 4.3).
+ * about speed x speed x 2.2 blocks a tick: 0.33 is about 4.8 blocks a second, a walking player 4.3).
  * <p>
  * The fight has two phases: the first, and the <b>Rage</b> from {@link #RAGE_AT} of his health (his eyes glow red; he's
  * faster, his blows hit harder, his moves come back sooner, he throws three poison balls at once, burrows more often
@@ -19,9 +21,13 @@ public final class RatKingTuning
     public static final double ARMOR = 6.0D;
     /** How much knockback he shrugs off (0 none, 1 all). */
     public static final double KNOCKBACK_RESISTANCE = 0.6D;
-    /** His speed in the first phase (about 4 blocks a second) and in the Rage (about 5.7: a sprinting player is 5.6). */
-    public static final double SPEED = 0.30D;
-    public static final double RAGE_SPEED = 0.36D;
+    /**
+     * His speed in the first phase (about 4.8 blocks a second) and in the Rage (about 6.4: a sprinting player is 5.6).
+     * The user's numbers (October 16: "I'd rather increase his speed and his staff attacks than him spam poison"; the
+     * first version's were 0.30 and 0.36).
+     */
+    public static final double SPEED = 0.33D;
+    public static final double RAGE_SPEED = 0.38D;
     /** How far (blocks) he notices and follows players. */
     public static final double FOLLOW_RANGE = 40.0D;
     /** Experience he drops. */
@@ -57,9 +63,93 @@ public final class RatKingTuning
     public static final float SWEEP_DAMAGE = 9.0F;
     public static final float RAGE_SWEEP_DAMAGE = 11.0F;
     public static final double SWEEP_KNOCKBACK = 1.0D;
-    /** Ticks before he can sweep again (first phase, Rage). */
-    public static final int SWEEP_COOLDOWN = 30;
-    public static final int RAGE_SWEEP_COOLDOWN = 22;
+    /** Ticks before he can sweep again (first phase, Rage; the user, October 16: sooner than the first version's 30 / 22). */
+    public static final int SWEEP_COOLDOWN = 22;
+    public static final int RAGE_SWEEP_COOLDOWN = 16;
+
+    // ---------------------------------------------------------------- the spear charge (the user's request, October 16)
+
+    /**
+     * The wind-up (ticks from the start of the move): he crouches, his staff levelled forward like a spear, turning to
+     * face his target; at its end he locks his target's spot and dashes (0.4 s; the animation is made to fill it).
+     */
+    public static final int CHARGE_WINDUP_TICKS = 8;
+    /** He charges at targets this far away (blocks, from his middle; it's in the move table's mid and far bands)... */
+    public static final double CHARGE_MIN = 5.0D;
+    public static final double CHARGE_MAX = 24.0D;
+    /** ...at most this much above or below him... */
+    public static final double CHARGE_MAX_RISE = 1.5D;
+    /** ...and runs at most this far (blocks), straight to the locked spot (never past it). */
+    public static final double CHARGE_MAX_DISTANCE = 24.0D;
+    /**
+     * He only charges when he can see his target and nothing solid (and no liquid) stands in this share of the way to it
+     * (checked every {@link #CHARGE_CHECK_STEP} blocks; low steps are fine, he runs up them). A wall in the rest of the
+     * way stops him (then he recovers).
+     */
+    public static final double CHARGE_CLEAR_SHARE = 0.9D;
+    public static final double CHARGE_CHECK_STEP = 1.0D;
+    /** How fast he dashes (blocks a tick: 9 and 11 blocks a second, faster than his run). */
+    public static final double CHARGE_SPEED = 0.45D;
+    public static final double RAGE_CHARGE_SPEED = 0.55D;
+    /** A dash gives up this many ticks after it should have arrived (stuck on something). */
+    public static final int CHARGE_SLACK_TICKS = 6;
+    /** He's there when he's this close (blocks) to the locked spot. */
+    public static final double CHARGE_ARRIVED = 0.05D;
+    /**
+     * The first thing in his path (alive, not his own rats) takes this much (first phase, Rage), with only a small
+     * knockback (vanilla's strength: a sword's is 0.4) so it stays in reach of the sweep that follows.
+     */
+    public static final float CHARGE_DAMAGE = 6.0F;
+    public static final float RAGE_CHARGE_DAMAGE = 8.0F;
+    public static final double CHARGE_KNOCKBACK = 0.2D;
+    /** The lance hits what's within the dash's reach in front of him (generated: chargeReach) and this much to each side of his body. */
+    public static final double CHARGE_HIT_SIDE = 0.3D;
+    /**
+     * If he misses (the target dodged) he skids to a stop at the spot, and if he runs into a wall he stops there: either
+     * way he needs this many ticks to recover (he can't act; 0.5 s) before he moves on. Meanwhile he turns to face his
+     * target again.
+     */
+    public static final int CHARGE_RECOVER_TICKS = 10;
+    /** Ticks before he can charge again (first phase 5 s, Rage 3.5 s). */
+    public static final int CHARGE_COOLDOWN = 100;
+    public static final int RAGE_CHARGE_COOLDOWN = 70;
+
+    // ---------------------------------------------------------------- which move he makes (the user's table, October 16)
+
+    /** His choices when he's free to pick a move, in percent: a staff sweep, the spear charge, the poison shot, or running in. */
+    public record Chances(int sweep, int charge, int poison, int runIn) {}
+
+    /**
+     * The bands of his target's distance: close (in his sweep's reach, about 4 blocks: {@link #SWEEP_RANGE} less
+     * {@link #SWEEP_START_MARGIN}), mid (from {@link #BAND_MID_FROM} to {@link #BAND_FAR_FROM}), far (to
+     * {@link #BAND_FAR_TO}), and beyond (further, or out of sight). Between close and mid (about 4 to 5 blocks) he just
+     * runs in, without a roll.
+     */
+    public static final double BAND_MID_FROM = 5.0D;
+    public static final double BAND_FAR_FROM = 16.0D;
+    public static final double BAND_FAR_TO = 24.0D;
+    /**
+     * The first phase: close, mid, far, beyond. Moves that are on their cooldown or can't be made right now (no clear
+     * run for the charge...) drop out, and the others share their chance.
+     */
+    public static final List<Chances> FIRST_CHANCES = List.of(
+            //          sweep  charge  poison  run in
+            new Chances(100,   0,      0,      0),
+            new Chances(0,     60,     25,     15),
+            new Chances(0,     40,     30,     30),
+            new Chances(0,     0,      0,      100));
+    /** The Rage: close, mid, far, beyond. */
+    public static final List<Chances> RAGE_CHANCES = List.of(
+            //          sweep  charge  poison  run in
+            new Chances(100,   0,      0,      0),
+            new Chances(0,     60,     35,     5),
+            new Chances(0,     35,     35,     30),
+            new Chances(0,     0,      0,      100));
+    /**
+     * "Run in": he runs at his target and doesn't roll again for this many ticks (2 s); only his close band's sweep
+     * (not a roll: it's certain) can come sooner, if his target gets into its reach.
+     */
+    public static final int RUN_IN_TICKS = 40;
 
     // ---------------------------------------------------------------- the poison shot (ranged)
 
@@ -186,6 +276,66 @@ public final class RatKingTuning
     public static final int RAT_MASTER_CHECK = 20;
     /** A summoned rat hops this high (blocks a tick) as it bursts out of the ground. */
     public static final double RAT_HOP = 0.3D;
+
+    // ---------------------------------------------------------------- his home: the rat caves under Blightwood
+
+    /**
+     * A player (not a spectator) this close to a rat cave's nest (blocks, in a straight line) makes the cave's Rat King
+     * appear there, asleep on the nest (if it has none and he hasn't been beaten there: no respawn, the user's decision of
+     * October 16). It's well beyond his {@link #WAKE_RANGE}, so he's lying there asleep before anyone gets close.
+     */
+    public static final double RAT_CAVE_KING_RANGE = 48.0D;
+    /** The rat caves near players are looked at every this many ticks (twice a second). */
+    public static final int RAT_CAVE_CHECK_INTERVAL_TICKS = 10;
+    /**
+     * He never pops into view: he doesn't appear while a player who was already in the cave at the last look is still in
+     * it (its box, its walls and this many blocks past them: the doorways). Someone who has only just arrived (walked in
+     * from a tunnel, teleported in, logged in) doesn't count.
+     */
+    public static final int RAT_CAVE_WATCH_MARGIN = 2;
+    /** A cave's king found more than this many blocks outside his cave's box is put back on his nest (like the Colossus). */
+    public static final int RAT_CAVE_HOME_MARGIN = 4;
+    /** His feet on the nest: this far up the top carpet's block (a carpet is 1/16 of a block tall). */
+    public static final double RAT_CAVE_NEST_CARPET = 1.0D / 16.0D;
+    /**
+     * Plague Ravagers that spawn by themselves inside a rat cave are stronger than the ones elsewhere (the user's
+     * request): this many times the health and the bite damage (9 health and 3 damage become 13.5 and 4.5). His own
+     * summoned rats and rats anywhere else stay normal.
+     */
+    public static final double RAT_CAVE_ENRAGED_HEALTH_MULTIPLIER = 1.5D;
+    public static final double RAT_CAVE_ENRAGED_DAMAGE_MULTIPLIER = 1.5D;
+
+    // ---------------------------------------------------------------- his snores at the grand entrance
+
+    /**
+     * While a rat cave's Rat King is asleep on his nest (or hasn't appeared yet and hasn't been beaten), players this close
+     * to his sewer's grand entrance (blocks from the air over its crowned rim) now and then hear him snore down the pipe.
+     * A sound at the volume below can be heard about 16 blocks off, so this matches it.
+     */
+    public static final double RAT_CAVE_SNORE_RANGE = 16.0D;
+    /** The snore rising out of the pipe is quieter than his own on the nest (0.7)... */
+    public static final float RAT_CAVE_SNORE_VOLUME = 0.4F;
+    /** ...and a little deeper, echoing up the copper (its pitch is this, give or take {@link #RAT_CAVE_SNORE_PITCH_SPREAD}). */
+    public static final float RAT_CAVE_SNORE_PITCH = 0.85F;
+    public static final float RAT_CAVE_SNORE_PITCH_SPREAD = 0.05F;
+    /** A snore comes up at most every this many ticks... */
+    public static final int RAT_CAVE_SNORE_MIN_TICKS = 100;
+    /** ...and at least every this many (a random wait between: 5 to 11 seconds). */
+    public static final int RAT_CAVE_SNORE_MAX_TICKS = 220;
+    /** Which grand entrances are near the players is asked (from the planner, on a background thread) every this many ticks. */
+    public static final int RAT_CAVE_SNORE_LOOKUP_TICKS = 40;
+    /** The snores are looked after every this many ticks. */
+    public static final int RAT_CAVE_SNORE_CHECK_TICKS = 10;
+
+    // ---------------------------------------------------------------- the rats' spawn light in the sewers
+
+    /**
+     * Rats spawn by themselves only in the dark, like any monster (in the Dross no block light at all), except inside the
+     * sewers (the {@code dross:sewers} biome under Blightwood, and the sewer networks' rooms, tunnels and rat caves out of
+     * the sky's reach): there they may spawn in dim light up to this block light (the user's request: the sewers' glow
+     * lichen gives 7). Brighter spots (candles round his nest, the grand entrance's Blight Vents) stay rat-free.
+     */
+    public static final int RAT_SEWER_SPAWN_MAX_BLOCK_LIGHT = 7;
 
     private RatKingTuning() {}
 

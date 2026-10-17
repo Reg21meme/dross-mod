@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:range_choice",
+  "input": "minecraft:y",
+  "min_inclusive": -64.0,
+  "max_exclusive": 64.0,
+  "when_in_range": {
+    "type": "minecraft:range_choice",
+    "input": "dross:climate/rot",
+    "min_inclusive": 0.1747251651625555,
+    "max_exclusive": 1000000.0,
+    "when_in_range": {
+      "type": "minecraft:range_choice",
+      "input": "dross:terrain/depth",
+      "min_inclusive": 10.0,
+      "max_exclusive": 1000000.0,
+      "when_in_range": 1.0,
+      "when_out_of_range": 0.0
+    },
+    "when_out_of_range": 0.0
+  },
+  "when_out_of_range": 0.0
+}

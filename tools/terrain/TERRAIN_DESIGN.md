@@ -57,6 +57,8 @@ in `tools/terrain/README.md`):
   round it, some decorated before it and some after, so plants could end up on ground a later `rock_faces` or pond made
   rock or mud, Stormvine strands lost their tops to another tree's crown, and a few leaves where crowns met were left at
   distance 7. It removes what can't stay and re-measures (or removes) such leaves in the 3 x 3 chunks: about 1 ms a chunk.
+  It leaves ladders, banners and candles alone: only structures place them, and a sewer pipe built across a chunk border
+  isn't finished (its ladder's wall is missing) until the next chunk is.
 - **Light vs. spawning** (monsters need block light 0 in the Dross): the Nether Scar's huge fungi have wart blocks instead
   of shroomlights; Scarred Netherrack's light went from 3 to 0 (its full-bright cracks still glow; at 3 it lit ~75% of
   the Scar's floor); Stormvine's tree chances are lower (0.25 / 0.35 / 0.7, trunk 0.05, hanging 0.03); Storm Lichen

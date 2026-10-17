@@ -2,6 +2,7 @@ package com.reg21meme.dross.dimension;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.sewer.Sewers;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import com.reg21meme.dross.dimension.worldgen.PondFeature;
@@ -42,6 +43,7 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
@@ -296,6 +298,8 @@ public final class TerrainFeaturesGameTest
         int maxX = Integer.MIN_VALUE;
         int maxZ = Integer.MIN_VALUE;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        // a sewer network's own blocks (its waterfalls flow) are SewersGameTest's to check
+        List<BoundingBox> sewers = Sewers.pieceBoxes(dross, chunks.stream().map(LevelChunk::getPos).toList());
         for (LevelChunk chunk : chunks)
         {
             int bx = chunk.getPos().getMinBlockX();
@@ -350,7 +354,7 @@ public final class TerrainFeaturesGameTest
                             }
                         }
                         FluidState fluid = state.getFluidState();
-                        if (!fluid.isEmpty())
+                        if (!fluid.isEmpty() && !Sewers.inAny(sewers, x, y, z))
                         {
                             if (!fluid.isSource())
                             {

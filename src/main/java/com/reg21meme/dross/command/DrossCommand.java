@@ -48,10 +48,19 @@ import net.minecraftforge.fml.common.Mod;
  *       where you stand if you're in the Dross, otherwise from the hub ({@link GotoBiome}; finding the biome is the
  *       dimension area's {@code DrossBiomes}, safe ground the portal area's {@code DrossTeleporter.findSafeSpot}). It
  *       never lands in or by the Cinder Colossus's lair either.</li>
- *   <li>{@code /dross goto lair colossus}: teleports you to the entrance of the Cinder Colossus's lair in the Cinder
- *       Wastes, facing into its tunnel, and says whether the Colossus will rise when you walk in or in how many minutes
- *       ({@link GotoLair}; the lair is the boss area's {@code ColossusLair}). Before the lair has been built in this
- *       world it fails ("hasn't been placed ... yet") and builds nothing, like {@code goto cathedral}.</li>
+ *   <li>{@code /dross goto lair colossus}: teleports you to the entrance of the nearest Cinder Colossus lair (one in
+ *       every group of 3 Cinder Wastes patches; nearest to you if you're in the Dross, otherwise to the hub), facing into
+ *       its cave mouth, and says whether the Colossus will rise when you walk in, is awake, or has been beaten (for good)
+ *       ({@link GotoLair}; the lairs are the boss area's {@code ColossusLair}). A lair is only built when someone first
+ *       comes near: if the nearest isn't built yet, it says so, builds it, and takes you there once it's ready.</li>
+ *   <li>{@code /dross goto lair ratking}: teleports you into the nearest rat cave, the Rat King's home at the end of a
+ *       sewer under Blightwood (nearest to you if you're in the Dross, otherwise to the hub), onto its arrival spot at the
+ *       end of a tunnel leading in, facing his nest, and says whether he's asleep there, awake, or beaten (for good)
+ *       ({@link GotoLair#ratKing}; the caves are the dimension area's {@code RatCaves}, his home the boss area's
+ *       {@code RatKingLair}). It fails if no rat cave is found.</li>
+ *   <li>{@code /dross goto sewer}: teleports you to the foot of a pipe of the nearest regular sewer under Blightwood
+ *       (nearest to you if you're in the Dross, otherwise to the hub), facing the pipe, on safe ground ({@link GotoSewer};
+ *       the sewers are the dimension area's {@code Sewers}). It fails if no sewer is found.</li>
  *   <li>{@code /dross goto trader}: teleports you to the Dross trader. {@code /dross trader sendhome}: sends him home.
  *       From the villager area ({@link TraderCommands}).</li>
  *   <li>{@code /dross quest status|reset|complete}: shows, clears or finishes your quest progress.
@@ -142,9 +151,13 @@ public final class DrossCommand
                         // The Dross's biomes: goto biome <name>, one literal per biome (the logic lives in GotoBiome).
                         .then(biomeGoto())
                         // The bosses' lairs: goto lair <boss>, one literal per boss with a lair (the logic lives in
-                        // GotoLair; the lair itself is the boss area's ColossusLair).
+                        // GotoLair; the lairs themselves are the boss area's ColossusLair and RatKingLair).
                         .then(Commands.literal("lair")
-                                .then(Commands.literal("colossus").executes(context -> GotoLair.colossus(context.getSource())))))
+                                .then(Commands.literal("colossus").executes(context -> GotoLair.colossus(context.getSource())))
+                                .then(Commands.literal("ratking").executes(context -> GotoLair.ratKing(context.getSource()))))
+                        // The nearest regular sewer under Blightwood (the logic lives in GotoSewer; the sewers are the
+                        // dimension area's).
+                        .then(Commands.literal("sewer").executes(context -> GotoSewer.teleport(context.getSource()))))
                 // Villager area's test commands: trader <action> (the logic lives in TraderCommands).
                 .then(Commands.literal("trader")
                         .requires(source -> source.hasPermission(2))

@@ -6,6 +6,9 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -29,7 +32,8 @@ import net.minecraft.world.phys.Vec3;
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
 /**
- * Builds the Colossus's lair into the real world: a volcano (its chunks must be loaded; server thread). In order:
+ * Builds a Colossus lair into the real world: a volcano (its chunks must be loaded; server thread), a step at a time
+ * ({@link #start}, {@link Build#step}; {@link LairPlacer} spreads the steps over several ticks). In order:
  * <ol>
  *   <li>The plan ({@link #plan}, from {@link #planningGround}): which way the cave mouth faces, the floor's height
  *       (level with the land in front of the mouth), the rim's height, the land under the cone, and the way in outside
@@ -64,8 +68,6 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  */
 final class LairBuilder
 {
-    /** The lair's version: 1 was the R2c cavern with its tunnel (old worlds keep theirs), 2 is the volcano. */
-    static final int VERSION = 2;
     private static final int FLAGS = Block.UPDATE_CLIENTS;
     private static final BlockState AIR = Blocks.AIR.defaultBlockState();
     private static final BlockState LAVA = Blocks.LAVA.defaultBlockState();
@@ -84,6 +86,7 @@ final class LairBuilder
      * @param tunnel      the way the way in runs out of the cavern, towards its mouth
      * @param mouth       the cave mouth's distance from the middle (its lip)
      * @param rimY        the crater rim's crest (Y)
+     * @param highLand    the high land round the volcano it was planned to stand above (Y; {@link LairShape.VolcanoPlan#highLand})
      * @param gullyEnd    where the gully in front of the mouth ends (its distance from the middle); the level apron and the
      *                    blend to the land follow it
      * @param approachEnd the last row of the land shaped in front of the mouth (its distance from the middle): the way in
@@ -91,9 +94,14 @@ final class LairBuilder
      * @param entrance    where a player arriving stands: in the gully in front of the mouth, feet position
      * @param entranceYaw the way to face from there: into the mouth
      */
-    record Layout(int centerX, int centerZ, int floorY, Direction tunnel, int mouth, int rimY, int gullyEnd, int approachEnd,
+    record Layout(int centerX, int centerZ, int floorY, Direction tunnel, int mouth, int rimY, int highLand, int gullyEnd, int approachEnd,
                   Vec3 entrance, float entranceYaw)
     {
+        /** True if the rim stands its full {@link LairTuning#RIM_RISE} over the high land round it (not held down by its cap). */
+        boolean fullRise()
+        {
+            return rimY - highLand >= RIM_RISE;
+        }
     }
 
     /** What building did: the layout, the plan it followed, the way in it shaped, and counts for the log. */
@@ -239,39 +247,152 @@ final class LairBuilder
         return level.getMaxBuildHeight() - (int) Math.ceil(RIM_TEETH) - 8;
     }
 
-    /** Builds the lair with its floor's middle at {@code x}, {@code z}. */
+    /** Builds the lair with its floor's middle at {@code x}, {@code z}, all at once (every step in this tick). */
     static Result build(ServerLevel level, int x, int z)
     {
-        long start = Util.getMillis();
-        Site site = plan(x, z, planningGround(level), level.getSeed(), lowestFloor(level), highestRim(level));
-        LairShape.VolcanoPlan plan = site.plan();
-        Work work = new Work(level, site);
-        work.run();
-        Layout layout = new Layout(x, z, plan.floorY(), plan.tunnel(), work.mouth, plan.rimY(), work.gullyEnd, site.approach().end(),
-                work.entranceSpot(), plan.tunnel().getOpposite().toYRot());
-        return new Result(layout, plan, site.approach(), work.changed, work.trees, work.plants, work.sealed, work.veins,
-                work.fissureCells, work.stalactites, work.rivulets, work.lava.size() - work.fissureCells, work.fireGuarded,
-                work.gullyEnd - work.mouth, Util.getMillis() - start);
+        Build build = start(level, x, z);
+        while (!build.step())
+        {
+            // the next step at once
+        }
+        return build.result();
+    }
+
+    /**
+     * Starts building the lair with its floor's middle at {@code x}, {@code z}: plans it now (from the ground as it is),
+     * then {@link Build#step} builds it a step at a time ({@link LairTuning#BUILD_STEPS}), so the work can be spread over
+     * several ticks. Its chunks must stay loaded until it's done. Server thread.
+     */
+    static Build start(ServerLevel level, int x, int z)
+    {
+        return start(level, x, z, null);
+    }
+
+    /**
+     * As {@link #start(ServerLevel, int, int)}, with the generator's heights round the spot already worked out
+     * ({@link #prefetchNoise}, on a background thread), so planning on the server thread only reads the real blocks.
+     */
+    static Build start(ServerLevel level, int x, int z, @Nullable Map<Long, Integer> noiseHeights)
+    {
+        long started = Util.getMillis();
+        Site site = plan(x, z, planningGround(level, noiseHeights), level.getSeed(), lowestFloor(level), highestRim(level));
+        return new Build(new Work(level, site), Util.getMillis() - started);
+    }
+
+    /**
+     * Works out the generator's own heights of every column the volcano's plan at x, z reads (by planning it from the
+     * generator's land alone and keeping each height it read). Reading them is the slow part of planning (about a
+     * millisecond a column, thousands of columns), so the placer does it on its background thread while the chunks load;
+     * the real plan then reads the same columns (nearly all of them) from this map. Any thread.
+     */
+    static Map<Long, Integer> prefetchNoise(ServerLevel level, int x, int z)
+    {
+        Map<Long, Integer> heights = new ConcurrentHashMap<>();
+        LairShape.Ground noise = noiseGround(level);
+        plan(x, z, (gx, gz) -> heights.computeIfAbsent(column(gx, gz), k -> noise.top(gx, gz)), level.getSeed(), lowestFloor(level),
+                highestRim(level));
+        return heights;
+    }
+
+    private static long column(int x, int z)
+    {
+        return ((long) x << 32) ^ (z & 0xFFFFFFFFL);
+    }
+
+    /** A lair being built, a step at a time. */
+    static final class Build
+    {
+        private final Work work;
+        private final List<Runnable> steps;
+        private int next;
+        private long millis;
+        private long longestStep;
+
+        private Build(Work work, long planMillis)
+        {
+            this.work = work;
+            this.steps = work.steps();
+            this.millis = planMillis;
+            this.longestStep = planMillis;
+        }
+
+        /** Builds the next step; true once the lair is finished (then {@link #result} is ready). */
+        boolean step()
+        {
+            if (next < steps.size())
+            {
+                long started = Util.getMillis();
+                steps.get(next++).run();
+                long took = Util.getMillis() - started;
+                millis += took;
+                longestStep = Math.max(longestStep, took);
+            }
+            return next >= steps.size();
+        }
+
+        /** True once every step has run. */
+        boolean done()
+        {
+            return next >= steps.size();
+        }
+
+        /** The longest one step (or the planning) took (ms), for the log. */
+        long longestStep()
+        {
+            return longestStep;
+        }
+
+        /** The planned layout (known from the start). */
+        Layout layout()
+        {
+            LairShape.VolcanoPlan plan = work.plan;
+            return new Layout(work.cx, work.cz, plan.floorY(), plan.tunnel(), work.mouth, plan.rimY(), plan.highLand(), work.gullyEnd,
+                    work.wayIn.end(), work.entranceSpot(), plan.tunnel().getOpposite().toYRot());
+        }
+
+        /** What was built (once {@link #done}). */
+        Result result()
+        {
+            return new Result(layout(), work.plan, work.wayIn, work.changed, work.trees, work.plants, work.sealed, work.veins,
+                    work.fissureCells, work.stalactites, work.rivulets, work.lava.size() - work.fissureCells, work.fireGuarded,
+                    work.gullyEnd - work.mouth, millis);
+        }
     }
 
     /**
      * The ground the plan is made from: the lower of the real ground ({@link #groundTop}) and the world generator's own
      * terrain (before trees, basalt spires and other features). So a spire or a boulder standing in front of the mouth
-     * doesn't lift the floor, while an old world's flat chunks (lower than the new terrain) are still followed. A column
+     * doesn't lift the floor, while land dug lower than the generator made it (a lava pool's hollow) is still followed. A column
      * whose chunk isn't loaded (only if loading timed out) is read from the generator alone.
      */
     static LairShape.Ground planningGround(ServerLevel level)
     {
-        LairSearch.Context noise = level.getChunkSource().getGenerator() instanceof net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator
-                ? LairSearch.forWorld(level) : null;
-        return (x, z) -> {
-            if (noise != null && !level.hasChunk(x >> 4, z >> 4))
-            {
-                return noise.ground(x, z);
-            }
-            int real = groundTop(level, x, z);
-            return noise == null ? real : Math.min(real, noise.ground(x, z));
+        return planningGround(level, null);
+    }
+
+    /** As {@link #planningGround(ServerLevel)}, reading the generator's heights from {@code noiseHeights} where it has them. */
+    static LairShape.Ground planningGround(ServerLevel level, @Nullable Map<Long, Integer> noiseHeights)
+    {
+        LairShape.Ground generator = noiseGround(level);
+        LairShape.Ground noise = noiseHeights == null ? generator : (x, z) -> {
+            Integer known = noiseHeights.get(column(x, z));
+            return known != null ? known : generator.top(x, z);
         };
+        return (x, z) -> {
+            if (!level.hasChunk(x >> 4, z >> 4))
+            {
+                return noise.top(x, z);
+            }
+            return Math.min(groundTop(level, x, z), noise.top(x, z));
+        };
+    }
+
+    /** The world generator's own ground (the Y of a column's top ground block, before trees, rocks and lava pools). */
+    static LairShape.Ground noiseGround(ServerLevel level)
+    {
+        net.minecraft.world.level.chunk.ChunkGenerator generator = level.getChunkSource().getGenerator();
+        net.minecraft.world.level.levelgen.RandomState random = level.getChunkSource().randomState();
+        return (x, z) -> generator.getBaseHeight(x, z, Heightmap.Types.OCEAN_FLOOR_WG, level, random) - 1;
     }
 
     /** The Y of a column's top ground block: the highest full-topped block that isn't a log, leaves or fluid. */
@@ -425,24 +546,44 @@ final class LairBuilder
             this.random = RandomSource.create(Surface.seed(level.getSeed(), cx, cz) + 1L);
         }
 
-        void run()
+        /**
+         * The build's steps, in order ({@link LairTuning#BUILD_STEPS} of them): one a tick when spread out. The lava is
+         * all placed and walled in within one step (it would start flowing about 30 ticks after it's placed otherwise).
+         */
+        List<Runnable> steps()
         {
-            removeTrees();
-            cone();
-            shell();
-            cavern();
-            crater();
-            floor();
-            entrance();
-            approach();
-            stalactites();
-            sealFluids();
-            dropUnsupported();
-            veins();
-            fissures();
-            rivulets();
-            containLava();
-            fireGuard();
+            List<Runnable> steps = List.of(
+                    this::removeTrees,
+                    this::cone,
+                    () -> {
+                        shell();
+                        cavern();
+                    },
+                    () -> {
+                        crater();
+                        floor();
+                    },
+                    () -> {
+                        entrance();
+                        approach();
+                        stalactites();
+                    },
+                    () -> {
+                        sealFluids();
+                        dropUnsupported();
+                        veins();
+                    },
+                    () -> {
+                        fissures();
+                        rivulets();
+                        containLava();
+                        fireGuard();
+                    });
+            if (steps.size() != BUILD_STEPS)
+            {
+                throw new IllegalStateException("LairTuning.BUILD_STEPS is " + BUILD_STEPS + " but the build has " + steps.size() + " steps");
+            }
+            return steps;
         }
 
         Vec3 entranceSpot()

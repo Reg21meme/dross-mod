@@ -1,14 +1,18 @@
 """
 Draws the Rage Wand's textures (original pixel art, no Minecraft textures used):
 
-  src/main/resources/assets/dross/textures/item/rage_wand.png     16 x 16, the wand (held like a tool: handheld model)
-  src/main/resources/assets/dross/textures/mob_effect/rage.png    18 x 18, the Rage effect's icon (an anger mark)
+  src/main/resources/assets/dross/textures/item/rage_wand_<team>.png   16 x 16, the wand on each of its five teams
+                                                                      (blue, red, green, yellow, purple; held like a
+                                                                      tool: handheld model, picked by the item model's
+                                                                      dross:rage_team overrides)
+  src/main/resources/assets/dross/textures/mob_effect/rage.png         18 x 18, the Rage effect's icon (an anger mark)
 
-and an enlarged preview of both (rage_wand_preview.png) in the folder given with --preview (default: none).
+and an enlarged preview of them all (rage_wand_preview.png) in the folder given with --preview (default: none).
 
 The wand: a dark, charred shaft with a red-corded grip and an iron knob, ending in a cup of dark iron that holds an
-angry red crystal glowing white-hot at its heart, with a faint red glow round it. The icon: four red curved strokes
-bulging towards the middle (the "anger vein" mark), outlined in near-black like Minecraft's own effect icons.
+angry crystal in its team's colour, glowing white-hot at its heart, with a faint glow round it (the user's request,
+October 16: the wand's crystal shows its team). The icon: four red curved strokes bulging towards the middle (the
+"anger vein" mark), outlined in near-black like Minecraft's own effect icons.
 
 Run from the project folder:  python tools/ragewand/draw.py
 """
@@ -20,7 +24,7 @@ from PIL import Image
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 TEXTURES = os.path.join(ROOT, "src", "main", "resources", "assets", "dross", "textures")
-WAND_PNG = os.path.join(TEXTURES, "item", "rage_wand.png")
+WAND_PNG = os.path.join(TEXTURES, "item", "rage_wand_{team}.png")
 ICON_PNG = os.path.join(TEXTURES, "mob_effect", "rage.png")
 
 # ---------------------------------------------------------------- palette (RGBA)
@@ -35,14 +39,21 @@ CORD_DARK = (80, 16, 16, 255)
 IRON_LIGHT = (104, 94, 108, 255)
 IRON = (66, 58, 70, 255)
 IRON_DARK = (34, 28, 36, 255)
-# The crystal: angry red, white-hot at the heart, darker at its spikes.
-CRYSTAL_SPIKE = (142, 12, 18, 255)
-CRYSTAL_EDGE = (184, 18, 26, 255)
-CRYSTAL = (232, 38, 31, 255)
-CRYSTAL_BRIGHT = (255, 96, 64, 255)
-CRYSTAL_HOT = (255, 214, 190, 255)
-# The faint glow round the crystal (see-through).
-GLOW = (190, 20, 18, 96)
+# The crystal, one palette per team (the order of the mod's RageTeam: blue, red, green, yellow, purple): its spikes
+# (darkest), edges, body, the lit side, the white-hot heart, and the faint see-through glow round it. The colours match
+# DrossColors.RAGE_TEAM_* (the body) closely.
+CRYSTALS = {
+    "blue": dict(spike=(10, 38, 140, 255), edge=(22, 70, 200, 255), crystal=(46, 107, 255, 255),
+                 bright=(127, 168, 255, 255), hot=(220, 232, 255, 255), glow=(30, 80, 230, 96)),
+    "red": dict(spike=(142, 12, 18, 255), edge=(184, 18, 26, 255), crystal=(232, 38, 31, 255),
+                bright=(255, 96, 64, 255), hot=(255, 214, 190, 255), glow=(190, 20, 18, 96)),
+    "green": dict(spike=(18, 96, 22, 255), edge=(30, 150, 34, 255), crystal=(60, 207, 58, 255),
+                  bright=(150, 240, 120, 255), hot=(226, 255, 210, 255), glow=(40, 170, 40, 96)),
+    "yellow": dict(spike=(150, 104, 8, 255), edge=(206, 156, 18, 255), crystal=(255, 210, 46, 255),
+                   bright=(255, 236, 120, 255), hot=(255, 252, 220, 255), glow=(230, 180, 20, 96)),
+    "purple": dict(spike=(76, 18, 120, 255), edge=(118, 32, 176, 255), crystal=(166, 66, 234, 255),
+                   bright=(206, 140, 255, 255), hot=(242, 224, 255, 255), glow=(140, 50, 210, 96)),
+}
 
 # The icon: red strokes, shaded, with a near-black outline.
 ICON_OUTLINE = (43, 3, 3, 255)
@@ -67,7 +78,8 @@ def put(img, x, y, colour):
         img[y, x] = colour
 
 
-def draw_wand():
+def draw_wand(team="red"):
+    c = CRYSTALS[team]
     img = np.zeros((WAND_SIZE, WAND_SIZE, 4), dtype=np.uint8)
 
     # The shaft: row y = 15 - x holds pixels x (lit side) and x + 1 (shadow side).
@@ -102,13 +114,13 @@ def draw_wand():
                 continue
             crystal.add((cx + dx, cy + dy))
             if d == 0:
-                colour = CRYSTAL_HOT
+                colour = c["hot"]
             elif d == 1:
-                colour = CRYSTAL_BRIGHT if dx <= 0 and dy <= 0 else CRYSTAL
+                colour = c["bright"] if dx <= 0 and dy <= 0 else c["crystal"]
             elif dx == 0 or dy == 0:
-                colour = CRYSTAL_SPIKE
+                colour = c["spike"]
             else:
-                colour = CRYSTAL_EDGE
+                colour = c["edge"]
             put(img, cx + dx, cy + dy, colour)
 
     # A faint red glow in the empty pixels beside the crystal.
@@ -116,7 +128,7 @@ def draw_wand():
         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 nx, ny = x + dx, y + dy
                 if 0 <= nx < WAND_SIZE and 0 <= ny < WAND_SIZE and img[ny, nx, 3] == 0:
-                    img[ny, nx] = GLOW
+                    img[ny, nx] = c["glow"]
     return img
 
 
@@ -164,19 +176,23 @@ def save(img, path):
     print("wrote", os.path.relpath(path, ROOT))
 
 
-def preview(wand, icon, folder):
-    """Both textures enlarged side by side on a dark checkerboard (to see the see-through glow)."""
-    scale = 16
+def preview(wands, icon, folder):
+    """Every texture enlarged side by side on a dark checkerboard (to see the see-through glow)."""
+    scale = 12
     w = WAND_SIZE * scale
     i = ICON_SIZE * scale
-    gap = 32
-    canvas = Image.new("RGBA", (w + gap + i + 2 * gap, max(w, i) + 2 * gap), (24, 24, 30, 255))
+    gap = 24
+    width = len(wands) * (w + gap) + i + 2 * gap
+    canvas = Image.new("RGBA", (width, max(w, i) + 2 * gap), (24, 24, 30, 255))
     rows, cols = np.indices(canvas.size[::-1])
     checker = (rows // 16 + cols // 16) % 2
     base = np.where(checker[..., None] == 0, np.array([30, 30, 38, 255]), np.array([44, 44, 54, 255])).astype(np.uint8)
     canvas = Image.fromarray(base, "RGBA")
-    canvas.alpha_composite(Image.fromarray(wand, "RGBA").resize((w, w), Image.NEAREST), (gap, gap))
-    canvas.alpha_composite(Image.fromarray(icon, "RGBA").resize((i, i), Image.NEAREST), (gap + w + gap, gap))
+    x = gap
+    for wand in wands:
+        canvas.alpha_composite(Image.fromarray(wand, "RGBA").resize((w, w), Image.NEAREST), (x, gap))
+        x += w + gap
+    canvas.alpha_composite(Image.fromarray(icon, "RGBA").resize((i, i), Image.NEAREST), (x, gap))
     os.makedirs(folder, exist_ok=True)
     out = os.path.join(folder, "rage_wand_preview.png")
     canvas.save(out)
@@ -187,12 +203,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.strip().splitlines()[0])
     parser.add_argument("--preview", help="also write an enlarged preview into this folder")
     args = parser.parse_args()
-    wand = draw_wand()
+    wands = [draw_wand(team) for team in CRYSTALS]
     icon = draw_icon()
-    save(wand, WAND_PNG)
+    for team, wand in zip(CRYSTALS, wands):
+        save(wand, WAND_PNG.format(team=team))
     save(icon, ICON_PNG)
     if args.preview:
-        preview(wand, icon, args.preview)
+        preview(wands, icon, args.preview)
 
 
 if __name__ == "__main__":

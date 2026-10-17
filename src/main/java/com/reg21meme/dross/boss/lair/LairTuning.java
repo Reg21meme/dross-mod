@@ -11,47 +11,49 @@ package com.reg21meme.dross.boss.lair;
  */
 public final class LairTuning
 {
-    // ---------------------------------------------------------------- where it goes (searched with the world generator's noise)
+    // ---------------------------------------------------------------- where it goes (the boss-site planner's fit test, LairFinder)
 
-    /** The lair is looked for in this many directions from the hub at 0,0... */
-    public static final int DIRECTIONS = 3;
-    /** ...this many degrees apart... */
-    public static final double DIRECTION_SPACING_DEGREES = 120.0D;
-    /**
-     * ...turned by an angle from the world seed (0 to 120 degrees, so each world's directions differ). The seed is mixed
-     * with this number first, so the angle isn't tied to other seed-based choices.
+    /*
+     * Where the lairs go is the boss-site planner's (dimension/sites/BossSites, the user's rule of October 16): the Cinder
+     * Wastes' patches in groups of 3, nearest the hub first, one lair per group. These numbers are the lair's own fit test
+     * (LairFinder): where in a patch a volcano fits, read from the world generator's noise alone.
      */
-    public static final long ROTATION_SALT = 0x436F6C6F7373L;
-    /** Along each direction it looks in a narrow cone, this many degrees either side of the line. */
-    public static final double CONE_HALF_ANGLE_DEGREES = 20.0D;
-    /** Nothing closer to the hub than this (the hub's Silverwood Forest reaches about 200 blocks out anyway)... */
-    public static final int MIN_DISTANCE = 256;
-    /** ...and nothing further than this (every biome is usually within about 1,500 blocks of the hub). */
-    public static final int MAX_DISTANCE = 6144;
-    /** The cone is walked outwards in steps of this many blocks... */
-    public static final int DISTANCE_STEP = 16;
-    /** ...with spots across it at most this many blocks apart. */
-    public static final int LATERAL_STEP = 32;
-    /**
-     * The first spot (going outwards) where the lair fits is the nearest Cinder Wastes; the spots up to this many blocks
-     * further out are compared too, and the one on the highest ground (the most rock round the cavern) is used.
-     */
-    public static final int WINDOW = 192;
+
     /**
      * Every column within this many blocks of the lair's middle must be Cinder Wastes: the volcano's foot reaches
      * {@link #CONE_BASE_RADIUS} (52) and its lava pools and the way in a little further.
      */
     public static final int FIT_RADIUS = 64;
+    /**
+     * In a group where no patch has that much room, the planner asks the roomiest patch for the lair's smallest form:
+     * then only this radius must be Cinder Wastes (the cone's foot may reach a little past the biome's edge).
+     */
+    public static final int RELAXED_FIT_RADIUS = 48;
     /** The quick check of a spot's biome samples rings this far apart... */
     public static final int FIT_COARSE_RING_STEP = 14;
     /** ...and the full check rings this far apart, with samples this far apart round each ring. */
     public static final int FIT_FINE_STEP = 6;
+    /** The fit test looks at up to this many spots of a patch, the deepest first (furthest from its edge)... */
+    public static final int FINDER_SPOTS = 16;
+    /** ...each at least this far from the spots before it. */
+    public static final int FINDER_SPOT_SPACING = 24;
     /** Of the spots that fit, this many (the ones that rise most above their surroundings) get a full ground survey. */
-    public static final int PREFILTER_KEEP = 12;
+    public static final int PREFILTER_KEEP = 8;
     /** The quick "does it rise" check compares the middle with the ground this far out, north, east, south and west. */
     public static final int ROUGH_RISE_DISTANCE = 34;
     /** The best spot is then nudged by these steps (blocks, in 8 directions each) while that buries the dome deeper. */
     public static final int[] REFINE_STEPS = {12, 6};
+    /**
+     * The volcano must be a landmark: at the spot picked, its rim must be able to stand {@link #RIM_RISE} above the high
+     * land round it without going past {@link #MAX_RIM_HEIGHT} (a deep valley under a mesa can't). If it can't, the next
+     * best spot is tried, up to this many (in a relaxed patch the best one is used anyway).
+     */
+    public static final int LANDMARK_TRIES = 4;
+    /**
+     * The landmark test reads the land's quick height, which can be a block or two off the real ground: it wants the rim's
+     * full rise to fit under its cap with this many blocks to spare.
+     */
+    public static final int LANDMARK_MARGIN = 4;
     /** A ground survey samples the floor's disc every this many blocks. */
     public static final int PLAN_GRID_STEP = 4;
     /** The "high ground" over the dome is this share of the way up the ground heights inside {@link #HIGH_GROUND_RADIUS}... */
@@ -62,11 +64,13 @@ public final class LairTuning
     public static final double DESCENT_COST = 0.1D;
     /** The search's scoring: a spot scores best when natural rock stands at least this many blocks over the dome. */
     public static final int COVER = 2;
-    /** The search's scoring: its old-style tunnel went down between these many blocks (the R2c lair's own shape). */
+    /** The search's scoring: its scoring tunnel goes down between these many blocks (the first lair's shape, kept as a yardstick). */
     public static final int MIN_DESCENT = 3;
     public static final int MAX_DESCENT = 6;
-    /** The biome is read this high (the Dross's biomes are the same at every height). */
-    public static final int BIOME_Y = 80;
+    /** The scoring tunnel is 2 x 1 + 1 = 3 blocks wide... */
+    public static final int TUNNEL_HALF_WIDTH = 1;
+    /** ...level for this many blocks out of the cavern, then climbing to its mouth. */
+    public static final int TUNNEL_STRAIGHT = 8;
 
     // ---------------------------------------------------------------- the cavern (the arena)
 
@@ -179,6 +183,15 @@ public final class LairTuning
      */
     public static final int RIM_RISE = 20;
     public static final double RIM_LAND_RADIUS = 60.0D;
+    /**
+     * "The high land round it" is the higher of two measures: the 90th percentile of the land inside
+     * {@link #RIM_LAND_RADIUS}, and the land on a ring this far from the middle (just past the cone's foot), at this
+     * percentile of this many samples round it. The second is how the headless check measures the landmark, so a cone on
+     * land rising outwards (or on a steep slope) is planned tall enough too (it once came out a block short: R7).
+     */
+    public static final double LANDMARK_RING = CONE_BASE_RADIUS + 8.0D;
+    public static final double LANDMARK_RING_PERCENTILE = 0.8D;
+    public static final int LANDMARK_RING_SAMPLES = 72;
     /** ...but never more than this many above the floor. */
     public static final int MAX_RIM_HEIGHT = 64;
     /**
@@ -307,7 +320,27 @@ public final class LairTuning
     public static final int EMBER_ONE_IN = 2;
     public static final int EMBERS = 3;
 
-    // ---------------------------------------------------------------- building it
+    // ---------------------------------------------------------------- building it (lazily: when a player first comes near)
+
+    /**
+     * Every planned lair (one per group of 3 Cinder Wastes patches) is built the first time a player in the Dross comes
+     * within this many blocks of its middle: further than anyone can see a volcano rise (a client's render distance is at
+     * most 32 chunks, 512 blocks, but the volcano's own land only loads round a player within the server's view distance),
+     * so it's normally standing long before anyone gets there.
+     */
+    public static final int BUILD_RANGE = 384;
+    /** Which planned lairs are near each player is asked (on a background thread) this often (ticks). */
+    public static final int NEAR_CHECK_TICKS = 40;
+    /** At most this many lairs are loaded and built at the same time (each loads about 200 chunks). */
+    public static final int MAX_BUILDS_AT_ONCE = 1;
+    /**
+     * A lair is built in steps, one step a tick (trees, the cone, the shell and cavern, the crater and floor, the way in
+     * and stalactites, the safety passes and veins, then all the lava at once), so the server never stalls for the whole
+     * build (about 1.6 s) in one tick.
+     */
+    public static final int BUILD_STEPS = 7;
+    /** As the world starts, the first this many groups' lair spots are worked out on a background thread (so they're ready). */
+    public static final int WARM_UP_GROUPS = 2;
 
     /**
      * Chunks this many blocks round the middle are loaded (generated if new) before it's built: the cone, and the way in
@@ -325,24 +358,12 @@ public final class LairTuning
     /** Under the passage and the apron, gaps are filled down to the ground, at most this many blocks. */
     public static final int FILL_DEPTH = 12;
 
-    // ---------------------------------------------------------------- the R2c lair (old worlds keep theirs)
-
-    /** The R2c lair's tunnel: 2 x 1 + 1 = 3 blocks wide... */
-    public static final int TUNNEL_HALF_WIDTH = 1;
-    /** ...and 5 blocks tall... */
-    public static final int TUNNEL_HEIGHT = 5;
-    /** ...level for this many blocks out of the cavern, then climbing to its mouth... */
-    public static final int TUNNEL_STRAIGHT = 8;
-    /** ...with this many blocks of level ground cut in front of it. */
-    public static final int APPROACH = 3;
-
     // ---------------------------------------------------------------- the boss
 
-    /**
-     * After the lair's Colossus is beaten, it rises again for the next player who walks in once this many ticks of game
-     * time have passed: 10 minutes. A stand-in until the "boss revive" feature (the user's, later).
+    /*
+     * No respawn (the user's decision, October 16: "do not include respawn feature"): a lair's Colossus rises once, for the
+     * first player who steps onto its floor, and once it's beaten that lair stays empty for good.
      */
-    public static final int LAIR_RESPAWN_TICKS = 12000;
     /** Whether a player has walked in is checked this often (ticks). */
     public static final int CHECK_INTERVAL_TICKS = 10;
     /** A living lair Colossus found further than this from the floor's edge (it fits up the passage now) is brought back. */

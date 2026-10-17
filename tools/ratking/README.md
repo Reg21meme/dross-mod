@@ -37,6 +37,7 @@ python tools/ratking/build.py --quick <dir> 3  # quick still views of build 3 in
 python tools/ratking/build.py --sheet <dir> 3  # build 3's full sheet into <dir>
 python tools/ratking/build.py --frames <dir> 3 rage 25 4 0.5 1.2   # big frames of one animation (yaw, scale, times)
 python tools/ratking/build.py --ball           # only his poison ball (ratkit/ball.py)
+python tools/ratking/build.py --charge <dir>   # only the spear charge's page (side views) into <dir>
 python tools/ratking/build.py --bars           # only the boss bar options (same as python tools/ratking/bossbars.py)
 python tools/ratking/build.py --trophies-only  # only his five trophies (about 7 minutes; his own files are left alone)
 python tools/ratking/build.py --trophies-only --candidates   # the ten candidates' previews again (the record; no game files)
@@ -50,7 +51,7 @@ A full build takes about 10 minutes (the clipping check and the staff guard run 
 | Path | What |
 |---|---|
 | `assets/dross/geo/entity/rat_king/<id>.geo.json` | each Rat King build's model |
-| `assets/dross/animations/entity/rat_king/<id>.animation.json` | `animation.rat_king.` sleep, wake, idle, walk, burrow, burrowed, popup, rage, death, dead, and the fight's run, sweep, cast |
+| `assets/dross/animations/entity/rat_king/<id>.animation.json` | `animation.rat_king.` sleep, wake, idle, walk, burrow, burrowed, popup, rage, death, dead, and the fight's run, sweep, cast, charge_start, charge, charge_skid |
 | `assets/dross/{geo,animations,textures}/entity/plague_ball/plague_ball...` | his poison ball (`ratkit/ball.py`): model, `animation.plague_ball.spin`, texture and `_glow.png` |
 | `assets/dross/textures/gui/rat_king_bar/option_<n>.png` | the eight boss bar options (`bossbars.py`) |
 | `boss/client/RatKingBarStyles.java` | the generated list of the bar options (regions and offsets, below) |
@@ -58,7 +59,7 @@ A full build takes about 10 minutes (the clipping check and the staff guard run 
 | `assets/dross/{geo,animations,textures}/entity/rat/<id>...` | the rats (`animation.rat.` idle, run); `_glow.png` red eyes and boils |
 | `assets/dross/textures/particle/zzz.png`, `particles/zzz.json` | the Zzz particle |
 | `boss/ratking/RatKingDesigns.java`, `RatDesigns.java` | the generated design lists (names, sign text, every animation timing the mod's particles and sounds use) |
-| `boss-previews/rat_king/` | `ratking_<label>_<id>_<front/side/back>.png`, `ratking_<label>_<id>_sheet.png` (four views, at night, enraged, and a filmstrip of every animation with the Zzz and steam sketched in), `ratking_all.png` |
+| `boss-previews/rat_king/` | `ratking_<label>_<id>_<front/side/back>.png`, `ratking_<label>_<id>_sheet.png` (four views, at night, enraged, and a filmstrip of every animation with the Zzz and steam sketched in), `ratking_<label>_<id>_charge.png` (the spear charge from the side, blended between its animations the way GeckoLib does), `ratking_all.png` |
 | `boss-previews/rat_king/rats/` | `rat_<label>_<id>_<front/side/back>.png` and `rats_sheet.png` |
 | `boss-previews/rat_king/plague_ball.png` | the poison ball from a few angles, at night, and its tumble |
 | `boss-previews/rat_king/bossbar-previews/` | `option_<n>.png` (normal and Rage at full, half and low health, 3x) and `all_options.png` |
@@ -111,9 +112,8 @@ renderer uses it), so his front is +z there; checks against model-space spots (t
 
 ## The fight's animations
 
-His fight (not built in Java yet) has three animations of its own, in `ratkit/king_anims.py` (every number a labelled
-constant at the top of each; `record()` runs every frame through the staff guard and the build's clipping check covers
-them like the others):
+His fight has six animations of its own, in `ratkit/king_anims.py` (every number a labelled constant at the top of
+each; `record()` runs every frame through the staff guard and the build's clipping check covers them like the others):
 
 - **run** (loop, `RUN_*`): a fast, low scurry, leaning well in, on his toes, the staff carried forward in his fist
   with the orb leading, his cape streaming out behind (`Secondary`'s `"stream"` cape mode, `CAPE_STREAM_*`) and his tail
@@ -126,6 +126,22 @@ them like the others):
 - **cast** (once, `CAST_*`): he holds the staff out in front, aims (a squint, a tremble), draws it back and flicks it
   forward; the poison ball leaves the orb at `castRelease`, from `castForward` / `castUp` / `castRight` (blocks in front
   of him, above his feet and to his right: the orb at that moment). Then he eases back into his idle hold.
+
+- **charge_start** (holds, `CHARGE_START_T`, `WINDUP_*`): the spear charge's wind-up (the user's request, October 16).
+  The mod's wind-up is 0.4 s (`RatKingTuning.CHARGE_WINDUP_TICKS`): GeckoLib's 0.2 s blend carries him into this
+  animation's first frame, already crouched low in a sprinter's stance with the staff levelled forward like a spear,
+  and these 0.2 s coil him lower, drawing the staff back a touch, trembling.
+- **charge** (loop, `CHARGE`, `LANCE_*`): the dash. The run's legs (`scurry`, shared with the run, which it leaves
+  exactly as it was), faster and lower (one loop `CHARGE["stride"]` units in `CHARGE["T"]` seconds: 9 blocks a second),
+  the staff slid through his fist (`LANCE_SLIDE`, held near its foot) and held out in front of him like a lance. Its
+  meta gives `reach` (how far in front of his middle the orb leads: `chargeReach`, what the dash hits) and the stride,
+  so the mod plays it as fast as he really dashes.
+- **charge_skid** (holds, `CHARGE_SKID_T`, `SKID_*`): a miss (or a wall). The mod's 0.5 s recovery
+  (`RatKingTuning.CHARGE_RECOVER_TICKS`) is the blend into the first frame (braced, leaning back, his left foot dug in
+  on its heel) and these 0.3 s straightening up into his idle hold. A hit goes straight into the sweep instead.
+
+The charge's sound is `sounds.py`'s `king_charge` (`entity.rat_king.charge`, two versions: a war-cry squeak and a
+rising squeal over scurrying claws and rushing air).
 
 Helpers they share: `staff_hold` (IK the staff arm so his fist sits on a spot and the shaft points a way, with the
 staff slid through his fist), `orb_point`, `direction_at` (yaw 0 = straight ahead, + his left), `plant_feet_clear`

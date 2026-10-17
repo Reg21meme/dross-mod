@@ -3,6 +3,8 @@ package com.reg21meme.dross.dimension;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.WildGolemSpawns;
+import com.reg21meme.dross.dimension.sewer.SewerStructure;
+import com.reg21meme.dross.dimension.sewer.Sewers;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import java.util.ArrayList;
@@ -41,6 +43,7 @@ import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.chunk.ChunkGenerator;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -51,11 +54,13 @@ import org.slf4j.Logger;
  * {@code tools/terrain/worldgen.py}: BIOMES, {@code SPAWN_OVERRIDES}). Run them with
  * {@code .\gradlew.bat runGameTestServer --console=plain}.
  * <ul>
- *   <li>{@link #spawnListsPerBiome}: five biomes keep the old Dross spawn lists exactly (those of the old superflat
- *       biome, Dross Flats: the plains monsters minus slimes, creepers and spiders, the plains animals, bats), and the
- *       Cinder Wastes list only the Cinder Colossus's golems (the user's round 2 request): stone and lava golems as
- *       monsters, a lava golem 1 pick in {@value #LAVA_GOLEM_ONE_IN}, both with a crowding limit (spawn costs), and
- *       nothing in any other list (no animals, no bats).</li>
+ *   <li>{@link #spawnListsPerBiome}: four biomes keep the old Dross spawn lists exactly (those of the old superflat
+ *       biome, Dross Flats: the plains monsters minus slimes, creepers and spiders, the plains animals, bats); Blightwood
+ *       keeps them with the rats added (about a third of the mobs spawning there, 1 in 5 of them enraged); the sewers
+ *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only the Cinder
+ *       Colossus's golems (the user's round 2 request): stone and lava golems as monsters, a lava golem 1 pick in
+ *       {@value #LAVA_GOLEM_ONE_IN}, both with a crowding limit (spawn costs), and nothing in any other list (no animals,
+ *       no bats).</li>
  *   <li>{@link #cinderWastesSpawnOnlyGolems}: a natural-spawning pass on real Cinder Wastes ground (the sample site of
  *       {@link TerrainChunksGameTest}, generated for real) gives stone golems and nothing else that isn't a golem: no
  *       zombies or skeletons; lava golems only near lava; and the crowding limit keeps them few.</li>
@@ -73,6 +78,15 @@ public final class DrossSpawnsGameTest
     /** Mobs the old lists must still have, and the ones the user removed from them (slimes, creepers, spiders). */
     private static final List<EntityType<?>> OLD_MONSTERS_KEPT = List.of(EntityType.ZOMBIE, EntityType.SKELETON);
     private static final List<EntityType<?>> OLD_MONSTERS_REMOVED = List.of(EntityType.SLIME, EntityType.CREEPER, EntityType.SPIDER);
+    /**
+     * The user's rats (October 2026): on Blightwood's surface about a third of the mobs spawning are rats, 1 in 5 of those
+     * enraged; in the sewers and the rat cave only rats, 3 in 5 enraged. (Counting group sizes; worldgen.py's SEWERS.)
+     */
+    private static final double BLIGHTWOOD_RAT_SHARE = 1.0D / 3.0D;
+    private static final double BLIGHTWOOD_ENRAGED_SHARE = 1.0D / 5.0D;
+    private static final double SEWER_ENRAGED_SHARE = 3.0D / 5.0D;
+    private static final double RAT_CAVE_ENRAGED_SHARE = 3.0D / 5.0D;
+    private static final double SHARE_TOLERANCE = 0.02D;
 
     /** Spawn attempts in the natural-spawning pass, each at a random column of the site (on its ground). */
     private static final int ATTEMPTS = 3000;
@@ -133,9 +147,48 @@ public final class DrossSpawnsGameTest
             {
                 checkCinderLists(biome.getMobSettings(), problems);
             }
+            else if (key.equals(DrossBiomes.BLIGHTWOOD))
+            {
+                checkBlightwoodLists(biome.getMobSettings(), oldMobs, problems);
+            }
             else
             {
                 checkSameAsOld(DrossBiomes.name(key), biome.getMobSettings(), oldMobs, problems);
+            }
+        }
+        // The sewers under Blightwood: only rats (3 in 5 enraged), nothing in any other list; the rat cave's own list the same
+        Biome sewers = biomes.get(DrossBiomes.SEWERS);
+        if (sewers == null)
+        {
+            problems.add("the sewers biome " + DrossBiomes.SEWERS.location() + " isn't registered");
+        }
+        else
+        {
+            String rats = SewersGameTest.ratsOnly("the sewers", sewers.getMobSettings().getMobs(MobCategory.MONSTER), SEWER_ENRAGED_SHARE);
+            if (rats != null)
+            {
+                problems.add(rats);
+            }
+            for (MobCategory category : MobCategory.values())
+            {
+                if (category != MobCategory.MONSTER && !sewers.getMobSettings().getMobs(category).isEmpty())
+                {
+                    problems.add("the sewers' " + category.getName() + " list should be empty (only rats there), but it's "
+                            + describe(sewers.getMobSettings().getMobs(category)));
+                }
+            }
+        }
+        Structure ratCave = helper.getLevel().registryAccess().registryOrThrow(Registries.STRUCTURE).get(Sewers.RAT_CAVE);
+        if (!(ratCave instanceof SewerStructure caveStructure) || !caveStructure.hasRatCave())
+        {
+            problems.add("the structure " + Sewers.RAT_CAVE.location() + " isn't a rat cave network");
+        }
+        else
+        {
+            String rats = SewersGameTest.ratsOnly("the rat cave", caveStructure.ratCaveMonsters(), RAT_CAVE_ENRAGED_SHARE);
+            if (rats != null)
+            {
+                problems.add(rats);
             }
         }
         if (!problems.isEmpty())
@@ -171,6 +224,58 @@ public final class DrossSpawnsGameTest
         if (mobs.getCreatureProbability() != oldMobs.getCreatureProbability())
         {
             problems.add(name + "'s animal chance is " + mobs.getCreatureProbability() + ", the old Dross biome's " + oldMobs.getCreatureProbability());
+        }
+    }
+
+    /**
+     * Blightwood: the old Dross lists, with the rats added to its monsters (the user's request, October 2026): about a third
+     * of the mobs spawning there are rats (counting group sizes: weight x average group), about 1 in 5 of them enraged.
+     */
+    private static void checkBlightwoodLists(MobSpawnSettings mobs, MobSpawnSettings oldMobs, List<String> problems)
+    {
+        EntityType<?> rat = ModEntities.RAT.get();
+        EntityType<?> enraged = ModEntities.ENRAGED_RAT.get();
+        List<String> withoutRats = new ArrayList<>();
+        double rats = 0.0D;
+        double enragedRats = 0.0D;
+        double all = 0.0D;
+        for (MobSpawnSettings.SpawnerData data : mobs.getMobs(MobCategory.MONSTER).unwrap())
+        {
+            double count = data.getWeight().asInt() * (data.minCount + data.maxCount) / 2.0D;
+            all += count;
+            if (data.type == rat || data.type == enraged)
+            {
+                rats += count;
+                enragedRats += data.type == enraged ? count : 0.0D;
+            }
+            else
+            {
+                withoutRats.add(EntityType.getKey(data.type) + " " + data.getWeight().asInt() + " " + data.minCount + "-" + data.maxCount);
+            }
+        }
+        if (!withoutRats.equals(describe(oldMobs.getMobs(MobCategory.MONSTER))))
+        {
+            problems.add("Blightwood's monsters besides the rats should be the old Dross list " + describe(oldMobs.getMobs(MobCategory.MONSTER))
+                    + ", but they're " + withoutRats);
+        }
+        if (all <= 0.0D || rats <= 0.0D || Math.abs(rats / all - BLIGHTWOOD_RAT_SHARE) > SHARE_TOLERANCE
+                || Math.abs(enragedRats / rats - BLIGHTWOOD_ENRAGED_SHARE) > SHARE_TOLERANCE)
+        {
+            problems.add(String.format(Locale.ROOT, "in Blightwood rats should be about a third of the mobs (they're %.1f%%) and 1 in 5 of them enraged "
+                    + "(%.1f%%): %s", 100.0D * rats / Math.max(1.0D, all), 100.0D * enragedRats / Math.max(1.0D, rats), describe(mobs.getMobs(MobCategory.MONSTER))));
+        }
+        LOGGER.info("[dross spawns] Blightwood: rats are {}% of the mobs spawning ({}% of them enraged); the sewers and the rat cave: rats only",
+                String.format(Locale.ROOT, "%.1f", 100.0D * rats / Math.max(1.0D, all)), String.format(Locale.ROOT, "%.1f", 100.0D * enragedRats / Math.max(1.0D, rats)));
+        for (MobCategory category : MobCategory.values())
+        {
+            if (category != MobCategory.MONSTER && !describe(mobs.getMobs(category)).equals(describe(oldMobs.getMobs(category))))
+            {
+                problems.add("Blightwood's " + category.getName() + " list should be the old Dross list");
+            }
+        }
+        if (mobs.getCreatureProbability() != oldMobs.getCreatureProbability())
+        {
+            problems.add("Blightwood's animal chance should be the old Dross biome's");
         }
     }
 

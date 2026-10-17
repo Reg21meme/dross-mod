@@ -47,6 +47,7 @@ public final class RatKingSounds
             new Sound("Rat King: moves", "entity.rat_king.thud", "Falling flat on his back (with a silly boing)", 1, true),
             new Sound("Rat King: moves", "entity.rat_king.staff_clatter", "His staff clattering down", 1, true),
             new Sound("Rat King: moves", "entity.rat_king.crown_clink", "His crown landing on his belly", 1, true),
+            new Sound("Rat King: moves", "entity.rat_king.charge", "The spear charge: a war-cry squeak or a rising squeal, scurrying claws, the air rushing (2 versions)", 2, true),
             new Sound("Rat King: attacks (for the fight; pick your favourites)", "entity.rat_king.attack.swipe_1", "Claw swipe, version 1", 1, false),
             new Sound("Rat King: attacks (for the fight; pick your favourites)", "entity.rat_king.attack.swipe_2", "Claw swipe, version 2", 1, false),
             new Sound("Rat King: attacks (for the fight; pick your favourites)", "entity.rat_king.attack.swipe_3", "Claw swipe, version 3", 1, false),

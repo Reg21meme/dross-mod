@@ -93,7 +93,8 @@ import java.util.UUID;
  *       ({@link RatKingTuning#WAKE_RANGE_SNEAKING} if they sneak), or anything that hurts him, wakes him (that hit does
  *       no damage). He can't be hurt while he wakes up; then his boss bar appears and he fights, and never sleeps
  *       again.</li>
- *   <li>His moves ({@link RatKingAttackGoal}): a staff <b>sweep</b> close up and a <b>poison shot</b> (one
+ *   <li>His moves ({@link RatKingAttackGoal}): a staff <b>sweep</b> close up, the <b>spear charge</b> (a dash to
+ *       where his target stood, the staff held out like a lance, into a sweep if it hits) and a <b>poison shot</b> (one
  *       {@link PlagueBall}, three in the Rage) from further away; between them he runs at his target.</li>
  *   <li>Every {@link RatKingTuning#BURROW_EVERY} health he loses ({@link RatKingTuning#RAGE_BURROW_EVERY} in the Rage)
  *       he <b>burrows</b> ({@link RatKingBurrow}): he digs and dives in, tunnels towards his target, calls his
@@ -112,7 +113,7 @@ import java.util.UUID;
  * <b>Showcase Rat Kings</b> ({@link #spawnShowcase}, saved with {@code Showcase}) stand frozen (no AI), make no sound
  * of their own (no chatter; only their animations' sounds), can't be pushed, never despawn (not even on Peaceful) and
  * can't be hurt except by {@code /kill}. Right-clicking one plays his next animation (sleep, wake up, walk, burrow, pop
- * up, rage, die, stand); sneak + right-click: he dies. They never fight.
+ * up, rage, the spear charge on the spot, die, stand); sneak + right-click: he dies. They never fight.
  */
 public class RatKing extends Monster implements GeoEntity, RageLeader
 {
@@ -173,10 +174,18 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
     private static final float EPSILON = 1.0E-3F;
     /** How far (degrees) his head may turn away from his body before his body follows (Minecraft's usual is 40). */
     private static final int HEAD_TURN = 10;
+    /** A showcase king's spear charge dashes on the spot this long (ticks) before he skids. */
+    private static final int SHOWCASE_DASH_TICKS = 30;
+    /** The charge's dust: kicked up behind his feet every other tick as he dashes, and a spray as he skids. */
+    private static final int DASH_DUST = 2;
+    private static final int SKID_DUST = 16;
+    /** How loud the showcase's charge cry is. */
+    private static final float SHOWCASE_CHARGE_VOLUME = 1.0F;
 
     /** The showcase's right-click order: each click plays the next one. */
     private static final RatKingAction[] CYCLE = {RatKingAction.SLEEP, RatKingAction.WAKE, RatKingAction.WALK,
-            RatKingAction.BURROW, RatKingAction.POPUP, RatKingAction.RAGE, RatKingAction.DEATH, RatKingAction.IDLE};
+            RatKingAction.BURROW, RatKingAction.POPUP, RatKingAction.RAGE, RatKingAction.CHARGE_START, RatKingAction.DEATH,
+            RatKingAction.IDLE};
 
     private static final Map<RatKingAction, RawAnimation> ANIMATIONS = new EnumMap<>(RatKingAction.class);
 
@@ -400,6 +409,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
             case BURROW, BURROWED -> "burrow";
             case POPUP -> "popup";
             case RAGE -> "rage";
+            case CHARGE_START, CHARGE, CHARGE_SKID -> "charge";
             case DEATH, DEAD -> "die";
             default -> "idle";
         };
@@ -741,7 +751,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
         return this.level().getEntitiesOfClass(Rat.class, area, rat -> rat.isAlive() && rat.belongsTo(this));
     }
 
-    /** The Rage Wand ({@code boss.rage}): when he's raged, his rats join his side. */
+    /** The Rage Wand ({@code boss.rage}): when he's raged, his rats join his team. */
     @Override
     public List<? extends Mob> rageFollowers()
     {
@@ -1006,7 +1016,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
 
     /**
      * Something his blows may hit: alive, living, not himself, not a spectator; not another Rat King or a rat, unless
-     * the Rage Wand has made that one his enemy ({@link Rage#areEnemies}: raged, on another side).
+     * the Rage Wand has made that one his enemy ({@link Rage#areEnemies}: raged, on another team).
      */
     boolean canHit(Entity entity)
     {
@@ -1067,6 +1077,20 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
             case DEATH -> {
                 if (t >= d.deathTicks()) this.startAction(RatKingAction.DEAD);
             }
+            // The spear charge on the spot: the wind-up, a dash, the skid.
+            case CHARGE_START -> {
+                if (t >= d.chargeStartTicks() + SETTLE_TICKS)
+                {
+                    this.startAction(RatKingAction.CHARGE);
+                    this.sound(ModSounds.RAT_KING_CHARGE.get(), SHOWCASE_CHARGE_VOLUME);
+                }
+            }
+            case CHARGE -> {
+                if (t >= SHOWCASE_DASH_TICKS) this.startAction(RatKingAction.CHARGE_SKID);
+            }
+            case CHARGE_SKID -> {
+                if (t >= d.chargeSkidTicks() + SETTLE_TICKS) this.startAction(RatKingAction.IDLE);
+            }
             default -> {
             }
         }
@@ -1120,6 +1144,15 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
             case CAST -> {
                 if (t >= d.castTicks() + MOVE_SAFETY_TICKS) this.startAction(RatKingAction.IDLE);
             }
+            case CHARGE_START -> {
+                if (t >= RatKingTuning.CHARGE_WINDUP_TICKS + MOVE_SAFETY_TICKS) this.startAction(RatKingAction.IDLE);
+            }
+            case CHARGE -> {
+                if (t >= maxDashTicks() + MOVE_SAFETY_TICKS) this.startAction(RatKingAction.IDLE);
+            }
+            case CHARGE_SKID -> {
+                if (t >= RatKingTuning.CHARGE_RECOVER_TICKS + MOVE_SAFETY_TICKS) this.startAction(RatKingAction.IDLE);
+            }
             case DEATH -> {
                 if (t >= d.deathTicks()) this.startAction(RatKingAction.DEAD);
             }
@@ -1130,6 +1163,13 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
         {
             this.updateBossBar();
         }
+    }
+
+    /** The longest a charge's dash can last (ticks): his whole run at his slower dash speed, and its slack. */
+    private static int maxDashTicks()
+    {
+        double slowest = Math.min(RatKingTuning.CHARGE_SPEED, RatKingTuning.RAGE_CHARGE_SPEED);
+        return (int) Math.ceil(RatKingTuning.CHARGE_MAX_DISTANCE / slowest) + RatKingTuning.CHARGE_SLACK_TICKS;
     }
 
     /** Asleep: a player (not a spectator) close enough wakes him; a sneaking one has to come closer. */
@@ -1340,6 +1380,12 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
             case DEATH -> {
                 if (t == d.deathFall()) this.dust(THUD_DUST, 2.2D);
             }
+            case CHARGE -> {
+                if (this.tickCount % 2 == 0) this.dust(DASH_DUST, 0.5D);
+            }
+            case CHARGE_SKID -> {
+                if (t == 0) this.dust(SKID_DUST, 1.2D);
+            }
             default -> {
             }
         }
@@ -1470,15 +1516,19 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
         return !this.isShowcase() && this.getAction() == RatKingAction.IDLE && this.walkAnimation.speed() > 0.05F;
     }
 
-    /** 1, except while a fighting king runs: then his run plays as fast as he's moving, so his feet don't slide. */
+    /**
+     * 1, except while a fighting king runs or dashes: then his run (or the charge's dash) plays as fast as he's moving,
+     * so his feet don't slide.
+     */
     private double animationSpeed()
     {
-        if (!this.isRunningShown())
+        RatKingDesigns.Design d = this.getDesign();
+        boolean dashing = !this.isShowcase() && this.getAction() == RatKingAction.CHARGE;
+        if (!dashing && !this.isRunningShown())
         {
             return 1.0D;
         }
-        RatKingDesigns.Design d = this.getDesign();
-        double natural = d.runBlocks() / Math.max(1, d.runTicks());
+        double natural = dashing ? d.chargeBlocks() / Math.max(1, d.chargeTicks()) : d.runBlocks() / Math.max(1, d.runTicks());
         double moved = Math.sqrt(Mth.square(this.getX() - this.xo) + Mth.square(this.getZ() - this.zo));
         return Mth.clamp(moved / natural, MIN_RUN_SPEEDUP, MAX_RUN_SPEEDUP);
     }

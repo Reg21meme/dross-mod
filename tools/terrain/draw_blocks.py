@@ -1866,6 +1866,132 @@ def crag_thistle():
 
 
 # =====================================================================================================================
+# The sewers under Blightwood (the user's request, October 2026)
+# =====================================================================================================================
+
+# Sewer Sludge: murky brownish green, wet and lumpy
+SLUDGE = ["#14130b", "#1c1b0f", "#252313", "#2f2c17", "#3a351b", "#453f20", "#514924", "#5e552a"]   # dark .. light
+SLUDGE_SLIME = ["#34410f", "#45561a"]                      # the murkier, greener slime pooled between the lumps
+SLUDGE_SHINE = ["#6e6a3f", "#958f5c", "#c7c18e"]           # wet glints on the lumps
+# The lumps of muck: (x, y, radius); they wrap round the edges, so the texture tiles
+SLUDGE_LUMPS = [(3.5, 3.0, 3.6), (11.0, 2.5, 2.8), (8.5, 9.0, 3.8), (1.5, 11.5, 3.0), (14.0, 11.0, 3.2), (6.0, 15.0, 2.4)]
+SLUDGE_BUBBLES = [(10, 13), (2, 6)]                        # small bubbles (top-left pixel of each)
+
+
+def sewer_sludge():
+    """Murky brownish-green sludge: soft lumps of muck that run into each other (a smooth bumpy surface), lit from the
+    top left, with darker greener slime pooled in the hollows, wet glints along the lumps' lit sides and two small
+    bubbles. Tiles in every direction."""
+    yy, xx = np.mgrid[0:S, 0:S] + 0.5
+    h = np.zeros((S, S))
+    for cx, cy, r in SLUDGE_LUMPS:
+        dx = (xx - cx + S / 2) % S - S / 2
+        dy = (yy - cy + S / 2) % S - S / 2
+        h += np.exp(-(dx * dx + dy * dy) / (r * r * 0.9))
+    h += 0.35 * fbm([(4, 4, 0.6), (8, 8, 0.4)], seed=611)
+    h = (h - h.min()) / max(h.max() - h.min(), 1e-9)
+    # light from the top left: brighter where the surface rises towards it
+    light = (roll(h, 1, 1) - h)                     # the pixel up-left is higher: this one faces away, in shade
+    light = -light / max(np.abs(light).max(), 1e-9)
+    level = 1.0 + 4.6 * h + 1.3 * light
+    lv = np.clip(np.round(level), 0, len(SLUDGE) - 1).astype(int)
+    img = fill(lv, SLUDGE)
+    # greener slime pooled in the hollows
+    slime = fbm([(4, 2, 0.6), (8, 4, 0.4)], seed=617)
+    for y, x in zip(*np.nonzero((h < 0.32) & (slime > 0.45))):
+        tint(img, x, y, SLUDGE_SLIME[1] if slime[y, x] > 0.7 else SLUDGE_SLIME[0], 0.55)
+    # wet glints: short runs along the brightest lit edges
+    score = h + 0.8 * light
+    placed = []
+    for idx in np.argsort(score, axis=None)[::-1]:
+        y, x = divmod(int(idx), S)
+        if any(min(abs(x - px), S - abs(x - px)) + min(abs(y - py), S - abs(y - py)) < 5 for px, py in placed):
+            continue
+        put(img, x, y, SLUDGE_SHINE[2] if len(placed) < 2 else SLUDGE_SHINE[1])
+        put(img, x - 1, y, SLUDGE_SHINE[0])
+        placed.append((x, y))
+        if len(placed) >= 4:
+            break
+    for x, y in SLUDGE_BUBBLES:
+        put(img, x, y, SLUDGE_SHINE[1])         # the bubble's lit top
+        put(img, x + 1, y, SLUDGE[4])
+        put(img, x, y + 1, SLUDGE[3])
+        put(img, x + 1, y + 1, SLUDGE[0])       # its shadow
+    return img
+
+
+# The Blight Vent (the Rat King's sewer, October 16): sludge-caked stone split by a crack glowing poison green
+BLIGHT_STONE = ["#121409", "#1a1d10", "#232717", "#2d321e", "#383e25", "#444b2c"]   # dark grey-green stone, dark .. light
+BLIGHT_GLOW = ["#2e680b", "#459111", "#63b91b", "#9ae33a", "#dcffa8"]           # the crack: deep edge .. white-green core
+
+
+def blight_stone(seed):
+    """Dark grey-green stone in rough blocks, caked here and there with Sewer Sludge (the base of the Blight Vent)."""
+    v = fbm([(4, 4, 0.5), (8, 8, 0.3), (16, 16, 0.2)], seed=seed)
+    lv = quantize(v, [0.10, 0.22, 0.30, 0.22, 0.12, 0.04])
+    img = fill(lv, BLIGHT_STONE)
+    above = roll(lv, 1, 0)
+    for y, x in zip(*np.nonzero(lv > above + 1)):
+        put(img, x, y, BLIGHT_STONE[min(len(BLIGHT_STONE) - 1, int(lv[y, x]) + 1)])   # lit top edges of the lumps
+    caked = fbm([(4, 4, 0.6), (8, 8, 0.4)], seed=seed + 7)
+    for y, x in zip(*np.nonzero(caked > 0.68)):
+        tint(img, x, y, SLUDGE[3] if caked[y, x] > 0.8 else SLUDGE[2], 0.7)          # sludge caked on it
+    return img
+
+
+def blight_vent_top():
+    """The top of a Blight Vent: the stone torn open by a jagged crack glowing poison green (white-green at its heart),
+    with two thinner cracks branching off and a few glowing spore specks round it. Returns (texture, glow overlay)."""
+    img = blight_stone(641)
+    glow = blank()
+    gash = np.zeros((S, S), bool)
+    for cx, cy, rx, ry in [(3.5, 11.0, 1.1, 0.9), (5.2, 9.6, 1.5, 1.2), (7.2, 8.2, 2.0, 1.5), (9.2, 7.0, 1.8, 1.4),
+                           (11.0, 5.6, 1.4, 1.1), (12.6, 4.4, 1.0, 0.8)]:
+        gash |= ellipse(cx, cy, rx, ry)
+    inner = gash & roll(gash, 1, 0) & roll(gash, -1, 0) & roll(gash, 0, 1) & roll(gash, 0, -1)
+    deep = inner & roll(inner, 1, 0) & roll(inner, -1, 0)
+    for y, x in zip(*np.nonzero(outline_of(gash))):
+        put(img, x, y, BLIGHT_STONE[0])                          # the crack's dark lips
+    for y, x in zip(*np.nonzero(gash)):
+        col = BLIGHT_GLOW[4] if deep[y, x] and (x + y) % 2 == 0 else BLIGHT_GLOW[3] if deep[y, x] else BLIGHT_GLOW[2] if inner[y, x] \
+            else BLIGHT_GLOW[1]
+        put(img, x, y, col)
+        put(glow, x, y, col)
+    for crack in ([(5, 11), (5, 12), (4, 13), (4, 14)], [(10, 8), (11, 9), (12, 10)], [(8, 6), (8, 5), (7, 3)]):
+        for i, (x, y) in enumerate(crack):
+            col = BLIGHT_GLOW[2] if i == 0 else BLIGHT_GLOW[1] if i < 2 else BLIGHT_GLOW[0]
+            put(img, x, y, col)
+            put(glow, x, y, col)
+    for x, y in [(2, 3), (14, 9), (12, 14), (1, 7)]:
+        put(img, x, y, BLIGHT_GLOW[3])
+        put(glow, x, y, BLIGHT_GLOW[3])
+    return img, glow
+
+
+def blight_vent_side():
+    """A Blight Vent's side: the stone with a glowing poison-green crack running all the way down it (it shows in a wall
+    too), wider near the top, and a drip of sludge beside it. Returns (texture, glow overlay)."""
+    img = blight_stone(643)
+    glow = blank()
+    path = [(8, 0), (8, 1), (7, 2), (7, 3), (8, 4), (8, 5), (9, 6), (9, 7), (8, 8), (8, 9), (7, 10), (7, 11), (8, 12), (8, 13),
+            (9, 14), (9, 15)]
+    for i, (x, y) in enumerate(path):
+        heat = 4 if i < 3 else 3 if i < 7 else 2 if i < 12 else 1
+        put(img, x, y, BLIGHT_GLOW[heat])
+        put(glow, x, y, BLIGHT_GLOW[heat])
+        if i < 9:                                                # wider near the top: a glowing edge beside it
+            put(img, x + 1, y, BLIGHT_GLOW[max(0, heat - 2)])
+            put(glow, x + 1, y, BLIGHT_GLOW[max(0, heat - 2)])
+        put(img, x - 1, y, BLIGHT_STONE[0])
+    for x, y, col in [(4, 3, BLIGHT_GLOW[1]), (5, 4, BLIGHT_GLOW[0]), (12, 9, BLIGHT_GLOW[1]), (13, 10, BLIGHT_GLOW[0])]:
+        put(img, x, y, col)
+        put(glow, x, y, col)
+    for y in range(0, 6):                                        # a drip of sludge down from the top edge
+        put(img, 12, y, SLUDGE[3] if y < 5 else SLUDGE[4])
+    return img, glow
+
+
+# =====================================================================================================================
 # All textures
 # =====================================================================================================================
 
@@ -1912,6 +2038,8 @@ def biome_textures():
     wick, wick_glow = soulwick()
     svent_top, svent_top_glow = scar_vent_top()
     svent_side, svent_side_glow = scar_vent_side()
+    bvent_top, bvent_top_glow = blight_vent_top()
+    bvent_side, bvent_side_glow = blight_vent_side()
     return [
         ("Cinder Wastes", {
             "ash": ("block", ash()),
@@ -1965,6 +2093,14 @@ def biome_textures():
             "cragstone": ("block", cragstone()),
             "storm_lichen": ("block", storm_lichen()),
             "crag_thistle": ("block", crag_thistle()),
+        }),
+        ("The sewers under Blightwood", {
+            "sewer_sludge": ("block", sewer_sludge()),
+            "blight_vent_top": ("block", bvent_top),
+            "blight_vent_top_glow": ("block", bvent_top_glow),
+            "blight_vent_side": ("block", bvent_side),
+            "blight_vent_side_glow": ("block", bvent_side_glow),
+            "blight_vent_bottom": ("block", blight_stone(645)),
         }),
     ]
 
@@ -2190,6 +2326,11 @@ def preview_sections(textures):
             ("Storm Lichen", t["storm_lichen"], t["storm_lichen"], 0.0),
             ("Crag Thistle", t["crag_thistle"], None, 0.82),
         ]),
+        ("The sewers under Blightwood", [
+            ("Sewer Sludge", t["sewer_sludge"], t["sewer_sludge"], {}),
+            ("Blight Vent", t["blight_vent_top"], t["blight_vent_side"],
+             dict(glow_top=t["blight_vent_top_glow"], glow_side=t["blight_vent_side_glow"])),
+        ], []),
     ]
 
 
@@ -2244,6 +2385,26 @@ def _paste(dst, src, x, y):
     dst[y:y + h, x:x + w, :3] = dst[y:y + h, x:x + w, :3] * (1 - a) + src[:h, :w, :3] * a
 
 
+def sludge_preview(tex):
+    """block-previews/sewer_sludge.png: Sewer Sludge tiled 4 x 4 (so you can see it tiles), a block of it, and a patch of
+    it on a stone brick sewer floor."""
+    scale = 6
+    tile = np.tile(tex, (4, 4, 1))
+    tiled = Image.fromarray(tile, "RGBA").resize((S * 4 * scale, S * 4 * scale), Image.NEAREST)
+    W, H = tiled.width + 360, tiled.height + 60
+    img = Image.new("RGBA", (W, H), BG)
+    img.paste(tiled, (14, 46))
+    block = iso_block(tex, tex, 150, light=1.0)
+    pic = Image.fromarray((np.clip(block, 0, 1) * 255).astype(np.uint8), "RGBA")
+    img.alpha_composite(pic, (tiled.width + 60, 60))
+    night = iso_block(tex, tex, 150, light=0.6)
+    pic = Image.fromarray((np.clip(night, 0, 1) * 255).astype(np.uint8), "RGBA")
+    img.alpha_composite(pic, (tiled.width + 60, 250))
+    d = ImageDraw.Draw(img)
+    d.text((14, 12), "Sewer Sludge: tiled 4 x 4, and as a block (lit, and dimmer)", font=font(18, True), fill=(225, 232, 245, 255))
+    return img
+
+
 def main():
     sections = texture_sections()
     textures = all_textures()
@@ -2252,6 +2413,7 @@ def main():
     os.makedirs(PREVIEW_DIR, exist_ok=True)
     sheet(sections).save(os.path.join(PREVIEW_DIR, "blocks.png"))
     blocks_3d(textures).save(os.path.join(PREVIEW_DIR, "blocks_3d.png"))
+    sludge_preview(textures["sewer_sludge"][1]).save(os.path.join(PREVIEW_DIR, "sewer_sludge.png"))
     print(f"draw_blocks: {len(textures)} textures written; previews in block-previews/")
 
 

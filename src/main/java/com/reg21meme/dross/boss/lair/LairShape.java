@@ -23,8 +23,8 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  *       face).</li>
  *   <li>{@link #approach}: the way in outside the mouth: where the gully ends, the level apron, and the land in front
  *       shaped so it never steps more than a block, out to where it meets the land.</li>
- *   <li>{@link #plan}: the R2c lair's plan, still used by the site search to score spots (it prefers high ground, so
- *       the cavern is carved into rock), and the R2c tunnel's distances for old worlds' lairs ({@link #entranceDistance}).</li>
+ *   <li>{@link #plan}: the first (R2c) lair's plan, still used by the fit test ({@link LairFinder}) to score spots (it
+ *       prefers high ground, so the cavern is carved into rock).</li>
  * </ul>
  */
 final class LairShape
@@ -78,24 +78,18 @@ final class LairShape
         return dy <= ceiling(Math.min(r, FLOOR_EDGE)) + rough;
     }
 
-    // ---------------------------------------------------------------- the R2c lair's tunnel (the search's scoring, old worlds)
+    // ---------------------------------------------------------------- the scoring tunnel (the fit test's yardstick)
 
-    /** The last block (s) of the R2c tunnel's level part. */
+    /** The last block (s) of the scoring tunnel's level part. */
     static int straightEnd()
     {
         return FLOOR_RADIUS + TUNNEL_STRAIGHT;
     }
 
-    /** The R2c tunnel's mouth (its last covered block, s), for an entrance that goes down {@code descent} blocks. */
+    /** The scoring tunnel's mouth (its last covered block, s), for an entrance that goes down {@code descent} blocks. */
     static int mouthDistance(int descent)
     {
         return straightEnd() + 2 * descent;
-    }
-
-    /** The outermost block of the R2c lair's approach in front of its mouth: where a player arriving stands. */
-    static int entranceDistance(int descent)
-    {
-        return mouthDistance(descent) + APPROACH;
     }
 
     // ---------------------------------------------------------------- the volcano
@@ -334,7 +328,7 @@ final class LairShape
             }
         }
         int[] sortedInner = inner.stream().mapToInt(Integer::intValue).sorted().toArray();
-        int high = sortedInner[(int) (sortedInner.length * 0.9D)];
+        int high = Math.max(sortedInner[(int) (sortedInner.length * 0.9D)], landmarkLand(x, z, ground));
 
         List<VolcanoPlan> plans = new ArrayList<>();
         for (double[] front : fronts)
@@ -345,6 +339,23 @@ final class LairShape
                     high, (int) front[3]));
         }
         return plans;
+    }
+
+    /**
+     * The land on the ring {@link LairTuning#LANDMARK_RING} blocks round the middle, at its
+     * {@link LairTuning#LANDMARK_RING_PERCENTILE} (of {@link LairTuning#LANDMARK_RING_SAMPLES} samples): the land the rim
+     * must stand well above to be a landmark (the headless check measures it the same way).
+     */
+    static int landmarkLand(int x, int z, Ground ground)
+    {
+        int[] land = new int[LANDMARK_RING_SAMPLES];
+        for (int k = 0; k < LANDMARK_RING_SAMPLES; k++)
+        {
+            double a = 2.0D * Math.PI * k / LANDMARK_RING_SAMPLES;
+            land[k] = ground.top(x + (int) Math.round(LANDMARK_RING * Math.cos(a)), z + (int) Math.round(LANDMARK_RING * Math.sin(a)));
+        }
+        Arrays.sort(land);
+        return land[(int) (land.length * LANDMARK_RING_PERCENTILE)];
     }
 
     /**

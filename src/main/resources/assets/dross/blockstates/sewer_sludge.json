@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "dross:block/sewer_sludge"
+      },
+      {
+        "model": "dross:block/sewer_sludge_mirrored"
+      },
+      {
+        "model": "dross:block/sewer_sludge",
+        "y": 180
+      },
+      {
+        "model": "dross:block/sewer_sludge_mirrored",
+        "y": 180
+      }
+    ]
+  }
+}

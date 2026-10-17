@@ -402,6 +402,13 @@
       {"name": "dross:rat_king/crown_clink"}
     ]
   },
+  "entity.rat_king.charge": {
+    "subtitle": "subtitles.dross.rat_king.charge",
+    "sounds": [
+      {"name": "dross:rat_king/charge_1"},
+      {"name": "dross:rat_king/charge_2"}
+    ]
+  },
   "entity.rat_king.attack.swipe_1": {
     "subtitle": "subtitles.dross.rat_king.attack.swipe",
     "sounds": [

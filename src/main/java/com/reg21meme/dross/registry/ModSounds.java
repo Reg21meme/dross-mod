@@ -92,6 +92,8 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> RAT_KING_ATTACK_SUMMON = register("entity.rat_king.attack.summon_1");
     public static final RegistryObject<SoundEvent> RAT_ATTACK = register("entity.rat.attack");
     public static final RegistryObject<SoundEvent> ENRAGED_RAT_ATTACK = register("entity.enraged_rat.attack");
+    // Boss area: the Rat King's spear charge (its own original sound, tools/ratking/sounds.py).
+    public static final RegistryObject<SoundEvent> RAT_KING_CHARGE = register("entity.rat_king.charge");
 
     private static RegistryObject<SoundEvent> register(String name)
     {

@@ -11,7 +11,8 @@ import java.util.List;
  * action does); the mod times its particles, effects and sounds to them: the Zzz and snores while asleep, the startle
  * and the yawn, the dirt flying while he digs and dives and when he bursts out, his eyes turning red, the train whistle
  * and the steam out of his ears in the rage, the thud, the staff's clatter and the crown's clink in the death; and in
- * the fight, the sweep's hit and the moment (and the spot) his cast lets the poison ball go.
+ * the fight, the sweep's hit, the moment (and the spot) his cast lets the poison ball go, and his spear charge's dash
+ * (its speed and reach).
  */
 public final class RatKingDesigns
 {
@@ -40,6 +41,15 @@ public final class RatKingDesigns
      * @param castRight   ...and to his right
      * @param popupHoleForward how far in front of his feet (blocks) the hole he pops up out of is: right under him
      *                    (under his head as he stands straight up, so he comes straight up out of it)
+     * @param chargeStartTicks the spear charge's wind-up animation (it follows GeckoLib's blend; the mod's wind-up is
+     *                    RatKingTuning.CHARGE_WINDUP_TICKS, from the start of the move)
+     * @param chargeBlocks how far one loop of his dash would carry him (blocks): play it at
+     *                    (blocks a tick he moves) / (chargeBlocks / chargeTicks) times its speed so his feet don't slide
+     * @param chargeTicks the dash loop's length
+     * @param chargeReach how far in front of his middle (blocks) the staff's orb leads in the dash: the charge hits
+     *                    what's within it
+     * @param chargeSkidTicks the skid when the charge misses (it follows GeckoLib's blend; the mod's recovery is
+     *                    RatKingTuning.CHARGE_RECOVER_TICKS)
      */
     public record Design(int number, String label, String id, String name, String mood, boolean curledSleep,
                          boolean hasGlow, int wakeTicks, int wakeStartle, int burrowTicks, int digFrom, int digTo,
@@ -49,7 +59,9 @@ public final class RatKingDesigns
                          int sleepTicks, int wakeYawn, int wakeGrab, int rageScreech, int deathClatter,
                          int deathCrown, float slamForward, float slamRight, float runBlocks, int runTicks,
                          int sweepTicks, int sweepHit, float sweepReach, int castTicks, int castRelease,
-                         float castForward, float castUp, float castRight, float popupHoleForward)
+                         float castForward, float castUp, float castRight, float popupHoleForward,
+                         int chargeStartTicks, float chargeBlocks, int chargeTicks, float chargeReach,
+                         int chargeSkidTicks)
     {
     }
 
@@ -60,7 +72,8 @@ public final class RatKingDesigns
                     72, 32, 37, 40, 0.812F, 32,
                     80, 32, 44, 40, 33, 42, 1.040F, 0.627F,
                     2.625F, 8, 18, 9, 4.050F, 22, 15,
-                    2.902F, 2.284F, 0.371F, 0.0625F));
+                    2.902F, 2.284F, 0.371F, 0.0625F,
+                    4, 2.700F, 6, 3.791F, 6));
 
     /** How far in front of his feet (blocks) the dirt hole he digs and dives into is (his mound while he tunnels). */
     public static final float HOLE_FORWARD = 0.8750F;

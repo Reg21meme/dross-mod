@@ -10,6 +10,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
@@ -43,7 +44,9 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  *   <li>natural leaves marked too far from a log get their real distance (measured through leaves, the way the game
  *       does, to any log), or are removed if no log holds them up (with any vine hanging from them).</li>
  * </ul>
- * Nothing else is changed: logs, ground, water and lava are never touched.
+ * Nothing else is changed: logs, ground, water and lava are never touched, and nor are the fittings only structures
+ * put down (ladders, banners, candles: {@link #isBuiltFitting}), since a structure built across a chunk border isn't
+ * finished until its next chunk is.
  */
 public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
 {
@@ -117,33 +120,58 @@ public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
                     {
                         // the land's top as the terrain made it (world generation's own heightmap: features never change it)
                         int naturalTop = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x & 15, z & 15);
-                        for (int y = top; y > minY; y--)
-                        {
-                            BlockState state = chunk.getBlockState(pos.set(x, y, z));
-                            if (state.isAir())
-                            {
-                                continue;
-                            }
-                            if (isNaturalLeaf(state) && state.getValue(LeavesBlock.DISTANCE) >= LeavesBlock.DECAY_DISTANCE)
-                            {
-                                changed |= settleLeaf(level, pos.immutable(), state);
-                            }
-                            else if (state.getFluidState().isEmpty() && !state.canSurvive(level, pos))
-                            {
-                                level.setBlock(pos.immutable(), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
-                                changed = true;
-                                continue;
-                            }
-                            if (y <= naturalTop && isGround(level, pos, state))
-                            {
-                                break; // the ground: nothing below it needs looking at
-                            }
-                        }
+                        changed |= tidyColumn(level, chunk, pos, x, z, top, minY, naturalTop);
                     }
                 }
             }
         }
         return changed;
+    }
+
+    /**
+     * Tidies one column, from {@code top} down to the ground (stopping at the first ground block at or under
+     * {@code naturalTop}, never going below {@code bottom}). {@code blocks} is what it reads from (the column's chunk, or
+     * the level). Returns true if it changed anything. (Public for the headless check, SewersGameTest.)
+     */
+    public static boolean tidyColumn(WorldGenLevel level, BlockGetter blocks, BlockPos.MutableBlockPos pos, int x, int z,
+                                     int top, int bottom, int naturalTop)
+    {
+        boolean changed = false;
+        for (int y = top; y > bottom; y--)
+        {
+            BlockState state = blocks.getBlockState(pos.set(x, y, z));
+            if (state.isAir())
+            {
+                continue;
+            }
+            if (isNaturalLeaf(state) && state.getValue(LeavesBlock.DISTANCE) >= LeavesBlock.DECAY_DISTANCE)
+            {
+                changed |= settleLeaf(level, pos.immutable(), state);
+            }
+            else if (state.getFluidState().isEmpty() && !isBuiltFitting(state) && !state.canSurvive(level, pos))
+            {
+                level.setBlock(pos.immutable(), Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+                changed = true;
+                continue;
+            }
+            if (y <= naturalTop && isGround(level, pos, state))
+            {
+                break; // the ground: nothing below it needs looking at
+            }
+        }
+        return changed;
+    }
+
+    /**
+     * A fitting only built things use, never a feature: a ladder, a banner, a candle (the sewers' pipes and the Rat King's
+     * road). The tidy-up leaves them alone even when they look loose, because a structure is built one chunk at a time:
+     * a pipe's ladder in the last column of one chunk hangs on the pipe's wall in the next chunk, and until that chunk's
+     * part of the pipe is built there's only air (or a hillside) behind it. (Before October 16 the tidy-up pulled such a
+     * ladder down as far as the hillside behind it reached: a gap at the top of the climb out.)
+     */
+    public static boolean isBuiltFitting(BlockState state)
+    {
+        return state.is(Blocks.LADDER) || state.is(BlockTags.BANNERS) || state.is(BlockTags.CANDLES);
     }
 
     /** A leaf marked too far from a log: its real distance, or (if no log holds it up) it goes. Returns true if it changed anything. */
@@ -172,7 +200,7 @@ public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
         {
             BlockState state = level.getBlockState(pos);
             if (state.isAir() || !state.getFluidState().isEmpty() || state.canSurvive(level, pos) || isNaturalLeaf(state)
-                    || state.is(BlockTags.LOGS))
+                    || state.is(BlockTags.LOGS) || isBuiltFitting(state))
             {
                 return;
             }

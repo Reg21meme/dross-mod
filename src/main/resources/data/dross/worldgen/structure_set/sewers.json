@@ -1,0 +1,13 @@
+{
+  "structures": [
+    {
+      "structure": "dross:sewers",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:boss_site",
+    "use": "dross:regular_sewer",
+    "salt": 1610201625
+  }
+}

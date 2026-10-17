@@ -22,6 +22,10 @@ STYLE picks the walk, the sleep and the idle gesture):
                       chest height (the hit as it passes his front), then back to his idle hold
   cast      (once)    the fight's poison ball: holds the staff out, aims, draws back and flicks; the ball leaves the
                       orb at the release (where, in meta), then back to his idle hold
+  charge_start (holds) the spear charge's wind-up: crouched low, the staff levelled forward like a spear, coiling
+  charge    (loop)    the spear charge's dash: the run's legs, faster and lower, the staff held out like a lance (in
+                      place; the mod plays it as fast as he dashes: chargeBlocks per chargeTicks)
+  charge_skid (holds) the charge missed: he skids to a stop, leaning back, and straightens up into his idle hold
 
 The cape, the tail, the censer and the ribbons are secondary motion: each frame they ease towards where gravity, the
 body's motion and their rest shape want them (with a little lag), and the cape is swung clear of the body.
@@ -436,9 +440,10 @@ class Secondary:
             # run down it (CAPE_STREAM_*; whole cycles per loop, so a running loop stays seamless).
             t = getattr(self, "t", 0.0)
             want = []
+            freq = getattr(self, "stream_freq", CAPE_STREAM_FREQ)   # (the dash ripples faster: its own loop)
             for i in range(len(rig.capes)):
                 ripple = CAPE_STREAM_RIPPLE * (0.5 + 0.5 * i) * math.sin(
-                    2 * math.pi * CAPE_STREAM_FREQ * t - CAPE_STREAM_PHASE * i)
+                    2 * math.pi * freq * t - CAPE_STREAM_PHASE * i)
                 want.append(R.normalize(np.array([0.0, -(CAPE_STREAM_DROOP[min(i, len(CAPE_STREAM_DROOP) - 1)])
                                                   + ripple, 1.0])))
         else:
@@ -1593,53 +1598,75 @@ CAPE_STREAM_FREQ = 2.0 / RUN_T  # ripples a second (two per stride cycle)
 CAPE_STREAM_PHASE = 1.3         # radians the ripple lags from one panel to the next
 
 
-def run(rig):
-    T = RUN_T
-    L = RUN_STRIDE * RUN_STANCE          # how far a planted foot slides back under him (units)
-    mid = RUN_STANCE / 2.0               # the left foot's mid-stance (the right's is half a cycle later)
+# The run's gait (the dash below runs on the same legs, with its own numbers).
+RUN = dict(T=RUN_T, stride=RUN_STRIDE, stance=RUN_STANCE, lift=RUN_LIFT, kick=RUN_KICK, crouch=RUN_CROUCH, bob=RUN_BOB,
+           lean=RUN_LEAN, feet_in=RUN_FEET_IN, tiptoe=RUN_TIPTOE, toe_clear=RUN_TOE_CLEAR, arm=RUN_ARM, ears=38.0,
+           jaw=6.0)
+
+
+def scurry(rig, p, t, g):
+    """
+    One frame of a low, fast scurry with the numbers in `g` (RUN, or the dash's CHARGE): the body bobbing and leaning
+    into it, the head level, the ears back, the feet on the ground half the time and the free arm pumping. Everything
+    but the staff and the secondary motion. Returns (w, bob): the stride's angle and the bob (1 mid-stance, -1 in the
+    air), for the staff.
+    """
+    T = g["T"]
+    stance = g["stance"]
+    L = g["stride"] * stance             # how far a planted foot slides back under him (units)
+    mid = stance / 2.0                   # the left foot's mid-stance (the right's is half a cycle later)
+    tiptoe = g["tiptoe"]
 
     def foot(ph):
         """(dz, dy, tilt) of one foot at this point of its own cycle (0 = it lands in front)."""
         ph %= 1.0
-        if ph < RUN_STANCE:
-            u = ph / RUN_STANCE
-            return -L / 2.0 + L * u, 0.0, RUN_TIPTOE + 10.0 * u      # rolls onto its toes as it pushes off
-        u = (ph - RUN_STANCE) / (1.0 - RUN_STANCE)
+        if ph < stance:
+            u = ph / stance
+            return -L / 2.0 + L * u, 0.0, tiptoe + 10.0 * u      # rolls onto its toes as it pushes off
+        u = (ph - stance) / (1.0 - stance)
         e = 0.5 - 0.5 * math.cos(math.pi * u ** 1.25)               # stays back a moment (the kick), then reaches
         dz = L / 2.0 - L * e
-        dy = RUN_LIFT * math.sin(math.pi * u) ** 0.8 + RUN_KICK * math.sin(math.pi * min(1.0, u * 1.6)) * (1.0 - u)
-        tilt = RUN_TIPTOE + 10.0 + 22.0 * math.sin(math.pi * u) - 12.0 * smooth((u - 0.7) / 0.3)
+        dy = g["lift"] * math.sin(math.pi * u) ** 0.8 + g["kick"] * math.sin(math.pi * min(1.0, u * 1.6)) * (1.0 - u)
+        tilt = tiptoe + 10.0 + 22.0 * math.sin(math.pi * u) - 12.0 * smooth((u - 0.7) / 0.3)
         return dz, dy, tilt
 
+    lean = g["lean"]
+    ph = t / T
+    w = 2 * math.pi * ph
+    bob = math.cos(2 * (w - 2 * math.pi * mid))      # 1 mid-stance (low), -1 in the air
+    p.pos("body", 0.35 * math.sin(w), -g["crouch"] - g["bob"] * (0.5 + 0.5 * bob), 0.0)
+    # Leaning into it; the hips turn with the legs and the shoulders against them.
+    p.rot("hips", lean * 0.45 + 2.0 * bob, 7.0 * math.cos(w), -1.5 * math.sin(w))
+    p.rot("belly", lean * 0.3, -3.0 * math.cos(w), 0.0)
+    p.rot("chest", lean * 0.25 - 1.5 * bob, -6.0 * math.cos(w), 2.5 * math.sin(w))
+    # His head stays level, looking where he's going; ears pressed back, a pant.
+    head(p, rx=-lean * 0.9 + 1.5 * bob, ry=3.0 * math.cos(w), rz=-1.5 * math.sin(w),
+         jaw=g["jaw"] + 3.0 * math.sin(2 * w))
+    p.rot("neck", -2.0, 0.0, 0.0)
+    ears(p, rx=g["ears"] + 6.0 * math.sin(2 * w + 0.8), rz=-14.0)
+    offs, down = {}, {}
+    for name, off, sx in (("leg_l", 0.0, -1.0), ("leg_r", 0.5, 1.0)):
+        dz, dy, tilt = foot(ph - off)
+        tl = math.radians(tilt)
+        down[name] = np.array([0.0, -math.cos(tl), math.sin(tl)])
+        toe = rig.b.foot_len / 2.0 + 1.5
+        offs[name] = (sx * g["feet_in"], dy + toe * math.sin(tl) + g["toe_clear"], dz)
+    plant_feet_clear(rig, p, offs, down)
+    # The free arm pumps against the left leg, elbow bent.
+    p.rot("arm_l", g["arm"] * math.cos(w) - 8.0, 0.0, -4.0)
+    p.rot("forearm_l", -18.0 - 14.0 * (0.5 - 0.5 * math.cos(w)), 0.0, 0.0)
+    p.rot("hand_l", 10.0 * math.cos(w + 0.6))
+    if rig.bone("fingers_l"):
+        p.rot("fingers_l", 40.0)
+    return w, bob
+
+
+def run(rig):
+    T = RUN_T
+
     def frame(t, sec):
-        ph = t / T
-        w = 2 * math.pi * ph
         p = Pose()
-        bob = math.cos(2 * (w - 2 * math.pi * mid))      # 1 mid-stance (low), -1 in the air
-        p.pos("body", 0.35 * math.sin(w), -RUN_CROUCH - RUN_BOB * (0.5 + 0.5 * bob), 0.0)
-        # Leaning into it; the hips turn with the legs and the shoulders against them.
-        p.rot("hips", RUN_LEAN * 0.45 + 2.0 * bob, 7.0 * math.cos(w), -1.5 * math.sin(w))
-        p.rot("belly", RUN_LEAN * 0.3, -3.0 * math.cos(w), 0.0)
-        p.rot("chest", RUN_LEAN * 0.25 - 1.5 * bob, -6.0 * math.cos(w), 2.5 * math.sin(w))
-        # His head stays level, looking where he's going; ears pressed back, a pant.
-        head(p, rx=-RUN_LEAN * 0.9 + 1.5 * bob, ry=3.0 * math.cos(w), rz=-1.5 * math.sin(w),
-             jaw=6.0 + 3.0 * math.sin(2 * w))
-        p.rot("neck", -2.0, 0.0, 0.0)
-        ears(p, rx=38.0 + 6.0 * math.sin(2 * w + 0.8), rz=-14.0)
-        offs, down = {}, {}
-        for name, off, sx in (("leg_l", 0.0, -1.0), ("leg_r", 0.5, 1.0)):
-            dz, dy, tilt = foot(ph - off)
-            tl = math.radians(tilt)
-            down[name] = np.array([0.0, -math.cos(tl), math.sin(tl)])
-            toe = rig.b.foot_len / 2.0 + 1.5
-            offs[name] = (sx * RUN_FEET_IN, dy + toe * math.sin(tl) + RUN_TOE_CLEAR, dz)
-        plant_feet_clear(rig, p, offs, down)
-        # The free arm pumps against the left leg, elbow bent.
-        p.rot("arm_l", RUN_ARM * math.cos(w) - 8.0, 0.0, -4.0)
-        p.rot("forearm_l", -18.0 - 14.0 * (0.5 - 0.5 * math.cos(w)), 0.0, 0.0)
-        p.rot("hand_l", 10.0 * math.cos(w + 0.6))
-        if rig.bone("fingers_l"):
-            p.rot("fingers_l", 40.0)
+        w, bob = scurry(rig, p, t, RUN)
         # The staff carried forward in his fist, swinging a little with his stride.
         if rig.has_staff:
             grip = np.array(RUN_STAFF_GRIP) + np.array([0.0, -0.8 * bob, -RUN_STAFF_SWING * math.cos(w)])
@@ -1822,6 +1849,147 @@ def cast(rig):
     return a
 
 
+# The spear charge (the user's request, October 16): he crouches with his staff levelled forward like a spear, then
+# dashes in a straight line to where his target stood, the staff held out in front of him like a lance; if he misses
+# he skids to a stop and straightens up. Three animations:
+#   charge_start (holds)  the wind-up's coil. The mod's wind-up is 0.4 s (RatKingTuning.CHARGE_WINDUP_TICKS): GeckoLib's
+#                         0.2 s blend carries him from where he was into this animation's first frame (already the
+#                         crouch, the staff levelled), then 0.2 s here, coiling lower with a tremble.
+#   charge (loop)         the dash: the run's legs (scurry), faster and lower, the staff held out like a lance. Made in
+#                         place: one loop would carry him CHARGE_STRIDE units in CHARGE_T seconds (chargeBlocks /
+#                         chargeTicks), and the mod plays it as fast as he really dashes.
+#   charge_skid (holds)   a miss: the mod's 0.5 s recovery (RatKingTuning.CHARGE_RECOVER_TICKS) is GeckoLib's 0.2 s blend
+#                         into the first frame (braced, skidding, leaning back) and 0.3 s here, easing into his idle
+#                         hold.
+# The lance hold: he slides his fist down the shaft (holding it near its foot, like the sweep's club hold) and points it
+# straight ahead, a touch in towards his middle and a touch down: the orb leads well in front of him (its reach, in
+# meta, is how far in front of his middle the dash hits).
+CHARGE_START_T = 0.2              # seconds (see above: the mod's 0.4 s wind-up less GeckoLib's 0.2 s blend)
+CHARGE_SKID_T = 0.3               # seconds (the mod's 0.5 s recovery less the blend)
+LANCE_SLIDE = 18.0                # units he slides his fist down the shaft: its foot ends up just behind his fist
+LANCE_GRIP = (-13.5, 19.5, -18.5)  # where his fist holds it in the dash (units; his rest grip is about (-11, 26, -13))
+LANCE_DIR = (7.0, -3.0)           # which way the staff points (yaw, pitch degrees: + his left, + up)
+WINDUP_GRIP = (-13.5, 20.5, -15.5)   # the wind-up's fist: out in front of his right hip...
+WINDUP_DIR = (6.0, -2.0)
+WINDUP_DRAW = 2.0                 # ...drawn back this much as he coils (ready to thrust)
+WINDUP_CROUCH = 5.5               # units lower than standing...
+WINDUP_COIL = 0.8                 # ...sinking this much more as he coils
+WINDUP_LEAN = 30.0                # degrees further forward he leans (spread over his spine)
+WINDUP_STEP = 3.5                 # units his left foot is forward and his right foot back (a sprinter's stance)
+WINDUP_TOES = 30.0                # degrees his back foot is up on its toes
+WINDUP_TREMBLE = 0.35             # units his fist trembles (and a degree or so of his body), 13 times a second
+CHARGE = dict(T=0.3, stride=43.2, stance=0.34, lift=7.5, kick=6.0, crouch=6.5, bob=1.6, lean=34.0, feet_in=1.2,
+              tiptoe=26.0, toe_clear=1.6, arm=40.0, ears=50.0, jaw=13.0)   # the dash's gait: 43.2 / 16 / 0.3 s = 9 b/s
+# (its loop is a whole number of ticks, 6, so the mod's chargeBlocks / chargeTicks is its real speed)
+CHARGE_STEP = 0.02                # seconds between recorded frames (the cycle is short)
+LANCE_BOB = 0.6                   # units his lance fist bobs with each stride (a steady point)
+SKID_CROUCH = 6.0                 # the skid: units lower than standing...
+SKID_LEAN = -18.0                 # ...degrees he leans back (against the hunch: braking)...
+SKID_BRACE = 7.5                  # ...units his left foot is braced out in front (his right foot half that behind)
+SKID_HEEL = -15.0                 # degrees his braced foot's toes are up (dug in on its heel)...
+SKID_HEEL_LIFT = 0.6              # ...and units it's lifted so the heel touches the floor, not sinks in
+
+
+def lance_hold(rig, p, grip, yaw, pitch, k=1.0):
+    """The staff held out like a lance: slid through his fist (LANCE_SLIDE) and pointing (yaw, pitch); by k (blended
+    with whatever the arm was doing)."""
+    if not rig.has_staff or k <= 0.0:
+        return
+    arm = _copy(p)
+    slide_staff(rig, arm, -LANCE_SLIDE * k)
+    staff_hold(rig, arm, np.asarray(grip, dtype=float), direction_at(yaw, pitch), slide=LANCE_SLIDE * k)
+    blend_arm(p, arm, k)
+
+
+def charge_start(rig):
+    def frame(t, sec):
+        u = smooth(clamp01(t / CHARGE_START_T))       # 0 .. 1 through the coil
+        trem = math.sin(t * 2 * math.pi * 13.0)
+        p = Pose()
+        # Low and leaning in, rocked back onto his back foot, ready to spring.
+        p.pos("body", 0.0, -WINDUP_CROUCH - WINDUP_COIL * u, 0.5 + 0.5 * u)
+        p.rot("hips", WINDUP_LEAN * 0.45 + 2.0 * u, -6.0, 0.0)
+        p.rot("belly", WINDUP_LEAN * 0.3, -3.0, 0.0)
+        p.rot("chest", WINDUP_LEAN * 0.25 + 0.6 * trem * u, -5.0, 0.0)
+        # His eyes on his target, level along the shaft; teeth bared, ears pinned back, a squint.
+        head(p, rx=-WINDUP_LEAN * 0.9, ry=8.0, jaw=8.0 + 4.0 * u)
+        p.rot("neck", -3.0, 0.0, 0.0)
+        ears(p, rx=46.0 + 4.0 * u, rz=-16.0)
+        lids(p, rig, 0.3)
+        # A sprinter's stance: left foot forward, right foot back up on its toes.
+        tl = math.radians(WINDUP_TOES)
+        toe = rig.b.foot_len / 2.0 + 1.5
+        offs = {"leg_l": (-0.5, 0.0, -WINDUP_STEP), "leg_r": (0.5, toe * math.sin(tl) + 0.5, WINDUP_STEP)}
+        down = {"leg_l": R.DOWN, "leg_r": np.array([0.0, -math.cos(tl), math.sin(tl)])}
+        plant_feet_clear(rig, p, offs, down)
+        # The free arm back for balance, claws spread.
+        p.rot("arm_l", 26.0 + 4.0 * u, 0.0, -6.0)
+        p.rot("forearm_l", -24.0, 0.0, 0.0)
+        p.rot("hand_l", 10.0)
+        if rig.bone("fingers_l"):
+            p.rot("fingers_l", 20.0)
+        # The staff levelled at his target, drawn back a touch as he coils.
+        grip = np.array(WINDUP_GRIP) + np.array([0.0, WINDUP_TREMBLE * trem * u, WINDUP_DRAW * u])
+        lance_hold(rig, p, grip, WINDUP_DIR[0], WINDUP_DIR[1])
+        sec.apply(p, t, wave=0.6)
+        return p
+
+    return record(rig, "charge_start", CHARGE_START_T, "hold_on_last_frame", frame, step=CHARGE_STEP)
+
+
+def charge(rig):
+    T = CHARGE["T"]
+
+    def frame(t, sec):
+        p = Pose()
+        sec.stream_freq = 2.0 / T             # two cape ripples a stride, so the loop stays seamless
+        w, bob = scurry(rig, p, t, CHARGE)
+        # The lance held out steady in front of him (only a little bob with his stride).
+        grip = np.array(LANCE_GRIP) + np.array([0.0, -LANCE_BOB * bob, -0.6 * math.cos(w)])
+        lance_hold(rig, p, grip, LANCE_DIR[0] + 1.0 * math.cos(w), LANCE_DIR[1] + 1.0 * math.sin(w))
+        sec.apply(p, t, wave=1.0, cape_mode="stream", lag=0.25, cape_floor=1.0, tail_lag=0.25,
+                  tail_wave=(10.0, 1.0 / T, 0.9), tail_along=(np.array([0.0, 0.1, 1.0]), 0.85))
+        return p
+
+    a = record(rig, "charge", T, True, frame, warm=2, step=CHARGE_STEP)
+    a.meta["stride_blocks"] = CHARGE["stride"] / 16.0
+    # How far in front of his middle the lance's orb leads (blocks): the dash's reach; and how high it is.
+    o = orb_point(rig.m, rig.m.pose_matrices(a.sample(0.0)))
+    a.meta["reach"] = -o[2] / 16.0
+    a.meta["height"] = o[1] / 16.0
+    return a
+
+
+def charge_skid(rig):
+    def frame(t, sec):
+        k = 1.0 - smooth(clamp01(t / CHARGE_SKID_T))   # 1 skidding .. 0 standing in his idle hold
+        p = Pose()
+        # Braking: low, leaning back against his hunch, his left foot dug in out in front on its heel.
+        p.pos("body", 0.0, -SKID_CROUCH * k, 1.5 * k)
+        p.rot("hips", SKID_LEAN * 0.45 * k, 4.0 * k, 0.0)
+        p.rot("belly", SKID_LEAN * 0.3 * k)
+        p.rot("chest", SKID_LEAN * 0.25 * k, 6.0 * k, 0.0)
+        head(p, rx=(-SKID_LEAN * 0.6 + 4.0) * k, ry=-6.0 * k, jaw=10.0 * k)
+        ears(p, rx=-8.0 * k, rz=6.0 * k)                    # pricked up in surprise
+        th = math.radians(SKID_HEEL)
+        offs = {"leg_l": (-0.5 * k, SKID_HEEL_LIFT * k, -SKID_BRACE * k), "leg_r": (0.5 * k, 0.0, 0.5 * SKID_BRACE * k)}
+        down = {"leg_l": np.array([0.0, -math.cos(th * k), math.sin(th * k)]), "leg_r": R.DOWN}
+        plant_feet_clear(rig, p, offs, down)
+        # The free arm flung out for balance.
+        p.rot("arm_l", -10.0 * k, 0.0, 30.0 * k)
+        p.rot("forearm_l", -20.0 * k)
+        if rig.bone("fingers_l"):
+            p.rot("fingers_l", 30.0 * k)
+        # The lance comes up and back to his idle hold.
+        lance_hold(rig, p, np.array(LANCE_GRIP) + np.array([0.0, 2.0 * (1.0 - k), 2.0]), LANCE_DIR[0],
+                   LANCE_DIR[1] + 10.0 * (1.0 - k), k)
+        idle_pose(rig, 0.0, p, 1.0 - k)
+        sec.apply(p, t, wave=1.0)
+        return p
+
+    return record(rig, "charge_skid", CHARGE_SKID_T, "hold_on_last_frame", frame, step=CHARGE_STEP)
+
+
 # ---------------------------------------------------------------- everything
 
 
@@ -1840,4 +2008,7 @@ def build_all(rig):
     out["run"] = run(rig)
     out["sweep"] = sweep(rig)
     out["cast"] = cast(rig)
+    out["charge_start"] = charge_start(rig)
+    out["charge"] = charge(rig)
+    out["charge_skid"] = charge_skid(rig)
     return out

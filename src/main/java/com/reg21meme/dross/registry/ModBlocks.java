@@ -108,6 +108,10 @@ public final class ModBlocks
     public static final RegistryObject<Block> STORM_LICHEN = BLOCKS.register("storm_lichen", TerrainBlocks::stormLichen);
     // Dimension area: Crag Thistle (a spiky thistle with a pale blue flower)
     public static final RegistryObject<Block> CRAG_THISTLE = BLOCKS.register("crag_thistle", TerrainBlocks::cragThistle);
+    // Dimension area, the sewers under Blightwood: Sewer Sludge (murky muck on the sewer floors; slows you, less than soul sand)
+    public static final RegistryObject<Block> SEWER_SLUDGE = BLOCKS.register("sewer_sludge", TerrainBlocks::sewerSludge);
+    // Dimension area, the Rat King's sewer: Blight Vent (glowing poison-green crack breathing spores, at his grand entrance)
+    public static final RegistryObject<Block> BLIGHT_VENT = BLOCKS.register("blight_vent", TerrainBlocks::blightVent);
 
     private ModBlocks() {}
 }

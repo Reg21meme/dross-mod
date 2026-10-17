@@ -2,6 +2,7 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.worldgen.NotNearHubFilter;
+import com.reg21meme.dross.dimension.worldgen.NotNearSewerEntranceFilter;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -19,6 +20,11 @@ public final class ModPlacementModifiers
     // Dimension area: dross:not_near_hub, keeps ponds, boulders and fallen logs away from the hub at Dross 0, 0
     public static final RegistryObject<PlacementModifierType<NotNearHubFilter>> NOT_NEAR_HUB =
             PLACEMENT_MODIFIERS.register("not_near_hub", () -> () -> NotNearHubFilter.CODEC);
+
+    // Dimension area: dross:not_near_sewer_entrance, keeps Blightwood's trees, mushrooms, logs, ponds and plants off the
+    // sewers' entrances and the Rat King's poisoned ground
+    public static final RegistryObject<PlacementModifierType<NotNearSewerEntranceFilter>> NOT_NEAR_SEWER_ENTRANCE =
+            PLACEMENT_MODIFIERS.register("not_near_sewer_entrance", () -> () -> NotNearSewerEntranceFilter.CODEC);
 
     private ModPlacementModifiers() {}
 }

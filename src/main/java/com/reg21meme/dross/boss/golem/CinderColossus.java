@@ -757,7 +757,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
     }
 
     /**
-     * The Rage Wand ({@code boss.rage}): when it's raged, its golems join its side. A raged Colossus fights the other
+     * The Rage Wand ({@code boss.rage}): when it's raged, its golems join its team. A raged Colossus fights the other
      * raged mobs with its own moves (its fighting AI takes any target), and an idle one starts fighting.
      */
     @Override
@@ -1231,7 +1231,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
 
     /**
      * Something its attacks may hit: alive, not itself, not a spectator; not another Colossus or a golem, unless the
-     * Rage Wand has made that one its enemy ({@link Rage#areEnemies}: raged, on another side).
+     * Rage Wand has made that one its enemy ({@link Rage#areEnemies}: raged, on another team).
      */
     boolean canHit(Entity entity)
     {

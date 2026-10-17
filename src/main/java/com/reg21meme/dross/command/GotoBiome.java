@@ -5,6 +5,8 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.boss.lair.ColossusLair;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.dimension.sites.BossSites;
+import com.reg21meme.dross.dimension.sites.Site;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.portal.DrossTeleporter;
 import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
@@ -63,10 +65,11 @@ import org.slf4j.Logger;
  *         <li>is more than {@value #HUB_CLEARANCE} blocks from the hub's footprint (so the nearest Silverwood Forest seen
  *             from the Overworld, which is the hub itself, puts you in the forest beside the spire, never on its roof or
  *             in its hall),</li>
- *         <li>is outside the Cinder Colossus's lair: more than {@value #LAIR_CLEARANCE} blocks further from its middle
+ *         <li>is outside every Cinder Colossus lair: more than {@value #LAIR_CLEARANCE} blocks further from its middle
  *             than its entrance is (so never in its cavern, on its dome, in its tunnel or at its mouth; the boss area's
- *             {@link ColossusLair}; {@code /dross goto lair colossus} goes there). Before the lair is built, the spot
- *             picked for it is kept clear the same way ({@value #PLANNED_LAIR_REACH} blocks round it),</li>
+ *             {@link ColossusLair}; {@code /dross goto lair colossus} goes there). A lair that's planned but not built yet
+ *             (they're built when someone first comes near) is kept clear by {@value #PLANNED_LAIR_REACH} blocks round
+ *             its spot, as far as its building can reach,</li>
  *         <li>has safe ground ({@link DrossTeleporter#findSafeSpot}: solid ground under the feet, room to stand, no
  *             lava, fire, magma, cactus, powder snow and so on; tree tops and giant mushroom caps never count as ground),</li>
  *         <li>and that ground is at most {@value #MAX_ABOVE_GROUND} blocks above the land's own height there (the height
@@ -146,10 +149,15 @@ public final class GotoBiome
     /** The lair's reach is taken to be at least this (blocks from its middle; its cavern's rock lining alone reaches 24). */
     public static final int MIN_LAIR_REACH = 32;
     /**
-     * Before the lair is built (the first minute or so of a new world), never land within this many blocks of the spot
-     * picked for it, so nobody is standing where it's about to be carved.
+     * A lair that's planned but not built yet (lairs are built when a player first comes near): never land within this
+     * many blocks of its spot, so nobody is standing where it's about to be built (the boss area loads and shapes the
+     * land this far round it: {@code LairTuning.LOAD_RADIUS}).
      */
-    public static final int PLANNED_LAIR_REACH = 56;
+    public static final int PLANNED_LAIR_REACH = 104;
+    /** The lairs (built or planned) a landing keeps clear of are looked up within this many blocks of where it looks... */
+    public static final int LAIR_ZONE_SEARCH = 512;
+    /** ...again once it looks more than this many blocks (along X or Z) from where they were last looked up. */
+    public static final int LAIR_ZONE_RECHECK = 256;
     /**
      * The ground you land on may be at most this many blocks above the land's own height there (what the terrain
      * generator makes before trees, rocks and other features are added): low boulders are fine, the top of a huge fungus
@@ -335,24 +343,32 @@ public final class GotoBiome
     }
 
     /**
-     * The circle a biome teleport keeps clear of round the Cinder Colossus's lair: round its middle, {@value #LAIR_CLEARANCE}
-     * blocks wider than the distance to its entrance (taken as at least {@value #MIN_LAIR_REACH}), so it covers the
-     * cavern, the dome over it, the tunnel and its mouth. Before the lair is built: {@value #PLANNED_LAIR_REACH} blocks
-     * round the spot picked for it. Empty if no spot has been picked yet. Server thread.
+     * The circles a biome teleport keeps clear of round the Cinder Colossus's lairs within {@value #LAIR_ZONE_SEARCH}
+     * blocks of (x, z): round a built lair's middle, {@value #LAIR_CLEARANCE} blocks wider than the distance to its
+     * entrance (taken as at least {@value #MIN_LAIR_REACH}), so it covers the cavern, the dome over it, the tunnel and its
+     * mouth; round a planned lair that isn't built yet, {@value #PLANNED_LAIR_REACH} blocks round its spot (the planner's,
+     * read from the noise; it may take a moment the first time an area is asked about). Server thread.
      */
-    static Optional<LairZone> lairZone(MinecraftServer server)
+    static List<LairZone> lairZones(ServerLevel dross, int x, int z)
     {
-        Optional<ColossusLair.Lair> lair = ColossusLair.get(server);
-        if (lair.isPresent())
+        MinecraftServer server = dross.getServer();
+        List<LairZone> zones = new ArrayList<>();
+        for (ColossusLair.Lair lair : ColossusLair.all(server))
         {
-            BlockPos center = lair.get().center();
-            double x = center.getX() + 0.5D;
-            double z = center.getZ() + 0.5D;
-            Vec3 entrance = lair.get().entrance();
-            double reach = Math.max(MIN_LAIR_REACH, Math.sqrt((entrance.x - x) * (entrance.x - x) + (entrance.z - z) * (entrance.z - z)));
-            return Optional.of(new LairZone(x, z, reach + LAIR_CLEARANCE));
+            if (lair.distanceTo(x, z) <= LAIR_ZONE_SEARCH + PLANNED_LAIR_REACH)
+            {
+                double reach = Math.max(MIN_LAIR_REACH, lair.reach());
+                zones.add(new LairZone(lair.center().getX() + 0.5D, lair.center().getZ() + 0.5D, reach + LAIR_CLEARANCE));
+            }
         }
-        return ColossusLair.plannedSite(server).map(site -> new LairZone(site.getX() + 0.5D, site.getZ() + 0.5D, PLANNED_LAIR_REACH));
+        for (Site site : BossSites.forLevel(dross).sitesNear(DrossBiomes.CINDER_WASTES, x, z, LAIR_ZONE_SEARCH))
+        {
+            if (site.use() == BossSites.COLOSSUS_LAIR && ColossusLair.get(server, site).isEmpty())
+            {
+                zones.add(new LairZone(site.pos().getX() + 0.5D, site.pos().getZ() + 0.5D, PLANNED_LAIR_REACH));
+            }
+        }
+        return zones;
     }
 
     /**
@@ -440,10 +456,11 @@ public final class GotoBiome
         private int placesBeyondOldLand = -1;
         @Nullable
         private BoundingBox hubZone;
-        /** The circle kept clear round the Colossus lair (null: none), worked out the first time it's needed. */
-        @Nullable
-        private LairZone lairZone;
-        private boolean lairZoneKnown;
+        /** The circles kept clear round the Colossus lairs near where it looks (worked out when needed). */
+        private List<LairZone> lairZones = List.of();
+        private boolean lairZonesKnown;
+        private int lairZonesX;
+        private int lairZonesZ;
         private boolean gaveUp;
         private int checked;
         private int unsafe;
@@ -689,15 +706,24 @@ public final class GotoBiome
             return x >= this.hubZone.minX() && x <= this.hubZone.maxX() && z >= this.hubZone.minZ() && z <= this.hubZone.maxZ();
         }
 
-        /** True if (x, z) is in the circle kept clear round the Colossus lair ({@link GotoBiome#lairZone}). */
+        /** True if (x, z) is in a circle kept clear round a Colossus lair ({@link GotoBiome#lairZones}). */
         private boolean isByTheLair(int x, int z)
         {
-            if (!this.lairZoneKnown)
+            if (!this.lairZonesKnown || Math.abs(x - this.lairZonesX) > LAIR_ZONE_RECHECK || Math.abs(z - this.lairZonesZ) > LAIR_ZONE_RECHECK)
             {
-                this.lairZone = lairZone(this.dross.getServer()).orElse(null);
-                this.lairZoneKnown = true;
+                this.lairZones = lairZones(this.dross, x, z);
+                this.lairZonesKnown = true;
+                this.lairZonesX = x;
+                this.lairZonesZ = z;
             }
-            return this.lairZone != null && this.lairZone.contains(x, z);
+            for (LairZone zone : this.lairZones)
+            {
+                if (zone.contains(x, z))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /** The land's own height at (x, z): the first free block above the terrain generator's ground, before any features. */

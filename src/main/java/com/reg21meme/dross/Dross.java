@@ -14,6 +14,7 @@ import com.reg21meme.dross.registry.ModLootModifiers;
 import com.reg21meme.dross.registry.ModParticles;
 import com.reg21meme.dross.registry.ModPlacementModifiers;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.registry.ModStructures;
 import com.reg21meme.dross.registry.ModTreeDecorators;
 import net.minecraftforge.eventbus.api.IEventBus;
 import net.minecraftforge.fml.common.Mod;
@@ -45,6 +46,9 @@ public class Dross
         ModFeatures.FEATURES.register(modEventBus);
         ModPlacementModifiers.PLACEMENT_MODIFIERS.register(modEventBus);
         ModEffects.MOB_EFFECTS.register(modEventBus);
+        ModStructures.STRUCTURE_TYPES.register(modEventBus);
+        ModStructures.STRUCTURE_PIECES.register(modEventBus);
+        ModStructures.STRUCTURE_PLACEMENTS.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

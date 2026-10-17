@@ -16,6 +16,8 @@ Sections (each has its tuning numbers at the top, then the code that writes its 
                steep ground bare rock                                                             [Stage 5]
     FEATURES   what grows and lies in each biome (trees, giant mushrooms and fungi, plants, boulders, ponds, lava
                pools) and the ores: the configured and placed features and each biome's feature lists  [Stage 6]
+    SEWERS     the sewers under Blightwood: how common and how deep the networks are, how many end in a rat cave, the
+               underground sewers biome (its green water) and the rats' spawn lists              [October 2026]
 
 How the terrain works (TERRAIN; tools/terrain/TERRAIN_DESIGN.md has the full design):
     The land is a height field: every column's ground height H(x, z) is worked out from 2D noises (rolling hills, cliff
@@ -666,8 +668,16 @@ def terrain(thresholds):
     depth = register("terrain/depth", height - Y)
     jag = register("terrain/jag", range_choice(depth, -JAG_BAND, JAG_BAND,
                                                mul(jag_gate, JAG_STRENGTH * noise("jag", 1.0, 0.5)), 0.0))
+
+    # The climate's depth slot (SEWERS): SEWER_DEPTH_VALUE under Blightwood from SEWER_BIOME_DEPTH blocks under the
+    # ground down (the sewers biome), 0 everywhere else. Checked cheapest first: the height, then the rot, then the
+    # depth under the ground (the only part that needs the terrain).
+    sewer_depth = register("climate/sewer_depth", range_choice(
+        Y, WORLD_MIN_Y, SEWER_BIOME_MAX_Y,
+        range_choice(rot, t_rot, BIG, range_choice(depth, SEWER_BIOME_DEPTH, BIG, SEWER_DEPTH_VALUE, 0.0), 0.0),
+        0.0))
     return {
-        "temperature": heat, "vegetation": rot, "continents": mountain, "ridges": scar,
+        "temperature": heat, "vegetation": rot, "continents": mountain, "ridges": scar, "depth": sewer_depth,
         "initial_density_without_jaggedness": 0.390625 + 0.03125 * depth,
         "final_density": interpolated(0.03125 * depth + jag),
     }
@@ -765,6 +775,9 @@ CINDER_GOLEM_CHARGE = 1.0
 # entity -> (energy budget, charge).
 # The Cinder Wastes' creature and ambient lists are empty on purpose ("only those for now"): the animals need grass,
 # which the wastes don't have, so none could spawn there anyway, and this also keeps bats out.
+# (SEWERS fills in two more: Blightwood's rats go on top of the old list, SPAWN_ADDITIONS; the sewers biome lists only
+# rats, SPAWN_OVERRIDES["sewers"].) A biome in SPAWN_ADDITIONS keeps OLD_BIOME's lists with these entries added.
+SPAWN_ADDITIONS = {}
 SPAWN_OVERRIDES = {
     "cinder_wastes": {
         "monster": [
@@ -858,20 +871,26 @@ def biome_source(thresholds):
 
     full = span(LO, HI)
 
-    def entry(biome, temperature=None, humidity=None, continentalness=None, weirdness=None):
+    def entry(biome, temperature=None, humidity=None, continentalness=None, weirdness=None, depth=None):
         return {"biome": "dross:" + biome, "parameters": {
             "temperature": temperature or full, "humidity": humidity or full,
-            "continentalness": continentalness or full, "erosion": 0.0, "depth": 0.0,
+            "continentalness": continentalness or full, "erosion": 0.0, "depth": depth or full,
             "weirdness": weirdness or full, "offset": 0.0}}
 
     low_m = span(LO, M - 1)
     low_s = span(LO, S - 1)
+    # The depth slot (SEWERS): 0 everywhere but the Blightwood underground. Every biome takes any depth, except that
+    # Blightwood's climate box is cut in two: the surface (depth under half of SEWER_DEPTH_VALUE) and the sewers below.
+    split = quantized(SEWER_DEPTH_VALUE / 2.0)
     return {"type": "minecraft:multi_noise", "biomes": [
         entry("gravecrags", continentalness=span(M, HI)),
         entry("nether_scar", continentalness=low_m, weirdness=span(S, HI)),
         entry("cinder_wastes", continentalness=low_m, weirdness=low_s, temperature=span(H, HI)),
         entry("rimefall", continentalness=low_m, weirdness=low_s, temperature=span(LO, C)),
-        entry("blightwood", continentalness=low_m, weirdness=low_s, temperature=span(C + 1, H - 1), humidity=span(R, HI)),
+        entry("blightwood", continentalness=low_m, weirdness=low_s, temperature=span(C + 1, H - 1), humidity=span(R, HI),
+              depth=span(LO, split - 1)),
+        entry(SEWER_BIOME, continentalness=low_m, weirdness=low_s, temperature=span(C + 1, H - 1), humidity=span(R, HI),
+              depth=span(split, HI)),
         entry("silverwood_forest", continentalness=low_m, weirdness=low_s, temperature=span(C + 1, H - 1),
               humidity=span(LO, R - 1)),
     ]}
@@ -997,7 +1016,10 @@ def biome_json(biome_id, spec, spawns_from):
         effects["additions_sound"] = {"sound": check_sound(base + ".additions"), "tick_chance": ADDITIONS_CHANCE}
         mood = check_sound(base + ".mood")
     else:
-        mood = check_sound(MOOD_SOUND)
+        mood = check_sound(spec.get("mood", MOOD_SOUND))
+        if spec.get("additions"):
+            sound, chance = spec["additions"]
+            effects["additions_sound"] = {"sound": check_sound(sound), "tick_chance": float(chance)}
     effects["mood_sound"] = {"sound": mood, "tick_delay": MOOD_DELAY, "block_search_extent": 8, "offset": 2.0}
 
     features = [list(BIOME_FEATURES[biome_id][step]) for step in STEPS]
@@ -1020,7 +1042,18 @@ def biome_spawns(biome_id, spawns_from):
     own lists from SPAWN_OVERRIDES. Every entity id is checked (and the mob category of our own)."""
     override = SPAWN_OVERRIDES.get(biome_id)
     if override is None:
-        out = {key: spawns_from[key] for key in ("creature_spawn_probability", "spawners", "spawn_costs") if key in spawns_from}
+        out = json.loads(json.dumps({key: spawns_from[key] for key in ("creature_spawn_probability", "spawners", "spawn_costs")
+                                     if key in spawns_from}))
+        for category, entries in SPAWN_ADDITIONS.get(biome_id, {}).items():
+            if category not in out.get("spawners", {}):
+                fail(f"SPAWN_ADDITIONS[{biome_id!r}] names {category}, which isn't a spawn category")
+            have = {e["type"] for e in out["spawners"][category]}
+            for entity, weight, fewest, most in entries:
+                if entity in have:
+                    fail(f"{biome_id}: {entity} is in its {category} list twice")
+                if not (isinstance(weight, int) and weight > 0 and 1 <= fewest <= most):
+                    fail(f"{biome_id}: the {category} entry for {entity} needs a whole weight above 0 and 1 <= fewest <= most")
+                out["spawners"][category].append({"type": entity, "weight": weight, "minCount": fewest, "maxCount": most})
     else:
         categories = list(spawns_from.get("spawners", {}))
         unknown = [c for c in override if c != "spawn_costs" and c not in categories]
@@ -1192,7 +1225,7 @@ def surface_rule():
     snow_from = SNOW_LINE_Y - 9     # with SNOW_LINE_SPREAD 2 x (3..6): snow starts about y 197-203
     rules = {
         "silverwood_forest": silverwood_rules(),
-        "blightwood": biome_rules(
+        "blightwood": biome_rules(     # (and the sewers biome under it: Minecraft blurs biome borders a little)
             top=[cond(noise_above("patch/blightwood", MUD_PATCH), block("minecraft:mud")),
                  cond(noise_below("patch/blightwood", COARSE_DIRT_PATCH), block("minecraft:coarse_dirt")),
                  block("dross:sporeloam")],
@@ -1238,8 +1271,9 @@ def surface_rule():
     # layer's depth under the ground, so deeper blocks skip them (no biome lookups all the way down: much faster).
     order = ["gravecrags", "nether_scar", "cinder_wastes", "rimefall", "blightwood", "silverwood_forest"]
     deepest = max(CINDER_BASALT_DEPTH, SCAR_NETHERRACK_DEPTH, CRAG_DEPTH)
+    also = {"blightwood": [SEWER_BIOME]}
     return seq(bedrock, cond(stone_depth(deepest, True),
-                             seq(*[cond(biome_is(b), rules[b]) for b in order], silverwood_rules())))
+                             seq(*[cond(biome_is(b, *also.get(b, [])), rules[b]) for b in order], silverwood_rules())))
 
 
 def rock_faces():
@@ -1429,6 +1463,12 @@ def not_near_hub():
     return {"type": "dross:not_near_hub", "radius": NOT_NEAR_HUB_RADIUS}
 
 
+def not_near_sewer_entrance():
+    """Keeps a Blightwood feature off the sewers' entrances and the Rat King's poisoned ground (dross:not_near_sewer_entrance;
+    the distances are SewerTuning.PIPE_CLEARANCE and GRAND_CLEARANCE: the entrances come from the boss-site planner)."""
+    return {"type": "dross:not_near_sewer_entrance"}
+
+
 def random_offset(xz, y):
     return {"type": "minecraft:random_offset", "xz_spread": xz, "y_spread": y}
 
@@ -1573,7 +1613,7 @@ def features():
     add_feature("lakes", "pond_silverwood", [sw], pond(SILVERWOOD_POND_SHORE),
                 per_chunk(SILVERWOOD_PONDS) + surface_air + [not_near_hub()])
     add_feature("lakes", "pond_blightwood", [bw], pond(BLIGHTWOOD_POND_SHORE, max_bank=BLIGHTWOOD_POND_MAX_BANK),
-                per_chunk(BLIGHTWOOD_PONDS) + surface_air)
+                per_chunk(BLIGHTWOOD_PONDS) + surface_air + [not_near_sewer_entrance()])
     add_feature("lakes", "pond_rimefall", [rf], pond(RIMEFALL_POND_SHORE), per_chunk(RIMEFALL_PONDS) + surface_air)
     # The Cinder Wastes' lava pools are small ponds of lava (the same feature, a smaller box): every lava block is held
     # in by solid ground on every side and below, so it never flows; a rim of blackstone and magma.
@@ -1607,7 +1647,7 @@ def features():
         "log": provider(LOG, axis="x"), "length": uniform_int(*FALLEN_BLIGHT_LOG_LENGTH),
         "top": weighted(FALLEN_BLIGHT_LOG_GROWS), "top_chance": FALLEN_BLIGHT_LOG_GROWTH}},
         per_chunk(FALLEN_BLIGHT_LOGS) + ground_air
-        + [predicate_filter(matching(["dross:sporeloam", "minecraft:mud", "minecraft:coarse_dirt"], DOWN))])
+        + [predicate_filter(matching(["dross:sporeloam", "minecraft:mud", "minecraft:coarse_dirt"], DOWN)), not_near_sewer_entrance()])
     add_feature("local_modifications", "ice_boulder", [rf], {"type": "dross:boulder", "config": {
         "stone": provider("minecraft:packed_ice"), "top": provider("minecraft:snow_block"), "top_chance": ICE_BOULDER_SNOW,
         "lumps": uniform_int(*ICE_BOULDER_LUMPS), "lump_radius": uniform_float(*ICE_BOULDER_RADIUS),
@@ -1672,11 +1712,11 @@ def features():
     # wide flat cap; a giant mushroom needs its whole space open, so they go before the ordinary ones.
     add_feature("vegetal_decoration", "towering_blightcaps", [bw], {"type": "dross:towering_mushroom", "config": {
         "cap_provider": cap, "stem_provider": stem, "foliage_radius": TOWERING_BLIGHTCAP_RADIUS,
-        "height": uniform_int(*TOWERING_BLIGHTCAP_HEIGHT)}}, per_chunk(TOWERING_BLIGHTCAPS) + tree_spot)
+        "height": uniform_int(*TOWERING_BLIGHTCAP_HEIGHT)}}, per_chunk(TOWERING_BLIGHTCAPS) + tree_spot + [not_near_sewer_entrance()])
     add_feature("vegetal_decoration", "blightcaps", [bw], {"type": "minecraft:random_selector", "config": {
         "features": [{"chance": BLIGHTCAP_DOME_SHARE, "feature": inline("dross:blightcap_dome")}],
         "default": inline("dross:blightcap_flat")}},
-        per_chunk(BLIGHTCAPS) + tree_spot)
+        per_chunk(BLIGHTCAPS) + tree_spot + [not_near_sewer_entrance()])
 
     # Frost-covered dead trees: branching out sideways like a bare cherry tree, or (FROST_TREE_FORKED) leaning and
     # forking; Icicles hang under their branches.
@@ -1737,9 +1777,11 @@ def features():
                 patch(ash_layer, ASH_LAYER_TRIES, 6, 2, [matching(["dross:ash", "minecraft:basalt"], DOWN)]),
                 per_chunk(ASH_LAYER_PATCHES) + under_canopy)
     add_feature("vegetal_decoration", "gloomcaps", [bw],
-                patch(provider("dross:gloomcap"), GLOOMCAP_TRIES, 4, 2), per_chunk(GLOOMCAP_PATCHES) + under_canopy)
+                patch(provider("dross:gloomcap"), GLOOMCAP_TRIES, 4, 2), per_chunk(GLOOMCAP_PATCHES) + under_canopy
+                + [not_near_sewer_entrance()])
     add_feature("vegetal_decoration", "sporepods", [bw],
-                patch(provider("dross:sporepod"), SPOREPOD_TRIES, 6, 2), per_chunk(SPOREPOD_PATCHES) + under_canopy)
+                patch(provider("dross:sporepod"), SPOREPOD_TRIES, 6, 2), per_chunk(SPOREPOD_PATCHES) + under_canopy
+                + [not_near_sewer_entrance()])
     add_feature("vegetal_decoration", "frostblooms", [rf],
                 patch(provider("dross:frostbloom"), FROSTBLOOM_TRIES, 5, 2), per_chunk(FROSTBLOOM_PATCHES) + under_canopy)
     snow_layer = {"type": "minecraft:randomized_int_state_provider", "property": "layers",
@@ -1778,6 +1820,162 @@ def features():
 
 
 # =====================================================================================================================
+# SEWERS: tuning (the user's request, October 2026: sewers under Blightwood, the first underground places in the Dross)
+# =====================================================================================================================
+# The sewer networks are a structure (dimension/sewer/SewerStructure.java; their shape, tunnels, pipes and the rat cave
+# are in dimension/sewer/SewerTuning.java). Here: how common and how deep they are, how many end in a rat cave, and the
+# underground biome that makes their water green and gives them their own spawns.
+
+# --- The sewers biome (dross:sewers): the Blightwood underground ------------------------------------------------------
+# Water takes its colour from its biome, so the whole Blightwood underground is its own biome, "The Sewers", with murky
+# green water (DrossColors.SEWERS_*), drips in the air, and rats as its only mobs. It starts SEWER_BIOME_DEPTH blocks
+# under the ground (it follows the land), so the surface (its ground cover, ponds, mobs, /dross goto biome, F3) is
+# Blightwood exactly as before; the rest of the underground is solid rock, so the sewers are the only open space in it.
+# How: the climate's "depth" slot (unused until now) is 1 there and 0 everywhere else, and the sewers' climate box is
+# Blightwood's with a depth of 0.5 or more (the other biomes take any depth). It shares Blightwood's features (the ores).
+SEWER_BIOME = "sewers"
+SEWER_BIOME_DEPTH = 10          # the sewers biome starts this many blocks under the ground (under Blightwood only)...
+# ...and only below this height. So a biome lookup at y 64 or above always gets the surface biome, wherever the land is:
+# the code that reads "the biome of a column" at a fixed height (y 72 or 80: the terrain previews, the sample sites,
+# /dross goto biome, the lair search) never sees the sewers, even under Blightwood's highest hills.
+SEWER_BIOME_MAX_Y = 64
+SEWER_BIOME_FUZZ = 6            # Minecraft blurs biome borders by up to about this many blocks (up and down too)...
+SEWER_AIR_MAX_Y = SEWER_BIOME_MAX_Y - SEWER_BIOME_FUZZ   # ...so no sewer air block is higher than this (y 58)
+SEWER_DEPTH_VALUE = 1.0         # the climate's depth there (0 elsewhere); the sewers' box starts at half of it
+# Rock over every sewer tunnel (blocks, from the highest air block to the ground). Minecraft blurs biome borders by up to
+# about 6 blocks, so this is the biome depth plus a margin: every block of air in a network is in the sewers biome.
+SEWER_MIN_COVER = SEWER_BIOME_DEPTH + SEWER_BIOME_FUZZ
+SEWER_FLOOR_MIN_Y = -40         # a network's floor lies between these heights (it's put as high as min_cover and
+SEWER_FLOOR_MAX_Y = 50          # SEWER_AIR_MAX_Y allow: the deeper the land's lowest ground, the deeper the network)
+
+# --- Where they go (the user's decision, October 16) ----------------------------------------------------------------------
+# Not here any more: the boss-site planner (dimension/sites/BossSites, its numbers in BossSitesTuning.java) takes
+# Blightwood's patches nearest the hub first in groups of 3; in each group one patch gets the Rat King's sewer
+# (dross:rat_cave, one grand entrance, his rat cave) and each of the other two a regular sewer (dross:sewers, 3 pipes)
+# with a 1 in 2 chance (BossSitesTuning.REGULAR_SEWER_CHANCE), if one fits. Each kind has its own structure set whose
+# placement, dross:boss_site, starts it only in the chunk the planner picked ("use" names the planner's use).
+SEWER_RAT_KING_USE = "dross:rat_king_sewer"
+SEWER_REGULAR_USE = "dross:regular_sewer"
+SEWER_SALT = 1610201625         # Minecraft's placement format needs a salt (the planner doesn't use it)
+SEWER_RAT_KING_SALT = 1610201626
+
+# --- The rats (boss area's dross:rat, the regular Plague Rat, and dross:enraged_rat, the Plague Ravager) -------------------
+# All shares count mobs (a weight times the average group size), not spawn picks.
+RAT_GROUP = (2, 4)              # rats come in groups of 2 to 4...
+ENRAGED_RAT_GROUP = (1, 2)      # ...enraged rats 1 or 2
+BLIGHTWOOD_RAT_SHARE = 1.0 / 3.0       # Blightwood's surface: rats are about a third of the mobs spawning there (more
+                                       # Blightwood mobs will come later; the rest are the old Dross list)...
+BLIGHTWOOD_ENRAGED_SHARE = 1.0 / 5.0   # ...and about 1 in 5 of those rats is enraged
+SEWER_ENRAGED_SHARE = 3.0 / 5.0        # the sewers: only rats, 3 in 5 enraged and 2 in 5 regular...
+SEWER_RAT_WEIGHTS = 100                # ...(their two weights add up to this)
+RAT_CAVE_ENRAGED_SHARE = 3.0 / 5.0     # the rat cave: only rats, the same 3 in 5 enraged (the boss area makes its enraged
+RAT_CAVE_RAT_WEIGHTS = 100             # rats stronger); used inside the cave only (dimension/sewer/RatCaveSpawns)
+SPAWN_SHARE_TOLERANCE = 0.01           # the whole-number weights must give each share within this
+
+# --- The sewers biome's air -------------------------------------------------------------------------------------------
+SEWER_PARTICLE = "minecraft:falling_water"           # drips falling from the roof now and then...
+SEWER_PARTICLE_CHANCE = 0.004
+SEWER_ADDITIONS = ("minecraft:block.pointed_dripstone.drip_water", 0.008)   # ...and the plink of drips
+SEWER_MOOD = "minecraft:ambient.cave"
+
+# The sewers biome itself (like a BIOMES entry; its colours are DrossColors.SEWERS_FOG, _SKY, _WATER, _WATER_FOG).
+SEWER_BIOME_SPEC = {
+    "name": "The Sewers", "colors": "SEWERS",
+    "temperature": 0.6, "downfall": 0.9, "precipitation": False,
+    "particle": SEWER_PARTICLE, "particle_chance": SEWER_PARTICLE_CHANCE,
+    "sounds": None, "additions": SEWER_ADDITIONS, "mood": SEWER_MOOD,
+}
+
+
+# =====================================================================================================================
+# SEWERS: the JSON (the rats' weights, the structures, their tags)
+# =====================================================================================================================
+
+def _average(group):
+    return (group[0] + group[1]) / 2.0
+
+
+def rat_entries(regular_weight, enraged_weight):
+    """Spawn list entries (entity, weight, fewest, most) for the two rats."""
+    return [("dross:rat", regular_weight, RAT_GROUP[0], RAT_GROUP[1]),
+            ("dross:enraged_rat", enraged_weight, ENRAGED_RAT_GROUP[0], ENRAGED_RAT_GROUP[1])]
+
+
+def _check_share(what, got, want):
+    if abs(got - want) > SPAWN_SHARE_TOLERANCE:
+        fail(f"{what}: the whole-number weights give {got:.3f}, not {want:.3f} (change the weight totals)")
+    return got
+
+
+def rats_only_weights(enraged_share, total, what):
+    """(regular, enraged) weights adding up to `total`, so that `enraged_share` of the rats that spawn are enraged."""
+    a_r, a_e = _average(RAT_GROUP), _average(ENRAGED_RAT_GROUP)
+    ratio = enraged_share * a_r / ((1.0 - enraged_share) * a_e)        # enraged weight / regular weight
+    regular = int(round(total / (1.0 + ratio)))
+    enraged = total - regular
+    if regular < 1 or enraged < 1:
+        fail(f"{what}: the rat weights round to {regular} and {enraged}; raise the total")
+    _check_share(what + ", share of rats that are enraged", enraged * a_e / (enraged * a_e + regular * a_r), enraged_share)
+    return regular, enraged
+
+
+def blightwood_rat_weights(old_monsters):
+    """(regular, enraged) weights for Blightwood's surface: rats BLIGHTWOOD_RAT_SHARE of all the mobs spawning there,
+    BLIGHTWOOD_ENRAGED_SHARE of them enraged (counting each entry's weight times its average group size)."""
+    others = sum(e["weight"] * (e["minCount"] + e["maxCount"]) / 2.0 for e in old_monsters)
+    rats = others * BLIGHTWOOD_RAT_SHARE / (1.0 - BLIGHTWOOD_RAT_SHARE)
+    regular = int(round(rats * (1.0 - BLIGHTWOOD_ENRAGED_SHARE) / _average(RAT_GROUP)))
+    enraged = int(round(rats * BLIGHTWOOD_ENRAGED_SHARE / _average(ENRAGED_RAT_GROUP)))
+    rat_count = regular * _average(RAT_GROUP) + enraged * _average(ENRAGED_RAT_GROUP)
+    _check_share("Blightwood, share of the mobs that are rats", rat_count / (others + rat_count), BLIGHTWOOD_RAT_SHARE)
+    _check_share("Blightwood, share of the rats that are enraged", enraged * _average(ENRAGED_RAT_GROUP) / rat_count, BLIGHTWOOD_ENRAGED_SHARE)
+    return regular, enraged
+
+
+def sewer_spawns(spawns_from):
+    """Fills in the rats: added to Blightwood's old list (SPAWN_ADDITIONS), the sewers biome's own list (SPAWN_OVERRIDES).
+    Returns the rat cave's (regular, enraged) weights and a summary line."""
+    old_monsters = spawns_from.get("spawners", {}).get("monster", [])
+    b_regular, b_enraged = blightwood_rat_weights(old_monsters)
+    SPAWN_ADDITIONS["blightwood"] = {"monster": rat_entries(b_regular, b_enraged)}
+    s_regular, s_enraged = rats_only_weights(SEWER_ENRAGED_SHARE, SEWER_RAT_WEIGHTS, "the sewers")
+    SPAWN_OVERRIDES[SEWER_BIOME] = {"monster": rat_entries(s_regular, s_enraged)}
+    c_regular, c_enraged = rats_only_weights(RAT_CAVE_ENRAGED_SHARE, RAT_CAVE_RAT_WEIGHTS, "the rat cave")
+    summary = (f"rats: Blightwood {b_regular} regular + {b_enraged} enraged (with the old {len(old_monsters)} monsters), "
+               f"sewers {s_regular} + {s_enraged}, rat cave {c_regular} + {c_enraged}")
+    return (c_regular, c_enraged), summary
+
+
+def sewer_structures(cave_weights):
+    """The two structures (dross:sewers, dross:rat_cave), their structure sets (one each, placed by the boss-site
+    planner), and the tags."""
+    if SEWER_MIN_COVER < SEWER_BIOME_DEPTH + 4:
+        fail("SEWER_MIN_COVER must be at least SEWER_BIOME_DEPTH + 4, or the edges of the tunnels' air could be in Blightwood")
+    if SEWER_FLOOR_MAX_Y >= SEWER_AIR_MAX_Y or SEWER_FLOOR_MIN_Y >= SEWER_FLOOR_MAX_Y:
+        fail("SEWER_FLOOR_MIN_Y < SEWER_FLOOR_MAX_Y < SEWER_AIR_MAX_Y is needed (the tunnels' air must be in the sewers biome)")
+
+    def structure(rat_cave):
+        js = {"type": "dross:sewers", "biomes": "#dross:has_structure/sewers", "spawn_overrides": {},
+              "step": "underground_structures", "terrain_adaptation": "none",
+              "rat_cave": rat_cave, "min_cover": SEWER_MIN_COVER, "floor_min_y": SEWER_FLOOR_MIN_Y, "floor_max_y": SEWER_FLOOR_MAX_Y,
+              "air_max_y": SEWER_AIR_MAX_Y}
+        if rat_cave:
+            js["rat_cave_monsters"] = [{"type": check_entity(t, "monster"), "weight": w, "minCount": a, "maxCount": b}
+                                       for t, w, a, b in rat_entries(*cave_weights)]
+        return js
+
+    structures = {"sewers": structure(False), "rat_cave": structure(True)}
+    structure_sets = {
+        "sewers": {"structures": [{"structure": "dross:sewers", "weight": 1}],
+                   "placement": {"type": "dross:boss_site", "use": SEWER_REGULAR_USE, "salt": SEWER_SALT}},
+        "rat_cave": {"structures": [{"structure": "dross:rat_cave", "weight": 1}],
+                     "placement": {"type": "dross:boss_site", "use": SEWER_RAT_KING_USE, "salt": SEWER_RAT_KING_SALT}},
+    }
+    biome_tag = {"replace": False, "values": ["dross:blightwood"]}
+    structure_tag = {"replace": False, "values": ["dross:sewers", "dross:rat_cave"]}
+    return structures, structure_sets, biome_tag, structure_tag
+
+# =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
 SEA_LEVEL = -64                 # no seas: below the world's floor
@@ -1801,7 +1999,7 @@ def noise_settings(router):
         "noise_router": {
             "barrier": 0.0, "fluid_level_floodedness": 0.0, "fluid_level_spread": 0.0, "lava": 0.0,
             "temperature": js(router["temperature"]), "vegetation": js(router["vegetation"]),
-            "continents": js(router["continents"]), "erosion": 0.0, "depth": 0.0, "ridges": js(router["ridges"]),
+            "continents": js(router["continents"]), "erosion": 0.0, "depth": js(router["depth"]), "ridges": js(router["ridges"]),
             "initial_density_without_jaggedness": js(router["initial_density_without_jaggedness"]),
             "final_density": js(router["final_density"]),
             "vein_toggle": 0.0, "vein_ridged": 0.0, "vein_gap": 0.0,
@@ -1835,7 +2033,8 @@ kept = set()
 # version (a renamed noise, say) and is deleted. The old superflat biome is the one exception.
 OWNED = [os.path.join(WORLDGEN, "density_function"), os.path.join(WORLDGEN, "noise"),
          os.path.join(WORLDGEN, "noise_settings"), os.path.join(WORLDGEN, "biome"),
-         os.path.join(WORLDGEN, "configured_feature"), os.path.join(WORLDGEN, "placed_feature")]
+         os.path.join(WORLDGEN, "configured_feature"), os.path.join(WORLDGEN, "placed_feature"),
+         os.path.join(WORLDGEN, "structure"), os.path.join(WORLDGEN, "structure_set")]
 NEVER_DELETE = {os.path.join(WORLDGEN, "biome", OLD_BIOME + ".json")}
 
 
@@ -1901,6 +2100,9 @@ def main():
     write_file(os.path.join(DATA, "tags", "blocks", "rock_face_replaceable.json"), tag)
 
     ore_tag, pond_tag = features()
+    # The sewers biome has exactly Blightwood's features: it's the Blightwood underground (its ores), and Minecraft checks
+    # a feature's biome where the feature starts, which for some (the ores, rock_faces, tidy_up) is deep down.
+    BIOME_FEATURES[SEWER_BIOME] = {step: list(BIOME_FEATURES["blightwood"][step]) for step in STEPS}
     check_configured_refs(set(trees()) | {"rock_faces"})
     for name, js in CONFIGURED.items():
         write_json("configured_feature", name, js)
@@ -1911,14 +2113,25 @@ def main():
     check_features({"rock_faces"} | set(PLACED))
 
     spawns = old_biome()
+    cave_weights, rat_summary = sewer_spawns(spawns)
     for biome_id, spec in BIOMES.items():
         write_json("biome", biome_id, biome_json(biome_id, spec, spawns))
+    write_json("biome", SEWER_BIOME, biome_json(SEWER_BIOME, SEWER_BIOME_SPEC, spawns))
     kept.add(os.path.normcase(os.path.abspath(os.path.join(WORLDGEN, "biome", OLD_BIOME + ".json"))))
+
+    structures, structure_sets, biome_tag, structure_tag = sewer_structures(cave_weights)
+    for name, js in structures.items():
+        write_json("structure", name, js)
+    for name, js in structure_sets.items():
+        write_json("structure_set", name, js)
+    write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "sewers.json"), biome_tag)
+    write_file(os.path.join(DATA, "tags", "worldgen", "structure", "sewers.json"), structure_tag)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())
 
     names = {f"biome.dross.{b}": spec["name"] for b, spec in BIOMES.items()}
+    names[f"biome.dross.{SEWER_BIOME}"] = SEWER_BIOME_SPEC["name"]
     names[f"biome.dross.{OLD_BIOME}"] = "Dross Flats"
     merge_lang(names)
     removed = remove_stale()
@@ -1927,6 +2140,8 @@ def main():
           "Cinder Wastes above {hot:.4f}, Rimefall below {cold:.4f}, Blightwood above {rot:.4f}".format(**thresholds))
     print(f"worldgen: {len(NOISES)} noises, {len(DENSITY_FUNCTIONS)} density functions, {len(BIOMES)} biomes, "
           f"{len(PLACED) + 1} placed features ({len(CONFIGURED)} configured features of their own)")
+    print(f"worldgen: sewers where the boss-site planner puts them ({SEWER_RAT_KING_USE}, {SEWER_REGULAR_USE}), "
+          f"the sewers biome from {SEWER_BIOME_DEPTH} blocks under Blightwood's ground; {rat_summary}")
     print(f"worldgen: {len(written)} file(s) written or updated")
     for p in written:
         print("  " + p)

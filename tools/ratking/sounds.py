@@ -341,6 +341,33 @@ def rage_whistle_3(rng):
     return S.reverb(S.place(1.4, (0.0, a), (0.24, b), (0.62, a), (0.86, b)), 0.15)
 
 
+def scurry_rush(rng, dur=0.75):
+    """Claws pattering fast on the ground (twelve steps a second, getting louder) and the air rushing past."""
+    n = S.n_of(dur)
+    t = np.arange(n) / S.SR
+    pads = S.grains(rng, dur, 260, grain=(0.002, 0.008), lo=700.0, hi=5000.0)
+    gait = 0.3 + 0.7 * np.abs(np.sin(2 * math.pi * 6.0 * t)) ** 3          # two feet: 12 footfalls a second
+    rush = S.whoosh(rng, dur, 500.0, 2600.0, amp_pts=[(0.0, 0.0), (dur * 0.6, 1.0), (dur, 0.0)])
+    grow = np.linspace(0.45, 1.0, n)
+    return (pads * gait * grow * 0.7 + rush * 0.55) * env([(0.0, 0.0), (0.03, 1.0), (dur - 0.08, 0.9), (dur, 0.0)], dur)
+
+
+def king_charge(rng, kind=1):
+    """The spear charge: a war-cry squeak ('yee-YAH!', kind 1) or a rising squeal (kind 2) as he dashes, his claws
+    scurrying and the air rushing past."""
+    if kind == 1:
+        cry = S.voice(0.5, [(0.0, 720.0), (0.12, 1050.0), (0.22, 980.0), (0.32, 1300.0), (0.5, 1150.0)],
+                      [(0.0, "ee"), (0.2, "ee"), (0.28, "ah"), (0.5, "ah")], rng, breath=0.35, rough=0.25, rough_hz=60.0,
+                      amp_pts=[(0.0, 0.0), (0.02, 0.8), (0.2, 0.6), (0.28, 1.0), (0.42, 0.85), (0.5, 0.0)], direct=0.45)
+        sq = squeak(rng, 0.2, [(0.0, 2400.0), (0.2, 3100.0)], 0.3)
+        return S.reverb(S.place(0.95, (0.0, cry), (0.27, sq), (0.12, scurry_rush(rng, 0.8))), 0.1)
+    squeal = S.voice(0.55, [(0.0, 900.0), (0.25, 1500.0), (0.55, 1650.0)], [(0.0, "ee"), (0.55, "ee")], rng, breath=0.3,
+                     rough=0.2, rough_hz=70.0, vib_rate=10.0, vib_pts=[(0.0, 0.0), (0.55, 0.03)],
+                     amp_pts=[(0.0, 0.0), (0.03, 0.9), (0.4, 1.0), (0.55, 0.0)], direct=0.5)
+    sq = squeak(rng, 0.25, [(0.0, 2600.0), (0.12, 3400.0), (0.25, 3200.0)], 0.25, vib=(12.0, 0.03))
+    return S.reverb(S.place(0.95, (0.0, squeal), (0.15, sq), (0.08, scurry_rush(rng, 0.85))), 0.1)
+
+
 # ---------------------------------------------------------------- the Rat King: attacks (versions to pick from later)
 
 
@@ -615,6 +642,9 @@ EVENTS = [
           "His staff clattering down", used=True),
     Event("entity.rat_king.crown_clink", K, [("crown_clink", crown_clink)], "Crown clinks", "Rat King: moves",
           "His crown landing on his belly", used=True),
+    Event("entity.rat_king.charge", K, [("charge_1", lambda r: king_charge(r, 1)), ("charge_2", lambda r: king_charge(r, 2))],
+          "Rat King charges", "Rat King: moves",
+          "The spear charge: a war-cry squeak or a rising squeal, scurrying claws, the air rushing (2 versions)", used=True),
 ]
 ATTACKS = [
     ("swipe", attack_swipe, 3, "Rat King swipes", "Claw swipe"),

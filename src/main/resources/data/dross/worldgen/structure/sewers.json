@@ -1,0 +1,12 @@
+{
+  "type": "dross:sewers",
+  "biomes": "#dross:has_structure/sewers",
+  "spawn_overrides": {},
+  "step": "underground_structures",
+  "terrain_adaptation": "none",
+  "rat_cave": false,
+  "min_cover": 16,
+  "floor_min_y": -40,
+  "floor_max_y": 50,
+  "air_max_y": 58
+}

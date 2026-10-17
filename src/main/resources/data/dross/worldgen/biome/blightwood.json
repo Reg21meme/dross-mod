@@ -56,6 +56,18 @@
         "weight": 5,
         "minCount": 1,
         "maxCount": 1
+      },
+      {
+        "type": "dross:rat",
+        "weight": 109,
+        "minCount": 2,
+        "maxCount": 4
+      },
+      {
+        "type": "dross:enraged_rat",
+        "weight": 54,
+        "minCount": 1,
+        "maxCount": 2
       }
     ],
     "creature": [

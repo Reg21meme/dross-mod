@@ -15,6 +15,7 @@ there, for one extra check); `draw_blocks.py`, `preview_trees.py` and `preview_s
 | `check_assets.py` | Checks every registered Dross block and item has its blockstate, models (following parents), textures, English name and loot table; that every Dross id in a loot table (blocks in its conditions too), recipe or tag exists; that every sound in `registry/ModSounds` is in `sounds.json` with an English subtitle; and that every block in `block_data.py` is registered and in the Dross creative tab. Exits with code 1 on any problem. | nothing |
 | `preview_trees.py` | Draws the trees the GameTest grew, one by one and as a dense stand, at night. | `block-previews/trees.png` |
 | `preview_sites.py` | Draws night views of real generated land, seen from above and the south-east, in the real block textures: each biome's sample site and the hub, with everything growing on them (dark unless block light reaches them). Reads what the preview test wrote. | `terrain-previews/view_<name>.png` |
+| `preview_sewers.py` | Draws the sewers from real generated blocks: maps of a regular sewer and of the Rat King's sewer from above, cutaways of a pipe entrance, the Rat King's grand entrance (at night and cut in half), his royal road and his rat cave (with `preview_sites.py`'s renderer). Reads what `SewersGameTest` wrote with `DROSS_SEWER_PREVIEWS=1`. | `terrain-previews/sewers/*.png` |
 
 ## The usual loop
 
@@ -291,6 +292,9 @@ features reach a few blocks into the chunks round it, some decorated before it a
 ends up on ground a later feature turned into rock or a pond's shore, a hanging Stormvine strand loses its top to another
 tree's crown, or a few leaves where two trees meet are marked too far from a log (they'd decay). It removes what couldn't
 stay and gives such leaves their real distance (or removes them if no log holds them up). About 1 ms per chunk.
+It never touches ladders, banners or candles (`isBuiltFitting`): only structures put those down, and a structure is
+built one chunk at a time, so a sewer pipe's ladder in the last column of a chunk hangs on air until the next chunk's
+part of the pipe is built (pulling it down left a gap at the top of the climb out, October 16).
 
 The other Java behind the JSON: `dross:boulder` (`BoulderFeature`), `dross:fallen_log` (`FallenLogFeature`),
 `dross:towering_mushroom` (`ToweringMushroomFeature`), the tree decorators `dross:stormvine` and `dross:icicles`
@@ -304,3 +308,170 @@ ranges (all four found). It logs the generation time per chunk (and the tidy-up'
 pools (and why the pond feature's other tries made nothing), the lit floor and the ores ("[terrain features]"). Ponds
 and lava pools are rare, so `pondsHoldTheirFluidAndNeverCutTrees` also places them on prepared ground in a test arena: a
 pond and a lava pool form and hold their fluid, and the same pond with a tree trunk standing in it doesn't form.
+
+## The sewers under Blightwood (the user's requests, October 2026)
+
+The first underground places in the Dross, and only there: everywhere else the land stays a solid height field. There
+are two kinds of network (structures `dross:sewers` and `dross:rat_cave`; `#dross:sewers` is both), and where they go is
+the boss-site planner's (next section): in each group of 3 Blightwood patches, **one gets the Rat King's sewer**, and each
+of the other two **a regular sewer with a 1 in 2 chance**, if one fits there. Minecraft's `/locate structure` can't
+search the planner's placement; `Sewers.findNearest` and `RatCaves.findNearest` ask the planner.
+
+**A regular sewer** (`dross:sewers`):
+
+- **3 pipe entrances** (`PIPES_MIN`/`PIPES_MAX` in `SewerTuning`; the user asked for 3 on October 16): big vertical copper
+  pipes (waxed oxidised copper, green like a Mario pipe, streaked with weathered copper and banded) standing 4 blocks out
+  of the ground with a wider rim, a stone collar and a few steps up. The 3 x 3 opening drops straight down a shaft into
+  the **pool room**: a pool of sewer water 5 x 5 and 4 deep (it breaks your fall). A ladder runs up the inside wall on the
+  steps' side, from just over the water to the rim.
+- **The maze**: junctions on a grid 10 blocks apart joined by straight tunnels, grown out one junction at a time (now
+  carrying on from the newest, now branching off an older one), so it's a tangle of long winding corridors, side branches
+  and dead ends; then extra tunnels make loops. It takes its patch's shape: only junctions at least `BIOME_MARGIN` (8)
+  inside Blightwood are used, and in a smaller patch it fills at most `MAZE_FILL` (80%) of them, down to `NODES_SMALLEST`
+  (16) junctions (40-62 where there's room). **Main tunnels** (5 wide, arched, a channel of sewer water down the middle, a
+  thin copper pipe along the wall) run from each pipe to the middle hall; **side tunnels** (3 x 4, dry, more sludge,
+  cobwebs). Junctions are crossings, brick **rooms** (pillars, a drain in the middle), or **rough caves** (tuff, deepslate,
+  mud, stalactites, lots of sludge). Iron grates in the walls. A little **glow lichen** on the walls (`LICHEN_TUNNELS`, 3.5%
+  of the wall spots; light 7).
+
+**The Rat King's sewer** (`dross:rat_cave`; the user's four picks, October 16):
+
+- **One grand entrance** (`SewerGrandPipePiece`): a huge crowned pipe, its rim 11 wide (`GRAND_RIM_RADIUS`) and its top
+  shaped like his crown: copper points round it (`CROWN_POINTS`, alternately tall and short, none in front of the steps),
+  each tipped with a gold block; bands of gold instead of copper down its body and round its rim's top; tattered red
+  banners (his cape's colour: black jagged hem, frayed border) hanging off the rim; wide steps up. Its 5 x 5 opening drops
+  into a 7 x 7 pool 5 deep in a bigger room, with a ladder out.
+- **The green glow**: Blight Vents (`dross:blight_vent`, light 12) in the shaft's wall just under the rim and in the 4
+  corners of the pool room light the shaft poison green (seen from outside at night) and breathe spores that drift up out
+  of the opening.
+- **Poisoned ground** round it (like the cathedral's leak), fading out by `POISON_RADIUS` (16) with a wobbly edge: coarse
+  dirt, puddles of Sewer Sludge, dead bushes, rat nests (heaps of bone blocks with old carpets on and round them, a cobweb
+  or two), cobwebs, gnawed fences (short runs of old posts, some gone) and a few more vents in the ground. World generation
+  keeps Blightwood's trees, giant mushrooms, fallen logs, ponds and plants off it: the placement filter
+  `dross:not_near_sewer_entrance` (`NotNearSewerEntranceFilter`, in those features' JSON) skips everything within
+  `GRAND_CLEARANCE` (26) of the grand entrance and `PIPE_CLEARANCE` (14) of a regular pipe, reading the entrances from the
+  planner (noise only, so it works before the sewer's own chunks are made).
+- **The royal road**: the main tunnel from the entrance to his cave (`ROYAL_ROAD_STEPS`, about 6 junctions long): a red
+  carpet runner down its middle 3 blocks (worn to brown here and there), red banners on its walls, lit green candles along
+  its edges, bone piles, raw gold and gold coins (light weighted pressure plates). It carries on through its junctions and
+  into the cave towards the nest. The other tunnels are side tunnels.
+- **The rat cave**: the final chamber the royal road and the side tunnels lead to, 40 across and 14 tall under a rough
+  dome. Copper pipes run along its wall and roof and empty into it: water pours from their mouths into drains in the floor
+  (each mouth boxed in by copper on all four sides, so the water only ever falls straight down into its drain), one oozes
+  sludge onto a heap. Its muddy floor has Sewer Sludge patches all over the fight area. In the middle the Rat King's
+  **nest** of piled carpets on a heap of wool, and round it his **hoard**: 7 heaps of gold and some scattered, about 70%
+  Duskstone Gold Ore and 30% gold blocks. **Lit green candles** round the nest (`NEST_CANDLE_SPOTS`) and on top of his
+  heaps, **glow lichen** on its walls (`LICHEN_RAT_CAVE`), a few dim Gloomcaps at the wall's foot. The boss area finds it
+  through `dimension/sewer/RatCaves` (nest, bounds, arrival spot, its grand entrance).
+- Its smallest form (only in a group where no patch has room for it by the normal rules, in the roomiest patch):
+  `RELAXED_*` in `SewerTuning` (junctions 4 inside Blightwood, 10 junctions, 1 door, the entrance 28 from the cave).
+
+**Light** (the boss area lets rats spawn at low block light in the sewers and the rat cave): glow lichen 7, a lit candle 3
+per candle (so 3-12), a Gloomcap 6, a Blight Vent 12 (only at the grand entrance, its pool room and the ground round it).
+
+**Sewer Sludge** (`dross:sewer_sludge`, `dimension/block/SewerSludgeBlock`): murky brownish-green muck in patches on the
+floors. You sink in a little (like mud) and it slows you to 0.65 of your speed (soul sand: 0.4).
+
+**Why the water is green.** Water takes its colour from its biome, so the whole Blightwood underground is its own biome,
+**The Sewers** (`dross:sewers`): from `SEWER_BIOME_DEPTH` (10) blocks under the ground down, and only below y 64
+(`SEWER_BIOME_MAX_Y`), under Blightwood only. (The y 64 limit means code that reads a column's biome at a fixed height,
+y 72 or 80, always gets the surface's biome, even under Blightwood's highest hills; a network's air stays below y 58,
+`SEWER_AIR_MAX_Y`.)
+Minecraft's climate has a "depth" slot nobody used: the density function `dross:climate/sewer_depth` is 1 there and 0
+everywhere else, and the sewers' climate box is Blightwood's with a depth of 0.5 or more (every other biome takes any
+depth). So the surface (its ground cover, ponds, mobs, `/dross goto biome`, F3) is Blightwood exactly as before, and
+since the underground is solid rock, the sewers are the only place the biome shows: its water and fog are murky green
+(`DrossColors.SEWERS_*`), drips fall and plink, and only rats spawn there. Every network lies at least `SEWER_MIN_COVER`
+(16) blocks under the ground, so all of its air is in the sewers biome (Minecraft blurs biome borders by a few blocks).
+The sewers biome has exactly Blightwood's features (its ores).
+
+**Spawns** (worldgen.py SEWERS; every share counts mobs, weight x average group size): Blightwood's surface keeps the
+old Dross list with the rats added, so rats are about a third of the mobs spawning there (`BLIGHTWOOD_RAT_SHARE`), 1 in 5
+of them enraged (`BLIGHTWOOD_ENRAGED_SHARE`); the sewers: only rats, 3 in 5 enraged (`SEWER_ENRAGED_SHARE`); the rat
+cave: only rats, 3 in 5 enraged (`RAT_CAVE_ENRAGED_SHARE`, written into `dross:rat_cave`'s JSON and used inside the cave by
+`dimension/sewer/RatCaveSpawns`). The script works the weights out from those shares and checks them (within 1%).
+The rats' own spawn rules (darkness, solid ground) are the boss area's.
+
+| Constant (worldgen.py, SEWERS) | Now | Meaning |
+|---|---|---|
+| `SEWER_RAT_KING_USE`, `SEWER_REGULAR_USE` | `dross:rat_king_sewer`, `dross:regular_sewer` | The planner's use each structure set's placement (`dross:boss_site`) asks about. |
+| `SEWER_BIOME_DEPTH`, `SEWER_MIN_COVER` | 10, 16 | The sewers biome starts 10 under the ground; every tunnel has 16 blocks of rock over it. |
+| `SEWER_BIOME_MAX_Y`, `SEWER_AIR_MAX_Y` | 64, 58 | The sewers biome only below y 64; no sewer air above y 58. |
+| `SEWER_FLOOR_MIN_Y`, `SEWER_FLOOR_MAX_Y` | -40, 50 | A network's floor lies between these (as high as the cover and the air limit allow). So the pipes' drop is 25-55 blocks: deeper where Blightwood's ground is high. |
+| `RAT_GROUP`, `ENRAGED_RAT_GROUP` | 2-4, 1-2 | Group sizes. |
+| `BLIGHTWOOD_RAT_SHARE`, `BLIGHTWOOD_ENRAGED_SHARE` | 1/3, 1/5 | Blightwood's surface. |
+| `SEWER_ENRAGED_SHARE`, `RAT_CAVE_ENRAGED_SHARE` | 3/5, 3/5 | The sewers and the rat cave (rats only). |
+
+The shape (maze size, tunnel and room sizes, pipes, the grand entrance and its poisoned ground, the royal road, the rat
+cave, the nest and hoard, candles, lichen, sludge shares, the blocks they're made of) is in
+`dimension/sewer/SewerTuning.java`; `SewerPlanner` lays a network out from the terrain's noise alone (no chunks needed),
+the pieces (`SewerTunnelPiece`, `SewerNodePiece`, `SewerPipePiece`, `SewerGrandPipePiece`, `RatCavePiece`) build it chunk
+by chunk. `SewerPlanner` seeds its randomness from the world seed and the network's chunk only, so the planner's fit test
+and the structure's own generation lay out exactly the same network. New worlds only (the mod isn't published: no old
+worlds to keep).
+
+**The headless checks** `dimension/SewersGameTest`: the regular sewer nearest the hub (through the planner): 3 pipes,
+each out of the ground, clear above, a ladder all the way, a pool at least 3 deep under the whole opening, in the sewers
+biome with its green water; every pipe reached by walking the tunnels; dead ends, loops, main and side tunnels; sludge;
+glow lichen. The rat cave nearest the hub (size, nest, gold about 70/30, sludge share, arrival spot, waterfalls that stay
+in their drains when the water is ticked, candles round the nest and on the gold, lichen, the royal carpet coming in, its
+entrance leading to it, `isInRatCave`, `entrancesNear`, rats-only spawns), and its sewer's one grand entrance (the crown:
+gold band, copper points with gold tips; banners; the 5 x 5 drop and pool; the ladder; the vents and their light in the
+shaft; the poisoned ground's coarse dirt, sludge, dead bushes, bone nests, carpets, cobwebs and fences, and no tree or
+giant mushroom near it; the royal road's carpet, banners, candles, bones and gold). Sewer Sludge slowing a sliding item
+(stone > sludge > soul sand). `DrossSpawnsGameTest.spawnListsPerBiome` checks the spawn shares. With
+`DROSS_SEWER_PREVIEWS=1` the tests write the blocks for `preview_sewers.py` (and `BossSitesGameTest` draws
+`terrain-previews/boss_sites.png`).
+
+## Boss sites: where the bosses' lairs and the sewers go (the user's decision, October 16 2026)
+
+One shared, deterministic planner for every boss biome (`dimension/sites/BossSites`; its numbers in `BossSitesTuning`),
+worked out from the world generator's noise alone (no chunk is generated or loaded), the same every time for the same
+seed, reaching out from the hub as far as anyone goes (up to `MAX_DISTANCE`, 32,000 blocks). The biomes themselves
+generate exactly as before.
+
+**The rule.**
+
+1. A boss biome's **patches** are its separate regions on the surface: chunks whose middle block (x = 16i + 8,
+   z = 16j + 8, read at y 80) is that biome, joined when they touch along a side. Specks under `MIN_PATCH_AREA`
+   (10,000 blocks²) don't count.
+2. They're numbered by their **distance** from the hub (`DrossHub.CENTER`) to their **nearest point** (the middle of their
+   nearest chunk), nearest first (ties: the smaller id, which is that chunk).
+3. The 3 nearest form **group 1**; the next 3 group 2; and so on forever.
+4. In each group, **one patch gets the biome's current boss** (slot 0): picked by the world seed among the patches where
+   the boss's lair fits (its fit test). The other two are kept for the biome's two future bosses (slots 1 and 2, the
+   nearer one first): each biome will have 3 bosses, never two in one patch. If no patch of the group fits, the roomiest
+   one (the deepest) gets the boss's smallest form; if not even that fits, the group has no boss (a warning in the log).
+5. Blightwood's kept patches each get a **regular sewer with a 1 in 2 chance** (`REGULAR_SEWER_CHANCE`, a roll per patch
+   fixed by the seed), if one fits. A patch never holds more than one sewer network.
+
+The boss biomes now: the Cinder Wastes (the Cinder Colossus, `BossSites.COLOSSUS_LAIR`) and Blightwood (the Rat King's
+sewer, `RAT_KING_SEWER`; filler `REGULAR_SEWER`). Rimefall joins when its first boss arrives (add it to `BOSS_BIOMES`).
+
+**Definitions.** A spot's **depth** in its patch: how far it lies from the patch's edge (from its chunk's middle to the
+middle of the nearest chunk outside the patch, less 8 blocks): about the radius of the biggest circle round it that stays
+in the patch. A patch's **deepest point** has the most room. A use is tried at its patch's deepest spots first
+(`SITE_TRIES` = 6 spots, at least `SITE_TRY_SPACING` = 48 blocks apart).
+
+**Its fit tests.** A sewer fits at a spot if `SewerPlanner` can lay the network out with its middle in that spot's
+chunk (`SewerSites`; the structure then starts in that chunk, with a custom placement, `dross:boss_site`). The Colossus's
+is a stand-in until the boss area plugs in its own: every column within `COLOSSUS_FIT_RADIUS` (64) is Cinder Wastes (48
+for its smallest form).
+
+**How it works.** The biome map is read outwards from the hub ring by ring (one sample per chunk), as far as a question
+needs; each new patch is followed out whole, and a patch is numbered once every patch nearer than it has been found. Each
+group is planned the first time it's asked about (about a second for a Blightwood group) and remembered. All of it is
+thread-safe (world generation asks from its own threads).
+
+**The measurements behind the numbers** (the coordinator's run, 60 seeds): the nearest patches start about 418 / 623 /
+848 blocks out (Cinder Wastes) and 419 / 552 / 724 (Blightwood); group 3 ends about 1,500-1,700 blocks out, group 10 about
+3,100-3,400; a typical patch is 360 x 360 (Cinder) or 325 x 325 (Blightwood), the widest circle inside one 242 or 208
+across (median). A round 140-block maze fits only 58-68% of Blightwood patches, so the mazes shrink to fit their patch.
+
+**The checks** `dimension/sites/BossSitesGameTest`: for 4 fixed seeds, the patches numbered nearest first with no specks,
+group g holding patches 3g+1 to 3g+3, exactly one boss patch per group and two kept, every site inside its patch and its
+biome, fillers only in kept patches, the regular sewers' rolls on about half the kept Blightwood patches, and the same
+answers from a second plan asked in another order (a far chunk first) and from the world's own plan; in this world, every
+planned sewer of Blightwood's first two groups starts in its planned chunk as the right kind, and none in a kept patch
+without one. `terrain-previews/boss_sites.png` (with `DROSS_SEWER_PREVIEWS=1` or `DROSS_TERRAIN_PREVIEWS=1`) shows this
+world's patches round the hub, numbered, their groups, the bosses and the regular sewers.

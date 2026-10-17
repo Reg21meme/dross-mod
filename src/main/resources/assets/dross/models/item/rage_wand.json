@@ -1,6 +1,12 @@
 {
   "parent": "minecraft:item/handheld",
   "textures": {
-    "layer0": "dross:item/rage_wand"
-  }
+    "layer0": "dross:item/rage_wand_blue"
+  },
+  "overrides": [
+    {"predicate": {"dross:rage_team": 0.25}, "model": "dross:item/rage_wand_red"},
+    {"predicate": {"dross:rage_team": 0.5}, "model": "dross:item/rage_wand_green"},
+    {"predicate": {"dross:rage_team": 0.75}, "model": "dross:item/rage_wand_yellow"},
+    {"predicate": {"dross:rage_team": 1.0}, "model": "dross:item/rage_wand_purple"}
+  ]
 }

@@ -106,6 +106,10 @@ BLOCKS = [
     dict(id="cragstone", name="Cragstone", model="stone", drops="self"),
     dict(id="storm_lichen", name="Storm Lichen", model="multiface", drops="multiface_shears"),
     dict(id="crag_thistle", name="Crag Thistle", model="cross", drops="self"),
+    # The sewers under Blightwood (the user's request, October 2026): murky sludge on the sewer floors
+    dict(id="sewer_sludge", name="Sewer Sludge", model="stone", drops="self"),
+    # The Rat King's sewer (October 16): the poison-green glow of its grand entrance, breathing spores
+    dict(id="blight_vent", name="Blight Vent", model="vent", drops="self"),
 ]
 
 # Plain items (not blocks): id -> English name. Their texture is item/<id>.
@@ -123,13 +127,14 @@ BLOCK_TAGS = {
     "minecraft:mineable/pickaxe": ["dross:duskstone", "dross:duskstone_coal_ore", "dross:duskstone_gold_ore",
                                    "dross:moonsilver_ore", "dross:stormite_ore",
                                    "dross:cinder_vent", "dross:icicle", "dross:scarred_netherrack", "dross:scar_vent",
-                                   "dross:cragstone"],
+                                   "dross:cragstone", "dross:blight_vent"],
     "minecraft:mineable/axe": ["dross:silverwood_log", "dross:silverwood_wood", "dross:stripped_silverwood_log",
                                "dross:stripped_silverwood_wood", "dross:silverwood_planks",
                                "dross:charred_log", "dross:frostbitten_log", "dross:blightcap_block",
                                "dross:rotting_blightcap", "dross:blightcap_stem", "dross:storm_lichen"],
     "minecraft:mineable/hoe": ["dross:silverwood_leaves", "dross:silvermoss"],
-    "minecraft:mineable/shovel": ["dross:silvermoss", "dross:ash", "dross:ash_layer", "dross:sporeloam", "dross:hoarfrost"],
+    "minecraft:mineable/shovel": ["dross:silvermoss", "dross:ash", "dross:ash_layer", "dross:sporeloam", "dross:hoarfrost",
+                                  "dross:sewer_sludge"],
     "minecraft:needs_stone_tool": ["dross:moonsilver_ore"],
     "minecraft:needs_iron_tool": ["dross:stormite_ore"],
     # Stone and ores

@@ -45,11 +45,11 @@ How a player moves through the mod, from a normal survival world to the Dross.
 ## The Dross (the dimension)
 
 - **Dimension ID:** `dross:dross`, shown in game as **"The Dross"**.
-- **Terrain:** real land, surface only (no caves): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and snow-capped mountain peaks (about y 230-260) in the Gravecrags. It's Minecraft's own terrain generator, set up in data files (`data/dross/dimension/`, `dimension_type/`, `worldgen/`) written by `tools/terrain/worldgen.py`, where every tuning number lives.
+- **Terrain:** real land, surface only (no caves, except Blightwood's sewers, below): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and snow-capped mountain peaks (about y 230-260) in the Gravecrags. It's Minecraft's own terrain generator, set up in data files (`data/dross/dimension/`, `dimension_type/`, `worldgen/`) written by `tools/terrain/worldgen.py`, where every tuning number lives.
 - **Six biomes**, regions about 600-670 blocks across:
   - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds.
   - **Cinder Wastes**: ash, basalt and magma, enclosed lava pools, basalt spires, charred trees, Emberweed and Cinder Vents. Home of the Cinder Colossus's volcano.
-  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog.
+  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog. Rats (Plague Rats, and about 1 in 5 Plague Ravagers) are about a third of the mobs here. Underneath are **the sewers** (below).
   - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds.
   - **Nether Scar** (smaller patches, about 240 blocks across): netherrack with clusters of blue-cracked Scarred Netherrack, crimson and warped fungi, Soulwicks and Scar Vents.
   - **The Gravecrags**: the mountains, Cragstone cliffs with glowing Storm Lichen and Crag Thistles, snow on the peaks. Never near the hub.
@@ -64,6 +64,41 @@ How a player moves through the mod, from a normal survival world to the Dross.
   - These geared mobs are the only source of dropped Deathforged books (see Enchantments).
 - **No other way out:** no portal can be lit inside the Dross. The Rift Key does nothing there, and flint and steel or fire can't light a nether portal there either. The hub's portal is the only exit.
 - **Safe zone:** no hostile mobs spawn naturally within 48 blocks of the hub center. Mobs can still walk in from the dark.
+
+### The sewers under Blightwood
+
+The Dross's only underground places. **Where they go:** Blightwood's patches are taken nearest the hub first, in
+groups of 3. In every group, one patch has **the Rat King's sewer**, and each of the other two has a **regular sewer**
+half the time. That repeats outwards forever, so there are many of both, never two in one patch.
+
+**A regular sewer** has:
+
+- **3 pipe entrances:** big green copper pipes, like Mario pipes, standing out of the ground with steps up to the
+  rim. Jump in: you drop 34-58 blocks down a copper shaft into a deep pool of **murky green sewer water** that breaks
+  your fall. A ladder up the inside wall takes you back out.
+- **A maze of tunnels:** wide brick tunnels with a water channel down the middle, narrow side tunnels with cobwebs,
+  pillared rooms, rough natural caves, loops and dead ends. It's dark down there, with a little glow lichen on the
+  walls.
+- **Sewer Sludge** in patches on the floors: a murky brownish-green mud that slows you down (less than soul sand).
+- **Only rats spawn** in the sewers, 3 enraged Plague Ravagers to every 2 Plague Rats. The green water, thick fog and
+  dripping come from the sewers' own underground biome, "The Sewers".
+
+**The Rat King's sewer** looks different:
+
+- **One grand entrance:** a huge copper pipe whose rim is shaped like his crown (bright copper points tipped with
+  glowing green Blight Vents, bright copper bands, tattered red banners; no gold blocks). Round it the ground is poisoned: dead plants, sludge puddles, bones, rat nests of old
+  carpet, cobwebs and gnawed fences. **Blight Vents** in and round the pipe glow poison green and puff spores, so it
+  stands out at night.
+- **The royal road:** the tunnel from the entrance to his cave has red banners, green candles, bones and scattered
+  gold. There's no carpet, so it doesn't show you the way through the maze.
+- **The rat cave:** a domed chamber about 40 blocks across, lit by green candles and glow lichen, copper pipes on its
+  walls and ceiling pouring into drains, sludge patches all over its floor, and in the middle the **Rat King's nest**
+  of piled carpets, surrounded by his hoard of gold (about 70% Dross gold ore, 30% gold blocks). He's **asleep there
+  when you arrive** and wakes as you come near, like in his fight. Plague Ravagers that spawn in the rat cave are
+  tougher than usual (1.5 times the health and bite).
+
+`/dross goto lair ratking` takes you to the nearest rat cave and `/dross goto sewer` to the nearest regular sewer
+(Minecraft's `/locate` can't find them). Sewers only appear in newly generated chunks.
 
 ---
 
@@ -188,11 +223,11 @@ Unlimited uses, no restocking, no XP.
 | **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
 | **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon and the Wither) while still counting as your kill. Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
-| **Rage Wand** | A creative-only testing wand. Hit a mob with it (no damage) to give it **Rage**: raged mobs fight each other, every mob for itself, until one is left, which calms down after about 10 seconds. They ignore players while they have a raged enemy. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and the minions they summon fight on their side. No cure, not even milk. See [The Rage Wand](#the-rage-wand). |
+| **Rage Wand** | A creative-only testing wand with five **teams** (blue, red, green, yellow, purple: right-click to switch; the crystal shows the colour). Hit a mob with it (no damage) to give it **Rage** and the wand's team: mobs of different teams fight each other, never their own team, and ignore players while an enemy team is near. Teams and Rage last forever, not even milk cures them. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and their minions join their team. See [The Rage Wand](#the-rage-wand). |
 | **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
 | **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
 | **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
-| **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent; Cragstone, Storm Lichen, Crag Thistle). |
+| **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent; Cragstone, Storm Lichen, Crag Thistle); and from Blightwood's sewers **Sewer Sludge** (it slows you down, less than soul sand) and the **Blight Vent** (glows poison green and puffs spores). |
 | **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores, for gear that comes later. Raw Moonsilver smelts into an ingot. |
 
 **The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager), **weapons and tools** (the Admin Sword, the Rage Wand), the **enchanted books** (Necromancy I-V, then Deathforged I-X), then the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
@@ -292,18 +327,19 @@ placeholder arena to fight it in: a round floor of red nether bricks, 31 blocks 
 and lights set in the floor.
 
 ### The lair
-- **Where:** once per world, the mod looks out from the hub in three directions for the nearest Cinder Wastes high
-  ground in each, and builds the lair at the one **furthest** from the hub. `/dross goto lair colossus` takes you to its
-  entrance.
+- **Where:** there are many lairs, one in **every group of 3 Cinder Wastes patches**: the 3 patches nearest the hub
+  hold one lair, the next 3 nearest another, and so on outwards forever (never two in one patch; the other two patches
+  of each group are kept for future fire bosses). A lair is built in the background the first time you come within
+  about 384 blocks of it. `/dross goto lair colossus` takes you to the nearest one's entrance (building it first if
+  it isn't yet).
 - **Outside:** a volcano rising about 40 blocks over its arena, with a jagged crater that smokes and throws embers, lava
   streams and pools round its foot (they never spread), and a big cave mouth with obsidian teeth. The way in never
   steps more than 1 block: on steep land a rock ramp leads to the mouth.
 - **Inside:** a domed cavern about 41 blocks across under the crater, with an obsidian and magma floor, lava glowing
   through sealed fissures below it, and obsidian stalactites. No lava can be reached from the floor, and nothing
   spawns inside by itself.
-- **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). After it's beaten it rises
-  again for the next player who walks in **10 minutes** later (a stand-in for a boss revive feature to come).
-- Worlds that got the first version of the lair (a domed cavern with a skylight and a slab tunnel) keep it.
+- **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). Once it's beaten, that
+  lair stays empty for good: no respawn.
 - Previews: `boss-previews/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
 
 ### The fight
@@ -417,9 +453,17 @@ each attack sound for the fight, to pick from later.
 - **Asleep:** he starts curled up asleep. Come within 12 blocks (8 if you sneak) or hit him and he wakes (that hit does
   no damage, and he can't be hurt while he gets up). Then his boss bar appears: a rusty sewer pipe with a rat peeking
   over it (the user's pick of nine designs), shown within 40 blocks.
-- **200 health**, armour 6, quicker than the Colossus (about 4 blocks a second, 5.7 in his Rage). He keeps facing you.
-- **Staff sweep** up close: 4.5 blocks in front of him, 9 damage (11 in his Rage), with a strong knockback. **Poison shot** from 5 to 24 blocks: a clumpy plague ball that
-  bursts into a small poison cloud (a steady Poison I while you stand in it); in his Rage, a fan of three.
+- **200 health**, armour 6, quick on his feet (about 4.7 blocks a second, 6.2 in his Rage; you walk at 4.3). He keeps
+  facing you.
+- **Staff sweep** up close: 4.5 blocks in front of him, 9 damage (11 in his Rage), with a strong knockback, about
+  every second.
+- **Spear charge** from 5 to 24 blocks: he crouches for 0.4 s with his staff levelled like a spear, then dashes at
+  9 blocks a second (11 in his Rage) to where you were standing. If he catches you it's 6 damage (8) and straight into
+  a sweep; if you dodge, he skids and needs half a second to turn round.
+- **Poison shot** from 5 to 24 blocks, now and then: a clumpy plague ball that bursts into a small poison cloud (a
+  steady Poison I while you stand in it); in his Rage, a fan of three.
+- **How often:** at 5-16 blocks he charges 60%, throws poison 25% and runs in 15% (Rage: 60 / 35 / 5); at 16-24
+  blocks charge 40, poison 30, run in 30 (Rage: 35 / 35 / 30); up close always the sweep.
 - **Burrow:** every 30 health he loses, he digs and dives into the ground. While he tunnels towards you (a dirt trail
   moves over the ground) he can't be hurt, and **10 rats** burst out of the ground round you (7 Plague Ravagers in his
   Rage), however many of his rats are already about. Then he pops straight up
@@ -440,7 +484,7 @@ each attack sound for the fight, to pick from later.
   `/dross showcase trophies ratking` places all five in a row.
 
 - `/dross showcase boss_designs ratking` spawns him frozen with a sign; the chat buttons (or
-  `/dross showcase boss_designs ratking sleep|wake|idle|walk|burrow|popup|rage|die`) play an animation, and
+  `/dross showcase boss_designs ratking sleep|wake|idle|walk|burrow|popup|rage|charge|die`) play an animation, and
   right-clicking him plays his next one (sneak + right-click: he dies).
 - `/dross showcase rats` puts the two rats on pedestals; `idle` / `run` switch them.
 - `/dross showcase boss_sounds ratking` lists every sound with a button that plays it.
@@ -452,18 +496,19 @@ each attack sound for the fight, to pick from later.
 
 ## The Rage Wand
 
-A creative-only testing tool in the Dross tab (after the Admin Sword). Hitting a mob with it does no damage; it gives
-the mob **Rage** (angry red particles), which never wears off and can't be cured, not even with milk.
+A creative-only testing tool in the Dross tab (after the Admin Sword), with five **teams**: **right-click** to switch
+the wand between Blue, Red, Green, Yellow and Purple (its crystal changes colour and the team name shows above your
+hotbar). Hitting a mob with it does no damage; it gives the mob **Rage** and the wand's team (dust in the team's
+colour floats over it). Hit it again with another colour and it switches team. Rage and teams never wear off and
+can't be cured, not even with milk.
 
-- Raged mobs fight **each other**, every mob for itself: hit three zombies and they fight until one is left. Each one
-  goes for the nearest raged mob within 48 blocks. While they have a raged enemy they **ignore players**, even ones who
-  hit them.
-- The last one left calms down after about 10 seconds with no raged enemy near (time enough to rage the next mob) and
-  goes back to normal.
+- Raged mobs **never fight their own team**. Each goes for the nearest raged mob of another team within 40 blocks,
+  and while an enemy team is near they **ignore players**, even ones who hit them. With no enemy near they behave
+  normally but keep their team, so the winners stay ready for the next fight.
 - No new animations: every mob uses its own attacks (zombies swing, skeletons shoot, creepers explode, golems smash).
   Animals with no attack of their own (cows, pigs, sheep, chickens, villagers...) **headbutt** for 1 heart.
-- **Bosses** work too: raging the Cinder Colossus makes it fight; raging the sleeping Rat King wakes him. The golems or
-  rats they summon while raged fight **on their side**, never them or each other.
+- **Bosses** work too: raging the Cinder Colossus makes it fight; raging the sleeping Rat King wakes him. Their golems
+  or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
 - It won't rage players, showcase mobs, the Ender Dragon, the trader or the hub's survivors.
 
 ---
@@ -510,7 +555,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross. |
 | `/dross goto trader` | Teleports you to the trader, even if his area isn't loaded. |
 | `/dross goto biome <name>` | Teleports you to safe ground in the nearest example of a Dross biome: `silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall`, `nether_scar` or `gravecrags`. |
-| `/dross goto lair colossus` | Teleports you to the Cinder Colossus's lair entrance. Before the lair is built, it says so instead. |
+| `/dross goto lair colossus` | Teleports you to the nearest Cinder Colossus lair's entrance. If it isn't built yet, it says so, builds it, and teleports you once it's ready. |
+| `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
+| `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
 | `/dross trader sendhome` | Sends the trader home. |
 | `/dross quest status` | Shows your quest progress. |
 | `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*, *Set in Stone* and *Down the Drain*). |
@@ -525,7 +572,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase trophies colossus` | Places the five Cinder Colossus trophy designs in a row in front of you, each on a pedestal facing you with a sign giving its number and name. Running it again replaces the row. |
 | `/dross showcase trophies ratking` | Places the Rat King's five trophy designs in a row in front of you, each on a pedestal facing you with a sign. Running it again replaces the row. |
 | `/dross showcase boss_designs ratking` | Spawns the Rat King (Gnawrick 1C) frozen, with signs and clickable animation buttons in chat. Right-click one to play his next animation; sneak + right-click: he dies. |
-| `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
+| `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
 | `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
 | `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
 | `/dross showcase bossbars ratking` / `... <option>` | Shows one of the Rat King's boss bar designs on your screen for 40 seconds, normal and Rage, draining and refilling; chat buttons switch designs. |

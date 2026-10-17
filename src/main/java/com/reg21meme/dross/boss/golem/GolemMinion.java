@@ -173,7 +173,7 @@ public abstract class GolemMinion extends Monster implements GeoEntity
         ForgeEventFactory.onFinalizeSpawn(minion, level, level.getCurrentDifficultyAt(BlockPos.containing(feet)),
                 MobSpawnType.MOB_SUMMONED, null, null);
         minion.master = colossus.getUUID();
-        Rage.recruit(minion, colossus); // the Rage Wand: a raged Colossus's new golem joins its side
+        Rage.recruit(minion, colossus); // the Rage Wand: a raged Colossus's new golem joins its team
         minion.setPersistenceRequired(); // (a summoned minion never despawns: it crumbles with its Colossus instead)
         minion.emergeLeft = minion.design().spawnTicks() + BLEND_TICKS;
         minion.entityData.set(DATA_EMERGING, true);

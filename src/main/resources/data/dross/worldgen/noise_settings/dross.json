@@ -29,7 +29,7 @@
     "vegetation": "dross:climate/rot",
     "continents": "dross:climate/mountain",
     "erosion": 0.0,
-    "depth": 0.0,
+    "depth": "dross:climate/sewer_depth",
     "ridges": "dross:climate/scar",
     "initial_density_without_jaggedness": {
       "type": "minecraft:add",
@@ -1399,7 +1399,8 @@
               "if_true": {
                 "type": "minecraft:biome",
                 "biome_is": [
-                  "dross:blightwood"
+                  "dross:blightwood",
+                  "dross:sewers"
                 ]
               },
               "then_run": {

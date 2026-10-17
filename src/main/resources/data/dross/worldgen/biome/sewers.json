@@ -1,0 +1,83 @@
+{
+  "has_precipitation": false,
+  "temperature": 0.6,
+  "downfall": 0.9,
+  "effects": {
+    "fog_color": 1778448,
+    "sky_color": 3096343,
+    "water_color": 5660714,
+    "water_fog_color": 1843464,
+    "particle": {
+      "options": {
+        "type": "minecraft:falling_water"
+      },
+      "probability": 0.004
+    },
+    "additions_sound": {
+      "sound": "minecraft:block.pointed_dripstone.drip_water",
+      "tick_chance": 0.008
+    },
+    "mood_sound": {
+      "sound": "minecraft:ambient.cave",
+      "tick_delay": 6000,
+      "block_search_extent": 8,
+      "offset": 2.0
+    }
+  },
+  "spawners": {
+    "monster": [
+      {
+        "type": "dross:rat",
+        "weight": 25,
+        "minCount": 2,
+        "maxCount": 4
+      },
+      {
+        "type": "dross:enraged_rat",
+        "weight": 75,
+        "minCount": 1,
+        "maxCount": 2
+      }
+    ],
+    "creature": [],
+    "ambient": [],
+    "axolotls": [],
+    "underground_water_creature": [],
+    "water_creature": [],
+    "water_ambient": [],
+    "misc": []
+  },
+  "spawn_costs": {},
+  "carvers": {},
+  "features": [
+    [
+      "dross:rock_faces"
+    ],
+    [
+      "dross:pond_blightwood"
+    ],
+    [
+      "dross:fallen_blight_log"
+    ],
+    [],
+    [],
+    [],
+    [
+      "dross:ore_coal",
+      "dross:ore_gold",
+      "dross:ore_moonsilver",
+      "dross:ore_stormite"
+    ],
+    [],
+    [],
+    [
+      "dross:towering_blightcaps",
+      "dross:blightcaps",
+      "dross:gloomcaps",
+      "dross:sporepods"
+    ],
+    [
+      "dross:tidy_up"
+    ]
+  ]
+}

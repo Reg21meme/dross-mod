@@ -6,7 +6,13 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.CinderColossus;
 import com.reg21meme.dross.boss.golem.StoneGolem;
 import com.reg21meme.dross.boss.golem.WildGolemSpawns;
+import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.dimension.sites.BossSites;
+import com.reg21meme.dross.dimension.sites.Group;
+import com.reg21meme.dross.dimension.sites.Patch;
+import com.reg21meme.dross.dimension.sites.Site;
+import com.reg21meme.dross.dimension.sites.SiteTerrain;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -51,29 +57,32 @@ import org.slf4j.Logger;
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
 /**
- * Headless checks (GameTests) of the Cinder Colossus's lair. Run them with
- * {@code .\gradlew.bat runGameTestServer --console=plain}. They wait in real time for real-time work (the background
- * search, chunk loading, the lair being built), because the test server runs ticks as fast as it can.
+ * Headless checks (GameTests) of the Cinder Colossus's lairs. Run them with
+ * {@code .\gradlew.bat runGameTestServer --console=plain}. They wait in real time for real-time work (the planner's
+ * background thread, chunk loading, a lair being built), because the test server runs ticks as fast as it can.
  * <ul>
- *   <li>{@link #siteRuleForFixedSeeds}: for a few fixed seeds, from the noise alone: three directions 120 degrees apart
- *       each find a spot, every spot's whole footprint is Cinder Wastes, each lies in its direction's cone and far from
- *       the hub, and the one used is the furthest of the three. Then, from the noise alone, the volcano and its way in
- *       are planned at every spot found and at spots nudged round each ({@link #checkPlannedWayIn}).</li>
+ *   <li>{@link #fitTestForFixedSeeds}: for a few fixed seeds (one of them the world where the landmark check once came out
+ *       a block short), from the noise alone: the planner's first {@value #PLANNED_GROUPS} Cinder Wastes groups each hold a
+ *       lair site (or say why not), inside its patch, its whole footprint Cinder Wastes; a normal site's volcano can stand
+ *       its full rise over the land round it (a landmark); the patches with lairs are all different. Then the volcano and
+ *       its way in are planned at every site and at spots nudged round each ({@link #checkPlannedWayIn}).</li>
  *   <li>{@link #wayInIsWalkableOnHardGround}: the way in planned on 224 made-up hard grounds (steep, terraced, bumpy,
  *       mesas, cliffs, ditches): walkable everywhere, never a step of more than a block, and meeting the land.</li>
- *   <li>{@link #lairIsBuiltAndShapedRight}: the test world's real lair gets built (waits for it) and is a volcano: a round
- *       floor 41 blocks across, mostly obsidian with sparse magma and glowing fissures (glass over sealed lava); room over
- *       the middle for the lobs and room for the Colossus everywhere; obsidian stalactites; the crater open to the sky over
- *       the middle and standing well above the land; a cave mouth at least 9 wide and 8 tall; the way in walkable from the
- *       land to the floor along its middle and both sides of the passage (a block's step at most outside, 0.6 inside),
- *       and the land shaped in front of the mouth never stepping more than a block between neighbours; the open space closed except up the crater and out
- *       of the mouth, with no lava touching any of it; every lava block (under the floor and outside on the slopes) walled
- *       in by Minecraft's flow rule, none in front of the mouth and nothing burnable near it; no natural spawning inside.
- *       With {@code DROSS_LAIR_PREVIEWS} set it writes the blocks for the preview images (tools/golems/lair_preview.py).
- *       An R2c lair (an old world's) is left alone: these checks don't apply to it.</li>
- *   <li>{@link #colossusRisesAndRespawns}: a stand-in player stepping onto the floor makes the Colossus rise in the middle;
- *       once it's dead it doesn't rise again before the respawn time, and does once the saved time is moved back past
- *       10 minutes. Cleans up after itself (no Colossus left, the lair's boss data reset).</li>
+ *   <li>{@link #lairsAreBuiltWhenAPlayerComesNear}: this world's lairs of the planner's groups 1 and 2: each is built only
+ *       once a stand-in player comes within {@link LairTuning#BUILD_RANGE} blocks (a far group's isn't), exactly at its
+ *       planned site, one per patch, and is a volcano: a round floor 41 blocks across, mostly obsidian with sparse magma
+ *       and glowing fissures (glass over sealed lava); room over the middle for the lobs and room for the Colossus
+ *       everywhere; obsidian stalactites; the crater open to the sky over the middle and standing well above the land; a
+ *       cave mouth at least 9 wide and 8 tall; the way in walkable from the land to the floor along its middle and both
+ *       sides of the passage (a block's step at most outside, 0.6 inside), and the land shaped in front of the mouth never
+ *       stepping more than a block between neighbours; the open space closed except up the crater and out of the mouth,
+ *       with no lava touching any of it; every lava block (under the floor and outside on the slopes) walled in by
+ *       Minecraft's flow rule, none in front of the mouth and nothing burnable near it; no natural spawning inside. With
+ *       {@code DROSS_LAIR_PREVIEWS} set it writes the first lair's blocks for the preview images
+ *       (tools/golems/lair_preview.py).</li>
+ *   <li>{@link #colossusRisesOnceAndNeverAgain}: a stand-in player stepping onto a lair's floor makes the Colossus rise in
+ *       the middle; once it's dead the lair stays empty, even after a faked long wait and for a newcomer (no respawn).
+ *       Cleans up after itself (no Colossus left, the lair's boss data reset).</li>
  * </ul>
  */
 @GameTestHolder(Dross.MODID)
@@ -83,11 +92,13 @@ public final class ColossusLairGameTest
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /**
-     * The fixed seeds of the site check (the last is the world where R6's check found a 2-block step in front of the
-     * mouth: its land in front is steep, tilted 0.34, and uneven).
+     * The fixed seeds of the fit test (-8826770357676534336 is the world where R6's check found a 2-block step in front of
+     * the mouth; -2463643320505446998 the one where the rim came out 15 blocks over the land round it, not 16).
      */
-    private static final long[] SEEDS = {1L, 4242L, 20261012L, -8826770357676534336L};
-    /** The way in is also planned at each searched spot moved by these offsets (more kinds of ground, no extra search). */
+    private static final long[] SEEDS = {1L, 4242L, 20261012L, -8826770357676534336L, -2463643320505446998L};
+    /** The fit test plans this many of each seed's Cinder Wastes groups. */
+    private static final int PLANNED_GROUPS = 2;
+    /** The way in is also planned at each site moved by these offsets (more kinds of ground). */
     private static final int[][] WAY_IN_NUDGES = {{0, 0}, {24, -24}, {-24, 24}};
     /** The made-up hard grounds: these slopes (blocks down per block)... */
     private static final double[] HARD_TILTS = {0.0D, 0.15D, 0.35D, 0.5D};
@@ -101,23 +112,22 @@ public final class ColossusLairGameTest
     private static final long HARD_SEED = 0x6861726447726FL;
     /** A failing check names at most this many problems. */
     private static final int MAX_REPORTED = 8;
-    /** The site check's searches get at most this long (real time). */
+    /** The fit test's planning gets at most this long (real time). */
     private static final long SEARCH_TIMEOUT_MILLIS = 5 * 60 * 1000L;
-    /** The lair is built in the background a little after the world starts: wait at most this long (real time). */
+    /** A lair is built in the background once a player comes near: wait at most this long for each (real time). */
     private static final long PLACEMENT_TIMEOUT_MILLIS = 10 * 60 * 1000L;
+    /** The stand-in who makes a lair be built stands this far from its middle (inside BUILD_RANGE, well outside the volcano). */
+    private static final int NEAR_STANDIN_DISTANCE = 200;
+    /** The lairs of the planner's groups 0 and 1 are built and checked; this group's, which nobody comes near, must not be. */
+    private static final int FAR_GROUP = 6;
+    /** A faked long wait after the Colossus is beaten: its defeat is moved this many ticks into the past (a few game days). */
+    private static final long LONG_WAIT_TICKS = 1_000_000L;
     /** The Colossus must rise within this long of the stand-in stepping in (real time; loading the chunks takes a moment). */
     private static final long RISE_TIMEOUT_MILLIS = 2 * 60 * 1000L;
     /** The tick limits are only a backstop behind the real-time limits (the test server can run hundreds of ticks a second). */
     private static final int BACKSTOP_TICKS = 2_000_000;
     /** Ticks waited to see that nothing rises (several of the lair's checks). */
     private static final int QUIET_TICKS = 6 * CHECK_INTERVAL_TICKS;
-    /** Game time still left on the respawn wait in the "not yet" check (20 seconds). */
-    private static final int NOT_YET_TICKS = 400;
-    /**
-     * Once the respawn time is up, the next Colossus must rise within this many ticks of game time (the lair is checked
-     * every {@link LairTuning#CHECK_INTERVAL_TICKS}).
-     */
-    private static final int PROMPT_TICKS = 100;
     /** A spot's footprint is checked this far out (the lair reaches about 45 blocks from its middle)... */
     private static final int FOOTPRINT_RADIUS = 48;
     /** ...every this many blocks. */
@@ -153,20 +163,22 @@ public final class ColossusLairGameTest
     private ColossusLairGameTest() {}
 
     // ---------------------------------------------------------------------------------------------
-    // The site rule, from the noise
+    // The fit test, from the noise
     // ---------------------------------------------------------------------------------------------
 
+    /** One seed's planned groups: their lair sites (or empty), and what's wrong. */
+    private record SeedPlan(long seed, BossSites sites, List<Optional<Site>> lairs, List<String> problems, long millis)
+    {
+    }
+
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_lair_site_rule", timeoutTicks = BACKSTOP_TICKS)
-    public static void siteRuleForFixedSeeds(GameTestHelper helper)
+    public static void fitTestForFixedSeeds(GameTestHelper helper)
     {
         ServerLevel dross = drossOf(helper);
-        List<LairSearch.Context> contexts = new ArrayList<>();
-        List<CompletableFuture<LairSearch.Result>> runs = new ArrayList<>();
+        List<CompletableFuture<SeedPlan>> runs = new ArrayList<>();
         for (long seed : SEEDS)
         {
-            LairSearch.Context context = LairSearch.forSeed(dross, seed);
-            contexts.add(context);
-            runs.add(CompletableFuture.supplyAsync(() -> LairSearch.run(context, () -> false)));
+            runs.add(CompletableFuture.supplyAsync(() -> planSeed(dross, seed)));
         }
         long deadline = Util.getMillis() + SEARCH_TIMEOUT_MILLIS;
         List<CompletableFuture<WayInReport>> wayIns = new ArrayList<>();
@@ -175,7 +187,7 @@ public final class ColossusLairGameTest
                 .thenWaitUntil(() -> {
                     if (!runs.stream().allMatch(CompletableFuture::isDone) && Util.getMillis() < deadline)
                     {
-                        throw new GameTestAssertException("still searching");
+                        throw new GameTestAssertException("still planning");
                     }
                 })
                 .thenExecute(() -> {
@@ -184,35 +196,36 @@ public final class ColossusLairGameTest
                     {
                         if (!runs.get(i).isDone())
                         {
-                            problems.add("seed " + SEEDS[i] + ": the search took more than " + SEARCH_TIMEOUT_MILLIS / 1000 + " s");
+                            problems.add("seed " + SEEDS[i] + ": planning took more than " + SEARCH_TIMEOUT_MILLIS / 1000 + " s");
                             continue;
                         }
-                        checkSearch(SEEDS[i], contexts.get(i), runs.get(i).join(), problems);
+                        problems.addAll(runs.get(i).join().problems());
                     }
                     if (!problems.isEmpty())
                     {
-                        throw new GameTestAssertException("the lair's site rule isn't kept: " + String.join("; ", problems));
+                        throw new GameTestAssertException("the lairs' fit test isn't kept: " + String.join("; ",
+                                problems.subList(0, Math.min(problems.size(), MAX_REPORTED))));
                     }
-                    // Then the way in at every spot found (and at spots nudged round each), planned from the noise.
+                    // Then the way in at every site (and at spots nudged round each), planned from the noise.
                     wayInStart[0] = Util.getMillis();
                     int lowest = LairBuilder.lowestFloor(dross);
                     int highest = LairBuilder.highestRim(dross);
-                    for (int i = 0; i < SEEDS.length; i++)
+                    for (CompletableFuture<SeedPlan> run : runs)
                     {
-                        LairSearch.Context context = contexts.get(i);
-                        for (Optional<LairSearch.Candidate> found : runs.get(i).join().directions())
+                        SeedPlan plan = run.join();
+                        for (Optional<Site> found : plan.lairs())
                         {
                             if (found.isEmpty())
                             {
                                 continue;
                             }
-                            LairSearch.Candidate c = found.get();
+                            Site site = found.get();
                             for (int[] nudge : WAY_IN_NUDGES)
                             {
-                                int x = c.x() + nudge[0];
-                                int z = c.z() + nudge[1];
-                                String name = String.format("seed %d, direction %d, spot %d %d", SEEDS[i], c.direction() + 1, x, z);
-                                wayIns.add(CompletableFuture.supplyAsync(() -> planWayIn(name, context, x, z, lowest, highest)));
+                                int x = site.pos().getX() + nudge[0];
+                                int z = site.pos().getZ() + nudge[1];
+                                String name = String.format("seed %d, group %d, spot %d %d", plan.seed(), site.patch().group() + 1, x, z);
+                                wayIns.add(CompletableFuture.supplyAsync(() -> planWayIn(name, plan.sites().terrain(), x, z, lowest, highest)));
                             }
                         }
                     }
@@ -237,7 +250,7 @@ public final class ColossusLairGameTest
                         problems.addAll(report.problems());
                         stats.add(report);
                     }
-                    LOGGER.info("[lair test] The way in planned from the noise at {} searched (and nudged) spots in {} ms on up to {} "
+                    LOGGER.info("[lair test] The way in planned from the noise at {} lair sites (and nudged spots) in {} ms on up to {} "
                                     + "thread(s): {}", wayIns.size(), Util.getMillis() - wayInStart[0],
                             java.util.concurrent.ForkJoinPool.getCommonPoolParallelism(), stats.describe());
                     if (!problems.isEmpty())
@@ -249,49 +262,52 @@ public final class ColossusLairGameTest
                 .thenSucceed();
     }
 
-    private static void checkSearch(long seed, LairSearch.Context context, LairSearch.Result result, List<String> problems)
+    /** Plans a seed's first groups (the noise only, with the lair's own fit test plugged in) and checks their lair sites. Any thread. */
+    private static SeedPlan planSeed(ServerLevel dross, long seed)
     {
+        long started = Util.getMillis();
+        BossSites sites = BossSites.forSeed(dross, seed);
         String name = "seed " + seed;
-        double rotation = result.rotation();
-        if (rotation < 0.0D || rotation >= DIRECTION_SPACING_DEGREES)
-        {
-            problems.add(name + ": the seed's turn " + rotation + " isn't between 0 and " + DIRECTION_SPACING_DEGREES);
-        }
-        if (result.directions().size() != DIRECTIONS)
-        {
-            problems.add(name + ": " + result.directions().size() + " directions searched, not " + DIRECTIONS);
-            return;
-        }
-        double[] angles = LairSearch.directionAngles(seed);
-        double furthest = -1.0D;
+        List<String> problems = new ArrayList<>();
+        List<Optional<Site>> lairs = new ArrayList<>();
+        java.util.Set<Long> patches = new java.util.HashSet<>();
         StringBuilder log = new StringBuilder();
-        for (int k = 0; k < DIRECTIONS; k++)
+        int lowest = LairBuilder.lowestFloor(dross);
+        int highest = LairBuilder.highestRim(dross);
+        for (int g = 0; g < PLANNED_GROUPS; g++)
         {
-            Optional<LairSearch.Candidate> found = result.directions().get(k);
-            if (found.isEmpty())
+            Optional<Group> group = sites.group(DrossBiomes.CINDER_WASTES, g);
+            if (group.isEmpty())
             {
-                problems.add(name + ": direction " + (k + 1) + " found nothing within " + MAX_DISTANCE + " blocks");
+                problems.add(name + ": no Cinder Wastes group " + (g + 1));
+                break;
+            }
+            Optional<Site> lair = group.get().bossSite();
+            lairs.add(lair);
+            if (lair.isEmpty())
+            {
+                log.append(String.format("%n  group %d: no lair (none of its %d patches can hold one)", g + 1, group.get().patches().size()));
                 continue;
             }
-            LairSearch.Candidate c = found.get();
-            furthest = Math.max(furthest, c.distance());
-            log.append(String.format("%n  direction %d (%.0f degrees): %s", k + 1, LairSearch.normalise(angles[k]), c.describe()));
-            if (c.distance() < MIN_DISTANCE)
+            Site site = lair.get();
+            int x = site.pos().getX();
+            int z = site.pos().getZ();
+            if (site.use() != BossSites.COLOSSUS_LAIR || !site.patch().contains(x, z) || site.patch().group() != g)
             {
-                problems.add(name + ", direction " + (k + 1) + ": " + Math.round(c.distance()) + " blocks from the hub, under " + MIN_DISTANCE);
+                problems.add(name + ", group " + (g + 1) + ": the lair site " + x + " " + z + " isn't a Colossus lair in its group's patch");
             }
-            double angle = Math.toDegrees(Math.atan2(c.z() - context.hubZ(), c.x() - context.hubX()));
-            double off = Math.abs(Math.IEEEremainder(angle - angles[k], 360.0D));
-            if (off > CONE_HALF_ANGLE_DEGREES + CONE_SLACK_DEGREES)
+            if (!patches.add(site.patch().id()))
             {
-                problems.add(name + ", direction " + (k + 1) + ": the spot is " + Math.round(off) + " degrees off its direction");
+                problems.add(name + ": two lairs in the patch " + site.patch().number());
             }
+            int radius = site.relaxed() ? RELAXED_FIT_RADIUS : FIT_RADIUS;
             int outside = 0;
-            for (int dx = -FOOTPRINT_RADIUS; dx <= FOOTPRINT_RADIUS; dx += FOOTPRINT_STEP)
+            int reach = Math.min(FOOTPRINT_RADIUS, radius);
+            for (int dx = -reach; dx <= reach; dx += FOOTPRINT_STEP)
             {
-                for (int dz = -FOOTPRINT_RADIUS; dz <= FOOTPRINT_RADIUS; dz += FOOTPRINT_STEP)
+                for (int dz = -reach; dz <= reach; dz += FOOTPRINT_STEP)
                 {
-                    if (dx * dx + dz * dz <= FOOTPRINT_RADIUS * FOOTPRINT_RADIUS && !context.isCinder(c.x() + dx, c.z() + dz))
+                    if (dx * dx + dz * dz <= reach * reach && !sites.terrain().isBiome(DrossBiomes.CINDER_WASTES, x + dx, z + dz))
                     {
                         outside++;
                     }
@@ -299,27 +315,22 @@ public final class ColossusLairGameTest
             }
             if (outside > 0)
             {
-                problems.add(name + ", direction " + (k + 1) + ": " + outside + " sample(s) of the footprint round " + c.x() + " "
-                        + c.z() + " aren't Cinder Wastes");
+                problems.add(name + ", group " + (g + 1) + ": " + outside + " sample(s) of the footprint round " + x + " " + z + " aren't Cinder Wastes");
             }
-            LairShape.Plan plan = c.plan();
-            if (plan.descent() < MIN_DESCENT || plan.descent() > MAX_DESCENT)
+            LairShape.Ground ground = (gx, gz) -> sites.terrain().topBlock(gx, gz);
+            LairShape.VolcanoPlan plan = LairShape.volcanoPlan(x, z, ground, lowest, highest);
+            if (!site.relaxed() && plan.rimY() - plan.highLand() < RIM_RISE)
             {
-                problems.add(name + ", direction " + (k + 1) + ": the tunnel goes down " + plan.descent() + " blocks");
+                problems.add(String.format("%s, group %d: the volcano at %d %d can only stand %d over the land round it (not %d): %s", name,
+                        g + 1, x, z, plan.rimY() - plan.highLand(), RIM_RISE, plan.describe()));
             }
+            log.append(String.format("%n  group %d: patch %d (of %s), %d blocks from the hub, at %d %d%s: %s", g + 1, site.patch().number(),
+                    group.get().patches().stream().map(p -> String.valueOf(p.number())).toList(), Math.round(site.distanceTo(0, 0)), x, z,
+                    site.relaxed() ? " (its smallest form)" : "", plan.describe()));
         }
-        if (result.pick().isEmpty())
-        {
-            problems.add(name + ": nothing was picked");
-        }
-        else if (result.pick().get().distance() < furthest - 1.0E-6D)
-        {
-            problems.add(name + ": the pick (" + Math.round(result.pick().get().distance()) + " blocks) isn't the furthest ("
-                    + Math.round(furthest) + ")");
-        }
-        LOGGER.info("[lair test] {}: turned {} degrees, search {} ms{}{}", name, Math.round(rotation), result.millis(), log,
-                result.pick().map(p -> String.format("%n  picked direction %d, %d blocks out", p.direction() + 1, Math.round(p.distance())))
-                        .orElse(""));
+        long millis = Util.getMillis() - started;
+        LOGGER.info("[lair test] {}: planned in {} ms{}", name, millis, log);
+        return new SeedPlan(seed, sites, lairs, problems, millis);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -454,11 +465,11 @@ public final class ColossusLairGameTest
     }
 
     /** Plans the volcano and its way in at {@code x}, {@code z} from a seed's noise alone (any thread) and checks the way in. */
-    private static WayInReport planWayIn(String name, LairSearch.Context context, int x, int z, int lowest, int highest)
+    private static WayInReport planWayIn(String name, SiteTerrain terrain, int x, int z, int lowest, int highest)
     {
         java.util.Map<Long, Integer> cache = new java.util.HashMap<>();
-        LairShape.Ground ground = (gx, gz) -> cache.computeIfAbsent(((long) gx << 32) ^ (gz & 0xFFFFFFFFL), k -> context.ground(gx, gz));
-        LairBuilder.Site site = LairBuilder.plan(x, z, ground, context.seed(), lowest, highest);
+        LairShape.Ground ground = (gx, gz) -> cache.computeIfAbsent(((long) gx << 32) ^ (gz & 0xFFFFFFFFL), k -> terrain.topBlock(gx, gz));
+        LairBuilder.Site site = LairBuilder.plan(x, z, ground, terrain.seed(), lowest, highest);
         List<String> problems = new ArrayList<>();
         checkPlannedWayIn(name, site, ground, problems);
         return new WayInReport(name, site, LairShape.volcanoPlan(x, z, ground, lowest, highest).tunnel(), problems);
@@ -524,50 +535,207 @@ public final class ColossusLairGameTest
     // ---------------------------------------------------------------------------------------------
 
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_lair_shape", timeoutTicks = BACKSTOP_TICKS)
-    public static void lairIsBuiltAndShapedRight(GameTestHelper helper)
+    public static void lairsAreBuiltWhenAPlayerComesNear(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
-        long deadline = Util.getMillis() + PLACEMENT_TIMEOUT_MILLIS;
+        ServerLevel dross = drossOf(helper);
+        Built run = new Built(server, dross);
         helper.startSequence()
-                .thenWaitUntil(() -> waitForLair(server, deadline))
-                .thenExecute(() -> {
-                    ColossusLairData data = requireLair(server);
-                    ServerLevel dross = drossOf(helper);
-                    if (data.version() < LairBuilder.VERSION)
-                    {
-                        LOGGER.info("[lair test] This world has an R2c lair (version {}), kept as it was built: the volcano's shape checks "
-                                + "don't apply to it.", data.version());
-                        return;
-                    }
-                    Shape shape = new Shape(dross, data);
-                    List<String> problems = new ArrayList<>();
-                    shape.checkFloor(problems);
-                    shape.checkCeiling(problems);
-                    shape.checkStalactites(problems);
-                    shape.checkCrater(problems);
-                    shape.checkMouth(problems);
-                    shape.checkWayIn(problems);
-                    shape.checkShapedLand(problems);
-                    shape.checkEnclosedAndLavaOutOfReach(problems);
-                    shape.checkLava(problems);
-                    shape.checkNoSpawns(problems);
-                    LOGGER.info("[lair test] The lair, cut along its way in (left: the far wall, right: the gully), and seen from above "
-                            + "at 2 blocks over the floor (# rock, O obsidian, = polished blackstone, g glass, m magma, ~ lava, "
-                            + ": ash, n natural ground, o other):{}{}", shape.drawCut(), shape.drawPlan());
-                    LOGGER.info("[lair test] The volcano at {} {} (floor y {}, rim y {}, mouth {} blocks out to the {}, gully to {}, shaped "
-                                    + "land to {}) was built in {} ms; {}", data.centerX(), data.centerZ(), data.floorY(), data.rimY(),
-                            data.mouth(), data.tunnel().getName(), data.gullyEnd(), data.approachEnd(), data.buildMillis(),
-                            problems.isEmpty() ? "every shape check passed" : problems.size() + " problem(s)");
-                    if (System.getenv(PREVIEW_ENV) != null)
-                    {
-                        shape.dumpViews();
-                    }
-                    if (!problems.isEmpty())
-                    {
-                        throw new GameTestAssertException("the lair isn't right: " + String.join("; ", problems));
-                    }
-                })
+                .thenExecute(() -> run.guard(run::plan))
+                .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.planned.isDone(), "the planner's lair sites")))
+                .thenExecute(() -> run.guard(() -> run.comeNear(0)))
+                .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.built(0), "the lair of group 1 to be built")))
+                .thenExecute(() -> run.guard(() -> run.check(0)))
+                .thenExecute(() -> run.guard(() -> run.comeNear(1)))
+                .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.built(1), "the lair of group 2 to be built")))
+                .thenExecute(() -> run.guard(() -> run.check(1)))
+                .thenExecute(() -> run.guard(run::checkOnePerPatchAndFarOneUnbuilt))
+                .thenExecute(run::cleanUp)
                 .thenSucceed();
+    }
+
+    /** The built-lairs test's state: the planner's sites, and the stand-ins who came near them. */
+    private static final class Built
+    {
+        final MinecraftServer server;
+        final ServerLevel dross;
+        CompletableFuture<List<Optional<Site>>> planned;
+        final List<ServerPlayer> players = new ArrayList<>();
+        long deadline;
+        boolean failed;
+
+        Built(MinecraftServer server, ServerLevel dross)
+        {
+            this.server = server;
+            this.dross = dross;
+        }
+
+        void guard(Runnable step)
+        {
+            if (failed)
+            {
+                return;
+            }
+            try
+            {
+                step.run();
+            }
+            catch (Waiting e)
+            {
+                throw e;
+            }
+            catch (RuntimeException e)
+            {
+                failed = true;
+                LOGGER.error("[lair test] {}", e.getMessage());
+                cleanUp();
+                throw e instanceof GameTestAssertException assertion ? assertion : new GameTestAssertException("the test threw " + e);
+            }
+        }
+
+        void waitFor(java.util.function.BooleanSupplier condition, String what)
+        {
+            if (!condition.getAsBoolean() && Util.getMillis() < deadline)
+            {
+                throw new Waiting("waiting for " + what);
+            }
+        }
+
+        /** The planner's lair sites of groups 0 and 1, and the far group's (on a background thread). */
+        void plan()
+        {
+            deadline = Util.getMillis() + PLACEMENT_TIMEOUT_MILLIS;
+            planned = CompletableFuture.supplyAsync(() -> {
+                BossSites sites = BossSites.forLevel(dross);
+                List<Optional<Site>> list = new ArrayList<>();
+                for (int g : new int[] {0, 1, FAR_GROUP})
+                {
+                    list.add(sites.group(DrossBiomes.CINDER_WASTES, g).flatMap(Group::bossSite));
+                }
+                return list;
+            });
+        }
+
+        Site site(int index)
+        {
+            Optional<Site> site = planned.join().get(index);
+            if (site.isEmpty())
+            {
+                throw new GameTestAssertException("the planner put no Colossus lair in Cinder Wastes group " + (index == 2 ? FAR_GROUP + 1 : index + 1)
+                        + " of this world");
+            }
+            return site.get();
+        }
+
+        boolean built(int index)
+        {
+            return ColossusLair.get(server, site(index)).isPresent();
+        }
+
+        /** A stand-in comes within BUILD_RANGE of the group's lair site (unless it's built already: an earlier test came near). */
+        void comeNear(int index)
+        {
+            if (!planned.isDone())
+            {
+                throw new GameTestAssertException("the planner didn't say where the lairs go within " + PLACEMENT_TIMEOUT_MILLIS / 1000 + " s");
+            }
+            Site site = site(index);
+            deadline = Util.getMillis() + PLACEMENT_TIMEOUT_MILLIS;
+            if (built(index))
+            {
+                LOGGER.info("[lair test] The lair of group {} at {} {} was already built (someone came near it earlier).", index + 1,
+                        site.pos().getX(), site.pos().getZ());
+                return;
+            }
+            int x = site.pos().getX() + NEAR_STANDIN_DISTANCE;
+            int z = site.pos().getZ();
+            int y = dross.getChunkSource().getGenerator().getBaseHeight(x, z, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, dross,
+                    dross.getChunkSource().randomState()) + 2;
+            players.add(joinPlayer(dross, "lair-near-" + (index + 1), new Vec3(x + 0.5D, y, z + 0.5D)));
+            LOGGER.info("[lair test] A stand-in came {} blocks from the lair site of group {} at {} {} (not built yet); waiting for it.",
+                    NEAR_STANDIN_DISTANCE, index + 1, site.pos().getX(), site.pos().getZ());
+        }
+
+        /** The group's lair: at its planned site, saved with its patch and group, and a well-shaped volcano. */
+        void check(int index)
+        {
+            Site site = site(index);
+            ColossusLair.Lair lair = ColossusLair.get(server, site).orElseThrow(() -> new GameTestAssertException(
+                    "the lair of group " + (index + 1) + " at " + site.pos().getX() + " " + site.pos().getZ() + " wasn't built within "
+                            + PLACEMENT_TIMEOUT_MILLIS / 1000 + " s of a player coming near"));
+            if (lair.center().getX() != site.pos().getX() || lair.center().getZ() != site.pos().getZ() || lair.group() != index
+                    || lair.id() != site.patch().id())
+            {
+                throw new GameTestAssertException("the lair of group " + (index + 1) + " is at " + lair.center().toShortString() + " (group "
+                        + (lair.group() + 1) + ", patch id " + lair.id() + "), not at its planned site " + site.pos().getX() + " " + site.pos().getZ()
+                        + " (patch id " + site.patch().id() + ")");
+            }
+            ColossusLairData.Entry entry = ColossusLairData.get(server).lair(lair.id());
+            Shape shape = new Shape(dross, entry);
+            List<String> problems = new ArrayList<>();
+            shape.checkFloor(problems);
+            shape.checkCeiling(problems);
+            shape.checkStalactites(problems);
+            shape.checkCrater(problems);
+            shape.checkMouth(problems);
+            shape.checkWayIn(problems);
+            shape.checkShapedLand(problems);
+            shape.checkEnclosedAndLavaOutOfReach(problems);
+            shape.checkLava(problems);
+            shape.checkNoSpawns(problems);
+            LOGGER.info("[lair test] Lair of group {}, cut along its way in (left: the far wall, right: the gully), and seen from above "
+                    + "at 2 blocks over the floor (# rock, O obsidian, = polished blackstone, g glass, m magma, ~ lava, "
+                    + ": ash, n natural ground, o other):{}{}", index + 1, shape.drawCut(), shape.drawPlan());
+            LOGGER.info("[lair test] The volcano of group {} at {} {} (floor y {}, rim y {}, high land y {}, mouth {} blocks out to the {}, gully "
+                            + "to {}, shaped land to {}) was built in {} ms of work; {}", index + 1, entry.centerX(), entry.centerZ(),
+                    entry.floorY(), entry.rimY(), entry.highLand(), entry.mouth(), entry.tunnel().getName(), entry.gullyEnd(), entry.approachEnd(),
+                    entry.buildMillis(), problems.isEmpty() ? "every shape check passed" : problems.size() + " problem(s)");
+            if (index == 0 && System.getenv(PREVIEW_ENV) != null)
+            {
+                shape.dumpViews();
+            }
+            if (!problems.isEmpty())
+            {
+                throw new GameTestAssertException("the lair of group " + (index + 1) + " isn't right: " + String.join("; ", problems));
+            }
+        }
+
+        /** Every built lair has its own patch, and the far group's lair (nobody near it) isn't built. */
+        void checkOnePerPatchAndFarOneUnbuilt()
+        {
+            BossSites sites = BossSites.forLevel(dross);
+            java.util.Set<Long> patches = new java.util.HashSet<>();
+            for (ColossusLair.Lair lair : ColossusLair.all(server))
+            {
+                Optional<Patch> patch = sites.patchAt(DrossBiomes.CINDER_WASTES, lair.center().getX(), lair.center().getZ());
+                if (patch.isEmpty() || patch.get().id() != lair.id() || !patches.add(lair.id()))
+                {
+                    throw new GameTestAssertException("the lair at " + lair.center().toShortString() + " isn't the only one in its own patch ("
+                            + patch.map(Patch::toString).orElse("no patch") + ")");
+                }
+            }
+            Optional<Site> far = planned.join().get(2);
+            if (far.isPresent())
+            {
+                Site site = far.get();
+                boolean someoneNear = dross.players().stream().anyMatch(p -> site.distanceTo(p.getBlockX(), p.getBlockZ()) <= BUILD_RANGE);
+                if (!someoneNear && (ColossusLair.get(server, site).isPresent() || ColossusLair.isBeingBuilt(site)))
+                {
+                    throw new GameTestAssertException("the lair of the far group " + (FAR_GROUP + 1) + " at " + site.pos().getX() + " "
+                            + site.pos().getZ() + " was built though nobody came near it");
+                }
+            }
+            LOGGER.info("[lair test] {} lair(s) built, each alone in its own patch; the far group's lair isn't built.", patches.size());
+        }
+
+        void cleanUp()
+        {
+            for (ServerPlayer player : players)
+            {
+                logOut(player);
+            }
+            players.clear();
+        }
     }
 
     /** Reads the built volcano back from the world. */
@@ -582,12 +750,15 @@ public final class ColossusLairGameTest
         final int gullyEnd;
         /** The last row of the land shaped in front of the mouth. */
         final int approachEnd;
-        /** True for a volcano built since R6b, whose way in was planned to meet the land ({@link ColossusLairData#hasPlannedApproach}). */
-        final boolean planned;
+        /** The way in is walked from the land beyond the shaped land (every volcano's way in is planned to meet the land). */
+        final boolean planned = true;
+        /** The high land round it the rim was planned to stand above, and whether it stands its full rise over it. */
+        final int highLand;
+        final boolean fullRise;
         final Direction dir;
         final Direction side;
 
-        Shape(ServerLevel level, ColossusLairData data)
+        Shape(ServerLevel level, ColossusLairData.Entry data)
         {
             this.level = level;
             this.cx = data.centerX();
@@ -597,7 +768,8 @@ public final class ColossusLairGameTest
             this.mouth = data.mouth();
             this.gullyEnd = data.gullyEnd();
             this.approachEnd = data.approachEnd();
-            this.planned = data.hasPlannedApproach();
+            this.highLand = data.highLand();
+            this.fullRise = data.rimY() - data.highLand() >= RIM_RISE;
             this.dir = data.tunnel();
             this.side = dir.getClockWise();
             // Load every chunk the checks read (a height map of an unloaded chunk reads as the bottom of the world).
@@ -896,27 +1068,30 @@ public final class ColossusLairGameTest
                 problems.add(shut + " block(s) inside the crater at the rim's height");
             }
             List<Integer> crest = new ArrayList<>();
-            List<Integer> land = new ArrayList<>();
             for (int k = 0; k < 72; k++)
             {
                 double a = Math.toRadians(k * 5.0D);
                 double rc = (CRATER_RADIUS + RIM_RADIUS) / 2.0D + 0.5D;
                 crest.add(level.getHeight(Heightmap.Types.WORLD_SURFACE, cx + (int) Math.round(rc * Math.cos(a)),
                         cz + (int) Math.round(rc * Math.sin(a))) - 1);
-                double rl = CONE_BASE_RADIUS + 8.0D;
-                land.add(LairBuilder.groundTop(level, cx + (int) Math.round(rl * Math.cos(a)), cz + (int) Math.round(rl * Math.sin(a))));
             }
             crest.sort(null);
-            land.sort(null);
             int crestMedian = crest.get(crest.size() / 2);
-            int landHigh = land.get((int) (land.size() * 0.8D));
-            if (crestMedian < rimY - 1 || crestMedian - landHigh < MIN_LANDMARK_RISE)
+            // The land round the foot, measured as the plan measures it (LairShape.landmarkLand, over the ground the builder
+            // plans from: the land itself, not the rocks and spires standing on it), so the check and the plan agree.
+            int landHigh = LairShape.landmarkLand(cx, cz, LairBuilder.planningGround(level));
+            if (crestMedian < rimY - 1)
             {
-                problems.add("the rim's crest (median y " + crestMedian + ", planned " + rimY + ") isn't at least " + MIN_LANDMARK_RISE
-                        + " blocks above the land round the foot (y " + landHigh + ")");
+                problems.add("the rim's crest (median y " + crestMedian + ") isn't at its planned height (y " + rimY + ")");
             }
-            LOGGER.info("[lair test] The crater's rim: median y {}, lowest {}, highest {}; the land round the foot up to y {} ({} below).",
-                    crestMedian, crest.get(0), crest.get(crest.size() - 1), landHigh, crestMedian - landHigh);
+            if (fullRise && crestMedian - landHigh < MIN_LANDMARK_RISE)
+            {
+                problems.add("the rim's crest (median y " + crestMedian + ", planned " + rimY + " over high land y " + highLand + ") isn't at least "
+                        + MIN_LANDMARK_RISE + " blocks above the land round the foot (y " + landHigh + ")");
+            }
+            LOGGER.info("[lair test] The crater's rim: median y {}, lowest {}, highest {}; the land round the foot up to y {} ({} below){}.",
+                    crestMedian, crest.get(0), crest.get(crest.size() - 1), landHigh, crestMedian - landHigh,
+                    fullRise ? "" : " (a lair's smallest form whose rim is capped: only its height is checked)");
         }
 
         /** The cave mouth at its lip: at least 9 wide at the floor and 8 tall in the middle, with rock over it. */
@@ -1442,45 +1617,45 @@ public final class ColossusLairGameTest
     }
 
     // ---------------------------------------------------------------------------------------------
-    // The Colossus rises, and rises again after the respawn time
+    // The Colossus rises once, and never again after it is beaten
     // ---------------------------------------------------------------------------------------------
 
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_lair_rise", timeoutTicks = BACKSTOP_TICKS)
-    public static void colossusRisesAndRespawns(GameTestHelper helper)
+    public static void colossusRisesOnceAndNeverAgain(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
-        long placementDeadline = Util.getMillis() + PLACEMENT_TIMEOUT_MILLIS;
         Rise run = new Rise(server);
         helper.startSequence()
-                .thenWaitUntil(() -> waitForLair(server, placementDeadline))
+                .thenExecute(() -> run.guard(run::requestLair))
+                .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.lair != null, "a lair to be built")))
                 .thenExecute(() -> run.guard(run::begin))
-                .thenWaitUntil(() -> run.waitFor(() -> run.alive() != null, "the Colossus to rise"))
+                .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.alive() != null, "the Colossus to rise")))
                 .thenExecute(() -> run.guard(run::checkRiseAndKill))
                 .thenIdle(QUIET_TICKS)
-                .thenExecute(() -> run.guard(run::checkStillDeadThenNotYet))
+                .thenExecute(() -> run.guard(run::checkStillEmptyThenLongWait))
                 .thenIdle(QUIET_TICKS)
-                .thenExecute(() -> run.guard(run::checkNotYetThenReady))
-                .thenWaitUntil(() -> run.waitFor(() -> run.alive() != null && !run.alive().getUUID().equals(run.first),
-                        "the Colossus to rise again"))
-                .thenExecute(() -> run.guard(run::checkRoseAgain))
+                .thenExecute(() -> run.guard(run::checkStillEmptyThenNewcomer))
+                .thenIdle(2 * QUIET_TICKS)
+                .thenExecute(() -> run.guard(run::checkNeverAgain))
                 .thenExecute(run::cleanUp)
                 .thenSucceed();
     }
 
-    /** The rise test's state (a stand-in player in the cavern, the first Colossus). */
+    /** The rise test's state (a lair, a stand-in player in its cavern, the first Colossus). */
     private static final class Rise
     {
         final MinecraftServer server;
         ServerLevel dross;
-        ColossusLairData data;
+        @Nullable
+        ColossusLair.Lair lair;
+        ColossusLairData.Entry entry;
         @Nullable
         ServerPlayer player;
         @Nullable
         UUID first;
         long deadline;
-        /** The defeat time set for the "not yet" check, and the game time when the wait was made up. */
-        long notYetDefeat;
-        long readyAt;
+        int arrivals;
+        boolean failed;
 
         Rise(MinecraftServer server)
         {
@@ -1490,53 +1665,88 @@ public final class ColossusLairGameTest
         /** Runs a step; on a failure, cleans up first. */
         void guard(Runnable step)
         {
+            if (failed)
+            {
+                return;
+            }
             try
             {
                 step.run();
             }
+            catch (Waiting e)
+            {
+                throw e;
+            }
             catch (RuntimeException e)
             {
+                failed = true;
+                LOGGER.error("[lair test] {}", e.getMessage());
                 cleanUp();
-                throw e;
+                throw e instanceof GameTestAssertException assertion ? assertion : new GameTestAssertException("the test threw " + e);
+            }
+        }
+
+        /** The lair nearest the hub (its planned site found on the background thread), built if it isn't yet. */
+        void requestLair()
+        {
+            dross = server.getLevel(ModDimensions.DROSS_LEVEL);
+            if (dross == null)
+            {
+                throw new GameTestAssertException("there's no Dross level");
+            }
+            deadline = Util.getMillis() + PLACEMENT_TIMEOUT_MILLIS;
+            ColossusLair.findNearestSite(dross, com.reg21meme.dross.portal.DrossHub.CENTER).thenAcceptAsync(site -> {
+                if (site.isEmpty())
+                {
+                    LOGGER.error("[lair test] The planner found no Colossus lair site in this world.");
+                    return;
+                }
+                ColossusLair.whenBuilt(server, site.get(), built -> lair = built);
+            }, server);
+        }
+
+        void waitFor(java.util.function.BooleanSupplier condition, String what)
+        {
+            if (!condition.getAsBoolean() && Util.getMillis() < deadline)
+            {
+                throw new Waiting("waiting for " + what);
             }
         }
 
         void begin()
         {
-            data = requireLair(server);
-            dross = server.getLevel(ModDimensions.DROSS_LEVEL);
-            clearColossi();
-            data.resetBossForTests();
-            LairKeeper.Volume lair = LairKeeper.volume();
             if (lair == null)
             {
-                throw new GameTestAssertException("the lair is built but the keeper doesn't know its space");
+                throw new GameTestAssertException("no lair was built within " + PLACEMENT_TIMEOUT_MILLIS / 1000 + " s of asking for one");
             }
-            Direction side = data.tunnel().getClockWise();
-            Vec3 spot = lair.middle().add(side.getStepX() * PLAYER_OFFSET, 0.0D, side.getStepZ() * PLAYER_OFFSET);
-            player = joinPlayer(dross, "lair-test-player", spot);
-            if (!lair.inCavern(player.position()))
+            entry = ColossusLairData.get(server).lair(lair.id());
+            clearColossi();
+            ColossusLairData.get(server).resetBossForTests(entry);
+            arrive();
+            LairKeeper.Volume volume = LairKeeper.volume(lair.id());
+            if (volume == null || !volume.inCavern(player.position()))
             {
-                throw new GameTestAssertException("the stand-in player at " + player.position() + " isn't in the cavern");
+                throw new GameTestAssertException("the stand-in player at " + player.position() + " isn't in the cavern (or the keeper doesn't know it)");
             }
-            deadline = Util.getMillis() + RISE_TIMEOUT_MILLIS;
-            LOGGER.info("[lair test] A stand-in player stepped onto the lair's floor at {}; waiting for the Colossus.", player.blockPosition().toShortString());
+            LOGGER.info("[lair test] A stand-in player stepped onto the floor of the lair at {}; waiting for the Colossus.", lair.center().toShortString());
         }
 
-        /** Throws (keeps waiting) until the condition holds or the deadline passes. */
-        void waitFor(java.util.function.BooleanSupplier condition, String what)
+        /** A new stand-in steps onto the floor (the one before him, if any, has left). */
+        void arrive()
         {
-            if (!condition.getAsBoolean() && Util.getMillis() < deadline)
-            {
-                throw new GameTestAssertException("waiting for " + what);
-            }
+            logOut(player);
+            arrivals++;
+            Direction side = lair.tunnelDirection().getClockWise();
+            Vec3 spot = lair.arenaMiddle().add(side.getStepX() * PLAYER_OFFSET, 0.0D, side.getStepZ() * PLAYER_OFFSET);
+            player = joinPlayer(dross, "lair-test-player-" + arrivals, spot);
+            deadline = Util.getMillis() + RISE_TIMEOUT_MILLIS;
         }
 
         /** The lair's living Colossus, or null. */
         @Nullable
         CinderColossus alive()
         {
-            UUID id = data.boss();
+            UUID id = entry == null ? null : entry.boss();
             return id != null && dross.getEntity(id) instanceof CinderColossus boss && boss.isAlive() ? boss : null;
         }
 
@@ -1547,73 +1757,57 @@ public final class ColossusLairGameTest
             {
                 throw new GameTestAssertException("no Colossus rose within " + RISE_TIMEOUT_MILLIS / 1000 + " s of a player walking in");
             }
-            Vec3 middle = LairKeeper.volume().middle();
+            Vec3 middle = lair.arenaMiddle();
             double off = Math.sqrt(Math.pow(boss.getX() - middle.x, 2) + Math.pow(boss.getZ() - middle.z, 2));
             if (off > RISE_TOLERANCE || Math.abs(boss.getY() - middle.y) > 1.0D)
             {
                 throw new GameTestAssertException("the Colossus rose at " + boss.position() + ", not in the middle " + middle);
             }
+            if (ColossusLair.state(server, lair) != ColossusLair.State.AWAKE)
+            {
+                throw new GameTestAssertException("with its Colossus up, the lair's state is " + ColossusLair.state(server, lair) + ", not AWAKE");
+            }
             first = boss.getUUID();
             long killedAt = server.overworld().getGameTime();
             boss.kill();
-            if (!data.beaten() || data.defeatedAt() != killedAt)
+            if (!entry.beaten() || entry.defeatedAt() != killedAt || ColossusLair.state(server, lair) != ColossusLair.State.BEATEN)
             {
-                throw new GameTestAssertException("its death wasn't recorded (beaten " + data.beaten() + ", at " + data.defeatedAt()
-                        + ", killed at " + killedAt + ")");
+                throw new GameTestAssertException("its death wasn't recorded (beaten " + entry.beaten() + ", at " + entry.defeatedAt()
+                        + ", killed at " + killedAt + ", state " + ColossusLair.state(server, lair) + ")");
             }
-            if (ColossusLair.ticksUntilRespawn(server) != LAIR_RESPAWN_TICKS)
-            {
-                throw new GameTestAssertException("right after its death the wait should be " + LAIR_RESPAWN_TICKS + " ticks, not "
-                        + ColossusLair.ticksUntilRespawn(server));
-            }
-            LOGGER.info("[lair test] The Colossus rose in the middle and was killed; checking it doesn't rise again too soon.");
+            LOGGER.info("[lair test] The Colossus rose in the middle and was killed; checking it never rises again.");
         }
 
-        void checkStillDeadThenNotYet()
+        void checkStillEmptyThenLongWait()
         {
             if (alive() != null || countAlive() > 0)
             {
                 throw new GameTestAssertException("a Colossus rose again straight after the last one died");
             }
-            // 20 seconds of the wait still left: nothing may rise yet.
-            notYetDefeat = server.overworld().getGameTime() - (LAIR_RESPAWN_TICKS - NOT_YET_TICKS);
-            data.setDefeatedAtForTests(notYetDefeat);
+            // A long wait faked: its defeat moved far into the past (no respawn timer may bring it back).
+            ColossusLairData.get(server).setDefeatedAtForTests(entry, server.overworld().getGameTime() - LONG_WAIT_TICKS);
         }
 
-        void checkNotYetThenReady()
+        void checkStillEmptyThenNewcomer()
         {
             if (alive() != null || countAlive() > 0)
             {
-                throw new GameTestAssertException("a Colossus rose again before the respawn time was up");
+                throw new GameTestAssertException("a Colossus rose again after a (faked) long wait, for the player who stayed");
             }
-            if (!data.beaten() || data.defeatedAt() != notYetDefeat || ColossusLair.ticksUntilRespawn(server) <= 0L)
-            {
-                throw new GameTestAssertException("the time it was beaten changed by itself (" + data.defeatedAt() + ", set to "
-                        + notYetDefeat + ")");
-            }
-            readyAt = server.overworld().getGameTime();
-            data.setDefeatedAtForTests(readyAt - LAIR_RESPAWN_TICKS - 1L);
-            deadline = Util.getMillis() + RISE_TIMEOUT_MILLIS;
-            LOGGER.info("[lair test] Nothing rose before the respawn time; the saved time is moved back past 10 minutes.");
+            arrive(); // someone new walks in
         }
 
-        void checkRoseAgain()
+        void checkNeverAgain()
         {
-            CinderColossus boss = alive();
-            if (boss == null || boss.getUUID().equals(first))
+            if (alive() != null || countAlive() > 0)
             {
-                throw new GameTestAssertException("no new Colossus rose once the respawn time was up");
+                throw new GameTestAssertException("a Colossus rose again for a newcomer after the lair's Colossus was beaten");
             }
-            if (countAlive() != 1)
+            if (ColossusLair.state(server, lair) != ColossusLair.State.BEATEN)
             {
-                throw new GameTestAssertException(countAlive() + " living Colossi in the cavern, not 1");
+                throw new GameTestAssertException("the beaten lair's state is " + ColossusLair.state(server, lair));
             }
-            long took = server.overworld().getGameTime() - readyAt;
-            if (took > PROMPT_TICKS)
-            {
-                throw new GameTestAssertException("the new Colossus only rose " + took + " ticks after the respawn time was up");
-            }
-            LOGGER.info("[lair test] A new Colossus rose {} ticks after the respawn time was up.", took);
+            LOGGER.info("[lair test] Beaten, the lair stayed empty after a long wait and for a newcomer (no respawn).");
         }
 
         /** Living Colossi in the cavern. */
@@ -1624,8 +1818,7 @@ public final class ColossusLairGameTest
 
         AABB cavernBox()
         {
-            LairKeeper.Volume lair = LairKeeper.volume();
-            Vec3 middle = lair.middle();
+            Vec3 middle = lair.arenaMiddle();
             double r = LairShape.FLOOR_EDGE + 4.0D;
             return new AABB(middle.x - r, middle.y - 2.0D, middle.z - r, middle.x + r, middle.y + DOME_HEIGHT + 2.0D, middle.z + r);
         }
@@ -1633,7 +1826,7 @@ public final class ColossusLairGameTest
         /** Removes every Colossus in the cavern (living or a statue). */
         void clearColossi()
         {
-            if (dross != null && LairKeeper.volume() != null)
+            if (dross != null && lair != null)
             {
                 for (CinderColossus boss : dross.getEntitiesOfClass(CinderColossus.class, cavernBox(), b -> !b.isShowcase()))
                 {
@@ -1646,14 +1839,11 @@ public final class ColossusLairGameTest
         void cleanUp()
         {
             clearColossi();
-            if (data != null)
+            if (entry != null)
             {
-                data.resetBossForTests();
+                ColossusLairData.get(server).resetBossForTests(entry);
             }
-            if (player != null && player.server.getPlayerList().getPlayer(player.getUUID()) == player)
-            {
-                player.server.getPlayerList().remove(player);
-            }
+            logOut(player);
             player = null;
         }
     }
@@ -1672,24 +1862,21 @@ public final class ColossusLairGameTest
         return dross;
     }
 
-    /** Throws (keeps the test waiting) until the lair is built or the deadline passes. */
-    private static void waitForLair(MinecraftServer server, long deadline)
+    /** "Still waiting" in a waiting step: never a failure by itself. */
+    private static final class Waiting extends GameTestAssertException
     {
-        if (!ColossusLair.isPlaced(server) && Util.getMillis() < deadline)
+        Waiting(String message)
         {
-            throw new GameTestAssertException("waiting for the lair to be built");
+            super(message);
         }
     }
 
-    private static ColossusLairData requireLair(MinecraftServer server)
+    private static void logOut(@Nullable ServerPlayer player)
     {
-        ColossusLairData data = ColossusLairData.get(server);
-        if (!data.isPlaced())
+        if (player != null && player.server.getPlayerList().getPlayer(player.getUUID()) == player)
         {
-            throw new GameTestAssertException("the lair wasn't built within " + PLACEMENT_TIMEOUT_MILLIS / 1000 + " s"
-                    + (LairPlacer.isRunning() ? " (still being placed)" : ""));
+            player.server.getPlayerList().remove(player);
         }
-        return data;
     }
 
     /**

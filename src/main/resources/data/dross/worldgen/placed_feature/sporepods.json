@@ -25,6 +25,9 @@
       "heightmap": "MOTION_BLOCKING_NO_LEAVES"
     },
     {
+      "type": "dross:not_near_sewer_entrance"
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

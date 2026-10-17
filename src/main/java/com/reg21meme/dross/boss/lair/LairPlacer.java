@@ -2,20 +2,32 @@ package com.reg21meme.dross.boss.lair;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.dimension.sites.BossSites;
+import com.reg21meme.dross.dimension.sites.BossSitesTuning;
+import com.reg21meme.dross.dimension.sites.Group;
+import com.reg21meme.dross.dimension.sites.Site;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraftforge.event.TickEvent;
@@ -29,44 +41,103 @@ import org.slf4j.Logger;
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
 /**
- * Places the Colossus's lair once per world, without freezing the game (like the portal site):
+ * Builds the Colossus lairs lazily, one per group of 3 Cinder Wastes patches (the boss-site planner's
+ * {@link BossSites#COLOSSUS_LAIR} sites, chosen by {@link LairFinder}), without ever freezing the game:
  * <ol>
- *   <li><b>Search</b> ({@link LairSearch}) on a background thread when the server has started (after the hub is
- *       built), from the world generator's noise. The spot is saved as the world's planned spot.</li>
- *   <li><b>Load</b>: the chunks round it are generated in the background (chunk tickets).</li>
- *   <li><b>Build</b> ({@link LairBuilder}) on a later tick, then the chunks stay loaded a few seconds for their lighting.</li>
+ *   <li><b>Who's near what</b>: every {@link LairTuning#NEAR_CHECK_TICKS} ticks the Dross players' positions are handed to
+ *       a background thread, which asks the planner (noise only) for the lair sites within {@link LairTuning#BUILD_RANGE}
+ *       of each. The first time an area is asked about, the planner works out its groups (a second or so); after that
+ *       it's instant.</li>
+ *   <li><b>Load</b>: a site with no lair yet is queued; its chunks ({@link LairTuning#LOAD_RADIUS} round it) are generated
+ *       in the background with chunk tickets, at most {@link LairTuning#MAX_BUILDS_AT_ONCE} lair at a time.</li>
+ *   <li><b>Build</b> ({@link LairBuilder}) a step a tick ({@link LairTuning#BUILD_STEPS} steps), then the chunks stay
+ *       loaded a few seconds for their lighting. The lair is saved with its patch ({@link ColossusLairData}), so each is
+ *       built once and a patch never gets two.</li>
  * </ol>
- * Old worlds get their lair the same way, the first time they start with it. If no direction finds a spot (it never
- * should), a warning is logged and it's tried again the next time the world starts. If the world closes before it's
- * built, it carries on from the planned spot next time.
+ * {@code /dross goto lair colossus} asks for the nearest site and waits for its lair here ({@link #whenBuilt}). If the
+ * server stops while a lair is half built, it's finished at once (the world is still there); one that was still loading
+ * is simply built the next time someone comes near.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 final class LairPlacer
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    /** Keeps the lair's chunks loaded while it's built. */
+    /** Keeps a lair's chunks loaded while it's built. */
     private static final TicketType<Long> LOAD_TICKET = TicketType.create("dross_colossus_lair", Long::compare);
-    /** The search runs on its own low-priority thread, so neither the server nor world generation waits for it. */
-    private static final Executor SEARCH_THREAD = task -> {
-        Thread thread = new Thread(task, "Dross Colossus lair search");
+    /** The planner is asked on this one low-priority thread, so neither the server nor world generation waits for it. */
+    private static final ExecutorService LOOKUP_THREAD = Executors.newSingleThreadExecutor(task -> {
+        Thread thread = new Thread(task, "Dross Colossus lairs");
         thread.setDaemon(true);
         thread.setPriority(Thread.NORM_PRIORITY - 2);
-        thread.start();
-    };
+        return thread;
+    });
 
-    /** The placement in progress, or null. Server thread only. */
-    @Nullable
-    private static Job job;
+    /** The lair sites waiting to be built (by their patch's id), first come first served. Server thread only. */
+    private static final Map<Long, Site> QUEUE = new LinkedHashMap<>();
+    /** The lairs being loaded or built. */
+    private static final List<Job> JOBS = new ArrayList<>();
+    /** Who's waiting for a lair to be built (by its patch's id): {@code goto lair colossus}. */
+    private static final Map<Long, List<Consumer<ColossusLairData.Entry>>> WAITING = new LinkedHashMap<>();
+    /** Sites whose build failed this run (not tried again until the next start, so a broken one doesn't loop). */
+    private static final Set<Long> FAILED = new HashSet<>();
     private static final List<Hold> HOLDS = new ArrayList<>();
+    @Nullable
+    private static CompletableFuture<List<Site>> nearLookup;
+    /** The first group's lair site (worked out as the world starts), for {@link ColossusLair#plannedSite}. */
+    @Nullable
+    private static volatile Site firstSite;
     private static long nextTicketKey;
 
     private LairPlacer() {}
 
-    /** Low priority: runs after the hub is built (that happens at normal priority, in portal/DrossHub). */
+    /** Low priority: after the hub is built. Works out the first groups' sites in the background (they're asked for first). */
     @SubscribeEvent(priority = EventPriority.LOW)
     public static void onServerStarted(ServerStartedEvent event)
     {
         MinecraftServer server = event.getServer();
+        resetState();
+        ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
+        if (dross == null)
+        {
+            return;
+        }
+        ColossusLairData data = ColossusLairData.get(server);
+        LairKeeper.refresh(data);
+        LOGGER.info("Colossus lairs: {} built in this world so far; the others are built when a player first comes within {} blocks.",
+                data.all().size(), BUILD_RANGE);
+        CompletableFuture.runAsync(() -> {
+            long started = Util.getMillis();
+            BossSites sites = BossSites.forLevel(dross);
+            StringBuilder found = new StringBuilder();
+            for (int g = 0; g < WARM_UP_GROUPS; g++)
+            {
+                Optional<Group> group = sites.group(DrossBiomes.CINDER_WASTES, g);
+                Optional<Site> site = group.flatMap(Group::bossSite);
+                if (g == 0)
+                {
+                    firstSite = site.orElse(null);
+                }
+                found.append(String.format("%n  group %d: %s", g + 1, site.map(s -> "patch " + s.patch().number() + " at " + s.pos().getX() + " "
+                        + s.pos().getZ() + ", " + Math.round(s.distanceTo(0, 0)) + " blocks from the hub" + (s.relaxed() ? " (its smallest form)" : ""))
+                        .orElse(group.isPresent() ? "none (no patch of it can hold a lair)" : "none (past the planner's reach)")));
+            }
+            LOGGER.info("Colossus lairs: the first {} group(s) of Cinder Wastes patches hold their lairs at ({} ms):{}", WARM_UP_GROUPS,
+                    Util.getMillis() - started, found);
+        }, LOOKUP_THREAD).exceptionally(e -> {
+            LOGGER.error("Colossus lairs: working out the first groups' lair sites failed.", e);
+            return null;
+        });
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event)
+    {
+        if (event.phase != TickEvent.Phase.END)
+        {
+            return;
+        }
+        MinecraftServer server = event.getServer();
+        releaseHolds(server.getTickCount());
         ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
         if (dross == null)
         {
@@ -74,264 +145,346 @@ final class LairPlacer
         }
         try
         {
-            ColossusLairData data = ColossusLairData.get(server);
-            LairKeeper.refresh(data);
-            if (data.isPlaced())
-            {
-                LOGGER.info("Colossus lair: this world's lair is at {} {} ({}, floor y {}, way in to the {}, entrance {} {} {}).",
-                        data.centerX(), data.centerZ(), data.version() >= 2 ? "a volcano, rim y " + data.rimY()
-                                : "an R2c cavern, kept as it was built", data.floorY(), data.tunnel().getName(), Math.round(data.entrance().x),
-                        Math.round(data.entrance().y), Math.round(data.entrance().z));
-                return;
-            }
-            job = new Job(server, dross, data);
+            lookNear(server, dross);
+            startJobs(server, dross);
+            stepJobs(server, dross);
         }
         catch (RuntimeException e)
         {
-            LOGGER.error("Colossus lair: starting to place the lair failed; it's tried again the next time the world starts.", e);
-            job = null;
-        }
-    }
-
-    @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event)
-    {
-        if (event.phase != TickEvent.Phase.END || (job == null && HOLDS.isEmpty()))
-        {
-            return;
-        }
-        releaseHolds(event.getServer().getTickCount());
-        Job j = job;
-        if (j == null)
-        {
-            return;
-        }
-        try
-        {
-            j.step();
-        }
-        catch (RuntimeException e)
-        {
-            LOGGER.error("Colossus lair: placing the lair failed; it's tried again the next time the world starts.", e);
-            j.releaseTickets();
-            job = null;
+            LOGGER.error("Colossus lairs: building the lairs failed.", e);
         }
     }
 
     @SubscribeEvent
     public static void onServerStopping(ServerStoppingEvent event)
     {
-        Job j = job;
-        if (j != null)
+        MinecraftServer server = event.getServer();
+        for (Job job : new ArrayList<>(JOBS))
         {
-            j.cancelled.set(true);
-            LOGGER.info("Colossus lair: the server stopped before the lair was built; it carries on next time.");
+            if (job.build != null && !job.build.done())
+            {
+                LOGGER.info("Colossus lairs: the server is stopping while the lair at {} {} is half built; finishing it now.", job.x, job.z);
+                try
+                {
+                    while (!job.build.step())
+                    {
+                        // the rest at once
+                    }
+                    job.finish(server);
+                }
+                catch (RuntimeException e)
+                {
+                    LOGGER.error("Colossus lairs: finishing the lair at {} {} failed.", job.x, job.z, e);
+                }
+            }
         }
-        job = null;
-        HOLDS.clear(); // chunk tickets go away with the server
+        resetState();
         LairKeeper.clear();
     }
 
-    /** True while a placement is running (tests). */
-    static boolean isRunning()
+    private static void resetState()
     {
-        return job != null;
+        QUEUE.clear();
+        JOBS.clear();
+        WAITING.clear();
+        FAILED.clear();
+        HOLDS.clear(); // chunk tickets go away with the server
+        nearLookup = null;
+        firstSite = null;
     }
 
-    // ---------------------------------------------------------------- one placement
+    // ---------------------------------------------------------------- the API's side (ColossusLair)
 
+    /** The first group's lair site, once it's worked out (a moment after the world starts). */
+    static Optional<Site> firstSite()
+    {
+        return Optional.ofNullable(firstSite);
+    }
+
+    /** The planned lair site nearest {@code from} (along the ground), worked out on the background thread. */
+    static CompletableFuture<Optional<Site>> nearestSite(ServerLevel dross, BlockPos from)
+    {
+        return CompletableFuture.supplyAsync(() -> BossSites.forLevel(dross).nearest(BossSites.COLOSSUS_LAIR, from, BossSitesTuning.MAX_DISTANCE),
+                LOOKUP_THREAD);
+    }
+
+    /**
+     * Runs {@code then} on the server thread once the site's lair is built: now if it's built already, otherwise as soon as
+     * it's done (it's put first in the queue). Server thread.
+     */
+    static void whenBuilt(MinecraftServer server, Site site, Consumer<ColossusLairData.Entry> then)
+    {
+        long id = site.patch().id();
+        ColossusLairData.Entry built = ColossusLairData.get(server).lair(id);
+        if (built != null)
+        {
+            then.accept(built);
+            return;
+        }
+        WAITING.computeIfAbsent(id, k -> new ArrayList<>()).add(then);
+        FAILED.remove(id);
+        if (!isBuilding(id))
+        {
+            // to the front of the queue: someone is waiting for it
+            Map<Long, Site> rest = new LinkedHashMap<>(QUEUE);
+            QUEUE.clear();
+            QUEUE.put(id, site);
+            rest.forEach(QUEUE::putIfAbsent);
+        }
+    }
+
+    /** True while the lair of this patch is waiting, loading or being built. Server thread. */
+    static boolean isPending(long id)
+    {
+        return QUEUE.containsKey(id) || isBuilding(id);
+    }
+
+    private static boolean isBuilding(long id)
+    {
+        for (Job job : JOBS)
+        {
+            if (job.id == id)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** True while any lair is waiting, loading or being built (tests). */
+    static boolean isBusy()
+    {
+        return !QUEUE.isEmpty() || !JOBS.isEmpty();
+    }
+
+    // ---------------------------------------------------------------- who's near which site
+
+    private static void lookNear(MinecraftServer server, ServerLevel dross)
+    {
+        CompletableFuture<List<Site>> lookup = nearLookup;
+        if (lookup != null)
+        {
+            if (!lookup.isDone())
+            {
+                return;
+            }
+            nearLookup = null;
+            List<Site> near;
+            try
+            {
+                near = lookup.join();
+            }
+            catch (CompletionException e)
+            {
+                LOGGER.error("Colossus lairs: asking the planner which lairs are near the players failed.", e.getCause());
+                return;
+            }
+            ColossusLairData data = ColossusLairData.get(server);
+            for (Site site : near)
+            {
+                long id = site.patch().id();
+                if (!data.isBuilt(id) && !isPending(id) && !FAILED.contains(id))
+                {
+                    LOGGER.info("Colossus lairs: a player is within {} blocks of the lair site of Cinder Wastes group {} (patch {}) at {} {}; "
+                            + "building it.", BUILD_RANGE, site.patch().group() + 1, site.patch().number(), site.pos().getX(), site.pos().getZ());
+                    QUEUE.put(id, site);
+                }
+            }
+            return;
+        }
+        if (server.getTickCount() % NEAR_CHECK_TICKS != 0 || dross.players().isEmpty())
+        {
+            return;
+        }
+        List<BlockPos> where = new ArrayList<>();
+        for (ServerPlayer player : dross.players())
+        {
+            where.add(player.blockPosition());
+        }
+        nearLookup = CompletableFuture.supplyAsync(() -> {
+            BossSites sites = BossSites.forLevel(dross);
+            Map<Long, Site> found = new LinkedHashMap<>();
+            for (BlockPos pos : where)
+            {
+                for (Site site : sites.sitesNear(DrossBiomes.CINDER_WASTES, pos.getX(), pos.getZ(), BUILD_RANGE))
+                {
+                    if (site.use() == BossSites.COLOSSUS_LAIR)
+                    {
+                        found.putIfAbsent(site.patch().id(), site);
+                    }
+                }
+            }
+            return new ArrayList<>(found.values());
+        }, LOOKUP_THREAD);
+    }
+
+    // ---------------------------------------------------------------- the builds
+
+    private static void startJobs(MinecraftServer server, ServerLevel dross)
+    {
+        Iterator<Map.Entry<Long, Site>> it = QUEUE.entrySet().iterator();
+        while (JOBS.size() < MAX_BUILDS_AT_ONCE && it.hasNext())
+        {
+            Site site = it.next().getValue();
+            it.remove();
+            if (ColossusLairData.get(server).isBuilt(site.patch().id()))
+            {
+                continue;
+            }
+            JOBS.add(new Job(dross, site));
+        }
+    }
+
+    private static void stepJobs(MinecraftServer server, ServerLevel dross)
+    {
+        Iterator<Job> it = JOBS.iterator();
+        while (it.hasNext())
+        {
+            Job job = it.next();
+            boolean finished;
+            try
+            {
+                finished = job.step(server);
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("Colossus lairs: building the lair at {} {} failed; it's tried again the next time the world starts.", job.x, job.z, e);
+                job.releaseTickets();
+                FAILED.add(job.id);
+                WAITING.remove(job.id);
+                finished = true;
+            }
+            if (finished)
+            {
+                it.remove();
+            }
+        }
+    }
+
+    /** One lair: its chunks loading, then built a step a tick. */
     private static final class Job
     {
-        final MinecraftServer server;
         final ServerLevel dross;
-        final ColossusLairData data;
-        final long startedAt = Util.getMillis();
-        final AtomicBoolean cancelled = new AtomicBoolean();
-        @Nullable
-        CompletableFuture<LairSearch.Result> search;
-        int x;
-        int z;
-        @Nullable
-        ChunkArea area;
-        long ticketKey;
-        long requestedAt;
-        boolean loading;
-        boolean ready;
-        long searchMillis = -1L;
+        final Site site;
+        final long id;
+        final int x;
+        final int z;
+        final ChunkArea area;
+        final long ticketKey;
+        final long requestedAt = Util.getMillis();
         long loadMillis = -1L;
+        /** The generator's heights round the spot, worked out on the background thread while the chunks load. */
+        final CompletableFuture<Map<Long, Integer>> noise;
+        boolean ready;
+        @Nullable
+        LairBuilder.Build build;
+        boolean holding;
 
-        Job(MinecraftServer server, ServerLevel dross, ColossusLairData data)
+        Job(ServerLevel dross, Site site)
         {
-            this.server = server;
             this.dross = dross;
-            this.data = data;
-            if (data.isPlanned())
-            {
-                x = data.plannedX();
-                z = data.plannedZ();
-                LOGGER.info("Colossus lair: carrying on with the planned spot {} {}.", x, z);
-                startLoading();
-                return;
-            }
-            LairSearch.Context context = LairSearch.forWorld(dross);
-            double[] angles = LairSearch.directionAngles(context.seed());
-            StringBuilder directions = new StringBuilder();
-            for (double angle : angles)
-            {
-                directions.append(directions.length() > 0 ? ", " : "").append(Math.round(LairSearch.normalise(angle)))
-                        .append(" degrees (").append(LairSearch.compass(angle)).append(")");
-            }
-            LOGGER.info("Colossus lair: looking for the Cinder Wastes in three directions from the hub: {} (turned {} degrees by the "
-                            + "seed; cones of +-{} degrees, {} to {} blocks out). The furthest of the three nearest spots is used.",
-                    directions, Math.round(LairSearch.rotation(context.seed())), Math.round(CONE_HALF_ANGLE_DEGREES), MIN_DISTANCE,
-                    MAX_DISTANCE);
-            search = CompletableFuture.supplyAsync(() -> LairSearch.run(context, cancelled::get), SEARCH_THREAD);
-        }
-
-        void step()
-        {
-            if (search != null)
-            {
-                if (!search.isDone())
-                {
-                    return;
-                }
-                LairSearch.Result result;
-                try
-                {
-                    result = search.join();
-                }
-                catch (CompletionException e)
-                {
-                    search = null;
-                    throw new IllegalStateException("the lair search failed", e.getCause());
-                }
-                search = null;
-                onSearch(result);
-                return;
-            }
-            if (loading)
-            {
-                boolean all = area.allLoaded(dross);
-                long waited = Util.getMillis() - requestedAt;
-                if (!all && waited < LOAD_TIMEOUT_MILLIS)
-                {
-                    return;
-                }
-                loadMillis = waited;
-                if (all)
-                {
-                    LOGGER.info("Colossus lair: the {} chunks round {} {} were loaded in {} s.", area.count(), x, z,
-                            Math.round(waited / 1000.0D));
-                }
-                else
-                {
-                    LOGGER.warn("Colossus lair: the chunks round {} {} still weren't all loaded after {} s; building anyway.", x, z,
-                            waited / 1000);
-                }
-                loading = false;
-                ready = true; // built on the next tick, never in the same one as the check
-                return;
-            }
-            if (ready)
-            {
-                ready = false;
-                build();
-            }
-        }
-
-        private void onSearch(LairSearch.Result result)
-        {
-            searchMillis = result.millis();
-            if (result.cancelled())
-            {
-                job = null;
-                return;
-            }
-            for (int i = 0; i < result.directions().size(); i++)
-            {
-                Optional<LairSearch.Candidate> found = result.directions().get(i);
-                double angle = LairSearch.directionAngles(dross.getSeed())[i];
-                if (found.isPresent())
-                {
-                    LOGGER.info("Colossus lair:   direction {} ({} degrees, {}): {}", i + 1, Math.round(LairSearch.normalise(angle)),
-                            LairSearch.compass(angle), found.get().describe());
-                }
-                else
-                {
-                    LOGGER.info("Colossus lair:   direction {} ({} degrees, {}): no Cinder Wastes big enough within {} blocks.", i + 1,
-                            Math.round(LairSearch.normalise(angle)), LairSearch.compass(angle), MAX_DISTANCE);
-                }
-            }
-            if (result.pick().isEmpty())
-            {
-                data.noteFailedSearch();
-                LOGGER.warn("Colossus lair: no direction found a Cinder Wastes spot that can hold the lair within {} blocks of the hub "
-                        + "(search took {} ms); it's tried again the next time the world starts ({} failed search(es) so far).",
-                        MAX_DISTANCE, result.millis(), data.failedSearches());
-                job = null;
-                return;
-            }
-            LairSearch.Candidate pick = result.pick().get();
-            x = pick.x();
-            z = pick.z();
-            LOGGER.info("Colossus lair: picked direction {}: {} {}, {} blocks from the hub (the furthest of the three; search took {} ms).",
-                    pick.direction() + 1, x, z, Math.round(pick.distance()), result.millis());
-            data.setPlanned(x, z);
-            startLoading();
-        }
-
-        private void startLoading()
-        {
-            area = ChunkArea.round(x, z, LOAD_RADIUS);
-            ticketKey = nextTicketKey++;
+            this.site = site;
+            this.id = site.patch().id();
+            this.x = site.pos().getX();
+            this.z = site.pos().getZ();
+            this.area = ChunkArea.round(x, z, LOAD_RADIUS);
+            this.ticketKey = nextTicketKey++;
             area.addTickets(dross, ticketKey);
-            requestedAt = Util.getMillis();
-            loading = true;
-            LOGGER.info("Colossus lair: loading {} chunks round {} {} in the background to build it.", area.count(), x, z);
+            noise = CompletableFuture.supplyAsync(() -> LairBuilder.prefetchNoise(dross, x, z), LOOKUP_THREAD);
+            LOGGER.info("Colossus lairs: loading {} chunks round {} {} in the background to build the lair of Cinder Wastes group {}.", area.count(),
+                    x, z, site.patch().group() + 1);
         }
 
-        private void build()
+        /** One tick of work; true once it's finished. */
+        boolean step(MinecraftServer server)
         {
-            LairBuilder.Result result = LairBuilder.build(dross, x, z);
+            if (build == null)
+            {
+                if (!ready)
+                {
+                    boolean all = area.allLoaded(dross);
+                    long waited = Util.getMillis() - requestedAt;
+                    if ((!all || !noise.isDone()) && waited < LOAD_TIMEOUT_MILLIS)
+                    {
+                        return false;
+                    }
+                    loadMillis = waited;
+                    if (!all)
+                    {
+                        LOGGER.warn("Colossus lairs: the chunks round {} {} still weren't all loaded after {} s; building anyway.", x, z, waited / 1000);
+                    }
+                    ready = true; // planned on the next tick, never in the same one as the check
+                    return false;
+                }
+                Map<Long, Integer> heights = null;
+                if (noise.isDone() && !noise.isCompletedExceptionally())
+                {
+                    heights = noise.join();
+                }
+                else
+                {
+                    LOGGER.warn("Colossus lairs: the generator's heights round {} {} weren't ready; planning reads them itself.", x, z);
+                }
+                build = LairBuilder.start(dross, x, z, heights);
+                return false;
+            }
+            if (!build.step())
+            {
+                return false;
+            }
+            finish(server);
+            return true;
+        }
+
+        /** The lair is built: saved, known to the keeper, its chunks held a moment, and whoever waited told. */
+        void finish(MinecraftServer server)
+        {
+            LairBuilder.Result result = build.result();
             LairBuilder.Layout layout = result.layout();
-            data.markPlaced(layout, result.millis());
+            ColossusLairData data = ColossusLairData.get(server);
+            ColossusLairData.Entry entry = data.markBuilt(id, site.patch().group(), x, z, layout, result.millis());
             LairKeeper.refresh(data);
-            LOGGER.info("Colossus lair: built a volcano at {} {} in {} ms: {}; cave mouth {} blocks out, gully {} blocks, way in: {}, entrance {} {} {}; "
-                            + "{} blocks changed, {} tree(s) removed, {} plant(s) without ground removed, {} block(s) sealed against "
-                            + "fluids, {} magma vein(s), {} stalactite(s), {} fissure block(s) of lava under the floor, {} lava "
-                            + "rivulet(s) with {} lava block(s) outside, {} burnable block(s) cleared. Search {} ms, chunk loading {} s, "
-                            + "{} s after the server started.",
-                    layout.centerX(), layout.centerZ(), result.millis(), result.plan().describe(), layout.mouth(), result.gullyLength(),
-                    result.approach().describe(),
-                    Math.round(layout.entrance().x), Math.round(layout.entrance().y), Math.round(layout.entrance().z),
-                    result.changed(), result.trees(), result.plants(), result.sealed(), result.veins(), result.stalactites(),
-                    result.fissureCells(), result.rivulets(), result.outsideLava(), result.fireGuarded(), searchMillis,
-                    loadMillis < 0 ? "?" : Math.round(loadMillis / 1000.0D), Math.round((Util.getMillis() - startedAt) / 1000.0D));
+            LOGGER.info("Colossus lairs: built the volcano of Cinder Wastes group {} (patch {}) at {} {} in {} ms of work over {} ticks (the longest "
+                            + "tick's share {} ms; chunk loading {} s): {}; cave mouth {} blocks out, gully {} blocks, way in: {}, entrance {} {} {}; "
+                            + "{} blocks changed, {} tree(s) removed, {} block(s) sealed against fluids, {} stalactite(s), {} fissure block(s) of "
+                            + "lava under the floor, {} lava rivulet(s) with {} lava block(s) outside.", site.patch().group() + 1, site.patch().number(),
+                    x, z, result.millis(), BUILD_STEPS + 1, build.longestStep(), loadMillis < 0 ? "?" : Math.round(loadMillis / 1000.0D),
+                    result.plan().describe(), layout.mouth(), result.gullyLength(), result.approach().describe(), Math.round(layout.entrance().x),
+                    Math.round(layout.entrance().y), Math.round(layout.entrance().z), result.changed(), result.trees(), result.sealed(),
+                    result.stalactites(), result.fissureCells(), result.rivulets(), result.outsideLava());
             if (!result.approach().meetsLand())
             {
-                LOGGER.warn("Colossus lair: the land in front of the volcano at {} {} is too steep for the way in to meet it within {} "
-                                + "blocks of the apron in any direction: the last step onto the land is {} blocks (the way in itself never "
-                                + "steps more than 1).", layout.centerX(), layout.centerZ(), BLEND + APPROACH_MAX_EXTRA,
-                        result.approach().seam());
+                LOGGER.warn("Colossus lairs: the land in front of the volcano at {} {} is too steep for the way in to meet it within {} blocks "
+                        + "of the apron in any direction: the last step onto the land is {} blocks (the way in itself never steps more than 1).",
+                        x, z, BLEND + APPROACH_MAX_EXTRA, result.approach().seam());
             }
-            if (area != null)
+            if (!holding)
             {
+                holding = true;
                 HOLDS.add(new Hold(dross, area, ticketKey, server.getTickCount() + HOLD_AFTER_BUILD_TICKS));
-                area = null;
             }
-            if (job == this)
+            List<Consumer<ColossusLairData.Entry>> waiting = WAITING.remove(id);
+            if (waiting != null)
             {
-                job = null;
+                for (Consumer<ColossusLairData.Entry> then : waiting)
+                {
+                    try
+                    {
+                        then.accept(entry);
+                    }
+                    catch (RuntimeException e)
+                    {
+                        LOGGER.error("Colossus lairs: telling someone the lair at {} {} is built failed.", x, z, e);
+                    }
+                }
             }
         }
 
         void releaseTickets()
         {
-            if (area != null)
+            if (!holding)
             {
                 area.removeTickets(dross, ticketKey);
-                area = null;
             }
         }
     }

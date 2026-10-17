@@ -22,7 +22,8 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
  * checks and previews). It uses the game's own generator: the same biome source, density functions and noises as real
  * world generation.
  * <ul>
- *   <li>{@link #biome}: the biome of a column (the Dross's biomes are the same at every height).</li>
+ *   <li>{@link #biome}: the surface biome of a column (read at {@link #BIOME_Y}: the Dross's surface biomes are the same at
+ *       every height; only deep under Blightwood is the underground sewers biome, {@link DrossBiomes#SEWERS}).</li>
  *   <li>{@link #height}: the ground height {@code dross:terrain/height} of a column, before the 3D roughness on rocky ground
  *       (the ground's top block is at about this minus one, rounded down).</li>
  *   <li>{@link #function}: any other 2D density function of the terrain (gates, the hub's falloffs...).</li>
@@ -33,7 +34,7 @@ import net.minecraft.world.level.levelgen.synth.NormalNoise;
  */
 final class TerrainProbe
 {
-    /** Biomes are sampled at this height (the Dross's climate doesn't depend on height). */
+    /** Biomes are sampled at this height (the Dross's climate doesn't depend on height; the sewers lie far below it). */
     static final int BIOME_Y = 80;
 
     final ServerLevel dross;

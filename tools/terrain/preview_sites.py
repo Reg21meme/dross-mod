@@ -223,6 +223,36 @@ class Look:
             if name == "minecraft:water":
                 self.alpha = WATER_ALPHA
             return
+        # a few thin vanilla blocks the cube renderer would draw as whole blocks (the sewers use them)
+        if name.endswith("_wall_banner") or name == "minecraft:ladder":
+            # a flat panel on the wall it hangs on (the block it faces away from)
+            facing = props.get("facing", "north")
+            back = {"north": "south", "south": "north", "east": "west", "west": "east"}.get(facing, "south")
+            self.kind = "vine"
+            self.props = dict(props, **{back: "true"})
+            colour = name.split(":")[1].replace("_wall_banner", "")
+            ref = "minecraft:block/ladder" if name == "minecraft:ladder" else f"minecraft:block/{colour}_wool"
+            self.faces = {"vine": assets.texture(ref)}
+            return
+        if name.endswith("candle") and name.startswith("minecraft:"):
+            self.kind = "cross"
+            colour = name.split(":")[1]
+            lit = props.get("lit") == "true"
+            self.faces = {"cross": assets.texture(f"minecraft:block/{colour}_lit" if lit else f"minecraft:block/{colour}")}
+            self.full_bright = lit
+            return
+        if name.endswith("_fence") and name.startswith("minecraft:"):
+            self.kind = "cross"
+            self.faces = {"cross": assets.texture("minecraft:block/" + name.split(":")[1].replace("_fence", "_planks"))}
+            return
+        if name.endswith("_pressure_plate"):
+            self.kind = "layer"
+            self.height = 1 / 16
+            ref = "minecraft:block/gold_block" if "light_weighted" in name else "minecraft:block/iron_block" if "heavy_weighted" in name \
+                else "minecraft:block/stone"
+            t = assets.texture(ref)
+            self.faces = {"top": t, "south": t, "east": t}
+            return
         if name.endswith(("_vine", "stormvine")) or name in ("minecraft:vine", "minecraft:glow_lichen", "dross:storm_lichen"):
             if not any(k in parents for k in ("minecraft:block/cross",)) and tex("cross") is None:
                 self.kind = "vine"

@@ -10,7 +10,7 @@ import java.util.EnumSet;
 /**
  * A raged mob's targeting (added by {@link RageAi} while it's raged, at {@link RageTuning#GOAL_PRIORITY}, ahead of all
  * its own target goals): it goes for the nearest raged enemy within {@link RageTuning#RAGE_RANGE} blocks and keeps it
- * until it dies, calms down or gets out of range, then picks the nearest one left. While this goal runs the mob's own
+ * until it dies, switches to its team or gets out of range, then picks the nearest one left. While this goal runs the mob's own
  * targeting (players, whoever hurt it...) waits; with no enemy left it doesn't run, and the mob targets as it normally
  * would.
  * <p>
