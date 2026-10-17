@@ -2,6 +2,7 @@ package com.reg21meme.dross.boss.rage;
 
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.Brain;
@@ -9,8 +10,12 @@ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.behavior.BehaviorUtils;
+import net.minecraft.world.entity.ai.behavior.EntityTracker;
+import net.minecraft.world.entity.ai.goal.Goal;
+import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
 import net.minecraft.world.entity.ai.memory.MemoryStatus;
+import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.entity.animal.goat.Goat;
@@ -19,6 +24,8 @@ import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.schedule.Activity;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.WeakHashMap;
@@ -41,7 +48,9 @@ import java.util.WeakHashMap;
  *       hurts its raged enemy the same way.</li>
  * </ul>
  * Every raged mob shows a few specks of its team's colour now and then; its Rage and team never wear off (with no
- * enemy near it behaves normally, keeping its team). While it goes for a raged enemy, its follow range is at least
+ * enemy near it behaves normally, keeping its team). Every {@link RageTuning#TEAMMATE_CHECK_TICKS} ticks it also makes
+ * sure it holds nothing against a teammate (its target, anger, brain memories: {@link Rage#forgetTeammates}), and that
+ * none of its own target goals is stuck on a target the game refused ({@link #stopStuckTargetGoals}). While it goes for a raged enemy, its follow range is at least
  * {@link RageTuning#MIN_FOLLOW_RANGE} so it can find its way to an enemy across {@link RageTuning#RAGE_RANGE}
  * ({@link #boostFollowRange}); with no enemy it's back to its own.
  */
@@ -217,6 +226,7 @@ public final class RageAi
         if (state == null)
         {
             state = install(mob); // a raged mob loaded from a save, or given the Rage by a command
+            Rage.settleTeam(mob); // (its teammates and it let go of each other, as when it joined)
         }
         if (--state.scanIn <= 0)
         {
@@ -224,6 +234,11 @@ public final class RageAi
             state.enemyNear = Rage.hasEnemyNear(mob);
         }
         RageTeam team = Rage.teamOf(mob);
+        if (team != null && (mob.tickCount + mob.getId()) % RageTuning.TEAMMATE_CHECK_TICKS == 0)
+        {
+            Rage.forgetTeammates(mob); // the safety net: never a grudge against its own team, however it got one
+            stopStuckTargetGoals(mob);
+        }
         if (team != null && (mob.tickCount + mob.getId()) % RageTuning.RAGE_PARTICLE_EVERY == 0)
         {
             Rage.teamParticles(level, mob, team, RageTuning.RAGE_PARTICLES);
@@ -240,6 +255,113 @@ public final class RageAi
                 slimeTouch(slime, target);
             }
         }
+    }
+
+    // ---------------------------------------------------------------- letting go of teammates
+
+    /**
+     * Stops whatever in its target selector holds on to its teammate {@code mate} (see {@link Rage#forget}): its rage
+     * goal if that's aimed at it, and, if {@code mate} is its target now, its own running target goal, which picked it
+     * and would keep setting it again (a hurt-by goal remembers whoever hurt it). It picks again from scratch, and the
+     * Rage never lets it pick a teammate ({@link RageEvents}).
+     */
+    static void stopTargetGoalsOn(Mob mob, LivingEntity mate, boolean mateIsTarget)
+    {
+        List<WrappedGoal> running = mob.targetSelector.getRunningGoals().toList();
+        for (WrappedGoal wrapped : running)
+        {
+            Goal goal = wrapped.getGoal();
+            boolean holdsMate = goal instanceof RageTargetGoal rage ? rage.target() == mate
+                    : mateIsTarget && wrapped.getFlags().contains(Goal.Flag.TARGET);
+            if (holdsMate)
+            {
+                wrapped.stop();
+            }
+        }
+    }
+
+    /**
+     * The safety net's second half: a target goal of its own still running while it has no target at all is stuck on a
+     * target the game refused (a teammate it went for before they were teammates: a hurt-by goal keeps trying to set
+     * it again, and blocks its other target goals meanwhile). It's stopped, so it can pick again. Its rage goal isn't
+     * touched (it lets go of a refused target by itself).
+     */
+    static void stopStuckTargetGoals(Mob mob)
+    {
+        if (mob.getTarget() != null)
+        {
+            return;
+        }
+        List<WrappedGoal> running = mob.targetSelector.getRunningGoals().toList();
+        for (WrappedGoal wrapped : running)
+        {
+            if (!(wrapped.getGoal() instanceof RageTargetGoal) && wrapped.getFlags().contains(Goal.Flag.TARGET))
+            {
+                wrapped.stop();
+            }
+        }
+    }
+
+    /**
+     * Who a brain-based mob's brain holds something against: its attack target, who it's angry at, who last hurt it,
+     * and whom it's walking at (only the memories its brain has; none for a goal-based mob).
+     */
+    static List<Entity> brainGrudges(Mob mob, ServerLevel level)
+    {
+        List<Entity> held = new ArrayList<>(4);
+        Brain<?> brain = mob.getBrain();
+        LivingEntity attackTarget = memory(brain, MemoryModuleType.ATTACK_TARGET);
+        if (attackTarget != null)
+        {
+            held.add(attackTarget);
+        }
+        UUID angryAt = memory(brain, MemoryModuleType.ANGRY_AT);
+        Entity angryAtEntity = angryAt == null ? null : level.getEntity(angryAt);
+        if (angryAtEntity != null)
+        {
+            held.add(angryAtEntity);
+        }
+        LivingEntity hurtBy = memory(brain, MemoryModuleType.HURT_BY_ENTITY);
+        if (hurtBy != null)
+        {
+            held.add(hurtBy);
+        }
+        Entity walkingAt = walkingAt(brain);
+        if (walkingAt != null)
+        {
+            held.add(walkingAt);
+        }
+        return held;
+    }
+
+    /**
+     * Its brain lets go of its teammate {@code mate}: no attack target, anger, hurt-by or walk target pointing at it.
+     *
+     * @return true if it was walking at it (it stops)
+     */
+    static boolean forgetBrainMate(Mob mob, LivingEntity mate)
+    {
+        forgetBrainTarget(mob, mate);
+        Brain<?> brain = mob.getBrain();
+        if (memory(brain, MemoryModuleType.HURT_BY_ENTITY) == mate)
+        {
+            brain.eraseMemory(MemoryModuleType.HURT_BY_ENTITY);
+            brain.eraseMemory(MemoryModuleType.HURT_BY);
+        }
+        if (walkingAt(brain) == mate)
+        {
+            brain.eraseMemory(MemoryModuleType.WALK_TARGET);
+            return true;
+        }
+        return false;
+    }
+
+    /** The entity a brain is walking at (its walk target follows an entity), or null. */
+    @Nullable
+    private static Entity walkingAt(Brain<?> brain)
+    {
+        WalkTarget walk = memory(brain, MemoryModuleType.WALK_TARGET);
+        return walk != null && walk.getTarget() instanceof EntityTracker tracker ? tracker.getEntity() : null;
     }
 
     // ---------------------------------------------------------------- brain-based mobs (best effort)

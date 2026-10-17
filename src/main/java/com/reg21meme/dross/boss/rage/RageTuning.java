@@ -30,6 +30,16 @@ public final class RageTuning
      * a zombie's own 35 couldn't reach an enemy at the edge of {@link #RAGE_RANGE}.
      */
     public static final double MIN_FOLLOW_RANGE = RAGE_RANGE + 8.0D;
+    /**
+     * When a mob joins or switches team, every raged mob of that team this close (blocks) lets go of it, and it of them
+     * (the user, October 17: team colour beats natural enmity). As far as a raged mob can track a target.
+     */
+    public static final double SETTLE_RANGE = MIN_FOLLOW_RANGE;
+    /**
+     * The safety net: how often (ticks) a raged mob makes sure it holds nothing against a teammate (target, anger,
+     * brain memories) and that none of its target goals is stuck on a target the game refused.
+     */
+    public static final int TEAMMATE_CHECK_TICKS = 10;
 
     // ---------------------------------------------------------------- the headbutt (mobs with no attack of their own)
 

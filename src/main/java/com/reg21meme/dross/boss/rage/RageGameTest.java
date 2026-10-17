@@ -20,11 +20,17 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+import net.minecraft.world.entity.ai.memory.MemoryStatus;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Cow;
+import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.monster.Pillager;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
@@ -35,6 +41,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +65,16 @@ import static com.reg21meme.dross.boss.golem.ColossusGameTest.waitForArena;
  *       goes for one of the other team, and a teammate's blow does no damage.</li>
  *   <li>{@link #lastTeamStandingKeepsItsRage}: the last team standing keeps its Rage, its team and its rage goals well
  *       after the fight (they never calm down).</li>
+ *   <li>{@link #sameTeamGolemAndZombieStayCalm}: a blue iron golem and a blue zombie (natural enemies) side by side for
+ *       10 s: neither ever targets the other (nor holds anger or a hurt-by against it), and neither is hurt.</li>
+ *   <li>{@link #teammatesDropAFightTheyStartedBefore}: the golem turns blue and goes for the zombie; once they've
+ *       traded blows the zombie turns blue too: within 10 ticks both have let go of each other and they stay calm,
+ *       with no more damage; a hurt-by slipped in behind the Rage's back is dropped within 10 ticks too (the safety
+ *       net).</li>
+ *   <li>{@link #teammatesStayCalmAfterAnEnemyLeaves}: a red iron golem arrives and both blues go for it; once it's gone
+ *       the blues stay calm with each other for 5 s.</li>
+ *   <li>{@link #sameTeamPillagerAndGolemStayCalm}: a blue pillager (with its crossbow) and a blue iron golem side by
+ *       side for 10 s: calm, and nobody hurt.</li>
  *   <li>{@link #ragedZombieIgnoresPlayers}: a raged zombie next to a player (who even hits it) never targets the
  *       player while a raged zombie of another team is near, and goes for that one; a zombie that isn't raged does go
  *       for the player.</li>
@@ -97,6 +114,19 @@ public final class RageGameTest
     private static final float HEALTH_TOLERANCE = 0.01F;
     /** The goals of a loaded raged mob must be back within this many ticks. */
     private static final int GOALS_BACK_TICKS = 5;
+    /** Teammates side by side are watched this long for any grudge (ticks: 10 s)... */
+    private static final int CALM_TICKS = 200;
+    /** ...and this long after an enemy of another team has gone (ticks: 5 s). */
+    private static final int CALM_AFTER_ENEMY_TICKS = 100;
+    /** Two new teammates must have let go of each other within this many ticks (the user's 10). */
+    private static final int LET_GO_TICKS = 10;
+    /** The longest a test waits for a fight to start, or for mobs to go for an enemy (ticks). */
+    private static final int FIGHT_WAIT_TICKS = 300;
+    /**
+     * An iron golem's blow throws a zombie about 4 blocks up (it takes 1 fall damage landing): ticks before it's surely
+     * back on the ground.
+     */
+    private static final int LANDING_TICKS = 40;
 
     private RageGameTest() {}
 
@@ -275,6 +305,189 @@ public final class RageGameTest
                         }
                     }
                     discard(all);
+                })
+                .thenSucceed();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The team beats natural enmity: teammates never target, chase or hurt each other
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = ARENA, batch = "dross_rage_calm_golem_zombie", timeoutTicks = ARENA_WAIT_TICKS + CALM_TICKS + 100)
+    public static void sameTeamGolemAndZombieStayCalm(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::sameTeamGolemAndZombieStayCalm))
+        {
+            return;
+        }
+        IronGolem golem = spawn(helper, EntityType.IRON_GOLEM, MIDDLE.offset(-2, 0, 0));
+        Zombie zombie = zombie(helper, MIDDLE.offset(2, 0, 0));
+        Player holder = holder(helper, RageTeam.BLUE);
+        holder.attack(golem);
+        holder.attack(zombie);
+        if (!Rage.areTeammates(golem, zombie))
+        {
+            discard(List.of(golem, zombie));
+            helper.fail("the blue wand's hits should put the golem and the zombie on one team");
+            return;
+        }
+        List<Entity> spawned = List.of(golem, zombie);
+        float golemHealth = golem.getHealth();
+        float zombieHealth = zombie.getHealth();
+        helper.startSequence()
+                .thenExecuteFor(CALM_TICKS, () -> failOnGrudge(helper, golem, zombie, spawned))
+                .thenExecute(() -> {
+                    discard(spawned);
+                    failIfHurt(helper, golem, golemHealth, "the blue iron golem");
+                    failIfHurt(helper, zombie, zombieHealth, "the blue zombie");
+                })
+                .thenSucceed();
+    }
+
+    @GameTest(template = ARENA, batch = "dross_rage_calm_late_teammate",
+            timeoutTicks = ARENA_WAIT_TICKS + FIGHT_WAIT_TICKS + LET_GO_TICKS + LANDING_TICKS + CALM_TICKS + LET_GO_TICKS + 200)
+    public static void teammatesDropAFightTheyStartedBefore(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::teammatesDropAFightTheyStartedBefore))
+        {
+            return;
+        }
+        IronGolem golem = tough(spawn(helper, EntityType.IRON_GOLEM, MIDDLE.offset(-2, 0, 0)));
+        Zombie zombie = tough(zombie(helper, MIDDLE.offset(2, 0, 0)));
+        List<Entity> spawned = List.of(golem, zombie);
+        Player holder = holder(helper, RageTeam.BLUE);
+        holder.attack(golem); // the golem turns blue; the zombie isn't raged yet, so it's fair game
+        golem.setTarget(zombie);
+        if (golem.getTarget() != zombie)
+        {
+            discard(spawned);
+            helper.fail("the blue golem couldn't go for the zombie that isn't raged yet (so the test proves nothing)");
+            return;
+        }
+        long start = helper.getTick();
+        float[] health = new float[2];
+        helper.startSequence()
+                // They fight for real first: the golem hits the zombie (and the zombie goes for the golem).
+                .thenWaitUntil(() -> {
+                    if (zombie.getLastHurtByMob() != golem && helper.getTick() - start < FIGHT_WAIT_TICKS)
+                    {
+                        helper.fail("the blue golem hasn't hit the zombie yet");
+                    }
+                })
+                .thenExecute(() -> {
+                    if (zombie.getLastHurtByMob() != golem)
+                    {
+                        discard(spawned);
+                        helper.fail("the blue golem never hit the zombie (so the test proves nothing)");
+                        return;
+                    }
+                    holder.attack(zombie); // now the zombie turns blue too, mid-fight
+                })
+                .thenIdle(LET_GO_TICKS)
+                .thenExecute(() -> failOnGrudge(helper, golem, zombie, spawned))
+                // The golem's last hit (before they were teammates) threw the zombie high: it's let land first, so its
+                // fall doesn't count as a teammate's blow.
+                .thenExecuteFor(LANDING_TICKS, () -> failOnGrudge(helper, golem, zombie, spawned))
+                .thenExecute(() -> {
+                    health[0] = golem.getHealth();
+                    health[1] = zombie.getHealth();
+                })
+                .thenExecuteFor(CALM_TICKS, () -> failOnGrudge(helper, golem, zombie, spawned))
+                .thenExecute(() -> {
+                    failIfHurt(helper, golem, health[0], "the blue golem (after the zombie joined its team)");
+                    failIfHurt(helper, zombie, health[1], "the blue zombie (after it joined the golem's team)");
+                    // The safety net: a hurt-by slipped in behind the Rage's back (no event) is dropped within 10 ticks
+                    // (Minecraft itself would only forget it after 100).
+                    golem.setLastHurtByMob(zombie);
+                    zombie.setLastHurtByMob(golem);
+                })
+                .thenIdle(RageTuning.TEAMMATE_CHECK_TICKS + 1)
+                .thenExecute(() -> {
+                    if (golem.getLastHurtByMob() == zombie || zombie.getLastHurtByMob() == golem
+                            || golem.getTarget() == zombie || zombie.getTarget() == golem)
+                    {
+                        helper.fail("a hurt-by against a teammate wasn't dropped within " + (RageTuning.TEAMMATE_CHECK_TICKS + 1)
+                                + " ticks (golem: target " + golem.getTarget() + ", hurt by " + golem.getLastHurtByMob()
+                                + "; zombie: target " + zombie.getTarget() + ", hurt by " + zombie.getLastHurtByMob() + ")");
+                    }
+                    discard(spawned);
+                })
+                .thenSucceed();
+    }
+
+    @GameTest(template = ARENA, batch = "dross_rage_calm_after_enemy",
+            timeoutTicks = ARENA_WAIT_TICKS + FIGHT_WAIT_TICKS + CALM_AFTER_ENEMY_TICKS + 200)
+    public static void teammatesStayCalmAfterAnEnemyLeaves(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::teammatesStayCalmAfterAnEnemyLeaves))
+        {
+            return;
+        }
+        IronGolem golem = tough(spawn(helper, EntityType.IRON_GOLEM, MIDDLE.offset(-5, 0, -1)));
+        Zombie zombie = tough(zombie(helper, MIDDLE.offset(-5, 0, 2)));
+        IronGolem red = tough(spawn(helper, EntityType.IRON_GOLEM, MIDDLE.offset(6, 0, 0)));
+        Rage.enrage(golem, RageTeam.BLUE);
+        Rage.enrage(zombie, RageTeam.BLUE);
+        Rage.enrage(red, RageTeam.RED);
+        List<Entity> spawned = List.of(golem, zombie, red);
+        long start = helper.getTick();
+        String[] grudge = {null}; // (a failure inside a wait only keeps it waiting: it's noted and failed after)
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (grudge[0] == null)
+                    {
+                        String g = grudge(golem, zombie) != null ? "the golem " + grudge(golem, zombie) + " the zombie"
+                                : grudge(zombie, golem) != null ? "the zombie " + grudge(zombie, golem) + " the golem" : null;
+                        grudge[0] = g;
+                    }
+                    if (grudge[0] == null && (golem.getTarget() != red || zombie.getTarget() != red)
+                            && helper.getTick() - start < FIGHT_WAIT_TICKS)
+                    {
+                        helper.fail("the blues haven't both gone for the red golem yet");
+                    }
+                })
+                .thenExecute(() -> {
+                    if (grudge[0] != null)
+                    {
+                        discard(spawned);
+                        helper.fail("while the red golem came, " + grudge[0] + " (its blue teammate)");
+                        return;
+                    }
+                    if (golem.getTarget() != red || zombie.getTarget() != red)
+                    {
+                        discard(spawned);
+                        helper.fail("both blues should go for the red golem (golem " + golem.getTarget() + ", zombie "
+                                + zombie.getTarget() + ")");
+                        return;
+                    }
+                    red.discard(); // the enemy is gone
+                })
+                .thenExecuteFor(CALM_AFTER_ENEMY_TICKS, () -> failOnGrudge(helper, golem, zombie, spawned))
+                .thenExecute(() -> discard(spawned))
+                .thenSucceed();
+    }
+
+    @GameTest(template = ARENA, batch = "dross_rage_calm_pillager", timeoutTicks = ARENA_WAIT_TICKS + CALM_TICKS + 100)
+    public static void sameTeamPillagerAndGolemStayCalm(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::sameTeamPillagerAndGolemStayCalm))
+        {
+            return;
+        }
+        Pillager pillager = spawn(helper, EntityType.PILLAGER, MIDDLE.offset(-2, 0, 0));
+        pillager.setItemSlot(EquipmentSlot.MAINHAND, new ItemStack(Items.CROSSBOW));
+        IronGolem golem = spawn(helper, EntityType.IRON_GOLEM, MIDDLE.offset(2, 0, 0));
+        Rage.enrage(pillager, RageTeam.BLUE);
+        Rage.enrage(golem, RageTeam.BLUE);
+        List<Entity> spawned = List.of(pillager, golem);
+        float pillagerHealth = pillager.getHealth();
+        float golemHealth = golem.getHealth();
+        helper.startSequence()
+                .thenExecuteFor(CALM_TICKS, () -> failOnGrudge(helper, pillager, golem, spawned))
+                .thenExecute(() -> {
+                    discard(spawned);
+                    failIfHurt(helper, pillager, pillagerHealth, "the blue pillager");
+                    failIfHurt(helper, golem, golemHealth, "the blue iron golem");
                 })
                 .thenSucceed();
     }
@@ -734,6 +947,57 @@ public final class RageGameTest
         RageWandItem.setTeam(wand, team);
         holder.setItemInHand(InteractionHand.MAIN_HAND, wand);
         return holder;
+    }
+
+    /**
+     * What {@code mob} holds against {@code other}, or null if nothing: its target, a neutral mob's anger (an iron
+     * golem's), a hurt-by (which a hurt-by goal would turn on), its brain's attack target.
+     */
+    @Nullable
+    private static String grudge(Mob mob, LivingEntity other)
+    {
+        if (mob.getTarget() == other)
+        {
+            return "targets";
+        }
+        if (mob instanceof NeutralMob neutral && other.getUUID().equals(neutral.getPersistentAngerTarget()))
+        {
+            return "is angry at";
+        }
+        if (mob.getLastHurtByMob() == other)
+        {
+            return "remembers being hurt by";
+        }
+        if (mob.getBrain().checkMemory(MemoryModuleType.ATTACK_TARGET, MemoryStatus.VALUE_PRESENT)
+                && mob.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null) == other)
+        {
+            return "has in its brain as its attack target";
+        }
+        return null;
+    }
+
+    /** Fails (and cleans up) if either of two teammates holds anything against the other. */
+    private static void failOnGrudge(GameTestHelper helper, Mob a, Mob b, List<? extends Entity> spawned)
+    {
+        String ab = grudge(a, b);
+        String ba = grudge(b, a);
+        if (ab != null || ba != null)
+        {
+            discard(spawned);
+            String name = EntityType.getKey(a.getType()).getPath();
+            String other = EntityType.getKey(b.getType()).getPath();
+            helper.fail(ab != null ? "the " + Rage.teamOf(a) + " " + name + " " + ab + " its teammate, the " + other
+                    : "the " + Rage.teamOf(b) + " " + other + " " + ba + " its teammate, the " + name);
+        }
+    }
+
+    /** Fails if a mob has less health than it had (a teammate hurt it). */
+    private static void failIfHurt(GameTestHelper helper, LivingEntity mob, float before, String what)
+    {
+        if (mob.getHealth() < before - HEALTH_TOLERANCE)
+        {
+            helper.fail(what + " was hurt by its teammate (" + before + " -> " + mob.getHealth() + ")");
+        }
     }
 
     /** Removes what a test spawned (so a later test's raged mobs never find them). */

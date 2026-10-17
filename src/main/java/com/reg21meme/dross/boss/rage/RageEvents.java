@@ -21,7 +21,8 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>a raged mob never targets a raged mob of its own team (a zombie calling its friends on whoever hit it, a
  *       skeleton's stray arrow...), and with a raged enemy near it never picks anything else as its target: not a
  *       player (even one that hits it), not a mob that isn't in the fight. This catches what its own goals and
- *       Minecraft's rules try to set;</li>
+ *       Minecraft's rules try to set (a target it already had before the two became teammates is dropped when they
+ *       do: {@link Rage#settleTeam}, and {@link RageAi}'s safety net);</li>
  *   <li>a raged mob's hits (blows, arrows, explosions) never hurt a raged mob of its own team;</li>
  *   <li>players can't have the Rage (not even with {@code /effect}).</li>
  * </ul>

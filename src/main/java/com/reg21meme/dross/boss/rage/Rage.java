@@ -13,7 +13,9 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.monster.warden.Warden;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -29,8 +31,10 @@ import java.util.List;
  *       stay their team forever: this is a creative-only test item").</li>
  *   <li><b>Enemies</b>: two raged mobs on different teams. A raged mob goes for the nearest enemy within
  *       {@link RageTuning#RAGE_RANGE} blocks, and while it has any it ignores players (it never targets one, even one
- *       that hits it). It never targets or hurts a raged mob of its own team. With no enemy near it behaves normally
- *       (keeping its team). The fighting itself is each mob's own: its own attacks, moves and movement ({@link RageAi});
+ *       that hits it). It never targets, chases or hurts a raged mob of its own team: the team beats natural enmity
+ *       (an iron golem and a zombie on one team leave each other alone), and a fight two mobs started before they were
+ *       teammates ends the moment they are ({@link #settleTeam}). With no enemy near it behaves normally towards
+ *       everything else (keeping its team). The fighting itself is each mob's own: its own attacks, moves and movement ({@link RageAi});
  *       a mob with no attack of its own (cows, pigs, villagers...) headbutts ({@link RageHeadbuttGoal}).</li>
  * </ul>
  * A mob given the Rage some other way (a command) has no team: it fights nobody and nobody fights it.
@@ -171,20 +175,117 @@ public final class Rage
         return true;
     }
 
-    /** Puts a mob on a team (saved with it). A target that's now its teammate is let go of (its rage goal drops it). */
+    /**
+     * Puts a mob on a team (saved with it), and its new teammates and it let go of each other at once
+     * ({@link #settleTeam}): a fight they started before they were teammates ends there.
+     */
     private static void setTeam(Mob mob, RageTeam team)
     {
         mob.getPersistentData().putString(TAG_TEAM, team.id());
-        if (areTeammates(mob, mob.getTarget()))
-        {
-            mob.setTarget(null);
-        }
+        settleTeam(mob);
     }
 
     /** The Rage as the wand gives it: for ever, its swirl hidden (the mob shows its team's colour instead), its icon shown. */
     static MobEffectInstance rageEffect()
     {
         return new MobEffectInstance(ModEffects.RAGE.get(), MobEffectInstance.INFINITE_DURATION, 0, false, false, true);
+    }
+
+    // ---------------------------------------------------------------- teammates let go of each other
+
+    /**
+     * A mob has just joined (or switched to) its team, or come back from a save: both ways, teammates let go of each
+     * other. It drops anything it holds against a raged mob that's now its teammate ({@link #forgetTeammates}), and
+     * every raged mob within {@link RageTuning#SETTLE_RANGE} blocks that's now its teammate drops it
+     * ({@link #forget}). Team colour beats natural enmity: an iron golem and a zombie (or a pillager) on one team stop
+     * fighting at once, even if they were at it a moment before. ({@link RageAi} also checks every raged mob now and
+     * then, {@link RageTuning#TEAMMATE_CHECK_TICKS}, in case anything slipped through.) Server side.
+     */
+    static void settleTeam(Mob mob)
+    {
+        if (!(mob.level() instanceof ServerLevel level) || teamOf(mob) == null || !isRaged(mob))
+        {
+            return;
+        }
+        forgetTeammates(mob);
+        for (Mob other : level.getEntitiesOfClass(Mob.class, mob.getBoundingBox().inflate(RageTuning.SETTLE_RANGE),
+                other -> other != mob && areTeammates(other, mob)))
+        {
+            forget(other, mob);
+        }
+    }
+
+    /**
+     * A raged mob drops everything it holds against a teammate: its target, its anger (a neutral mob's, like an iron
+     * golem's; a warden's), whoever it last hurt or was hurt by, and its brain's attack target, anger and walk target
+     * (piglins, hoglins...). Server side.
+     */
+    static void forgetTeammates(Mob mob)
+    {
+        if (!(mob.level() instanceof ServerLevel level) || teamOf(mob) == null || !isRaged(mob))
+        {
+            return;
+        }
+        forgetIfTeammate(mob, mob.getTarget());
+        forgetIfTeammate(mob, mob.getLastHurtByMob());
+        forgetIfTeammate(mob, mob.getLastHurtMob());
+        if (mob instanceof NeutralMob neutral && neutral.getPersistentAngerTarget() != null)
+        {
+            forgetIfTeammate(mob, level.getEntity(neutral.getPersistentAngerTarget()));
+        }
+        if (mob instanceof Warden warden)
+        {
+            forgetIfTeammate(mob, warden.getEntityAngryAt().orElse(null));
+        }
+        for (Entity held : RageAi.brainGrudges(mob, level))
+        {
+            forgetIfTeammate(mob, held);
+        }
+    }
+
+    private static void forgetIfTeammate(Mob mob, @Nullable Entity other)
+    {
+        if (other instanceof LivingEntity mate && areTeammates(mob, mate))
+        {
+            forget(mob, mate);
+        }
+    }
+
+    /**
+     * {@code mob} lets go of its teammate {@code mate}, every way it could hold on to it: its target (and the target goal
+     * that picked it, which would pick it again), its anger, who it last hurt or was hurt by (a hurt-by goal would turn
+     * on it), its brain's memories of it, and its walk (it stops chasing).
+     */
+    static void forget(Mob mob, LivingEntity mate)
+    {
+        boolean chasing = mob.getTarget() == mate;
+        RageAi.stopTargetGoalsOn(mob, mate, chasing);
+        if (mob.getTarget() == mate)
+        {
+            mob.setTarget(null);
+        }
+        if (mob.getLastHurtByMob() == mate)
+        {
+            mob.setLastHurtByMob(null);
+        }
+        if (mob.getLastHurtMob() == mate)
+        {
+            mob.setLastHurtMob(null);
+        }
+        if (mob instanceof NeutralMob neutral && mate.getUUID().equals(neutral.getPersistentAngerTarget()))
+        {
+            neutral.setPersistentAngerTarget(null);
+            neutral.setRemainingPersistentAngerTime(0);
+        }
+        if (mob instanceof Warden warden)
+        {
+            warden.clearAnger(mate);
+        }
+        chasing |= RageAi.forgetBrainMate(mob, mate);
+        if (chasing)
+        {
+            mob.getNavigation().stop(); // (an iron golem's walk towards its target would carry on by itself)
+        }
     }
 
     // ---------------------------------------------------------------- enemies

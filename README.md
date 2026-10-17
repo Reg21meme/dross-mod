@@ -506,9 +506,12 @@ hotbar). Hitting a mob with it does no damage; it gives the mob **Rage** and the
 colour floats over it). Hit it again with another colour and it switches team. Rage and teams never wear off and
 can't be cured, not even with milk.
 
-- Raged mobs **never fight their own team**. Each goes for the nearest raged mob of another team within 40 blocks,
-  and while an enemy team is near they **ignore players**, even ones who hit them. With no enemy near they behave
-  normally but keep their team, so the winners stay ready for the next fight.
+- Raged mobs **never fight their own team**: they never target, chase or swing at a teammate, and the team beats
+  natural enmity (a blue iron golem and a blue zombie, or a blue pillager and a blue iron golem, leave each other
+  alone). If two mobs were already fighting when the second one joins the first's team, both stop at once. Each goes
+  for the nearest raged mob of another team within 40 blocks, and while an enemy team is near they **ignore players**,
+  even ones who hit them. With no enemy near they behave normally towards everything but their own team, and keep
+  their team, so the winners stay ready for the next fight.
 - No new animations: every mob uses its own attacks (zombies swing, skeletons shoot, creepers explode, golems smash).
   Animals with no attack of their own (cows, pigs, sheep, chickens, villagers...) **headbutt** for 1 heart.
 - **Bosses** work too: raging the Cinder Colossus makes it fight; raging the sleeping Rat King wakes him. Their golems
