@@ -183,9 +183,12 @@ public final class RatKingTuning
 
     // ---------------------------------------------------------------- burrowing and summoning his rats
 
-    /** He burrows every time he has lost this much health: in the first phase, and in the Rage (counted from the rage). */
-    public static final float BURROW_EVERY = 30.0F;
-    public static final float RAGE_BURROW_EVERY = 20.0F;
+    /**
+     * He burrows every time he has lost this much health: in the first phase (at 175, 150 and 125, then the rage at 100),
+     * and in the Rage, counted from the rage (at 75, 50 and 25). The user, October 17: every 25 in both (from 30 and 20).
+     */
+    public static final float BURROW_EVERY = 25.0F;
+    public static final float RAGE_BURROW_EVERY = 25.0F;
     /** Ticks he stays under the ground (first phase, Rage). */
     public static final int UNDERGROUND_TICKS = 80;
     public static final int RAGE_UNDERGROUND_TICKS = 50;
@@ -194,11 +197,13 @@ public final class RatKingTuning
     /** A dig sound every this many ticks while he tunnels. */
     public static final int UNDERGROUND_DIG_EVERY = 12;
     /**
-     * Rats each burrow calls: regular ones in the first phase (the user asked for 10), enraged ones in the Rage. There's
-     * no limit on how many of his rats can be alive at once (the user's request)...
+     * Rats each burrow calls, one number per burrow of the phase (the first, the second, the third; a later one calls the
+     * last number again): regular ones in the first phase, enraged ones in the Rage. The user, October 17: 10, 12, 14
+     * and 8, 9, 10 (from 10 each and 7 each). There's no limit on how many of his rats can be alive at once (the user's
+     * request)...
      */
-    public static final int RATS_PER_BURROW = 10;
-    public static final int RAGE_RATS_PER_BURROW = 7;
+    public static final List<Integer> RATS_PER_BURROW = List.of(10, 12, 14);
+    public static final List<Integer> RAGE_RATS_PER_BURROW = List.of(8, 9, 10);
     /** ...each bursting out of the ground this far round his target... */
     public static final double RAT_RING_MIN = 3.0D;
     public static final double RAT_RING_MAX = 6.0D;
@@ -212,8 +217,11 @@ public final class RatKingTuning
 
     // ---------------------------------------------------------------- the rage
 
-    /** At this share of his health he flies into a rage (the health stops there; he can't be hurt while it plays). */
-    public static final float RAGE_AT = 0.40F;
+    /**
+     * At this share of his health he flies into a rage (the health stops there; he can't be hurt while it plays). The
+     * user, October 17: at 100 of his 200 (from 40%).
+     */
+    public static final float RAGE_AT = 0.50F;
 
     // ---------------------------------------------------------------- boss bar and the end
 
@@ -266,8 +274,8 @@ public final class RatKingTuning
     public static final double ENRAGED_RAT_HEALTH = 9.0D;
     public static final double ENRAGED_RAT_DAMAGE = 3.0D;
     public static final double ENRAGED_RAT_SPEED = 0.34D;
-    /** ...and each of its bites poisons for this long (Poison I). */
-    public static final int ENRAGED_BITE_POISON_TICKS = 40;
+    /** ...and each of its bites poisons for this long (Poison I; the user, October 17: 2.5 s, from 2). */
+    public static final int ENRAGED_BITE_POISON_TICKS = 50;
     /** Experience a rat drops. */
     public static final int RAT_XP = 1;
     /** A wild regular rat flees this fast (times its speed) when hurt. */

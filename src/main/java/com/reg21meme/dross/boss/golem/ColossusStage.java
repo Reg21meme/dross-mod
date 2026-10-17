@@ -4,9 +4,9 @@ package com.reg21meme.dross.boss.golem;
  * The three stages of the Cinder Colossus fight, and the numbers that change from one to the next (the rest of the
  * fight's numbers are in {@link ColossusTuning}).
  * <ol>
- *   <li>{@link #SHELL} (100% to 60% of its health): slow and heavy, in its dormant rock shell (look:
+ *   <li>{@link #SHELL} (100% to 70% of its health): slow and heavy, in its dormant rock shell (look:
  *       {@link GolemPhase#DORMANT}). Swipes, throws rocks, slams the ground, charges.</li>
- *   <li>{@link #CRACKING} (60% to 35%): its volcanoes have erupted and the shell is breaking up, lava glowing through
+ *   <li>{@link #CRACKING} (70% to 35%): its volcanoes have erupted and the shell is breaking up, lava glowing through
  *       (look: {@link GolemPhase#ERUPTED} with loose plates and bright cracks). A bit faster and more aggressive; adds
  *       the volcano lob (lava pools) and summons stone golems.</li>
  *   <li>{@link #LAVA_CORE} (35% to 0%): the shell has burst off (look: {@link GolemPhase#CORE}). Faster, angrier; every
@@ -26,15 +26,24 @@ public enum ColossusStage
     // Ranged damage taken (the user's numbers): bows and other projectiles barely scratch the stone and burn up in
     // the lava, so it can't be beaten easily from afar. Melee is never reduced.
     //        armour  speed    damage x  cooldown x  pause  turn speed  ranged taken  name on the boss bar
-    SHELL(    12.0D,  0.1875D, 1.0F,     1.0F,       24,    6.0F,       0.50F,        "shell"),
-    CRACKING(  8.0D,  0.2125D, 1.15F,    0.8F,       16,    8.0F,       0.35F,        "cracking"),
-    LAVA_CORE( 4.0D,  0.25D,   1.3F,     0.6F,       10,   11.0F,       0.15F,        "core");
+    SHELL(    12.0D,  0.1875D, 1.0F,     1.0F,       24,    6.0F,       0.50F,        "shell",
+    // The user's damage per stage (October 17), in half-hearts (a player has 20): swipe, charge, slam, the roar (the
+    // first hit's roar in the Shell; entering Cracking; entering the Lava Core), and the blobs a volcano lob spits.
+    //        swipe  charge  slam  roar  lob blobs
+              13.0F, 12.0F,  7.0F, 0.0F, 2),
+    CRACKING(  8.0D,  0.2125D, 1.15F,    0.8F,       16,    8.0F,       0.35F,        "cracking",
+              15.0F, 13.0F,  8.0F, 2.0F, 2),
+    LAVA_CORE( 4.0D,  0.25D,   1.3F,     0.6F,       10,   11.0F,       0.15F,        "core",
+              16.0F, 14.0F, 10.0F, 4.0F, 4);
 
     /** Armour points (a player in full diamond armour has 20): the rock shell is tough, the lava much less so. */
     public final double armor;
     /** Movement speed (Minecraft's speed attribute; a zombie is 0.23). The walk animation is sped up to match. */
     public final double speed;
-    /** Every hit's damage is multiplied by this (its blows get harder as it breaks down). */
+    /**
+     * The thrown rock's and the lava blobs' damage is multiplied by this (they get harder as it breaks down). The swipe,
+     * charge, slam and roar have their own numbers per stage (below).
+     */
     public final float damageScale;
     /** Every attack's cooldown is multiplied by this (it attacks more often). */
     public final float cooldownScale;
@@ -49,10 +58,27 @@ public enum ColossusStage
     public final float rangedDamageTaken;
     /** The end of the boss bar's name key: boss.dross.cinder_colossus.<this>. */
     public final String barKey;
+    /** Damage of a swipe, a charge's hit and a ground slam (half-hearts: 13 is 6.5 hearts). */
+    public final float swipeDamage;
+    public final float chargeDamage;
+    public final float slamDamage;
+    /**
+     * Damage of the roar to every player it throws back: the Shell's is the first hit's roar (none), Cracking's the roar
+     * as it erupts into that stage, the Lava Core's the roar as its shell bursts.
+     */
+    public final float roarDamage;
+    /** Lava blobs a volcano lob spits out (2 in Cracking, 4 in the Lava Core; the Shell never lobs). */
+    public final int lobBlobs;
 
     ColossusStage(double armor, double speed, float damageScale, float cooldownScale, int attackPause, float turnSpeed,
-                  float rangedDamageTaken, String barKey)
+                  float rangedDamageTaken, String barKey, float swipeDamage, float chargeDamage, float slamDamage,
+                  float roarDamage, int lobBlobs)
     {
+        this.swipeDamage = swipeDamage;
+        this.chargeDamage = chargeDamage;
+        this.slamDamage = slamDamage;
+        this.roarDamage = roarDamage;
+        this.lobBlobs = lobBlobs;
         this.armor = armor;
         this.speed = speed;
         this.damageScale = damageScale;

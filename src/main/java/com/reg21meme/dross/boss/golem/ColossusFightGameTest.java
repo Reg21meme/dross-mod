@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Zombie;
@@ -51,9 +52,11 @@ import static com.reg21meme.dross.boss.golem.ColossusGameTest.waitForArena;
  * <ul>
  *   <li>{@link #firstHitRoarThrowsPlayers}: its first hit makes it roar, throwing a player near it back about 15 blocks
  *       without hurting them (its minion stays put); the second hit doesn't.</li>
- *   <li>{@link #stageChangesRoarSummonAndSpew}: both stage changes roar at their roar moment (throwing the player);
- *       entering Cracking raises 4 stone golems, entering the Lava Core spews 4 lava blobs round the player, never on
- *       them.</li>
+ *   <li>{@link #stageChangesRoarSummonAndSpew}: both stage changes roar at their roar moment (throwing the player and
+ *       hurting them: 1 heart entering Cracking, 2 entering the Lava Core, on Normal); entering Cracking raises 4 stone
+ *       golems, entering the Lava Core spews 4 lava blobs round the player, never on them.</li>
+ *   <li>{@link #lobSpitsTwoThenFour}: a volcano lob spits 2 lava blobs in Cracking and 4 in the Lava Core, all landing
+ *       round the player, never on them.</li>
  *   <li>{@link #crackingChargeRunsToTheSpot}: a Cracking charge at a player 25 blocks away runs to where they stood,
  *       and its fire is gone after 2 to 2.5 seconds.</li>
  *   <li>{@link #coreChargeFireLastsLonger}: a Lava Core charge's fire lasts 4 to 5 seconds.</li>
@@ -98,6 +101,10 @@ public final class ColossusFightGameTest
     private static final double THROW_MIN = 13.0D;
     private static final double THROW_MAX = 17.0D;
     private static final double SPEED_TOLERANCE = 0.01D;
+    /** How far from the Colossus's middle the player stands for the lob test (in the lob's reach, inside the arena). */
+    private static final int LOB_DISTANCE = 7;
+    /** A new player's spawn protection (ticks), and one more. */
+    private static final int SPAWN_SHIELD_TICKS = 61;
     /** The roar has thrown the player (sideways speed above this). */
     private static final double THROWN = 1.0D;
     /** Samples per stage and band in the chance test, and how far a share may be from the table's. */
@@ -215,10 +222,12 @@ public final class ColossusFightGameTest
             return;
         }
         ServerPlayer player = joinPlayer(helper, "stage-roar-test", MIDDLE.offset(5, 0, 5), 0.0F);
+        endSpawnShield(player);
         List<ServerPlayer> players = List.of(player);
         GolemDesigns.Design design = golem.getDesign();
         int eruptRoar = CinderColossus.ANIMATION_BLEND_TICKS + Math.round(GolemDesigns.ERUPT_BLAST * 20.0F) + 6;
         int shellRoar = CinderColossus.ANIMATION_BLEND_TICKS + design.burstTicks();
+        float[] before = {player.getHealth()};
         player.setDeltaMovement(Vec3.ZERO);
         golem.hurt(level.damageSources().generic(), HUGE_HIT);
         if (golem.getAction() != GolemAction.ERUPT || player.getDeltaMovement().horizontalDistance() > SPEED_TOLERANCE)
@@ -232,6 +241,10 @@ public final class ColossusFightGameTest
                         "the eruption hasn't roared yet"))
                 .thenExecute(() -> {
                     String problem = checkRoar(golem, player, GolemAction.ERUPT, eruptRoar, "the eruption");
+                    if (problem == null)
+                    {
+                        problem = checkRoarDamage(player, before[0], ColossusStage.CRACKING.roarDamage, "the eruption");
+                    }
                     if (problem != null)
                     {
                         cleanUp(helper, golem, players);
@@ -250,6 +263,9 @@ public final class ColossusFightGameTest
                         helper.fail("entering the Cracking stage should raise " + ColossusTuning.STAGE_CHANGE_MINIONS
                                 + " stone golems, but it raised " + minions.size() + " (" + stone + " stone)");
                     }
+                    player.setHealth(player.getMaxHealth());
+                    player.invulnerableTime = 0;
+                    before[0] = player.getHealth();
                     golem.invulnerableTime = 0;
                     golem.hurt(level.damageSources().generic(), HUGE_HIT);
                     if (golem.getAction() != GolemAction.BREAK_SHELL)
@@ -262,6 +278,10 @@ public final class ColossusFightGameTest
                         "the shell bursting hasn't roared yet"))
                 .thenExecute(() -> {
                     String problem = checkRoar(golem, player, GolemAction.BREAK_SHELL, shellRoar, "the shell bursting");
+                    if (problem == null)
+                    {
+                        problem = checkRoarDamage(player, before[0], ColossusStage.LAVA_CORE.roarDamage, "the shell bursting");
+                    }
                     if (problem != null)
                     {
                         cleanUp(helper, golem, players);
@@ -315,6 +335,47 @@ public final class ColossusFightGameTest
     }
 
     /**
+     * What's wrong with the damage a stage change's roar did to the player, or null: they lost {@code damage} (scaled by
+     * the difficulty, like every mob's blow; the stand-in player wears no armour and, never ticked, never heals).
+     */
+    private static String checkRoarDamage(ServerPlayer player, float healthBefore, float damage, String what)
+    {
+        float expected = forDifficulty(player.level().getDifficulty(), damage);
+        float lost = healthBefore - player.getHealth();
+        if (Math.abs(lost - expected) > SPEED_TOLERANCE)
+        {
+            return what + "'s roar should hurt the player for " + expected + " (" + damage + " on Normal), but they lost "
+                    + lost;
+        }
+        return null;
+    }
+
+    /** A mob's blow of {@code damage} as a player takes it at this difficulty (Minecraft's own scaling). */
+    static float forDifficulty(Difficulty difficulty, float damage)
+    {
+        return switch (difficulty)
+        {
+            case PEACEFUL -> 0.0F;
+            case EASY -> Math.min(damage / 2.0F + 1.0F, damage);
+            case NORMAL -> damage;
+            case HARD -> damage * 1.5F;
+        };
+    }
+
+    /**
+     * A newly joined player can't be hurt for 3 seconds (Minecraft's spawn protection), counted down by the player's
+     * own light tick, which the stand-in player never gets: run it until the protection is over (nothing else in it
+     * moves him or picks anything up).
+     */
+    static void endSpawnShield(ServerPlayer player)
+    {
+        for (int i = 0; i < SPAWN_SHIELD_TICKS; i++)
+        {
+            player.tick();
+        }
+    }
+
+    /**
      * How far (blocks, sideways) a player thrown with this speed flies and slides on flat ground with no keys pressed:
      * Minecraft's own steps (move, then gravity 0.08 and air drag 0.98 down, 0.91 sideways; on the ground the
      * slipperiness 0.6 x 0.91).
@@ -343,6 +404,86 @@ public final class ColossusFightGameTest
             side *= 0.6D * 0.91D;
         }
         return x;
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The volcano lob
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = ARENA, batch = "dross_colossus_lob", timeoutTicks = ARENA_WAIT_TICKS + 200)
+    public static void lobSpitsTwoThenFour(GameTestHelper helper)
+    {
+        if (waitForArena(helper, ColossusFightGameTest::lobSpitsTwoThenFour))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), YAW_EAST);
+        if (golem == null || golem.attackGoal() == null)
+        {
+            helper.fail("the Colossus couldn't be spawned");
+            return;
+        }
+        ServerPlayer player = joinPlayer(helper, "lob-test", MIDDLE.offset(LOB_DISTANCE, 0, 0), YAW_WEST);
+        List<ServerPlayer> players = List.of(player);
+        golem.setTarget(player);
+        ColossusAttackGoal goal = golem.attackGoal();
+        helper.startSequence()
+                .thenExecute(() -> lobAt(golem, goal, player, GolemPhase.ERUPTED))
+                .thenWaitUntil(() -> helper.assertTrue(!goal.lastLandings().isEmpty(), "the Cracking lob hasn't spat yet"))
+                .thenExecute(() -> {
+                    String problem = checkLob(golem, goal, player, ColossusStage.CRACKING);
+                    if (problem != null)
+                    {
+                        cleanUp(helper, golem, players);
+                        helper.fail(problem);
+                    }
+                })
+                .thenWaitUntil(() -> helper.assertTrue(golem.getAction() == GolemAction.IDLE, "still lobbing"))
+                .thenExecute(() -> lobAt(golem, goal, player, GolemPhase.CORE))
+                .thenWaitUntil(() -> helper.assertTrue(!goal.lastLandings().isEmpty(), "the Lava Core lob hasn't spat yet"))
+                .thenExecute(() -> {
+                    String problem = checkLob(golem, goal, player, ColossusStage.LAVA_CORE);
+                    cleanUp(helper, golem, players);
+                    if (problem != null)
+                    {
+                        helper.fail(problem);
+                    }
+                })
+                .thenSucceed();
+    }
+
+    /** Puts the Colossus in a stage's look and starts a lob at the player (forgetting the last one's landings). */
+    private static void lobAt(CinderColossus golem, ColossusAttackGoal goal, ServerPlayer player, GolemPhase phase)
+    {
+        golem.setPhase(phase);
+        golem.applyStage(golem.stage());
+        goal.forgetLandings();
+        goal.begin(ColossusAttackGoal.Move.LOB, player);
+    }
+
+    /** What's wrong with a lob that has just spat its blobs, or null: the stage's number, all landing round the player. */
+    private static String checkLob(CinderColossus golem, ColossusAttackGoal goal, ServerPlayer player, ColossusStage stage)
+    {
+        List<LavaBlob> blobs = golem.level().getEntitiesOfClass(LavaBlob.class, golem.getBoundingBox().inflate(16.0D));
+        List<Vec3> landings = goal.lastLandings();
+        blobs.forEach(LavaBlob::discard); // (they'd only splash on the test's roof)
+        if (blobs.size() != stage.lobBlobs || landings.size() != stage.lobBlobs)
+        {
+            return "a lob in the " + stage + " stage should spit " + stage.lobBlobs + " lava blobs, but " + blobs.size()
+                    + " are flying (" + landings.size() + " aimed)";
+        }
+        for (Vec3 landing : landings)
+        {
+            double d = Math.hypot(landing.x - player.getX(), landing.z - player.getZ());
+            if (d < ColossusTuning.LOB_LAND_MIN - SPEED_TOLERANCE || d > ColossusTuning.LOB_LAND_MAX + SPEED_TOLERANCE)
+            {
+                return "each " + stage + " lob blob should land " + ColossusTuning.LOB_LAND_MIN + " to "
+                        + ColossusTuning.LOB_LAND_MAX + " blocks from the player, but one lands " + d + " away";
+            }
+        }
+        LOGGER.info("[colossus test] a {} lob spat {} blobs round the player", stage, blobs.size());
+        return null;
     }
 
     // ---------------------------------------------------------------------------------------------

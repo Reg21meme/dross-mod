@@ -28,46 +28,22 @@
   "spawners": {
     "monster": [
       {
-        "type": "minecraft:zombie",
-        "weight": 95,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:zombie_villager",
-        "weight": 5,
-        "minCount": 1,
-        "maxCount": 1
-      },
-      {
-        "type": "minecraft:skeleton",
-        "weight": 100,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:enderman",
-        "weight": 10,
-        "minCount": 1,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:witch",
-        "weight": 5,
-        "minCount": 1,
-        "maxCount": 1
-      },
-      {
         "type": "dross:rat",
-        "weight": 109,
+        "weight": 124,
         "minCount": 2,
         "maxCount": 4
       },
       {
         "type": "dross:enraged_rat",
-        "weight": 54,
+        "weight": 62,
         "minCount": 1,
         "maxCount": 2
+      },
+      {
+        "type": "minecraft:witch",
+        "weight": 35,
+        "minCount": 1,
+        "maxCount": 1
       }
     ],
     "creature": [

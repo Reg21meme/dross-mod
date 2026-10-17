@@ -251,7 +251,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
                 .add(Attributes.ARMOR, ColossusStage.SHELL.armor)
                 .add(Attributes.KNOCKBACK_RESISTANCE, ColossusTuning.KNOCKBACK_RESISTANCE)
                 .add(Attributes.MOVEMENT_SPEED, ColossusStage.SHELL.speed)
-                .add(Attributes.ATTACK_DAMAGE, ColossusTuning.SWIPE_DAMAGE)
+                .add(Attributes.ATTACK_DAMAGE, ColossusStage.SHELL.swipeDamage)
                 .add(Attributes.FOLLOW_RANGE, ColossusTuning.FOLLOW_RANGE);
     }
 
@@ -470,7 +470,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
             this.firstHitRoared = true;
             if (!nextStage && this.isAlive() && !this.isDeadOrDying())
             {
-                this.roar(true);
+                this.roar(true, ColossusStage.SHELL.roarDamage);
             }
         }
     }
@@ -916,13 +916,14 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
 
     /**
      * Its roar's shockwave (the first time it's hurt, and at the roar of each stage change): a ring of dust rolls out
-     * and every player within {@link ColossusTuning#ROAR_RADIUS} blocks is thrown back about 15 blocks. Knockback only:
-     * no damage, and only players (not in creative or spectator mode): its minions and other mobs stay put. A showcase
-     * golem never does it.
+     * and every player within {@link ColossusTuning#ROAR_RADIUS} blocks is thrown back about 15 blocks, and hurt by
+     * {@code damage} (the stage changes' roars: {@link ColossusStage#roarDamage}). Only players (not in creative or
+     * spectator mode): its minions and other mobs stay put. A showcase golem never does it.
      *
      * @param withSound also roar (the stage changes play their own roar)
+     * @param damage    how much it hurts each player it throws (0: knockback only)
      */
-    void roar(boolean withSound)
+    void roar(boolean withSound, float damage)
     {
         if (!(this.level() instanceof ServerLevel level) || this.isShowcase())
         {
@@ -942,6 +943,13 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
             Vec3 to = new Vec3(player.getX() - this.getX(), 0.0D, player.getZ() - this.getZ());
             double d = to.length();
             Vec3 away = d > 1.0E-3D ? to.scale(1.0D / d) : this.forward();
+            if (damage > 0.0F)
+            {
+                // Only the roar's own throw below: not the little knockback a hit gives as well.
+                Vec3 before = player.getDeltaMovement();
+                player.hurt(this.blow(), damage);
+                player.setDeltaMovement(before);
+            }
             ColossusAttackGoal.knock(player, away.scale(ColossusTuning.ROAR_KNOCKBACK), ColossusTuning.ROAR_LIFT);
         }
         level.sendParticles(ParticleTypes.LARGE_SMOKE, this.getX(), this.getY() + 0.5D, this.getZ(), ROAR_SMOKE,
@@ -987,7 +995,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
                 else if (elapsed == blast + 6)
                 {
                     this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, 0.9F);
-                    this.roar(false);
+                    this.roar(false, ColossusStage.CRACKING.roarDamage);
                 }
             }
             case BREAK_SHELL -> {
@@ -1001,7 +1009,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
                 if (elapsed == burst)
                 {
                     this.playSound(ModSounds.COLOSSUS_SHELL_BREAK.get(), LOUD, 0.9F);
-                    this.roar(false);
+                    this.roar(false, ColossusStage.LAVA_CORE.roarDamage);
                 }
             }
             case DEATH -> {

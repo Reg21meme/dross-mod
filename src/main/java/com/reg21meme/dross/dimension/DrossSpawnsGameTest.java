@@ -56,7 +56,8 @@ import org.slf4j.Logger;
  * <ul>
  *   <li>{@link #spawnListsPerBiome}: four biomes keep the old Dross spawn lists exactly (those of the old superflat
  *       biome, Dross Flats: the plains monsters minus slimes, creepers and spiders, the plains animals, bats); Blightwood
- *       keeps them with the rats added (about a third of the mobs spawning there, 1 in 5 of them enraged); the sewers
+ *       keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
+ *       witches 7% of the mobs spawning there, 1 in 5 of the rats enraged); the sewers
  *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only the Cinder
  *       Colossus's golems (the user's round 2 request): stone and lava golems as monsters, a lava golem 1 pick in
  *       {@value #LAVA_GOLEM_ONE_IN}, both with a crowding limit (spawn costs), and nothing in any other list (no animals,
@@ -79,10 +80,11 @@ public final class DrossSpawnsGameTest
     private static final List<EntityType<?>> OLD_MONSTERS_KEPT = List.of(EntityType.ZOMBIE, EntityType.SKELETON);
     private static final List<EntityType<?>> OLD_MONSTERS_REMOVED = List.of(EntityType.SLIME, EntityType.CREEPER, EntityType.SPIDER);
     /**
-     * The user's rats (October 2026): on Blightwood's surface about a third of the mobs spawning are rats, 1 in 5 of those
-     * enraged; in the sewers and the rat cave only rats, 3 in 5 enraged. (Counting group sizes; worldgen.py's SEWERS.)
+     * The user's rats (October 2026): on Blightwood's surface only rats and witches spawn (October 17: no zombies,
+     * skeletons or endermen), the witches 7% of the mobs, 1 in 5 of the rats enraged; in the sewers and the rat cave only
+     * rats, 3 in 5 enraged. (Counting group sizes; worldgen.py's SEWERS.)
      */
-    private static final double BLIGHTWOOD_RAT_SHARE = 1.0D / 3.0D;
+    private static final double BLIGHTWOOD_WITCH_SHARE = 0.07D;
     private static final double BLIGHTWOOD_ENRAGED_SHARE = 1.0D / 5.0D;
     private static final double SEWER_ENRAGED_SHARE = 3.0D / 5.0D;
     private static final double RAT_CAVE_ENRAGED_SHARE = 3.0D / 5.0D;
@@ -228,16 +230,18 @@ public final class DrossSpawnsGameTest
     }
 
     /**
-     * Blightwood: the old Dross lists, with the rats added to its monsters (the user's request, October 2026): about a third
-     * of the mobs spawning there are rats (counting group sizes: weight x average group), about 1 in 5 of them enraged.
+     * Blightwood (the user's request, October 17): its monsters are only rats and witches, no zombies, skeletons or
+     * endermen; the witches are 7% of the mobs spawning there and 1 in 5 of the rats is enraged (counting group sizes:
+     * weight x average group). Its other lists (animals, bats) stay the old Dross lists.
      */
     private static void checkBlightwoodLists(MobSpawnSettings mobs, MobSpawnSettings oldMobs, List<String> problems)
     {
         EntityType<?> rat = ModEntities.RAT.get();
         EntityType<?> enraged = ModEntities.ENRAGED_RAT.get();
-        List<String> withoutRats = new ArrayList<>();
+        List<String> others = new ArrayList<>();
         double rats = 0.0D;
         double enragedRats = 0.0D;
+        double witches = 0.0D;
         double all = 0.0D;
         for (MobSpawnSettings.SpawnerData data : mobs.getMobs(MobCategory.MONSTER).unwrap())
         {
@@ -248,24 +252,29 @@ public final class DrossSpawnsGameTest
                 rats += count;
                 enragedRats += data.type == enraged ? count : 0.0D;
             }
+            else if (data.type == EntityType.WITCH)
+            {
+                witches += count;
+            }
             else
             {
-                withoutRats.add(EntityType.getKey(data.type) + " " + data.getWeight().asInt() + " " + data.minCount + "-" + data.maxCount);
+                others.add(EntityType.getKey(data.type) + " " + data.getWeight().asInt() + " " + data.minCount + "-" + data.maxCount);
             }
         }
-        if (!withoutRats.equals(describe(oldMobs.getMobs(MobCategory.MONSTER))))
+        if (!others.isEmpty())
         {
-            problems.add("Blightwood's monsters besides the rats should be the old Dross list " + describe(oldMobs.getMobs(MobCategory.MONSTER))
-                    + ", but they're " + withoutRats);
+            problems.add("Blightwood's monsters should be only rats and witches, but it also has " + others);
         }
-        if (all <= 0.0D || rats <= 0.0D || Math.abs(rats / all - BLIGHTWOOD_RAT_SHARE) > SHARE_TOLERANCE
+        if (all <= 0.0D || rats <= 0.0D || Math.abs(witches / all - BLIGHTWOOD_WITCH_SHARE) > SHARE_TOLERANCE
                 || Math.abs(enragedRats / rats - BLIGHTWOOD_ENRAGED_SHARE) > SHARE_TOLERANCE)
         {
-            problems.add(String.format(Locale.ROOT, "in Blightwood rats should be about a third of the mobs (they're %.1f%%) and 1 in 5 of them enraged "
-                    + "(%.1f%%): %s", 100.0D * rats / Math.max(1.0D, all), 100.0D * enragedRats / Math.max(1.0D, rats), describe(mobs.getMobs(MobCategory.MONSTER))));
+            problems.add(String.format(Locale.ROOT, "in Blightwood witches should be 7%% of the mobs (they're %.1f%%), the rest rats, 1 in 5 of "
+                    + "them enraged (%.1f%%): %s", 100.0D * witches / Math.max(1.0D, all), 100.0D * enragedRats / Math.max(1.0D, rats),
+                    describe(mobs.getMobs(MobCategory.MONSTER))));
         }
-        LOGGER.info("[dross spawns] Blightwood: rats are {}% of the mobs spawning ({}% of them enraged); the sewers and the rat cave: rats only",
-                String.format(Locale.ROOT, "%.1f", 100.0D * rats / Math.max(1.0D, all)), String.format(Locale.ROOT, "%.1f", 100.0D * enragedRats / Math.max(1.0D, rats)));
+        LOGGER.info("[dross spawns] Blightwood: rats are {}% of the mobs spawning ({}% of them enraged), witches {}%; the sewers and the rat cave: rats only",
+                String.format(Locale.ROOT, "%.1f", 100.0D * rats / Math.max(1.0D, all)), String.format(Locale.ROOT, "%.1f", 100.0D * enragedRats / Math.max(1.0D, rats)),
+                String.format(Locale.ROOT, "%.1f", 100.0D * witches / Math.max(1.0D, all)));
         for (MobCategory category : MobCategory.values())
         {
             if (category != MobCategory.MONSTER && !describe(mobs.getMobs(category)).equals(describe(oldMobs.getMobs(category))))

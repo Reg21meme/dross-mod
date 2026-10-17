@@ -201,11 +201,12 @@ ever fails.
 
 ## worldgen.py: mob spawns (BIOMES section)
 
-Each biome's spawn lists are in its JSON (`spawners`, `spawn_costs`), written by `biome_spawns`. Five biomes (Silverwood
-Forest, Blightwood, Rimefall, the Nether Scar, the Gravecrags) copy the old superflat biome's lists exactly
+Each biome's spawn lists are in its JSON (`spawners`, `spawn_costs`), written by `biome_spawns`. Four biomes (Silverwood
+Forest, Rimefall, the Nether Scar, the Gravecrags) copy the old superflat biome's lists exactly
 (`data/dross/worldgen/biome/dross_flats.json`, `OLD_BIOME`): the plains monsters minus slimes, creepers and spiders
 (zombies, zombie villagers, skeletons, endermen, witches), the plains animals and bats. To change those, edit
-`dross_flats.json` and run `worldgen.py`.
+`dross_flats.json` and run `worldgen.py`. **Blightwood** copies its animals and bats but has its own monsters (rats and
+witches, `SPAWN_REPLACEMENTS`; see the sewers' "Spawns" below).
 
 **The Cinder Wastes** have their own lists (`SPAWN_OVERRIDES`; the user's round 2 request): no zombies, skeletons or
 any other mob for now, only the Cinder Colossus's golems, and only a few (two more Cinder-only mobs will come later).
@@ -386,7 +387,8 @@ since the underground is solid rock, the sewers are the only place the biome sho
 The sewers biome has exactly Blightwood's features (its ores).
 
 **Spawns** (worldgen.py SEWERS; every share counts mobs, weight x average group size): Blightwood's surface keeps the
-old Dross list with the rats added, so rats are about a third of the mobs spawning there (`BLIGHTWOOD_RAT_SHARE`), 1 in 5
+old Dross animals and bats, but its monsters are its own (`SPAWN_REPLACEMENTS`): no zombies, skeletons or endermen, only
+witches, 7% of the mobs spawning there (`BLIGHTWOOD_WITCH_SHARE`, from `BLIGHTWOOD_WITCH_WEIGHT` 35), and rats, 1 in 5
 of them enraged (`BLIGHTWOOD_ENRAGED_SHARE`); the sewers: only rats, 3 in 5 enraged (`SEWER_ENRAGED_SHARE`); the rat
 cave: only rats, 3 in 5 enraged (`RAT_CAVE_ENRAGED_SHARE`, written into `dross:rat_cave`'s JSON and used inside the cave by
 `dimension/sewer/RatCaveSpawns`). The script works the weights out from those shares and checks them (within 1%).
@@ -399,7 +401,7 @@ The rats' own spawn rules (darkness, solid ground) are the boss area's.
 | `SEWER_BIOME_MAX_Y`, `SEWER_AIR_MAX_Y` | 64, 58 | The sewers biome only below y 64; no sewer air above y 58. |
 | `SEWER_FLOOR_MIN_Y`, `SEWER_FLOOR_MAX_Y` | -40, 50 | A network's floor lies between these (as high as the cover and the air limit allow). So the pipes' drop is 25-55 blocks: deeper where Blightwood's ground is high. |
 | `RAT_GROUP`, `ENRAGED_RAT_GROUP` | 2-4, 1-2 | Group sizes. |
-| `BLIGHTWOOD_RAT_SHARE`, `BLIGHTWOOD_ENRAGED_SHARE` | 1/3, 1/5 | Blightwood's surface. |
+| `BLIGHTWOOD_WITCH_SHARE`, `BLIGHTWOOD_WITCH_WEIGHT`, `BLIGHTWOOD_ENRAGED_SHARE` | 0.07, 35, 1/5 | Blightwood's surface: witches 7% of the mobs, rats the rest, 1 in 5 of them enraged (weights 124 / 62 / 35). |
 | `SEWER_ENRAGED_SHARE`, `RAT_CAVE_ENRAGED_SHARE` | 3/5, 3/5 | The sewers and the rat cave (rats only). |
 
 The shape (maze size, tunnel and room sizes, pipes, the grand entrance and its poisoned ground, the royal road, the rat

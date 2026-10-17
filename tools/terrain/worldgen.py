@@ -775,9 +775,10 @@ CINDER_GOLEM_CHARGE = 1.0
 # entity -> (energy budget, charge).
 # The Cinder Wastes' creature and ambient lists are empty on purpose ("only those for now"): the animals need grass,
 # which the wastes don't have, so none could spawn there anyway, and this also keeps bats out.
-# (SEWERS fills in two more: Blightwood's rats go on top of the old list, SPAWN_ADDITIONS; the sewers biome lists only
-# rats, SPAWN_OVERRIDES["sewers"].) A biome in SPAWN_ADDITIONS keeps OLD_BIOME's lists with these entries added.
-SPAWN_ADDITIONS = {}
+# (SEWERS fills in two more: Blightwood's monsters, SPAWN_REPLACEMENTS; the sewers biome lists only rats,
+# SPAWN_OVERRIDES["sewers"].) A biome in SPAWN_REPLACEMENTS keeps OLD_BIOME's lists except the categories it names,
+# which get these (entity, weight, fewest, most) entries instead.
+SPAWN_REPLACEMENTS = {}
 SPAWN_OVERRIDES = {
     "cinder_wastes": {
         "monster": [
@@ -1038,22 +1039,23 @@ def biome_json(biome_id, spec, spawns_from):
 
 
 def biome_spawns(biome_id, spawns_from):
-    """The biome's mob spawns: exactly the old Dross biome's (the user's rules: no slimes, creepers or spiders), or its
-    own lists from SPAWN_OVERRIDES. Every entity id is checked (and the mob category of our own)."""
+    """The biome's mob spawns: exactly the old Dross biome's (the user's rules: no slimes, creepers or spiders), with
+    some of its lists replaced (SPAWN_REPLACEMENTS), or its own lists from SPAWN_OVERRIDES. Every entity id is checked (and the mob category of our own)."""
     override = SPAWN_OVERRIDES.get(biome_id)
     if override is None:
         out = json.loads(json.dumps({key: spawns_from[key] for key in ("creature_spawn_probability", "spawners", "spawn_costs")
                                      if key in spawns_from}))
-        for category, entries in SPAWN_ADDITIONS.get(biome_id, {}).items():
+        for category, entries in SPAWN_REPLACEMENTS.get(biome_id, {}).items():
             if category not in out.get("spawners", {}):
-                fail(f"SPAWN_ADDITIONS[{biome_id!r}] names {category}, which isn't a spawn category")
-            have = {e["type"] for e in out["spawners"][category]}
+                fail(f"SPAWN_REPLACEMENTS[{biome_id!r}] names {category}, which isn't a spawn category")
+            replaced = []
             for entity, weight, fewest, most in entries:
-                if entity in have:
+                if entity in {e["type"] for e in replaced}:
                     fail(f"{biome_id}: {entity} is in its {category} list twice")
                 if not (isinstance(weight, int) and weight > 0 and 1 <= fewest <= most):
                     fail(f"{biome_id}: the {category} entry for {entity} needs a whole weight above 0 and 1 <= fewest <= most")
-                out["spawners"][category].append({"type": entity, "weight": weight, "minCount": fewest, "maxCount": most})
+                replaced.append({"type": entity, "weight": weight, "minCount": fewest, "maxCount": most})
+            out["spawners"][category] = replaced
     else:
         categories = list(spawns_from.get("spawners", {}))
         unknown = [c for c in override if c != "spawn_costs" and c not in categories]
@@ -1863,9 +1865,13 @@ SEWER_RAT_KING_SALT = 1610201626
 # All shares count mobs (a weight times the average group size), not spawn picks.
 RAT_GROUP = (2, 4)              # rats come in groups of 2 to 4...
 ENRAGED_RAT_GROUP = (1, 2)      # ...enraged rats 1 or 2
-BLIGHTWOOD_RAT_SHARE = 1.0 / 3.0       # Blightwood's surface: rats are about a third of the mobs spawning there (more
-                                       # Blightwood mobs will come later; the rest are the old Dross list)...
-BLIGHTWOOD_ENRAGED_SHARE = 1.0 / 5.0   # ...and about 1 in 5 of those rats is enraged
+# Blightwood's surface (the user, October 17): no zombies, skeletons or endermen any more (like the Cinder Wastes), only
+# rats and witches, the witches in place of the endermen: 7 in 100 of the mobs spawning there. More Blightwood mobs will
+# come later.
+BLIGHTWOOD_WITCH_SHARE = 0.07          # witches: this share of the mobs spawning on Blightwood's surface, the rats the rest...
+BLIGHTWOOD_WITCH_WEIGHT = 35           # ...(the witches' weight, alone; the rats' weights are worked out from it)...
+WITCH_GROUP = (1, 1)                   # ...and a witch comes alone
+BLIGHTWOOD_ENRAGED_SHARE = 1.0 / 5.0   # about 1 in 5 of Blightwood's rats is enraged
 SEWER_ENRAGED_SHARE = 3.0 / 5.0        # the sewers: only rats, 3 in 5 enraged and 2 in 5 regular...
 SEWER_RAT_WEIGHTS = 100                # ...(their two weights add up to this)
 RAT_CAVE_ENRAGED_SHARE = 3.0 / 5.0     # the rat cave: only rats, the same 3 in 5 enraged (the boss area makes its enraged
@@ -1919,29 +1925,30 @@ def rats_only_weights(enraged_share, total, what):
     return regular, enraged
 
 
-def blightwood_rat_weights(old_monsters):
-    """(regular, enraged) weights for Blightwood's surface: rats BLIGHTWOOD_RAT_SHARE of all the mobs spawning there,
-    BLIGHTWOOD_ENRAGED_SHARE of them enraged (counting each entry's weight times its average group size)."""
-    others = sum(e["weight"] * (e["minCount"] + e["maxCount"]) / 2.0 for e in old_monsters)
-    rats = others * BLIGHTWOOD_RAT_SHARE / (1.0 - BLIGHTWOOD_RAT_SHARE)
+def blightwood_weights():
+    """(regular rat, enraged rat, witch) weights for Blightwood's surface: witches BLIGHTWOOD_WITCH_SHARE of the mobs
+    spawning there, rats the rest, BLIGHTWOOD_ENRAGED_SHARE of them enraged (counting each entry's weight times its
+    average group size)."""
+    witches = BLIGHTWOOD_WITCH_WEIGHT * _average(WITCH_GROUP)
+    rats = witches * (1.0 - BLIGHTWOOD_WITCH_SHARE) / BLIGHTWOOD_WITCH_SHARE
     regular = int(round(rats * (1.0 - BLIGHTWOOD_ENRAGED_SHARE) / _average(RAT_GROUP)))
     enraged = int(round(rats * BLIGHTWOOD_ENRAGED_SHARE / _average(ENRAGED_RAT_GROUP)))
     rat_count = regular * _average(RAT_GROUP) + enraged * _average(ENRAGED_RAT_GROUP)
-    _check_share("Blightwood, share of the mobs that are rats", rat_count / (others + rat_count), BLIGHTWOOD_RAT_SHARE)
+    _check_share("Blightwood, share of the mobs that are witches", witches / (witches + rat_count), BLIGHTWOOD_WITCH_SHARE)
     _check_share("Blightwood, share of the rats that are enraged", enraged * _average(ENRAGED_RAT_GROUP) / rat_count, BLIGHTWOOD_ENRAGED_SHARE)
-    return regular, enraged
+    return regular, enraged, BLIGHTWOOD_WITCH_WEIGHT
 
 
 def sewer_spawns(spawns_from):
-    """Fills in the rats: added to Blightwood's old list (SPAWN_ADDITIONS), the sewers biome's own list (SPAWN_OVERRIDES).
-    Returns the rat cave's (regular, enraged) weights and a summary line."""
-    old_monsters = spawns_from.get("spawners", {}).get("monster", [])
-    b_regular, b_enraged = blightwood_rat_weights(old_monsters)
-    SPAWN_ADDITIONS["blightwood"] = {"monster": rat_entries(b_regular, b_enraged)}
+    """Fills in the rats: Blightwood's monsters (rats and witches, SPAWN_REPLACEMENTS), the sewers biome's own list
+    (SPAWN_OVERRIDES). Returns the rat cave's (regular, enraged) weights and a summary line."""
+    b_regular, b_enraged, b_witch = blightwood_weights()
+    SPAWN_REPLACEMENTS["blightwood"] = {"monster": rat_entries(b_regular, b_enraged)
+                                        + [("minecraft:witch", b_witch, WITCH_GROUP[0], WITCH_GROUP[1])]}
     s_regular, s_enraged = rats_only_weights(SEWER_ENRAGED_SHARE, SEWER_RAT_WEIGHTS, "the sewers")
     SPAWN_OVERRIDES[SEWER_BIOME] = {"monster": rat_entries(s_regular, s_enraged)}
     c_regular, c_enraged = rats_only_weights(RAT_CAVE_ENRAGED_SHARE, RAT_CAVE_RAT_WEIGHTS, "the rat cave")
-    summary = (f"rats: Blightwood {b_regular} regular + {b_enraged} enraged (with the old {len(old_monsters)} monsters), "
+    summary = (f"rats: Blightwood {b_regular} regular + {b_enraged} enraged (and {b_witch} witches), "
                f"sewers {s_regular} + {s_enraged}, rat cave {c_regular} + {c_enraged}")
     return (c_regular, c_enraged), summary
 

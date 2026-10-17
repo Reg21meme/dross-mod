@@ -13,8 +13,11 @@ public final class ColossusTuning
 
     /** Its health (a player has 20). */
     public static final float MAX_HEALTH = 300.0F;
-    /** The Cracking stage starts at this share of its health... */
-    public static final float CRACKING_AT = 0.60F;
+    /**
+     * The Cracking stage starts at this share of its health (the user, October 17: a shorter Shell, from 60%; the three
+     * stages now take about the same number of hits)...
+     */
+    public static final float CRACKING_AT = 0.70F;
     /** ...and the Lava Core stage at this share. A big hit never skips a stage: the damage stops at the threshold. */
     public static final float LAVA_CORE_AT = 0.35F;
     /** It can't be knocked back at all (1 = fully resistant). */
@@ -34,8 +37,7 @@ public final class ColossusTuning
 
     // ---------------------------------------------------------------- swipe (its melee hit)
 
-    /** Damage of a swipe (times the stage's damage scale). */
-    public static final float SWIPE_DAMAGE = 12.0F;
+    // Its damage is per stage: ColossusStage.swipeDamage (6.5 / 7.5 / 8 hearts).
     /** How far past the edge of its body the swipe reaches. */
     public static final double SWIPE_REACH = 3.0D;
     /** The swipe hits everything within this many degrees either side of straight ahead. */
@@ -67,10 +69,12 @@ public final class ColossusTuning
 
     /** The shockwave reaches this far from where its fists land... */
     public static final double SLAM_RADIUS = 6.5D;
-    /** ...does very little damage (times the stage's damage scale)... */
-    public static final float SLAM_DAMAGE = 2.0F;
-    /** ...but throws you far: this fast sideways at the middle (a little over half that at the edge), and this fast up. */
-    public static final double SLAM_KNOCKBACK = 1.8D;
+    /**
+     * ...hurts (ColossusStage.slamDamage: 3.5 / 4 / 5 hearts) and throws you far: this fast sideways at the middle (a
+     * little over half that at the edge), and this fast up. 2.4 throws a player about 23 blocks at the very middle, about
+     * 20 a few blocks out, about 12 at the edge (the user, October 17: about 20, from about 15 with 1.8).
+     */
+    public static final double SLAM_KNOCKBACK = 2.4D;
     public static final double SLAM_LIFT = 0.75D;
     /** It slams when a player is this close to it (from its middle)... */
     public static final double SLAM_TRIGGER_RANGE = 7.0D;
@@ -109,8 +113,10 @@ public final class ColossusTuning
     public static final double CHARGE_SPEED = 0.6D;
     /** It gives up a charge this many ticks after it should have arrived (if something slows it down). */
     public static final int CHARGE_SLACK_TICKS = 15;
-    /** Damage to everything it runs into (times the stage's damage scale), and how hard it knocks them aside and up. */
-    public static final float CHARGE_DAMAGE = 11.0F;
+    /**
+     * How hard it knocks everything it runs into aside and up (their damage is per stage: ColossusStage.chargeDamage, 6 /
+     * 6.5 / 7 hearts).
+     */
     public static final double CHARGE_KNOCKBACK = 1.6D;
     public static final double CHARGE_LIFT = 0.55D;
     /** It charges at targets between these distances (it must see them, with a clear-ish run, see below)... */
@@ -144,8 +150,8 @@ public final class ColossusTuning
 
     // ---------------------------------------------------------------- volcano lob (Cracking and Lava Core)
 
-    /** How many lava blobs its volcanoes spit out at once. */
-    public static final int LOB_BLOBS = 2;
+    // How many lava blobs its volcanoes spit out at once is per stage: ColossusStage.lobBlobs (2 in Cracking, 4 in the
+    // Lava Core; the user, October 17).
     /**
      * When it bursts out of its shell (entering the Lava Core stage, after its roar) its volcanoes spew this many blobs
      * at once, landing round the players near it (shared out between them), never on them.
@@ -203,7 +209,9 @@ public final class ColossusTuning
     public static final double ROAR_RADIUS = 15.0D;
     /**
      * ...this fast sideways (away from it) and this fast up: about 15 blocks on flat ground (less in armour that resists
-     * knockback). Knockback only: no damage, and only players (its minions and other mobs stay put).
+     * knockback). Only players (its minions and other mobs stay put). The first hit's roar does no damage; the stage
+     * changes' roars hurt (ColossusStage.roarDamage: 1 heart entering Cracking, 2 entering the Lava Core; the user,
+     * October 17).
      */
     public static final double ROAR_KNOCKBACK = 1.6D;
     public static final double ROAR_LIFT = 0.75D;

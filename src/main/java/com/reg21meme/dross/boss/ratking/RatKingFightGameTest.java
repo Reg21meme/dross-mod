@@ -58,12 +58,13 @@ import static com.reg21meme.dross.boss.golem.ColossusGameTest.waitForArena;
  *       awake once that player stops sneaking.</li>
  *   <li>{@link #wakesWhenHurtWithoutDamage}: a hit only wakes him (no damage); he can't be hurt while he wakes up; then
  *       he can.</li>
- *   <li>{@link #rageStopsAtFortyPercent}: a huge hit stops at 40% and starts the rage, during which he can't be hurt;
+ *   <li>{@link #rageStopsAtHalfHealth}: a huge hit stops at 50% and starts the rage, during which he can't be hurt;
  *       then he's red-eyed and faster.</li>
- *   <li>{@link #burrowsEveryThirtyWithRats}: every 30 health lost (a huge hit stops there) he burrows; under the ground
+ *   <li>{@link #burrowsWithMoreRatsEachTime}: every 25 health lost (a huge hit stops there) he burrows; under the ground
  *       he can't be hurt or hit, stays 80 ticks, calls 10 regular rats round his target and pops up 4 blocks from it;
- *       there's no limit, so three burrows leave 30 of his rats alive.</li>
- *   <li>{@link #rageBurrowsEveryTwentyWithEnragedRats}: in the Rage every 20 health, 50 ticks under, 7 enraged rats.</li>
+ *       then 12, then 14; there's no limit, so three burrows leave 36 of his rats alive.</li>
+ *   <li>{@link #rageBurrowsWithMoreEnragedRats}: in the Rage every 25 health, 50 ticks under, 8 enraged rats, then 9,
+ *       then 10 (all 27 alive: every one is out before he pops up), and no burrow after the third.</li>
  *   <li>{@link #castsOneBallThenThreeInRage}: a cast throws one poison ball, three in the Rage; a ball bursts into a
  *       poison cloud.</li>
  *   <li>{@link #runsAtTheUsersSpeeds}: he runs at about 4.8 blocks a second, 6.4 in the Rage (measured).</li>
@@ -260,9 +261,9 @@ public final class RatKingFightGameTest
     // ---------------------------------------------------------------------------------------------
 
     @GameTest(template = ARENA, batch = "dross_ratking_rage", timeoutTicks = ARENA_WAIT_TICKS + 300)
-    public static void rageStopsAtFortyPercent(GameTestHelper helper)
+    public static void rageStopsAtHalfHealth(GameTestHelper helper)
     {
-        if (waitForArena(helper, RatKingFightGameTest::rageStopsAtFortyPercent))
+        if (waitForArena(helper, RatKingFightGameTest::rageStopsAtHalfHealth))
         {
             return;
         }
@@ -279,10 +280,10 @@ public final class RatKingFightGameTest
         helper.startSequence()
                 .thenExecute(() -> {
                     king.hurt(level.damageSources().generic(), HUGE_HIT);
-                    expectHealth(helper, king, rageAt, "a huge hit above 40% (it stops there)");
+                    expectHealth(helper, king, rageAt, "a huge hit above 50% (it stops there)");
                     if (king.getAction() != RatKingAction.RAGE || !king.isEnraged())
                     {
-                        helper.fail("reaching 40% should start his rage, but he's " + king.getAction());
+                        helper.fail("reaching 50% should start his rage, but he's " + king.getAction());
                     }
                     king.invulnerableTime = 0;
                     king.hurt(level.damageSources().generic(), HUGE_HIT);
@@ -308,9 +309,9 @@ public final class RatKingFightGameTest
     // ---------------------------------------------------------------------------------------------
 
     @GameTest(template = ARENA, batch = "dross_ratking_burrow", timeoutTicks = ARENA_WAIT_TICKS + 1600)
-    public static void burrowsEveryThirtyWithRats(GameTestHelper helper)
+    public static void burrowsWithMoreRatsEachTime(GameTestHelper helper)
     {
-        if (waitForArena(helper, RatKingFightGameTest::burrowsEveryThirtyWithRats))
+        if (waitForArena(helper, RatKingFightGameTest::burrowsWithMoreRatsEachTime))
         {
             return;
         }
@@ -322,11 +323,12 @@ public final class RatKingFightGameTest
             return;
         }
         float max = king.getMaxHealth();
+        List<Integer> rats = RatKingTuning.RATS_PER_BURROW;
         long[] under = new long[1];
         king.startFightNow();
         king.setTarget(target);
         helper.startSequence()
-                // The first burrow, at 170.
+                // The first burrow, at 175.
                 .thenExecute(() -> hitIntoBurrow(helper, king, max - RatKingTuning.BURROW_EVERY))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.BURROWED))
                 .thenExecute(() -> {
@@ -340,31 +342,30 @@ public final class RatKingFightGameTest
                     {
                         helper.fail("he should stay under the ground " + RatKingTuning.UNDERGROUND_TICKS + " ticks, but stayed " + ticks);
                     }
-                    checkRats(helper, king, RatKingTuning.RATS_PER_BURROW, false);
+                    checkRats(helper, king, rats.get(0), false);
                     checkPopup(helper, king, target);
                 })
-                // The second, at 140.
+                // The second, at 150.
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
                 .thenExecute(() -> hitIntoBurrow(helper, king, max - 2 * RatKingTuning.BURROW_EVERY))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
-                .thenExecute(() -> checkRats(helper, king, 2 * RatKingTuning.RATS_PER_BURROW, false))
-                // The third, at 110: there's no limit, so he calls a full set again.
+                .thenExecute(() -> checkRats(helper, king, rats.get(0) + rats.get(1), false))
+                // The third, at 125: there's no limit, so he calls a full (bigger) set again.
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
                 .thenExecute(() -> hitIntoBurrow(helper, king, max - 3 * RatKingTuning.BURROW_EVERY))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
                 .thenExecute(() -> {
-                    checkRats(helper, king, 3 * RatKingTuning.RATS_PER_BURROW, false);
-                    LOGGER.info("[rat king test] three burrows at 170, 140 and 110 health, {} rats each (no limit)",
-                            RatKingTuning.RATS_PER_BURROW);
+                    checkRats(helper, king, rats.get(0) + rats.get(1) + rats.get(2), false);
+                    LOGGER.info("[rat king test] three burrows at 175, 150 and 125 health, {} rats (no limit)", rats);
                     cleanUp(helper, king, target);
                 })
                 .thenSucceed();
     }
 
-    @GameTest(template = ARENA, batch = "dross_ratking_rage_burrow", timeoutTicks = ARENA_WAIT_TICKS + 800)
-    public static void rageBurrowsEveryTwentyWithEnragedRats(GameTestHelper helper)
+    @GameTest(template = ARENA, batch = "dross_ratking_rage_burrow", timeoutTicks = ARENA_WAIT_TICKS + 1400)
+    public static void rageBurrowsWithMoreEnragedRats(GameTestHelper helper)
     {
-        if (waitForArena(helper, RatKingFightGameTest::rageBurrowsEveryTwentyWithEnragedRats))
+        if (waitForArena(helper, RatKingFightGameTest::rageBurrowsWithMoreEnragedRats))
         {
             return;
         }
@@ -376,6 +377,7 @@ public final class RatKingFightGameTest
             return;
         }
         float rageAt = RatKingTuning.RAGE_AT * king.getMaxHealth();
+        List<Integer> rats = RatKingTuning.RAGE_RATS_PER_BURROW;
         long[] under = new long[1];
         king.startFightNow();
         king.skipToRage();
@@ -395,11 +397,27 @@ public final class RatKingFightGameTest
                         helper.fail("in the Rage he should stay under " + RatKingTuning.RAGE_UNDERGROUND_TICKS
                                 + " ticks, but stayed " + ticks);
                     }
-                    checkRats(helper, king, RatKingTuning.RAGE_RATS_PER_BURROW, true);
+                    checkRats(helper, king, rats.get(0), true);
                     checkPopup(helper, king, target);
                 })
+                // The second, at 50, and the third and last, at 25: more enraged rats each time (the last burrow's 10
+                // come out a little faster, to all be out in its 50 ticks under the ground).
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
                 .thenExecute(() -> hitIntoBurrow(helper, king, rageAt - 2 * RatKingTuning.RAGE_BURROW_EVERY))
+                .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
+                .thenExecute(() -> checkRats(helper, king, rats.get(0) + rats.get(1), true))
+                .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
+                .thenExecute(() -> hitIntoBurrow(helper, king, rageAt - 3 * RatKingTuning.RAGE_BURROW_EVERY))
+                .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
+                .thenExecute(() -> {
+                    checkRats(helper, king, rats.get(0) + rats.get(1) + rats.get(2), true);
+                    if (king.checkpointBelow(king.getHealth()) != 0.0F)
+                    {
+                        helper.fail("after the Rage's third burrow (at 25) there should be no more, but the next is at "
+                                + king.checkpointBelow(king.getHealth()));
+                    }
+                    LOGGER.info("[rat king test] three Rage burrows at 75, 50 and 25 health, {} enraged rats", rats);
+                })
                 .thenExecute(() -> cleanUp(helper, king, target))
                 .thenSucceed();
     }

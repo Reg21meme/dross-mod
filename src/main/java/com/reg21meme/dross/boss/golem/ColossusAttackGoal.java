@@ -734,7 +734,7 @@ public class ColossusAttackGoal extends Goal
             {
                 continue;
             }
-            if (victim.hurt(this.golem.blow(), ColossusTuning.SWIPE_DAMAGE * stage.damageScale))
+            if (victim.hurt(this.golem.blow(), stage.swipeDamage))
             {
                 Vec3 away = d > 1.0E-3D ? to.scale(1.0D / d) : fwd;
                 knock(victim, away.scale(0.5D).add(left.scale(0.85D)).normalize().scale(ColossusTuning.SWIPE_KNOCKBACK),
@@ -800,7 +800,7 @@ public class ColossusAttackGoal extends Goal
             {
                 continue;
             }
-            victim.hurt(this.golem.blow(), ColossusTuning.SLAM_DAMAGE * stage.damageScale);
+            victim.hurt(this.golem.blow(), stage.slamDamage);
             Vec3 away = d > 1.0E-3D ? to.scale(1.0D / d) : this.golem.forward();
             knock(victim, away.scale(ColossusTuning.SLAM_KNOCKBACK * (1.0D - 0.45D * d / radius)), ColossusTuning.SLAM_LIFT);
             this.golem.afterHit(victim);
@@ -927,7 +927,7 @@ public class ColossusAttackGoal extends Goal
             {
                 continue;
             }
-            if (victim.hurt(this.golem.blow(), ColossusTuning.CHARGE_DAMAGE * stage.damageScale))
+            if (victim.hurt(this.golem.blow(), stage.chargeDamage))
             {
                 Vec3 to = flat(victim.position().subtract(this.golem.position()));
                 double sign = to.dot(side) >= 0.0D ? 1.0D : -1.0D;
@@ -976,7 +976,7 @@ public class ColossusAttackGoal extends Goal
         {
             return;
         }
-        this.spew(List.of(centre), ColossusTuning.LOB_BLOBS, stage, m);
+        this.spew(List.of(centre), stage.lobBlobs, stage, m);
     }
 
     /**
@@ -1075,6 +1075,12 @@ public class ColossusAttackGoal extends Goal
     List<Vec3> lastLandings()
     {
         return this.lastLandings;
+    }
+
+    /** Forgets the last lob's landings, so a test can tell when the next one has spat. */
+    void forgetLandings()
+    {
+        this.lastLandings = List.of();
     }
 
     /** The top of the ground at (or near) a spot: where a blob aimed there should land. */

@@ -16,6 +16,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 /**
  * A fighting Rat King's burrow (every number is in {@link RatKingTuning}). It starts when his health reaches a burrow
@@ -26,7 +27,8 @@ import javax.annotation.Nullable;
  *       ({@link RatKingTuning#RAGE_UNDERGROUND_TICKS} in the Rage) he tunnels towards his target at
  *       {@link RatKingTuning#UNDERGROUND_SPEED} blocks a tick, following the ground (only his dirt mound shows, and a
  *       trail of dirt where he goes); nothing can hit, target or bump into him. Meanwhile his rats burst out of the
- *       ground round his target, one every {@link RatKingTuning#RAT_STAGGER_TICKS} ticks: {@link RatKingTuning#RATS_PER_BURROW}
+ *       ground round his target, one every {@link RatKingTuning#RAT_STAGGER_TICKS} ticks (a little faster when that many
+ *       wouldn't all be out before he pops up): {@link RatKingTuning#RATS_PER_BURROW}
  *       regular ones ({@link RatKingTuning#RAGE_RATS_PER_BURROW} enraged ones in the Rage), however many of his are
  *       already alive. They're only ever called while he's under the ground.</li>
  *   <li><b>Popping up</b> ({@link #popUp}): he comes up {@link RatKingTuning#POPUP_DISTANCE} blocks from his target,
@@ -145,7 +147,7 @@ final class RatKingBurrow
         }
         if (this.ratsLeft > 0 && --this.ratTimer <= 0)
         {
-            this.ratTimer = RatKingTuning.RAT_STAGGER_TICKS;
+            this.ratTimer = this.ratStagger();
             int index = this.ratsPerBurrow() - this.ratsLeft;
             this.ratsLeft--;
             if (this.summonRat(level, target, index) && !this.called)
@@ -162,10 +164,40 @@ final class RatKingBurrow
         }
     }
 
-    /** How many rats a burrow calls now: regular ones in the first phase, enraged ones in the Rage. */
+    /**
+     * How many rats this burrow calls: regular ones in the first phase, enraged ones in the Rage, more with each burrow
+     * of the phase ({@link RatKingTuning#RATS_PER_BURROW}, {@link RatKingTuning#RAGE_RATS_PER_BURROW}). Which burrow it
+     * is comes from the checkpoint that started it (saved with him).
+     */
     private int ratsPerBurrow()
     {
-        return this.king.isEnraged() ? RatKingTuning.RAGE_RATS_PER_BURROW : RatKingTuning.RATS_PER_BURROW;
+        return ratsFor(this.king.isEnraged(), this.king.getMaxHealth(), this.floor);
+    }
+
+    /**
+     * Ticks between his rats: {@link RatKingTuning#RAT_STAGGER_TICKS}, or fewer when this burrow calls more rats than
+     * fit in his time under the ground at that pace (the Rage's last burrow: 10 rats in 50 ticks), so every one is out
+     * before he pops up.
+     */
+    private int ratStagger()
+    {
+        int under = this.king.isEnraged() ? RatKingTuning.RAGE_UNDERGROUND_TICKS : RatKingTuning.UNDERGROUND_TICKS;
+        int rats = this.ratsPerBurrow();
+        if (rats <= 1)
+        {
+            return RatKingTuning.RAT_STAGGER_TICKS;
+        }
+        return Mth.clamp((under - RatKingTuning.RAT_FIRST_DELAY) / (rats - 1), 1, RatKingTuning.RAT_STAGGER_TICKS);
+    }
+
+    /** The rats called by the burrow at this checkpoint (his health) in a phase, for a Rat King with this much health. */
+    static int ratsFor(boolean rage, float maxHealth, float checkpoint)
+    {
+        List<Integer> counts = rage ? RatKingTuning.RAGE_RATS_PER_BURROW : RatKingTuning.RATS_PER_BURROW;
+        float start = rage ? RatKingTuning.RAGE_AT * maxHealth : maxHealth;
+        float every = rage ? RatKingTuning.RAGE_BURROW_EVERY : RatKingTuning.BURROW_EVERY;
+        int burrow = Math.round((start - checkpoint) / every) - 1; // 0 for the phase's first
+        return counts.get(Mth.clamp(burrow, 0, counts.size() - 1));
     }
 
     /** His target, if it's still alive and in the same world. */

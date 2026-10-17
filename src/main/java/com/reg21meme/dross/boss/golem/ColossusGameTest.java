@@ -61,7 +61,7 @@ import java.util.function.Consumer;
  * {@code .\gradlew.bat runGameTestServer --console=plain}, or in a dev world with {@code /test runall}. They only exist
  * in the development environment: in a normal game nothing here runs.
  * <ul>
- *   <li>{@link #stagesClampAndAdvance}: a huge hit stops at 60% and starts the eruption (it can't be hurt during it),
+ *   <li>{@link #stagesClampAndAdvance}: a huge hit stops at 70% and starts the eruption (it can't be hurt during it),
  *       then it's in the Cracking stage; the next stops at 35% and bursts the shell; then it can die, and stays as a
  *       statue (vanilla would remove it after a second).</li>
  *   <li>{@link #rangedHitsAreWeakerEachStage}: an arrow's hit takes 50% of its damage in the Shell stage, 35% in
@@ -181,7 +181,7 @@ public final class ColossusGameTest
                     expectHealth(helper, golem, max * ColossusTuning.CRACKING_AT, "after the first huge hit");
                     if (golem.getAction() != GolemAction.ERUPT || golem.stage() != ColossusStage.SHELL)
                     {
-                        helper.fail("a hit down to 60% should start the eruption, but it's " + golem.getAction());
+                        helper.fail("a hit down to 70% should start the eruption, but it's " + golem.getAction());
                     }
                     golem.invulnerableTime = 0;
                     golem.hurt(level.damageSources().generic(), HUGE_HIT);

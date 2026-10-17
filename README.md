@@ -49,7 +49,7 @@ How a player moves through the mod, from a normal survival world to the Dross.
 - **Six biomes**, regions about 600-670 blocks across:
   - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds.
   - **Cinder Wastes**: ash, basalt and magma, enclosed lava pools, basalt spires, charred trees, Emberweed and Cinder Vents. Home of the Cinder Colossus's volcano.
-  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog. Rats (Plague Rats, and about 1 in 5 Plague Ravagers) are about a third of the mobs here. Underneath are **the sewers** (below).
+  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog. No zombies, skeletons or endermen: the mobs here are rats (Plague Rats, and about 1 in 5 Plague Ravagers) and the odd witch (7 in 100). Underneath are **the sewers** (below).
   - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds.
   - **Nether Scar** (smaller patches, about 240 blocks across): netherrack with clusters of blue-cracked Scarred Netherrack, crimson and warped fungi, Soulwicks and Scar Vents.
   - **The Gravecrags**: the mountains, Cragstone cliffs with glowing Storm Lichen and Crag Thistles, snow on the peaks. Never near the hub.
@@ -345,23 +345,28 @@ and lights set in the floor.
 ### The fight
 It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
 within 40 blocks. The fight has three stages:
-1. **Shell** (down to 60% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
+1. **Shell** (down to 70% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
    second; 2 in the Cracking stage and 2.8 in the Lava Core stage). It swipes at you up close, tears rocks
    out of the ground and throws them (they shatter; they never place a block), raises both fists for a moment and
-   slams the ground (little damage, but the shockwave throws you far), and charges on all fours, head first, from up
+   slams the ground (the shockwave hurts and throws you about 20 blocks), and charges on all fours, head first, from up
    to 32 blocks away, running all the way to where you stood half a second before it set off.
-2. **Cracking** (60% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
+2. **Cracking** (70% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
    and its shell starts breaking up, plates knocked loose and lava glowing through, more with every hit. A bit faster
    and more aggressive. Its volcanoes also spit **lava blobs** that land near you (never on you) and leave small pools
    of lava for 20-40 seconds, and it pounds the ground to raise **three stone golems** (left, right, in front of it). As it enters this stage,
    **four stone golems** climb out at once, and from now on its charge leaves a short **trail of fire**.
 3. **Lava Core** (35% to 0%; lava red): its shell bursts off (it can't be hurt while it does). Faster and angrier:
    **every hit sets you on fire**, its charge leaves a longer **trail of fire**, it stops throwing rocks, and it raises
-   **lava golems**, which blow up a few seconds later unless you kill them first. As it enters this stage its
-   volcanoes spew **four lava blobs** round you.
+   **lava golems**, which blow up a few seconds later unless you kill them first. Its lobs now spit **four** lava
+   blobs instead of two. As it enters this stage its volcanoes spew **four lava blobs** round you.
+
+**Its damage** (in hearts, Shell / Cracking / Lava Core, on Normal with no armour): swipe 6.5 / 7.5 / 8, charge
+6 / 6.5 / 7, slam 3.5 / 4 / 5, thrown rock 4.5 / 5.2 / none, a lava blob landing right on you 3.5 / 3.9 (it lands
+near you, never aimed at you). In the Lava Core every hit also sets you on fire for 5 seconds.
 
 **The roar:** the first time it's hurt, and at both stage changes, it roars and a ring of dust throws every player
-within 15 blocks back about 15 blocks (no damage).
+within 15 blocks back about 15 blocks. The first one does no damage; the eruption's roar takes 1 heart and the
+shell bursting's 2.
 
 **How it picks a move:** by how far away you are (close, mid, far, very far) and its stage, with the chances in
 `ColossusTuning` (the user's table): up close it swipes and slams, further out it charges, throws and lobs, and very
@@ -379,7 +384,7 @@ anything. The minions are quick on their feet: stone golems walk about 3 blocks 
 (any pickaxe, modded ones too) does **twice** its damage; in the Lava Core it's a normal hit. The Colossus keeps facing
 the player it's fighting nearly all the time, except while it gallops.
 
-A big hit never skips a stage: its health stops at 60% and at 35%. When it dies it screams, sinks down and **cools
+A big hit never skips a stage: its health stops at 70% and at 35%. When it dies it screams, sinks down and **cools
 into an obsidian statue**, which stands for 2 minutes and then crumbles; its minions crumble with it. It drops 50
 experience. The player who killed it, and everyone within 40 blocks, get the challenge advancement **"Set in Stone"**
 and **a trophy each** (below). Removed with `/kill`, it gives neither.
@@ -464,13 +469,13 @@ each attack sound for the fight, to pick from later.
   steady Poison I while you stand in it); in his Rage, a fan of three.
 - **How often:** at 5-16 blocks he charges 60%, throws poison 25% and runs in 15% (Rage: 60 / 35 / 5); at 16-24
   blocks charge 40, poison 30, run in 30 (Rage: 35 / 35 / 30); up close always the sweep.
-- **Burrow:** every 30 health he loses, he digs and dives into the ground. While he tunnels towards you (a dirt trail
-  moves over the ground) he can't be hurt, and **10 rats** burst out of the ground round you (7 Plague Ravagers in his
-  Rage), however many of his rats are already about. Then he pops straight up
+- **Burrow:** every 25 health he loses (at 175, 150 and 125 of his 200), he digs and dives into the ground. While he
+  tunnels towards you (a dirt trail moves over the ground) he can't be hurt, and his rats burst out of the ground round
+  you: **10, then 12, then 14** Plague Rats, however many of his rats are already about. Then he pops straight up
   4 blocks from you, facing you, without knocking you back.
-- **Rage** at 40% health (he can't be hurt while it plays): stomping, red eyes, steam and the train whistle. Then he's
-  faster and hits harder, throws three balls at once, burrows every 20 health and calls **Plague Ravagers**, whose
-  bites poison.
+- **Rage** at half health, 100 (he can't be hurt while it plays): stomping, red eyes, steam and the train whistle.
+  Then he's faster and hits harder, throws three balls at once, and burrows three more times (at 75, 50 and 25),
+  calling **8, then 9, then 10 Plague Ravagers**, whose bites poison for 2.5 seconds.
 - **Death:** a silly death; his rats crumble, he vanishes after 10 seconds; no drops except a trophy (below). The advancement **Down the Drain**
   ("End the Rat King's reign beneath Blightwood.") goes to whoever killed him and everyone within 40 blocks.
 - His rats: summoned ones attack you and crumble when he dies. A wild Plague Rat (spawn egg) never attacks; a wild
