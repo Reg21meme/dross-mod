@@ -15,6 +15,7 @@
 - If a first-time setup fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, that is a flaky parallel download. Re-run the same command.
 - To test commands in-game, create the world with **Allow Cheats: ON**.
 - Headless checks: `.\gradlew.bat runGameTestServer --console=plain` runs every GameTest without a game window. Add `-PgameTestWorld=<new folder>` for a brand-new world (the folder under `run/` must not exist yet; otherwise it reuses `run/world`). Confirm the `All N required tests passed :)` line: a datapack load failure can still exit 0.
+- GameTests live in `src/main/java` (files named `*GameTest.java`) but **stay out of the mod jar**: `build.gradle`'s `jar` task excludes them and the test-only helpers `dimension/TerrainProbe`, `dimension/TerrainSurvey` and `enchant/RisenTestWait`. A new test-only helper class goes on that list, and game code must never use a test class (the jar would break).
 
 ## Rules for every agent
 1. Forge 1.20.1 / Java 17 APIs only. Use `DeferredRegister` for all registrations. Watch out for newer-version APIs that don't exist here: no `ResourceLocation.fromNamespaceAndPath` (use `new ResourceLocation(Dross.MODID, "path")`), no data components, no NeoForge classes, no `neoforge.mods.toml`.

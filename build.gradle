@@ -209,6 +209,14 @@ tasks.named('jar', Jar).configure {
         ])
     }
 
+    // The GameTests (headless checks) and their helpers live in src/main so the dev runs can find them, but players
+    // don't need them: keep them out of the mod jar. No game class uses them (checked with jdeps, October 2026), so
+    // nothing breaks without them; runGameTestServer still runs them from build/classes.
+    exclude '**/*GameTest.class', '**/*GameTest$*.class'
+    exclude 'com/reg21meme/dross/dimension/TerrainProbe*.class'
+    exclude 'com/reg21meme/dross/dimension/TerrainSurvey*.class'
+    exclude 'com/reg21meme/dross/enchant/RisenTestWait*.class'
+
     // This is the preferred method to reobfuscate your jar file
     finalizedBy 'reobfJar'
 }
