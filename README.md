@@ -269,6 +269,7 @@ Both are **swords only** and **treasure enchantments**. They never come from the
   Otherwise they follow you. Once fighting, they stick with their target until it dies, then help allies before coming back to you.
 - **Who they leave alone:** they never hurt players, the trader, the hub's survivors, villagers, wandering traders or each other. Your own hits never hurt them.
 - **Mobs fight back:** any mob they damage turns on them, even other undead.
+- **Your allies leave them alone:** iron golems (village or player-built), snow golems and tamed wolves (anyone's) never target, chase or hurt your risen undead, and drop any fight with one within half a second. A golem still spots a real monster standing behind them. Your risen undead never pick a golem or a wolf on their own (not even when a zombie the golem is fighting calls nearby zombies for help), but they still defend you from one that attacks you and join in when you hit one (it just won't hit back). The only exception is the Rage Wand: raged on different teams, they fight.
 - **Risen drowned** fight on land, day or night.
 - **How long they last:** they crumble into blue particles after **60 seconds**, or early if you log out, die or change dimension.
 - **What they never do:** drop items, give XP, pick things up, use portals or convert into other mobs. Normal burning rules apply.

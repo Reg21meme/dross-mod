@@ -42,6 +42,10 @@ import net.minecraft.world.phys.AABB;
  *
  * <p>Players, villagers, wandering traders, the Dross trader, the hub's survivors and the owner's other risen undead
  * are never picked ({@link RisenUndead#isValidTarget}), not even when the owner hits one of them.
+ *
+ * <p>The player's allies (iron golems, snow golems, tamed wolves) can only become a target through this goal's rules
+ * above (they never hurt a risen undead, so "fight back" never picks one); anything else that tries to set one is
+ * refused ({@link RisenAllies}).
  */
 public class RisenTargetGoal extends TargetGoal
 {
@@ -60,6 +64,14 @@ public class RisenTargetGoal extends TargetGoal
 
     /** Same as vanilla's "hurt by" targeting: doesn't need line of sight. */
     private static final TargetingConditions CONDITIONS = TargetingConditions.forCombat().ignoreLineOfSight().ignoreInvisibilityTesting();
+
+    /**
+     * The risen undead whose pack AI is setting its target right now, or null (server thread only). The player's allies
+     * (iron golems, snow golems, tamed wolves) may only become a risen undead's target this way, never through something
+     * else, like a zombie calling nearby zombies for help ({@link RisenAllies}).
+     */
+    @Nullable
+    private static Mob picking;
 
     /** Game time of the next search; 0 = search on the next check. Each mob starts at a random offset. */
     private long nextSearchTime;
@@ -253,7 +265,15 @@ public class RisenTargetGoal extends TargetGoal
     @Override
     public void start()
     {
-        this.mob.setTarget(this.candidate);
+        picking = this.mob;
+        try
+        {
+            this.mob.setTarget(this.candidate);
+        }
+        finally
+        {
+            picking = null;
+        }
         this.targetMob = this.candidate;
         this.candidate = null;
         super.start();
@@ -267,7 +287,19 @@ public class RisenTargetGoal extends TargetGoal
     public boolean canContinueToUse()
     {
         LivingEntity target = this.mob.getTarget() != null ? this.mob.getTarget() : this.targetMob;
-        return RisenUndead.isValidTarget(this.mob, target) && super.canContinueToUse();
+        if (!RisenUndead.isValidTarget(this.mob, target))
+        {
+            return false;
+        }
+        picking = this.mob; // vanilla's check sets the target it keeps again: that's this goal's own choice too
+        try
+        {
+            return super.canContinueToUse();
+        }
+        finally
+        {
+            picking = null;
+        }
     }
 
     @Override
@@ -275,6 +307,12 @@ public class RisenTargetGoal extends TargetGoal
     {
         super.stop(); // clears the target
         this.endFight();
+    }
+
+    /** True while this risen undead's pack AI is setting its target (see {@link #picking}). */
+    static boolean isPicking(Mob mob)
+    {
+        return picking == mob;
     }
 
     /** Same as {@link #stop()}, for a stale target found while this goal wasn't running. */

@@ -80,6 +80,8 @@ import net.minecraftforge.server.ServerLifecycleHooks;
  *       trader, the hub's survivors or the owner's other risen undead (damage from them, arrows included, to those is
  *       cancelled too).
  *       The owner's own hits never damage them. Risen drowned fight on land, day or night.</li>
+ *   <li>The player's allies (iron golems, snow golems, tamed wolves) never target or hurt them, and won't hit back when
+ *       the owner sends them after one ({@link RisenAllies}), unless the Rage Wand made them enemies.</li>
  *   <li>They crumble (blue puff) after {@link #DESPAWN_TICKS}, or early when the owner logs out, dies or changes
  *       dimension, or when their chunk is loaded back from a save.</li>
  *   <li>No drops, no XP, no item pickup, no portals, no conversions. Vanilla sunlight burning still applies.</li>
@@ -648,9 +650,11 @@ public final class RisenUndead
      * <ul>
      *   <li>goal-based mobs (zombies, skeletons, spiders, creepers...): {@code setTarget} + last attacker. A running
      *       target goal keeps whatever {@code getTarget()} is, so it keeps chasing the risen undead until it dies;</li>
-     *   <li>"neutral" mobs (zombified piglins, endermen, iron golems...): their anger is pointed at it too;</li>
+     *   <li>"neutral" mobs (zombified piglins, endermen...): their anger is pointed at it too;</li>
      *   <li>brain-based mobs (piglins, hoglins...): their attack-target and anger memories are set.</li>
      * </ul>
+     * Not the player's allies (iron golems, snow golems, tamed wolves): they never turn on a risen undead
+     * ({@link RisenAllies}), unless the Rage Wand made the two enemies.
      * Latest hit wins: if the player hits the mob afterwards, normal vanilla retaliation takes over.
      * Runs at LOWEST priority and only if no one cancelled the damage, so it only happens when the hit landed.
      */
@@ -669,6 +673,10 @@ public final class RisenUndead
         if (isProtected(victim) || victim.isAlliedTo(risen))
         {
             return; // villagers, traders and survivors (never damaged anyway) and mobs on the same scoreboard team
+        }
+        if (RisenAllies.leavesAlone(victim, risen))
+        {
+            return; // the player's allies (iron golems, snow golems, tamed wolves) don't hit back at risen undead
         }
         UUID attackerOwner = getOwnerId(risen);
         if (attackerOwner != null && attackerOwner.equals(getOwnerId(victim)))
