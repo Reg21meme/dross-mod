@@ -11,20 +11,11 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.DoorBlock;
 import net.minecraft.world.level.block.LanternBlock;
-import net.minecraft.world.level.block.LeavesBlock;
-import net.minecraft.world.level.block.MultifaceBlock;
-import net.minecraft.world.level.block.RotatedPillarBlock;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.SlabBlock;
-import net.minecraft.world.level.block.SnowLayerBlock;
 import net.minecraft.world.level.block.StairBlock;
-import net.minecraft.world.level.block.TrapDoorBlock;
-import net.minecraft.world.level.block.VineBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
-import net.minecraft.world.level.block.state.properties.Half;
-import net.minecraft.world.level.block.state.properties.SlabType;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -45,7 +36,7 @@ import java.util.Map;
  * <p>
  * Blocks are only recorded while drawing; {@link #apply} places them all at once, bottom-up, without
  * neighbour updates (so nothing pops off half-built), then fixes shapes in one pass at the end
- * (fences and panes connect, stair corners round off, grass under snow turns snowy).
+ * (fences and panes connect, stair corners round off).
  */
 final class HutCanvas
 {
@@ -189,13 +180,6 @@ final class HutCanvas
         set(x, y + 1, z, state.setValue(DoorBlock.HALF, DoubleBlockHalf.UPPER));
     }
 
-    /** Snow on the ground: grass at y = 0 (so it turns snowy) with {@code layers} of snow on top. */
-    void snowOnGround(int x, int z, int layers)
-    {
-        set(x, 0, z, Blocks.GRASS_BLOCK);
-        set(x, 1, z, snow(layers));
-    }
-
     /**
      * Fills from y = -1 downwards with {@code block} until solid ground, under the given area,
      * so a hut built over a dip doesn't float. Does nothing on flat ground.
@@ -284,27 +268,6 @@ final class HutCanvas
         return block.defaultBlockState().setValue(StairBlock.FACING, facing);
     }
 
-    /** Upside-down stairs, for eaves, arches and counters. */
-    static BlockState upsideDown(Block block, Direction facing)
-    {
-        return stairs(block, facing).setValue(StairBlock.HALF, Half.TOP);
-    }
-
-    static BlockState slab(Block block)
-    {
-        return block.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.BOTTOM);
-    }
-
-    static BlockState topSlab(Block block)
-    {
-        return block.defaultBlockState().setValue(SlabBlock.TYPE, SlabType.TOP);
-    }
-
-    static BlockState log(Block block, Direction.Axis axis)
-    {
-        return block.defaultBlockState().setValue(RotatedPillarBlock.AXIS, axis);
-    }
-
     /** Anything that points somewhere: wall torches, ladders, wall banners, end rods, lightning rods, glazed terracotta... */
     static BlockState facing(Block block, Direction direction)
     {
@@ -320,15 +283,6 @@ final class HutCanvas
         return state;
     }
 
-    /** A trapdoor on the {@code facing} side of its block (open = standing up against that side). */
-    static BlockState trapdoor(Block block, Direction facing, boolean top, boolean open)
-    {
-        return block.defaultBlockState()
-                .setValue(TrapDoorBlock.FACING, facing)
-                .setValue(TrapDoorBlock.HALF, top ? Half.TOP : Half.BOTTOM)
-                .setValue(TrapDoorBlock.OPEN, open);
-    }
-
     /** A lantern hanging from the block above it. */
     static BlockState hanging(Block lantern)
     {
@@ -339,38 +293,5 @@ final class HutCanvas
     static BlockState candles(Block candle, int count)
     {
         return candle.defaultBlockState().setValue(CandleBlock.CANDLES, count).setValue(CandleBlock.LIT, true);
-    }
-
-    /** Leaves that never decay. */
-    static BlockState leaves(Block block)
-    {
-        return block.defaultBlockState().setValue(LeavesBlock.PERSISTENT, true);
-    }
-
-    static BlockState snow(int layers)
-    {
-        return Blocks.SNOW.defaultBlockState().setValue(SnowLayerBlock.LAYERS, layers);
-    }
-
-    /** Sculk veins or glow lichen growing on the given sides of their block (DOWN = lying on the floor). */
-    static BlockState growth(Block block, Direction... sides)
-    {
-        BlockState state = block.defaultBlockState();
-        for (Direction side : sides)
-        {
-            state = state.setValue(MultifaceBlock.getFaceProperty(side), true);
-        }
-        return state;
-    }
-
-    /** Vines hanging on the given sides of their block. */
-    static BlockState vines(Direction... sides)
-    {
-        BlockState state = Blocks.VINE.defaultBlockState();
-        for (Direction side : sides)
-        {
-            state = state.setValue(VineBlock.getPropertyForFace(side), true);
-        }
-        return state;
     }
 }

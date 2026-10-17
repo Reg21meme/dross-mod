@@ -21,7 +21,6 @@ import org.slf4j.Logger;
  * <ul>
  *   <li>At {@link EventPriority#LOW low} priority, after the portal area has built the hub; {@link DrossHub#layout} builds
  *       it first anyway if it isn't built yet, so the order doesn't really matter.</li>
- *   <li>Older worlds' hubs (the spire, or the old placeholder platform) get them the same way on their next start.</li>
  *   <li>If the hub has no layout (no Dross, or no exit portal), a warning is logged and it tries again the next time the
  *       world starts. Once they've spawned ({@link SurvivorSpawnData}), they're never spawned again, like the trader.</li>
  * </ul>

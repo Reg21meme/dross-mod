@@ -12,11 +12,10 @@ import net.minecraft.world.item.Tiers;
 import net.minecraftforge.entity.PartEntity;
 
 /**
- * TESTING ONLY (see "Parked for later" in CLAUDE.md): the Admin Sword, sold by the Dross trader.
- * One hit kills any living thing, bosses included, except the Dross trader himself and the hub's two survivors (for
- * them it's a normal sword hit, which they survive like any other).
- * It never breaks and survives fire and lava. Its texture is Minecraft's netherite sword, recoloured
- * black with orange veins to match the Dross Portal Frame.
+ * TESTING ONLY (see "Parked for later" in CLAUDE.md): the Admin Sword, found only in the creative "Dross" tab
+ * (or {@code /give}). One hit kills any living thing, bosses included, except the Dross trader himself and the hub's
+ * two survivors (for them it's a normal sword hit, which they survive like any other).
+ * It never breaks and survives fire and lava. Its texture is a recoloured copy of Minecraft's netherite sword.
  */
 public class AdminSwordItem extends SwordItem
 {

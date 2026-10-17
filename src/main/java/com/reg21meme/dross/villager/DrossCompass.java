@@ -33,7 +33,7 @@ public final class DrossCompass
         return compass;
     }
 
-    /** A Dross Compass already pointing at the portal site (what the trader sells). */
+    /** A Dross Compass already pointing at the portal site (what the trader gives). */
     public static ItemStack create(ServerLevel level)
     {
         ItemStack compass = createBlank();

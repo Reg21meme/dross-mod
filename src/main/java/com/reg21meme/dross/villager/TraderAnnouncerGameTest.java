@@ -31,7 +31,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
-import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -53,7 +52,7 @@ import org.slf4j.Logger;
  *       joining; once he spawns (usually under a minute; the test waits at most {@link #SPAWN_TIMEOUT_MILLIS} of real
  *       time) that player has been told exactly once, and a second player who joins then is told once too.</li>
  * </ul>
- * In both cases a spawn-egg trader and a showcase trader are then spawned, and neither sends the message.
+ * In both cases a spawn-egg trader and a {@code /summon}-style trader are then spawned, and neither sends the message.
  *
  * <p>The wait is measured in real time, not in game ticks: the game test server runs its ticks as fast as it can (it
  * doesn't wait 50 ms between them), so on a busy computer thousands of ticks can pass while the village search takes
@@ -77,7 +76,7 @@ public final class TraderAnnouncerGameTest
      * gives up by itself when it gets here, so the stand-in players still leave.
      */
     private static final int SPAWN_BACKSTOP_TICKS = 2_000_000;
-    /** How long the spawn-egg and showcase traders are watched for a message (ticks). */
+    /** How long the spawn-egg and {@code /summon}-style traders are watched for a message (ticks). */
     private static final int OTHER_TRADERS_WATCH_TICKS = 40;
 
     @GameTest(template = EMPTY, batch = "dross_trader_announcer", timeoutTicks = SPAWN_BACKSTOP_TICKS + OTHER_TRADERS_WATCH_TICKS + 100)
@@ -124,7 +123,7 @@ public final class TraderAnnouncerGameTest
                     .thenIdle(1);
         }
 
-        // Then a spawn-egg trader and a showcase trader appear next to the test: nobody is told anything new.
+        // Then a spawn-egg trader and a /summon-style trader appear next to the test: nobody is told anything new.
         OtherTraders others = new OtherTraders();
         sequence.thenExecute(() -> checked(players, () -> others.spawn(helper, players)))
                 .thenIdle(OTHER_TRADERS_WATCH_TICKS)
@@ -136,26 +135,25 @@ public final class TraderAnnouncerGameTest
                 .thenSucceed();
     }
 
-    /** A spawn-egg trader and a showcase trader, and how many hut messages each player had before they appeared. */
+    /** A spawn-egg trader and a /summon-style trader, and how many hut messages each player had before they appeared. */
     private static final class OtherTraders
     {
         private int[] before = new int[0];
         @Nullable
         private DrossTrader egg;
         @Nullable
-        private DrossTrader showcase;
+        private DrossTrader summoned;
 
         void spawn(GameTestHelper helper, List<TestPlayer> players)
         {
             before = players.stream().mapToInt(TraderAnnouncerGameTest::countHutMessages).toArray();
             BlockPos at = helper.absolutePos(new BlockPos(0, 1, 0));
             egg = ModEntities.TRADER.get().spawn(helper.getLevel(), at, MobSpawnType.SPAWN_EGG);
-            showcase = DrossTrader.spawnShowcase(helper.getLevel(), Vec3.atBottomCenterOf(at.above(2)), 0.0F,
-                    TraderSkins.ALL.get(0));
-            if (egg == null || showcase == null)
+            summoned = ModEntities.TRADER.get().spawn(helper.getLevel(), at.above(2), MobSpawnType.COMMAND);
+            if (egg == null || summoned == null)
             {
                 remove();
-                throw new GameTestAssertException("Couldn't spawn the spawn-egg trader or the showcase trader");
+                throw new GameTestAssertException("Couldn't spawn the spawn-egg trader or the /summon-style trader");
             }
         }
 
@@ -165,9 +163,9 @@ public final class TraderAnnouncerGameTest
             {
                 egg.discard();
             }
-            if (showcase != null)
+            if (summoned != null)
             {
-                showcase.discard();
+                summoned.discard();
             }
         }
 
@@ -177,10 +175,10 @@ public final class TraderAnnouncerGameTest
             {
                 if (countHutMessages(players.get(i)) != before[i])
                 {
-                    throw new GameTestAssertException("A spawn-egg or showcase trader made the hut message appear");
+                    throw new GameTestAssertException("A spawn-egg or /summon-style trader made the hut message appear");
                 }
             }
-            LOGGER.info("[trader test] A spawn-egg trader and a showcase trader sent no hut message, as they should.");
+            LOGGER.info("[trader test] A spawn-egg trader and a /summon-style trader sent no hut message, as they should.");
         }
     }
 

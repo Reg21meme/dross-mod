@@ -7,7 +7,6 @@ import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.QuestProgress;
 import com.reg21meme.dross.quest.QuestRequirement;
 import com.reg21meme.dross.registry.ModEnchantments;
-import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
 import net.minecraft.core.BlockPos;
@@ -18,14 +17,10 @@ import net.minecraft.nbt.Tag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.syncher.EntityDataAccessor;
-import net.minecraft.network.syncher.EntityDataSerializers;
-import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.tags.StructureTags;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -75,29 +70,17 @@ import java.util.List;
  * He can be hurt and knocked back but can never die (he only spawns once, so we don't want him lost):
  * at half health or less he teleports home and fully heals.
  * <p>
- * He lives in a hut (see {@link TraderHut}; today the Rift Chapel) and wanders within {@link #LEASH} blocks of it.
+ * He lives in a hut (see {@link TraderHut}: the Rift Chapel) and wanders within {@link #LEASH} blocks of it.
  * If he strays too far, falls, or ends up underground, he teleports back into the hut (home is his spot in it).
  * The hut's whole footprint is saved on him ({@code HutBox}), so a roof over his head never counts as
- * "underground". Traders from before that (the old 5x5 netherite hut) and spawn-egg traders have no footprint
- * and keep the old small-hut rule. A trader from a spawn egg treats the spot he was spawned at as his home.
+ * "underground". A trader from a spawn egg (or {@code /summon}) treats the spot he was spawned at as his home and,
+ * having no hut footprint, uses a small box round that spot instead ({@link #EGG_HOME_HALF}).
  * While any player is within his area, he glows electric blue (visible through walls) so he's easy to find.
  * <p>
- * <b>Skins:</b> every trader carries a skin number ({@link #getSkin()}, synced to players, saved as {@code Skin}).
- * 0 (the default, which every trader has until something sets another number) is the quest trader's look, skin 2,
- * The Archivist; 1 to 10 are the candidate skins in {@link TraderSkins} (see {@link TraderSkins#lookFor}).
- * <p>
- * <b>Showcase traders</b> ({@link #spawnShowcase}, saved with {@code Showcase}) only show off a skin: frozen in
- * place, silent, no home, no glow, never the world's trader. Right-clicking one just names its skin. Nothing can
- * hurt one except {@code /kill} (and the void), which removes it normally.
+ * Every trader wears the quest trader's skin, skin 2, The Archivist ({@link TraderSkins#QUEST_TRADER}).
  */
 public class DrossTrader extends AbstractVillager
 {
-    /** The skin number, synced to players so the renderer can pick the texture (see {@link TraderSkins}). */
-    private static final EntityDataAccessor<Integer> DATA_SKIN =
-            SynchedEntityData.defineId(DrossTrader.class, EntityDataSerializers.INT);
-    private static final String TAG_SKIN = "Skin";
-    private static final String TAG_SHOWCASE = "Showcase";
-
     // ---- Shop prices (after the quest). Each costs emeralds plus one plain book. ----
     /** Emeralds for Necromancy level I (Necromancy has five levels; he sells only the lowest). */
     private static final int NECROMANCY_EMERALDS = 32;
@@ -109,12 +92,6 @@ public class DrossTrader extends AbstractVillager
     private static final int GUIDE_BOOK_COST_BOOKS = 3;
     /** The shop has no real use limit. */
     private static final int SHOP_MAX_USES = Integer.MAX_VALUE;
-    /**
-     * Bump this whenever the shop changes. A trader saved with a different number gets his saved offers
-     * replaced by the current shop once, when he loads. (Traders saved before this existed have no number.)
-     */
-    private static final int SHOP_VERSION = 2;
-    private static final String TAG_SHOP_VERSION = "ShopVersion";
 
     /** He stays within this many blocks of his hut in X and Z. */
     private static final int LEASH = 50;
@@ -123,10 +100,10 @@ public class DrossTrader extends AbstractVillager
     /** Being more than this many blocks below the surface sends him home. */
     private static final int MAX_DEPTH = 3;
     /**
-     * The old hut was 5x5 (home +- this many blocks in X and Z). A trader with no saved hut footprint (one from
-     * before the chapel, or from a spawn egg) uses this rule for "inside my hut".
+     * A trader with no hut footprint (from a spawn egg or {@code /summon}) counts the 5x5 round his home (home +- this
+     * many blocks in X and Z) as "inside my hut" for the underground rule.
      */
-    private static final int LEGACY_HUT_HALF = 2;
+    private static final int EGG_HOME_HALF = 2;
     private static final String TAG_HOME = "HomePos";
     /** The hut footprint, saved as six ints: min X, Y, Z, then max X, Y, Z. */
     private static final String TAG_HUT_BOX = "HutBox";
@@ -137,85 +114,12 @@ public class DrossTrader extends AbstractVillager
     /** Everything his hut covers, floor to roof, or null if he has none saved (see {@link #isInsideHut}). */
     @Nullable
     private BoundingBox hutBox;
-    /** True for a showcase trader (only known on the server; see {@link #spawnShowcase}). */
-    private boolean showcase;
 
     public DrossTrader(EntityType<? extends DrossTrader> type, Level level)
     {
         super(type, level);
         this.setPersistenceRequired();
         ((GroundPathNavigation) this.getNavigation()).setCanOpenDoors(true);
-    }
-
-    @Override
-    protected void defineSynchedData()
-    {
-        super.defineSynchedData();
-        this.entityData.define(DATA_SKIN, TraderSkins.DEFAULT);
-    }
-
-    // ---------------------------------------------------------------- skin and showcase
-
-    /** His skin number: 0 is the quest trader's look (The Archivist), 1 to 10 are the candidates in {@link TraderSkins}. */
-    public int getSkin()
-    {
-        return this.entityData.get(DATA_SKIN);
-    }
-
-    /** Sets his skin number (0 for the quest trader's look). Players see the change straight away. */
-    public void setSkin(int skin)
-    {
-        this.entityData.set(DATA_SKIN, skin);
-    }
-
-    /** True if this trader only shows off a skin (spawned by {@link #spawnShowcase}). Server side only. */
-    public boolean isShowcase()
-    {
-        return this.showcase;
-    }
-
-    /**
-     * Spawns a showcase trader wearing this skin: frozen in place (no AI, so he doesn't move, turn or even fall:
-     * give him a spot on the ground), silent, facing {@code yaw} (body and head), and saved as a showcase trader.
-     * He has no home, never glows and is never recorded as the world's trader. Right-clicking him shows his
-     * skin's number and name. Nothing hurts him except {@code /kill} (and the void), which removes him normally.
-     *
-     * @param feet where his feet go: the bottom middle of the air block he stands in, just above the ground, for
-     *             example {@code Vec3.atBottomCenterOf(groundPos.above())}
-     * @param yaw  the way he faces, in degrees (0 = south, 90 = west, 180 = north, -90 = east; for a
-     *             {@code Direction} use {@code direction.toYRot()})
-     * @return the trader, already in the world, or null if he couldn't be created
-     */
-    @Nullable
-    public static DrossTrader spawnShowcase(ServerLevel level, Vec3 feet, float yaw, TraderSkins.TraderSkin skin)
-    {
-        DrossTrader trader = ModEntities.TRADER.get().create(level);
-        if (trader == null)
-        {
-            return null;
-        }
-        trader.showcase = true;
-        trader.setSkin(skin.number());
-        trader.moveTo(feet.x, feet.y, feet.z, yaw, 0.0F);
-        trader.setYHeadRot(yaw);
-        trader.setYBodyRot(yaw);
-        trader.yHeadRotO = yaw;
-        trader.yBodyRotO = yaw;
-        trader.setNoAi(true);
-        trader.setSilent(true);
-        trader.setPersistenceRequired();
-        level.addFreshEntity(trader);
-        return trader;
-    }
-
-    /** Right-clicking a showcase trader: his skin's number, name and mood on the action bar. */
-    private void showSkinInfo(ServerPlayer player)
-    {
-        TraderSkins.TraderSkin skin = TraderSkins.byNumber(this.getSkin());
-        Component text = skin == null
-                ? Component.translatable("dross.trader.showcase.unknown", this.getSkin())
-                : Component.translatable("dross.trader.showcase", skin.number(), skin.name(), skin.mood());
-        player.displayClientMessage(text, true);
     }
 
     public static AttributeSupplier.Builder createAttributes()
@@ -261,9 +165,8 @@ public class DrossTrader extends AbstractVillager
     public void aiStep()
     {
         super.aiStep();
-        if (!(this.level() instanceof ServerLevel serverLevel) || this.showcase)
+        if (!(this.level() instanceof ServerLevel serverLevel))
         {
-            // A showcase trader skips all of this: no home, no going home, no glow, never the world's trader.
             return;
         }
         if (this.home == null)
@@ -324,9 +227,8 @@ public class DrossTrader extends AbstractVillager
     @Override
     public boolean hurt(DamageSource source, float amount)
     {
-        if (!(this.level() instanceof ServerLevel serverLevel) || this.showcase)
+        if (!(this.level() instanceof ServerLevel serverLevel))
         {
-            // A showcase trader has no "can't die" rule: /kill removes him normally (see isInvulnerableTo).
             return super.hurt(source, amount);
         }
         boolean wasHurt = super.hurt(source, Math.min(amount, Math.max(this.getHealth() - 1.0F, 0.0F)));
@@ -339,28 +241,6 @@ public class DrossTrader extends AbstractVillager
             }
         }
         return wasHurt;
-    }
-
-    /**
-     * A showcase trader can't be hurt by anything (players, mobs, fire, falling, explosions...) except damage that
-     * bypasses invulnerability: {@code /kill} and the void. This doesn't use the invulnerable flag, which
-     * creative-mode players ignore. The real trader is unchanged.
-     */
-    @Override
-    public boolean isInvulnerableTo(DamageSource source)
-    {
-        if (this.showcase && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
-        {
-            return true;
-        }
-        return super.isInvulnerableTo(source);
-    }
-
-    /** A showcase trader never catches fire (it couldn't hurt him, but he'd look like he's burning). */
-    @Override
-    public boolean fireImmune()
-    {
-        return this.showcase || super.fireImmune();
     }
 
     private boolean shouldGoHome(ServerLevel level)
@@ -392,8 +272,8 @@ public class DrossTrader extends AbstractVillager
      * everywhere inside).
      * <ul>
      *   <li>With a saved hut footprint: inside the whole 3D box, so a cave under the hut doesn't count.</li>
-     *   <li>Without one (old 5x5 netherite hut, spawn egg): the old small-hut rule, 5x5 around home,
-     *       from one block below home to three above.</li>
+     *   <li>Without one (a spawn-egg or {@code /summon} trader): 5x5 around home, from one block below home to
+     *       three above.</li>
      * </ul>
      */
     private boolean isInsideHut(BlockPos pos)
@@ -402,8 +282,8 @@ public class DrossTrader extends AbstractVillager
         {
             return this.hutBox.isInside(pos);
         }
-        return Math.abs(pos.getX() - this.home.getX()) <= LEGACY_HUT_HALF
-                && Math.abs(pos.getZ() - this.home.getZ()) <= LEGACY_HUT_HALF
+        return Math.abs(pos.getX() - this.home.getX()) <= EGG_HOME_HALF
+                && Math.abs(pos.getZ() - this.home.getZ()) <= EGG_HOME_HALF
                 && pos.getY() >= this.home.getY() - 1 && pos.getY() <= this.home.getY() + 3;
     }
 
@@ -449,12 +329,6 @@ public class DrossTrader extends AbstractVillager
     public void addAdditionalSaveData(CompoundTag tag)
     {
         super.addAdditionalSaveData(tag);
-        tag.putInt(TAG_SHOP_VERSION, SHOP_VERSION);
-        tag.putInt(TAG_SKIN, this.getSkin());
-        if (this.showcase)
-        {
-            tag.putBoolean(TAG_SHOWCASE, true);
-        }
         removeGuideOfferFromTag(tag);
         if (this.home != null)
         {
@@ -472,20 +346,8 @@ public class DrossTrader extends AbstractVillager
     public void readAdditionalSaveData(CompoundTag tag)
     {
         super.readAdditionalSaveData(tag);
-        // Traders saved before skins existed have no "Skin" tag: getInt gives 0, the quest trader's look.
-        this.setSkin(tag.getInt(TAG_SKIN));
-        this.showcase = tag.getBoolean(TAG_SHOWCASE);
-        // Traders saved before he could take damage were invulnerable; he isn't any more (he just can't die).
-        this.setInvulnerable(false);
         // The guide book offer is per player and never kept between sessions.
         this.getOffers().removeIf(DrossTrader::isGuideBookOffer);
-        if (tag.getInt(TAG_SHOP_VERSION) != SHOP_VERSION)
-        {
-            // One-time migration: an old trader's saved trades are replaced by the current shop.
-            MerchantOffers offers = this.getOffers();
-            offers.clear();
-            offers.addAll(buildOffers());
-        }
         if (tag.contains(TAG_HOME))
         {
             // Read the hut footprint first, so home and footprint are set together, once. (fromCorners, not the
@@ -525,19 +387,6 @@ public class DrossTrader extends AbstractVillager
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand)
     {
-        if (this.showcase)
-        {
-            // A showcase trader never starts the quest, takes items or opens the shop: he just names his skin.
-            if (hand != InteractionHand.MAIN_HAND)
-            {
-                return InteractionResult.PASS;
-            }
-            if (player instanceof ServerPlayer serverPlayer)
-            {
-                this.showSkinInfo(serverPlayer);
-            }
-            return InteractionResult.sidedSuccess(this.level().isClientSide);
-        }
         if (!this.isAlive() || this.isTrading() || player.isSecondaryUseActive())
         {
             return super.mobInteract(player, hand);

@@ -9,7 +9,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.slf4j.Logger;
 
 /**
- * One design for the Dross trader's hut (see {@link HutDesigns} for all of them).
+ * A design for the Dross trader's hut (today only the Rift Chapel, see {@link HutDesigns}).
  * <p>
  * Every design is placed by its <b>center</b>: the ground block (the top solid block, which the floor
  * replaces) in the middle of its footprint. The footprint is width x depth blocks (both odd), and
@@ -26,7 +26,6 @@ public abstract class HutDesign
 
     private final int number;
     private final String name;
-    private final String mood;
     private final int width;
     private final int depth;
     private final int height;
@@ -36,10 +35,11 @@ public abstract class HutDesign
     private final int standZ;
 
     /**
-     * @param doorX the door's column (local x); the way in starts just outside the footprint in front of it
+     * @param number the design's number, which seeds its random details (so it always looks the same)
+     * @param doorX  the door's column (local x); the way in starts just outside the footprint in front of it
      * @param standX where the trader stands (local grid, feet position)
      */
-    HutDesign(int number, String name, String mood, int width, int depth, int height,
+    HutDesign(int number, String name, int width, int depth, int height,
               int doorX, int standX, int standY, int standZ)
     {
         if (width % 2 == 0 || depth % 2 == 0)
@@ -48,7 +48,6 @@ public abstract class HutDesign
         }
         this.number = number;
         this.name = name;
-        this.mood = mood;
         this.width = width;
         this.depth = depth;
         this.height = height;
@@ -61,22 +60,16 @@ public abstract class HutDesign
     /** Draws the hut on the canvas (door facing south, see {@link HutCanvas} for the grid). */
     abstract void draw(HutCanvas canvas);
 
-    /** 1 to 10. */
+    /** The design's number (the Rift Chapel is 10, from the old candidate list; it seeds the random details). */
     public int number()
     {
         return number;
     }
 
-    /** Short enough for one line of a sign. */
+    /** The design's name, for the log. */
     public String name()
     {
         return name;
-    }
-
-    /** A word or two about the feel of it, short enough for one line of a sign. */
-    public String mood()
-    {
-        return mood;
     }
 
     /** Blocks across the front (side to side, seen from the door). */

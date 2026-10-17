@@ -17,14 +17,14 @@ Read `CLAUDE.md` first and follow its "Rules for every agent". In short:
 ## Your area
 - Java: `com.reg21meme.dross.villager.*` (client code such as the renderer in `com.reg21meme.dross.villager.client`).
 - The trader's entity type in `registry/ModEntities` (add only), its lang name, and its texture/renderer.
-- His hut and its path (`villager/TraderHut.java`; `TraderHut.DESIGN` is the Rift Chapel) and the candidate hut designs in `villager/hut/` (`/dross showcase trader_huts`, world-builder's command, builds them all and must keep working).
+- His hut and its path (`villager/TraderHut.java`; `TraderHut.DESIGN` is the Rift Chapel, drawn in `villager/hut/RiftChapel`, the only hut design kept).
 - His **dialogue** (lang keys in `en_us.json`), the **tribute and key-material hand-ins**, giving the **Dross Compass** and the **Rift Key**, and his **shop**.
 - The **Dross Compass** (`villager/DrossCompass`, `DrossCompassTracker`) and its creative-tab entry.
 - The test-only Admin Sword (`villager/AdminSwordItem.java`, `ModItems.ADMIN_SWORD`, `models/item/admin_sword.json`, `textures/item/admin_sword.png`) and its creative-tab entry.
 - The spawn egg (`ModItems.DROSS_TRADER_SPAWN_EGG`, its entry in `ModCreativeTabs`, `models/item/dross_trader_spawn_egg.json`).
 - The logic behind `/dross goto trader` and `/dross trader sendhome` (`villager/TraderCommands.java`). `world-builder` owns the `/dross` root and just hooks these up.
 - Your colors in `DrossColors` (`TRADER_GLOW`, `TRADER_EGG_BASE`, `TRADER_EGG_SPOTS`).
-- The 10 skin candidates: `villager/TraderSkins`, the skin number on `DrossTrader`, the textures in `assets/dross/textures/entity/trader/`, the drawing and preview tools in `tools/skins/` (`python tools/skins/draw_skins.py`) and the previews in `skin-previews/`. Also showcase traders (`DrossTrader.spawnShowcase`), which world-builder's `/dross showcase trader_skins` spawns and which must keep working.
+- The skins: `villager/TraderSkins` (1 Hooded Watcher, kept for a future Dross enemy; 2 The Archivist, the trader's; 3 Ragged Seeker and 8 Blind Oracle, the survivors'), the textures in `assets/dross/textures/entity/trader/`, the drawing and preview tools in `tools/skins/` (`python tools/skins/draw_skins.py`) and the previews in `skin-previews/`.
 - **The survivors** at the Dross hub (`villager/Survivor`, `SurvivorRole`, `SurvivorGoals`, `SurvivorNavigation`, `SurvivorGrounds`, `SurvivorSpawner`, `SurvivorSpawnData`, `SurvivorEvents`, `client/SurvivorRenderer`; entity `dross:survivor`): **the Blind Oracle** (skin 8, the mentor) and **the Ragged Seeker** (skin 3, the student). Both are "he"; never call them guards (code, names or text). They spawn once per world on the spire's dais (`portal-builder`'s `DrossHub.layout`), walk together within 20 blocks of the spire's walls, can be hit but never die (heal and pop back at half health), are ignored by hostile mobs, say their lines (`dross.survivor.mentor|student.line.1-5`) when right-clicked, and have no trades. Headless check: `SurvivorGameTest`.
 
 Not yours:
@@ -38,20 +38,18 @@ The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] ex
 ### Built (keep working)
 1. **Trader entity** `dross:dross_trader` (`DrossTrader`, based on `AbstractVillager`): no vanilla profession, no breeding, never despawns, persistent.
    - He **can never die**: he takes damage and knockback normally, but `hurt` caps each hit so it can't take his last health, and at half health or less he teleports home and fully heals. Don't use `setInvulnerable`: creative-mode players ignore it.
-2. **Skins**: the vanilla villager model. Every trader has a skin number (`getSkin`/`setSkin`, synced, saved as `Skin`).
-   - 0, the default, is the quest trader's look: skin 2, The Archivist (`TraderSkins.QUEST_TRADER`, `TraderSkins.lookFor`), the user's pick. The real trader and spawn-egg traders wear it. Never copy Mojang's textures into the mod.
-   - 1-10 are the skins in `TraderSkins`, original 64x64 textures in the villager layout. The user wants skin 1 kept for a future Dross enemy and skins 3 and 8 for future Dross NPCs (parked).
-   - Showcase traders (`spawnShowcase`, saved with `Showcase`) are frozen (NoAI), silent, have no home or glow, are never the world's trader, and can't be hurt except by `/kill`. Right-clicking one names its skin.
+2. **Skins**: the vanilla villager model. Every trader wears skin 2, The Archivist (`TraderSkins.QUEST_TRADER`), the user's pick; the renderer uses it directly (traders carry no skin number). Never copy Mojang's textures into the mod.
+   - `TraderSkins` holds skins 1, 2, 3 and 8: original 64x64 textures in the villager layout, numbered as in the user's list of ten candidates (the other six were removed). Skin 1 is kept for a future Dross enemy (parked); 3 and 8 are worn by the survivors.
 3. **Spawn once per world, in his hut** (`TraderSpawner`, `TraderHut`, `TraderSpawnData`):
    - On `ServerStartedEvent`, find the village nearest world spawn and read its `StructureStart`.
    - Wait for it to generate with a chunk region ticket, checked once a second (give up after 60 s), then build.
    - **Spot:** fully outside the village's bounding box, on flat-enough dry ground, with the door closest to a village path.
    - **Path:** breadth-first search over ground columns to a village path, made of `dirt_path`.
-   - **Hut:** the Rift Chapel (`villager/hut/RiftChapel`, 9x13x18), built by `TraderHut.DESIGN.build`, door toward the village path, floor at the highest ground under it (dips up to 3 filled). Old worlds keep their 5x5 netherite hut.
+   - **Hut:** the Rift Chapel (`villager/hut/RiftChapel`, 9x13x18), built by `TraderHut.DESIGN.build`, door toward the village path, floor at the highest ground under it (dips up to 3 filled).
    - **Which village:** the 5 nearest villages within 1,000 blocks of spawn are generated at once and the closest with a good spot wins; then the next 5 farther out, the square growing by 1,000 up to 5,000 blocks (`TraderSpawner`, `VillageSearchPlan`). Bumps up to 3 are cut and dips up to 3 filled. Only if nothing in range works: an emergency chapel near spawn (WARN, `TraderSpawnData.isInVillage()` false).
    - `TraderSpawnData` records "spawned", the hut center, his UUID and his last known position.
 4. **Behavior**:
-   - Home = his spot in the hut, the chapel's aisle (`HomePos`, `restrictTo(home, 50)`), plus the hut's 3D footprint (`HutBox`; missing for old netherite huts and egg traders, which use the legacy 5x5 check). He wanders and opens his door.
+   - Home = his spot in the hut, the chapel's aisle (`HomePos`, `restrictTo(home, 50)`), plus the hut's 3D footprint (`HutBox`; missing for egg traders, which use a 5x5 check round home, `EGG_HOME_HALF`). He wanders and opens his door.
    - He teleports to his spot in the hut (enderman sound, `ModParticles.DROSS_PORTAL` particles at both ends) if he's more than 50 blocks out in X or Z, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut or village buildings).
    - `canChangeDimensions()` is false.
    - **Glow:** while any player is within his 50-block area, `setGlowingTag(true)`, with `getTeamColor()` giving the outline color (no scoreboard team).
@@ -64,7 +62,7 @@ The design is in `CLAUDE.md`, "The plan", steps 4 and 7. Items marked [built] ex
    - It stays in the creative "Dross" tab.
 
 ### Early-game build [to build]
-1. **Remove the test trades**: nether star → compass, Dross Portal Frame → Admin Sword, and every Necromancy book trade. Remove `addMissingOffers`. Add a one-time migration that replaces old traders' saved offers with the new shop when they load.
+1. **Remove the test trades**: nether star → compass, Dross Portal Frame → Admin Sword, and every Necromancy book trade. Remove `addMissingOffers`.
 2. **Remove `TestingJoinMessage`** (the Weathered Letter, from `quest-builder`, now tells players where he is). Keep `/dross goto trader` and `/dross trader sendhome`.
 3. **Right-click** (`mobInteract`, main hand only; sneaking falls through to vanilla):
    - Before the quest is complete his trading screen **never** opens.

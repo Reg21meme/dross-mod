@@ -161,7 +161,7 @@ The site's position and the frame's direction are available to the rest of the m
 - **Fallback:** if the spire can't be built, an 11 × 11 platform with a lit 4 × 5 exit portal is built instead.
 
 ### The survivors
-Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the trader's candidate skins (8 and 3).
+Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the Dross skins drawn for the trader's villager model (8 and 3).
 - They start on the dais beside the arrival step and walk together in and around the spire and out of its gate, never more than 20 blocks outside its walls.
 - Right-click one and he says his next line in chat.
 - Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them, and Necromancy never raises undead from hitting them.
@@ -603,7 +603,7 @@ From the project folder, on Windows:
 - **`tools/shrines/`:** generates the two grand shrine designs, the Fallen Cathedral and the Shattered Spire (the user's picks from ten; the other eight were removed).
   - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
   - See `tools/shrines/README.md`.
-- **`tools/skins/`:** draws the 10 trader skins (`textures/entity/trader/`) and renders the front and back previews in `skin-previews/`.
+- **`tools/skins/`:** draws the 4 villager-model skins (`textures/entity/trader/`: 1 Hooded Watcher, kept for later; 2 The Archivist, the trader; 3 Ragged Seeker and 8 Blind Oracle, the survivors) and renders the front and back previews in `skin-previews/`.
 - **`tools/terrain/`:** the Dross's terrain and blocks.
   - `worldgen.py` writes all the terrain data files (noise, biomes, ground cover, features, ores, spawn lists); every tuning number is a labeled constant at its top.
   - `draw_blocks.py` draws the terrain blocks' textures and `block_data.py` writes their models, block states, loot, tags and recipes; previews go to `block-previews/`.
@@ -631,7 +631,7 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 | `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators and the hub falloff (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
 | `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (fitted onto the terrain), the arrival sequence |
 | `world` | The portal site: location search, the Fallen Cathedral, ground fitting, the leak (`world/shrine` holds the shrine designs) |
-| `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` holds the hut designs), the hub's survivors |
+| `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
 | `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
 | `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
 | `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss` |

@@ -1,5 +1,5 @@
 """
-Draws the Dross trader's candidate skins and their previews.
+Draws the Dross skins (villager model) and their previews.
 
 Run from the project folder:
 
@@ -60,7 +60,7 @@ def check_entry(number, skin_id, name, mood):
 
 
 def overview(entries):
-    """Every skin's front and back, numbered and named, five to a row."""
+    """Every skin's front and back, numbered and named, four to a row."""
     title_font = font(30)
     label_font = font(22)
     mood_font = font(17)
@@ -80,14 +80,14 @@ def overview(entries):
         d.text((front.width * 2 + gap - 46, label_h + 4), "back", font=mood_font, fill=(150, 160, 185))
         cells.append(cell)
 
-    per_row = 5
+    per_row = 4
     pad = 16
     header = 60
     cw, ch = cells[0].size
     rows = (len(cells) + per_row - 1) // per_row
     sheet = Image.new("RGB", (pad + per_row * (cw + pad), header + rows * (ch + pad) + pad), (22, 24, 30))
     d = ImageDraw.Draw(sheet)
-    d.text((pad, 14), "Dross trader: candidate skins (front | back)", font=title_font, fill=(235, 240, 255))
+    d.text((pad, 14), "Dross skins (front | back)", font=title_font, fill=(235, 240, 255))
     for i, cell in enumerate(cells):
         x = pad + (i % per_row) * (cw + pad)
         y = header + (i // per_row) * (ch + pad)

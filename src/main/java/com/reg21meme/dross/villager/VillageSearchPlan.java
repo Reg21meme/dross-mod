@@ -52,7 +52,6 @@ final class VillageSearchPlan<V>
     private final int perBatch;
     private final List<V> batch = new ArrayList<>();
     private int radius;
-    private int resolved;
 
     /**
      * @param candidates  every possible village spot, in any order (they are sorted nearest first here)
@@ -111,7 +110,6 @@ final class VillageSearchPlan<V>
                 return null;
             }
             budget--;
-            resolved++;
             V village = resolver.resolve(remaining.remove(index));
             if (village != null)
             {
@@ -124,12 +122,6 @@ final class VillageSearchPlan<V>
     int radius()
     {
         return radius;
-    }
-
-    /** How many candidates have been looked at so far. */
-    int resolvedCount()
-    {
-        return resolved;
     }
 
     private List<V> takeBatch()

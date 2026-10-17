@@ -10,12 +10,13 @@ import net.minecraft.client.renderer.entity.MobRenderer;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Draws the trader with the vanilla villager model and his skin from {@link TraderSkins}: the quest trader's look
- * (skin 2, The Archivist) for every real trader (skin number 0), or the candidate skin a showcase trader's number
- * names. A skin texture fills the whole villager layout (hood or hat, robe, brim) in one image.
+ * Draws the trader with the vanilla villager model and the quest trader's skin from {@link TraderSkins} (skin 2, The
+ * Archivist). A skin texture fills the whole villager layout (hood or hat, robe, brim) in one image.
  */
 public class DrossTraderRenderer extends MobRenderer<DrossTrader, VillagerModel<DrossTrader>>
 {
+    private static final ResourceLocation TEXTURE = TraderSkins.lookFor(TraderSkins.QUEST_TRADER).texture();
+
     public DrossTraderRenderer(EntityRendererProvider.Context context)
     {
         super(context, new VillagerModel<>(context.bakeLayer(ModelLayers.VILLAGER)), 0.5F);
@@ -24,7 +25,7 @@ public class DrossTraderRenderer extends MobRenderer<DrossTrader, VillagerModel<
     @Override
     public ResourceLocation getTextureLocation(DrossTrader entity)
     {
-        return TraderSkins.lookFor(entity.getSkin()).texture();
+        return TEXTURE;
     }
 
     @Override

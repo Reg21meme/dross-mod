@@ -17,10 +17,9 @@ import org.slf4j.Logger;
  * <ul>
  *   <li><b>When he spawns:</b> everyone online is told once, right after the real once-per-world trader is spawned and
  *       saved (in a village's Rift Chapel or the emergency chapel near spawn). {@link TraderSpawner} calls
- *       {@link #announceSpawned}. Spawn-egg traders and showcase traders never do.</li>
- *   <li><b>On joining:</b> a player who joins a world where he has already spawned is told. Old worlds with his old
- *       netherite hut count too. Before he has spawned nothing is said on joining: the message above covers it once
- *       he does.</li>
+ *       {@link #announceSpawned}. Spawn-egg (and {@code /summon}) traders never do.</li>
+ *   <li><b>On joining:</b> a player who joins a world where he has already spawned is told. Before he has spawned
+ *       nothing is said on joining: the message above covers it once he does.</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)

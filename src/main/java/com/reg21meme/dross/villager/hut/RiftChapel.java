@@ -12,7 +12,7 @@ import static com.reg21meme.dross.villager.hut.HutCanvas.hanging;
 import static com.reg21meme.dross.villager.hut.HutCanvas.stairs;
 
 /**
- * 10. Rift Chapel (ominous). A small stone chapel with a dark deepslate base, buttresses, tall blue windows,
+ * The Rift Chapel (ominous), the trader's hut. A small stone chapel with a dark deepslate base, buttresses, tall blue windows,
  * a steep deepslate-tile roof, a blue rose window over the door and an open belfry with a blue flame
  * where the bell should be. Inside: pews, blue banners, lanterns on long chains. Graves by the path.
  * Lapis blocks are set here and there in the stone walls, and a copper lightning rod tops the spire.
@@ -45,7 +45,7 @@ final class RiftChapel extends HutDesign
 
     RiftChapel()
     {
-        super(10, "Rift Chapel", "ominous", 9, 13, 18, 4, 4, 1, 6);
+        super(10, "Rift Chapel", 9, 13, 18, 4, 4, 1, 6);
     }
 
     @Override

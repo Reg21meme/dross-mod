@@ -44,7 +44,7 @@ public class TraderSpawnData extends SavedData
         return pos;
     }
 
-    /** The hut trader's entity UUID, or null in worlds from before this was saved. */
+    /** The hut trader's entity UUID, or null before he has spawned. */
     @Nullable
     public UUID getTraderId()
     {
@@ -59,7 +59,7 @@ public class TraderSpawnData extends SavedData
 
     /**
      * True if his hut stands at the edge of a village, false if it is at the emergency spot near world spawn
-     * (no village could be used). Worlds saved before this was recorded count as in a village.
+     * (no village could be used). True before he has spawned.
      */
     public boolean isInVillage()
     {
@@ -97,8 +97,8 @@ public class TraderSpawnData extends SavedData
         {
             data.traderId = tag.getUUID("Trader");
         }
-        data.lastPos = tag.contains("LastPos") ? NbtUtils.readBlockPos(tag.getCompound("LastPos")) : data.pos;
-        data.inVillage = !tag.contains("InVillage") || tag.getBoolean("InVillage");
+        data.lastPos = NbtUtils.readBlockPos(tag.getCompound("LastPos"));
+        data.inVillage = tag.getBoolean("InVillage");
         return data;
     }
 
