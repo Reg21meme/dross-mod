@@ -50,8 +50,6 @@ import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.scores.PlayerTeam;
-import net.minecraft.world.scores.Scoreboard;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
 import net.minecraftforge.event.entity.EntityLeaveLevelEvent;
@@ -64,7 +62,6 @@ import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.living.LivingDropsEvent;
 import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -129,12 +126,6 @@ public final class RisenUndead
             new DustParticleOptions(DrossColors.vector(DrossColors.RISEN_PUFF), PUFF_SIZE);
     /** Number of particles in a puff. */
     private static final int PUFF_PARTICLES = 25;
-
-    /**
-     * The scoreboard team Deathforged X undead used to glow through (they no longer glow). Kept only to clean up old
-     * worlds: it's deleted when the server starts, and old saved mobs are taken off it when they load.
-     */
-    private static final String OLD_GLOW_TEAM = "dross_risen_glow";
 
     // ---------------------------------------------------------------------------------------------
     // Persistent-data keys.
@@ -546,21 +537,6 @@ public final class RisenUndead
         }
     }
 
-    /**
-     * Old worlds: deletes the team Deathforged X undead used to glow through, so it doesn't linger in
-     * {@code /team list}. Any old saved mob still on it simply ends up on no team (it crumbles when it loads anyway).
-     */
-    @SubscribeEvent
-    public static void onServerStarted(ServerStartedEvent event)
-    {
-        Scoreboard scoreboard = event.getServer().getScoreboard();
-        PlayerTeam oldTeam = scoreboard.getPlayerTeam(OLD_GLOW_TEAM);
-        if (oldTeam != null)
-        {
-            scoreboard.removePlayerTeam(oldTeam);
-        }
-    }
-
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event)
     {
@@ -583,12 +559,6 @@ public final class RisenUndead
         if (event.loadedFromDisk() && isRisen(entity))
         {
             // Loaded back from a save: they're temporary, so they crumble instead of coming back.
-            // Old saves: take a Deathforged X mob off the old glow team (or any team) it was on.
-            Scoreboard scoreboard = level.getScoreboard();
-            if (scoreboard.getPlayersTeam(entity.getScoreboardName()) != null)
-            {
-                scoreboard.removePlayerFromTeam(entity.getScoreboardName());
-            }
             if (level instanceof ServerLevel serverLevel)
             {
                 puff(serverLevel, entity);

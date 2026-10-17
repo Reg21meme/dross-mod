@@ -3,7 +3,6 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophies;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
-import com.reg21meme.dross.enchant.NecromancyScheme;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.WeatheredLetterItem;
 import com.reg21meme.dross.villager.DrossCompass;
@@ -129,10 +128,9 @@ public final class ModCreativeTabs
 
                         // 6. Enchanted books
                         // Enchantments area: a book for every level of Necromancy (I-V), then Deathforged (I-X).
-                        // Necromancy books are marked as the five-level scheme, so they're never moved up a level.
                         for (int level = 1; level <= ModEnchantments.NECROMANCY.get().getMaxLevel(); level++)
                         {
-                            output.accept(NecromancyScheme.createBook(level));
+                            output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.NECROMANCY.get(), level)));
                         }
                         for (int level = 1; level <= ModEnchantments.DEATHFORGED.get().getMaxLevel(); level++)
                         {

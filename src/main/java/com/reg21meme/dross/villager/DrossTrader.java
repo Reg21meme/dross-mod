@@ -1,7 +1,6 @@
 package com.reg21meme.dross.villager;
 
 import com.reg21meme.dross.DrossColors;
-import com.reg21meme.dross.enchant.NecromancyScheme;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.QuestProgress;
@@ -592,8 +591,7 @@ public class DrossTrader extends AbstractVillager
         Enchantment necromancy = ModEnchantments.NECROMANCY.get();
         List<MerchantOffer> list = new ArrayList<>();
         // Necromancy has five levels (I-V); he sells the lowest, level I (the enchantment's minimum level).
-        // The book comes from NecromancyScheme so it carries the "new numbering" marker.
-        list.add(bookOffer(NECROMANCY_EMERALDS, NecromancyScheme.createBook(necromancy.getMinLevel())));
+        list.add(bookOffer(NECROMANCY_EMERALDS, necromancy, necromancy.getMinLevel()));
         list.add(bookOffer(DEATHFORGED_EMERALDS, ModEnchantments.DEATHFORGED.get(), DEATHFORGED_LEVEL));
         return list;
     }

@@ -10,9 +10,6 @@ import net.minecraft.world.item.enchantment.Enchantments;
  * The effect itself lives in {@link NecromancyEvents}; this class holds the rules and the tuning numbers.
  *
  * <p>Level V is for admin testing only (see "Parked for later" in CLAUDE.md).
- *
- * <p>Before the five-level restructure there were only four levels (I-IV). Items from that time are moved up one
- * level, exactly once, by {@link NecromancyScheme}.
  */
 public class NecromancyEnchantment extends Enchantment
 {

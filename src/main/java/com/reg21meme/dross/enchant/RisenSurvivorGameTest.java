@@ -207,13 +207,12 @@ public final class RisenSurvivorGameTest
         owner.setLastHurtMob(target);
     }
 
-    /** An iron sword with Necromancy V and Deathforged I, in the five-level numbering (so it's never moved up a level). */
+    /** An iron sword with Necromancy V and Deathforged I. */
     private static ItemStack necromancySword()
     {
         ItemStack sword = new ItemStack(Items.IRON_SWORD);
         sword.enchant(ModEnchantments.NECROMANCY.get(), NECROMANCY_LEVEL);
         sword.enchant(ModEnchantments.DEATHFORGED.get(), DEATHFORGED_LEVEL);
-        NecromancyScheme.mark(sword);
         return sword;
     }
 

@@ -260,10 +260,6 @@ public final class AnvilRules
             repairCost = AnvilMenu.calculateIncreasedRepairCost(repairCost);
         }
         result.setRepairCost(repairCost);
-        if (necromancyLevel(result) > 0)
-        {
-            NecromancyScheme.mark(result); // it's in the five-level numbering, never move it up
-        }
 
         event.setOutput(result);
         event.setCost(total);
