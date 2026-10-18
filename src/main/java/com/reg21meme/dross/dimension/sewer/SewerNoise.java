@@ -41,28 +41,6 @@ final class SewerNoise
         return lerp(fz, lerp(fx, a, b), lerp(fx, c, d));
     }
 
-    /** Smooth 3D value noise, -1 to 1, with features about 1 unit apart. */
-    static double value3(long seed, double x, double y, double z)
-    {
-        int x0 = (int) Math.floor(x);
-        int y0 = (int) Math.floor(y);
-        int z0 = (int) Math.floor(z);
-        double fx = smooth(x - x0);
-        double fy = smooth(y - y0);
-        double fz = smooth(z - z0);
-        double c000 = lattice(seed, x0, y0, z0);
-        double c100 = lattice(seed, x0 + 1, y0, z0);
-        double c010 = lattice(seed, x0, y0 + 1, z0);
-        double c110 = lattice(seed, x0 + 1, y0 + 1, z0);
-        double c001 = lattice(seed, x0, y0, z0 + 1);
-        double c101 = lattice(seed, x0 + 1, y0, z0 + 1);
-        double c011 = lattice(seed, x0, y0 + 1, z0 + 1);
-        double c111 = lattice(seed, x0 + 1, y0 + 1, z0 + 1);
-        double low = lerp(fy, lerp(fx, c000, c100), lerp(fx, c010, c110));
-        double high = lerp(fy, lerp(fx, c001, c101), lerp(fx, c011, c111));
-        return lerp(fz, low, high);
-    }
-
     /**
      * Patchy 2D noise for floors (sludge patches): three octaves of {@link #value2}, the biggest features about
      * {@code scale} blocks apart. Roughly -1 to 1.

@@ -26,8 +26,6 @@ import net.minecraft.world.level.biome.Biome;
  *   <li>{@link #NETHER_SCAR} Nether Scar: smaller patches where the Nether bleeds through.</li>
  *   <li>{@link #GRAVECRAGS} The Gravecrags: the mountains, peaks about y 230-265; never within about 650 blocks of the hub.</li>
  * </ul>
- * The old superflat biome ({@link ModDimensions#DROSS_FLATS_BIOME}) is still registered for old worlds' chunks, but new
- * land never uses it.
  */
 public final class DrossBiomes
 {

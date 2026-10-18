@@ -203,6 +203,7 @@ public final class TerrainFeaturesGameTest
         {
             throw new GameTestAssertException("there's no Dross level");
         }
+        PondFeature.recordStats();   // the ponds' tries and refusals are only counted for the headless checks
         TerrainProbe probe = TerrainProbe.forWorld(dross);
         CompletableFuture<Map<ResourceKey<Biome>, BlockPos>> sites = CompletableFuture.supplyAsync(
                 () -> TerrainChunksGameTest.findSites(probe, SITE_X, SITE_Z, SITE_CLEAR));
@@ -603,6 +604,7 @@ public final class TerrainFeaturesGameTest
     @GameTest(template = TerrainBlocksGameTest.ARENA, batch = "dross_terrain_ponds")
     public static void pondsHoldTheirFluidAndNeverCutTrees(GameTestHelper helper)
     {
+        PondFeature.recordStats();   // so a pond that doesn't form says why
         ServerLevel level = helper.getLevel();
         ChunkGenerator generator = level.getChunkSource().getGenerator();
         Registry<ConfiguredFeature<?, ?>> features = level.registryAccess().registryOrThrow(Registries.CONFIGURED_FEATURE);

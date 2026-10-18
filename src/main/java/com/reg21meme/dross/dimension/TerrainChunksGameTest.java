@@ -49,7 +49,7 @@ import org.slf4j.Logger;
  * {@value #SITE_CHUNKS} chunks there for real, and checks:
  * <ul>
  *   <li>the biome in the middle is the one asked for, and the hub at 0, 0 stands in Silverwood Forest (read from the
- *       noise, so an older world whose hub chunk was made flat, as Dross Flats, still passes);</li>
+ *       noise, without generating the hub's chunk);</li>
  *   <li>bedrock at the world's floor in every column, and none from 5 blocks above it up;</li>
  *   <li>no air more than {@value #AIR_DEPTH} blocks under the land's natural top, as the noise made it (no caves or gaps
  *       in the terrain; boulders, ice spikes and the like stand on that top and may overhang a slope, so the ground's
@@ -58,7 +58,9 @@ import org.slf4j.Logger;
  *       features add to the ground, such as boulders, pond shores and vents), its ground cover (not bare rock) covers at
  *       least 60%, and its own signature block is there (at least 15%; 40% Cragstone or snow in the Gravecrags); in the
  *       Nether Scar, instead, the netherrack ground its soul and nylium patches leave is there (at least 3% of the site)
- *       and 5-92% of it is Scarred Netherrack (the cracks mixed with plain netherrack; see SCAR_CRACKED_MIN for why);</li>
+ *       and 5-92% of it is Scarred Netherrack (the cracks mixed with plain netherrack; see SCAR_CRACKED_MIN for why).
+ *       These shares count only the site's columns of its own biome: a thin sliver of a neighbouring biome that the
+ *       search's {@value #SITE_CELL}-block grid stepped over gets that biome's ground (at most 5% of a site may be one);</li>
  *   <li>every fluid is a still source, lava has something solid (or lava) on every side and below, and the Nether
  *       Scar has no lava or fire; every plant, vine, lichen and snow layer could stay where it is.</li>
  * </ul>
@@ -88,8 +90,14 @@ public final class TerrainChunksGameTest
     private static final int OVERWORLD_BASELINE_Z = 14000;
     /** No air allowed more than this far under the ground's top. */
     private static final int AIR_DEPTH = 8;
-    /** At least this share of the top blocks must be the biome's own. */
+    /** At least this share of the top blocks must be the biome's own (counting only the site's columns of its biome). */
     private static final double OWN_GROUND = 0.99D;
+    /**
+     * At most this share of a site's columns may belong to another biome (a thin sliver of a neighbour that the site
+     * search's {@value #SITE_CELL}-block grid stepped over; the surface rules give those columns their own biome's ground,
+     * so they're left out of the ground shares). More means the site search is broken.
+     */
+    private static final double MAX_OTHER_BIOME = 0.05D;
 
     /**
      * Each biome's ground (keep in step with SURFACE in tools/terrain/worldgen.py):
@@ -187,7 +195,7 @@ public final class TerrainChunksGameTest
                     {
                         throw new GameTestAssertException("looking for sample sites took too long");
                     }
-                    // From the noise, not the chunk: an older world's hub chunk was made flat (Dross Flats) before the terrain.
+                    // From the noise (the hub's chunk needn't be generated for this).
                     BlockPos hub = DrossHub.CENTER.atY(TerrainProbe.BIOME_Y);
                     if (!DrossBiomes.isBiome(dross, hub, DrossBiomes.SILVERWOOD_FOREST))
                     {
@@ -347,6 +355,8 @@ public final class TerrainChunksGameTest
         List<BoundingBox> sewers = Sewers.pieceBoxes(dross, chunks.stream().map(LevelChunk::getPos).toList());
         List<BoundingBox> pipes = Sewers.pipeBoxes(dross, chunks.stream().map(LevelChunk::getPos).toList());
         int sewerBlocks = 0;
+        int otherBiome = 0;
+        Map<String, Integer> otherTops = new HashMap<>();
         for (LevelChunk chunk : chunks)
         {
             int bx = chunk.getPos().getMinBlockX();
@@ -412,12 +422,32 @@ public final class TerrainChunksGameTest
                     }
                     groundAt.put(BlockPos.asLong(x, 0, z), groundY);
                     BlockState ground = chunk.getBlockState(pos.set(x, groundY, z));
-                    tops.merge(ForgeRegistries.BLOCKS.getKey(ground.getBlock()).toString(), 1, Integer::sum);
+                    String top = ForgeRegistries.BLOCKS.getKey(ground.getBlock()).toString();
+                    // The surface rules cover a column by the biome at its top (with Minecraft's biome fuzz, which
+                    // dross.getBiome applies the same way): a column of another biome gets that biome's ground.
+                    // (The Blightwood underground, the sewers biome, has Blightwood's surface rules: a low column can reach it.)
+                    ResourceKey<Biome> columnBiome = dross.getBiome(pos.set(x, groundY, z)).unwrapKey().orElse(null);
+                    if (biome.equals(columnBiome) || (biome.equals(DrossBiomes.BLIGHTWOOD) && DrossBiomes.SEWERS.equals(columnBiome)))
+                    {
+                        tops.merge(top, 1, Integer::sum);
+                    }
+                    else
+                    {
+                        otherBiome++;
+                        otherTops.merge(top + " in " + (columnBiome == null ? "?" : columnBiome.location().getPath()), 1, Integer::sum);
+                    }
                     lowest = Math.min(lowest, groundY);
                     highest = Math.max(highest, groundY);
                 }
             }
         }
+        String where = name + " site at " + site.getX() + ", " + site.getZ();
+        if (otherBiome > MAX_OTHER_BIOME * columns)
+        {
+            problems.add(String.format(Locale.ROOT, "%s: %.1f%% of its columns are another biome (%s)", where, 100.0D * otherBiome / columns, otherTops));
+        }
+        int total = columns;
+        columns -= otherBiome;   // the ground shares count only the site's columns of its own biome
         Ground want = GROUND.get(biome);
         int own = 0;
         int cover = 0;
@@ -437,7 +467,6 @@ public final class TerrainChunksGameTest
                 signature += e.getValue();
             }
         }
-        String where = name + " site at " + site.getX() + ", " + site.getZ();
         if (own < OWN_GROUND * columns)
         {
             problems.add(String.format(Locale.ROOT, "%s: only %.1f%% of the top blocks are its own (%s)", where, 100.0D * own / columns, tops));
@@ -491,6 +520,10 @@ public final class TerrainChunksGameTest
                 where, chunks.size(), String.format(Locale.ROOT, "%.1f", msPerChunk), lowest, highest,
                 String.format(Locale.ROOT, "%.1f", inner == 0 ? 0.0D : 100.0D * steep / inner), sorted(tops, columns),
                 sewers.isEmpty() ? "" : "; a sewer network under it (" + sewerBlocks + " of its blocks skipped, " + pipes.size() + " pipe(s))");
+        if (otherBiome > 0)
+        {
+            LOGGER.info("[terrain chunks] {}: {} of its {} columns are another biome, left out of the ground shares: {}", where, otherBiome, total, otherTops);
+        }
     }
 
     /**

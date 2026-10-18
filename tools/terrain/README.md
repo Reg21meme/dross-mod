@@ -25,7 +25,7 @@ python tools/terrain/block_data.py         # JSON for the blocks and items
 python tools/terrain/worldgen.py           # worldgen JSON (terrain, biomes, surface, tree shapes)
 python tools/terrain/check_assets.py       # everything there?
 .\gradlew.bat build --console=plain
-.\gradlew.bat runGameTestServer --console=plain   # also writes build/tv1/trees.json
+$env:DROSS_TREE_PREVIEWS="1"; .\gradlew.bat runGameTestServer --console=plain   # with the variable: also writes build/tv1/trees.json
 python tools/terrain/preview_trees.py      # block-previews/trees.png
 ```
 
@@ -44,7 +44,7 @@ and, with the environment variable set, draws the real previews into `terrain-pr
 writes the blocks `preview_sites.py` draws (`build/tv1/views/`). Without it the preview test just succeeds. Read the
 `[terrain test]`, `[terrain chunks]`, `[terrain features]` and `[terrain previews]` lines in the output (or
 `run/logs/latest.log`). Note: a world keeps the land it has already generated, so look at terrain changes in a new
-world (old worlds only get the new terrain in chunks nobody has visited yet).
+world (the mod supports new worlds only for now).
 
 ## Adding a block (for example in a later stage)
 
@@ -202,10 +202,10 @@ ever fails.
 ## worldgen.py: mob spawns (BIOMES section)
 
 Each biome's spawn lists are in its JSON (`spawners`, `spawn_costs`), written by `biome_spawns`. Four biomes (Silverwood
-Forest, Rimefall, the Nether Scar, the Gravecrags) copy the old superflat biome's lists exactly
-(`data/dross/worldgen/biome/dross_flats.json`, `OLD_BIOME`): the plains monsters minus slimes, creepers and spiders
-(zombies, zombie villagers, skeletons, endermen, witches), the plains animals and bats. To change those, edit
-`dross_flats.json` and run `worldgen.py`. **Blightwood** copies its animals and bats but has its own monsters (rats and
+Forest, Rimefall, the Nether Scar, the Gravecrags) get the Dross's base lists exactly (`BASE_MONSTERS`,
+`BASE_CREATURES`, `BASE_AMBIENT` in the BIOMES section): the plains monsters minus slimes, creepers and spiders
+(zombies, zombie villagers, skeletons, endermen, witches), the plains animals and bats. To change those, edit the
+constants and run `worldgen.py`. **Blightwood** gets the base animals and bats but has its own monsters (rats and
 witches, `SPAWN_REPLACEMENTS`; see the sewers' "Spawns" below).
 
 **The Cinder Wastes** have their own lists (`SPAWN_OVERRIDES`; the user's round 2 request): no zombies, skeletons or

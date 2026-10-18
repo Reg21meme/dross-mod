@@ -81,6 +81,7 @@ import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
+import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 
 /**
@@ -167,6 +168,7 @@ public final class SewersGameTest
     private static final int MIN_CAVE_CANDLES = 6;
     /** The poisoned ground round the grand entrance: at least this many of each. */
     private static final int MIN_COARSE_DIRT = 25;
+    /** (its layout plans at least SewerTuning.POISON_SLUDGE_MIN; a bump, a plant or a pond can take a few of them) */
     private static final int MIN_POISON_SLUDGE = 4;
     private static final int MIN_DEAD_BUSHES = 3;
     private static final int MIN_BONES = 4;
@@ -952,6 +954,10 @@ public final class SewersGameTest
         int fences = 0;
         int vents = 0;
         int trees = 0;
+        List<String> treeBlocks = new ArrayList<>();
+        // No tree or giant mushroom block within this many blocks (a circle round the opening): world generation keeps
+        // Blightwood's trees, mushrooms and logs from starting within GRAND_CLEARANCE (26), and their caps and logs reach
+        // at most about 4.5 blocks from where they start, so the nearest can be about 21 out (outside the poisoned ground).
         int clear = SewerTuning.GRAND_CLEARANCE - 10;
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int dx = -clear; dx <= clear; dx++)
@@ -968,10 +974,15 @@ public final class SewersGameTest
                     {
                         continue;
                     }
-                    if (s.is(BlockTags.LOGS) || s.is(ModBlocks.BLIGHTCAP_BLOCK.get()) || s.is(ModBlocks.ROTTING_BLIGHTCAP.get())
-                            || s.is(ModBlocks.BLIGHTCAP_STEM.get()))
+                    if (d <= clear && (s.is(BlockTags.LOGS) || s.is(ModBlocks.BLIGHTCAP_BLOCK.get()) || s.is(ModBlocks.ROTTING_BLIGHTCAP.get())
+                            || s.is(ModBlocks.BLIGHTCAP_STEM.get())))
                     {
                         trees++;
+                        if (treeBlocks.size() < 6)
+                        {
+                            treeBlocks.add(String.format(Locale.ROOT, "%s at %d, %d, %d (%.1f blocks out, biome %s)", ForgeRegistries.BLOCKS.getKey(s.getBlock()),
+                                    x, y, z, d, dross.getBiome(pos).unwrapKey().map(k -> k.location().getPath()).orElse("?")));
+                        }
                     }
                     if (d > r * (1.0D + SewerTuning.POISON_WOBBLE) || d <= SewerTuning.GRAND_RIM_RADIUS + 0.7D)
                     {
@@ -993,16 +1004,18 @@ public final class SewersGameTest
         if (coarse < MIN_COARSE_DIRT || sludge < MIN_POISON_SLUDGE || bushes < MIN_DEAD_BUSHES || bones < MIN_BONES || carpets < MIN_NEST_CARPETS
                 || webs < MIN_COBWEBS || fences < MIN_FENCES)
         {
-            problems.add(String.format(Locale.ROOT, "the ground round it isn't poisoned enough: %d coarse dirt (%d+), %d sludge puddles (%d+), %d dead bushes "
-                            + "(%d+), %d bone blocks (%d+), %d nest carpets (%d+), %d cobwebs (%d+), %d fence posts (%d+)", coarse, MIN_COARSE_DIRT, sludge,
-                    MIN_POISON_SLUDGE, bushes, MIN_DEAD_BUSHES, bones, MIN_BONES, carpets, MIN_NEST_CARPETS, webs, MIN_COBWEBS, fences, MIN_FENCES));
+            problems.add(String.format(Locale.ROOT, "the ground round it isn't poisoned enough: %d coarse dirt (%d+), %d sludge puddles (%d+; %d planned), "
+                            + "%d dead bushes (%d+), %d bone blocks (%d+), %d nest carpets (%d+), %d cobwebs (%d+), %d fence posts (%d+)", coarse, MIN_COARSE_DIRT,
+                    sludge, MIN_POISON_SLUDGE, entrance.plannedSludge(), bushes, MIN_DEAD_BUSHES, bones, MIN_BONES, carpets, MIN_NEST_CARPETS, webs,
+                    MIN_COBWEBS, fences, MIN_FENCES));
         }
         if (trees > 0)
         {
-            problems.add(trees + " tree or giant mushroom blocks within " + clear + " blocks of it (world generation should keep them off)");
+            problems.add(trees + " tree or giant mushroom blocks within " + clear + " blocks of it (world generation should keep them off): " + treeBlocks);
         }
-        return String.format(Locale.ROOT, "%d coarse dirt, %d sludge puddles, %d dead bushes, %d bone blocks, %d carpets, %d cobwebs, %d fence posts, "
-                + "%d vents, %d tree blocks within %d", coarse, sludge, bushes, bones, carpets, webs, fences, vents, trees, clear);
+        return String.format(Locale.ROOT, "%d coarse dirt, %d sludge puddles (%d planned), %d dead bushes, %d bone blocks, %d carpets, %d cobwebs, "
+                + "%d fence posts, %d vents, %d tree blocks within %d", coarse, sludge, entrance.plannedSludge(), bushes, bones, carpets, webs, fences,
+                vents, trees, clear);
     }
 
     /** The royal road: the main tunnel from the grand entrance to the cave. */

@@ -254,7 +254,6 @@
   "biome.dross.rimefall": "Rimefall",
   "biome.dross.nether_scar": "Nether Scar",
   "biome.dross.gravecrags": "The Gravecrags",
-  "biome.dross.dross_flats": "Dross Flats",
   "commands.dross.goto.biome.success_from_hub": "Teleported to the nearest part of %s at %s, %s, %s (%s blocks from the hub)",
   "commands.dross.goto.biome.success_from_you": "Teleported to the nearest part of %s at %s, %s, %s (%s blocks from where you were)",
   "commands.dross.goto.biome.already_there": "You're already in %s, so you weren't moved.",

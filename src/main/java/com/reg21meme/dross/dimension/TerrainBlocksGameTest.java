@@ -81,7 +81,8 @@ import org.slf4j.Logger;
  *   <li>{@link #saplingGrowsSilverwood}, {@link #fourSaplingsGrowGreatSilverwood}: saplings grow the right trees.</li>
  *   <li>{@link #treeShapesGrow}: each tree shape, grown {@link #TREES_PER_SHAPE} times on Silvermoss, has logs and
  *       leaves, a trunk of the right height, no leaf too far from a log to stay (it would decay), and some Stormvine.
- *       The grown trees are written to {@code build/tv1/trees.json} for {@code tools/terrain/preview_trees.py}.</li>
+ *       With the environment variable {@value #TREE_PREVIEW_ENV} (or {@code DROSS_TERRAIN_PREVIEWS}) set to {@code 1}, the
+ *       grown trees are written to {@code build/tv1/trees.json} for {@code tools/terrain/preview_trees.py}.</li>
  *   <li>{@link #stormvineGlowsAndNeverSpreads}: Stormvine lights its surroundings and never grows.</li>
  *   <li>{@link #recipesExist}: the smelting, blasting and crafting recipes, and that the plants compost.</li>
  * </ul>
@@ -630,9 +631,19 @@ public final class TerrainBlocksGameTest
         return n;
     }
 
-    /** Writes the grown trees to build/tv1/trees.json (the project's build folder) for the preview renderer. */
+    /** Set to 1 (or DROSS_TERRAIN_PREVIEWS=1) to write the grown trees for tools/terrain/preview_trees.py. */
+    static final String TREE_PREVIEW_ENV = "DROSS_TREE_PREVIEWS";
+
+    /**
+     * Writes the grown trees to build/tv1/trees.json (the project's build folder) for the preview renderer, only when
+     * {@value #TREE_PREVIEW_ENV}=1 or {@code DROSS_TERRAIN_PREVIEWS}=1 (like the other preview exporters).
+     */
     private static void writeDump(JsonArray trees)
     {
+        if (!"1".equals(System.getenv(TREE_PREVIEW_ENV)) && !"1".equals(System.getenv(TerrainPreviewGameTest.ENV)))
+        {
+            return;
+        }
         JsonObject root = new JsonObject();
         root.addProperty("note", "Written by TerrainBlocksGameTest.treeShapesGrow; rendered by tools/terrain/preview_trees.py");
         root.add("trees", trees);

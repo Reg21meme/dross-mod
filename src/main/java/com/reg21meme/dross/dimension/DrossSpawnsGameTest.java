@@ -54,9 +54,10 @@ import org.slf4j.Logger;
  * {@code tools/terrain/worldgen.py}: BIOMES, {@code SPAWN_OVERRIDES}). Run them with
  * {@code .\gradlew.bat runGameTestServer --console=plain}.
  * <ul>
- *   <li>{@link #spawnListsPerBiome}: four biomes keep the old Dross spawn lists exactly (those of the old superflat
- *       biome, Dross Flats: the plains monsters minus slimes, creepers and spiders, the plains animals, bats); Blightwood
- *       keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
+ *   <li>{@link #spawnListsPerBiome}: four biomes have the Dross's base spawn lists exactly (worldgen.py's
+ *       {@code BASE_MONSTERS}, {@code BASE_CREATURES}, {@code BASE_AMBIENT}: the plains monsters minus slimes, creepers
+ *       and spiders, the plains animals, bats; Silverwood Forest's lists are the reference the other three must match);
+ *       Blightwood keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
  *       witches 7% of the mobs spawning there, 1 in 5 of the rats enraged); the sewers
  *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only the Cinder
  *       Colossus's golems (the user's round 2 request): stone and lava golems as monsters, a lava golem 1 pick in
@@ -76,9 +77,9 @@ public final class DrossSpawnsGameTest
 
     /** The user's rule for the Cinder Wastes: near lava about 1 golem in this many is a lava golem (weights 20 : 80). */
     private static final int LAVA_GOLEM_ONE_IN = 5;
-    /** Mobs the old lists must still have, and the ones the user removed from them (slimes, creepers, spiders). */
-    private static final List<EntityType<?>> OLD_MONSTERS_KEPT = List.of(EntityType.ZOMBIE, EntityType.SKELETON);
-    private static final List<EntityType<?>> OLD_MONSTERS_REMOVED = List.of(EntityType.SLIME, EntityType.CREEPER, EntityType.SPIDER);
+    /** Mobs the base lists must have, and the ones the user removed from them (slimes, creepers, spiders). */
+    private static final List<EntityType<?>> BASE_MONSTERS_KEPT = List.of(EntityType.ZOMBIE, EntityType.SKELETON);
+    private static final List<EntityType<?>> BASE_MONSTERS_REMOVED = List.of(EntityType.SLIME, EntityType.CREEPER, EntityType.SPIDER);
     /**
      * The user's rats (October 2026): on Blightwood's surface only rats and witches spawn (October 17: no zombies,
      * skeletons or endermen), the witches 7% of the mobs, 1 in 5 of the rats enraged; in the sewers and the rat cave only
@@ -112,29 +113,35 @@ public final class DrossSpawnsGameTest
     public static void spawnListsPerBiome(GameTestHelper helper)
     {
         Registry<Biome> biomes = helper.getLevel().registryAccess().registryOrThrow(Registries.BIOME);
-        Biome old = biomes.get(ModDimensions.DROSS_FLATS_BIOME);
-        if (old == null)
+        // The base lists, as the main biome (Silverwood Forest) has them; the other plain biomes must match it exactly.
+        Biome reference = biomes.get(DrossBiomes.SILVERWOOD_FOREST);
+        if (reference == null)
         {
-            throw new GameTestAssertException("the old Dross biome " + ModDimensions.DROSS_FLATS_BIOME.location() + " isn't registered");
+            throw new GameTestAssertException("the biome " + DrossBiomes.SILVERWOOD_FOREST.location() + " isn't registered");
         }
-        MobSpawnSettings oldMobs = old.getMobSettings();
+        MobSpawnSettings baseMobs = reference.getMobSettings();
         List<String> problems = new ArrayList<>();
 
-        // The old lists themselves: the user's rule (no slimes, creepers or spiders), and zombies and skeletons kept.
-        Set<EntityType<?>> oldMonsters = types(oldMobs.getMobs(MobCategory.MONSTER));
-        for (EntityType<?> kept : OLD_MONSTERS_KEPT)
+        // The base lists themselves: the user's rule (no slimes, creepers or spiders), and zombies and skeletons kept.
+        Set<EntityType<?>> baseMonsters = types(baseMobs.getMobs(MobCategory.MONSTER));
+        for (EntityType<?> kept : BASE_MONSTERS_KEPT)
         {
-            if (!oldMonsters.contains(kept))
+            if (!baseMonsters.contains(kept))
             {
-                problems.add("the old Dross monsters should include " + EntityType.getKey(kept) + " (" + describe(oldMobs.getMobs(MobCategory.MONSTER)) + ")");
+                problems.add("the Dross's base monsters should include " + EntityType.getKey(kept) + " (" + describe(baseMobs.getMobs(MobCategory.MONSTER)) + ")");
             }
         }
-        for (EntityType<?> removed : OLD_MONSTERS_REMOVED)
+        for (EntityType<?> removed : BASE_MONSTERS_REMOVED)
         {
-            if (oldMobs.getEntityTypes().contains(removed))
+            if (baseMobs.getEntityTypes().contains(removed))
             {
-                problems.add("the user removed " + EntityType.getKey(removed) + " from the Dross, but the old lists have it");
+                problems.add("the user removed " + EntityType.getKey(removed) + " from the Dross, but the base lists have it");
             }
+        }
+        if (baseMobs.getMobs(MobCategory.CREATURE).isEmpty() || baseMobs.getMobs(MobCategory.AMBIENT).isEmpty())
+        {
+            problems.add("the Dross's base lists should have animals and bats, but they're " + describe(baseMobs.getMobs(MobCategory.CREATURE))
+                    + " and " + describe(baseMobs.getMobs(MobCategory.AMBIENT)));
         }
 
         for (ResourceKey<Biome> key : DrossBiomes.ALL)
@@ -151,11 +158,11 @@ public final class DrossSpawnsGameTest
             }
             else if (key.equals(DrossBiomes.BLIGHTWOOD))
             {
-                checkBlightwoodLists(biome.getMobSettings(), oldMobs, problems);
+                checkBlightwoodLists(biome.getMobSettings(), baseMobs, problems);
             }
-            else
+            else if (!key.equals(DrossBiomes.SILVERWOOD_FOREST))
             {
-                checkSameAsOld(DrossBiomes.name(key), biome.getMobSettings(), oldMobs, problems);
+                checkSameAsBase(DrossBiomes.name(key), biome.getMobSettings(), baseMobs, problems);
             }
         }
         // The sewers under Blightwood: only rats (3 in 5 enraged), nothing in any other list; the rat cave's own list the same
@@ -200,41 +207,41 @@ public final class DrossSpawnsGameTest
         helper.succeed();
     }
 
-    /** Every list, every spawn cost and the animal chance exactly as the old Dross biome has them. */
-    private static void checkSameAsOld(String name, MobSpawnSettings mobs, MobSpawnSettings oldMobs, List<String> problems)
+    /** Every list, every spawn cost and the animal chance exactly as the base lists (Silverwood Forest's) have them. */
+    private static void checkSameAsBase(String name, MobSpawnSettings mobs, MobSpawnSettings baseMobs, List<String> problems)
     {
         for (MobCategory category : MobCategory.values())
         {
             List<String> have = describe(mobs.getMobs(category));
-            List<String> want = describe(oldMobs.getMobs(category));
+            List<String> want = describe(baseMobs.getMobs(category));
             if (!have.equals(want))
             {
-                problems.add(name + "'s " + category.getName() + " list should be the old Dross list " + want + ", but it's " + have);
+                problems.add(name + "'s " + category.getName() + " list should be the base Dross list " + want + ", but it's " + have);
             }
         }
-        Set<EntityType<?>> everyType = new LinkedHashSet<>(oldMobs.getEntityTypes());
+        Set<EntityType<?>> everyType = new LinkedHashSet<>(baseMobs.getEntityTypes());
         everyType.addAll(mobs.getEntityTypes());
         for (EntityType<?> type : everyType)
         {
             MobSpawnSettings.MobSpawnCost have = mobs.getMobSpawnCost(type);
-            MobSpawnSettings.MobSpawnCost want = oldMobs.getMobSpawnCost(type);
+            MobSpawnSettings.MobSpawnCost want = baseMobs.getMobSpawnCost(type);
             if (!Objects.equals(have, want))
             {
-                problems.add(name + " gives " + EntityType.getKey(type) + " the spawn cost " + have + ", the old Dross biome " + want);
+                problems.add(name + " gives " + EntityType.getKey(type) + " the spawn cost " + have + ", the base lists " + want);
             }
         }
-        if (mobs.getCreatureProbability() != oldMobs.getCreatureProbability())
+        if (mobs.getCreatureProbability() != baseMobs.getCreatureProbability())
         {
-            problems.add(name + "'s animal chance is " + mobs.getCreatureProbability() + ", the old Dross biome's " + oldMobs.getCreatureProbability());
+            problems.add(name + "'s animal chance is " + mobs.getCreatureProbability() + ", the base lists' " + baseMobs.getCreatureProbability());
         }
     }
 
     /**
      * Blightwood (the user's request, October 17): its monsters are only rats and witches, no zombies, skeletons or
      * endermen; the witches are 7% of the mobs spawning there and 1 in 5 of the rats is enraged (counting group sizes:
-     * weight x average group). Its other lists (animals, bats) stay the old Dross lists.
+     * weight x average group). Its other lists (animals, bats) stay the base Dross lists.
      */
-    private static void checkBlightwoodLists(MobSpawnSettings mobs, MobSpawnSettings oldMobs, List<String> problems)
+    private static void checkBlightwoodLists(MobSpawnSettings mobs, MobSpawnSettings baseMobs, List<String> problems)
     {
         EntityType<?> rat = ModEntities.RAT.get();
         EntityType<?> enraged = ModEntities.ENRAGED_RAT.get();
@@ -277,14 +284,14 @@ public final class DrossSpawnsGameTest
                 String.format(Locale.ROOT, "%.1f", 100.0D * witches / Math.max(1.0D, all)));
         for (MobCategory category : MobCategory.values())
         {
-            if (category != MobCategory.MONSTER && !describe(mobs.getMobs(category)).equals(describe(oldMobs.getMobs(category))))
+            if (category != MobCategory.MONSTER && !describe(mobs.getMobs(category)).equals(describe(baseMobs.getMobs(category))))
             {
-                problems.add("Blightwood's " + category.getName() + " list should be the old Dross list");
+                problems.add("Blightwood's " + category.getName() + " list should be the base Dross list");
             }
         }
-        if (mobs.getCreatureProbability() != oldMobs.getCreatureProbability())
+        if (mobs.getCreatureProbability() != baseMobs.getCreatureProbability())
         {
-            problems.add("Blightwood's animal chance should be the old Dross biome's");
+            problems.add("Blightwood's animal chance should be the base lists'");
         }
     }
 

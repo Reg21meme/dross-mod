@@ -177,6 +177,12 @@ public final class SewerTuning
     /** ...this share puddles of Sewer Sludge (in small patches, this many blocks across)... */
     public static final double POISON_SLUDGE = 0.18D;
     public static final double POISON_SLUDGE_PATCH = 3.0D;
+    /**
+     * ...but never fewer than this many sludge blocks in all: where the patch noise runs low round a pipe (measured over
+     * 20,000 pipes, about 1 in 40 would get fewer than 4 sludge blocks and about 1 in 1,000 none), the puddles grow until
+     * there are this many (about 1 pipe in 6 gets a little more sludge; the rest are as before).
+     */
+    public static final int POISON_SLUDGE_MIN = 8;
     /** ...dead bushes on this share of the rest... */
     public static final double POISON_DEAD_BUSHES = 0.12D;
     /** ...and cobwebs on this share. */

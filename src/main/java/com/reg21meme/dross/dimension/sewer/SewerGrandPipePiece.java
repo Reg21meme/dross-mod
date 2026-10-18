@@ -200,7 +200,16 @@ public final class SewerGrandPipePiece extends SewerPiece implements SewerEntran
         final Map<Long, Integer> fences = new HashMap<>();
         /** Vents in the ground. */
         final List<Long> vents = new ArrayList<>();
+        /** The sludge puddles' noise threshold (lowered from POISON_SLUDGE's if that gave too few: POISON_SLUDGE_MIN)... */
+        double sludgeThreshold;
+        /** ...and how many columns it makes sludge, before the ground is looked at. */
+        int sludgePlanned;
     }
+
+    /** The sludge threshold is lowered by this much at a time... */
+    private static final double SLUDGE_RELAX_STEP = 0.02D;
+    /** ...at most this many times. */
+    private static final int SLUDGE_RELAX_STEPS = 50;
 
     private static long column(int dx, int dz)
     {
@@ -318,7 +327,76 @@ public final class SewerGrandPipePiece extends SewerPiece implements SewerEntran
                 break;
             }
         }
+        // sludge puddles: where the patch noise is high enough (POISON_SLUDGE), but at least POISON_SLUDGE_MIN blocks: if
+        // the noise runs low round this pipe, its puddles grow (the threshold drops) until there are that many
+        double threshold = SewerNoise.thresholdFor(SewerTuning.POISON_SLUDGE);
+        int planned = plannedSludge(l, threshold);
+        for (int step = 0; step < SLUDGE_RELAX_STEPS && planned < SewerTuning.POISON_SLUDGE_MIN; step++)
+        {
+            threshold -= SLUDGE_RELAX_STEP;
+            planned = plannedSludge(l, threshold);
+        }
+        l.sludgeThreshold = threshold;
+        l.sludgePlanned = planned;
         return l;
+    }
+
+    /** How many columns of the poisoned ground get sludge with this threshold (not counting nests, fences and vents). */
+    private int plannedSludge(Layout l, double threshold)
+    {
+        int r = reach();
+        int n = 0;
+        for (int dx = -r; dx <= r; dx++)
+        {
+            for (int dz = -r; dz <= r; dz++)
+            {
+                double strength = poisonStrength(dx, dz);
+                long key = column(dx, dz);
+                if (strength >= 0.0D && !l.vents.contains(key) && !l.nests.containsKey(key) && !l.fences.containsKey(key)
+                        && isSludge(dx, dz, strength, threshold))
+                {
+                    n++;
+                }
+            }
+        }
+        return n;
+    }
+
+    /**
+     * How strong the poison is at (dx, dz) from the pipe's middle: 1 at the pipe, fading to 0 at the poisoned ground's
+     * wobbly edge; -1 where there's no poisoned ground (under the rim, on the steps' lane, beyond the edge).
+     */
+    private double poisonStrength(int dx, int dz)
+    {
+        double d = Math.sqrt(dx * dx + dz * dz);
+        if (d <= SewerTuning.GRAND_RIM_RADIUS + 0.7D || onSteps(dx, dz))
+        {
+            return -1.0D;
+        }
+        double angle = Math.atan2(dz, dx);
+        double wobble = SewerNoise.value2(this.seed ^ 0x9015E2L, 3.0D + 1.5D * Math.cos(angle), 3.0D + 1.5D * Math.sin(angle));
+        double edge = SewerTuning.POISON_RADIUS * (1.0D + SewerTuning.POISON_WOBBLE * wobble);
+        if (d > edge)
+        {
+            return -1.0D;
+        }
+        double e = d / edge;
+        return 1.0D - e * e;
+    }
+
+    /** True if the column (dx, dz), with this poison strength, is a sludge puddle (the weaker the poison, the rarer). */
+    private boolean isSludge(int dx, int dz, double strength, double threshold)
+    {
+        return SewerNoise.patches(this.seed ^ 0x51D9EL, this.x + dx, this.z + dz, SewerTuning.POISON_SLUDGE_PATCH) > threshold + (1.0D - strength) * 0.6D;
+    }
+
+    /**
+     * How many columns of the poisoned ground its layout gives a sludge puddle (at least
+     * {@link SewerTuning#POISON_SLUDGE_MIN}), before the ground is looked at: a pond, a plant or a bump can take a few.
+     */
+    public int plannedSludge()
+    {
+        return layout().sludgePlanned;
     }
 
     private static double angleGap(double a, double b)
@@ -560,8 +638,6 @@ public final class SewerGrandPipePiece extends SewerPiece implements SewerEntran
     {
         Layout l = layout();
         int r = reach();
-        double clear = SewerTuning.GRAND_RIM_RADIUS + 0.7D;
-        double sludgeThreshold = SewerNoise.thresholdFor(SewerTuning.POISON_SLUDGE);
         for (int dx = -r; dx <= r; dx++)
         {
             for (int dz = -r; dz <= r; dz++)
@@ -572,15 +648,9 @@ public final class SewerGrandPipePiece extends SewerPiece implements SewerEntran
                 {
                     continue;
                 }
-                double d = Math.sqrt(dx * dx + dz * dz);
-                if (d <= clear || onSteps(dx, dz))
-                {
-                    continue;
-                }
-                double angle = Math.atan2(dz, dx);
-                double wobble = SewerNoise.value2(this.seed ^ 0x9015E2L, 3.0D + 1.5D * Math.cos(angle), 3.0D + 1.5D * Math.sin(angle));
-                double edge = SewerTuning.POISON_RADIUS * (1.0D + SewerTuning.POISON_WOBBLE * wobble);
-                if (d > edge)
+                // how strong the poison is here: full near the pipe, fading to nothing at the edge (none off the ground)
+                double strength = poisonStrength(dx, dz);
+                if (strength < 0.0D)
                 {
                     continue;
                 }
@@ -589,9 +659,6 @@ public final class SewerGrandPipePiece extends SewerPiece implements SewerEntran
                 {
                     continue;
                 }
-                // how strong the poison is here: full near the pipe, fading to nothing at the edge
-                double e = d / edge;
-                double strength = 1.0D - e * e;
                 long key = column(dx, dz);
                 Integer nest = l.nests.get(key);
                 Integer fence = l.fences.get(key);
@@ -621,8 +688,7 @@ public final class SewerGrandPipePiece extends SewerPiece implements SewerEntran
                     }
                     continue;
                 }
-                boolean sludge = SewerNoise.patches(this.seed ^ 0x51D9EL, bx, bz, SewerTuning.POISON_SLUDGE_PATCH) > sludgeThreshold + (1.0D - strength) * 0.6D;
-                if (sludge)
+                if (isSludge(dx, dz, strength, l.sludgeThreshold))
                 {
                     place(level, chunkBox, pos, bx, top, bz, ModBlocks.SEWER_SLUDGE.get().defaultBlockState());
                     continue;

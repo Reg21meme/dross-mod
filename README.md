@@ -55,7 +55,7 @@ How a player moves through the mod, from a normal survival world to the Dross.
   - **The Gravecrags**: the mountains, Cragstone cliffs with glowing Storm Lichen and Crag Thistles, snow on the peaks. Never near the hub.
 - **Ores** under every biome, in Duskstone (the Dross's stone): coal, gold (drops nuggets), **Moonsilver** (Raw Moonsilver, smelted into Moonsilver Ingots) and **Stormite** (glowing Stormite Shards; needs an iron pickaxe). Moonsilver and Stormite are for gear that comes later.
 - **Sky and fog:** each biome has its own night fog, sky and water colours, particles and ambient sounds, with a blue glow over the night sky and no clouds.
-- **Old worlds:** chunks that were already generated flat stay flat; new chunks get the terrain, so there's a wall where they meet. Start a new world for the real thing.
+- **Old worlds:** not supported while the mod is unpublished (the old flat Dross and its biome are gone). Start a new world.
 - **Time:** permanent night (fixed at time 18000). The sun never rises.
 - **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only the Cinder Colossus's **stone golems** spawn there, with **lava golems** (about 1 in 5, always next to lava). Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
   - **Zombies** spawn in full netherite armor with a netherite sword.

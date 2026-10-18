@@ -744,10 +744,32 @@ BIOMES = {
     },
 }
 BIOME_IDS = list(BIOMES)
-# The old superflat biome: still registered (old worlds' chunks name it), but never placed in new land. Its spawn rules
-# are the ones every biome copies (except those in SPAWN_OVERRIDES below), so the mob rules stay exactly as they were:
-# the plains monsters minus slimes, creepers and spiders (the user's rule), the plains animals, and bats.
-OLD_BIOME = "dross_flats"
+
+# --- Mob spawns: the Dross's base lists -------------------------------------------------------------------------------
+# Every biome gets these (except the categories SPAWN_REPLACEMENTS replaces and the biomes in SPAWN_OVERRIDES, below):
+# vanilla's plains monsters minus slimes, creepers and spiders (the user's rule), the plains animals, and bats.
+# Each entry is (entity, weight, fewest, most): the weight against the other entries of its list, and the group size.
+BASE_MONSTERS = [
+    ("minecraft:zombie", 95, 4, 4),
+    ("minecraft:zombie_villager", 5, 1, 1),
+    ("minecraft:skeleton", 100, 4, 4),
+    ("minecraft:enderman", 10, 1, 4),
+    ("minecraft:witch", 5, 1, 1),
+]
+BASE_CREATURES = [
+    ("minecraft:sheep", 12, 4, 4),
+    ("minecraft:pig", 10, 4, 4),
+    ("minecraft:chicken", 10, 4, 4),
+    ("minecraft:cow", 8, 4, 4),
+    ("minecraft:horse", 5, 2, 6),
+    ("minecraft:donkey", 1, 1, 3),
+]
+BASE_AMBIENT = [
+    ("minecraft:bat", 10, 8, 8),
+]
+# Every spawn category a biome file lists (in this order); the ones not named above are empty.
+SPAWN_CATEGORIES = ["monster", "creature", "ambient", "axolotls", "underground_water_creature", "water_creature",
+                    "water_ambient", "misc"]
 
 # --- Mob spawns: the Cinder Wastes' own list (the user's round 2 request) ---------------------------------------------
 # No zombies, skeletons or any other mob there for now: only the Cinder Colossus's golems (boss area: dross:stone_golem
@@ -770,13 +792,13 @@ CINDER_GOLEM_GROUP_MAX = 1
 CINDER_GOLEM_ENERGY_BUDGET = 0.12
 CINDER_GOLEM_CHARGE = 1.0
 
-# A biome listed here gets these spawn lists instead of OLD_BIOME's: each category ("monster", "creature", "ambient",
+# A biome listed here gets these spawn lists instead of the base lists: each category ("monster", "creature", "ambient",
 # ...) is (entity, weight, fewest, most) entries, and every category it doesn't name is empty; "spawn_costs" is
 # entity -> (energy budget, charge).
 # The Cinder Wastes' creature and ambient lists are empty on purpose ("only those for now"): the animals need grass,
 # which the wastes don't have, so none could spawn there anyway, and this also keeps bats out.
 # (SEWERS fills in two more: Blightwood's monsters, SPAWN_REPLACEMENTS; the sewers biome lists only rats,
-# SPAWN_OVERRIDES["sewers"].) A biome in SPAWN_REPLACEMENTS keeps OLD_BIOME's lists except the categories it names,
+# SPAWN_OVERRIDES["sewers"].) A biome in SPAWN_REPLACEMENTS keeps the base lists except the categories it names,
 # which get these (entity, weight, fewest, most) entries instead.
 SPAWN_REPLACEMENTS = {}
 SPAWN_OVERRIDES = {
@@ -987,11 +1009,23 @@ def check_configured_refs(other_dross):
         visit(configured, "configured feature " + name)
 
 
-def old_biome():
-    path = os.path.join(WORLDGEN, "biome", OLD_BIOME + ".json")
-    if not os.path.exists(path):
-        fail(f"{path} is missing: it must stay (old worlds' chunks name it), and the biomes copy its mob spawns")
-    return json.load(open(path, encoding="utf-8"))
+def spawn_entries(entries, category):
+    """A spawn list's JSON entries from (entity, weight, fewest, most) tuples, each checked."""
+    out = []
+    for entity, weight, fewest, most in entries:
+        if entity in {e["type"] for e in out}:
+            fail(f"{entity} is in the base {category} list twice")
+        if not (isinstance(weight, int) and weight > 0 and isinstance(fewest, int) and isinstance(most, int)
+                and 1 <= fewest <= most):
+            fail(f"the base {category} entry for {entity} needs a whole weight above 0 and 1 <= fewest <= most")
+        out.append({"type": entity, "weight": weight, "minCount": fewest, "maxCount": most})
+    return out
+
+
+def base_spawns():
+    """The Dross's base spawn lists (BASE_MONSTERS, BASE_CREATURES, BASE_AMBIENT), as a biome file holds them."""
+    named = {"monster": BASE_MONSTERS, "creature": BASE_CREATURES, "ambient": BASE_AMBIENT}
+    return {"spawners": {c: spawn_entries(named.get(c, []), c) for c in SPAWN_CATEGORIES}, "spawn_costs": {}}
 
 
 def biome_json(biome_id, spec, spawns_from):
@@ -1039,8 +1073,9 @@ def biome_json(biome_id, spec, spawns_from):
 
 
 def biome_spawns(biome_id, spawns_from):
-    """The biome's mob spawns: exactly the old Dross biome's (the user's rules: no slimes, creepers or spiders), with
-    some of its lists replaced (SPAWN_REPLACEMENTS), or its own lists from SPAWN_OVERRIDES. Every entity id is checked (and the mob category of our own)."""
+    """The biome's mob spawns: the base lists (the user's rules: no slimes, creepers or spiders), with some of them
+    replaced (SPAWN_REPLACEMENTS), or its own lists from SPAWN_OVERRIDES. Every entity id is checked (and the mob
+    category of our own)."""
     override = SPAWN_OVERRIDES.get(biome_id)
     if override is None:
         out = json.loads(json.dumps({key: spawns_from[key] for key in ("creature_spawn_probability", "spawners", "spawn_costs")
@@ -1268,8 +1303,8 @@ def surface_rule():
     bedrock = cond({"type": "minecraft:vertical_gradient", "random_name": "dross:bedrock_floor",
                     "true_at_and_below": {"above_bottom": 0}, "false_at_and_above": {"above_bottom": 5}},
                    block("minecraft:bedrock"))
-    # Gravecrags first (its snow line must win), then the rest; Silverwood's rules again last, for any other biome
-    # (old worlds' Dross Flats chunks never get here: they're already generated). The biome rules only reach the deepest
+    # Gravecrags first (its snow line must win), then the rest; Silverwood's rules again last, for any other biome (a
+    # safety net: every Dross biome is listed above). The biome rules only reach the deepest
     # layer's depth under the ground, so deeper blocks skip them (no biome lookups all the way down: much faster).
     order = ["gravecrags", "nether_scar", "cinder_wastes", "rimefall", "blightwood", "silverwood_forest"]
     deepest = max(CINDER_BASALT_DEPTH, SCAR_NETHERRACK_DEPTH, CRAG_DEPTH)
@@ -1939,7 +1974,7 @@ def blightwood_weights():
     return regular, enraged, BLIGHTWOOD_WITCH_WEIGHT
 
 
-def sewer_spawns(spawns_from):
+def sewer_spawns():
     """Fills in the rats: Blightwood's monsters (rats and witches, SPAWN_REPLACEMENTS), the sewers biome's own list
     (SPAWN_OVERRIDES). Returns the rat cave's (regular, enraged) weights and a summary line."""
     b_regular, b_enraged, b_witch = blightwood_weights()
@@ -2037,12 +2072,11 @@ def dimension_type():
 written = []
 kept = set()
 # Folders this script owns completely: a .json file in them that this run didn't write is left over from an older
-# version (a renamed noise, say) and is deleted. The old superflat biome is the one exception.
+# version (a renamed noise, say) and is deleted.
 OWNED = [os.path.join(WORLDGEN, "density_function"), os.path.join(WORLDGEN, "noise"),
          os.path.join(WORLDGEN, "noise_settings"), os.path.join(WORLDGEN, "biome"),
          os.path.join(WORLDGEN, "configured_feature"), os.path.join(WORLDGEN, "placed_feature"),
          os.path.join(WORLDGEN, "structure"), os.path.join(WORLDGEN, "structure_set")]
-NEVER_DELETE = {os.path.join(WORLDGEN, "biome", OLD_BIOME + ".json")}
 
 
 def write_file(path, obj):
@@ -2066,7 +2100,7 @@ def remove_stale():
         for dirpath, _, files in os.walk(folder):
             for f in files:
                 path = os.path.normcase(os.path.abspath(os.path.join(dirpath, f)))
-                if f.endswith(".json") and path not in kept and path not in {os.path.normcase(p) for p in NEVER_DELETE}:
+                if f.endswith(".json") and path not in kept:
                     os.remove(os.path.join(dirpath, f))
                     removed.append(os.path.relpath(os.path.join(dirpath, f), ROOT))
     return removed
@@ -2119,12 +2153,11 @@ def main():
     write_file(os.path.join(DATA, "tags", "blocks", "pond_ground.json"), pond_tag)
     check_features({"rock_faces"} | set(PLACED))
 
-    spawns = old_biome()
-    cave_weights, rat_summary = sewer_spawns(spawns)
+    spawns = base_spawns()
+    cave_weights, rat_summary = sewer_spawns()
     for biome_id, spec in BIOMES.items():
         write_json("biome", biome_id, biome_json(biome_id, spec, spawns))
     write_json("biome", SEWER_BIOME, biome_json(SEWER_BIOME, SEWER_BIOME_SPEC, spawns))
-    kept.add(os.path.normcase(os.path.abspath(os.path.join(WORLDGEN, "biome", OLD_BIOME + ".json"))))
 
     structures, structure_sets, biome_tag, structure_tag = sewer_structures(cave_weights)
     for name, js in structures.items():
@@ -2139,7 +2172,6 @@ def main():
 
     names = {f"biome.dross.{b}": spec["name"] for b, spec in BIOMES.items()}
     names[f"biome.dross.{SEWER_BIOME}"] = SEWER_BIOME_SPEC["name"]
-    names[f"biome.dross.{OLD_BIOME}"] = "Dross Flats"
     merge_lang(names)
     removed = remove_stale()
 

@@ -1,7 +1,9 @@
 """
 Draws the silverwood trees that the GameTest grew, so their shapes can be judged without starting the game.
 
-    1. gradlew.bat runGameTestServer --console=plain        (TerrainBlocksGameTest.treeShapesGrow writes build/tv1/trees.json)
+    1. $env:DROSS_TREE_PREVIEWS="1"; .\gradlew.bat runGameTestServer --console=plain    (PowerShell; Git Bash:
+       DROSS_TREE_PREVIEWS=1 ./gradlew.bat runGameTestServer --console=plain). TerrainBlocksGameTest.treeShapesGrow then
+       writes build/tv1/trees.json (DROSS_TERRAIN_PREVIEWS=1 does too); without either it writes nothing.
     2. python tools/terrain/preview_trees.py                 (writes block-previews/trees.png)
 
 Top: the first three trees of each shape, each on a patch of Silvermoss. Bottom: a dense stand of them (common, tall and
@@ -160,7 +162,7 @@ def background(w, h):
 
 def main():
     if not os.path.exists(TREES):
-        raise SystemExit("build/tv1/trees.json not found: run .\\gradlew.bat runGameTestServer first")
+        raise SystemExit("build/tv1/trees.json not found: run the tests with DROSS_TREE_PREVIEWS=1 first (see the top of this file)")
     with open(TREES, encoding="utf-8") as fh:
         trees = json.load(fh)["trees"]
     by_shape = {}

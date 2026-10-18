@@ -64,7 +64,9 @@ in `tools/terrain/README.md`):
   the Scar's floor); Stormvine's tree chances are lower (0.25 / 0.35 / 0.7, trunk 0.05, hanging 0.03); Storm Lichen
   8 tries a chunk; lava pools are rare. Measured lit floor: Silverwood ~15-18%, Cinder ~18-23%, Gravecrags ~11-20%,
   Scar ~5-12%, Blightwood and Rimefall ~4-8%.
-- **Mob spawns** (round 2): five biomes copy `dross_flats.json`'s lists exactly; the Cinder Wastes list only stone and
+- **Mob spawns** (round 2): five biomes get the Dross's base lists exactly (`BASE_MONSTERS`, `BASE_CREATURES`,
+  `BASE_AMBIENT` in `worldgen.py`; they were copied from the old `dross_flats.json`, removed in the October 17
+  cleanup); the Cinder Wastes list only stone and
   lava golems (weights 80 : 20, one at a time, `spawn_costs` 0.12 / 1.0 like the warped forest's endermen) and nothing
   else. The golems ignore light, so the crowding limit, not the monster cap, keeps them few (about 7 on an 80 x 80 site).
   `DrossSpawnsGameTest` checks both. Lit floor no longer matters for spawns in the Cinder Wastes.
@@ -89,7 +91,7 @@ in `tools/terrain/README.md`):
 - Vanilla `steep` only marks north- and east-facing slopes, and only within one chunk. For the other faces, exposed rock uses `noise_threshold` on the same rockiness and cliff noises that build the escarpments.
 - Less custom Java: ponds = `minecraft:lake` (refuses to place unless enclosed, freezes in cold biomes, has a barrier block); small lava pools = `minecraft:delta_feature` (only places lava where every side and below are solid); dead trees = `minecraft:tree` with air foliage; basalt spires = `minecraft:basalt_columns`. Java still needed: `hub_falloff`, a `dross:not_near_hub` placement filter, the `dross:stormvine` tree decorator (exists), optionally `dross:fallen_log`.
 - Sea level -64 (no seas, no aquifer water). Note `Level.getSeaLevel()` is hard-coded 63 in 1.20.1, so bats only spawn below y 63 (rare here).
-- **Keep `data/dross/worldgen/biome/dross_flats.json` registered** (just not in the biome source): old worlds' chunks save their biome by name; if it disappeared they'd fall back to plains, which spawn creepers, spiders and slimes.
+- ~~Keep `data/dross/worldgen/biome/dross_flats.json` registered~~ (removed in the October 17 cleanup: the mod supports new worlds only, so no old chunks name it).
 
 ## 1. Noise router
 
@@ -226,7 +228,7 @@ They only replace blocks that are exactly the default block (duskstone); first m
   "then_run":{"type":"minecraft:block","result_state":{"Name":"minecraft:bedrock"}}},
  {"type":"minecraft:condition","if_true":{"type":"minecraft:biome","biome_is":["dross:gravecrags"]},"then_run":BIOME_RULES},
  "... nether_scar, cinder_wastes, rimefall, blightwood, silverwood_forest ...",
- "SILVERWOOD_RULES as the final fallback (catches dross_flats/unknown)"]}
+ "SILVERWOOD_RULES as the final fallback (catches any unknown biome)"]}
 ```
 Each BIOME_RULES: `stone_depth{offset 0, add_surface_depth false, secondary_depth_range 0, surface_type "floor"}` -> TOP; the same with `add_surface_depth: true` -> UNDER (3-6 deep); optional `y_above{anchor {"absolute":Y}, surface_depth_multiplier 0, add_stone_depth false}` -> BODY.
 Shared pieces: **Rock**: `{"type":"minecraft:steep"}` -> biome rock, then `noise_threshold(dross:rockiness, 0.42, 1e6)` -> rock (outcrop cores). **Cliff faces**: inside `noise_threshold(rockiness, 0.25, 1e6)`, `noise_threshold(dross:cliff, -0.125, -0.075)` and `(0.175, 0.225)` -> rock (exactly where the escarpment spline steps, so every cliff face whatever its direction). Put the same rule in UNDER too (no dirt layer on cliff faces).
@@ -326,4 +328,4 @@ Costs: biome sample ~1-2 us, 2D height probe ~3-5 us, `getBaseHeight`/`getBaseCo
 | Features missing because of ground tags | marker counts per site |
 | Lava leaks, fire in the Scar, floating plants | fluid, enclosure and `canSurvive` scans |
 | World generation slowdown | timings in `stats.json` (budget ~20 ms per chunk) |
-| Old worlds keep flat chunks and the hub at ~y -60 | keep `dross_flats.json` registered; tell the user to start a new world |
+| Old worlds keep flat chunks and the hub at ~y -60 | new worlds only (`dross_flats.json` was removed in the October 17 cleanup); tell the user to start a new world |

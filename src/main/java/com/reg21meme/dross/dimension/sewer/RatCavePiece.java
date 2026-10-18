@@ -51,18 +51,15 @@ public final class RatCavePiece extends SewerPiece
     /** Where the boss area's teleport lands (the block your feet are in), on the first door's line inside the cave. */
     private final int arrivalX;
     private final int arrivalZ;
-    /** Which of {@link #doors} the royal road comes in by, or -1. */
-    private final int royalDoor;
 
     private volatile Layout layout;
 
-    RatCavePiece(int x, int z, int[] doors, int royalDoor, int floorY, long seed)
+    RatCavePiece(int x, int z, int[] doors, int floorY, long seed)
     {
         super(ModStructures.RAT_CAVE.get(), box(x, z, floorY), floorY, seed);
         this.x = x;
         this.z = z;
         this.doors = doors.clone();
-        this.royalDoor = royalDoor;
         int[] arrival = findArrival();
         this.arrivalX = arrival[0];
         this.arrivalZ = arrival[1];
@@ -76,7 +73,6 @@ public final class RatCavePiece extends SewerPiece
         this.doors = tag.getIntArray("Doors");
         this.arrivalX = tag.getInt("ArrivalX");
         this.arrivalZ = tag.getInt("ArrivalZ");
-        this.royalDoor = tag.contains("RoyalDoor") ? tag.getInt("RoyalDoor") : -1;
     }
 
     @Override
@@ -88,7 +84,6 @@ public final class RatCavePiece extends SewerPiece
         tag.putIntArray("Doors", this.doors);
         tag.putInt("ArrivalX", this.arrivalX);
         tag.putInt("ArrivalZ", this.arrivalZ);
-        tag.putInt("RoyalDoor", this.royalDoor);
     }
 
     /** How far the cave (with its wall) reaches from its middle. */
@@ -142,12 +137,6 @@ public final class RatCavePiece extends SewerPiece
     public int floorY()
     {
         return this.floorY;
-    }
-
-    /** True if the royal road comes into this cave. */
-    public boolean hasRoyalDoor()
-    {
-        return this.royalDoor >= 0 && this.royalDoor < this.doors.length;
     }
 
     /** True if pos is inside the cave's air (or its floor), not in the rock round it or the tunnels leading in. */

@@ -127,12 +127,6 @@ public final class BossSites
         return Optional.empty();
     }
 
-    /** The boss biome entry for a biome, if it's one. */
-    public static Optional<BossBiome> bossBiome(ResourceKey<Biome> biome)
-    {
-        return BOSS_BIOMES.stream().filter(b -> b.biome().equals(biome)).findFirst();
-    }
-
     /**
      * Plugs in a use's own fit test (the boss area: the Colossus's lair, from its own volcano rules). Call it during mod
      * setup ({@code FMLCommonSetupEvent}), before any world loads: plans already made keep the old test's answers.

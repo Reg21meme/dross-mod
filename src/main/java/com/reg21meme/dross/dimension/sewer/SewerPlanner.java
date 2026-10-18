@@ -42,7 +42,7 @@ import org.slf4j.Logger;
  *       well apart, on fairly level ground; the Rat King's gets one grand entrance (a crowned pipe) about
  *       {@value SewerTuning#ROYAL_ROAD_STEPS} junctions from his cave.</li>
  *   <li>The tunnels from each entrance back to the cave are main tunnels: a water channel in a regular network, the
- *       royal road (a red carpet, banners, candles, bones and gold) in the Rat King's. Then a few extra tunnels make
+ *       royal road (banners, candles, bones and gold) in the Rat King's. Then a few extra tunnels make
  *       loops; junctions become rooms, rough caves or plain crossings.</li>
  * </ol>
  * If it can't fit, it says why and makes no pieces.
@@ -223,16 +223,7 @@ final class SewerPlanner
         RatCavePiece cavePiece = null;
         if (cave != null)
         {
-            int[] doorList = doors(cave);
-            int royal = -1;
-            for (int k = 0; k < doorList.length; k++)
-            {
-                if (royalDoorKey(cave) == doorList[k])
-                {
-                    royal = k;
-                }
-            }
-            cavePiece = new RatCavePiece(cave.x(), cave.z(), doorList, royal, floor, this.seed);
+            cavePiece = new RatCavePiece(cave.x(), cave.z(), doors(cave), floor, this.seed);
             if (!cavePiece.hasArrival())
             {
                 return fail("no arrival spot in the rat cave");
@@ -574,23 +565,6 @@ final class SewerPlanner
         Direction d = SewerNodePiece.SIDES[s];
         int offset = (n.x - cave.x()) * d.getStepZ() + (n.z - cave.z()) * d.getStepX();
         return RatCavePiece.door(s, offset);
-    }
-
-    /** The royal road's door (the main one), as the cave piece knows it, or -1. */
-    private int royalDoorKey(Cave cave)
-    {
-        if (!this.ratCave)
-        {
-            return -1;
-        }
-        for (Node n : this.grid)
-        {
-            if (n.caveSide >= 0 && n.mainDoor)
-            {
-                return doorKey(n, cave);
-            }
-        }
-        return -1;
     }
 
     // ---------------------------------------------------------------------------------------------

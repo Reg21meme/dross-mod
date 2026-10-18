@@ -58,6 +58,11 @@ public class PondFeature extends Feature<PondFeature.Config>
     private static final int HEIGHT = 8;
     private static final int FLUID_LAYERS = HEIGHT / 2;
 
+    /**
+     * Whether tries are counted and refusals described (only the headless checks turn it on, with {@link #recordStats}):
+     * off in a normal game, so world generation never pays for it (a refusal's description is a string built per try).
+     */
+    private static volatile boolean recording = false;
     /** Why tries made no pond (only for the headless check's log): tries, ponds made, too uneven, leaks, things in the way. */
     private static final AtomicLong TRIES = new AtomicLong();
     private static final AtomicLong MADE = new AtomicLong();
@@ -87,15 +92,24 @@ public class PondFeature extends Feature<PondFeature.Config>
     }
 
     /**
-     * {tries, ponds made, tries on ground too uneven, tries that would leak, tries with something in the way} since the
-     * server started.
+     * Starts counting tries and describing refusals ({@link #stats}, {@link #lastRefusal}) for the rest of this run. Only
+     * the headless checks call it; it stays on once on (several checks may read the counts at once).
+     */
+    public static void recordStats()
+    {
+        recording = true;
+    }
+
+    /**
+     * {tries, ponds made, tries on ground too uneven, tries that would leak, tries with something in the way} since
+     * {@link #recordStats} was first called (all 0 if it never was).
      */
     public static long[] stats()
     {
         return new long[] {TRIES.get(), MADE.get(), UNEVEN.get(), LEAKS.get(), BLOCKED.get()};
     }
 
-    /** Why the last try made no pond, in words (for the headless checks' messages). */
+    /** Why the last try made no pond, in words (for the headless checks' messages; only once {@link #recordStats} was called). */
     public static String lastRefusal()
     {
         return lastRefusal;
@@ -103,8 +117,11 @@ public class PondFeature extends Feature<PondFeature.Config>
 
     private static boolean refuse(AtomicLong counter, String why, BlockPos pos, BlockState state)
     {
-        counter.incrementAndGet();
-        lastRefusal = why + " at " + pos.toShortString() + (state == null ? "" : " (" + state + ")");
+        if (recording)
+        {
+            counter.incrementAndGet();
+            lastRefusal = why + " at " + pos.toShortString() + (state == null ? "" : " (" + state + ")");
+        }
         return false;
     }
 
@@ -119,7 +136,10 @@ public class PondFeature extends Feature<PondFeature.Config>
         WorldGenLevel level = context.level();
         RandomSource random = context.random();
         Config config = context.config();
-        TRIES.incrementAndGet();
+        if (recording)
+        {
+            TRIES.incrementAndGet();
+        }
         int size = config.size();
         BlockPos corner = context.origin();
         boolean[] inside = shape(random, size);
@@ -142,7 +162,7 @@ public class PondFeature extends Feature<PondFeature.Config>
         }
         if (lowest == Integer.MAX_VALUE || highest - lowest > config.maxBank())
         {
-            return refuse(UNEVEN, "the ground under it varies from y " + lowest + " to " + highest, corner, null);
+            return refuse(UNEVEN, recording ? "the ground under it varies from y " + lowest + " to " + highest : "", corner, null);
         }
         BlockPos base = new BlockPos(corner.getX(), lowest + 1 - FLUID_LAYERS, corner.getZ());
         if (base.getY() <= level.getMinBuildHeight())
@@ -257,7 +277,10 @@ public class PondFeature extends Feature<PondFeature.Config>
                 }
             }
         }
-        MADE.incrementAndGet();
+        if (recording)
+        {
+            MADE.incrementAndGet();
+        }
         return true;
     }
 
