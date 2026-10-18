@@ -53,24 +53,24 @@ import org.slf4j.Logger;
 
 /**
  * Headless check (GameTest) of what grows and lies on the Dross's land, and its ores, in real generated chunks. For each
- * of the six biomes it finds a sample site in this world (like {@link TerrainChunksGameTest}, but round
+ * of the five biomes it finds a sample site in this world (like {@link TerrainChunksGameTest}, but round
  * {@value #SITE_X}, {@value #SITE_Z}, so these chunks are brand new and their generation time counts every feature),
  * generates {@value #SITE_CHUNKS} x {@value #SITE_CHUNKS} chunks there, and checks:
  * <ul>
  *   <li>each biome's own features are there in sensible numbers ({@link #markers}): silverwood logs, leaves and Stormvine
  *       in the Silverwood Forest; lava, basalt spires and charred logs in the Cinder Wastes; giant blightcaps in the
- *       Blightwood; frostbitten logs and snow in Rimefall; nylium and fungus stems in the Nether Scar; Storm Lichen and
- *       Cragstone in the Gravecrags;</li>
+ *       Blightwood; frostbitten logs and snow in Rimefall; Storm Lichen and Cragstone in the Gravecrags;</li>
+ *   <li>none of the removed Nether Scar's blocks ({@link #netherScarBlocks}: its four own blocks, kept as building blocks,
+ *       and the Nether ground and plants it grew) generate anywhere;</li>
  *   <li>everything above the ground could stay where it is (plants, vines, lichen, snow and ash layers, icicles,
  *       carpets: {@code canSurvive});</li>
  *   <li>every fluid is a still source; every lava block has something solid (or lava) on every side and below; no fire
- *       anywhere, and no lava at all in the Nether Scar;</li>
+ *       anywhere;</li>
  *   <li>no tree's natural leaves are too far from a log to stay (distance 7: they'd decay);</li>
- *   <li>nothing floats: every tree, fallen log, giant mushroom and huge fungus (each connected group of logs, stems,
- *       mushroom and wart blocks, with at least one log or mushroom block) rests on the ground or leans on rock somewhere
- *       (a pond or other feature that cut through one would leave it hanging; a branch that meets an ice spike may lean
- *       on it). Groups reaching the site's edge are skipped (their ground may be outside it), and so are stray bits of a
- *       fungus's hat (vanilla's huge fungi leave a few hanging wart blocks);</li>
+ *   <li>nothing floats: every tree, fallen log and giant mushroom (each connected group of logs, stems and mushroom
+ *       blocks, with at least one log or mushroom block) rests on the ground or leans on rock somewhere (a pond or other
+ *       feature that cut through one would leave it hanging; a branch that meets an ice spike may lean on it). Groups
+ *       reaching the site's edge are skipped (their ground may be outside it);</li>
  *   <li>the ores: every ore block lies within its height range (plus a vein's reach; {@link #ORES}), and all four ores
  *       are found across the sites.</li>
  * </ul>
@@ -168,13 +168,6 @@ public final class TerrainFeaturesGameTest
                 new Marker("Icicles", Set.of(ModBlocks.ICICLE.get()), Where.ANYWHERE, 0),
                 new Marker("Frostblooms", Set.of(ModBlocks.FROSTBLOOM.get()), Where.ANYWHERE, 0),
                 new Marker("pond ice", Set.of(Blocks.ICE), Where.ANYWHERE, 0)));
-        m.put(DrossBiomes.NETHER_SCAR, List.of(
-                new Marker("nylium", Set.of(Blocks.CRIMSON_NYLIUM, Blocks.WARPED_NYLIUM), Where.ANYWHERE, 1),
-                new Marker("fungus stems", Set.of(Blocks.CRIMSON_STEM, Blocks.WARPED_STEM), Where.ANYWHERE, 1),
-                new Marker("nether roots and sprouts", Set.of(Blocks.CRIMSON_ROOTS, Blocks.WARPED_ROOTS, Blocks.NETHER_SPROUTS), Where.ANYWHERE, 1),
-                new Marker("Scar Roots", Set.of(ModBlocks.SCAR_ROOTS.get()), Where.ANYWHERE, 1),
-                new Marker("Soulwicks", Set.of(ModBlocks.SOULWICK.get()), Where.ANYWHERE, 0),
-                new Marker("Scar Vents", Set.of(ModBlocks.SCAR_VENT.get()), Where.ANYWHERE, 0)));
         m.put(DrossBiomes.GRAVECRAGS, List.of(
                 new Marker("Storm Lichen", Set.of(ModBlocks.STORM_LICHEN.get()), Where.ANYWHERE, 1),
                 new Marker("Cragstone", Set.of(ModBlocks.CRAGSTONE.get()), Where.ANYWHERE, 1),
@@ -183,6 +176,19 @@ public final class TerrainFeaturesGameTest
                 new Marker("silverwood logs", Set.of(ModBlocks.SILVERWOOD_LOG.get()), Where.ANYWHERE, 0),
                 new Marker("snow layers", Set.of(Blocks.SNOW), Where.ANYWHERE, 0)));
         return m;
+    }
+
+    /**
+     * The removed Nether Scar's blocks (the user had the biome removed on October 17, 2026): its four own blocks, kept as
+     * building blocks (they stay in the creative tab and can be placed by hand), and the Nether ground and plants it grew.
+     * None of them may generate anywhere now.
+     */
+    static Set<Block> netherScarBlocks()
+    {
+        return Set.of(ModBlocks.SCARRED_NETHERRACK.get(), ModBlocks.SCAR_ROOTS.get(), ModBlocks.SOULWICK.get(), ModBlocks.SCAR_VENT.get(),
+                Blocks.NETHERRACK, Blocks.CRIMSON_NYLIUM, Blocks.WARPED_NYLIUM, Blocks.SOUL_SOIL, Blocks.SOUL_SAND, Blocks.CRIMSON_STEM,
+                Blocks.WARPED_STEM, Blocks.NETHER_WART_BLOCK, Blocks.WARPED_WART_BLOCK, Blocks.CRIMSON_ROOTS, Blocks.WARPED_ROOTS,
+                Blocks.NETHER_SPROUTS, Blocks.CRIMSON_FUNGUS, Blocks.WARPED_FUNGUS);
     }
 
     /** The ores and their heights (keep in step with ORES and STORMITE_GRAVECRAGS in tools/terrain/worldgen.py). */
@@ -262,7 +268,7 @@ public final class TerrainFeaturesGameTest
                 found.append(found.length() > 0 ? "; " : "").append(ore.label()).append(' ').append(f[0]).append(" blocks, y ")
                         .append(f[1]).append("..").append(f[2]);
             }
-            LOGGER.info("[terrain features] ores in all six sites: {}", found);
+            LOGGER.info("[terrain features] ores in all five sites: {}", found);
             if (!problems.isEmpty())
             {
                 throw new GameTestAssertException(problems.size() + " problem(s) with the features: " + String.join("; ",
@@ -276,8 +282,10 @@ public final class TerrainFeaturesGameTest
                                   List<String> problems)
     {
         String where = DrossBiomes.name(biome) + " site at " + site.getX() + ", " + site.getZ();
-        boolean scar = biome.equals(DrossBiomes.NETHER_SCAR);
         boolean crags = biome.equals(DrossBiomes.GRAVECRAGS);
+        Set<Block> scarBlocks = netherScarBlocks();
+        int scarFound = 0;
+        String firstScar = null;
         int minY = dross.getMinBuildHeight();
         int[] markerCounts = new int[markers.size()];
         Map<Block, Integer> oreCounts = new LinkedHashMap<>();
@@ -287,7 +295,6 @@ public final class TerrainFeaturesGameTest
         int flowing = 0;
         int openLava = 0;
         int fire = 0;
-        int scarLava = 0;
         int decaying = 0;
         int floor = 0;
         int lit = 0;
@@ -324,6 +331,14 @@ public final class TerrainFeaturesGameTest
                             continue;
                         }
                         Block block = state.getBlock();
+                        if (scarBlocks.contains(block))
+                        {
+                            scarFound++;
+                            if (firstScar == null)
+                            {
+                                firstScar = state + " at " + pos.toShortString();
+                            }
+                        }
                         if (isStructure(state))
                         {
                             structure.add(BlockPos.asLong(x, y, z));
@@ -361,16 +376,9 @@ public final class TerrainFeaturesGameTest
                             {
                                 flowing++;
                             }
-                            if (fluid.is(FluidTags.LAVA))
+                            if (fluid.is(FluidTags.LAVA) && !enclosed(dross, pos))
                             {
-                                if (!enclosed(dross, pos))
-                                {
-                                    openLava++;
-                                }
-                                if (scar)
-                                {
-                                    scarLava++;
-                                }
+                                openLava++;
                             }
                         }
                         if (state.is(BlockTags.FIRE))
@@ -425,10 +433,14 @@ public final class TerrainFeaturesGameTest
         {
             problems.add(where + ": " + unhappy + " block(s) that couldn't stay where they are, the first " + firstUnhappy);
         }
-        if (flowing > 0 || openLava > 0 || fire > 0 || scarLava > 0)
+        if (flowing > 0 || openLava > 0 || fire > 0)
         {
             problems.add(where + ": " + flowing + " flowing fluid blocks, " + openLava + " lava blocks open at a side or below, " + fire
-                    + " fire blocks, " + scarLava + " lava blocks in the Nether Scar");
+                    + " fire blocks");
+        }
+        if (scarFound > 0)
+        {
+            problems.add(where + ": " + scarFound + " block(s) of the removed Nether Scar generated, the first " + firstScar);
         }
         if (decaying > 0)
         {
@@ -458,7 +470,7 @@ public final class TerrainFeaturesGameTest
                 String.format(Locale.ROOT, "%.1f", floor == 0 ? 0.0D : 100.0D * lit / floor), lit, floor, oreText);
     }
 
-    /** What must stand on the ground: logs (trunks, branches, fallen logs, fungus stems), giant mushroom blocks, fungus hats. */
+    /** What must stand on the ground: logs (trunks, branches, fallen logs), giant mushroom blocks (and, should any appear, fungus hats). */
     private static boolean isStructure(BlockState state)
     {
         return state.is(BlockTags.LOGS) || state.getBlock() instanceof HugeMushroomBlock || state.is(BlockTags.WART_BLOCKS)

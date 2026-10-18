@@ -94,7 +94,7 @@ public final class ModBlocks
     public static final RegistryObject<Block> FROSTBLOOM = BLOCKS.register("frostbloom", TerrainBlocks::frostbloom);
     // Dimension area: Icicle (hangs under a solid block; breaks if that goes)
     public static final RegistryObject<Block> ICICLE = BLOCKS.register("icicle", TerrainBlocks::icicle);
-    // Dimension area, Nether Scar (no fire): Scarred Netherrack (netherrack with glowing blue cracks)
+    // Dimension area, the old Nether Scar's blocks (no fire; the biome was removed, the blocks kept): Scarred Netherrack (netherrack with glowing blue cracks)
     public static final RegistryObject<Block> SCARRED_NETHERRACK = BLOCKS.register("scarred_netherrack", TerrainBlocks::scarredNetherrack);
     // Dimension area: Scar Roots (crimson roots with blue tips)
     public static final RegistryObject<Block> SCAR_ROOTS = BLOCKS.register("scar_roots", TerrainBlocks::scarRoots);

@@ -11,9 +11,10 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 
 /**
- * Scar Vent: a crack in the netherrack of the Nether Scar, glowing red-hot round an electric blue heart (drawn
- * full-bright by its model; its light level is in its block properties). Now and then it puffs out red and electric
- * blue embers with a wisp of smoke.
+ * Scar Vent: a crack in netherrack, glowing red-hot round an electric blue heart (drawn full-bright by its model; its
+ * light level is in its block properties). Now and then it puffs out red and electric blue embers with a wisp of smoke.
+ * It came from the Nether Scar, a biome until October 17, 2026 (the user had it removed); it's a building block now and
+ * no longer generates.
  *
  * <p>It's harmless: the embers are only particles (no damage, no fire), it never burns, and it isn't a fire source
  * like netherrack (it's not in {@code #minecraft:infiniburn_*}). Mine it with a pickaxe; it drops itself. Nothing

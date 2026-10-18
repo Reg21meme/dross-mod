@@ -39,8 +39,9 @@ public final class Flammability
     public static final int LICHEN_BURN = 100;
 
     // Never burn (no numbers on purpose): everything in the Cinder Wastes (Ash, Ash Layer, Charred Log, Emberweed,
-    // Cinder Vent), since lava pools lie next to it, and everything in the Nether Scar (Scarred Netherrack, Scar Roots,
-    // Soulwick, Scar Vent), where no fire is wanted at all. Blocks that don't override isFlammable never burn.
+    // Cinder Vent), since lava pools lie next to it, and the four blocks of the old Nether Scar (Scarred Netherrack, Scar
+    // Roots, Soulwick, Scar Vent; the biome was removed on October 17, 2026, the blocks kept), where no fire was wanted at
+    // all. Blocks that don't override isFlammable never burn.
 
     private Flammability() {}
 }

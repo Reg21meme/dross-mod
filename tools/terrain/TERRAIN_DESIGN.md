@@ -1,8 +1,25 @@
 # Dross terrain: technical design (Terrain v1)
 
-Written during planning by a design reviewer that checked every piece against the real Minecraft 1.20.1 / Forge 47.4.10 sources and vanilla data in the Gradle cache, and calibrated the numbers with an in-memory numpy port of Minecraft's noise code (40 seeds). It is a starting point: the builder tunes the constants with the headless checks and previews. The user's answers: biome regions about **400-800 blocks across** (Nether Scar smaller patches), **small ponds only**, the mountain biome is **The Gravecrags** (`dross:gravecrags`), peaks about y 230-260.
+Written during planning by a design reviewer that checked every piece against the real Minecraft 1.20.1 / Forge 47.4.10 sources and vanilla data in the Gradle cache, and calibrated the numbers with an in-memory numpy port of Minecraft's noise code (40 seeds). It is a starting point: the builder tunes the constants with the headless checks and previews. The user's answers: biome regions about **400-800 blocks across** (Nether Scar smaller patches; the Nether Scar was removed on October 17, 2026, see below), **small ponds only**, the mountain biome is **The Gravecrags** (`dross:gravecrags`), peaks about y 230-260.
 
 Vanilla reference JSON: `C:\Users\jareg\.gradle\caches\forge_gradle\minecraft_repo\versions\1.20.1\client.jar` (`data/minecraft/worldgen/...`, read with `unzip -p`). Sources: `C:\Users\jareg\.gradle\caches\forge_gradle\minecraft_user_repo\net\minecraftforge\forge\1.20.1-47.4.10_mapped_official_1.20.1\forge-1.20.1-47.4.10_mapped_official_1.20.1-sources.jar`.
+
+## As built (October 17, 2026): the Nether Scar removed
+The user asked for the Nether Scar biome to go. It's been taken out of the whole design below, so there are **five
+biomes** now:
+- **Its land went to its neighbours, without moving any other border**: its climate box is gone and the other boxes take
+  any weirdness (the weirdness slot, `ridges`, is now the constant 0), so each place it covered gets the biome its heat
+  and rot say. The other borders are exactly as before (Tm 0.3396, Th 0.2773, Tc -0.2773, Tr 0.1747): `TARGET_SHARES`
+  holds the old shares grown by `SCAR_LAND_SHARED_OUT` (88 / 83), so the Cinder Wastes and Rimefall are about 14.8%,
+  Blightwood about 15.9%, Silverwood about 42.4%, the Gravecrags 12% as before.
+- Gone with it: the `scar` noise and `climate/scar`, its gate (`terrain/gate/scar`; `terrain/gate/free` is now just
+  1 - the mountain gate) and `terrain/scar_sink`, its four patch noises, its surface rules, its features (huge crimson
+  and warped fungi, nether vegetation, Scar Roots, Soulwicks, Scar Vents), its fog, its colours in `DrossColors`, its
+  entry in `DrossBiomes` and `/dross goto biome nether_scar`.
+- **Its four blocks stay** as building blocks (Scarred Netherrack, Scar Roots, Soulwick, Scar Vent: textures, models,
+  loot, recipe, tags, creative tab), but nothing generates them. The nether blocks left `#dross:rock_face_replaceable`,
+  `#dross:pond_ground` and `#dross:ore_replaceables` (they were only there for its generation); the plants' own ground
+  tags and `#dross:fit_surface` keep them.
 
 ## As built (Stage 5): where the final terrain differs from this design
 Everything below is still how it works, except these changes (all found with the headless checks and previews; the
@@ -14,14 +31,14 @@ numbers are in `tools/terrain/worldgen.py`, the guide in `tools/terrain/README.m
   (`dimension/worldgen/RockFacesFeature`, step `raw_generation`, first in every biome) does it from the real ground:
   where a column stands 2+ blocks above a neighbour (also across chunk borders), its top blocks (ground cover and soil,
   tag `#dross:rock_face_replaceable`) become its biome's rock (Duskstone; basalt in the Cinder Wastes, packed ice in
-  Rimefall, netherrack in the Scar, Cragstone in the Gravecrags), as deep as the side shows plus one (at most 8). The
+  Rimefall, Cragstone in the Gravecrags), as deep as the side shows plus one (at most 8). The
   vanilla `steep` rule is gone from the surface rules too. Measured share of steep (bare rock) columns at the sample
-  sites: Silverwood 0-6%, Blightwood ~5%, Cinder ~11%, Rimefall ~0%, Scar ~1.5%, Gravecrags ~16%.
+  sites: Silverwood 0-6%, Blightwood ~5%, Cinder ~11%, Rimefall ~0%, Gravecrags ~16%.
 - **Outcrops are real knolls** (`terrain/outcrops`): on rocky ground (rockiness from 0.30, full at 0.50) knobs rise where an
   `outcrop` noise (firstOctave -5) peaks, up to 7 blocks with steep sides (which `rock_faces` makes rock).
-- **Smoother climate noise**: heat, rot, mountain and scar use amplitudes `[1.0, 0.25]` (not `[1.0, 0.5]`) and the warp
+- **Smoother climate noise**: heat, rot and mountain use amplitudes `[1.0, 0.25]` (not `[1.0, 0.5]`) and the warp
   `[1.0]` (not `[1, 1]`): the same region sizes with fewer slivers (fragments under 96 blocks: 0.8% of the land instead of
-  1.3%). Measured spread 0.289, so the borders are Tm 0.3396, Ts 0.4572, Th 0.2773, Tc -0.2773, Tr 0.1747.
+  1.3%). Measured spread 0.289, so the borders are Tm 0.3396, Th 0.2773, Tc -0.2773, Tr 0.1747.
 - **Exact tiling of the biome boxes**: borders are whole numbers of 1/10000 (Minecraft's quantization), each shared border
   on one side only (e.g. Rimefall's temperature up to -2773, Silverwood's from -2772), so no climate value ever ties.
 - **Height curve**: a soft floor `(-64, 26, 0.05) (20, 33, 0.25) (50, 50, 1)` before the soft cap (the lowest ground is ~y 33,
@@ -31,8 +48,8 @@ numbers are in `tools/terrain/worldgen.py`, the guide in `tools/terrain/README.m
 - **Surface rules only look near the surface**: the biome rules sit inside `stone_depth` 24 (+ surface depth), so deeper
   blocks skip the biome lookups (like vanilla's `above_preliminary_surface`). Chunk generation went from ~65 to ~35 ms
   per chunk (the vanilla Overworld took 66-92 ms per chunk in the same runs).
-- **Body layers are depth-limited**, not "above y": Cinder basalt (with blackstone bands every 7 blocks) 14 deep, Scar
-  netherrack 10 deep, Gravecrags Cragstone 24 deep; Duskstone below (so Stage 6's ores in Duskstone reach everywhere).
+- **Body layers are depth-limited**, not "above y": Cinder basalt (with blackstone bands every 7 blocks) 14 deep,
+  Gravecrags Cragstone 24 deep; Duskstone below (so Stage 6's ores in Duskstone reach everywhere).
 - **Patches** (the patch noises spread about +-0.32): magma >= 0.60 (it burns), basalt <= -0.50, gravel >= 0.55 (it falls);
   the rest as in section 3. Snow line: `y_above(SNOW_LINE_Y - 9, surface_depth_multiplier 2)` = about y 197-203.
 - **Night fog colour**: `DrossSkyEffects` shows each biome's JSON fog colour as it is (the biome JSON holds the real night
@@ -59,14 +76,13 @@ in `tools/terrain/README.md`):
   distance 7. It removes what can't stay and re-measures (or removes) such leaves in the 3 x 3 chunks: about 1 ms a chunk.
   It leaves ladders, banners and candles alone: only structures place them, and a sewer pipe built across a chunk border
   isn't finished (its ladder's wall is missing) until the next chunk is.
-- **Light vs. spawning** (monsters need block light 0 in the Dross): the Nether Scar's huge fungi have wart blocks instead
-  of shroomlights; Scarred Netherrack's light went from 3 to 0 (its full-bright cracks still glow; at 3 it lit ~75% of
-  the Scar's floor); Stormvine's tree chances are lower (0.25 / 0.35 / 0.7, trunk 0.05, hanging 0.03); Storm Lichen
-  8 tries a chunk; lava pools are rare. Measured lit floor: Silverwood ~15-18%, Cinder ~18-23%, Gravecrags ~11-20%,
-  Scar ~5-12%, Blightwood and Rimefall ~4-8%.
-- **Mob spawns** (round 2): five biomes get the Dross's base lists exactly (`BASE_MONSTERS`, `BASE_CREATURES`,
-  `BASE_AMBIENT` in `worldgen.py`; they were copied from the old `dross_flats.json`, removed in the October 17
-  cleanup); the Cinder Wastes list only stone and
+- **Light vs. spawning** (monsters need block light 0 in the Dross): Scarred Netherrack's light went from 3 to 0 (its
+  full-bright cracks still glow; at 3 it lit ~75% of the old Nether Scar's floor); Stormvine's tree chances are lower
+  (0.25 / 0.35 / 0.7, trunk 0.05, hanging 0.03); Storm Lichen 8 tries a chunk; lava pools are rare. Measured lit floor:
+  Silverwood ~15-18%, Cinder ~18-23%, Gravecrags ~11-20%, Blightwood and Rimefall ~4-8%.
+- **Mob spawns** (round 2): Silverwood, Rimefall and the Gravecrags get the Dross's base lists exactly (`BASE_MONSTERS`,
+  `BASE_CREATURES`, `BASE_AMBIENT` in `worldgen.py`; they were copied from the old `dross_flats.json`, removed in the
+  October 17 cleanup; Blightwood has its own monsters since October 17: rats and witches); the Cinder Wastes list only stone and
   lava golems (weights 80 : 20, one at a time, `spawn_costs` 0.12 / 1.0 like the warped forest's endermen) and nothing
   else. The golems ignore light, so the crowding limit, not the monster cap, keeps them few (about 7 on an 80 x 80 site).
   `DrossSpawnsGameTest` checks both. Lit floor no longer matters for spawns in the Cinder Wastes.
@@ -78,16 +94,16 @@ in `tools/terrain/README.md`):
   boulder (no overhangs on slopes). Fallen logs try both directions and may lie across a dip of one block.
 - **Towering blightcaps** (`dross:towering_mushroom`): vanilla's flat huge mushroom with an 11-16 stem and a radius-4 cap,
   placed before the ordinary blightcaps (a huge mushroom needs its whole space open).
-- **Ores** use the tag `#dross:ore_replaceables` (Duskstone, Cragstone, basalt, blackstone, netherrack), so the biome rock
+- **Ores** use the tag `#dross:ore_replaceables` (Duskstone, Cragstone, basalt, blackstone), so the biome rock
   over the Duskstone has ores too; Stormite has an extra Gravecrags-only placement.
 - **Checks**: `TerrainChunksGameTest` measures holes from the noise's surface (`TerrainProbe.baseHeight`), not the ground's
   real top (boulders and ice spikes may overhang); `TerrainFeaturesGameTest` (real chunks: markers, canSurvive, fluids,
   leaves, nothing hanging in the air, ores) and its prepared-ground pond test.
 
 ## 0. Key decisions
-- `minecraft:noise` generator, inline `minecraft:multi_noise` biome source, our own noises in the climate slots (temperature = heat, vegetation = rot, continents = mountain mask, weirdness/ridges = scar), erosion and depth fixed at 0 (2D biomes). A custom density function type `dross:hub_falloff` is required (vanilla has no function of x/z; `end_islands` only ramps to ~200 blocks).
+- `minecraft:noise` generator, inline `minecraft:multi_noise` biome source, our own noises in the climate slots (temperature = heat, vegetation = rot, continents = mountain mask; weirdness/ridges is 0 since the Nether Scar went), erosion fixed at 0 and depth 0 except under Blightwood (the sewers) (2D biomes). A custom density function type `dross:hub_falloff` is required (vanilla has no function of x/z; `end_islands` only ramps to ~200 blocks).
 - **Terrain is a 2D height field.** `final_density = (H(x,z) - y)/32 + gated jag`. Linear in y, so the 8-block vertical interpolation is exact; no `squeeze`, slides or `blend_density` needed; floating blocks and caves are impossible by construction; `getBaseHeight` matches a cheap 2D probe.
-- Climate values get **pushes and clamps**: vegetation and scar are pushed down (subtracted) near the hub, not scaled; every climate value is clamped to +-1.9 and the six biome boxes tile the space without overlapping (otherwise the RTree's "last result" tie-break makes borders nondeterministic).
+- Climate values get **pushes and clamps**: vegetation is pushed down (subtracted) near the hub, not scaled; every climate value is clamped to +-1.9 and the biome boxes tile the space without overlapping (otherwise the RTree's "last result" tie-break makes borders nondeterministic).
 - Vanilla `steep` only marks north- and east-facing slopes, and only within one chunk. For the other faces, exposed rock uses `noise_threshold` on the same rockiness and cliff noises that build the escarpments.
 - Less custom Java: ponds = `minecraft:lake` (refuses to place unless enclosed, freezes in cold biomes, has a barrier block); small lava pools = `minecraft:delta_feature` (only places lava where every side and below are solid); dead trees = `minecraft:tree` with air foliage; basalt spires = `minecraft:basalt_columns`. Java still needed: `hub_falloff`, a `dross:not_near_hub` placement filter, the `dross:stormvine` tree decorator (exists), optionally `dross:fallen_log`.
 - Sea level -64 (no seas, no aquifer water). Note `Level.getSeaLevel()` is hard-coded 63 in 1.20.1, so bats only spawn below y 63 (rare here).
@@ -104,7 +120,6 @@ in `tools/terrain/README.md`):
 | Noise id | firstOctave, amplitudes | Used with | Lattice | Role |
 |---|---|---|---|---|
 | heat, rot, mountain | -9, [1, 0.5] | shifted_noise, xz = `CLIMATE_XZ_SCALE` 0.80 | 640 | climate; regions ~600 across |
-| scar | -8, [1, 0.5] | xz = `SCAR_XZ_SCALE` 0.80 | 320 | Nether Scar patches ~200-250 |
 | warp_x, warp_z | -7, [1, 1] | xz 1 | 128 | wavy biome edges (~32 blocks) |
 | broad | -9, [1, 0.5] | xz 1 | 512 | +-8-block undulation |
 | hills | -7, [1, 0.5, 0.25] | xz 1 | 128 | +-6-block rolling hills |
@@ -114,7 +129,7 @@ in `tools/terrain/README.md`):
 | lumps | -5, [1, 0.5] | xz 1 | 32 | Blightwood lumps |
 | ridges | -7, [1, 0.5] | xz 1 | 128 | mountain crests |
 | jag (3D) | -5, [1, 0.5] | xz 1, y 0.5 | 32/64 | rock roughness |
-| *_patch (6 surface patch noises) | -6, [1, 1, 1] | surface rules only | 64 | ground-cover patches |
+| *_patch (5 surface patch noises) | -6, [1, 1, 1] | surface rules only | 64 | ground-cover patches |
 
 ### 1.2 Named density functions (`data/dross/worldgen/density_function/`; `flat(...)` = `flat_cache(cache_2d(...))`)
 **Hub falloffs** (`dross:hub_falloff`: 1 inside the inner radius, smoothstep to 0 at the outer radius): `hub/core` (200 -> 450), `hub/no_mountain` (600 -> 850), `hub/ring_outer` (1100 -> 1500), `hub/mountain_ring` = `ring_outer - no_mountain`, `hub/flat` (80 -> 260).
@@ -132,10 +147,10 @@ in `tools/terrain/README.md`):
   "argument2":{"type":"minecraft:shifted_noise","noise":"dross:heat","xz_scale":0.8,"y_scale":0.0,
                "shift_x":"dross:climate/warp_x","shift_y":0.0,"shift_z":"dross:climate/warp_z"}}}}}
 ```
-- `climate/rot` = clamp(rot - 1.5 x core); `climate/scar` = clamp(scar - 1.5 x core) (xz `SCAR_XZ_SCALE`); `climate/mountain` = clamp(mountain - 1.5 x no_mountain + 0.15 x mountain_ring).
+- `climate/rot` = clamp(rot - 1.5 x core); `climate/mountain` = clamp(mountain - 1.5 x no_mountain + 0.15 x mountain_ring).
 
 **Gates** (all `flat`; a gate is a 2-point spline = a smoothstep, e.g. `{"coordinate":"dross:climate/heat","points":[{"location":0.22,"value":0.0,"derivative":0.0},{"location":0.32,"value":1.0,"derivative":0.0}]}`); each is multiplied down by the biomes that take priority:
-- `g_mtn`: mountain from Tm-0.10 to Tm. `g_scar`: scar from Ts+-0.04, x (1 - g_mtn). `g_free` = (1 - g_mtn) x (1 - scar spline).
+- `g_mtn`: mountain from Tm-0.10 to Tm. `g_free` = 1 - g_mtn.
 - `g_hot`: heat from Th+-0.05, x g_free. `g_cold`: heat from Tc-+0.05, x g_free. `g_rot`: rot from Tr+-0.05, x g_free x (1 - hot - cold).
 - `rock_gate` = max(clamp(5 x (rockiness - 0.15), 0, 1), max(g_mtn, 0.3 x g_hot)).
 
@@ -144,9 +159,8 @@ in `tools/terrain/README.md`):
 - `escarpment` = rock_gate x spline(cliff) x (1 - 0.5·g_cold); cliff spline points (location, value, derivative): (-1,0,0) (-0.12,0,0) (-0.08,9,0) (0.18,9,0) (0.22,18,0) (1,18,0)
 - `mesa` = g_hot x 12 x spline(mesa: (-1,0,0) (0.15,0,0) (0.22,1,0) (1,1,0))
 - `blight` = g_rot x (-7 + 12·lumps)
-- `scar_sink` = -3·g_scar
 - `mountain` = spline(climate/mountain, UPLIFT) x (0.5 + 0.5·clamp(1 - 2.5·|ridges|, 0, 1)); the uplift spline first so ridges are skipped on the ~88% of land that isn't mountain. UPLIFT points relative to Tm (location offset, value, derivative): (-0.14,0,0) (0,14,250) (+0.08,45,420) (+0.18,105,500) (+0.32,160,250) (+0.50,185,0) (monotonic 0 -> 185).
-- `height_raw` = 72 + (1 - 0.85·hub_flat)·hills + (1 - hub_flat)·(escarpment + mesa + blight + scar_sink) + mountain
+- `height_raw` = 72 + (1 - 0.85·hub_flat)·hills + (1 - hub_flat)·(escarpment + mesa + blight) + mountain
 - `height` = flat(spline(height_raw, SOFT_CAP)), SOFT_CAP points (-64,-64,1) (190,190,1) (230,224,0.6) (270,245,0.4) (310,258,0.2) (360,264,0): raw 290 -> 251, 305 -> 257, so peaks land at ~230-264.
 - `jag_gate` = flat((1 - hub_flat) x rock_gate)
 
@@ -163,7 +177,7 @@ in `tools/terrain/README.md`):
  "noise":{"min_y":-64,"height":384,"size_horizontal":1,"size_vertical":2},"spawn_target":[],
  "noise_router":{"barrier":0.0,"fluid_level_floodedness":0.0,"fluid_level_spread":0.0,"lava":0.0,
   "temperature":"dross:climate/heat","vegetation":"dross:climate/rot","continents":"dross:climate/mountain",
-  "erosion":0.0,"depth":0.0,"ridges":"dross:climate/scar",
+  "erosion":0.0,"depth":0.0,"ridges":0.0,
   "initial_density_without_jaggedness":{"type":"minecraft:add","argument1":0.390625,"argument2":{"type":"minecraft:mul","argument1":0.03125,"argument2":"dross:terrain/depth"}},
   "final_density":{"type":"minecraft:interpolated","argument":{"type":"minecraft:add",
      "argument1":{"type":"minecraft:mul","argument1":0.03125,"argument2":"dross:terrain/depth"},"argument2":"dross:terrain/jag"}},
@@ -187,20 +201,19 @@ Gravecrags peaks after the soft cap: 245-262. Snow line ~200. Natural ground und
 
 ## 2. Biomes, the hub, region size
 
-### 2.1 Partition (priority: Gravecrags, Nether Scar, Cinder (hot), Rimefall (cold), Blightwood (rot), Silverwood everywhere else)
+### 2.1 Partition (priority: Gravecrags, Cinder (hot), Rimefall (cold), Blightwood (rot), Silverwood everywhere else)
 ```json
 "biome_source":{"type":"minecraft:multi_noise","biomes":[
  {"biome":"dross:gravecrags","parameters":{"temperature":[-2,2],"humidity":[-2,2],"continentalness":[0.34,2],"erosion":0.0,"depth":0.0,"weirdness":[-2,2],"offset":0.0}},
- {"biome":"dross:nether_scar","parameters":{"temperature":[-2,2],"humidity":[-2,2],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[0.47,2],"offset":0.0}},
- {"biome":"dross:cinder_wastes","parameters":{"temperature":[0.27,2],"humidity":[-2,2],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,0.47],"offset":0.0}},
- {"biome":"dross:rimefall","parameters":{"temperature":[-2,-0.27],"humidity":[-2,2],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,0.47],"offset":0.0}},
- {"biome":"dross:blightwood","parameters":{"temperature":[-0.27,0.27],"humidity":[0.17,2],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,0.47],"offset":0.0}},
- {"biome":"dross:silverwood_forest","parameters":{"temperature":[-0.27,0.27],"humidity":[-2,0.17],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,0.47],"offset":0.0}}]}
+ {"biome":"dross:cinder_wastes","parameters":{"temperature":[0.27,2],"humidity":[-2,2],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,2],"offset":0.0}},
+ {"biome":"dross:rimefall","parameters":{"temperature":[-2,-0.27],"humidity":[-2,2],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,2],"offset":0.0}},
+ {"biome":"dross:blightwood","parameters":{"temperature":[-0.27,0.27],"humidity":[0.17,2],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,2],"offset":0.0}},
+ {"biome":"dross:silverwood_forest","parameters":{"temperature":[-0.27,0.27],"humidity":[-2,0.17],"continentalness":[-2,0.34],"erosion":0.0,"depth":0.0,"weirdness":[-2,2],"offset":0.0}}]}
 ```
-Thresholds computed by the generator from `TARGET_SHARES` with sigma = 0.287 (don't hard-code): p_m = crags; p_s = scar/(1-p_m); p_h = cinder/((1-p_m)(1-p_s)), p_c the same with rimefall; p_r = blight/((1-p_m)(1-p_s)(1-p_h-p_c)); T = sigma·PhiInverse(...). Shares 40/15/14/14/12/5% give Tm 0.34, Ts 0.47, Th 0.27, Tc -0.27, Tr 0.17 (simulated 39/15/14/13/12/5%). Hot and cold never touch (a band >= 100 blocks of another biome always lies between).
+Thresholds computed by the generator from `TARGET_SHARES` with sigma = 0.287 (don't hard-code): p_m = crags; p_h = cinder/(1-p_m), p_c the same with rimefall; p_r = blight/((1-p_m)(1-p_h-p_c)); T = sigma·PhiInverse(...). (The sewers' box, added later, is Blightwood's split by the depth slot.) The planned shares 40/15/14/14/12/5% (with the Nether Scar's 5%) gave Tm 0.34, Th 0.27, Tc -0.27, Tr 0.17; since the Scar went, the same borders give about 42.4/15.9/14.8/14.8/12%. Hot and cold never touch (a band >= 100 blocks of another biome always lies between).
 
 ### 2.2 Hub blending (for regions ~600 across)
-- Silverwood core: heat x (1 - core), rot - 1.5·core, scar - 1.5·core, core 200 -> 450. Inside 200 blocks Silverwood is guaranteed (over 40 seeds the all-Silverwood radius was >= 286, median 324; other biomes first appear at a median of 340-420, never beyond ~800).
+- Silverwood core: heat x (1 - core), rot - 1.5·core, core 200 -> 450. Inside 200 blocks Silverwood is guaranteed (over 40 seeds the all-Silverwood radius was >= 286, median 324; other biomes first appear at a median of 340-420, never beyond ~800).
 - No mountains near the hub: mountain - 1.5·no_mountain, 600 -> 850 (hard limit ~700; foothills typically start ~780).
 - Mountain ring boost +0.15 between 850 and 1100, fading out by 1500: 40/40 seeds had the Gravecrags within 824 blocks (without it the worst seed was 1582).
 - Flattening: hub_flat 80 -> 260; inside 80 blocks only 15% of the hills remain and no cliffs, mesas or jag.
@@ -212,7 +225,6 @@ Sample a biome grid at 16-block cells over 8192^2 blocks centred far from the hu
 | Constant | 400-800 regions (default) | vanilla-like |
 |---|---|---|
 | `CLIMATE_XZ_SCALE` | 0.80 | 0.45 |
-| `SCAR_XZ_SCALE` | 0.80 | 0.60 |
 | `WARP_BLOCKS` | 32 | 48 |
 | `SILVERWOOD_CORE_INNER/OUTER` | 200/450 | 350/800 |
 | `MOUNTAIN_FREE_INNER/OUTER` | 600/850 | 1100/1500 |
@@ -227,7 +239,7 @@ They only replace blocks that are exactly the default block (duskstone); first m
  {"type":"minecraft:condition","if_true":{"type":"minecraft:vertical_gradient","random_name":"dross:bedrock_floor","true_at_and_below":{"above_bottom":0},"false_at_and_above":{"above_bottom":5}},
   "then_run":{"type":"minecraft:block","result_state":{"Name":"minecraft:bedrock"}}},
  {"type":"minecraft:condition","if_true":{"type":"minecraft:biome","biome_is":["dross:gravecrags"]},"then_run":BIOME_RULES},
- "... nether_scar, cinder_wastes, rimefall, blightwood, silverwood_forest ...",
+ "... cinder_wastes, rimefall, blightwood (and the sewers under it), silverwood_forest ...",
  "SILVERWOOD_RULES as the final fallback (catches any unknown biome)"]}
 ```
 Each BIOME_RULES: `stone_depth{offset 0, add_surface_depth false, secondary_depth_range 0, surface_type "floor"}` -> TOP; the same with `add_surface_depth: true` -> UNDER (3-6 deep); optional `y_above{anchor {"absolute":Y}, surface_depth_multiplier 0, add_stone_depth false}` -> BODY.
@@ -239,7 +251,6 @@ Shared pieces: **Rock**: `{"type":"minecraft:steep"}` -> biome rock, then `noise
 | Blightwood | rock rules -> duskstone; patch >= 0.30 -> mud (mycelium until round 2); <= -0.50 -> coarse dirt; else `dross:sporeloam` | dirt | - |
 | Cinder | patch >= 0.45 -> magma; <= -0.40 -> basalt; steep/outcrop -> basalt; else `dross:ash` | magma (same patch) or blackstone | y >= 48 -> basalt with blackstone strata |
 | Rimefall | steep -> packed ice; patch >= 0.40 -> snow block; <= -0.45 -> packed ice; else `dross:hoarfrost` | snow block (patch) or dirt | - |
-| Nether Scar | patch >= 0.20 -> crimson nylium; <= -0.20 -> warped nylium; soul patch >= 0.5 -> soul soil; <= -0.55 -> soul sand; else `dross:scarred_netherrack` where `patch/scar_cracks` > -0.15 and `patch/scar_speckle` > -0.25, plain netherrack elsewhere (round 2: it was all cracked, too busy) | netherrack | y >= 40 -> netherrack |
 | Gravecrags | `y_above(200, surface_depth_multiplier 2)` -> snow block; patch >= 0.40 -> gravel; below y 150 and patch <= -0.45 -> moss; else `dross:cragstone` | snow above line + 4, else cragstone | y >= 90 -> cragstone |
 Snow line and temperature are tied: Gravecrags temperature = 0.15 + (`SNOW_LINE_Y` - 80)/800 = 0.30; vanilla cools 0.05 per 40 blocks above y 80 (+-8 noise), so `freeze_top_layer` snows above ~y 200.
 
@@ -251,12 +262,12 @@ Snow line and temperature are tied: Gravecrags temperature = 0.15 + (`SNOW_LINE_
 | 1 LAKES | pond_silverwood (`lake`, water, barrier mud, rarity 24) -> Silverwood; pond_blightwood (barrier mud, 16) -> Blightwood; pond_rimefall (barrier packed ice, 20; the top freezes, biome is cold) -> Rimefall; lava_pool_cinder (`delta_feature`: lava, rim magma, size 2-4, rim 0-1, rarity 6) -> Cinder. Ponds also get `dross:not_near_hub` radius 96. |
 | 2 LOCAL_MODIFICATIONS | boulders (`forest_rock`, rarity 3) -> Silverwood, Blightwood, Gravecrags; basalt_spires (`basalt_columns`, reach 1, height 3-9, rarity 2) -> Cinder; ice_spike (rarity 24; needs a snow-block patch) -> Rimefall |
 | 6 UNDERGROUND_ORES | the same ore list in every biome: `ore` with target `{"predicate_type":"minecraft:block_match","block":"dross:duskstone"}`; ORE_* constants for size, count and height range (Stormite mostly under the Gravecrags: give it a Gravecrags-only extra placement) |
-| 9 VEGETAL_DECORATION | big things first: silverwood_trees -> charred_trees -> blightcaps (`huge_red_mushroom`/`huge_brown_mushroom` with custom cap and stem, foliage_radius 3) -> frost_dead_trees -> crimson_fungi/warped_fungi (`huge_fungus`, planted false, `valid_base_block` crimson/warped nylium) -> fallen_logs -> `nether_forest_vegetation` x2 -> ground patches (`random_patch`), storm lichen (`multiface_growth`) |
+| 9 VEGETAL_DECORATION | big things first: silverwood_trees -> charred_trees -> blightcaps (`huge_red_mushroom`/`huge_brown_mushroom` with custom cap and stem, foliage_radius 3) -> frost_dead_trees -> fallen_logs -> ground patches (`random_patch`), storm lichen (`multiface_growth`) |
 | 10 TOP_LAYER_MODIFICATION | `minecraft:freeze_top_layer` in every biome except Rimefall (left out so hoarfrost stays visible; Rimefall gets `random_patch` snow layers instead; a constant switches it) |
 
 Placement: trees `count` (weighted 11:4, 14:1), `in_square`, `surface_water_depth_filter` 0, `heightmap OCEAN_FLOOR`, `block_predicate_filter` (`would_survive` of the sapling, or matching_blocks on the ground block below), `biome`. Ground plants: `heightmap MOTION_BLOCKING_NO_LEAVES` (under the canopy). Delta lava pools need `{"type":"minecraft:random_offset","xz_spread":0,"y_spread":-1}` after the heightmap (the delta's origin must be the surface block). Never write `Properties` for dross blocks in feature JSON unless the property really exists. Dead trees: `forking_trunk_placer` (4/2/2) + `blob_foliage_placer` radius 0 with foliage provider air (TreeFeature is fine without leaves); frost trees add `{"type":"minecraft:alter_ground","provider":{... snow_block ...}}`; icicles can hang under branches with a small custom decorator or a patch feature.
 
-1.20.1 pitfalls confirmed in the source: `huge_*_mushroom` needs the block below in `minecraft:dirt` or `minecraft:mushroom_grow_block` and the space must be air or leaves (place before plants); `huge_fungus` matches `valid_base_block` exactly; `nether_forest_vegetation` needs `#minecraft:nylium` below; `multiface_growth`'s codec rejects any non-`MultifaceBlock` (kills datapack loading); `ice_spike` needs a snow block below; `forest_rock` descends until it finds `#minecraft:dirt` or `#minecraft:base_stone_overworld`; `basalt_columns` won't place on magma, lava or soul sand; `random_patch` -> `simple_block` checks `canSurvive` (plants must have survival rules); lava ignites anything `ignitedByLava()` within ~3 blocks (Cinder plants and charred logs must be non-flammable; the Scar gets no lava or fire). Animals only spawn on blocks in `animals_spawnable_on`.
+1.20.1 pitfalls confirmed in the source: `huge_*_mushroom` needs the block below in `minecraft:dirt` or `minecraft:mushroom_grow_block` and the space must be air or leaves (place before plants); `huge_fungus` matches `valid_base_block` exactly; `nether_forest_vegetation` needs `#minecraft:nylium` below; `multiface_growth`'s codec rejects any non-`MultifaceBlock` (kills datapack loading); `ice_spike` needs a snow block below; `forest_rock` descends until it finds `#minecraft:dirt` or `#minecraft:base_stone_overworld`; `basalt_columns` won't place on magma, lava or soul sand; `random_patch` -> `simple_block` checks `canSurvive` (plants must have survival rules); lava ignites anything `ignitedByLava()` within ~3 blocks (Cinder plants and charred logs must be non-flammable). Animals only spawn on blocks in `animals_spawnable_on`.
 
 ## 5. Java (package `dimension/worldgen`)
 ```java
@@ -305,15 +316,15 @@ DensityFunction f = registry(DENSITY_FUNCTION).getOrThrow(key).mapAll(new Densit
 double hv = f.compute(new DensityFunction.SinglePointContext(x, 0, z));
 ```
 Costs: biome sample ~1-2 us, 2D height probe ~3-5 us, `getBaseHeight`/`getBaseColumn` ~50-100 us; all thread-safe (fresh NoiseChunk per call, immutable RandomState, RTree uses a ThreadLocal), so use `IntStream.parallel()` over rows. `RandomState.create(HolderGetter.Provider, ResourceKey<NoiseGeneratorSettings>, long)` also exists.
-**Hard assertions:** (1) every sample within 200 blocks of the hub is Silverwood, every seed; (2) no Gravecrags within 650 blocks; (3) shares averaged over 8 seeds in a far window: Silverwood 0.32-0.48; Blightwood, Cinder, Rimefall, Gravecrags 0.09-0.20 each; Scar 0.025-0.08; (4) area-weighted region size: the four main biomes 400-800, Scar 120-350; (5) nearest of each biome <= 1500 blocks for every seed; (6) heights: min >= 30, max <= 290, median per-mountain peak 225-265, Silverwood median 66-80; (7) natural ground over the hub footprint (91x89 with margin): range <= 5, std <= 1.2, slope <= 1; (8) `getBaseColumn` contiguous solid from the surface to the bottom (no gaps); (9) at cell corners `getBaseHeight - 1` matches the probe within +-1 where `jag_gate = 0`, +-9 elsewhere; (10) determinism: 2000 shuffled points in parallel give identical biomes.
-**(b) Real chunks** (world seed): one site per biome from the biome grid around (6000, 6000) (a cell whose +-64-block neighbourhood is all that biome; for the Gravecrags the highest such cell); generate 5x5 FULL chunks with `dross.getChunk(cx, cz)`; assert the biome, bedrock floor (none above min+5), no air more than 8 below the surface heightmap, >= 99% of top blocks in the biome's allowed set and the main ground block >= 40%, every fluid a source, lava enclosed (solid or lava on every side and below), no lava/fire in the Scar, every BushBlock/VineBlock/MultifaceBlock/snow layer passes `canSurvive`, marker block counts per site; report generation time per chunk. Hub: built, biome at the hub Silverwood.
+**Hard assertions:** (1) every sample within 200 blocks of the hub is Silverwood, every seed; (2) no Gravecrags within 650 blocks; (3) shares averaged over 8 seeds in a far window: Silverwood 0.32-0.48; Blightwood, Cinder, Rimefall, Gravecrags 0.09-0.20 each; none of it another biome; (4) area-weighted region size: the four non-Silverwood biomes 400-800; (5) nearest of each biome <= 1500 blocks for every seed; (6) heights: min >= 30, max <= 290, median per-mountain peak 225-265, Silverwood median 66-80; (7) natural ground over the hub footprint (91x89 with margin): range <= 5, std <= 1.2, slope <= 1; (8) `getBaseColumn` contiguous solid from the surface to the bottom (no gaps); (9) at cell corners `getBaseHeight - 1` matches the probe within +-1 where `jag_gate = 0`, +-9 elsewhere; (10) determinism: 2000 shuffled points in parallel give identical biomes.
+**(b) Real chunks** (world seed): one site per biome from the biome grid around (6000, 6000) (a cell whose +-64-block neighbourhood is all that biome; for the Gravecrags the highest such cell); generate 5x5 FULL chunks with `dross.getChunk(cx, cz)`; assert the biome, bedrock floor (none above min+5), no air more than 8 below the surface heightmap, >= 99% of top blocks in the biome's allowed set and the main ground block >= 40%, every fluid a source, lava enclosed (solid or lava on every side and below), every BushBlock/VineBlock/MultifaceBlock/snow layer passes `canSurvive`, marker block counts per site; report generation time per chunk. Hub: built, biome at the hub Silverwood.
 **(c) Output** to `terrain-previews/` with `BufferedImage` + `ImageIO` (java.desktop is available; set `java.awt.headless=true`): `biomes_<seed>.png` (`biomes_world.png` for the world's own seed; +-4096 blocks at 8 blocks/px, rings at 200/450/600/850), `relief_<seed>.png` (`relief_world.png`) (hill-shaded, biome-tinted, contours every 16), `overview.png` (all seeds), `hub_area.png` (+-128 from real chunks, `state.getMapColor(level, pos).col` with map-style shading), `site_<biome>.png`, `stats.json`/`stats.txt` (shares, region sizes, distances, heights/slopes per biome, hub flatness, timings). Gate the expensive preview test behind an env var (e.g. `DROSS_TERRAIN_PREVIEWS=1`) so normal test runs stay fast.
 
 ## 7. Client sky and fog (can't be tested headlessly: small, guarded, kill-switch constants)
 - `dimension_type` `"effects": "dross:dross"`; on the mod bus (client only) `RegisterDimensionSpecialEffectsEvent.register(new ResourceLocation("dross","dross"), new DrossSkyEffects())` (if missing, overworld effects are used silently).
 - `DrossSkyEffects`: `super(Float.NaN /* no clouds clipping peaks */, true, SkyType.NORMAL, false, false)`; `getBrightnessDependentFogColor(fog, b)` returns `fog.scale(FLOOR + (1 - FLOOR)·b)` with `FOG_NIGHT_FLOOR ~0.3` (vanilla multiplies by 0.06 at midnight: black); `getSunriseColor` null; `adjustLightmapColors`: scale only the sky-lit part, weighted by `pixelY/15 · (1 - pixelX/30)`, toward blue (e.g. r x 0.85, g x 0.9, b x 1.15, clamped). Leave `isFoggyAt` false (vanilla passes camera x and **y**).
 - Tinted sky: don't override `renderSky`; draw a translucent gradient quad in `RenderLevelStageEvent` at `Stage.AFTER_SKY` (orthographic projection, depth test off, save/restore projection, vertex sorting and model-view), wrapped in try/catch that disables it after the first error.
-- Per-biome fog: `ViewportEvent.RenderFog` in the Dross only, for `FogMode.FOG_TERRAIN` and `FogType.NONE`: ease a fog factor toward the camera biome's target (Blightwood 0.35, Scar 0.6, Cinder 0.7, Rimefall 0.8, others 1.0), scale near and far, then `setCanceled(true)` (required for the change to apply).
+- Per-biome fog: `ViewportEvent.RenderFog` in the Dross only, for `FogMode.FOG_TERRAIN` and `FogType.NONE`: ease a fog factor toward the camera biome's target (Blightwood 0.35, Cinder 0.7, Rimefall 0.8, others 1.0), scale near and far, then `setCanceled(true)` (required for the change to apply).
 - Biome fog colours come from the biome JSON, which the generator fills from `DrossColors`.
 
 ## 8. Top risks and how to spot them headlessly
@@ -326,6 +337,6 @@ Costs: biome sample ~1-2 us, 2D height probe ~3-5 us, `getBaseHeight`/`getBaseCo
 | Caves/overhangs/floating terrain from the jag | assertion 8, real-chunk air check |
 | Wrong surface blocks, grassy cliff faces | top-block histograms, `site_*.png` |
 | Features missing because of ground tags | marker counts per site |
-| Lava leaks, fire in the Scar, floating plants | fluid, enclosure and `canSurvive` scans |
+| Lava leaks, fire, floating plants | fluid, enclosure and `canSurvive` scans |
 | World generation slowdown | timings in `stats.json` (budget ~20 ms per chunk) |
 | Old worlds keep flat chunks and the hub at ~y -60 | new worlds only (`dross_flats.json` was removed in the October 17 cleanup); tell the user to start a new world |

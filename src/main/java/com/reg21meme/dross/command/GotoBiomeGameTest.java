@@ -81,7 +81,7 @@ public final class GotoBiomeGameTest
     private static final int PAUSE_TICKS = 2;
     /** The order the biomes are tried from the Overworld: the far mountains and the hub's own forest first. */
     private static final List<ResourceKey<Biome>> FROM_OVERWORLD = List.of(DrossBiomes.GRAVECRAGS, DrossBiomes.SILVERWOOD_FOREST,
-            DrossBiomes.CINDER_WASTES, DrossBiomes.BLIGHTWOOD, DrossBiomes.RIMEFALL, DrossBiomes.NETHER_SCAR);
+            DrossBiomes.CINDER_WASTES, DrossBiomes.BLIGHTWOOD, DrossBiomes.RIMEFALL);
 
     private GotoBiomeGameTest() {}
 

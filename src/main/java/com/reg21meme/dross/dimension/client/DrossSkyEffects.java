@@ -19,7 +19,7 @@ import org.slf4j.Logger;
  * always midnight in the Dross; this keeps that night blue instead of black:
  * <ul>
  *   <li><b>Fog</b>: Minecraft darkens the fog to almost black at night (to 6% in the Overworld). Here each biome's fog
- *       colour (its JSON, from {@code DrossColors}: deep blue in Silverwood Forest, red-violet in the Nether Scar...) is
+ *       colour (its JSON, from {@code DrossColors}: deep blue in Silverwood Forest, sickly green in Blightwood...) is
  *       shown as it is, times {@link #FOG_BRIGHTNESS}, so the haze in the distance and the sky at the horizon stay blue.</li>
  *   <li><b>No clouds</b> (they'd cut through the Gravecrags' peaks) and no sunrise colours.</li>
  *   <li><b>Light</b>: light from the sky is tinted a little toward {@code DrossColors.DROSS_SKY_LIGHT_TINT} (pale blue),

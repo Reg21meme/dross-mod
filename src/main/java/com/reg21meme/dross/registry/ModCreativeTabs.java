@@ -58,7 +58,7 @@ public final class ModCreativeTabs
                         output.accept(ModItems.GLIMMER_FERN.get());
                         output.accept(ModItems.WISPBLOOM.get());
                         // Dimension area: the other biomes' blocks, biome by biome: Cinder Wastes, Blightwood, Rimefall,
-                        // Nether Scar, then the Gravecrags
+                        // the old Nether Scar's (kept as building blocks), then the Gravecrags
                         output.accept(ModItems.ASH.get());
                         output.accept(ModItems.ASH_LAYER.get());
                         output.accept(ModItems.CHARRED_LOG.get());

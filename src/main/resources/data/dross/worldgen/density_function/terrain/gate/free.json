@@ -3,41 +3,12 @@
   "argument": {
     "type": "minecraft:cache_2d",
     "argument": {
-      "type": "minecraft:mul",
-      "argument1": {
-        "type": "minecraft:add",
-        "argument1": 1.0,
-        "argument2": {
-          "type": "minecraft:mul",
-          "argument1": -1.0,
-          "argument2": "dross:terrain/gate/mountain"
-        }
-      },
+      "type": "minecraft:add",
+      "argument1": 1.0,
       "argument2": {
-        "type": "minecraft:add",
-        "argument1": 1.0,
-        "argument2": {
-          "type": "minecraft:mul",
-          "argument1": -1.0,
-          "argument2": {
-            "type": "minecraft:spline",
-            "spline": {
-              "coordinate": "dross:climate/scar",
-              "points": [
-                {
-                  "location": 0.41721472001100335,
-                  "value": 0.0,
-                  "derivative": 0.0
-                },
-                {
-                  "location": 0.4972147200110033,
-                  "value": 1.0,
-                  "derivative": 0.0
-                }
-              ]
-            }
-          }
-        }
+        "type": "minecraft:mul",
+        "argument1": -1.0,
+        "argument2": "dross:terrain/gate/mountain"
       }
     }
   }

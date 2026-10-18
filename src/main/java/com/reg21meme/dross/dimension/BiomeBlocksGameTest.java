@@ -66,9 +66,11 @@ import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 /**
- * Headless tests (GameTests) for the other biomes' blocks (Cinder Wastes, Blightwood, Rimefall, Nether Scar and the
- * Gravecrags; Stage 1's blocks are in {@link TerrainBlocksGameTest}). Run them with
- * {@code .\gradlew.bat runGameTestServer --console=plain}. They only exist in the development environment.
+ * Headless tests (GameTests) for the other biomes' blocks (Cinder Wastes, Blightwood, Rimefall and the Gravecrags; Stage
+ * 1's blocks are in {@link TerrainBlocksGameTest}), and the four blocks of the removed Nether Scar (Scarred Netherrack,
+ * Scar Roots, Soulwick, Scar Vent: kept as building blocks since the biome went on October 17, 2026, so these check
+ * that they still work placed by hand). Run them with {@code .\gradlew.bat runGameTestServer --console=plain}. They only
+ * exist in the development environment.
  *
  * <ul>
  *   <li>{@link #ashLayerNeverMelts}: Ash Layers stay beside bright light where vanilla snow melts.</li>
@@ -77,7 +79,8 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
  *       Touch, and you walk through them.</li>
  *   <li>{@link #plantsKeepToTheirGround}: every biome plant refuses the wrong ground and grows on the right one, and
  *       one already growing pops off when its ground is swapped for a wrong one (even dirt).</li>
- *   <li>{@link #cinderAndScarBlocksNeverBurn}: nothing of the Cinder Wastes or the Nether Scar burns or feeds fire.</li>
+ *   <li>{@link #cinderAndScarBlocksNeverBurn}: nothing of the Cinder Wastes, and none of the Nether Scar's blocks, burns
+ *       or feeds fire.</li>
  *   <li>{@link #glowingBlocksGiveLight}: every glowing block's light level, and the light really spreading.</li>
  *   <li>{@link #blightcapBlocksAreHugeMushrooms}: the giant blightcap's blocks, their drops, how they join, and the
  *       vanilla huge mushroom feature building a blightcap from them.</li>
@@ -124,7 +127,7 @@ public final class BiomeBlocksGameTest
     private static final int CINDER_VENT_LIGHT = 3;
     private static final int GLOOMCAP_LIGHT = 6;
     private static final int FROSTBLOOM_LIGHT = 3;
-    /** Scarred Netherrack glows (full-bright cracks) but gives no light: monsters still spawn on the Nether Scar's ground. */
+    /** Scarred Netherrack glows (full-bright cracks) but gives no light: monsters still spawn on it. */
     private static final int SCARRED_NETHERRACK_LIGHT = 0;
     private static final int SOULWICK_LIGHT = 10;
     private static final int SCAR_VENT_LIGHT = 4;

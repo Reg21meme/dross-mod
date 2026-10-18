@@ -32,9 +32,9 @@ public final class PlantGround
     public static final TagKey<Block> SPOREPOD = tag("sporepod_grows_on");
     // Rimefall: Hoarfrost, snow blocks and #minecraft:dirt
     public static final TagKey<Block> FROSTBLOOM = tag("frostbloom_grows_on");
-    // Nether Scar: nylium, netherrack, Scarred Netherrack and soul soil
+    // Scar Roots (from the old Nether Scar): nylium, netherrack, Scarred Netherrack and soul soil
     public static final TagKey<Block> SCAR_ROOTS = tag("scar_roots_grow_on");
-    // Nether Scar: soul soil and soul sand
+    // Soulwick (from the old Nether Scar): soul soil and soul sand
     public static final TagKey<Block> SOULWICK = tag("soulwick_grows_on");
     // The Gravecrags: Cragstone, gravel, Duskstone, snow blocks and #minecraft:dirt
     public static final TagKey<Block> CRAG_THISTLE = tag("crag_thistle_grows_on");

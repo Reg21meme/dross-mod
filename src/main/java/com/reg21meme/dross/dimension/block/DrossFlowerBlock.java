@@ -15,7 +15,7 @@ import net.minecraftforge.common.PlantType;
  * A small flower of one of the Dross's biomes (the Frostbloom, the Crag Thistle, and the Soulwick through
  * {@link SoulwickBlock}). A normal small flower (bees visit it, it drops itself, it goes into suspicious stew), except
  * that it grows only on its own ground: the block tag {@code ground} (see {@link PlantGround}). Whether it burns is
- * given when it's made: flowers of the Nether Scar never do.
+ * given when it's made: the Soulwick (from the old Nether Scar) never does.
  */
 public class DrossFlowerBlock extends FlowerBlock
 {

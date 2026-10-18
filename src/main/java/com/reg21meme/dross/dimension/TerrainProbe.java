@@ -81,7 +81,7 @@ final class TerrainProbe
         return holder.unwrapKey().orElseThrow();
     }
 
-    /** The biome of the column as its place in {@link DrossBiomes#ALL} (0 Silverwood Forest ... 5 Gravecrags), or -1 for another. */
+    /** The biome of the column as its place in {@link DrossBiomes#ALL} (0 Silverwood Forest ... 4 Gravecrags), or -1 for another. */
     int biome(int x, int z)
     {
         return DrossBiomes.ALL.indexOf(biomeKey(x, z));

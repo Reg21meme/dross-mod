@@ -30,10 +30,10 @@ DATA = os.path.join(ROOT, "src", "main", "resources", "data")
 WORLDGEN = os.path.join(DATA, "dross", "worldgen")
 COLORS_JAVA = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "DrossColors.java")
 MOUNTAIN_MIN_AREA = 256 * 256     # a Gravecrags region at least this big (blocks^2) counts as a mountain range for its peak
-BIOMES = ["silverwood_forest", "cinder_wastes", "blightwood", "rimefall", "nether_scar", "gravecrags"]
+BIOMES = ["silverwood_forest", "cinder_wastes", "blightwood", "rimefall", "gravecrags"]
 PREVIEW_COLOR_NAMES = {"silverwood_forest": "PREVIEW_SILVERWOOD", "cinder_wastes": "PREVIEW_CINDER",
                        "blightwood": "PREVIEW_BLIGHTWOOD", "rimefall": "PREVIEW_RIMEFALL",
-                       "nether_scar": "PREVIEW_NETHER_SCAR", "gravecrags": "PREVIEW_GRAVECRAGS"}
+                       "gravecrags": "PREVIEW_GRAVECRAGS"}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Minecraft's noise, in numpy
@@ -237,14 +237,16 @@ def biome_boxes():
         def rng(k):
             v = p[k]
             return (q(v[0]), q(v[1])) if isinstance(v, list) else (q(v), q(v))
-        boxes.append((entry["biome"].split(":")[1], {k: rng(k) for k in ("temperature", "humidity", "continentalness", "weirdness")}))
+        name = entry["biome"].split(":")[1]
+        if name in BIOMES:   # (the sewers' box is underground: the sketch only looks at the surface)
+            boxes.append((name, {k: rng(k) for k in ("temperature", "humidity", "continentalness")}))
     return boxes
 
 
 def classify(world, x, z):
     cache = {}
     climate = {"temperature": "dross:climate/heat", "humidity": "dross:climate/rot",
-               "continentalness": "dross:climate/mountain", "weirdness": "dross:climate/scar"}
+               "continentalness": "dross:climate/mountain"}
     vals = {k: np.trunc(world.evaluate(f, x, z, cache).astype(np.float32) * np.float32(10000.0)).astype(np.int64)
             for k, f in climate.items()}
     out = np.full(x.shape, -1, dtype=np.int8)

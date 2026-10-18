@@ -712,18 +712,31 @@ public final class TerrainPreviewGameTest
     // Helpers
     // ---------------------------------------------------------------------------------------------
 
+    /** A biome's map colour, by its place in {@link DrossBiomes#ALL} (-1 or anything else: PREVIEW_OTHER, which no map should show). */
     private static int biomeColor(int biome)
     {
-        return switch (biome)
+        ResourceKey<Biome> key = biome >= 0 && biome < DrossBiomes.ALL.size() ? DrossBiomes.ALL.get(biome) : null;
+        if (DrossBiomes.SILVERWOOD_FOREST.equals(key))
         {
-            case 0 -> DrossColors.PREVIEW_SILVERWOOD;
-            case 1 -> DrossColors.PREVIEW_CINDER;
-            case 2 -> DrossColors.PREVIEW_BLIGHTWOOD;
-            case 3 -> DrossColors.PREVIEW_RIMEFALL;
-            case 4 -> DrossColors.PREVIEW_NETHER_SCAR;
-            case 5 -> DrossColors.PREVIEW_GRAVECRAGS;
-            default -> DrossColors.PREVIEW_OTHER;
-        };
+            return DrossColors.PREVIEW_SILVERWOOD;
+        }
+        if (DrossBiomes.CINDER_WASTES.equals(key))
+        {
+            return DrossColors.PREVIEW_CINDER;
+        }
+        if (DrossBiomes.BLIGHTWOOD.equals(key))
+        {
+            return DrossColors.PREVIEW_BLIGHTWOOD;
+        }
+        if (DrossBiomes.RIMEFALL.equals(key))
+        {
+            return DrossColors.PREVIEW_RIMEFALL;
+        }
+        if (DrossBiomes.GRAVECRAGS.equals(key))
+        {
+            return DrossColors.PREVIEW_GRAVECRAGS;
+        }
+        return DrossColors.PREVIEW_OTHER;
     }
 
     private static String prettyName(int biome)

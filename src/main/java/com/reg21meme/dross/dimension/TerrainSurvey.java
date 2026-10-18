@@ -12,7 +12,8 @@ import java.util.stream.IntStream;
  * terrain checks assert and the previews report. Every number is in blocks unless it says otherwise.
  * <ul>
  *   <li><b>Far window</b> ({@value #FAR_HALF} x 2 blocks square round {@value #FAR_X}, {@value #FAR_Z}, far from the hub's
- *       influence): each biome's share of the land, and the size of its regions. A region's size is the diameter of a
+ *       influence): each biome's share of the land (and the share of any biome that isn't one of the five: none should
+ *       be), and the size of its regions. A region's size is the diameter of a
  *       circle of the same area; the "area-weighted median" is the size of the region the middle of the biome's land
  *       lies in (big regions count for more than slivers). Regions touching the window's edge are left out.</li>
  *   <li><b>Heights</b> (a {@value #HEIGHT_HALF} x 2 square inside the far window, every {@value #HEIGHT_CELL} blocks): each
@@ -61,6 +62,7 @@ final class TerrainSurvey
      * Everything about one seed.
      *
      * @param shares        each biome's share of the far window (in {@link DrossBiomes#ALL}'s order)
+     * @param otherShare    the share of the far window that's some other biome (none of {@link DrossBiomes#ALL}: should be 0)
      * @param regions       each biome's regions in the far window
      * @param nearest       how far from the hub each biome's nearest sample is (Double.MAX_VALUE if none within NEAR_HALF)
      * @param heights       each biome's heights (null if too few samples)
@@ -71,7 +73,7 @@ final class TerrainSurvey
      * @param hubStd        ...its standard deviation
      * @param hubSlope      ...the biggest difference between two neighbouring columns
      */
-    record SeedStats(long seed, double[] shares, Regions[] regions, double[] nearest, Heights[] heights, List<Double> peaks,
+    record SeedStats(long seed, double[] shares, double otherShare, Regions[] regions, double[] nearest, Heights[] heights, List<Double> peaks,
                      double minHeight, double maxHeight, int hubRange, double hubStd, int hubSlope)
     {
         double allSilverwoodRadius()
@@ -102,6 +104,7 @@ final class TerrainSurvey
             {
                 s.append(String.format(Locale.ROOT, " %s %.3f", name(b), shares[b]));
             }
+            s.append(String.format(Locale.ROOT, " other %.3f", otherShare));
             s.append("; region sizes (area-weighted median)");
             for (int b = 0; b < BIOMES; b++)
             {
@@ -127,13 +130,19 @@ final class TerrainSurvey
         int n = FAR_HALF * 2 / FAR_CELL;
         int[] far = biomeGrid(probe, FAR_X - FAR_HALF, FAR_Z - FAR_HALF, FAR_CELL, n, n);
         double[] shares = new double[BIOMES];
+        double other = 0.0D;
         for (int b : far)
         {
             if (b >= 0)
             {
                 shares[b]++;
             }
+            else
+            {
+                other++;
+            }
         }
+        other /= far.length;
         Regions[] regions = new Regions[BIOMES];
         for (int b = 0; b < BIOMES; b++)
         {
@@ -232,7 +241,7 @@ final class TerrainSurvey
                 }
             }
         }
-        return new SeedStats(probe.seed, shares, regions, nearest, heights, peaks, min, max, hi - lo, Math.sqrt(var), slope);
+        return new SeedStats(probe.seed, shares, other, regions, nearest, heights, peaks, min, max, hi - lo, Math.sqrt(var), slope);
     }
 
     /** The biome of every cell of a grid (row by row: index = row * width + column), sampled at each cell's corner. */

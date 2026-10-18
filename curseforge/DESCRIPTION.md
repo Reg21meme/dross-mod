@@ -14,7 +14,7 @@ The Dross is a dangerous, electric-blue dimension for the mid-to-late game. You 
 ## The Dross itself
 
 - **Endless night**, with blue-tinted fog and sky.
-- **Six biomes**: the dark Silverwood Forest, the volcanic Cinder Wastes, the rotting Blightwood, frozen Rimefall, the Nether Scar where the Nether bleeds through, and the towering peaks of the Gravecrags.
+- **Five biomes**: the dark Silverwood Forest, the volcanic Cinder Wastes, the rotting Blightwood, frozen Rimefall, and the towering peaks of the Gravecrags.
 - **Tougher monsters**: zombies and skeletons wear full netherite armour, and the gear doesn't drop.
 - **Dozens of new blocks**, plants and ores, including Moonsilver and glowing Stormite.
 - **The Sewers**: giant copper pipes stick up out of Blightwood. Jump in, land in murky green water, and find your way through a maze of tunnels full of plague rats.

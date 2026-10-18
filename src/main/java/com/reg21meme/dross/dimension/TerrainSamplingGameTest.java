@@ -7,17 +7,23 @@ import com.reg21meme.dross.world.PortalSiteGameTest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.IntStream;
 import net.minecraft.Util;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.NoiseColumn;
+import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
@@ -32,10 +38,10 @@ import org.slf4j.Logger;
  *   <li>anything within {@value #SILVERWOOD_RADIUS} blocks of the hub isn't Silverwood Forest (any seed);</li>
  *   <li>any Gravecrags lie within {@value #NO_MOUNTAIN_RADIUS} blocks of the hub (any seed);</li>
  *   <li>a biome's share of the land far from the hub (averaged over the seeds) is outside its range: Silverwood 32-48%,
- *       Blightwood, Cinder Wastes, Rimefall and the Gravecrags 9-20% each, the Nether Scar 2.5-8%;</li>
+ *       Blightwood, Cinder Wastes, Rimefall and the Gravecrags 9-20% each; or any of that land (any seed) is some other
+ *       biome (there are five since the Nether Scar was removed on October 17, 2026);</li>
  *   <li>the area-weighted median size of the regions (averaged over the seeds) is outside 400-800 blocks for Blightwood,
- *       the Cinder Wastes, Rimefall and the Gravecrags, or 120-350 for the Nether Scar's patches (the user asked for
- *       regions about 400-800 across, the Scar smaller);</li>
+ *       the Cinder Wastes, Rimefall and the Gravecrags (the user asked for regions about 400-800 across);</li>
  *   <li>some biome isn't within {@value #EVERY_BIOME_WITHIN} blocks of the hub (any seed);</li>
  *   <li>the ground goes below y {@value #HEIGHT_MIN} or above {@value #HEIGHT_MAX}, the median top of a mountain range
  *       is outside y 225-265, or Silverwood Forest's median height is outside 66-80;</li>
@@ -47,6 +53,8 @@ import org.slf4j.Logger;
  *       where the ground is smooth, or more than 9 on rough rock;</li>
  *   <li>sampling the same places in a different order on several threads gives a different biome anywhere.</li>
  * </ol>
+ * {@link #findNearestFindsEveryBiome} checks {@code /dross goto biome}'s search, and that the Dross registers exactly its
+ * five surface biomes and the sewers (no leftover biome, like the removed Nether Scar).
  * The sampling runs on a background thread; the server keeps ticking while it waits (at most {@link #TIMEOUT_MILLIS}).
  */
 @GameTestHolder(Dross.MODID)
@@ -62,9 +70,7 @@ public final class TerrainSamplingGameTest
     private static final int NO_MOUNTAIN_RADIUS = 650;
     private static final double[] SHARE_SILVERWOOD = {0.32D, 0.48D};
     private static final double[] SHARE_MAIN = {0.09D, 0.20D};
-    private static final double[] SHARE_SCAR = {0.025D, 0.08D};
     private static final double[] REGION_MAIN = {400.0D, 800.0D};
-    private static final double[] REGION_SCAR = {120.0D, 350.0D};
     private static final int EVERY_BIOME_WITHIN = 1500;
     private static final int HEIGHT_MIN = 30;
     private static final int HEIGHT_MAX = 290;
@@ -80,8 +86,6 @@ public final class TerrainSamplingGameTest
     private static final int ROUGH_TOLERANCE = 9;
     /** Places sampled twice for the determinism check. */
     private static final int DETERMINISM_POINTS = 2000;
-    /** The Gravecrags and the Scar: their places in DrossBiomes.ALL. */
-    private static final int SCAR = DrossBiomes.ALL.indexOf(DrossBiomes.NETHER_SCAR);
     /** The sampling takes about half a minute; give up after this long (real time). */
     static final long TIMEOUT_MILLIS = 10 * 60 * 1000L;
     /** The tick limit is only a backstop behind TIMEOUT_MILLIS (the test server can run hundreds of ticks a second while it waits). */
@@ -124,6 +128,9 @@ public final class TerrainSamplingGameTest
     /**
      * {@link DrossBiomes#findNearest} (behind {@code /dross goto biome}) finds every biome from the hub, within
      * {@value #EVERY_BIOME_WITHIN} blocks (measured along X and Z, as the search goes), and the place it gives is that biome.
+     * Also: the Dross's biomes in the registry are exactly {@link DrossBiomes#ALL} and {@link DrossBiomes#SEWERS} (a leftover
+     * biome file, like the removed {@code dross:nether_scar}, would show up here), and the Dross's biome source can't place
+     * any other.
      */
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_terrain_find_biome")
     public static void findNearestFindsEveryBiome(GameTestHelper helper)
@@ -134,6 +141,29 @@ public final class TerrainSamplingGameTest
             throw new GameTestAssertException("there's no Dross level");
         }
         List<String> problems = new ArrayList<>();
+        Set<ResourceKey<Biome>> expected = new HashSet<>(DrossBiomes.ALL);
+        expected.add(DrossBiomes.SEWERS);
+        Set<ResourceKey<Biome>> registered = new HashSet<>();
+        for (ResourceKey<Biome> key : dross.registryAccess().registryOrThrow(Registries.BIOME).registryKeySet())
+        {
+            if (key.location().getNamespace().equals(Dross.MODID))
+            {
+                registered.add(key);
+            }
+        }
+        if (!registered.equals(expected))
+        {
+            problems.add("the Dross's registered biomes are " + registered + ", not " + expected);
+        }
+        Set<ResourceKey<Biome>> possible = new HashSet<>();
+        for (Holder<Biome> holder : dross.getChunkSource().getGenerator().getBiomeSource().possibleBiomes())
+        {
+            holder.unwrapKey().ifPresent(possible::add);
+        }
+        if (!possible.equals(expected))
+        {
+            problems.add("the Dross's biome source can place " + possible + ", not " + expected);
+        }
         StringBuilder found = new StringBuilder();
         for (var biome : DrossBiomes.ALL)
         {
@@ -191,6 +221,11 @@ public final class TerrainSamplingGameTest
             TerrainSurvey.SeedStats stats = TerrainSurvey.survey(probe);
             all.add(stats);
             LOGGER.info("[terrain test] {}", stats.summary());
+            if (stats.otherShare() > 0.0D)
+            {
+                problems.add(String.format(Locale.ROOT, "%s: %.2f%% of the land far from the hub is a biome that isn't one of the five", who,
+                        100.0D * stats.otherShare()));
+            }
             for (int b = 0; b < TerrainSurvey.BIOMES; b++)
             {
                 if (stats.nearest()[b] > EVERY_BIOME_WITHIN)
@@ -231,18 +266,17 @@ public final class TerrainSamplingGameTest
         }
         for (int b = 0; b < TerrainSurvey.BIOMES; b++)
         {
-            double[] range = b == TerrainSurvey.SILVERWOOD ? SHARE_SILVERWOOD : b == SCAR ? SHARE_SCAR : SHARE_MAIN;
+            double[] range = b == TerrainSurvey.SILVERWOOD ? SHARE_SILVERWOOD : SHARE_MAIN;
             if (shares[b] < range[0] || shares[b] > range[1])
             {
                 problems.add(String.format(Locale.ROOT, "%s covers %.3f of the land (%.3f to %.3f)", TerrainSurvey.name(b), shares[b], range[0], range[1]));
             }
             if (b != TerrainSurvey.SILVERWOOD)
             {
-                double[] want = b == SCAR ? REGION_SCAR : REGION_MAIN;
-                if (sizes[b] < want[0] || sizes[b] > want[1])
+                if (sizes[b] < REGION_MAIN[0] || sizes[b] > REGION_MAIN[1])
                 {
                     problems.add(String.format(Locale.ROOT, "%s's regions are %.0f blocks across (area-weighted median; %.0f to %.0f)",
-                            TerrainSurvey.name(b), sizes[b], want[0], want[1]));
+                            TerrainSurvey.name(b), sizes[b], REGION_MAIN[0], REGION_MAIN[1]));
                 }
             }
         }

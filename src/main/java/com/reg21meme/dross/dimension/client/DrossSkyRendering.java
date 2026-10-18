@@ -39,7 +39,7 @@ import org.slf4j.Logger;
  *       fog's own colour mixed with {@code DrossColors.DROSS_SKY_GLOW}: strongest at the horizon (where it matches the
  *       fog), fainter overhead, so the whole sky fades from the biome's fog colour to a dark blue instead of black. The
  *       stars still shine through. It never replaces Minecraft's sky, only lies over it.</li>
- *   <li><b>Thicker fog in some biomes</b>: Blightwood thick and sickly, the Nether Scar and the Cinder Wastes smoky,
+ *   <li><b>Thicker fog in some biomes</b>: Blightwood thick and sickly, the Cinder Wastes smoky,
  *       Rimefall hazy, the sewers under Blightwood murky ({@link #BIOME_FOG}). The fog eases in and out over {@value #FOG_EASE_SECONDS} seconds as you walk
  *       between biomes, so it never jumps.</li>
  * </ul>
@@ -73,7 +73,6 @@ public final class DrossSkyRendering
      */
     private static final Map<ResourceKey<Biome>, float[]> BIOME_FOG = Map.of(
             DrossBiomes.BLIGHTWOOD, new float[] {0.35F, 0.0F},
-            DrossBiomes.NETHER_SCAR, new float[] {0.6F, 0.2F},
             DrossBiomes.CINDER_WASTES, new float[] {0.7F, 0.3F},
             DrossBiomes.RIMEFALL, new float[] {0.8F, 0.15F},
             DrossBiomes.SEWERS, new float[] {0.3F, 0.0F});

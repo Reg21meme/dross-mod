@@ -10,11 +10,11 @@ the next run would overwrite it. tools/terrain/README.md has a tuning guide (whi
 Sections (each has its tuning numbers at the top, then the code that writes its files):
     TREES      the silverwood tree shapes (configured features)                                  [Stage 1]
     TERRAIN    the land's shape: noises, density functions, the noise settings' router            [Stage 5]
-    BIOMES     the six biomes: where each one goes, their fog/sky/water colours (from DrossColors.java), particles,
+    BIOMES     the five biomes: where each one goes, their fog/sky/water colours (from DrossColors.java), particles,
                sounds, weather and mob spawns; the dimension's generator and biome source         [Stage 5]
     SURFACE    the surface rules: which blocks cover the ground in each biome; and the rock_faces feature, which makes
                steep ground bare rock                                                             [Stage 5]
-    FEATURES   what grows and lies in each biome (trees, giant mushrooms and fungi, plants, boulders, ponds, lava
+    FEATURES   what grows and lies in each biome (trees, giant mushrooms, plants, boulders, ponds, lava
                pools) and the ores: the configured and placed features and each biome's feature lists  [Stage 6]
     SEWERS     the sewers under Blightwood: how common and how deep the networks are, how many end in a rat cave, the
                underground sewers biome (its green water) and the rats' spawn lists              [October 2026]
@@ -24,8 +24,8 @@ How the terrain works (TERRAIN; tools/terrain/TERRAIN_DESIGN.md has the full des
     steps, mesas, lumps, mountains), and the density is (H - y) / 32 plus a little 3D roughness on rocky ground. So there
     are no caves, overhangs or floating islands, and Minecraft's own interpolation of the density is exact. The biomes
     come from our own noises in Minecraft's climate slots (temperature = heat, vegetation = rot, continentalness =
-    mountain, weirdness = scar); the same values decide the biome and fade its land shapes in and out, so the shapes
-    follow the biome borders. Near the hub at 0, 0 the noises are pushed (density function type dross:hub_falloff, in
+    mountain; weirdness is unused since the Nether Scar went); the same values decide the biome and fade its land shapes
+    in and out, so the shapes follow the biome borders. Near the hub at 0, 0 the noises are pushed (density function type dross:hub_falloff, in
     dimension/worldgen/HubFalloff.java) so the hub always stands in gentle Silverwood Forest, far from the mountains.
 """
 import json
@@ -313,9 +313,8 @@ def trees():
 
 # --- How big the biome regions are ----------------------------------------------------------------------------------
 # A biome region is about 500 / CLIMATE_XZ_SCALE blocks across (0.80 -> ~600; the user asked for 400-800). Lower makes
-# bigger regions, higher smaller ones. The Nether Scar's own noise has twice the detail, so its patches are smaller.
+# bigger regions, higher smaller ones.
 CLIMATE_XZ_SCALE = 0.80
-SCAR_XZ_SCALE = 0.80
 WARP_BLOCKS = 32                # biome borders wander up to about this many blocks (wavy edges, not blobs)
 CLIMATE_NOISE_STD = 0.289       # spread of the climate noises (measured); turns the target shares into thresholds
 CLIMATE_LIMIT = 1.9             # climate values are clamped to +-this (the biome boxes cover +-2, so every value has one)
@@ -325,7 +324,7 @@ HUB_CENTER_X = 0
 HUB_CENTER_Z = 0
 SILVERWOOD_CORE_INNER = 200     # Silverwood Forest everywhere within this many blocks of the hub...
 SILVERWOOD_CORE_OUTER = 450     # ...fading back to the normal biome mix by here (other biomes appear between)
-CORE_PUSH = 1.5                 # how hard rot and scar are pushed down in the core (no Blightwood or Nether Scar there)
+CORE_PUSH = 1.5                 # how hard rot is pushed down in the core (no Blightwood there)
 MOUNTAIN_FREE_INNER = 600       # no Gravecrags within about this many blocks (its foothills start ~100 further out)...
 MOUNTAIN_FREE_OUTER = 850       # ...the push fades out by here
 MOUNTAIN_PUSH = 1.5
@@ -367,9 +366,6 @@ MESA_EDGE = (0.15, 0.22)        # mesa noise (lattice 64) above this band is mes
 BLIGHT_SINK = 7                 # Blightwood lies this much lower...
 BLIGHT_LUMPS = 12               # ...with lumps of +-12 x noise (lattice 32: knobbly little mounds and hollows)
 
-# --- Nether Scar --------------------------------------------------------------------------------------------------------
-SCAR_SINK = 3                   # the Scar is a shallow wound, this much lower than the land round it
-
 # --- The Gravecrags (mountains) ----------------------------------------------------------------------------------------
 # The mountain noise lifts the land: UPLIFT points are (mountain noise above the Gravecrags' border, blocks of uplift,
 # slope). It starts 0.14 below the border (foothills outside the biome) and tops out at 196. Ridges: along the lines of
@@ -391,7 +387,6 @@ JAG_BAND = 24                   # only computed within this many blocks of the s
 
 # --- The biome gates (how far in climate noise a biome's land shape fades in across its border) ------------------------
 GATE_HALF_WIDTH = 0.05          # heat and rot: +-0.05 round the border (about 110 blocks)
-SCAR_GATE_HALF_WIDTH = 0.04
 MOUNTAIN_GATE_WIDTH = 0.10      # the Gravecrags' rock grows in over 0.10 outside its border
 
 
@@ -409,7 +404,6 @@ NOISES = {
     "heat": (-9, [1.0, 0.25]),          # temperature slot: hot (Cinder) / cold (Rimefall)
     "rot": (-9, [1.0, 0.25]),           # vegetation slot: Blightwood
     "mountain": (-9, [1.0, 0.25]),      # continentalness slot: the Gravecrags
-    "scar": (-8, [1.0, 0.25]),          # weirdness slot: Nether Scar
     "warp_x": (-7, [1.0]),              # wavy biome borders
     "warp_z": (-7, [1.0]),
     # land shape
@@ -427,10 +421,6 @@ NOISES = {
     "patch/cinder": (-6, [1.0, 1.0, 1.0]),
     "patch/blightwood": (-6, [1.0, 1.0, 1.0]),
     "patch/rimefall": (-6, [1.0, 1.0, 1.0]),
-    "patch/scar": (-6, [1.0, 1.0, 1.0]),
-    "patch/scar_soul": (-6, [1.0, 1.0, 1.0]),
-    "patch/scar_cracks": (-5, [1.0, 0.6, 0.6, 0.5]),   # finer octaves: ragged clusters of cracked blocks
-    "patch/scar_speckle": (-2, [1.0, 0.5]),            # fine: plain blocks scattered inside those clusters
     "patch/gravecrags": (-6, [1.0, 1.0, 1.0]),
 }
 
@@ -594,7 +584,7 @@ def register(path, f):
 
 def terrain(thresholds):
     """Builds every density function. `thresholds` are the biome borders in climate noise (BIOMES computes them)."""
-    t_mtn, t_scar, t_hot, t_cold, t_rot = (thresholds[k] for k in ("mountain", "scar", "hot", "cold", "rot"))
+    t_mtn, t_hot, t_cold, t_rot = (thresholds[k] for k in ("mountain", "hot", "cold", "rot"))
 
     # The hub's falloffs: 1 near the hub, 0 far away.
     core = register("hub/core", hub_falloff(SILVERWOOD_CORE_INNER, SILVERWOOD_CORE_OUTER))
@@ -617,17 +607,14 @@ def terrain(thresholds):
     # heat: zero in the core (neither hot nor cold). (1 - core) comes first so the noise isn't even computed there.
     heat = register("climate/heat", flat(clamp(mul(1.0 - core, climate("heat", CLIMATE_XZ_SCALE)), -lim, lim)))
     rot = register("climate/rot", flat(clamp(climate("rot", CLIMATE_XZ_SCALE) - CORE_PUSH * core, -lim, lim)))
-    scar = register("climate/scar", flat(clamp(climate("scar", SCAR_XZ_SCALE) - CORE_PUSH * core, -lim, lim)))
     mountain = register("climate/mountain", flat(clamp(
         climate("mountain", CLIMATE_XZ_SCALE) - MOUNTAIN_PUSH * no_mountain + MOUNTAIN_RING_BOOST * mountain_ring,
         -lim, lim)))
 
     # Gates: how much of each biome's land shape applies (0 to 1), fading in across its border. Priority: Gravecrags,
-    # then Nether Scar, then hot / cold, then rot; each gate is multiplied down by the ones before it.
+    # then hot / cold, then rot; each gate is multiplied down by the ones before it.
     g_mtn = register("terrain/gate/mountain", flat(ramp(mountain, t_mtn - MOUNTAIN_GATE_WIDTH, t_mtn)))
-    s_scar = ramp(scar, t_scar - SCAR_GATE_HALF_WIDTH, t_scar + SCAR_GATE_HALF_WIDTH)
-    g_scar = register("terrain/gate/scar", flat(mul(s_scar, 1.0 - g_mtn)))
-    g_free = register("terrain/gate/free", flat(mul(1.0 - g_mtn, 1.0 - s_scar)))
+    g_free = register("terrain/gate/free", flat(1.0 - g_mtn))
     s_hot = ramp(heat, t_hot - GATE_HALF_WIDTH, t_hot + GATE_HALF_WIDTH)
     s_cold = ramp(heat, t_cold + GATE_HALF_WIDTH, t_cold - GATE_HALF_WIDTH)
     g_hot = register("terrain/gate/hot", flat(mul(s_hot, g_free)))
@@ -649,7 +636,6 @@ def terrain(thresholds):
     mesa_tops = spline(noise("mesa"), [(-1.0, 0, 0), (MESA_EDGE[0], 0, 0), (MESA_EDGE[1], 1, 0), (1.0, 1, 0)])
     mesa = register("terrain/mesa", flat(mul(g_hot, MESA_HEIGHT * mesa_tops)))
     blight = register("terrain/blight", flat(mul(g_rot, -BLIGHT_SINK + BLIGHT_LUMPS * noise("lumps"))))
-    scar_sink = register("terrain/scar_sink", flat(mul(-SCAR_SINK, g_scar)))
     knolls_where = clamp(mul(5.0, noise("rockiness") - OUTCROP_FROM), 0.0, 1.0)
     outcrops = register("terrain/outcrops", flat(mul(mul(knolls_where, OUTCROP_HEIGHT * spline(noise("outcrop"), OUTCROP_SHAPE)), gentle)))
     uplift = spline(mountain, [(t_mtn + dx, v, d) for dx, v, d in UPLIFT])
@@ -658,7 +644,7 @@ def terrain(thresholds):
 
     # Put together: the hub keeps HUB_HILLS_KEPT of the hills and none of the cliffs, mesas, lumps or sinks.
     hills_kept = 1.0 - (1.0 - HUB_HILLS_KEPT) * hub_flat
-    shapes = escarpment + outcrops + mesa + blight + scar_sink
+    shapes = escarpment + outcrops + mesa + blight
     height_raw = register("terrain/height_raw", flat(
         BASE_HEIGHT + mul(hills_kept, hills) + mul(1.0 - hub_flat, shapes) + mountains))
     height = register("terrain/height", flat(spline(height_raw, SOFT_FLOOR + SOFT_CAP)))
@@ -677,7 +663,7 @@ def terrain(thresholds):
         range_choice(rot, t_rot, BIG, range_choice(depth, SEWER_BIOME_DEPTH, BIG, SEWER_DEPTH_VALUE, 0.0), 0.0),
         0.0))
     return {
-        "temperature": heat, "vegetation": rot, "continents": mountain, "ridges": scar, "depth": sewer_depth,
+        "temperature": heat, "vegetation": rot, "continents": mountain, "ridges": 0.0, "depth": sewer_depth,
         "initial_density_without_jaggedness": 0.390625 + 0.03125 * depth,
         "final_density": interpolated(0.03125 * depth + jag),
     }
@@ -687,15 +673,20 @@ def terrain(thresholds):
 # BIOMES: tuning
 # =====================================================================================================================
 
-# --- How much of the land each biome covers (far from the hub). Silverwood Forest is whatever is left (~40%). ----------
+# --- How much of the land each biome covers (far from the hub). Silverwood Forest is whatever is left (~42%). ----------
 # The script turns these into the climate-noise borders (printed when it runs). Priority when two could claim the same
-# place: the Gravecrags, then the Nether Scar, then the Cinder Wastes (hot) or Rimefall (cold), then Blightwood (rot).
+# place: the Gravecrags, then the Cinder Wastes (hot) or Rimefall (cold), then Blightwood (rot).
+# The Nether Scar (5% of the land) was removed on October 17, 2026, at the user's request. Its land went to the biomes
+# round it without moving any other border: each place it covered now gets the biome its heat and rot say. So the four
+# biomes outside the Gravecrags each grew by the same factor, SCAR_LAND_SHARED_OUT (88% of the land is outside the
+# Gravecrags; 83% was outside the Gravecrags and the Scar): the Cinder Wastes and Rimefall from 14% to about 14.8%,
+# Blightwood from 15% to about 15.9%, Silverwood Forest from about 40% to about 42.4%. (These give exactly the old borders.)
+SCAR_LAND_SHARED_OUT = 0.88 / 0.83
 TARGET_SHARES = {
     "gravecrags": 0.12,
-    "nether_scar": 0.05,
-    "cinder_wastes": 0.14,
-    "rimefall": 0.14,
-    "blightwood": 0.15,
+    "cinder_wastes": 0.14 * SCAR_LAND_SHARED_OUT,
+    "rimefall": 0.14 * SCAR_LAND_SHARED_OUT,
+    "blightwood": 0.15 * SCAR_LAND_SHARED_OUT,
 }
 
 # --- Each biome: name, colours (DrossColors.java constants: <PREFIX>_FOG, _SKY, _WATER, _WATER_FOG), weather, air -------
@@ -729,12 +720,6 @@ BIOMES = {
         "temperature": -0.7, "downfall": 0.5, "precipitation": True,
         "particle": "minecraft:snowflake", "particle_chance": 0.008,
         "sounds": None,
-    },
-    "nether_scar": {
-        "name": "Nether Scar", "colors": "NETHER_SCAR",
-        "temperature": 1.2, "downfall": 0.0, "precipitation": False,
-        "particle": "minecraft:crimson_spore", "particle_chance": 0.015,
-        "sounds": "crimson_forest",
     },
     "gravecrags": {
         "name": "The Gravecrags", "colors": "GRAVECRAGS",
@@ -841,17 +826,15 @@ def climate_thresholds():
     nd = statistics.NormalDist(0.0, CLIMATE_NOISE_STD)
     s = TARGET_SHARES
     p_m = s["gravecrags"]
-    p_s = s["nether_scar"] / (1 - p_m)
-    rest = (1 - p_m) * (1 - p_s)
+    rest = 1 - p_m
     p_h = s["cinder_wastes"] / rest
     p_c = s["rimefall"] / rest
     p_r = s["blightwood"] / (rest * (1 - p_h - p_c))
-    for name, p in (("gravecrags", p_m), ("nether_scar", p_s), ("cinder", p_h), ("rimefall", p_c), ("blightwood", p_r)):
+    for name, p in (("gravecrags", p_m), ("cinder", p_h), ("rimefall", p_c), ("blightwood", p_r)):
         if not 0 < p < 0.5:
             fail(f"TARGET_SHARES can't be met (the {name} share works out at {p:.3f} of what's left; keep it under half)")
     return {
         "mountain": nd.inv_cdf(1 - p_m),
-        "scar": nd.inv_cdf(1 - p_s),
         "hot": nd.inv_cdf(1 - p_h),
         "cold": nd.inv_cdf(p_c),
         "rot": nd.inv_cdf(1 - p_r),
@@ -880,10 +863,11 @@ def _q_float(n):
 
 
 def biome_source(thresholds):
-    """The multi_noise biome source. The six boxes tile the whole climate space with no overlap (borders as whole
-    numbers of 1/10000, each shared border on one side only), so every point has exactly one biome."""
+    """The multi_noise biome source. The boxes (the five biomes and the sewers under Blightwood) tile the whole climate
+    space with no overlap (borders as whole numbers of 1/10000, each shared border on one side only), so every point has
+    exactly one biome. The weirdness slot isn't used (it held the Nether Scar until October 17, 2026): every box takes
+    any weirdness."""
     M = quantized(thresholds["mountain"])
-    S = quantized(thresholds["scar"])
     H = quantized(thresholds["hot"])
     C = quantized(thresholds["cold"])
     R = quantized(thresholds["rot"])
@@ -901,20 +885,18 @@ def biome_source(thresholds):
             "weirdness": weirdness or full, "offset": 0.0}}
 
     low_m = span(LO, M - 1)
-    low_s = span(LO, S - 1)
     # The depth slot (SEWERS): 0 everywhere but the Blightwood underground. Every biome takes any depth, except that
     # Blightwood's climate box is cut in two: the surface (depth under half of SEWER_DEPTH_VALUE) and the sewers below.
     split = quantized(SEWER_DEPTH_VALUE / 2.0)
     return {"type": "minecraft:multi_noise", "biomes": [
         entry("gravecrags", continentalness=span(M, HI)),
-        entry("nether_scar", continentalness=low_m, weirdness=span(S, HI)),
-        entry("cinder_wastes", continentalness=low_m, weirdness=low_s, temperature=span(H, HI)),
-        entry("rimefall", continentalness=low_m, weirdness=low_s, temperature=span(LO, C)),
-        entry("blightwood", continentalness=low_m, weirdness=low_s, temperature=span(C + 1, H - 1), humidity=span(R, HI),
+        entry("cinder_wastes", continentalness=low_m, temperature=span(H, HI)),
+        entry("rimefall", continentalness=low_m, temperature=span(LO, C)),
+        entry("blightwood", continentalness=low_m, temperature=span(C + 1, H - 1), humidity=span(R, HI),
               depth=span(LO, split - 1)),
-        entry(SEWER_BIOME, continentalness=low_m, weirdness=low_s, temperature=span(C + 1, H - 1), humidity=span(R, HI),
+        entry(SEWER_BIOME, continentalness=low_m, temperature=span(C + 1, H - 1), humidity=span(R, HI),
               depth=span(split, HI)),
-        entry("silverwood_forest", continentalness=low_m, weirdness=low_s, temperature=span(C + 1, H - 1),
+        entry("silverwood_forest", continentalness=low_m, temperature=span(C + 1, H - 1),
               humidity=span(LO, R - 1)),
     ]}
 
@@ -1140,16 +1122,6 @@ MAGMA_PATCH = 0.60              # Cinder Wastes: magma above (it burns: keep it 
 BASALT_PATCH = -0.50
 SNOW_PATCH = 0.40               # Rimefall: snow above, packed ice below; Hoarfrost elsewhere
 PACKED_ICE_PATCH = -0.45
-SOUL_SOIL_PATCH = 0.45          # Nether Scar: soul soil / soul sand patches first...
-SOUL_SAND_PATCH = -0.50
-CRIMSON_PATCH = 0.25            # ...then crimson / warped nylium...
-WARPED_PATCH = -0.30
-SCARRED_PATCH = -0.15           # ...then Scarred Netherrack in ragged clusters, where its crack noise (patch/scar_cracks,
-                                # lattice 32) is above this (about 70% of that ground)...
-SCARRED_SPECKLE = -0.25         # ...and its fine speckle noise (patch/scar_speckle, lattice 4) is above this (about 79%),
-                                # so a few plain blocks lie scattered inside each cluster; plain netherrack elsewhere.
-                                # Together: about 55% of that ground cracked, about a third of the Scar's ground (the
-                                # user found it too busy when it was all cracked)
 GRAVEL_PATCH = 0.55             # Gravecrags: gravel above (it falls: keep it rare), moss below (only below
                                 # CRAG_MOSS_BELOW_Y); Cragstone elsewhere
 CRAG_MOSS_PATCH = -0.45
@@ -1157,7 +1129,6 @@ CRAG_MOSS_BELOW_Y = 150
 SNOW_LINE_SPREAD = 2            # the snow line wavers by about 2 x 3..6 blocks round SNOW_LINE_Y
 CINDER_BASALT_DEPTH = 14        # Cinder Wastes: basalt (with blackstone bands) this deep under the ground...
 CINDER_STRATA = (50, 220, 7, 2)  # ...a blackstone band from y 50 up to 220, every 7 blocks, 2 thick
-SCAR_NETHERRACK_DEPTH = 10      # Nether Scar: netherrack this deep under the ground
 CRAG_DEPTH = 24                 # Gravecrags: Cragstone this deep under the ground (Duskstone deeper down)
 
 # --- Bare rock on steep ground (feature dross:rock_faces, dimension/worldgen/RockFacesFeature.java) -------------------
@@ -1171,7 +1142,6 @@ ROCK_FACE_ROCKS = {
     "blightwood": "dross:duskstone",
     "cinder_wastes": "minecraft:basalt",
     "rimefall": "minecraft:packed_ice",
-    "nether_scar": "minecraft:netherrack",
     "gravecrags": "dross:cragstone",
 }
 ROCK_FACE_DEFAULT = "dross:duskstone"
@@ -1180,8 +1150,6 @@ ROCK_FACE_REPLACEABLE = [
     "dross:sporeloam", "minecraft:mud", "minecraft:coarse_dirt",
     "dross:ash", "minecraft:magma_block", "minecraft:blackstone",
     "dross:hoarfrost", "minecraft:snow_block",
-    "dross:scarred_netherrack", "minecraft:crimson_nylium", "minecraft:warped_nylium", "minecraft:soul_soil",
-    "minecraft:soul_sand",
     "minecraft:gravel",
 ]
 
@@ -1280,16 +1248,6 @@ def surface_rule():
                  block("dross:hoarfrost")],
             under=[cond(noise_above("patch/rimefall", SNOW_PATCH), block("minecraft:snow_block")),
                    block("minecraft:dirt")]),
-        "nether_scar": biome_rules(
-            top=[cond(noise_above("patch/scar_soul", SOUL_SOIL_PATCH), block("minecraft:soul_soil")),
-                 cond(noise_below("patch/scar_soul", SOUL_SAND_PATCH), block("minecraft:soul_sand")),
-                 cond(noise_above("patch/scar", CRIMSON_PATCH), block("minecraft:crimson_nylium")),
-                 cond(noise_below("patch/scar", WARPED_PATCH), block("minecraft:warped_nylium")),
-                 cond(noise_above("patch/scar_cracks", SCARRED_PATCH),
-                      cond(noise_above("patch/scar_speckle", SCARRED_SPECKLE), block("dross:scarred_netherrack"))),
-                 block("minecraft:netherrack")],
-            under=[block("minecraft:netherrack")],
-            body=(SCAR_NETHERRACK_DEPTH, block("minecraft:netherrack"))),
         "gravecrags": biome_rules(
             top=[cond(y_above(snow_from, SNOW_LINE_SPREAD), block("minecraft:snow_block")),
                  cond(noise_above("patch/gravecrags", GRAVEL_PATCH), block("minecraft:gravel")),
@@ -1306,8 +1264,8 @@ def surface_rule():
     # Gravecrags first (its snow line must win), then the rest; Silverwood's rules again last, for any other biome (a
     # safety net: every Dross biome is listed above). The biome rules only reach the deepest
     # layer's depth under the ground, so deeper blocks skip them (no biome lookups all the way down: much faster).
-    order = ["gravecrags", "nether_scar", "cinder_wastes", "rimefall", "blightwood", "silverwood_forest"]
-    deepest = max(CINDER_BASALT_DEPTH, SCAR_NETHERRACK_DEPTH, CRAG_DEPTH)
+    order = ["gravecrags", "cinder_wastes", "rimefall", "blightwood", "silverwood_forest"]
+    deepest = max(CINDER_BASALT_DEPTH, CRAG_DEPTH)
     also = {"blightwood": [SEWER_BIOME]}
     return seq(bedrock, cond(stone_depth(deepest, True),
                              seq(*[cond(biome_is(b, *also.get(b, [])), rules[b]) for b in order], silverwood_rules())))
@@ -1333,10 +1291,9 @@ def rock_faces():
 # What grows and lies in each biome, and the ores. A chunk is 16 x 16 blocks; "per chunk" numbers are averages: 2.5 means
 # 2 or 3 (half and half), 0.25 means one in every 4 chunks. A "patch" is a cluster of plants: TRIES random spots within
 # a few blocks of one place, each planted if the plant can grow there (so a patch has fewer plants than tries).
-# Things that GLOW (Wispbloom 5, Gloomcap 6, Emberweed 4, Frostbloom 3, Soulwick 10, Storm Lichen 7, Stormvine 6, the
-# vents 3-4, lava 15) stop hostile mobs spawning right round them (the Dross spawns monsters only in block light 0), so
-# they're kept sparse, the Nether Scar's fungi have no shroomlights, and Scarred Netherrack's glowing cracks give no light:
-# dimension/TerrainFeaturesGameTest reports how much of each biome's floor is lit.
+# Things that GLOW (Wispbloom 5, Gloomcap 6, Emberweed 4, Frostbloom 3, Storm Lichen 7, Stormvine 6, the Cinder Vent 3,
+# lava 15) stop hostile mobs spawning right round them (the Dross spawns monsters only in block light 0), so they're kept
+# sparse: dimension/TerrainFeaturesGameTest reports how much of each biome's floor is lit.
 # The hub: ponds, boulders and fallen logs keep NOT_NEAR_HUB_RADIUS blocks away from it (dross:not_near_hub,
 # dimension/worldgen/NotNearHubFilter). Its footprint, the 16-block ring it levels round itself and the ground the hub
 # checks reach about 88 blocks from its centre, and a pond spreads up to 16 blocks from where it starts.
@@ -1418,16 +1375,6 @@ ICE_BOULDER_SNOW = 0.5          # chance each top block of one is a snow block
 RIMEFALL_PONDS = 1.0 / 24       # tries at a small pond per chunk (its gentle ground takes most); their tops freeze over
 RIMEFALL_POND_SHORE = [("minecraft:packed_ice", 1)]
 
-# --- Nether Scar: the Nether bleeding through (no lava, no fire) ---------------------------------------------------------
-CRIMSON_FUNGUS_TRIES = 8        # huge crimson fungi (tries per chunk; they only grow from crimson nylium)
-WARPED_FUNGUS_TRIES = 8         # huge warped fungi (only from warped nylium)
-NETHER_VEGETATION = 4.0         # patches of roots, small fungi and sprouts per chunk, each kind (only on nylium)
-SCAR_ROOT_PATCHES = 2.0         # Scar Roots
-SCAR_ROOT_TRIES = 16
-SOULWICK_PATCHES = 1.0          # Soulwicks glow brightly (light 10): small patches, only where a patch lands on soul
-SOULWICK_TRIES = 6              # soil or soul sand (most don't), so a few per region
-SCAR_VENTS = 0.3                # Scar Vents set into the ground (light 4)
-
 # --- The Gravecrags: mountains --------------------------------------------------------------------------------------------
 CRAG_SILVERWOODS = 0.6          # windswept common silverwoods (tries per chunk; they only grow on the moss low down)
 CRAG_THISTLE_PATCHES = 1.5      # Crag Thistles
@@ -1445,7 +1392,7 @@ GRAVECRAGS_SNOW = True          # vanilla's snow and ice in cold places (snow la
 # spread "uniform": evenly from lowest to highest; "trapezoid": most in the middle, thinning to none at both ends.
 # The Duskstone reaches from the bedrock (y -64) up to the ground (mostly y 50-95; the Gravecrags much higher). The ores
 # replace the blocks in ORE_REPLACEABLE: Duskstone, and the biome rock lying over it (basalt and blackstone in the Cinder
-# Wastes, netherrack in the Nether Scar, Cragstone in the Gravecrags), so those upper layers have ores too.
+# Wastes, Cragstone in the Gravecrags), so those upper layers have ores too.
 ORES = {
     "coal": ("dross:duskstone_coal_ore", 20, 17, 0.5, ("trapezoid", -32, 160)),        # common, near the surface
     "gold": ("dross:duskstone_gold_ore", 10, 10, 0.0, ("uniform", -48, 128)),          # moderately common (nuggets)
@@ -1454,7 +1401,7 @@ ORES = {
 }
 # Stormite is mostly under the Gravecrags: there, this many extra veins per chunk, from deep down well up into the mountain.
 STORMITE_GRAVECRAGS = ("dross:stormite_ore", 6, 5, 0.5, ("uniform", -64, 96))
-ORE_REPLACEABLE = ["dross:duskstone", "dross:cragstone", "minecraft:basalt", "minecraft:blackstone", "minecraft:netherrack"]
+ORE_REPLACEABLE = ["dross:duskstone", "dross:cragstone", "minecraft:basalt", "minecraft:blackstone"]
 
 # --- Ponds and lava pools (dross:pond) ---------------------------------------------------------------------------------
 # What a pond may dig into and line (block tag dross:pond_ground): the plain ground, i.e. every biome's ground cover and
@@ -1638,7 +1585,7 @@ def add_feature(step, name, biomes, configured, placement):
 
 def features():
     """Every feature of every biome, in the order Minecraft runs them (per step, top to bottom)."""
-    sw, cw, bw, rf, ns, gc = ("silverwood_forest", "cinder_wastes", "blightwood", "rimefall", "nether_scar", "gravecrags")
+    sw, cw, bw, rf, gc = ("silverwood_forest", "cinder_wastes", "blightwood", "rimefall", "gravecrags")
 
     # ---- Ponds and lava pools (step "lakes") --------------------------------------------------------------------------
     # dross:pond (Minecraft's lake shape): a pond about 6-14 blocks across and up to 4 deep, sunk into the ground; it
@@ -1691,11 +1638,6 @@ def features():
         "replaceable": rock_face_tag}},
         per_chunk(ICE_BOULDERS) + ground_air
         + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"], DOWN))])
-    add_feature("local_modifications", "scar_vent", [ns], {"type": "minecraft:replace_single_block", "config": {
-        "targets": [{"target": {"predicate_type": "minecraft:block_match", "block": check_block(b)},
-                     "state": block_state("dross:scar_vent")}
-                    for b in ("dross:scarred_netherrack", "minecraft:netherrack")]}},
-        per_chunk(SCAR_VENTS) + surface_air + [random_offset(0, -1)])
     add_feature("local_modifications", "crag_boulder", [gc], {"type": "dross:boulder", "config": {
         "stone": provider("dross:cragstone"), "top": provider("dross:cragstone"), "top_chance": 0.0,
         "lumps": uniform_int(*CRAG_BOULDER_LUMPS), "lump_radius": uniform_float(*CRAG_BOULDER_RADIUS),
@@ -1712,7 +1654,7 @@ def features():
     add_feature("underground_ores", "ore_stormite_gravecrags", [gc], ore(block, size, discard),
                 per_chunk(count) + [IN_SQUARE, height_range(spread)])
 
-    # ---- Trees, giant mushrooms and fungi, then the ground plants (step "vegetal_decoration") ----------------------------
+    # ---- Trees and giant mushrooms, then the ground plants (step "vegetal_decoration") ------------------------------------
     # Trees stand on the ground under any water (none here: surface_water_depth_filter 0 keeps them out of ponds) and
     # only where their sapling could grow (Silvermoss, podzol, moss; dead trees: their own ground).
     tree_spot = [IN_SQUARE, {"type": "minecraft:surface_water_depth_filter", "max_water_depth": 0}, heightmap("OCEAN_FLOOR")]
@@ -1776,30 +1718,6 @@ def features():
     # gap where the spike stands).
     add_feature("vegetal_decoration", "ice_spike", [rf], "minecraft:ice_spike", per_chunk(ICE_SPIKE_TRIES) + ground_air)
 
-    # Huge crimson and warped fungi (vanilla's), each only from its own nylium. Their hats have no shroomlights (the
-    # Nether's glowing blocks: light 15 would keep monsters from spawning for 14 blocks round each one).
-    fungus_may_replace = matching(["minecraft:crimson_roots", "minecraft:warped_roots", "minecraft:nether_sprouts",
-                                   "minecraft:crimson_fungus", "minecraft:warped_fungus", "minecraft:weeping_vines",
-                                   "minecraft:weeping_vines_plant", "minecraft:twisting_vines",
-                                   "minecraft:twisting_vines_plant", "dross:scar_roots", "dross:soulwick"])
-    for kind, tries in (("crimson", CRIMSON_FUNGUS_TRIES), ("warped", WARPED_FUNGUS_TRIES)):
-        add_feature("vegetal_decoration", kind + "_fungi", [ns], {"type": "minecraft:huge_fungus", "config": {
-            "valid_base_block": block_state(f"minecraft:{kind}_nylium"),
-            "stem_state": block_state(f"minecraft:{kind}_stem", axis="y"),
-            "hat_state": block_state("minecraft:nether_wart_block" if kind == "crimson" else "minecraft:warped_wart_block"),
-            "decor_state": block_state("minecraft:nether_wart_block" if kind == "crimson" else "minecraft:warped_wart_block"),
-            "replaceable_blocks": fungus_may_replace,
-            "planted": False}},
-            per_chunk(tries) + ground_air)
-    add_feature("vegetal_decoration", "crimson_vegetation", [ns], {"type": "minecraft:nether_forest_vegetation", "config": {
-        "state_provider": weighted([("minecraft:crimson_roots", 87), ("minecraft:crimson_fungus", 11),
-                                    ("minecraft:warped_fungus", 1)]),
-        "spread_width": 8, "spread_height": 4}}, per_chunk(NETHER_VEGETATION) + ground_air)
-    add_feature("vegetal_decoration", "warped_vegetation", [ns], {"type": "minecraft:nether_forest_vegetation", "config": {
-        "state_provider": weighted([("minecraft:warped_roots", 60), ("minecraft:nether_sprouts", 28),
-                                    ("minecraft:warped_fungus", 11), ("minecraft:crimson_fungus", 1)]),
-        "spread_width": 8, "spread_height": 4}}, per_chunk(NETHER_VEGETATION) + ground_air)
-
     # Ground plants, last (under the canopy: the heightmap that looks through leaves).
     under_canopy = [IN_SQUARE, heightmap("MOTION_BLOCKING_NO_LEAVES")]
     add_feature("vegetal_decoration", "glimmer_ferns", [sw],
@@ -1826,10 +1744,6 @@ def features():
     add_feature("vegetal_decoration", "snow_drifts", [rf],
                 patch(snow_layer, SNOW_LAYER_TRIES, 7, 2, [matching(["dross:hoarfrost", "minecraft:snow_block"], DOWN)]),
                 per_chunk(SNOW_LAYER_PATCHES) + under_canopy)
-    add_feature("vegetal_decoration", "scar_roots", [ns],
-                patch(provider("dross:scar_roots"), SCAR_ROOT_TRIES, 6, 2), per_chunk(SCAR_ROOT_PATCHES) + under_canopy)
-    add_feature("vegetal_decoration", "soulwicks", [ns],
-                patch(provider("dross:soulwick"), SOULWICK_TRIES, 3, 2), per_chunk(SOULWICK_PATCHES) + under_canopy)
     add_feature("vegetal_decoration", "crag_thistles", [gc],
                 patch(provider("dross:crag_thistle"), CRAG_THISTLE_TRIES, 5, 3), per_chunk(CRAG_THISTLE_PATCHES) + under_canopy)
     # Storm Lichen: from a spot at the foot of a cliff (up to STORM_LICHEN_REACH_UP above the ground), onto the rock face
@@ -2107,12 +2021,16 @@ def remove_stale():
 
 
 def merge_lang(names):
-    """Adds the biome names to the shared en_us.json (only our keys; everything else stays exactly as it is)."""
+    """Adds the biome names to the shared en_us.json, and removes the names of biomes that are gone (only our keys,
+    biome.dross.*; everything else stays exactly as it is)."""
     text = open(LANG, encoding="utf-8").read()
     data = json.loads(text)
     if json.dumps(data, indent=2, ensure_ascii=False) + "\n" != text:
         fail("en_us.json isn't in the plain 2-space JSON format this script writes; add the biome names by hand")
     changed = False
+    for key in [k for k in data if k.startswith("biome.dross.") and k not in names]:
+        del data[key]
+        changed = True
     for key, value in names.items():
         if data.get(key) != value:
             data[key] = value
@@ -2175,7 +2093,7 @@ def main():
     merge_lang(names)
     removed = remove_stale()
 
-    print("worldgen: climate borders (noise): Gravecrags above {mountain:.4f}, Nether Scar above {scar:.4f}, "
+    print("worldgen: climate borders (noise): Gravecrags above {mountain:.4f}, "
           "Cinder Wastes above {hot:.4f}, Rimefall below {cold:.4f}, Blightwood above {rot:.4f}".format(**thresholds))
     print(f"worldgen: {len(NOISES)} noises, {len(DENSITY_FUNCTIONS)} density functions, {len(BIOMES)} biomes, "
           f"{len(PLACED) + 1} placed features ({len(CONFIGURED)} configured features of their own)")

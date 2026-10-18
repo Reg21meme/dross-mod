@@ -134,19 +134,19 @@ public final class DrossColors {
     /** The Blight Vent's spores: the color they fade to as they drift up (dark poison green). Used in dimension/block/BlightVentBlock. */
     public static final int BLIGHT_VENT_SPORE_FADE = 0x3C6A12;
 
-    /** Nether Scar: the red embers a Scar Vent puffs out (hot red-orange). Used in dimension/block/ScarVentBlock. */
+    /** Scar Vent (a building block now: its biome, the Nether Scar, was removed): the red embers it puffs out (hot red-orange). Used in dimension/block/ScarVentBlock. */
     public static final int SCAR_VENT_EMBER_RED = 0xFF5A2A;
 
     /** The Scar Vent's red embers: the color they cool to (dark nether red). Used in dimension/block/ScarVentBlock. */
     public static final int SCAR_VENT_EMBER_RED_FADE = 0x6E0F0F;
 
-    /** Nether Scar: the electric blue embers a Scar Vent puffs out with the red ones (where the Dross meets the Nether). Used in dimension/block/ScarVentBlock. */
+    /** Scar Vent: the electric blue embers it puffs out with the red ones (where the Dross meets the Nether). Used in dimension/block/ScarVentBlock. */
     public static final int SCAR_VENT_EMBER_BLUE = PALETTE_HIGHLIGHT;
 
     /** The Scar Vent's blue embers: the color they fade to (deep cobalt). Used in dimension/block/ScarVentBlock. */
     public static final int SCAR_VENT_EMBER_BLUE_FADE = PALETTE_DEEP_COBALT;
 
-    // The six terrain biomes: their night fog, sky and water. tools/terrain/worldgen.py reads these and writes them into
+    // The five terrain biomes: their night fog, sky and water. tools/terrain/worldgen.py reads these and writes them into
     // the biome JSON (data/dross/worldgen/biome/<biome>.json); run it again after changing one. It's always night in the
     // Dross, so the fog color is what you see as the haze in the distance and at the horizon (dimension/client/
     // DrossSkyEffects shows it as it is, instead of darkening it to black like the Overworld at night). The sky color only
@@ -193,15 +193,6 @@ public final class DrossColors {
     /** Rimefall: under water. */
     public static final int RIMEFALL_WATER_FOG = 0x0F1C30;
 
-    /** Nether Scar: night fog, red-violet with blue (where the Nether bleeds through). */
-    public static final int NETHER_SCAR_FOG = 0x3A123E;
-    /** Nether Scar: sky. */
-    public static final int NETHER_SCAR_SKY = 0x5A2266;
-    /** Nether Scar: water. */
-    public static final int NETHER_SCAR_WATER = 0x3B1A3F;
-    /** Nether Scar: under water. */
-    public static final int NETHER_SCAR_WATER_FOG = 0x120614;
-
     /** The Gravecrags: night fog, cold grey-blue. */
     public static final int GRAVECRAGS_FOG = 0x222C42;
     /** The Gravecrags: sky. */
@@ -240,11 +231,9 @@ public final class DrossColors {
     public static final int PREVIEW_BLIGHTWOOD = 0x8CBF2E;
     /** Terrain previews: Rimefall (icy white-blue). */
     public static final int PREVIEW_RIMEFALL = 0xC8DCF0;
-    /** Terrain previews: Nether Scar (nether red). */
-    public static final int PREVIEW_NETHER_SCAR = 0xB0303A;
     /** Terrain previews: the Gravecrags (stone grey). */
     public static final int PREVIEW_GRAVECRAGS = 0x6E6A78;
-    /** Terrain previews: any other biome (old worlds' Dross Flats). */
+    /** Terrain previews: any other biome (none should show: a leftover biome would). */
     public static final int PREVIEW_OTHER = 0xFF00FF;
     /** Terrain previews: the hub, its rings and the marks drawn on the maps (pale electric blue). */
     public static final int PREVIEW_MARK = PALETTE_HIGHLIGHT;

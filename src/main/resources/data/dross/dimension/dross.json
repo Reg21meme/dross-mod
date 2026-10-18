@@ -34,33 +34,6 @@
           }
         },
         {
-          "biome": "dross:nether_scar",
-          "parameters": {
-            "temperature": [
-              -2.0,
-              2.0
-            ],
-            "humidity": [
-              -2.0,
-              2.0
-            ],
-            "continentalness": [
-              -2.0,
-              0.33955
-            ],
-            "erosion": 0.0,
-            "depth": [
-              -2.0,
-              2.0
-            ],
-            "weirdness": [
-              0.45725,
-              2.0
-            ],
-            "offset": 0.0
-          }
-        },
-        {
           "biome": "dross:cinder_wastes",
           "parameters": {
             "temperature": [
@@ -82,7 +55,7 @@
             ],
             "weirdness": [
               -2.0,
-              0.45715
+              2.0
             ],
             "offset": 0.0
           }
@@ -109,7 +82,7 @@
             ],
             "weirdness": [
               -2.0,
-              0.45715
+              2.0
             ],
             "offset": 0.0
           }
@@ -136,7 +109,7 @@
             ],
             "weirdness": [
               -2.0,
-              0.45715
+              2.0
             ],
             "offset": 0.0
           }
@@ -163,7 +136,7 @@
             ],
             "weirdness": [
               -2.0,
-              0.45715
+              2.0
             ],
             "offset": 0.0
           }
@@ -190,7 +163,7 @@
             ],
             "weirdness": [
               -2.0,
-              0.45715
+              2.0
             ],
             "offset": 0.0
           }

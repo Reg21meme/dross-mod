@@ -13,7 +13,8 @@ import net.minecraftforge.common.PlantType;
  * Scar Roots: twisted crimson roots with electric blue tips, where the Dross meets the Nether. Like vanilla's crimson
  * roots (it's a {@link RootsBlock}): you walk through them, placing a block replaces them, they drop themselves, and
  * they never burn. They grow on the ground in {@code #dross:scar_roots_grow_on} (nylium, netherrack, Scarred
- * Netherrack and soul soil; see {@link PlantGround}).
+ * Netherrack and soul soil; see {@link PlantGround}). They came from the Nether Scar, a biome until October 17, 2026;
+ * now they're only placed by hand (they no longer generate).
  */
 public class ScarRootsBlock extends RootsBlock
 {

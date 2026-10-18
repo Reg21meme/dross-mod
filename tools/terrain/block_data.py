@@ -95,7 +95,8 @@ BLOCKS = [
     dict(id="frostbitten_log", name="Frostbitten Log", model="rimed_log", drops="self"),
     dict(id="frostbloom", name="Frostbloom", model="glow_cross", drops="self"),
     dict(id="icicle", name="Icicle", model="cross", render="translucent", drops="silk"),
-    # Nether Scar (no fire anywhere)
+    # The Nether Scar's blocks (no fire anywhere). The biome was removed on October 17, 2026; these four are kept as
+    # building blocks (worldgen.py no longer places them)
     # three crack drawings (draw_blocks.py SCAR_CRACKS); the big forked crack is the rarest
     dict(id="scarred_netherrack", name="Scarred Netherrack", model="glow_cube", turn=True, looks=3, look_weights=[1, 2, 2],
          drops="self"),

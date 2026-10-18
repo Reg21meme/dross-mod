@@ -44,16 +44,12 @@
               "type": "minecraft:add",
               "argument1": {
                 "type": "minecraft:add",
-                "argument1": {
-                  "type": "minecraft:add",
-                  "argument1": "dross:terrain/escarpment",
-                  "argument2": "dross:terrain/outcrops"
-                },
-                "argument2": "dross:terrain/mesa"
+                "argument1": "dross:terrain/escarpment",
+                "argument2": "dross:terrain/outcrops"
               },
-              "argument2": "dross:terrain/blight"
+              "argument2": "dross:terrain/mesa"
             },
-            "argument2": "dross:terrain/scar_sink"
+            "argument2": "dross:terrain/blight"
           }
         }
       },

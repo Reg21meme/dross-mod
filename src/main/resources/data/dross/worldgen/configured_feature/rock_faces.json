@@ -27,12 +27,6 @@
         }
       },
       {
-        "biome": "dross:nether_scar",
-        "rock": {
-          "Name": "minecraft:netherrack"
-        }
-      },
-      {
         "biome": "dross:gravecrags",
         "rock": {
           "Name": "dross:cragstone"

@@ -110,7 +110,7 @@ public final class ModItems
     // Dimension area: Wispbloom
     public static final RegistryObject<Item> WISPBLOOM = ITEMS.register("wispbloom", () -> new BlockItem(ModBlocks.WISPBLOOM.get(), new Item.Properties()));
 
-    // Dimension area: block items for the other biomes' blocks (Cinder Wastes, Blightwood, Rimefall, Nether Scar, Gravecrags)
+    // Dimension area: block items for the other biomes' blocks (Cinder Wastes, Blightwood, Rimefall, the old Nether Scar, Gravecrags)
     public static final RegistryObject<Item> ASH = ITEMS.register("ash", () -> new BlockItem(ModBlocks.ASH.get(), new Item.Properties()));
     // Dimension area: Ash Layer
     public static final RegistryObject<Item> ASH_LAYER = ITEMS.register("ash_layer", () -> new BlockItem(ModBlocks.ASH_LAYER.get(), new Item.Properties()));

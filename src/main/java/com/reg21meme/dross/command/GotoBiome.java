@@ -39,9 +39,8 @@ import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
 /**
- * {@code /dross goto biome <name>}: teleports a player to the nearest place of one of the Dross's six biomes
- * ({@code silverwood_forest}, {@code cinder_wastes}, {@code blightwood}, {@code rimefall}, {@code nether_scar},
- * {@code gravecrags}). World site wires it into {@link DrossCommand}; finding the biome is the dimension area's
+ * {@code /dross goto biome <name>}: teleports a player to the nearest place of one of the Dross's five biomes
+ * ({@code silverwood_forest}, {@code cinder_wastes}, {@code blightwood}, {@code rimefall}, {@code gravecrags}). World site wires it into {@link DrossCommand}; finding the biome is the dimension area's
  * {@link DrossBiomes#findNearest}, and what counts as safe ground is the portal area's {@link DrossTeleporter#findSafeSpot}.
  * <ol>
  *   <li><b>Where the search starts:</b> where the player stands, if they're in the Dross; from any other dimension, the

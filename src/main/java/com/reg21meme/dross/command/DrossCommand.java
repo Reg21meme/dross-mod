@@ -40,7 +40,7 @@ import net.minecraftforge.fml.common.Mod;
  *       ("hasn't been placed ... yet") and builds nothing: the site is built in the background a little while after a
  *       new world opens.</li>
  *   <li>{@code /dross goto hub}: teleports you to the hub in the Dross (portal area's {@link DrossHub}).</li>
- *   <li>{@code /dross goto biome silverwood_forest|cinder_wastes|blightwood|rimefall|nether_scar|gravecrags}: teleports
+ *   <li>{@code /dross goto biome silverwood_forest|cinder_wastes|blightwood|rimefall|gravecrags}: teleports
  *       you to the nearest place of that Dross biome, on safe ground and never on or right by the hub: searching from
  *       where you stand if you're in the Dross, otherwise from the hub ({@link GotoBiome}; finding the biome is the
  *       dimension area's {@code DrossBiomes}, safe ground the portal area's {@code DrossTeleporter.findSafeSpot}). It
@@ -187,7 +187,7 @@ public final class DrossCommand
 
     /**
      * {@code /dross goto biome <name>}: one literal per Dross biome ({@code silverwood_forest}, {@code cinder_wastes},
-     * {@code blightwood}, {@code rimefall}, {@code nether_scar}, {@code gravecrags}), so they tab-complete. Plain
+     * {@code blightwood}, {@code rimefall}, {@code gravecrags}), so they tab-complete. Plain
      * {@code /dross goto biome} isn't a command.
      */
     private static LiteralArgumentBuilder<CommandSourceStack> biomeGoto()

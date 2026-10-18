@@ -54,9 +54,10 @@ import org.slf4j.Logger;
  * {@code tools/terrain/worldgen.py}: BIOMES, {@code SPAWN_OVERRIDES}). Run them with
  * {@code .\gradlew.bat runGameTestServer --console=plain}.
  * <ul>
- *   <li>{@link #spawnListsPerBiome}: four biomes have the Dross's base spawn lists exactly (worldgen.py's
- *       {@code BASE_MONSTERS}, {@code BASE_CREATURES}, {@code BASE_AMBIENT}: the plains monsters minus slimes, creepers
- *       and spiders, the plains animals, bats; Silverwood Forest's lists are the reference the other three must match);
+ *   <li>{@link #spawnListsPerBiome}: three biomes (Silverwood Forest, Rimefall, the Gravecrags) have the Dross's base
+ *       spawn lists exactly (worldgen.py's {@code BASE_MONSTERS}, {@code BASE_CREATURES}, {@code BASE_AMBIENT}: the plains
+ *       monsters minus slimes, creepers and spiders, the plains animals, bats; Silverwood Forest's lists are the reference
+ *       the other two must match);
  *       Blightwood keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
  *       witches 7% of the mobs spawning there, 1 in 5 of the rats enraged); the sewers
  *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only the Cinder

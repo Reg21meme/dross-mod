@@ -2,30 +2,30 @@
 
 Branch: `terrain-v1` (made from `main` at 5cbdfde). Nothing was pushed; merge it into `main` when you're happy.
 
-The Dross used to be a flat, always-night world. It is now real terrain with six biomes, 38 new blocks, dense forests, ores, a hub that sits properly on the land, two survivors at the hub, the Cinder Colossus in a volcano lair, and test commands to get around. This file has a summary, your in-game checklist, where to tweak things, and the full build log with every choice made.
+The Dross used to be a flat, always-night world. It is now real terrain with five biomes (six until the Nether Scar was removed on October 17, 2026), 38 new blocks, dense forests, ores, a hub that sits properly on the land, two survivors at the hub, the Cinder Colossus in a volcano lair, and test commands to get around. This file has a summary, your in-game checklist, where to tweak things, and the full build log with every choice made.
 
 ## What's in the game now
 - **Terrain** (surface only, no caves): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and the Gravecrags' snow-capped peaks (about y 230-260). Always night; each biome has its own fog, sky and water colours, particles and sounds; a blue glow over the night sky; thicker fog in Blightwood.
-- **Six biomes**, regions about 600-670 blocks across:
+- **Five biomes**, regions about 600-670 blocks across:
   - **Silverwood Forest** (the main biome, round the hub): dense, dark three-layer forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs, dark ponds.
   - **Cinder Wastes**: ash, basalt, magma, enclosed lava pools, basalt spires, charred trees, Emberweed, Cinder Vents. The only mobs are the Colossus's **stone golems**, with **lava golems** about 1 in 5 (always near lava).
   - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, towering blightcaps, Gloomcaps, Sporepods, murky ponds, green fog.
   - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms, frozen ponds.
-  - **Nether Scar** (patches about 240 across): netherrack with clusters of blue-cracked Scarred Netherrack, crimson and warped fungi, Soulwicks, Scar Vents. No fire or lava.
   - **The Gravecrags** (the mountains, at least ~750 blocks from the hub): Cragstone cliffs, glowing Storm Lichen, Crag Thistles, snow on the peaks.
+  - (The **Nether Scar**, smaller patches where the Nether bled through, was a sixth until October 17, 2026: the user had it removed. Its land went to the biomes round it (mostly Silverwood Forest, now about 42%), and its four blocks, Scarred Netherrack, Scar Roots, Soulwick and Scar Vent, are kept as building blocks in the creative tab; they no longer generate.)
 - **Blocks** (38) and **materials**: Duskstone and its coal, gold (drops nuggets), Moonsilver and Stormite ores; the silverwood wood set and sapling; every biome's ground covers and plants. All in the creative Dross tab (blocks in group 1, the ore materials in a new group 7).
 - **The hub** (the Shattered Spire at 0,0) is levelled into the land with a staircase blend (at most 1 block per step), trees removed whole; the safe zone and arrivals work as before.
 - **The survivors**: the **Blind Oracle** (mentor) and the **Ragged Seeker** (student) walk together round the spire, can't die, are ignored by hostile mobs, and talk when right-clicked.
 - **The Cinder Colossus lair**: a volcano in the Cinder Wastes, the furthest of the nearest Cinder Wastes in three directions from the hub. Big cave mouth, a domed cavern with an obsidian and magma floor, lava under the floor, obsidian stalactites; the Colossus rises when you step onto the floor and comes back 10 minutes after it's beaten.
 - **The fight rework**: a 15-block push-back roar at the first hit and both stage changes, 4 golems on entering Cracking, 4 lava blobs on entering the Lava Core, a gap-closing charge (7-32 blocks), your move-chance table, and counters to Necromancy minions.
-- **Commands** (cheats on): `/dross goto biome <name>` (`silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall`, `nether_scar`, `gravecrags`) and `/dross goto lair colossus`.
+- **Commands** (cheats on): `/dross goto biome <name>` (`silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall`, `gravecrags`) and `/dross goto lair colossus`.
 
 ## Your in-game checklist (new world, Allow Cheats ON)
 Old worlds keep their flat Dross chunks, their old hub and (if they had one) their first-version lair, so test in a **new world**. Wait about a minute after it loads (the hub, then the lair, are built in the background).
 1. `/dross goto hub`: you land on the step inside the Shattered Spire; the spire sits level in a forest clearing with no cliffs or dirt walls round it; the Blind Oracle and the Ragged Seeker stand beside you. Right-click each a few times (their lines; the Seeker calls the Oracle "he"). Hit one to half health: both pop back with blue particles. Walk out of the gate: they wander together, never far.
 2. Look at the night sky and fog in the forest (blue glow, deep blue fog), and at Stormvine glowing on the trunks. No hostile mobs spawn within 48 blocks of the hub.
-3. `/dross goto biome <name>` for each of the six: you land on safe ground in that biome. Check each biome's look (above), fog and particles. Blightwood should look poisonous (green, maroon, beige); the Nether Scar's cracks should be calm clusters.
-4. In Survival at night: zombies and skeletons (netherite) spawn in the five other biomes as before; in the Cinder Wastes only stone golems, and lava golems near lava (about 1 in 5). A wild lava golem hisses and blows up only when you're close (no blocks broken).
+3. `/dross goto biome <name>` for each of the five: you land on safe ground in that biome. Check each biome's look (above), fog and particles. Blightwood should look poisonous (green, maroon, beige). `/dross goto biome nether_scar` is no longer a command, and no netherrack, nylium or Scar blocks appear anywhere in new land.
+4. In Survival at night: zombies and skeletons (netherite) spawn in Silverwood Forest, Rimefall and the Gravecrags as before (Blightwood: rats and witches since October 17); in the Cinder Wastes only stone golems, and lava golems near lava (about 1 in 5). A wild lava golem hisses and blows up only when you're close (no blocks broken).
 5. `/dross goto lair colossus`: the volcano (smoke from the crater, lava streams and pools at its foot), the big cave mouth, the cavern (obsidian and magma floor, glowing fissures with lava below, stalactites). Step onto the floor in Survival: the Colossus rises. The first time it's hurt it roars and throws you back about 15 blocks; it charges you from far away; at 60% it erupts, roars and 4 golems climb out; at 35% the shell breaks, it roars and spews 4 lava blobs; in the Lava Core it never throws rocks. Beat it: a trophy and "Set in Stone"; walk in again within 10 minutes: nothing rises; after 10 minutes it rises again.
 6. Blocks: take a few from the creative Dross tab; strip silverwood logs with an axe; grow a sapling with bone meal (four in a square make a great silverwood); mine the ores (gold ore drops nuggets; Stormite needs an iron pickaxe).
 7. Anything that looks off: tell me, with the coordinates (F3).
@@ -65,6 +65,7 @@ Old worlds keep their flat Dross chunks, their old hub and (if they had one) the
 | R6a | Old-world test fixes, steadier Nether Scar check, final previews (lair on the map) | 80/80 (fresh and old) | 292d894 |
 | R6b | The lair's way in never steps more than 1 block | 81/81 (fresh, old, rebuilt site) | 4d5f81d |
 | R6c + R7 | Steadier Necromancy and portal-site tests; docs (this report, CLAUDE.md, README, agent files, the Guide Book page) | 81/81 (fresh and old) | the last commit |
+| Oct 17 | The Nether Scar biome removed (the user's request); its four blocks kept as building blocks (see the end of this file) | see below | (not committed yet) |
 
 Usage limits cut two runs short during the build (Stage 2 and Stage 6); both were resumed without losing work.
 
@@ -241,3 +242,19 @@ The user fought the Colossus in its lair and said: the lair doesn't feel volcani
 - README.md: the Dross's terrain and biomes, the survivors, the lair, the fight changes, the new commands, blocks and materials, tools and layout.
 - The agent files (`.claude/agents/`): the dimension agent rewritten for the terrain; the others updated for the survivors, the lair, `goto biome`/`goto lair` and the headless check routine.
 - The Guide Book's second page no longer calls the Dross "a flat land".
+
+## October 17, 2026: the Nether Scar removed (dimension-builder)
+The user: "yeah can we remove the nether scar as a biome as well". The build log above is kept as it was written; this is
+what changed since.
+- **The biome is gone** (`dross:nether_scar`: its biome file, climate box, noises, gate and sink, surface rules,
+  features, fog, colours, `DrossBiomes.NETHER_SCAR` and `/dross goto biome nether_scar`). There are five biomes now.
+- **Its land went to the biomes round it**, without moving any other border: each place it covered now gets the biome its
+  heat and rot say (the other biomes' boxes just stopped excluding it). So the Cinder Wastes, Rimefall, Blightwood and
+  Silverwood Forest all grew by the same factor (88 / 83): about 14.8%, 14.8%, 15.9% and 42.4% of the land, the
+  Gravecrags 12% as before. Silverwood still surrounds the hub and the Gravecrags still keep their distance (both checked
+  headlessly). Mostly it became Silverwood Forest, since that's what most of the land round a patch was.
+- **Its four blocks are kept** as building blocks (Scarred Netherrack, Scar Roots, Soulwick, Scar Vent): same textures,
+  models, loot, recipe, tags and places in the creative tab, and they still work placed by hand. Nothing generates them.
+- **Checks:** a new check that none of its blocks (nor the Nether ground and plants it grew) appear in any generated site,
+  that no land is any biome other than the five, and that the Dross registers exactly its five biomes and the sewers;
+  `/dross goto biome nether_scar` must not run. The old Scar-only checks (its cracks, its markers, no lava in it) went.

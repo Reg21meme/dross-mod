@@ -92,9 +92,9 @@ public final class TerrainBlocks
     private static final int GLOOMCAP_LIGHT = 6;
     private static final int FROSTBLOOM_LIGHT = 3;
     /**
-     * Scarred Netherrack's cracks glow (full-bright in its model) but light nothing round them: it's the Nether Scar's main
-     * ground, and monsters in the Dross only spawn in complete darkness, so light here would keep them out of most of the
-     * Scar (it was 3 until Stage 6 of Terrain v1).
+     * Scarred Netherrack's cracks glow (full-bright in its model) but light nothing round them: it was the Nether Scar's
+     * main ground, and monsters in the Dross only spawn in complete darkness, so light here would have kept them out of
+     * most of the Scar (it was 3 until Stage 6 of Terrain v1).
      */
     private static final int SCARRED_NETHERRACK_LIGHT = 0;
     private static final int SOULWICK_LIGHT = 10;
@@ -503,7 +503,9 @@ public final class TerrainBlocks
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Nether Scar (the Nether bleeding through). No fire anywhere: nothing here burns or keeps a fire going.
+    // The Nether Scar's blocks (the Nether bleeding through). The biome was removed on October 17, 2026 (the user's
+    // request); these four are kept as building blocks and no longer generate. No fire: none of them burns or keeps a
+    // fire going.
     // ---------------------------------------------------------------------------------------------
 
     /** Scarred Netherrack: netherrack split by glowing electric blue cracks (pickaxe). Not a fire source, not nylium. */

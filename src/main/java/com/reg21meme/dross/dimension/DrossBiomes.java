@@ -16,16 +16,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.biome.Biome;
 
 /**
- * The Dross's six biomes (data/dross/worldgen/biome/, written by {@code tools/terrain/worldgen.py}), and finding the
+ * The Dross's five biomes (data/dross/worldgen/biome/, written by {@code tools/terrain/worldgen.py}), and finding the
  * nearest place of each one (for {@code /dross goto biome <name>}, which world-builder wires up).
  * <ul>
  *   <li>{@link #SILVERWOOD_FOREST} Silverwood Forest: the main biome, dense and dark; it always surrounds the hub.</li>
  *   <li>{@link #CINDER_WASTES} Cinder Wastes: volcanic; ash, basalt, magma and mesas.</li>
  *   <li>{@link #BLIGHTWOOD} Blightwood: rotten and fungal; low, lumpy ground.</li>
  *   <li>{@link #RIMEFALL} Rimefall: frozen; hoarfrost, snow and packed ice; gentle.</li>
- *   <li>{@link #NETHER_SCAR} Nether Scar: smaller patches where the Nether bleeds through.</li>
  *   <li>{@link #GRAVECRAGS} The Gravecrags: the mountains, peaks about y 230-265; never within about 650 blocks of the hub.</li>
  * </ul>
+ * There was a sixth, the Nether Scar, until October 17, 2026: the user had it removed (its land went to the biomes round
+ * it). Its four blocks (Scarred Netherrack, Scar Roots, Soulwick, Scar Vent) are kept as building blocks.
  */
 public final class DrossBiomes
 {
@@ -33,20 +34,18 @@ public final class DrossBiomes
     public static final ResourceKey<Biome> CINDER_WASTES = key("cinder_wastes");
     public static final ResourceKey<Biome> BLIGHTWOOD = key("blightwood");
     public static final ResourceKey<Biome> RIMEFALL = key("rimefall");
-    public static final ResourceKey<Biome> NETHER_SCAR = key("nether_scar");
     public static final ResourceKey<Biome> GRAVECRAGS = key("gravecrags");
 
     /**
      * The sewers under Blightwood (biome {@code dross:sewers}, "The Sewers"): not a surface biome, but the Blightwood
      * underground from {@code SEWER_BIOME_DEPTH} blocks under the ground down (tools/terrain/worldgen.py, SEWERS). It's solid
      * rock except for the sewer networks, so it only shows in them: their murky green water and fog, and their spawns
-     * (rats only). Not in {@link #ALL} ({@code /dross goto biome} is for the six surface biomes): the surface map is as before.
+     * (rats only). Not in {@link #ALL} ({@code /dross goto biome} is for the five surface biomes): the surface map is as before.
      */
     public static final ResourceKey<Biome> SEWERS = key("sewers");
 
-    /** All six, Silverwood Forest first (the order the command lists them in). */
-    public static final List<ResourceKey<Biome>> ALL = List.of(SILVERWOOD_FOREST, CINDER_WASTES, BLIGHTWOOD, RIMEFALL, NETHER_SCAR,
-            GRAVECRAGS);
+    /** All five, Silverwood Forest first (the order the command lists them in). */
+    public static final List<ResourceKey<Biome>> ALL = List.of(SILVERWOOD_FOREST, CINDER_WASTES, BLIGHTWOOD, RIMEFALL, GRAVECRAGS);
 
     // Finding the nearest place of a biome (Minecraft's own search, like /locate biome)
     /** How far the search looks (blocks, measured along X and Z from the start). Every biome is within about 1,500 of the hub. */
@@ -75,7 +74,7 @@ public final class DrossBiomes
     }
 
     /** The biome with this command name ({@code silverwood_forest}, {@code cinder_wastes}, {@code blightwood}, {@code rimefall},
-     * {@code nether_scar}, {@code gravecrags}; case doesn't matter), or empty. */
+     * {@code gravecrags}; case doesn't matter), or empty. */
     public static Optional<ResourceKey<Biome>> byName(String name)
     {
         String wanted = name.toLowerCase(Locale.ROOT);

@@ -1,6 +1,6 @@
 # tools/terrain
 
-Python tools for the Dross's terrain: its blocks, their textures and files, and its worldgen (the land's shape, the six
+Python tools for the Dross's terrain: its blocks, their textures and files, and its worldgen (the land's shape, the five
 biomes, the surface blocks, the trees, everything that grows and lies on the land, and the ores). Run everything from the
 project folder. `worldgen.py`, `block_data.py` and `check_assets.py` need only Python 3 (`worldgen.py` uses numpy if it's
 there, for one extra check); `draw_blocks.py`, `preview_trees.py` and `preview_sites.py` also need numpy and Pillow;
@@ -134,14 +134,19 @@ Two looks the user asked for in round 2 (October 12):
   hairlines; picked 1 : 2 : 2, `look_weights` in `block_data.py`), each placed block picking one and turning and
   mirroring it at random. No crack comes within a pixel of
   the edge, so cracks never join from block to block into lines or a grid. The rock's colours (`NETHERRACK`) match
-  Minecraft's own netherrack, which lies in patches among it.
+  Minecraft's own netherrack, so the two mix well when built with.
+- **The Nether Scar's four blocks** (Scarred Netherrack, Scar Roots, Soulwick, Scar Vent) are building blocks only: the
+  Nether Scar biome was removed on October 17, 2026 (the user's request), so they no longer generate anywhere, but they
+  keep their textures, models, loot, recipe, tags and creative-tab places, and work placed by hand (Scar Roots on nylium,
+  netherrack, Scarred Netherrack or soul soil; Soulwicks on soul soil or soul sand).
 
 ## worldgen.py: the terrain (TERRAIN, BIOMES and SURFACE sections)
 
 How it works, in short (the full design is `TERRAIN_DESIGN.md`): every column's ground height is worked out from 2D
 noises (rolling hills, cliff steps, rocky knolls, mesas, lumps, mountains), so there are no caves, overhangs or floating
-islands. Four of our own noises fill Minecraft's climate slots (heat, rot, mountain, scar); the same values pick the biome
-and fade its land shapes in across its border, so the shapes follow the biomes. Near the hub at 0, 0 the noises are
+islands. Three of our own noises fill Minecraft's climate slots (heat, rot, mountain; the fourth, weirdness, held the
+Nether Scar until it was removed on October 17, 2026, and is unused now); the same values pick the biome and fade its land
+shapes in across its border, so the shapes follow the biomes. Near the hub at 0, 0 the noises are
 pushed (`dross:hub_falloff`, `dimension/worldgen/HubFalloff.java`): Silverwood Forest all round it, no mountains near it,
 gentle ground under it. The surface rules then cover the Duskstone with each biome's blocks, and the `dross:rock_faces`
 feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bare rock.
@@ -151,8 +156,7 @@ feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bar
 | What you want | Constant(s) (TERRAIN unless noted) | Notes |
 |---|---|---|
 | Bigger or smaller biome regions | `CLIMATE_XZ_SCALE` | Region size is about 500 / this (0.80: ~600 blocks across, measured 600-700). Lower = bigger. Also widen or shrink the hub radii below by the same factor. |
-| Bigger or smaller Nether Scar patches | `SCAR_XZ_SCALE` | 0.80: patches ~240 across. |
-| More or less of a biome | `TARGET_SHARES` (BIOMES) | Silverwood gets what's left (~40%). The script turns the shares into climate borders and prints them. |
+| More or less of a biome | `TARGET_SHARES` (BIOMES) | Silverwood gets what's left (~42%). The script turns the shares into climate borders and prints them. The Cinder Wastes, Rimefall and Blightwood are the old 14 / 14 / 15% grown by `SCAR_LAND_SHARED_OUT` (the Nether Scar's land shared out without moving a border); plain numbers are fine if you retune. |
 | Wavier or straighter biome borders | `WARP_BLOCKS` | How far borders wander (blocks). |
 | Higher or lower land | `BASE_HEIGHT` | The plain land's middle (72). The hub stands at about this height. |
 | Rolling hills | `BROAD_HEIGHT` (wide swells), `HILL_HEIGHT` (hills) | Silverwood heights now: p5 56, median 74, p95 94. |
@@ -169,8 +173,7 @@ feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bar
 | Mountains nearer or farther from the hub | `MOUNTAIN_FREE_INNER/OUTER`, `MOUNTAIN_RING_FADE_INNER/OUTER`, `MOUNTAIN_RING_BOOST` | None within ~650 now; the nearest are usually 750-800 blocks out. |
 | A bigger all-Silverwood area round the hub | `SILVERWOOD_CORE_INNER/OUTER` | Guaranteed within the inner radius (200); other biomes appear from ~300. |
 | Flatter or hillier ground at the hub | `HUB_FLAT_INNER/OUTER`, `HUB_HILLS_KEPT` | Within 80 blocks only 10% of the hills, no cliffs. |
-| Ground cover patches | `*_PATCH` (SURFACE) | Each biome's patch thresholds (podzol, moss, mud, magma, snow, nylium, soul soil, gravel...). |
-| How much of the Nether Scar is cracked | `SCARRED_PATCH`, `SCARRED_SPECKLE` (SURFACE) | Its bare ground is Scarred Netherrack in ragged clusters (where the `patch/scar_cracks` noise is above `SCARRED_PATCH`, -0.15: ~70%) with a few plain blocks scattered inside them (`patch/scar_speckle` above `SCARRED_SPECKLE`, -0.25: ~79%), plain netherrack elsewhere: about 55% of that ground cracked, about a third of the Scar. Lower either = more cracked. |
+| Ground cover patches | `*_PATCH` (SURFACE) | Each biome's patch thresholds (podzol, moss, mud, magma, snow, gravel...). |
 | Bare rock on slopes | `ROCK_FACE_MIN_EXPOSED`, `ROCK_FACE_MAX_DEPTH`, `ROCK_FACE_ROCKS`, `ROCK_FACE_REPLACEABLE` (SURFACE) | A column 2+ blocks above a neighbour becomes its biome's rock. |
 | Fog, sky and water colours | `DrossColors.java`, Dimension section (`SILVERWOOD_FOG`...) | Then run `worldgen.py` again. |
 | Ambient particles, sounds, weather | `BIOMES` (BIOMES) | `particle_chance` per random spot per tick (vanilla crimson forest: 0.025). |
@@ -178,16 +181,13 @@ feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bar
 ### The headless checks (they fail if the terrain drifts out of the user's ranges)
 
 - `dimension/TerrainSamplingGameTest`: 8 fixed seeds and the world's own, from the noise alone (about 5 seconds):
-  Silverwood within 200 of the hub, no Gravecrags within 650, every biome within 1,500, biome shares and region sizes
-  (400-800 across; Nether Scar 120-350), heights (y 30-290, median mountain top y 225-265, Silverwood median 66-80), the
+  Silverwood within 200 of the hub, no Gravecrags within 650, every biome within 1,500, biome shares (and no land of any
+  other biome) and region sizes (400-800 across), heights (y 30-290, median mountain top y 225-265, Silverwood median 66-80), the
   hub's natural ground nearly flat, no gaps in any column, the generator's height matching the noise's, and the same
-  biomes when sampled in a different order. Plus `findNearestFindsEveryBiome` (`DrossBiomes.findNearest`).
+  biomes when sampled in a different order. Plus `findNearestFindsEveryBiome` (`DrossBiomes.findNearest`, and the
+  Dross registering exactly its five biomes and the sewers: a leftover biome file would fail it).
 - `dimension/TerrainChunksGameTest`: real chunks at a sample site of each biome: the right biome, bedrock floor, no air
-  pockets, the biome's own surface blocks; logs the generation time per chunk next to the vanilla Overworld's. The
-  Nether Scar's cracks are judged on the netherrack ground its soul and nylium patches leave (5-92% of it must be
-  Scarred Netherrack, about 56% normally), not on the whole site, where the patches make the share swing from about 4%
-  to 63%. If you change `SCARRED_PATCH`, `SCARRED_SPECKLE` or the Scar's patch thresholds a lot, re-check those limits
-  (`SCAR_CRACKED_MIN` and its notes).
+  pockets, the biome's own surface blocks; logs the generation time per chunk next to the vanilla Overworld's.
 - `dimension/TerrainFeaturesGameTest`: what grows and lies on the land, and the ores (see the FEATURES section below).
 - `dimension/TerrainPreviewGameTest`: the previews (only with `DROSS_TERRAIN_PREVIEWS=1`).
 
@@ -195,14 +195,13 @@ feature (`dimension/worldgen/RockFacesFeature.java`) turns steep ground into bar
 
 `dimension/client/DrossSkyEffects` (registered for the dimension type's `"effects": "dross:dross"`) keeps the night fog
 in each biome's fog colour instead of black, removes clouds, and tints sky light a little blue; `DrossSkyRendering` lays
-a see-through glow over the night sky and thickens the fog in Blightwood, the Nether Scar, the Cinder Wastes and
-Rimefall. Each part has an on/off switch at the top of its file, and switches itself off (one error in the log) if it
+a see-through glow over the night sky and thickens the fog in Blightwood, the Cinder Wastes, Rimefall and the sewers. Each part has an on/off switch at the top of its file, and switches itself off (one error in the log) if it
 ever fails.
 
 ## worldgen.py: mob spawns (BIOMES section)
 
-Each biome's spawn lists are in its JSON (`spawners`, `spawn_costs`), written by `biome_spawns`. Four biomes (Silverwood
-Forest, Rimefall, the Nether Scar, the Gravecrags) get the Dross's base lists exactly (`BASE_MONSTERS`,
+Each biome's spawn lists are in its JSON (`spawners`, `spawn_costs`), written by `biome_spawns`. Three biomes (Silverwood
+Forest, Rimefall, the Gravecrags) get the Dross's base lists exactly (`BASE_MONSTERS`,
 `BASE_CREATURES`, `BASE_AMBIENT` in the BIOMES section): the plains monsters minus slimes, creepers and spiders
 (zombies, zombie villagers, skeletons, endermen, witches), the plains animals and bats. To change those, edit the
 constants and run `worldgen.py`. **Blightwood** gets the base animals and bats but has its own monsters (rats and
@@ -243,9 +242,8 @@ plants (its tries are random spots near one place; only spots where the plant ca
 
 **Light and monsters.** Monsters in the Dross only spawn in complete darkness (block light 0; the Cinder Wastes' golems
 are the exception: they ignore light, see "Mob spawns" above), so every glowing thing
-(Stormvine 6, Wispbloom 5, Gloomcap 6, Emberweed 4, Frostbloom 3, Soulwick 10, Storm Lichen 7, Cinder Vent 3, Scar Vent
-4, lava 15) makes a small safe spot. The glowing plants are kept sparse, the Nether Scar's fungi have no shroomlights,
-and Scarred Netherrack's glowing cracks give no light. `dimension/TerrainFeaturesGameTest` logs how much of each biome's
+(Stormvine 6, Wispbloom 5, Gloomcap 6, Emberweed 4, Frostbloom 3, Storm Lichen 7, Cinder Vent 3, lava 15) makes a small
+safe spot. The glowing plants are kept sparse. `dimension/TerrainFeaturesGameTest` logs how much of each biome's
 floor is lit (about 15-20% in the Silverwood Forest, 15-25% in the Cinder Wastes with their lava, 10-20% in the
 Gravecrags, under 12% elsewhere).
 
@@ -260,7 +258,6 @@ Gravecrags, under 12% elsewhere).
 | Blightwood | Towering blightcaps (tall stem, wide flat cap), then the ordinary giant blightcaps (round domes and flat caps of fresh and rotting cap blocks) | `TOWERING_BLIGHTCAP*`, `BLIGHTCAPS`, `BLIGHTCAP_DOME_SHARE`, `BLIGHTCAP_CAP_MIX` |
 | | Gloomcaps (they glow: few), Sporepods; rotting fallen silverwood logs with moss, Sporepods and Gloomcaps on them; murky ponds | `GLOOMCAP_*`, `SPOREPOD_*`, `FALLEN_BLIGHT_LOG*`, `BLIGHTWOOD_PONDS` |
 | Rimefall | Frost-covered dead trees (Icicles under their branches); ice spikes and packed-ice boulders; Frostblooms; snow drifts; frozen ponds | `FROST_TREES`, `FROST_TREE_FORKED`, `ICICLE_CHANCE`, `ICE_SPIKE_TRIES`, `ICE_BOULDER*`, `FROSTBLOOM_*`, `SNOW_LAYER_*`, `RIMEFALL_PONDS` |
-| Nether Scar | Huge crimson and warped fungi (each on its own nylium); roots, sprouts and small fungi; Scar Roots; Soulwicks on soul soil and soul sand; Scar Vents. No lava, no fire | `CRIMSON_FUNGUS_TRIES`, `WARPED_FUNGUS_TRIES`, `NETHER_VEGETATION`, `SCAR_ROOT_*`, `SOULWICK_*`, `SCAR_VENTS` |
 | The Gravecrags | Storm Lichen on the rock faces; Crag Thistles; Cragstone boulders; a few silverwoods on the moss low down; snow on the peaks (vanilla's `freeze_top_layer`) | `STORM_LICHEN_*`, `CRAG_THISTLE_*`, `CRAG_BOULDER*`, `CRAG_SILVERWOODS`, `GRAVECRAGS_SNOW` |
 
 **Ponds and lava pools** are `dross:pond` (`dimension/worldgen/PondFeature`): Minecraft's lake shape (lava pools in a
@@ -274,8 +271,7 @@ two ponds (or lava pools) in 50 chunks of their biome.
 **Ores** (every biome, `ORES`; Stormite gets an extra Gravecrags-only placement, `STORMITE_GRAVECRAGS`): each is (block,
 veins per chunk, blocks per vein, chance a block touching air is left out, (spread, lowest y, highest y)); "trapezoid"
 means most in the middle of the range. They replace Duskstone and the biome rock lying over it (`ORE_REPLACEABLE`, tag
-`#dross:ore_replaceables`: basalt and blackstone in the Cinder Wastes, netherrack in the Scar, Cragstone in the
-Gravecrags).
+`#dross:ore_replaceables`: basalt and blackstone in the Cinder Wastes, Cragstone in the Gravecrags).
 
 | Ore | Veins per chunk x size | Heights | Found per chunk (about) |
 |---|---|---|---|
@@ -303,7 +299,8 @@ The other Java behind the JSON: `dross:boulder` (`BoulderFeature`), `dross:falle
 
 **The headless checks** `dimension/TerrainFeaturesGameTest`: `featuresPerBiome` generates 7 x 7 brand-new chunks at a
 sample site of each biome and checks each biome's own features are there, every plant, vine, lichen and snow or ash
-layer could stay where it is, every fluid is a still source, all lava is held in (and none in the Nether Scar), no fire,
+layer could stay where it is, every fluid is a still source, all lava is held in, no fire, none of the removed Nether
+Scar's blocks (its four own and the Nether ground and plants it grew) anywhere,
 no leaves about to decay, nothing hanging in the air (trees, fallen logs, giant mushrooms), and the ores in their height
 ranges (all four found). It logs the generation time per chunk (and the tidy-up's share), the counts, the ponds and lava
 pools (and why the pond feature's other tries made nothing), the lit floor and the ores ("[terrain features]"). Ponds

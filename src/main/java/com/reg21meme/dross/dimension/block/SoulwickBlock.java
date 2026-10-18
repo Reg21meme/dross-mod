@@ -10,9 +10,9 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Soulwick: a flower of the Nether Scar whose bloom is a blue soul flame (its light level is in its block properties;
- * the flame is drawn full-bright by its model). Now and then a soul fire flame flickers up from it, like from a soul
- * torch.
+ * Soulwick: a flower whose bloom is a blue soul flame (its light level is in its block properties; the flame is drawn
+ * full-bright by its model). Now and then a soul fire flame flickers up from it, like from a soul torch. It came from the
+ * Nether Scar, a biome until October 17, 2026; now it's only placed by hand (it no longer generates).
  *
  * <p>It's a flower, not fire: it never burns, never sets anything alight and never hurts. It grows on soul soil and
  * soul sand ({@code #dross:soulwick_grows_on}).

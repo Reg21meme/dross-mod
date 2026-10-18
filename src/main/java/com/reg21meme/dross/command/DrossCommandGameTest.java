@@ -70,7 +70,7 @@ public final class DrossCommandGameTest
     private static final String[] NEW_COMMANDS = {
             "dross goto cathedral", "dross goto hub", "dross goto trader",
             "dross goto biome silverwood_forest", "dross goto biome cinder_wastes", "dross goto biome blightwood",
-            "dross goto biome rimefall", "dross goto biome nether_scar", "dross goto biome gravecrags",
+            "dross goto biome rimefall", "dross goto biome gravecrags",
             "dross goto lair colossus", "dross goto lair ratking", "dross goto sewer",
             "dross trader sendhome",
             "dross quest status", "dross quest reset", "dross quest complete",
@@ -79,9 +79,9 @@ public final class DrossCommandGameTest
             "dross boss summon ratking", "dross boss arena ratking",
             "dross boss summon colossus", "dross boss arena colossus",
     };
-    /** Unfinished or unknown commands, which must not run. */
+    /** Unfinished or unknown commands, which must not run (the Nether Scar biome was removed on October 17, 2026). */
     private static final String[] NOT_COMMANDS = {
-            "dross goto biome", "dross goto biome not_a_biome", "dross goto biome dross:gravecrags",
+            "dross goto biome", "dross goto biome not_a_biome", "dross goto biome dross:gravecrags", "dross goto biome nether_scar",
             "dross goto lair", "dross goto lair cinder_colossus", "dross goto colossus",
     };
 
