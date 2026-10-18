@@ -5,11 +5,14 @@ import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntConsumer;
+import java.util.function.IntSupplier;
 import javax.annotation.Nullable;
-import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -32,8 +35,11 @@ import net.minecraft.world.phys.Vec3;
 import static com.reg21meme.dross.boss.lair.LairTuning.*;
 
 /**
- * Builds a Colossus lair into the real world: a volcano (its chunks must be loaded; server thread), a step at a time
- * ({@link #start}, {@link Build#step}; {@link LairPlacer} spreads the steps over several ticks). In order:
+ * Builds a Colossus lair into the real world: a volcano (its chunks must be loaded; server thread), a piece at a time
+ * ({@link #start}, {@link Build#step}: {@link LairPlacer} gives each server tick at most about
+ * {@link LairTuning#STEP_MILLIS} ms of it, so no tick stalls; the lava's work always gets one tick of its own). The pieces
+ * always run in the same order, so the blocks come out exactly the same however the work is cut up (checked headlessly:
+ * {@code SteppedLairGameTest}). In order:
  * <ol>
  *   <li>The plan ({@link #plan}, from {@link #planningGround}): which way the cave mouth faces, the floor's height
  *       (level with the land in front of the mouth), the rim's height, the land under the cone, and the way in outside
@@ -62,6 +68,9 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  *       banks a glowing crust of magma and obsidian.</li>
  *   <li>Every lava block is walled in (below and on its four sides: more lava or a block lava can't flow into), and
  *       nothing that can burn is left near any of it.</li>
+ *   <li>Last, any fluid already there (a natural lava pool on the volcano's flank) next to a block this build emptied
+ *       outside the carved spaces (over a rivulet, where a plant fell, where something burnable was cleared) gets that
+ *       block back as rock, so it can't flow out either.</li>
  * </ol>
  * Blocks with a block entity (chests...) are never changed. Blocks are set without poking their neighbours (nothing
  * starts flowing or falling), but players see every change. The smoke rising from the crater is {@link LairSmoke}'s.
@@ -74,6 +83,10 @@ final class LairBuilder
     /** The fissures' glass: orange, so the lava under it glows like a hot crack. */
     static final Block FISSURE_GLASS = Blocks.ORANGE_STAINED_GLASS;
     private static final Direction[] LAVA_FLOWS = {Direction.DOWN, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
+    /** A fluid in any of these neighbours of a block could flow into it (fluids flow down and sideways, never up). */
+    private static final Direction[] FLOWS_IN_FROM = {Direction.UP, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
+    /** A block in any of these neighbours of an emptied one may have stood on it or leant on it. */
+    private static final Direction[] HOLDS_UP = {Direction.UP, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
 
     private LairBuilder() {}
 
@@ -97,17 +110,12 @@ final class LairBuilder
     record Layout(int centerX, int centerZ, int floorY, Direction tunnel, int mouth, int rimY, int highLand, int gullyEnd, int approachEnd,
                   Vec3 entrance, float entranceYaw)
     {
-        /** True if the rim stands its full {@link LairTuning#RIM_RISE} over the high land round it (not held down by its cap). */
-        boolean fullRise()
-        {
-            return rimY - highLand >= RIM_RISE;
-        }
     }
 
     /** What building did: the layout, the plan it followed, the way in it shaped, and counts for the log. */
     record Result(Layout layout, LairShape.VolcanoPlan plan, LairShape.Approach approach, int changed, int trees, int plants,
                   int sealed, int veins, int fissureCells, int stalactites, int rivulets, int outsideLava, int fireGuarded,
-                  int gullyLength, long millis)
+                  int openingsSealed, int gullyLength, long millis)
     {
     }
 
@@ -119,6 +127,8 @@ final class LairBuilder
     static final class Surface
     {
         final LairShape.VolcanoPlan plan;
+        /** The world's seed it was planned with (the builder's randomness comes from it too). */
+        final long worldSeed;
         /** The cave mouth's distance from the middle ({@link LairShape#volcanoMouth}). */
         final int mouth;
         /** The lair's own noise (its lumps; also the builder's roughness, patches and rivulets). */
@@ -129,6 +139,7 @@ final class LairBuilder
         Surface(LairShape.VolcanoPlan plan, long worldSeed)
         {
             this.plan = plan;
+            this.worldSeed = worldSeed;
             this.mouth = LairShape.volcanoMouth(plan);
             this.noise = new ImprovedNoise(RandomSource.create(seed(worldSeed, plan.x(), plan.z())));
             this.dir = plan.tunnel();
@@ -247,21 +258,16 @@ final class LairBuilder
         return level.getMaxBuildHeight() - (int) Math.ceil(RIM_TEETH) - 8;
     }
 
-    /** Builds the lair with its floor's middle at {@code x}, {@code z}, all at once (every step in this tick). */
+    /** Builds the lair with its floor's middle at {@code x}, {@code z}, all at once (every piece in this tick). */
     static Result build(ServerLevel level, int x, int z)
     {
-        Build build = start(level, x, z);
-        while (!build.step())
-        {
-            // the next step at once
-        }
-        return build.result();
+        return start(level, x, z).finish();
     }
 
     /**
-     * Starts building the lair with its floor's middle at {@code x}, {@code z}: plans it now (from the ground as it is),
-     * then {@link Build#step} builds it a step at a time ({@link LairTuning#BUILD_STEPS}), so the work can be spread over
-     * several ticks. Its chunks must stay loaded until it's done. Server thread.
+     * Starts building the lair with its floor's middle at {@code x}, {@code z}: {@link Build#step} plans it (from the
+     * ground as it is then) and builds it a piece at a time, so the work can be spread over several ticks. Its chunks
+     * must stay loaded until it's done. Server thread.
      */
     static Build start(ServerLevel level, int x, int z)
     {
@@ -270,13 +276,18 @@ final class LairBuilder
 
     /**
      * As {@link #start(ServerLevel, int, int)}, with the generator's heights round the spot already worked out
-     * ({@link #prefetchNoise}, on a background thread), so planning on the server thread only reads the real blocks.
+     * ({@link #prefetchNoise}, on a background thread), so planning on the server thread only reads the real blocks (a
+     * piece at a time, before the plan is made).
      */
     static Build start(ServerLevel level, int x, int z, @Nullable Map<Long, Integer> noiseHeights)
     {
-        long started = Util.getMillis();
-        Site site = plan(x, z, planningGround(level, noiseHeights), level.getSeed(), lowestFloor(level), highestRim(level));
-        return new Build(new Work(level, site), Util.getMillis() - started);
+        return new Build(level, x, z, noiseHeights);
+    }
+
+    /** Starts building a volcano already planned ({@link #plan}): the headless checks plan theirs on a made-up ground. */
+    static Build start(ServerLevel level, Site site)
+    {
+        return new Build(new Work(level, site));
     }
 
     /**
@@ -299,52 +310,301 @@ final class LairBuilder
         return ((long) x << 32) ^ (z & 0xFFFFFFFFL);
     }
 
-    /** A lair being built, a step at a time. */
+    // ---------------------------------------------------------------- building a piece at a time
+
+    /** A time limit for one step of a build (one server tick's share). */
+    static final class Budget
+    {
+        private static final Budget UNLIMITED = new Budget(0L, true);
+        private final long deadline;
+        private final boolean unlimited;
+
+        private Budget(long deadline, boolean unlimited)
+        {
+            this.deadline = deadline;
+            this.unlimited = unlimited;
+        }
+
+        /** Work for at most about {@code millis} milliseconds from now (0: one piece of work, then stop). */
+        static Budget millis(long millis)
+        {
+            return new Budget(System.nanoTime() + millis * 1_000_000L, false);
+        }
+
+        /** No limit: everything that's left. */
+        static Budget unlimited()
+        {
+            return UNLIMITED;
+        }
+
+        /** True once the time is up. */
+        boolean spent()
+        {
+            return !unlimited && System.nanoTime() - deadline >= 0L;
+        }
+    }
+
+    /**
+     * One kind of work in a build (the cone, the cavern, the lava's walls...), cut into pieces done in order: a step runs
+     * at least one piece, then more while its time lasts. {@code begin} runs once, just before the first piece (where a
+     * kind of work takes its own copy of a list, as it did when it ran all at once).
+     */
+    static final class Phase
+    {
+        final String name;
+        /**
+         * True for the lava's work (placing it, walling it in, its banks and the fire guard): all of it runs in one step
+         * of its own ({@link Build#step}), so no lava is ever left unwalled, or next to something that burns, between
+         * ticks.
+         */
+        final boolean lava;
+        private final Runnable begin;
+        private final IntSupplier pieces;
+        private final IntConsumer piece;
+        private boolean begun;
+        private int count;
+        private int next;
+
+        private Phase(String name, boolean lava, Runnable begin, IntSupplier pieces, IntConsumer piece)
+        {
+            this.name = name;
+            this.lava = lava;
+            this.begin = begin;
+            this.pieces = pieces;
+            this.piece = piece;
+        }
+
+        /** Pieces {@code 0 .. count - 1}, the count read when it begins. */
+        static Phase of(String name, Runnable begin, IntSupplier pieces, IntConsumer piece)
+        {
+            return new Phase(name, false, begin, pieces, piece);
+        }
+
+        /** One piece for each value from {@code from} to {@code to} (a row of columns, say). */
+        static Phase rows(String name, int from, int to, IntConsumer row)
+        {
+            return new Phase(name, false, () -> {}, () -> Math.max(0, to - from + 1), i -> row.accept(from + i));
+        }
+
+        /** The whole work as one piece. */
+        static Phase once(String name, Runnable work)
+        {
+            return new Phase(name, false, () -> {}, () -> 1, i -> work.run());
+        }
+
+        /** The same work, marked as part of the lava's work. */
+        Phase lava()
+        {
+            return new Phase(name, true, begin, pieces, piece);
+        }
+
+        /** Does pieces until it's finished (true) or the budget is spent (false: call it again for the rest). */
+        boolean run(Budget budget)
+        {
+            if (!begun)
+            {
+                begun = true;
+                begin.run();
+                count = pieces.getAsInt();
+            }
+            boolean any = false;
+            while (next < count)
+            {
+                if (any && budget.spent())
+                {
+                    return false;
+                }
+                piece.accept(next++);
+                any = true;
+            }
+            return true;
+        }
+    }
+
+    /** How many pieces of at most {@code per} things a list of {@code size} things makes. */
+    private static int piecesOf(int size, int per)
+    {
+        return (size + per - 1) / per;
+    }
+
+    /**
+     * A lair being built, a piece at a time: planning it (reading the real ground first, when the generator's heights came
+     * from the background thread), then the build's kinds of work in order ({@link Work#phases}). Each {@link #step} does
+     * at least one piece and then more until its budget is spent; with no limit, all of it.
+     */
     static final class Build
     {
-        private final Work work;
-        private final List<Runnable> steps;
+        private final List<Phase> phases = new ArrayList<>();
+        @Nullable
+        private Work work;
         private int next;
-        private long millis;
-        private long longestStep;
+        private int steps;
+        private long nanos;
+        private long longestNanos;
+        /** Time (ns), steps and the last step for each kind of work, by name, in the order they first ran. */
+        private final Map<String, long[]> kinds = new LinkedHashMap<>();
+        /** The real ground of the columns the plan will read, worked out a piece at a time before it's made. */
+        @Nullable
+        private Map<Long, Integer> realGround;
 
-        private Build(Work work, long planMillis)
+        private Build(ServerLevel level, int x, int z, @Nullable Map<Long, Integer> noiseHeights)
+        {
+            LairShape.Ground ground = planningGround(level, noiseHeights);
+            if (noiseHeights != null && !noiseHeights.isEmpty())
+            {
+                long[] columns = noiseHeights.keySet().stream().mapToLong(Long::longValue).sorted().toArray();
+                Map<Long, Integer> real = new HashMap<>(columns.length * 2);
+                realGround = real;
+                int per = GROUND_COLUMNS_PER_PIECE;
+                phases.add(Phase.of("reading the ground", () -> {}, () -> piecesOf(columns.length, per), i -> {
+                    for (int k = i * per; k < Math.min(columns.length, (i + 1) * per); k++)
+                    {
+                        long c = columns[k];
+                        real.put(c, ground.top((int) (c >> 32), (int) c));
+                    }
+                }));
+            }
+            phases.add(Phase.once("planning", () -> {
+                Map<Long, Integer> read = realGround;
+                LairShape.Ground known = read == null ? ground : (gx, gz) -> {
+                    Integer top = read.get(column(gx, gz));
+                    return top != null ? top : ground.top(gx, gz);
+                };
+                Site site = plan(x, z, known, level.getSeed(), lowestFloor(level), highestRim(level));
+                realGround = null;
+                begin(new Work(level, site));
+            }));
+        }
+
+        private Build(Work work)
+        {
+            begin(work);
+        }
+
+        private void begin(Work work)
         {
             this.work = work;
-            this.steps = work.steps();
-            this.millis = planMillis;
-            this.longestStep = planMillis;
+            phases.addAll(work.phases());
         }
 
-        /** Builds the next step; true once the lair is finished (then {@link #result} is ready). */
-        boolean step()
+        /**
+         * Does the next pieces of work, for about as long as the budget allows (always at least one piece); true once the
+         * lair is finished (then {@link #result} is ready). The lava's work is the exception: it starts at the beginning of
+         * a step and all of it runs in that step, whatever the budget (about 5 to 30 ms). Lava placed in the world starts
+         * to flow about 30 ticks later, and can set fire to things near it any tick, so it's never left half walled in.
+         */
+        boolean step(Budget budget)
         {
-            if (next < steps.size())
+            if (done())
             {
-                long started = Util.getMillis();
-                steps.get(next++).run();
-                long took = Util.getMillis() - started;
-                millis += took;
-                longestStep = Math.max(longestStep, took);
+                return true;
             }
-            return next >= steps.size();
+            long started = System.nanoTime();
+            int step = steps++;
+            boolean worked = false;
+            while (next < phases.size())
+            {
+                Phase phase = phases.get(next);
+                if (phase.lava && worked && !phases.get(next - 1).lava)
+                {
+                    break; // the lava starts a step of its own
+                }
+                long t0 = System.nanoTime();
+                boolean finished = phase.run(phase.lava ? Budget.unlimited() : budget);
+                worked = true;
+                long[] kind = kinds.computeIfAbsent(phase.name, k -> new long[3]);
+                kind[0] += System.nanoTime() - t0;
+                if (kind[2] != step + 1L)
+                {
+                    kind[1]++; // one more step this kind of work ran in
+                    kind[2] = step + 1L;
+                }
+                if (!finished)
+                {
+                    break;
+                }
+                next++;
+                if (next >= phases.size() || budget.spent() && !(phase.lava && phases.get(next).lava))
+                {
+                    break;
+                }
+            }
+            long took = System.nanoTime() - started;
+            nanos += took;
+            longestNanos = Math.max(longestNanos, took);
+            return done();
         }
 
-        /** True once every step has run. */
+        /** Builds everything that's left, now (still in steps: the lava's work gets one of its own), and says what was built. */
+        Result finish()
+        {
+            while (!step(Budget.unlimited()))
+            {
+                // the next step at once
+            }
+            return result();
+        }
+
+        /** True once every piece has run. */
         boolean done()
         {
-            return next >= steps.size();
+            return work != null && next >= phases.size();
         }
 
-        /** The longest one step (or the planning) took (ms), for the log. */
-        long longestStep()
+        /** Tests: true when the next piece of work is the lava's (the leak check puts natural lava down just before it). */
+        boolean atLava()
         {
-            return longestStep;
+            return work != null && next < phases.size() && phases.get(next).lava;
         }
 
-        /** The planned layout (known from the start). */
+        /** How many steps it has taken. */
+        int steps()
+        {
+            return steps;
+        }
+
+        /** The longest one step took (ms), for the log. */
+        long longestStepMillis()
+        {
+            return longestNanos / 1_000_000L;
+        }
+
+        /** Each kind of work's time and how many steps it ran in, for the log: "planning 12 ms (1), cone 85 ms (3), ...". */
+        String describeSteps()
+        {
+            StringBuilder out = new StringBuilder();
+            for (Map.Entry<String, long[]> e : kinds.entrySet())
+            {
+                if (!out.isEmpty())
+                {
+                    out.append(", ");
+                }
+                out.append(e.getKey()).append(' ').append(e.getValue()[0] / 1_000_000L).append(" ms (").append(e.getValue()[1]).append(')');
+            }
+            return out.toString();
+        }
+
+        /**
+         * Tests: from now on remembers each block as it was before this build first changed it, by position
+         * ({@link BlockPos#asLong}); call it before the first step of a planned build.
+         */
+        Map<Long, BlockState> recordChanges()
+        {
+            if (work == null)
+            {
+                throw new IllegalStateException("only a planned build's changes can be recorded (start(level, site))");
+            }
+            work.journal = new LinkedHashMap<>();
+            return work.journal;
+        }
+
+        /** The planned layout (known once it's planned). */
         Layout layout()
         {
+            if (work == null)
+            {
+                throw new IllegalStateException("the lair isn't planned yet");
+            }
             LairShape.VolcanoPlan plan = work.plan;
             return new Layout(work.cx, work.cz, plan.floorY(), plan.tunnel(), work.mouth, plan.rimY(), plan.highLand(), work.gullyEnd,
                     work.wayIn.end(), work.entranceSpot(), plan.tunnel().getOpposite().toYRot());
@@ -355,7 +615,7 @@ final class LairBuilder
         {
             return new Result(layout(), work.plan, work.wayIn, work.changed, work.trees, work.plants, work.sealed, work.veins,
                     work.fissureCells, work.stalactites, work.rivulets, work.lava.size() - work.fissureCells, work.fireGuarded,
-                    work.gullyEnd - work.mouth, millis);
+                    work.openingsSealed, work.gullyEnd - work.mouth, nanos / 1_000_000L);
         }
     }
 
@@ -515,7 +775,19 @@ final class LairBuilder
         final LongOpenHashSet carved = new LongOpenHashSet();
         /** Every lava block this build placed. */
         final List<BlockPos> lava = new ArrayList<>();
+        /**
+         * Every block this build emptied outside the carved spaces (over a rivulet or pool, a plant that fell, something
+         * burnable cleared from near the lava), in order: the last pass seals any of them a fluid could flow into.
+         */
+        final LongArrayList opened = new LongArrayList();
         final BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        /** A copy of {@link #carved} taken when a safety pass begins (it works through that copy a piece at a time). */
+        LongArrayList snapshot = new LongArrayList();
+        /** The fire guard's blocks looked at so far. */
+        final LongOpenHashSet fireSeen = new LongOpenHashSet();
+        /** Tests: each block as it was before this build first changed it, or null (not recording). */
+        @Nullable
+        Map<Long, BlockState> journal;
         /** Where the gully in front of the mouth ends (its distance from the middle). */
         int gullyEnd;
         int changed;
@@ -527,6 +799,7 @@ final class LairBuilder
         int stalactites;
         int rivulets;
         int fireGuarded;
+        int openingsSealed;
 
         Work(ServerLevel level, Site site)
         {
@@ -543,47 +816,54 @@ final class LairBuilder
             this.wayIn = site.approach();
             this.gullyEnd = wayIn.gullyEnd();
             this.noise = shape.noise;
-            this.random = RandomSource.create(Surface.seed(level.getSeed(), cx, cz) + 1L);
+            this.random = RandomSource.create(Surface.seed(shape.worldSeed, cx, cz) + 1L);
         }
 
         /**
-         * The build's steps, in order ({@link LairTuning#BUILD_STEPS} of them): one a tick when spread out. The lava is
-         * all placed and walled in within one step (it would start flowing about 30 ticks after it's placed otherwise).
+         * The build's kinds of work, in order, each cut into pieces (a row of columns, a rivulet, a few thousand blocks of a
+         * safety pass). Done one after another, piece by piece, they make exactly the same blocks however the work is cut
+         * up. The lava's work (the fissures, the rivulets, walling it all in, its banks and the fire guard) is marked: it
+         * runs all in one step.
          */
-        List<Runnable> steps()
+        List<Phase> phases()
         {
-            List<Runnable> steps = List.of(
-                    this::removeTrees,
-                    this::cone,
-                    () -> {
-                        shell();
-                        cavern();
-                    },
-                    () -> {
-                        crater();
-                        floor();
-                    },
-                    () -> {
-                        entrance();
-                        approach();
-                        stalactites();
-                    },
-                    () -> {
-                        sealFluids();
-                        dropUnsupported();
-                        veins();
-                    },
-                    () -> {
-                        fissures();
-                        rivulets();
-                        containLava();
-                        fireGuard();
-                    });
-            if (steps.size() != BUILD_STEPS)
-            {
-                throw new IllegalStateException("LairTuning.BUILD_STEPS is " + BUILD_STEPS + " but the build has " + steps.size() + " steps");
-            }
-            return steps;
+            int treeReach = (int) Math.ceil(CONE_BASE_RADIUS) + BLEND + 2;
+            int coneReach = (int) Math.ceil(CONE_BASE_RADIUS) + 1;
+            int shellReach = (int) Math.ceil(LairShape.SHELL_EDGE);
+            int cavernReach = (int) Math.ceil(LairShape.FLOOR_EDGE + ROUGHNESS);
+            int craterReach = (int) Math.ceil(CRATER_RADIUS + CRATER_ROUGHNESS + 2.0D);
+            // The gully ends where the flank in front of the mouth is no higher than the floor (+1): the plan's gullyEnd.
+            int maxSide = (int) Math.ceil(gullyHalf(gullyEnd) + (rimY - floor) * GULLY_WALL_SLOPE + 2.0D);
+            return List.of(
+                    Phase.rows("trees", -treeReach, treeReach, dx -> treeRow(dx, treeReach)),
+                    Phase.rows("trees", treeReach + 1, wayIn.end() + 2, this::treesInFront),
+                    Phase.rows("cone", -coneReach, coneReach, dx -> coneRow(dx, coneReach)),
+                    Phase.rows("shell", -shellReach, shellReach, dx -> shellRow(dx, shellReach)),
+                    Phase.rows("cavern", -cavernReach, cavernReach, dx -> cavernRow(dx, cavernReach)),
+                    Phase.rows("crater", -craterReach, craterReach, dx -> craterRow(dx, craterReach)),
+                    Phase.rows("crater", -craterReach, craterReach, dx -> craterWallRow(dx, craterReach)),
+                    Phase.rows("floor", -FLOOR_RADIUS, FLOOR_RADIUS, this::floorRow),
+                    Phase.rows("way in", FLOOR_RADIUS - 3, gullyEnd, s -> entranceRow(s, maxSide)),
+                    Phase.once("way in", () -> {
+                        mouthLip(maxSide);
+                        teeth();
+                        passageLights();
+                    }),
+                    Phase.rows("approach", wayIn.first(), wayIn.end(), this::approachRow),
+                    Phase.once("stalactites", this::stalactites),
+                    Phase.of("sealing fluids", () -> snapshot = new LongArrayList(carved),
+                            () -> piecesOf(snapshot.size(), SAFETY_BLOCKS_PER_PIECE), this::sealFluids),
+                    Phase.of("loose plants", () -> snapshot = new LongArrayList(carved),
+                            () -> piecesOf(snapshot.size(), SAFETY_BLOCKS_PER_PIECE), this::dropUnsupported),
+                    Phase.once("veins", this::veins),
+                    Phase.once("lava", this::fissures).lava(),
+                    Phase.rows("lava", 0, RIVULETS - 1, this::rivulet).lava(),
+                    // (a pool may have opened up over a rivulet's last step)
+                    Phase.of("lava walls", () -> lava.removeIf(at -> !level.getFluidState(at).is(Fluids.LAVA)),
+                            () -> piecesOf(lava.size(), LAVA_BLOCKS_PER_PIECE), this::wallLava).lava(),
+                    Phase.of("lava banks", () -> {}, () -> piecesOf(lava.size(), LAVA_BLOCKS_PER_PIECE), this::banks).lava(),
+                    Phase.of("fire guard", () -> {}, () -> piecesOf(lava.size(), LAVA_BLOCKS_PER_PIECE), this::fireGuard).lava(),
+                    Phase.of("sealing openings", () -> {}, () -> piecesOf(opened.size(), SAFETY_BLOCKS_PER_PIECE), this::sealOpenings));
         }
 
         Vec3 entranceSpot()
@@ -630,8 +910,19 @@ final class LairBuilder
             {
                 return;
             }
+            if (journal != null)
+            {
+                journal.putIfAbsent(pos.asLong(), here);
+            }
             level.setBlock(pos, state, FLAGS);
             changed++;
+        }
+
+        /** Empties a block outside the carved spaces (remembered: the last pass makes sure no fluid can flow into it). */
+        void empty(int x, int y, int z)
+        {
+            set(x, y, z, AIR);
+            opened.add(BlockPos.asLong(x, y, z));
         }
 
         /** Makes a block part of the lair's open space. */
@@ -705,23 +996,21 @@ final class LairBuilder
 
         // ------------------------------------------------------------ 1. trees in the way
 
-        void removeTrees()
+        /** The trees in one row of the square round the volcano... */
+        void treeRow(int dx, int reach)
         {
-            int reach = (int) Math.ceil(CONE_BASE_RADIUS) + BLEND + 2;
-            for (int dx = -reach; dx <= reach; dx++)
+            for (int dz = -reach; dz <= reach; dz++)
             {
-                for (int dz = -reach; dz <= reach; dz++)
-                {
-                    removeTreesAt(cx + dx, cz + dz);
-                }
+                removeTreesAt(cx + dx, cz + dz);
             }
-            // ...and on the land shaped in front of the mouth (it can reach further out on steep land).
-            for (int s = reach + 1; s <= wayIn.end() + 2; s++)
+        }
+
+        /** ...and on the land shaped in front of the mouth (it can reach further out on steep land), a row at a time. */
+        void treesInFront(int s)
+        {
+            for (int l = -wayIn.reachL() - 2; l <= wayIn.reachL() + 2; l++)
             {
-                for (int l = -wayIn.reachL() - 2; l <= wayIn.reachL() + 2; l++)
-                {
-                    removeTreesAt(tx(s, l), tz(s, l));
-                }
+                removeTreesAt(tx(s, l), tz(s, l));
             }
         }
 
@@ -807,57 +1096,51 @@ final class LairBuilder
             return rock(x, y, z);
         }
 
-        void cone()
+        /** One row of the cone. */
+        void coneRow(int dx, int reach)
         {
-            int reach = (int) Math.ceil(CONE_BASE_RADIUS) + 1;
-            for (int dx = -reach; dx <= reach; dx++)
+            for (int dz = -reach; dz <= reach; dz++)
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                double r = Math.sqrt(dx * dx + dz * dz);
+                if (r > CONE_BASE_RADIUS + 1.0D)
                 {
-                    double r = Math.sqrt(dx * dx + dz * dz);
-                    if (r > CONE_BASE_RADIUS + 1.0D)
+                    continue;
+                }
+                int x = cx + dx;
+                int z = cz + dz;
+                int top = (int) Math.floor(surface(x, z));
+                int ground = groundTop(level, x, z);
+                for (int y = ground + 1; y <= top; y++)
+                {
+                    if (inCavern(x, y, z) || !fillable(get(x, y, z)))
                     {
                         continue;
                     }
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    int top = (int) Math.floor(surface(x, z));
-                    int ground = groundTop(level, x, z);
-                    for (int y = ground + 1; y <= top; y++)
-                    {
-                        if (inCavern(x, y, z) || !fillable(get(x, y, z)))
-                        {
-                            continue;
-                        }
-                        set(x, y, z, y == top ? surfaceBlock(x, y, z, r) : rock(x, y, z));
-                    }
+                    set(x, y, z, y == top ? surfaceBlock(x, y, z, r) : rock(x, y, z));
                 }
             }
         }
 
         // ------------------------------------------------------------ 3. the cavern's rock lining
 
-        void shell()
+        /** One row of the cavern's rock lining. */
+        void shellRow(int dx, int reach)
         {
-            int reach = (int) Math.ceil(LairShape.SHELL_EDGE);
-            for (int dx = -reach; dx <= reach; dx++)
+            for (int dz = -reach; dz <= reach; dz++)
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                double r = Math.sqrt(dx * dx + dz * dz);
+                if (r > LairShape.SHELL_EDGE)
                 {
-                    double r = Math.sqrt(dx * dx + dz * dz);
-                    if (r > LairShape.SHELL_EDGE)
+                    continue;
+                }
+                int x = cx + dx;
+                int z = cz + dz;
+                int top = floor + (int) Math.floor(LairShape.shellTop(r));
+                for (int y = floor - UNDER_FLOOR; y <= top; y++)
+                {
+                    if (!inCavern(x, y, z))
                     {
-                        continue;
-                    }
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    int top = floor + (int) Math.floor(LairShape.shellTop(r));
-                    for (int y = floor - UNDER_FLOOR; y <= top; y++)
-                    {
-                        if (!inCavern(x, y, z))
-                        {
-                            set(x, y, z, rock(x, y, z));
-                        }
+                        set(x, y, z, rock(x, y, z));
                     }
                 }
             }
@@ -865,27 +1148,24 @@ final class LairBuilder
 
         // ------------------------------------------------------------ 4. the cavern and the crater
 
-        void cavern()
+        /** One row of the cavern. */
+        void cavernRow(int dx, int reach)
         {
-            int reach = (int) Math.ceil(LairShape.FLOOR_EDGE + ROUGHNESS);
-            for (int dx = -reach; dx <= reach; dx++)
+            for (int dz = -reach; dz <= reach; dz++)
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                double r = Math.sqrt(dx * dx + dz * dz);
+                if (r > LairShape.FLOOR_EDGE + ROUGHNESS)
                 {
-                    double r = Math.sqrt(dx * dx + dz * dz);
-                    if (r > LairShape.FLOOR_EDGE + ROUGHNESS)
+                    continue;
+                }
+                int x = cx + dx;
+                int z = cz + dz;
+                int top = floor + (int) Math.ceil(LairShape.ceiling(Math.min(r, LairShape.FLOOR_EDGE)) + ROUGHNESS);
+                for (int y = floor + 1; y <= top; y++)
+                {
+                    if (inCavern(x, y, z))
                     {
-                        continue;
-                    }
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    int top = floor + (int) Math.ceil(LairShape.ceiling(Math.min(r, LairShape.FLOOR_EDGE)) + ROUGHNESS);
-                    for (int y = floor + 1; y <= top; y++)
-                    {
-                        if (inCavern(x, y, z))
-                        {
-                            carve(x, y, z);
-                        }
+                        carve(x, y, z);
                     }
                 }
             }
@@ -897,45 +1177,50 @@ final class LairBuilder
             return LairShape.craterRadius(y - floor, rimY - floor) + rough01(x, y, z, 4.0D, 21.5D) * CRATER_ROUGHNESS;
         }
 
-        void crater()
+        /** The crater's top block (its teeth and a little air over them). */
+        int craterTop()
         {
-            int reach = (int) Math.ceil(CRATER_RADIUS + CRATER_ROUGHNESS + 2.0D);
+            return rimY + (int) Math.ceil(RIM_TEETH) + 5;
+        }
+
+        /** One row of the crater (the funnel carved out)... */
+        void craterRow(int dx, int reach)
+        {
             int from = floor + DOME_HEIGHT - 3;
-            int to = rimY + (int) Math.ceil(RIM_TEETH) + 5;
-            for (int dx = -reach; dx <= reach; dx++)
+            int to = craterTop();
+            for (int dz = -reach; dz <= reach; dz++)
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                double r = Math.sqrt(dx * dx + dz * dz);
+                int x = cx + dx;
+                int z = cz + dz;
+                for (int y = from; y <= to; y++)
                 {
-                    double r = Math.sqrt(dx * dx + dz * dz);
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    for (int y = from; y <= to; y++)
+                    if (r <= craterReach(x, y, z))
                     {
-                        if (r <= craterReach(x, y, z))
+                        if (!get(x, y, z).isAir() || y <= rimY)
                         {
-                            if (!get(x, y, z).isAir() || y <= rimY)
-                            {
-                                carve(x, y, z);
-                            }
+                            carve(x, y, z);
                         }
                     }
                 }
             }
-            // Its walls: obsidian and glowing magma among the rock.
-            for (int dx = -reach; dx <= reach; dx++)
+        }
+
+        /** ...then, once it's all carved, one row of its walls: obsidian and glowing magma among the rock. */
+        void craterWallRow(int dx, int reach)
+        {
+            int to = craterTop();
+            for (int dz = -reach; dz <= reach; dz++)
             {
-                for (int dz = -reach; dz <= reach; dz++)
+                double r = Math.sqrt(dx * dx + dz * dz);
+                int x = cx + dx;
+                int z = cz + dz;
+                for (int y = floor + DOME_HEIGHT + 2; y <= to; y++)
                 {
-                    double r = Math.sqrt(dx * dx + dz * dz);
-                    int x = cx + dx;
-                    int z = cz + dz;
-                    for (int y = floor + DOME_HEIGHT + 2; y <= to; y++)
+                    double open = craterReach(x, y, z);
+                    if (r > open && r <= open + 1.3D && isLairRock(get(x, y, z)))
                     {
-                        double open = craterReach(x, y, z);
-                        if (r > open && r <= open + 1.3D && isLairRock(get(x, y, z)))
-                        {
-                            set(x, y, z, hotRock(x, y, z, 0.14F));
-                        }
+                        set(x, y, z, hotRock(x, y, z, 0.14F));
                     }
                 }
             }
@@ -987,16 +1272,14 @@ final class LairBuilder
             return (n > BLACKSTONE_PATCHES ? Blocks.BLACKSTONE : Blocks.OBSIDIAN).defaultBlockState();
         }
 
-        void floor()
+        /** One row of the floor. */
+        void floorRow(int dx)
         {
-            for (int dx = -FLOOR_RADIUS; dx <= FLOOR_RADIUS; dx++)
+            for (int dz = -FLOOR_RADIUS; dz <= FLOOR_RADIUS; dz++)
             {
-                for (int dz = -FLOOR_RADIUS; dz <= FLOOR_RADIUS; dz++)
+                if (dx * dx + dz * dz <= LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
                 {
-                    if (dx * dx + dz * dz <= LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
-                    {
-                        set(cx + dx, floor, cz + dz, floorBlock(dx, dz));
-                    }
+                    set(cx + dx, floor, cz + dz, floorBlock(dx, dz));
                 }
             }
         }
@@ -1008,41 +1291,37 @@ final class LairBuilder
             return rough01(x, y, z, 3.0D, 41.5D) * MOUTH_ROUGHNESS;
         }
 
-        void entrance()
+        /**
+         * One row (at distance {@code s} from the middle) of the way in: the passage, the mouth and the gully carved, and
+         * the walkway's floor. Then the mouth's lip, its teeth and the passage's lights ({@link #phases}).
+         */
+        void entranceRow(int s, int maxSide)
         {
-            // The gully ends where the flank in front of the mouth is no higher than the floor (+1): the plan's gullyEnd.
-            int maxSide = (int) Math.ceil(gullyHalf(gullyEnd) + (rimY - floor) * GULLY_WALL_SLOPE + 2.0D);
-            for (int s = FLOOR_RADIUS - 3; s <= gullyEnd; s++)
+            for (int l = -maxSide; l <= maxSide; l++)
             {
-                for (int l = -maxSide; l <= maxSide; l++)
+                int x = tx(s, l);
+                int z = tz(s, l);
+                int top = s <= mouth ? floor + MOUTH_HEIGHT + 3 : Math.max(groundTop(level, x, z),
+                        level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1);
+                for (int y = floor + 1; y <= top; y++)
                 {
-                    int x = tx(s, l);
-                    int z = tz(s, l);
-                    int top = s <= mouth ? floor + MOUTH_HEIGHT + 3 : Math.max(groundTop(level, x, z),
-                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1);
-                    for (int y = floor + 1; y <= top; y++)
+                    if (LairShape.inEntrance(s, l, y - floor, mouth, entranceRough(x, y, z)))
                     {
-                        if (LairShape.inEntrance(s, l, y - floor, mouth, entranceRough(x, y, z)))
-                        {
-                            carve(x, y, z);
-                        }
-                    }
-                    // The walkway's floor, level with the cavern's: also where the land dips below it (filled under).
-                    boolean walkway = LairShape.inEntrance(s, l, 1, mouth, entranceRough(x, floor + 1, z));
-                    int dx = x - cx;
-                    int dz = z - cz;
-                    if (walkway && dx * dx + dz * dz > LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
-                    {
-                        set(x, floor, z, s <= mouth ? plainFloor(x, z) : gullyFloor(x, z));
-                        set(x, floor - 1, z, rock(x, floor - 1, z));
-                        set(x, floor - 2, z, rock(x, floor - 2, z));
-                        fillDown(x, floor - 3, z);
+                        carve(x, y, z);
                     }
                 }
+                // The walkway's floor, level with the cavern's: also where the land dips below it (filled under).
+                boolean walkway = LairShape.inEntrance(s, l, 1, mouth, entranceRough(x, floor + 1, z));
+                int dx = x - cx;
+                int dz = z - cz;
+                if (walkway && dx * dx + dz * dz > LairShape.FLOOR_EDGE * LairShape.FLOOR_EDGE)
+                {
+                    set(x, floor, z, s <= mouth ? plainFloor(x, z) : gullyFloor(x, z));
+                    set(x, floor - 1, z, rock(x, floor - 1, z));
+                    set(x, floor - 2, z, rock(x, floor - 2, z));
+                    fillDown(x, floor - 3, z);
+                }
             }
-            mouthLip(maxSide);
-            teeth();
-            passageLights();
         }
 
         /** The gully's floor: blackstone and basalt under a scatter of ash (a worn path). */
@@ -1159,44 +1438,41 @@ final class LairBuilder
          * is filled with rock. Columns already at their height keep their own ground; on the walkway straight out from the
          * apron anything there that would trip a player (a drift of ash, a fallen log) is cleared.
          */
-        void approach()
+        void approachRow(int s)
         {
-            for (int s = wayIn.first(); s <= wayIn.end(); s++)
+            for (int l = -wayIn.reachL(); l <= wayIn.reachL(); l++)
             {
-                for (int l = -wayIn.reachL(); l <= wayIn.reachL(); l++)
+                int x = tx(s, l);
+                int z = tz(s, l);
+                level.getChunk(x >> 4, z >> 4); // (loaded already, unless the chunk loading timed out: its heights must be real)
+                int h = wayIn.height(s, l);
+                boolean apron = wayIn.apronDistance(s, l) == 0;
+                boolean walkway = apron || Math.abs(l) <= wayIn.apronHalf();
+                int ground = groundTop(level, x, z);
+                int top = Math.max(ground, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1);
+                if (ground == h && !apron)
                 {
-                    int x = tx(s, l);
-                    int z = tz(s, l);
-                    level.getChunk(x >> 4, z >> 4); // (loaded already, unless the chunk loading timed out: its heights must be real)
-                    int h = wayIn.height(s, l);
-                    boolean apron = wayIn.apronDistance(s, l) == 0;
-                    boolean walkway = apron || Math.abs(l) <= wayIn.apronHalf();
-                    int ground = groundTop(level, x, z);
-                    int top = Math.max(ground, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1);
-                    if (ground == h && !apron)
+                    if (needsClearing(x, h, z, top, walkway))
                     {
-                        if (needsClearing(x, h, z, top, walkway))
+                        for (int y = h + 1; y <= top; y++)
                         {
-                            for (int y = h + 1; y <= top; y++)
-                            {
-                                carve(x, y, z);
-                            }
+                            carve(x, y, z);
                         }
-                        continue;
                     }
-                    for (int y = h + 1; y <= top; y++)
-                    {
-                        carve(x, y, z);
-                    }
-                    for (int y = ground + 1; y < h; y++)
-                    {
-                        set(x, y, z, rock(x, y, z));
-                    }
-                    set(x, h, z, apron ? gullyFloor(x, z) : surfaceBlock(x, h, z, CONE_BASE_RADIUS));
-                    if (ground >= h)
-                    {
-                        fillDown(x, h - 1, z);
-                    }
+                    continue;
+                }
+                for (int y = h + 1; y <= top; y++)
+                {
+                    carve(x, y, z);
+                }
+                for (int y = ground + 1; y < h; y++)
+                {
+                    set(x, y, z, rock(x, y, z));
+                }
+                set(x, h, z, apron ? gullyFloor(x, z) : surfaceBlock(x, h, z, CONE_BASE_RADIUS));
+                if (ground >= h)
+                {
+                    fillDown(x, h - 1, z);
                 }
             }
         }
@@ -1293,11 +1569,11 @@ final class LairBuilder
 
         // ------------------------------------------------------------ 9. safety
 
-        /** Any fluid touching the open space becomes rock, so no lava or water can flow in. */
-        void sealFluids()
+        /** Any fluid touching the open space becomes rock, so no lava or water can flow in (piece {@code p} of it). */
+        void sealFluids(int p)
         {
-            LongArrayList open = new LongArrayList(carved);
-            for (int i = 0; i < open.size(); i++)
+            LongArrayList open = snapshot;
+            for (int i = p * SAFETY_BLOCKS_PER_PIECE; i < Math.min(open.size(), (p + 1) * SAFETY_BLOCKS_PER_PIECE); i++)
             {
                 BlockPos at = BlockPos.of(open.getLong(i));
                 for (Direction d : Direction.values())
@@ -1317,15 +1593,14 @@ final class LairBuilder
             }
         }
 
-        /** Plants and other blocks left without what holds them up (an ash layer on a cut block...) are removed. */
-        void dropUnsupported()
+        /** Plants and other blocks left without what holds them up (an ash layer on a cut block...) are removed (piece {@code p}). */
+        void dropUnsupported(int p)
         {
-            LongArrayList open = new LongArrayList(carved);
-            Direction[] around = {Direction.UP, Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST};
-            for (int i = 0; i < open.size(); i++)
+            LongArrayList open = snapshot;
+            for (int i = p * SAFETY_BLOCKS_PER_PIECE; i < Math.min(open.size(), (p + 1) * SAFETY_BLOCKS_PER_PIECE); i++)
             {
                 BlockPos at = BlockPos.of(open.getLong(i));
-                for (Direction d : around)
+                for (Direction d : HOLDS_UP)
                 {
                     BlockPos next = at.relative(d);
                     while (!carved.contains(next.asLong()))
@@ -1335,7 +1610,7 @@ final class LairBuilder
                         {
                             break;
                         }
-                        set(next.getX(), next.getY(), next.getZ(), AIR);
+                        empty(next.getX(), next.getY(), next.getZ());
                         plants++;
                         next = next.above();
                     }
@@ -1524,83 +1799,81 @@ final class LairBuilder
             {
                 if (!get(x, yy, z).isAir())
                 {
-                    set(x, yy, z, AIR);
+                    empty(x, yy, z);
                 }
             }
             fillDown(x, y - 1, z);
         }
 
-        void rivulets()
+        /** Rivulet {@code k} (of {@link LairTuning#RIVULETS}, spread round the side away from the way in) and its pool. */
+        void rivulet(int k)
         {
             double entranceAngle = Math.atan2(dir.getStepZ(), dir.getStepX());
             double spread = 2.0D * Math.PI - 2.0D * Math.toRadians(RIVULET_CLEARANCE_DEGREES);
             double spacing = spread / RIVULETS;
-            for (int k = 0; k < RIVULETS; k++)
+            double angle = entranceAngle + Math.PI + (k - (RIVULETS - 1) / 2.0D) * spacing
+                    + (random.nextDouble() - 0.5D) * Math.toRadians(16.0D);
+            double r0 = RIVULET_START + random.nextDouble() * 3.0D;
+            int x = cx + (int) Math.round(r0 * Math.cos(angle));
+            int z = cz + (int) Math.round(r0 * Math.sin(angle));
+            if (nearWayIn(x, z))
             {
-                double angle = entranceAngle + Math.PI + (k - (RIVULETS - 1) / 2.0D) * spacing
-                        + (random.nextDouble() - 0.5D) * Math.toRadians(16.0D);
-                double r0 = RIVULET_START + random.nextDouble() * 3.0D;
-                int x = cx + (int) Math.round(r0 * Math.cos(angle));
-                int z = cz + (int) Math.round(r0 * Math.sin(angle));
-                if (nearWayIn(x, z))
-                {
-                    continue;
-                }
-                int y = groundTop(level, x, z);
-                int lastX = 0;
-                int lastZ = 0;
-                for (int step = 0; step < RIVULET_MAX_STEPS; step++)
-                {
-                    placeLava(x, y, z);
-                    if (Math.hypot(x - cx, z - cz) >= POOL_DISTANCE)
-                    {
-                        break;
-                    }
-                    double out = Math.atan2(z - cz, x - cx) + RIVULET_MEANDER * 2.0D * noise.noise(step * 0.15D, k * 10.0D + 0.5D, 1500.5D);
-                    double ux = Math.cos(out);
-                    double uz = Math.sin(out);
-                    int sx = ux >= 0.0D ? 1 : -1;
-                    int sz = uz >= 0.0D ? 1 : -1;
-                    int ax = Math.abs(ux) >= Math.abs(uz) ? sx : 0;
-                    int az = ax == 0 ? sz : 0;
-                    // After a step down, an axis move must keep going the same way (never back beside the higher lava).
-                    if ((ax != 0 && ax == -lastX) || (az != 0 && az == -lastZ))
-                    {
-                        ax = ax != 0 ? 0 : lastX;
-                        az = az != 0 ? 0 : lastZ;
-                        if (ax == 0 && az == 0)
-                        {
-                            ax = lastX;
-                        }
-                    }
-                    int nx;
-                    int nz;
-                    if (groundTop(level, x + ax, z + az) >= y)
-                    {
-                        nx = x + ax; // level ground: on along it at the same height
-                        nz = z + az;
-                        lastX = 0;
-                        lastZ = 0;
-                    }
-                    else
-                    {
-                        nx = x + sx; // it falls away: one step down, corner to corner
-                        nz = z + sz;
-                        int drop = Mth.clamp(y - groundTop(level, nx, nz), 1, RIVULET_MAX_DROP);
-                        y -= drop;
-                        lastX = sx;
-                        lastZ = sz;
-                    }
-                    if (nearWayIn(nx, nz))
-                    {
-                        break;
-                    }
-                    x = nx;
-                    z = nz;
-                }
-                pool(x, y, z);
-                rivulets++;
+                return;
             }
+            int y = groundTop(level, x, z);
+            int lastX = 0;
+            int lastZ = 0;
+            for (int step = 0; step < RIVULET_MAX_STEPS; step++)
+            {
+                placeLava(x, y, z);
+                if (Math.hypot(x - cx, z - cz) >= POOL_DISTANCE)
+                {
+                    break;
+                }
+                double out = Math.atan2(z - cz, x - cx) + RIVULET_MEANDER * 2.0D * noise.noise(step * 0.15D, k * 10.0D + 0.5D, 1500.5D);
+                double ux = Math.cos(out);
+                double uz = Math.sin(out);
+                int sx = ux >= 0.0D ? 1 : -1;
+                int sz = uz >= 0.0D ? 1 : -1;
+                int ax = Math.abs(ux) >= Math.abs(uz) ? sx : 0;
+                int az = ax == 0 ? sz : 0;
+                // After a step down, an axis move must keep going the same way (never back beside the higher lava).
+                if ((ax != 0 && ax == -lastX) || (az != 0 && az == -lastZ))
+                {
+                    ax = ax != 0 ? 0 : lastX;
+                    az = az != 0 ? 0 : lastZ;
+                    if (ax == 0 && az == 0)
+                    {
+                        ax = lastX;
+                    }
+                }
+                int nx;
+                int nz;
+                if (groundTop(level, x + ax, z + az) >= y)
+                {
+                    nx = x + ax; // level ground: on along it at the same height
+                    nz = z + az;
+                    lastX = 0;
+                    lastZ = 0;
+                }
+                else
+                {
+                    nx = x + sx; // it falls away: one step down, corner to corner
+                    nz = z + sz;
+                    int drop = Mth.clamp(y - groundTop(level, nx, nz), 1, RIVULET_MAX_DROP);
+                    y -= drop;
+                    lastX = sx;
+                    lastZ = sz;
+                }
+                if (nearWayIn(nx, nz))
+                {
+                    break;
+                }
+                x = nx;
+                z = nz;
+            }
+            pool(x, y, z);
+            rivulets++;
         }
 
         /** A pool of lava at the rivulet's end, level at {@code y}. */
@@ -1625,13 +1898,12 @@ final class LairBuilder
 
         /**
          * Every lava block is walled in: below it and on its four sides there is more lava, or a block lava can't flow
-         * into (anything else becomes rock). So none of it can ever spread.
+         * into (anything else becomes rock). So none of it can ever spread. Piece {@code p} of the lava.
          */
-        void containLava()
+        void wallLava(int p)
         {
             BlockPos.MutableBlockPos next = new BlockPos.MutableBlockPos();
-            lava.removeIf(at -> !level.getFluidState(at).is(Fluids.LAVA)); // (a pool may have opened up over a rivulet's last step)
-            for (BlockPos at : lava)
+            for (BlockPos at : lavaPiece(p))
             {
                 for (Direction d : LAVA_FLOWS)
                 {
@@ -1648,8 +1920,19 @@ final class LairBuilder
                     }
                 }
             }
-            // The banks of the lava outside: a glowing crust of magma and cooled obsidian, so the streams show from afar.
-            for (BlockPos at : lava)
+        }
+
+        /** Piece {@code p} of the lava blocks placed ({@link LairTuning#LAVA_BLOCKS_PER_PIECE} of them). */
+        List<BlockPos> lavaPiece(int p)
+        {
+            return lava.subList(p * LAVA_BLOCKS_PER_PIECE, Math.min(lava.size(), (p + 1) * LAVA_BLOCKS_PER_PIECE));
+        }
+
+        /** The banks of the lava outside: a glowing crust of magma and cooled obsidian, so the streams show from afar (piece {@code p}). */
+        void banks(int p)
+        {
+            BlockPos.MutableBlockPos next = new BlockPos.MutableBlockPos();
+            for (BlockPos at : lavaPiece(p))
             {
                 if (at.getY() == floor - 1)
                 {
@@ -1676,12 +1959,12 @@ final class LairBuilder
             }
         }
 
-        /** Nothing that can burn is left within reach of the lava (lava sets fire to burnable blocks near it). */
-        void fireGuard()
+        /** Nothing that can burn is left within reach of the lava (lava sets fire to burnable blocks near it). Piece {@code p}. */
+        void fireGuard(int p)
         {
             BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
-            LongOpenHashSet seen = new LongOpenHashSet();
-            for (BlockPos source : lava)
+            LongOpenHashSet seen = fireSeen;
+            for (BlockPos source : lavaPiece(p))
             {
                 for (int dx = -FIRE_GUARD_REACH; dx <= FIRE_GUARD_REACH; dx++)
                 {
@@ -1697,11 +1980,49 @@ final class LairBuilder
                             BlockState state = level.getBlockState(at);
                             if (!state.hasBlockEntity() && burns(level, at, state))
                             {
-                                set(at.getX(), at.getY(), at.getZ(), state.canBeReplaced() || !state.isSolid() ? AIR
-                                        : rock(at.getX(), at.getY(), at.getZ()));
+                                if (state.canBeReplaced() || !state.isSolid())
+                                {
+                                    empty(at.getX(), at.getY(), at.getZ());
+                                }
+                                else
+                                {
+                                    set(at.getX(), at.getY(), at.getZ(), rock(at.getX(), at.getY(), at.getZ()));
+                                }
                                 fireGuarded++;
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------ 13. the last seal
+
+        /**
+         * A block this build emptied outside the carved spaces ({@link #empty}) that a fluid could still flow into (lava
+         * or water beside it or above it, which nothing walled in) becomes rock again (piece {@code p}). The build's own
+         * lava is walled in already, so this only ever finds fluid that was there before: a natural lava pool on the
+         * volcano's flank that a rivulet ran under or beside. Opening the space above the rivulet ({@link #placeLava})
+         * emptied the pool's lava over it, or the bank between them, and the rest of the pool could have poured out
+         * sideways (the headless check found it on some seeds).
+         */
+        void sealOpenings(int p)
+        {
+            for (int i = p * SAFETY_BLOCKS_PER_PIECE; i < Math.min(opened.size(), (p + 1) * SAFETY_BLOCKS_PER_PIECE); i++)
+            {
+                BlockPos at = BlockPos.of(opened.getLong(i));
+                BlockState state = level.getBlockState(at);
+                if (!state.getFluidState().isEmpty() || !lavaCouldEnter(level, at, state))
+                {
+                    continue; // filled since (a wall, more lava), or something no fluid flows into
+                }
+                for (Direction d : FLOWS_IN_FROM)
+                {
+                    if (!level.getFluidState(at.relative(d)).isEmpty())
+                    {
+                        set(at.getX(), at.getY(), at.getZ(), rock(at.getX(), at.getY(), at.getZ()));
+                        openingsSealed++;
+                        break;
                     }
                 }
             }

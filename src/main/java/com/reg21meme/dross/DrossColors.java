@@ -387,10 +387,6 @@ public final class DrossColors {
     /** The "[Summon the Rat King]" button in /dross boss arena ratking's chat message: poison green. Used in boss/BossCommands. */
     public static final int RAT_KING_COMMAND_BUTTON = 0x8FD14F;
 
-    /** /dross showcase bossbars ratking: the [1]..[8] buttons, and the one being shown. Used in boss/ratking/RatKingBarShowcase. */
-    public static final int RAT_KING_BAR_BUTTON = 0x8FD14F;
-    public static final int RAT_KING_BAR_BUTTON_SHOWN = 0xFFFFFF;
-
     /** Rage Wand: its tooltip line saying what it does. Used in boss/rage/RageWandItem. */
     public static final ChatFormatting RAGE_WAND_TOOLTIP = ChatFormatting.GRAY;
 

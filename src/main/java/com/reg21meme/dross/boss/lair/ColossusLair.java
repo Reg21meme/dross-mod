@@ -4,7 +4,6 @@ import com.reg21meme.dross.boss.golem.CinderColossus;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.sites.Site;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -86,12 +85,6 @@ public final class ColossusLair
         return list;
     }
 
-    /** True if at least one lair has been built in this world. */
-    public static boolean anyBuilt(MinecraftServer server)
-    {
-        return !ColossusLairData.get(server).all().isEmpty();
-    }
-
     /** The built lair with this id (its patch's), if it's built. */
     public static Optional<Lair> get(MinecraftServer server, long id)
     {
@@ -103,12 +96,6 @@ public final class ColossusLair
     public static Optional<Lair> get(MinecraftServer server, Site site)
     {
         return get(server, site.patch().id());
-    }
-
-    /** The built lair nearest (x, z), along the ground, if any is built. */
-    public static Optional<Lair> nearestBuilt(MinecraftServer server, double x, double z)
-    {
-        return all(server).stream().min(Comparator.comparingDouble(l -> l.distanceTo(x, z)));
     }
 
     /** Its Colossus's state: it rises when someone walks in, it's up, or it's been beaten (for good). */

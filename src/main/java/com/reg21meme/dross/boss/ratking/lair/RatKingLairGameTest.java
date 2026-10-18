@@ -60,7 +60,7 @@ import org.slf4j.Logger;
  * <ol>
  *   <li>{@link #kingAppearsOnceAndNeverReturns}: a stand-in player arriving in the cave finds the Rat King asleep on its
  *       nest (feet on the top carpet, facing the arrival tunnel), and only one, still one a while later; killed, none ever
- *       comes back (no respawn): not for the player who stayed, not after a faked long wait, not for a newcomer.</li>
+ *       comes back (no respawn): not for the player who stayed (over two waits), not for a newcomer.</li>
  *   <li>{@link #caveRavagersAreStronger}: a Plague Ravager spawned naturally in the cave has 1.5 times the health (full)
  *       and bite damage, still after a save and load; one spawned naturally outside the cave (above it, or in the
  *       Overworld), a summoned one or a spawn egg's in the cave, and a Plague Rat in the cave are normal.</li>
@@ -90,8 +90,6 @@ public final class RatKingLairGameTest
     private static final long LIGHT_TIMEOUT_MILLIS = 30 * 1000L;
     /** Ticks waited to see that nothing appears (several of the keeper's looks). */
     private static final int QUIET_TICKS = 6 * RatKingTuning.RAT_CAVE_CHECK_INTERVAL_TICKS;
-    /** A faked long wait after he's beaten: his defeat is moved this many ticks into the past (a few game days). */
-    private static final long LONG_WAIT_TICKS = 1_000_000L;
     /** The light block hangs {@link #LIGHT_ABOVE} blocks over the spot at this level, so the spot gets 7 (the sewers' limit)... */
     private static final int DIM_LIGHT_LEVEL = RatKingTuning.RAT_SEWER_SPAWN_MAX_BLOCK_LIGHT + 2;
     /** ...then at this level, so it gets 8 (too bright). */
@@ -150,7 +148,7 @@ public final class RatKingLairGameTest
                 .thenExecute(() -> run.guard(run::checkStillOneThenKill))
                 .thenWaitUntil(() -> run.guard(() -> run.waitFor(run::bodyGone, "his body to vanish")))
                 .thenIdle(QUIET_TICKS)
-                .thenExecute(() -> run.guard(run::checkNoneThenLongWait))
+                .thenExecute(() -> run.guard(run::checkNoneAfterHisDeath))
                 .thenIdle(QUIET_TICKS)
                 .thenExecute(() -> run.guard(run::checkNoneThenNewcomer))
                 .thenIdle(2 * QUIET_TICKS)
@@ -210,11 +208,6 @@ public final class RatKingLairGameTest
         RatKingLairData data()
         {
             return RatKingLairData.get(server);
-        }
-
-        long now()
-        {
-            return server.overworld().getGameTime();
         }
 
         /** A new stand-in player arrives on the cave's arrival spot (the one before him, if any, has left). */
@@ -304,12 +297,10 @@ public final class RatKingLairGameTest
                         + ", the cave's " + king.getUUID() + "), not the same one");
             }
             checkOnNest(king, "the king a moment later");
-            long killedAt = now();
             king.kill(); // like /kill: it counts as beaten (no trophy), like the Colossus's lair
-            if (!data().beaten(cave.cave.id()) || data().defeatedAt(cave.cave.id()) != killedAt || !RatKingLair.isBeaten(server, cave.cave))
+            if (!data().beaten(cave.cave.id()) || !RatKingLair.isBeaten(server, cave.cave))
             {
-                throw new GameTestAssertException("his death wasn't recorded (beaten " + data().beaten(cave.cave.id()) + ", at "
-                        + data().defeatedAt(cave.cave.id()) + ", killed at " + killedAt + ")");
+                throw new GameTestAssertException("his death wasn't recorded (beaten " + data().beaten(cave.cave.id()) + ")");
             }
             deadline = Util.getMillis() + VANISH_TIMEOUT_MILLIS;
             LOGGER.info("[rat king lair test] Still one king, still asleep; killed him. Waiting for his body to vanish.");
@@ -320,7 +311,7 @@ public final class RatKingLairGameTest
             return countKings(false) == 0;
         }
 
-        void checkNoneThenLongWait()
+        void checkNoneAfterHisDeath()
         {
             if (!bodyGone())
             {
@@ -330,15 +321,13 @@ public final class RatKingLairGameTest
             {
                 throw new GameTestAssertException("a Rat King came back straight after the last one died");
             }
-            // A long wait faked: his defeat moved far into the past (no respawn timer may bring him back).
-            data().setDefeatedAtForTests(cave.cave.id(), now() - LONG_WAIT_TICKS);
         }
 
         void checkNoneThenNewcomer()
         {
             if (countKings(true) > 0)
             {
-                throw new GameTestAssertException("a Rat King came back after a (faked) long wait, for the player who stayed in the cave");
+                throw new GameTestAssertException("a Rat King came back a while later, for the player who stayed in the cave");
             }
             arrive(); // someone new comes in
         }
@@ -353,7 +342,7 @@ public final class RatKingLairGameTest
             {
                 throw new GameTestAssertException("the cave doesn't count as beaten any more");
             }
-            LOGGER.info("[rat king lair test] Beaten, the cave stayed empty after a long wait and for a newcomer (no respawn).");
+            LOGGER.info("[rat king lair test] Beaten, the cave stayed empty for the player who stayed and for a newcomer (no respawn).");
         }
 
         RatKing requireKing(String otherwise)
@@ -836,8 +825,8 @@ public final class RatKingLairGameTest
             {
                 throw new GameTestAssertException("a player " + FAR_LISTENER + " blocks from the grand entrance heard the snores");
             }
-            // He's beaten (as if long ago): the pipe goes quiet.
-            RatKingLairData.get(server).setDefeatedAtForTests(cave.cave.id(), server.overworld().getGameTime() - LONG_WAIT_TICKS);
+            // He's beaten: the pipe goes quiet.
+            RatKingLairData.get(server).recordDefeat(cave.cave.id());
             heardWhenBeaten = RatKingSnores.snoresHeardBy(near);
             LOGGER.info("[rat king snore test] {} snore(s) came up the grand entrance at {}; nobody {} blocks off heard any. He's beaten now.",
                     heard, entrance.toShortString(), FAR_LISTENER);

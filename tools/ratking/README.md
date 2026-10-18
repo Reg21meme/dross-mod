@@ -38,7 +38,7 @@ python tools/ratking/build.py --sheet <dir> 3  # build 3's full sheet into <dir>
 python tools/ratking/build.py --frames <dir> 3 rage 25 4 0.5 1.2   # big frames of one animation (yaw, scale, times)
 python tools/ratking/build.py --ball           # only his poison ball (ratkit/ball.py)
 python tools/ratking/build.py --charge <dir>   # only the spear charge's page (side views) into <dir>
-python tools/ratking/build.py --bars           # only the boss bar options (same as python tools/ratking/bossbars.py)
+python tools/ratking/build.py --bars           # only the boss bar (same as python tools/ratking/bossbars.py)
 python tools/ratking/build.py --trophies-only  # only his five trophies (about 7 minutes; his own files are left alone)
 python tools/ratking/build.py --trophies-only --candidates   # the ten candidates' previews again (the record; no game files)
 python tools/ratking/sounds.py                 # every sound (about 10 seconds)
@@ -53,8 +53,8 @@ A full build takes about 10 minutes (the clipping check and the staff guard run 
 | `assets/dross/geo/entity/rat_king/<id>.geo.json` | each Rat King build's model |
 | `assets/dross/animations/entity/rat_king/<id>.animation.json` | `animation.rat_king.` sleep, wake, idle, walk, burrow, burrowed, popup, rage, death, dead, and the fight's run, sweep, cast, charge_start, charge, charge_skid |
 | `assets/dross/{geo,animations,textures}/entity/plague_ball/plague_ball...` | his poison ball (`ratkit/ball.py`): model, `animation.plague_ball.spin`, texture and `_glow.png` |
-| `assets/dross/textures/gui/rat_king_bar/option_<n>.png` | the eight boss bar options (`bossbars.py`) |
-| `boss/client/RatKingBarStyles.java` | the generated list of the bar options (regions and offsets, below) |
+| `assets/dross/textures/gui/rat_king_bar.png` | his boss bar, the user's pick (`bossbars.py`) |
+| `boss/client/RatKingBarArt.java` | the generated regions and offsets of the bar's parts (below) |
 | `assets/dross/textures/entity/rat_king/<id>.png`, `_glow.png`, `_rage.png` | texture; glowing parts (the orb, the gem); his red eyes |
 | `assets/dross/{geo,animations,textures}/entity/rat/<id>...` | the rats (`animation.rat.` idle, run); `_glow.png` red eyes and boils |
 | `assets/dross/textures/particle/zzz.png`, `particles/zzz.json` | the Zzz particle |
@@ -62,7 +62,7 @@ A full build takes about 10 minutes (the clipping check and the staff guard run 
 | `boss-previews/rat_king/` | `ratking_<label>_<id>_<front/side/back>.png`, `ratking_<label>_<id>_sheet.png` (four views, at night, enraged, and a filmstrip of every animation with the Zzz and steam sketched in), `ratking_<label>_<id>_charge.png` (the spear charge from the side, blended between its animations the way GeckoLib does), `ratking_all.png` |
 | `boss-previews/rat_king/rats/` | `rat_<label>_<id>_<front/side/back>.png` and `rats_sheet.png` |
 | `boss-previews/rat_king/plague_ball.png` | the poison ball from a few angles, at night, and its tumble |
-| `boss-previews/rat_king/bossbar-previews/` | `option_<n>.png` (normal and Rage at full, half and low health, 3x) and `all_options.png` |
+| `boss-previews/rat_king/bossbar-previews/` | `option_9.png` (the pick: normal and Rage at full, half and low health, 3x) |
 | `assets/dross/sounds/rat_king/`, `rat/`, `enraged_rat/` | the sounds (`sounds.py`) |
 | `assets/dross/sounds.json`, `lang/en_us.json` | their events and subtitles (`sounds.py` adds its own and leaves the rest alone) |
 | `boss/ratking/RatKingSounds.java` | the list of every sound event, for `/dross showcase boss_sounds ratking` |
@@ -95,7 +95,7 @@ constant; change a design there and run the build again.
 | `ratkit/javagen.py` | the Java design lists |
 | `ratkit/ball.py` | his poison ball (the projectile his cast launches) |
 | `ratkit/trophies.py` | his five trophies, and the ten candidates they were picked from (below) |
-| `bossbars.py` | the boss bar options (pixel art, the textures, `RatKingBarStyles.java`, the previews) |
+| `bossbars.py` | the boss bar (pixel art, the texture, `RatKingBarArt.java`, the preview) |
 | `ratkit/synth.py`, `sounds.py` | the sound synthesizer (voices with vowels, squeaks, whistles, knocks, thuds, whooshes, reverb) and every sound made with it |
 
 Parts that only show sometimes (eyelids, the X eyes, the tongue, the dirt hole) are built hidden inside the head or
@@ -191,21 +191,23 @@ and a faint glow (`_glow.png`: faint all over, brighter veins; alpha is the stre
 tumble, its pivot the ball's middle, `BALL_CENTRE_Y` = 4 units above the origin, so it fits a 0.5-block box) >
 `lump_0`..`lump_5` (each swells and shrinks a little in turn). `animation.plague_ball.spin` loops every `SPIN_T` seconds.
 
-## The boss bar options
+## The boss bar
 
-`bossbars.py` draws eight options for his custom boss bar, each in a normal look (sickly green) and a Rage look (the
-same shapes in reds, a little angrier), as Minecraft GUI pixel art: 1 Crown (its gem glows red in Rage), 2 Nose &
-whiskers (teeth bared in Rage), 3 Curling tail, 4 Fur edge (bristling in Rage), 5 Gnawed, 6 Sewer pipe (drips under the
-ooze), 7 Claw & orb, 8 Beady eyes (red, with a scowl, in Rage). The palettes are in `LOOKS`; every size is a labelled
-constant; each option's art (both looks) must fit 200 x 20 pixels, which the script checks.
+Nine designs were made for his custom boss bar (1 Crown, 2 Nose & whiskers, 3 Curling tail, 4 Fur edge, 5 Gnawed,
+6 Sewer pipe, 7 Claw & orb, 8 Beady eyes, 9 Pipe & eyes) and the user picked **9, Pipe & eyes**: option 6's rusty sewer
+pipe running with green ooze, with option 8's rat peeking over it (his fur browner, no pink fingers on the bar). Only the
+pick is kept. `bossbars.py` draws it in a normal look (sickly green) and a Rage look (the same shapes in reds, red eyes
+and a scowl), as Minecraft GUI pixel art. The palettes are in `LOOKS`; every size is a labelled constant; the art (both
+looks) must fit 200 x 26 pixels, which the script checks.
 
-Each option's texture holds six parts, one under another: for the normal look, then the Rage look, the empty bar, the
-full bar and the decorations. `RatKingBarStyles.java` lists, for each part, where it is in the texture (u, v, width,
-height) and where it's drawn relative to Minecraft's boss bar position (x, y: the top-left of the vanilla 182 x 5 bar;
-negative is above or to the left). To draw a bar: blit the empty bar, then the full bar cut off at the health (its
-columns from `fillLeft` for `round(progress * fillWidth())` pixels; the fill is 182 wide like vanilla's), then the
-decorations. The name goes centred on x + 91 at `nameY` (lower than vanilla's -9 where decorations stand over the
-middle), and each bar takes `height` pixels before the next. The previews draw exactly that, so they match the game.
+The texture holds six parts, one under another: for the normal look, then the Rage look, the empty bar, the full bar
+and the decorations. `RatKingBarArt.java` lists, for each part, where it is in the texture (u, v, width, height) and
+where it's drawn relative to Minecraft's boss bar position (x, y: the top-left of the vanilla 182 x 5 bar; negative is
+above or to the left). To draw the bar (`boss/client/DrossBossBars`): blit the empty bar, then the full bar cut off at
+the health (its columns from `fillLeft` for `round(progress * fillWidth())` pixels; the fill is 182 wide like
+vanilla's), then the decorations. The name goes centred on x + 91 at `NAME_Y` (lower than vanilla's -9: the rat's head
+stands over the middle), and the bar takes `HEIGHT` pixels before the next. The preview draws exactly that, so it
+matches the game.
 
 ## The sounds
 

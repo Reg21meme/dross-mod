@@ -1,26 +1,28 @@
 """
-The Rat King's boss bar designs: eight options for the user to pick from, each with a normal look (sickly green) and a
-"Rage" look (the same shapes in reds, a little angrier), drawn pixel by pixel as Minecraft GUI pixel art (1 px
-outlines) so the previews and the game look identical.
+The Rat King's boss bar: the user's pick, No. 9 "Pipe & eyes" (October 14, 2026), in its normal look (sickly green)
+and its "Rage" look (the same shapes in reds, a little angrier), drawn pixel by pixel as Minecraft GUI pixel art (1 px
+outlines) so the preview and the game look identical. Nine designs were made for the user to pick from (1 Crown, 2 Nose
+& whiskers, 3 Curling tail, 4 Fur edge, 5 Gnawed, 6 Sewer pipe, 7 Claw & orb, 8 Beady eyes, 9 Pipe & eyes); only the
+pick is kept: option 6's rusty sewer pipe running with ooze, and option 8's rat peeking over it, his fur browner and no
+pink fingers on the bar.
 
 Run on its own (python tools/ratking/bossbars.py) or as part of build.py. It writes:
 
-  assets/dross/textures/gui/rat_king_bar/option_<n>.png   each option's texture: for the normal and the Rage look, the
-                                                          empty bar, the full bar and the decorations, in fixed
-                                                          regions (listed in the Java file)
-  boss/client/RatKingBarStyles.java                       (generated) every option's regions and where each is drawn
-  boss-previews/rat_king/bossbar-previews/option_<n>.png  normal and Rage at full, half and low health, 3x, with the
-                                                          name above like the vanilla bar
-  boss-previews/rat_king/bossbar-previews/all_options.png every option side by side
+  assets/dross/textures/gui/rat_king_bar.png            the texture: for the normal and the Rage look, the empty bar, the
+                                                        full bar and the decorations, in fixed regions (listed in the
+                                                        Java file)
+  boss/client/RatKingBarArt.java                        (generated) where each region is and where it's drawn
+  boss-previews/rat_king/bossbar-previews/option_9.png  normal and Rage at full, half and low health, 3x, with the name
+                                                        above like the vanilla bar
 
-How the game draws one (the Java stage): Minecraft's boss bar sits at (x, y), 182 x 5 pixels, its name 9 pixels above.
-Every position here is relative to that (x, y). Draw the empty bar; then the full bar over it, cut off at the health:
-its columns from fillLeft to fillLeft + round(progress * (width - fillLeft - fillRight)), drawn at the same offset;
-then the decorations on top. The name goes at nameY (centred on x + 91, like vanilla); each bar needs `height` pixels
-(from its name's top to the next bar's name: the boss event's increment).
+How the game draws it (boss/client/DrossBossBars): Minecraft's boss bar sits at (x, y), 182 x 5 pixels, its name 9
+pixels above. Every position here is relative to that (x, y). Draw the empty bar; then the full bar over it, cut off at
+the health: its columns from fillLeft to fillLeft + round(progress * (width - fillLeft - fillRight)), drawn at the same
+offset; then the decorations on top. The name goes at nameY (centred on x + 91, like vanilla); each bar needs `height`
+pixels (from its name's top to the next bar's name: the boss event's increment).
 
 The art is made at 1 px = 1 GUI pixel. Coordinates: x right, y down, (0, 0) the vanilla bar's top-left corner; the bar's
-fill covers x 0..181, y 0..4 in every option.
+fill covers x 0..181, y 0..4.
 """
 import math
 import os
@@ -35,11 +37,13 @@ from PIL import Image  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
-TEX_DIR = os.path.join(ASSETS, "textures", "gui", "rat_king_bar")
+TEX_PATH = os.path.join(ASSETS, "textures", "gui", "rat_king_bar.png")
 JAVA_PATH = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "client",
-                         "RatKingBarStyles.java")
+                         "RatKingBarArt.java")
 PREVIEW_DIR = os.path.join(ROOT, "boss-previews", "rat_king", "bossbar-previews")
 
+NUMBER = 9                  # the pick's number among the nine designs (its preview's name and sky)
+TITLE = "Pipe & eyes"
 BAR_W = 182                 # Minecraft's boss bar: 182 x 5 pixels...
 BAR_H = 5
 CENTRE_X = 91               # ...its name centred over x + 91...
@@ -47,18 +51,17 @@ NAME_ABOVE = 9              # ...and drawn 9 pixels above it (glyphs 7 tall, a d
 NAME_CENTRE_HALF = 40       # decorations within this many pixels of the centre keep the name above them
 NAME_GAP = 1                # pixels of air between such decorations and the name's shadow
 BAR_GAP = 5                 # pixels between one bar's art and the next bar's name (vanilla: 5)
-MAX_ART_W, MAX_ART_H = 200, 26   # every option's art (both looks) fits in this, checked on every build
-TEX_W = 256                 # each option's texture width (the height is the next power of two that fits)
-PART_GAP = 2                # transparent rows between the parts in a texture
+MAX_ART_W, MAX_ART_H = 200, 26   # the art (both looks) fits in this, checked on every build
+TEX_W = 256                 # the texture's width (the height is the next power of two that fits)
+PART_GAP = 2                # transparent rows between the parts in the texture
 
-PREVIEW_SCALE = 3           # the previews: GUI pixels drawn this big...
-OVERVIEW_SCALE = 3
+PREVIEW_SCALE = 3           # the preview: GUI pixels drawn this big
 HEALTHS = ((1.0, "full health"), (0.5, "half health"), (0.15, "low health"))
 CELL_MARGIN = 9             # GUI pixels of background round a bar in a preview cell
 NAME = "Rat King"
 
 
-# ---------------------------------------------------------------- colours (pixel colours of the textures)
+# ---------------------------------------------------------------- colours (pixel colours of the texture)
 
 
 def _p(*hexes):
@@ -68,56 +71,33 @@ def _p(*hexes):
 LOOKS = {
     "normal": dict(
         O=(14, 22, 11),                                                    # outline
-        E=_p("#141b11", "#1f281b", "#283323", "#192115"),                  # empty: top shadow, body, bottom, specks
         F=_p("#c6f276", "#98d84a", "#72b630", "#569424", "#3a6a1a"),       # fill: highlight .. shade
         Fb=(222, 252, 160), Fd=(60, 108, 28),                              # fill bubbles, sludge
         fur=_p("#262c23", "#333b30", "#41493c", "#50594a", "#606b59", "#737f6b"),
-        fur_grey=_p("#3a3c37", "#4a4d46", "#5f625a", "#777a70", "#8f9287", "#a9ab9f"),
         muzzle=_p("#a8a389", "#918d74"),
         skin=_p("#8c5a58", "#a86d6a", "#c08480", "#d39893", "#e3aba5", "#efc2bc"),
-        skin_o=(66, 34, 38),
-        gold=_p("#4f330a", "#7e560f", "#b07f17", "#dcae27", "#f7d24a", "#fff0a0"), gold_o=(42, 26, 6),
-        pearl=(238, 231, 210),
-        gem=_p("#1d4a12", "#2f6b1e", "#4f9a2b", "#79c93a", "#a6ec5b", "#d4ff8a", "#f0ffd0"),
-        gem_halo=None,
-        claw=_p("#16300c", "#224a12", "#31661a", "#438424", "#58a02f", "#7cbf4a"), claw_o=(8, 18, 6),
         iron=_p("#17181b", "#23252a", "#31343b", "#43474f", "#585d67", "#727884"),
         rust=_p("#2c1a12", "#4a2a19", "#6d3c1f", "#8f5226", "#b0692e", "#c98a4a"), pipe_o=(10, 9, 9),
         pipe_in=_p("#0b0d0a", "#121510", "#191d16", "#10130e"),
-        wood=_p("#21150e", "#2e1d13", "#3e2718", "#51331f", "#664128", "#7d5233"), wood_o=(16, 10, 6),
-        raw=_p("#a08460", "#c2a57a", "#dcc49a"),
-        whisker=(226, 220, 200), whisker_d=(70, 66, 56),
+        whisker=(226, 220, 200),
         eye=(10, 9, 12), glint=(244, 244, 236), eye_halo=None, brow=None,
-        teeth=None,
         name=(255, 255, 255),
     ),
     "rage": dict(
         O=(26, 6, 6),
-        E=_p("#1c0a0a", "#2c1110", "#391815", "#220c0b"),
         F=_p("#ffa07c", "#f45a3c", "#d02a20", "#a61816", "#700c0e"),
         Fb=(255, 204, 168), Fd=(124, 14, 16),
         fur=_p("#2e1e1c", "#3e2623", "#50302b", "#643c34", "#7a4a3e", "#925a4a"),
-        fur_grey=_p("#3e2522", "#522c27", "#6a362e", "#844236", "#a05040", "#c0684e"),
         muzzle=_p("#a87a6c", "#8c6458"),
         skin=_p("#8c3a3e", "#a84a4e", "#c45c5e", "#d8746f", "#e8908a", "#f4aaa2"),
-        skin_o=(70, 16, 20),
-        gold=_p("#4f330a", "#7e560f", "#b07f17", "#dcae27", "#f7d24a", "#fff0a0"), gold_o=(42, 26, 6),
-        pearl=(238, 231, 210),
-        gem=_p("#5a0000", "#8f0505", "#c41010", "#ec2a1a", "#ff6a3a", "#ffc070", "#fff0d0"),
-        gem_halo=(255, 96, 48),
-        claw=_p("#240808", "#3a0c0c", "#561412", "#741c18", "#922620", "#b4382c"), claw_o=(14, 3, 3),
         iron=_p("#17181b", "#23252a", "#31343b", "#43474f", "#585d67", "#727884"),
         rust=_p("#2c1a12", "#4a2a19", "#6d3c1f", "#8f5226", "#b0692e", "#c98a4a"), pipe_o=(10, 9, 9),
         pipe_in=_p("#0d0807", "#150c0b", "#1d1110", "#110908"),
-        wood=_p("#21150e", "#2e1d13", "#3e2718", "#51331f", "#664128", "#7d5233"), wood_o=(16, 10, 6),
-        raw=_p("#a0503e", "#c2604a", "#dc8a6e"),
-        whisker=(240, 206, 196), whisker_d=(84, 40, 36),
+        whisker=(240, 206, 196),
         eye=(196, 20, 12), glint=(255, 214, 140), eye_halo=(120, 8, 6), brow=(20, 8, 8),
-        teeth=_p("#8a6a1c", "#d8b04a", "#f6dc8a"),
         name=(255, 190, 176),
     ),
 }
-
 
 # ---------------------------------------------------------------- a pixel canvas with negative coordinates
 
@@ -214,32 +194,7 @@ def shade(pal, k):
     return pal[max(0, min(len(pal) - 1, int(round(k))))]
 
 
-# ---------------------------------------------------------------- the bar itself
-
-
-def bar_box(c, P, x0=-1, y0=-1, x1=BAR_W, y1=BAR_H, round_corners=True):
-    """A 1 px outline round the fill area (the corners left off, for a rounded look)."""
-    for x in range(x0, x1 + 1):
-        c.px(x, y0, P["O"])
-        c.px(x, y1, P["O"])
-    for y in range(y0, y1 + 1):
-        c.px(x0, y, P["O"])
-        c.px(x1, y, P["O"])
-    if round_corners:
-        for x, y in ((x0, y0), (x1, y0), (x0, y1), (x1, y1)):
-            c.px(x, y, None)
-
-
-def empty_rows(c, P, seed=1, rows=range(BAR_H)):
-    E = P["E"]
-    for x in range(BAR_W):
-        for r in rows:
-            c.px(x, r, E[0] if r == 0 else (E[2] if r == BAR_H - 1 else E[1]))
-    rng = random.Random(seed)
-    x = rng.randint(2, 6)
-    while x < BAR_W - 1:
-        c.px(x, rng.choice((1, 2, 3)), E[3])
-        x += rng.randint(5, 10)
+# ---------------------------------------------------------------- the fill
 
 
 def fill_rows(c, P, seed=2, rage=False):
@@ -284,50 +239,7 @@ def fill_rows(c, P, seed=2, rage=False):
                     y = max(1, min(3, y + rng.choice((-1, 1))))
             x += rng.randint(12, 22)
 
-
-def standard(P, rage, seed=0):
-    """The plain bar every option starts from: empty and full canvases."""
-    e, f = Canvas(), Canvas()
-    bar_box(e, P)
-    bar_box(f, P)
-    empty_rows(e, P, seed=seed + 11)
-    fill_rows(f, P, seed=seed + 12, rage=rage)
-    return e, f
-
-
-# ---------------------------------------------------------------- the eight options
-
-
-def stroke(c, pts, width, colour, step=0.2):
-    """
-    Draws a thick curve through pts (continuous GUI coordinates: pixel (x, y) is the square from x to x + 1): every
-    pixel whose middle lies within width(u) / 2 of the curve, coloured colour(s, u), where s is how far along the curve
-    (pixels) its nearest point is and u that as a share of its length. Returns the pixels drawn.
-    """
-    dense, along = [], []
-    s = 0.0
-    for (x0, y0), (x1, y1) in zip(pts[:-1], pts[1:]):
-        seg = math.hypot(x1 - x0, y1 - y0)
-        n = max(1, int(seg / step))
-        for k in range(n):
-            u = k / n
-            dense.append((x0 + (x1 - x0) * u, y0 + (y1 - y0) * u))
-            along.append(s + seg * u)
-        s += seg
-    dense.append(pts[-1])
-    along.append(s)
-    D = np.array(dense)
-    S = np.array(along)
-    total = max(s, 1e-6)
-    drawn = set()
-    for y in range(int(math.floor(D[:, 1].min())) - 3, int(math.ceil(D[:, 1].max())) + 4):
-        for x in range(int(math.floor(D[:, 0].min())) - 3, int(math.ceil(D[:, 0].max())) + 4):
-            dist = np.hypot(D[:, 0] - (x + 0.5), D[:, 1] - (y + 0.5))
-            i = int(np.argmin(dist))
-            if dist[i] <= width(S[i] / total) / 2.0:
-                c.px(x, y, colour(S[i], S[i] / total))
-                drawn.add((x, y))
-    return drawn
+# ---------------------------------------------------------------- the pick: the pipe and the peeking rat
 
 
 def disc(cx, cy, r):
@@ -340,226 +252,10 @@ def disc(cx, cy, r):
     return out
 
 
-def spline(pts, per=12):
-    """A smooth curve through these points (Catmull-Rom)."""
-    P = [pts[0]] + list(pts) + [pts[-1]]
-    out = []
-    for i in range(1, len(P) - 2):
-        p0, p1, p2, p3 = (np.array(P[i - 1]), np.array(P[i]), np.array(P[i + 1]), np.array(P[i + 2]))
-        for k in range(per):
-            t = k / per
-            out.append(tuple(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t
-                                    + (-p0 + 3 * p1 - 3 * p2 + p3) * t ** 3)))
-    out.append(tuple(pts[-1]))
-    return out
 
-
-TAIL_PATH = ((BAR_W + 0.5, 2.5), (BAR_W + 4.0, 2.4), (BAR_W + 7.5, 0.8), (BAR_W + 10.0, -2.2), (BAR_W + 11.0, -5.6),
-             (BAR_W + 10.0, -8.6), (BAR_W + 7.4, -10.0), (BAR_W + 5.0, -9.0), (BAR_W + 4.4, -7.0),
-             (BAR_W + 5.8, -5.8))      # out of the bar's right end, up, and curling over at its tip (a question mark)
-
-
-CROWN = ("........p........",
-         ".p.....hgd.....p.",
-         "hgd....hgd....hgd",
-         "hggd..hhggd..hggd",
-         "hgggdhhgggddhgggd",
-         "hhhhhhhhhhhhhhhhh",
-         "ggggggggggggggggg",
-         "ggggggggggggggggg",
-         "ddddddddddddddddd")
-
-
-def opt_crown(P, rage):
-    """1 Crown: a little gold crown in the middle of the bar (its gem glows red in Rage)."""
-    e, f = standard(P, rage, 10)
-    d = Canvas()
-    g = P["gold"]
-    W = len(CROWN[0])
-    x0, y0 = CENTRE_X - W // 2, -5          # its band sits across the bar's top four rows
-    for r, row in enumerate(CROWN):
-        for x, ch in enumerate(row):
-            if ch != ".":
-                d.px(x0 + x, y0 + r, {"p": P["pearl"], "h": g[4], "g": g[3], "d": g[2]}[ch])
-    gem = P["gem"]
-    for (x, r), k in (((7, 6), 5), ((8, 6), 4), ((9, 6), 3), ((7, 7), 4), ((8, 7), 3), ((9, 7), 2)):
-        d.px(x0 + x, y0 + r, gem[k])
-    d.px(x0 + 7, y0 + 6, gem[6])                # a glint
-    for x in (3, 13):                           # small side stones
-        d.px(x0 + x, y0 + 6, gem[3] if rage else gem[2])
-        d.px(x0 + x, y0 + 7, gem[2] if rage else gem[1])
-    for x in (1, 15):                           # rivets
-        d.px(x0 + x, y0 + 7, g[1])
-    if rage:
-        # The gem glows: the gold round it catches its red light.
-        for x, r in ((6, 6), (6, 7), (10, 6), (10, 7), (7, 5), (8, 5), (9, 5), (7, 8), (8, 8), (9, 8), (8, 4)):
-            d.px(x0 + x, y0 + r, P["gem_halo"])
-    d.outline(P["gold_o"])
-    return e, f, d
-
-
-NOSE = ("..LLLLLLL..",
-        ".LHHLMMMML.",
-        "LMHMMMMMMML",
-        "LMMMMSMMMMS",
-        ".MDMMSMMDM.",
-        "..DMMSMMD..",
-        "...SMSMS...",
-        ".....S.....")
-
-
-def opt_nose(P, rage):
-    """2 Nose & whiskers: a pink rat nose at the centre, whiskers fanning out (teeth bared under it in Rage)."""
-    e, f = standard(P, rage, 20)
-    d = Canvas()
-    s = P["skin"]
-    W = len(NOSE[0])
-    x0, y0 = CENTRE_X - W // 2, -2
-    cx = x0 + W / 2.0
-    # Whiskers first, from the nose's sides, fanning out (thin, pale, darker at their tips).
-    for side in (-1, 1):
-        for sy, ang, length in ((1.5, -26.0, 15.0), (3.0, -7.0, 16.0), (4.5, 15.0, 14.0)):
-            xa = cx + side * (W / 2.0 - 1.0)
-            ya = y0 + sy
-            a = math.radians(ang)
-            xb = xa + side * length * math.cos(a)
-            yb = ya + length * math.sin(a)
-            stroke(d, [(xa, ya), (xb, yb)], lambda u: 1.05,
-                   lambda sv, u: P["whisker"] if u < 0.7 else P["whisker_d"])
-    pixels = set()
-    for r, row in enumerate(NOSE):
-        for x, ch in enumerate(row):
-            if ch != ".":
-                d.px(x0 + x, y0 + r, {"L": s[5], "H": (255, 242, 238), "M": s[3], "D": s[0], "S": s[2]}[ch])
-                pixels.add((x0 + x, y0 + r))
-    if rage:
-        # Bared incisors under it.
-        t = P["teeth"]
-        for x in (W // 2 - 1, W // 2 + 1):
-            for k, c in ((0, t[2]), (1, t[1])):
-                d.px(x0 + x, y0 + len(NOSE) + k, c)
-                pixels.add((x0 + x, y0 + len(NOSE) + k))
-    _outline_set(d, pixels, P["skin_o"])
-    return e, f, d
-
-
-def _outline_set(c, pixels, col):
-    for (x, y) in pixels:
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            q = (x + dx, y + dy)
-            if q not in pixels:
-                c.px(q[0], q[1], col)
-
-
-def opt_tail(P, rage):
-    """3 Curling tail: a pink ringed tail curling off the right end (twitching up stiffer in Rage)."""
-    e, f = standard(P, rage, 30)
-    d = Canvas()
-    s = P["skin"]
-    path = spline(TAIL_PATH)
-    # Rings every couple of pixels along it, each lit on its top edge.
-    ring = lambda sv, u: s[4] if int(sv // 2.0) % 2 == 0 else s[2]  # noqa: E731
-    stroke(d, path, lambda u: 2.9 - 1.7 * u, ring)
-    if rage:
-        # Bristling: stiff little hairs off the outside of the curve.
-        for i in (40, 60, 78):
-            x, y = path[i]
-            x2, y2 = path[i + 1]
-            nx, ny = (y2 - y), -(x2 - x)
-            n = math.hypot(nx, ny) or 1.0
-            d.px(int(math.floor(x + nx / n * 2.6)), int(math.floor(y + ny / n * 2.6)), P["skin_o"])
-    d.outline(P["skin_o"], where=lambda x, y: x >= BAR_W)
-    return e, f, d
-
-
-def opt_fur(P, rage):
-    """4 Fur edge: shaggy tufts of his grey fur along the top and bottom edges (bristling straight up in Rage)."""
-    e, f = standard(P, rage, 40)
-    d = Canvas()
-    fur = P["fur_grey"]
-    rng = random.Random(41)
-    for base_y, sign, heights in ((-1, -1, (5, 6, 6, 7) if rage else (2, 3, 3, 4)),
-                                  (BAR_H, 1, (3, 4, 4, 5) if rage else (1, 2, 2, 3))):
-        x = -2
-        while x < BAR_W + 1:
-            h = rng.choice(heights)
-            k0 = rng.choice((1.0, 1.6, 2.2))
-            for r in range(h):
-                frac = r / h
-                w = 3 if r == 0 else (2 if frac < 0.55 else 1)
-                lean = 0 if rage else int(round(r * 0.6))          # brushed back (to the right), or bristling
-                for k in range(w):
-                    xx = x + lean + k + (1 if (rage and w == 1) else 0)
-                    if -2 <= xx <= BAR_W + 1:
-                        d.px(xx, base_y + sign * r, shade(fur, k0 + 3.0 * frac + (0.4 if k == 0 else 0.0)))
-            x += rng.choice((2, 3, 3))
-    d.outline(P["O"], where=lambda x, y: y < -1 or y > BAR_H)
-    return e, f, d
-
-
-def opt_gnawed(P, rage):
-    """5 Gnawed: a wooden frame with bite marks chewed out of it (and into the bar)."""
-    e, f = Canvas(), Canvas()
-    W = P["wood"]
-    for c in (e, f):
-        bar_box(c, P, -3, -3, BAR_W + 2, BAR_H + 2, round_corners=True)
-        rng = random.Random(51)
-        for x in range(-2, BAR_W + 2):
-            grain = rng.random() < 0.18
-            c.px(x, -2, W[5] if not grain else W[4])
-            c.px(x, -1, W[3] if not grain else W[2])
-            c.px(x, BAR_H, W[2] if not grain else W[1])
-            c.px(x, BAR_H + 1, W[1])
-        for y in range(-2, BAR_H + 2):
-            c.px(-2, y, W[4])
-            c.px(-1, y, W[3])
-            c.px(BAR_W, y, W[2])
-            c.px(BAR_W + 1, y, W[1])
-    empty_rows(e, P, seed=52)
-    fill_rows(f, P, seed=53, rage=rage)
-    # The bites: a pair of incisors' arcs each, out of the top and bottom edges and two corners.
-    bites = [(24.0, -3.0), (73.0, -3.0), (126.0, -3.0), (164.0, -3.0), (48.0, BAR_H + 3.0), (102.0, BAR_H + 3.0),
-             (147.0, BAR_H + 3.0), (BAR_W + 2.5, -2.5), (-2.5, BAR_H + 2.5)]
-    gone = set()
-    for bx, by in bites:
-        gone |= disc(bx - 2.0, by, 3.8) | disc(bx + 2.0, by, 3.8)
-    edge, inner = set(), set()
-    for c in (e, f):
-        for (x, y) in gone:
-            c.px(x, y, None)
-        for (x, y) in gone:
-            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                q = (x + dx, y + dy)
-                if q not in gone and c.on(*q):
-                    edge.add(q)
-        frame = lambda x, y: y in (-2, -1, BAR_H, BAR_H + 1) or x in (-2, -1, BAR_W, BAR_W + 1)  # noqa: E731
-        for (x, y) in edge:
-            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                q = (x + dx, y + dy)
-                if q not in gone and q not in edge and frame(*q):
-                    inner.add(q)
-        for (x, y) in edge:
-            c.px(x, y, P["O"])
-        for (x, y) in inner:
-            c.px(x, y, P["raw"][1])
-    # Tooth scratches on the frame between the bites (decorations).
-    d = Canvas()
-    rng = random.Random(54)
-    for x in range(6, BAR_W - 6, 9):
-        y = rng.choice((-2, BAR_H + 1))
-        if all((x + k, y) not in gone and (x + k, y) not in edge and (x + k, y) not in inner for k in range(3)):
-            d.px(x, y, W[0])
-            d.px(x + 1, y, W[0] if y < 0 else W[3])
-    if rage:
-        # Fresh: red where the wood has just been chewed.
-        for (x, y) in inner:
-            if (x + y) % 2 == 0:
-                d.px(x, y, P["raw"][2])
-    return e, f, d
-
-
-def opt_pipe(P, rage):
-    """6 Sewer pipe: a rusty pipe frame, the fill green ooze, drips below (only under the ooze)."""
+def pipe(P, rage):
+    """The bar: a rusty pipe frame, the fill green ooze, drips below (only under the ooze). Returns the empty and full
+    canvases (from option 6, Sewer pipe)."""
     e, f = Canvas(), Canvas()
     I, R = P["iron"], P["rust"]
     rng = random.Random(61)
@@ -615,57 +311,12 @@ def opt_pipe(P, rage):
                 [(x + 2, BAR_H + 1 + n), (x + 2, BAR_H + 2 + n), (x, BAR_H + 3 + n), (x + 1, BAR_H + 3 + n)]:
             if not f.on(*q):
                 f.px(q[0], q[1], P["pipe_o"])
-    d = Canvas()
-    return e, f, d
+    return e, f
 
 
-def opt_claw(P, rage):
-    """7 Claw & orb: his staff's green claw gripping the bar's left end, clutching a glowing orb."""
-    e, f = standard(P, rage, 70)
-    d = Canvas()
-    gem, cl = P["gem"], P["claw"]
-    ocx, ocy, rad = -9.5, 2.5, 5.2
-    orb = disc(ocx, ocy, rad)
-    for (x, y) in orb:
-        dist = math.hypot(x + 0.5 - ocx, y + 0.5 - ocy)
-        k = 6.0 - dist * 0.6 + (0.6 if (x + 0.5 - ocx) + (y + 0.5 - ocy) < -2.0 else 0.0)
-        d.px(x, y, shade(gem, k))
-    for q, k in (((int(ocx) - 3, int(ocy) - 2), 6), ((int(ocx) - 2, int(ocy) - 3), 6)):
-        d.px(q[0], q[1], gem[k])
-    # The claw's hand gripping the bar's end, knuckles lit from the top.
-    hand = set()
-    for x in range(-3, 2):
-        for y in range(-2, BAR_H + 2):
-            hand.add((x, y))
-            k = 4 if y == -2 else (1 if y == BAR_H + 1 else (3 if x <= -2 else 2))
-            d.px(x, y, cl[k])
-    for y in (0, 2, 4):
-        d.px(-3, y, cl[4])
-    # Talons: one over the orb and one under it, tips hooked in on its far side, and a short one on its face.
-    tal = set()
-    talon = lambda sv, u: cl[5] if u > 0.85 else (cl[3] if sv % 3.0 < 1.5 else cl[2])  # noqa: E731
-    for side in (-1, 1):
-        pts = [(-1.5, ocy + side * 3.0)]
-        for i in range(31):
-            u = i / 30.0
-            ang = math.radians(side * (45.0 + 160.0 * u))
-            r = rad + 1.5 - 1.6 * u ** 2
-            pts.append((ocx + r * math.cos(ang), ocy + r * math.sin(ang)))
-        tal |= stroke(d, pts, lambda u: 2.8 - 1.6 * u, talon)
-    tal |= stroke(d, [(-3.0, ocy + 0.4), (-5.5, ocy + 0.8), (-7.5, ocy + 2.0), (-8.6, ocy + 3.4)],
-                  lambda u: 2.2 - 1.0 * u, talon)
-    # A dark line wherever the claw lies on the orb, so the talons stand out against its glow.
-    for (x, y) in orb - tal:
-        if any((x + dx, y + dy) in tal or (x + dx, y + dy) in hand for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-            d.px(x, y, P["claw_o"])
-    d.outline(P["claw_o"])
-    return e, f, d
-
-
-def opt_eyes(P, rage, paws=True):
-    """8 Beady eyes: his head peeking over the top of the bar, little fingers on its edge (red eyes and a scowl in
-    Rage). paws=False leaves the fingers off."""
-    e, f = standard(P, rage, 80)
+def peeking_rat(P, rage):
+    """The decorations: his head peeking over the top of the bar (red eyes and a scowl in Rage); from option 8, Beady
+    eyes, without its little pink fingers on the bar."""
     d = Canvas()
     fur, s = P["fur"], P["skin"]
     cx = CENTRE_X + 0.5
@@ -707,56 +358,24 @@ def opt_eyes(P, rage, paws=True):
             for k in range(4):
                 bx = ex - 1 + k if inward > 0 else ex + 2 - k
                 d.px(bx, -8 + (k // 2), P["brow"])
-    # Little pink fingers curled over the bar's top edge either side of his head.
-    paws_px = set()
-    for px0 in ((int(cx) - 17, int(cx) + 14) if paws else ()):
-        for k in range(4):
-            d.px(px0 + k, -1, s[4] if k % 2 == 0 else s[3])
-            d.px(px0 + k, 0, s[2] if k % 2 == 0 else s[1])
-            paws_px |= {(px0 + k, -1), (px0 + k, 0)}
-    ring = _around(paws_px)
-    d.outline(P["O"], where=lambda x, y: y < -1 or (x, y) in ring)
-    return e, f, d
+    d.outline(P["O"], where=lambda x, y: y < -1)
+    return d
 
 
 BROWN_FUR = {"normal": _p("#2c2118", "#3c2c20", "#4f3a2a", "#634a36", "#785b43", "#8e6e52"),
              "rage": _p("#341a14", "#46221a", "#5a2c20", "#703828", "#884632", "#a0583e")}
-BROWN_SHARE = 0.45          # how much brown goes into the peeking rat's fur in option 9
+BROWN_SHARE = 0.45          # how much brown goes into the peeking rat's fur
 
 
 def browner(pal, brown, k=BROWN_SHARE):
     return [tuple(int(round(a * (1.0 - k) + b * k)) for a, b in zip(c, d)) for c, d in zip(pal, brown)]
 
-
-def opt_pipe_eyes(P, rage):
-    """9 Sewer pipe & beady eyes (the user's pick, October 14, 2026): option 6's rusty pipe running with ooze, and
-    option 8's rat peeking over it, his fur browner and no pink fingers on the bar."""
-    e, f, _d = opt_pipe(P, rage)
+def draw(P, rage):
+    """The pick, No. 9 Pipe & eyes: the pipe's empty and full bars, and the peeking rat (his fur browner)."""
+    e, f = pipe(P, rage)
     Q = dict(P)
     Q["fur"] = browner(P["fur"], BROWN_FUR["rage" if rage else "normal"])
-    _e, _f, d = opt_eyes(Q, rage, paws=False)
-    return e, f, d
-
-
-def _around(pixels):
-    out = set()
-    for (x, y) in pixels:
-        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-            out.add((x + dx, y + dy))
-    return out - set(pixels)
-
-
-OPTIONS = (
-    (1, "Crown", opt_crown),
-    (2, "Nose & whiskers", opt_nose),
-    (3, "Curling tail", opt_tail),
-    (4, "Fur edge", opt_fur),
-    (5, "Gnawed", opt_gnawed),
-    (6, "Sewer pipe", opt_pipe),
-    (7, "Claw & orb", opt_claw),
-    (8, "Beady eyes", opt_eyes),
-    (9, "Pipe & eyes", opt_pipe_eyes),
-)
+    return e, f, peeking_rat(Q, rage)
 
 
 # ---------------------------------------------------------------- packing
@@ -794,12 +413,11 @@ def look_parts(e, f, d):
         deco = Part(d.crop(bd), bd[0], bd[1])
     return empty, full, deco, 0 - x0, (x1 - x0) - (BAR_W - x0)
 
-
-def make_option(number, name, fn):
+def make_bar():
     looks = {}
     for look in ("normal", "rage"):
         P = LOOKS[look]
-        e, f, d = fn(P, look == "rage")
+        e, f, d = draw(P, look == "rage")
         looks[look] = look_parts(e, f, d)
     # Lay the six parts out down the texture.
     y = 0
@@ -808,7 +426,7 @@ def make_option(number, name, fn):
             part.u, part.v = 0, y
             y += part.h + PART_GAP
             if part.w > TEX_W:
-                raise SystemExit(f"bar option {number}: a part is {part.w} wide (more than {TEX_W})")
+                raise SystemExit(f"the bar: a part is {part.w} wide (more than {TEX_W})")
     tex_h = 16
     while tex_h < y:
         tex_h *= 2
@@ -829,12 +447,11 @@ def make_option(number, name, fn):
                         top_mid = min(top_mid, part.y + r)
     art_w, art_h = max(xs) - min(xs), max(ys) - min(ys)
     if art_w > MAX_ART_W or art_h > MAX_ART_H:
-        raise SystemExit(f"bar option {number} ({name}) is {art_w} x {art_h} pixels (more than {MAX_ART_W} x "
-                         f"{MAX_ART_H})")
+        raise SystemExit(f"the bar is {art_w} x {art_h} pixels (more than {MAX_ART_W} x {MAX_ART_H})")
     # Like vanilla, the name's shadow sits right on the bar's own top edge; over decorations it keeps a gap.
     name_y = min(-NAME_ABOVE, top_mid - NAME_ABOVE - (NAME_GAP if top_mid < -1 else 0))
     height = (max(ys) - name_y) + BAR_GAP
-    return dict(number=number, name=name, tex=tex, looks=looks, name_y=name_y, height=height, art=(art_w, art_h),
+    return dict(number=NUMBER, name=TITLE, tex=tex, looks=looks, name_y=name_y, height=height, art=(art_w, art_h),
                 left=min(xs), top=min(ys), bottom=max(ys))
 
 
@@ -940,13 +557,12 @@ DIM = (170, 160, 150)
 ACCENT = (150, 214, 92)
 RAGE_ACCENT = (240, 110, 90)
 
-
-def option_preview(opt, out_path, top, bottom):
+def preview(opt, out_path):
     from PIL import ImageDraw
     cells = {}
     for look in ("normal", "rage"):
         for prog, _lab in HEALTHS:
-            im = render(opt, look, prog, top=top, bottom=bottom)
+            im = render(opt, look, prog)
             cells[(look, prog)] = im.resize((im.width * PREVIEW_SCALE, im.height * PREVIEW_SCALE), Image.NEAREST)
     cw, ch = next(iter(cells.values())).size
     gap, head, lab_h = 16, 96, 26
@@ -954,9 +570,9 @@ def option_preview(opt, out_path, top, bottom):
     H = head + 3 * (ch + lab_h + gap) + gap
     sheet = Image.new("RGB", (W, H), SHEET_BG)
     dr = ImageDraw.Draw(sheet)
-    dr.text((gap, 12), f"Rat King boss bar, option {opt['number']}: {opt['name']}", font=_font(32), fill=TEXT)
+    dr.text((gap, 12), f"Rat King boss bar: the pick, No. {opt['number']} {opt['name']}", font=_font(32), fill=TEXT)
     a = opt["art"]
-    dr.text((gap, 54), f"Drawn {PREVIEW_SCALE}x (one square = one GUI pixel) as the game will draw it. The art is "
+    dr.text((gap, 54), f"Drawn {PREVIEW_SCALE}x (one square = one GUI pixel) as the game draws it. The art is "
                        f"{a[0]} x {a[1]} pixels; the name sits {-opt['name_y']} pixels above the bar; each bar takes "
                        f"{opt['height']} pixels of height.", font=_font(15, False), fill=DIM)
     for ci, (look, title, colr) in enumerate((("normal", "Normal", ACCENT), ("rage", "Rage", RAGE_ACCENT))):
@@ -968,58 +584,31 @@ def option_preview(opt, out_path, top, bottom):
     sheet.save(out_path)
 
 
-def overview(opts, out_path, top, bottom):
-    from PIL import ImageDraw
-    rows = []
-    for opt in opts:
-        pair = []
-        for look in ("normal", "rage"):
-            im = render(opt, look, 0.55, top=top, bottom=bottom)
-            pair.append(im.resize((im.width * OVERVIEW_SCALE, im.height * OVERVIEW_SCALE), Image.NEAREST))
-        rows.append((opt, pair))
-    cw, ch = rows[0][1][0].size
-    gap, head, lab_h = 14, 90, 28
-    W = 2 * cw + 3 * gap
-    H = head + len(rows) * (ch + lab_h + gap) + gap
-    sheet = Image.new("RGB", (W, H), SHEET_BG)
-    dr = ImageDraw.Draw(sheet)
-    dr.text((gap, 12), "The Rat King's boss bar: eight options", font=_font(32), fill=TEXT)
-    dr.text((gap, 54), f"Each in its normal look (left) and its Rage look (right), at 55% health, drawn "
-                       f"{OVERVIEW_SCALE}x as the game will draw them.", font=_font(15, False), fill=DIM)
-    for i, (opt, pair) in enumerate(rows):
-        y = head + i * (ch + lab_h + gap)
-        dr.text((gap, y), f"{opt['number']}  {opt['name']}", font=_font(19), fill=ACCENT)
-        dr.text((gap + cw + gap, y), "Rage", font=_font(19), fill=RAGE_ACCENT)
-        sheet.paste(pair[0], (gap, y + lab_h))
-        sheet.paste(pair[1], (gap + cw + gap, y + lab_h))
-    sheet.save(out_path)
+# ---------------------------------------------------------------- the Java file
 
 
-# ---------------------------------------------------------------- the Java list
-
-
-JAVA = '''package com.reg21meme.dross.boss.client;
+JAVA = """package com.reg21meme.dross.boss.client;
 
 import com.reg21meme.dross.Dross;
-import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * The Rat King's boss bar designs, written by {{@code tools/ratking/bossbars.py}} (don't edit by hand: change the
- * drawings there and run it again). Eight options, each with a normal look and a Rage look; each option's texture
- * holds, for both looks, the empty bar, the full bar and the decorations.
+ * Where each part of the Rat King's boss bar is in its texture and where it's drawn, written by
+ * {{@code tools/ratking/bossbars.py}} (don't edit by hand: change the drawing there and run it again). The bar is the
+ * user's pick of the nine designs made, No. 9 "Pipe & eyes", in its normal look and its Rage look; the texture holds,
+ * for both looks, the empty bar, the full bar and the decorations.
  * <p>
- * Every position is relative to Minecraft's boss bar position (the x, y of its 182 x 5 bar). To draw one: blit the
- * empty bar; blit the full bar over it, cut off at the health (its columns from {{@link Look#fillLeft()}} for
+ * Every position is relative to Minecraft's boss bar position (the x, y of its 182 x 5 bar). To draw it: blit the empty
+ * bar; blit the full bar over it, cut off at the health (its columns from {{@link Look#fillLeft()}} for
  * {{@code round(progress * fillWidth())}} pixels, at the same offset); blit the decorations on top; draw the name
- * centred on x + 91 at y + {{@link Style#nameY()}}; and leave {{@link Style#height()}} pixels before the next bar.
+ * centred on x + 91 at y + {{@link #NAME_Y}}; and leave {{@link #HEIGHT}} pixels before the next bar.
  */
-public final class RatKingBarStyles
+public final class RatKingBarArt
 {{
     /**
-     * One piece of a bar.
+     * One piece of the bar.
      *
-     * @param u      where it is in the option's texture (left)...
+     * @param u      where it is in the texture (left)...
      * @param v      ...and top
      * @param width  its size in pixels: wide...
      * @param height ...and tall
@@ -1031,7 +620,7 @@ public final class RatKingBarStyles
     }}
 
     /**
-     * One look of an option.
+     * One look of the bar.
      *
      * @param empty       the empty bar
      * @param full        the full bar (the same size and place as the empty one)
@@ -1048,43 +637,22 @@ public final class RatKingBarStyles
         }}
     }}
 
-    /**
-     * One option.
-     *
-     * @param number        1 to 8
-     * @param name          its working name
-     * @param texture       its texture ({{@code textures/gui/rat_king_bar/option_<n>.png}})
-     * @param textureWidth  the texture's size (for blit): wide...
-     * @param textureHeight ...and tall
-     * @param normal        the usual look (sickly green)
-     * @param rage          the Rage look (red)
-     * @param nameY         where the name's top goes, from the bar's y (Minecraft: -9)
-     * @param height        pixels each bar takes, from its name's top to the next bar's (Minecraft: 19)
-     */
-    public record Style(int number, String name, ResourceLocation texture, int textureWidth, int textureHeight,
-                        Look normal, Look rage, int nameY, int height)
-    {{
-    }}
+    /** The texture ({{@code textures/gui/rat_king_bar.png}}) and its size (for blit). */
+    public static final ResourceLocation TEXTURE = new ResourceLocation(Dross.MODID, "textures/gui/rat_king_bar.png");
+    public static final int TEXTURE_WIDTH = {tex_w};
+    public static final int TEXTURE_HEIGHT = {tex_h};
+    /** The usual look (sickly green). */
+    public static final Look NORMAL = {normal};
+    /** The Rage look (red). */
+    public static final Look RAGE = {rage};
+    /** Where the name's top goes, from the bar's y (Minecraft: -9). */
+    public static final int NAME_Y = {name_y};
+    /** Pixels each bar takes, from its name's top to the next bar's (Minecraft: 19). */
+    public static final int HEIGHT = {height};
 
-    public static final List<Style> ALL = List.of(
-{styles});
-
-    /** The option with this number, or the first one. */
-    public static Style byNumber(int number)
-    {{
-        for (Style s : ALL)
-        {{
-            if (s.number() == number)
-            {{
-                return s;
-            }}
-        }}
-        return ALL.get(0);
-    }}
-
-    private RatKingBarStyles() {{}}
+    private RatKingBarArt() {{}}
 }}
-'''
+"""
 
 
 def _part(p):
@@ -1093,49 +661,30 @@ def _part(p):
 
 def _look(look):
     e, f, d, fl, fr = look
-    return (f"new Look({_part(e)},\n                            {_part(f)},\n                            {_part(d)}, "
-            f"{fl}, {fr})")
+    return (f"new Look({_part(e)},\n            {_part(f)},\n            {_part(d)}, {fl}, {fr})")
 
 
-def write_java(opts, path):
-    entries = []
-    for o in opts:
-        name = o["name"].replace("\\", "\\\\").replace('"', '\\"')
-        entries.append(
-            f"            new Style({o['number']}, \"{name}\",\n"
-            f"                    new ResourceLocation(Dross.MODID, \"textures/gui/rat_king_bar/option_{o['number']}.png\"),\n"
-            f"                    {TEX_W}, {o['tex'].shape[0]},\n"
-            f"                    {_look(o['looks']['normal'])},\n"
-            f"                    {_look(o['looks']['rage'])},\n"
-            f"                    {o['name_y']}, {o['height']})")
+def write_java(opt, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(JAVA.format(styles=",\n".join(entries)))
+        f.write(JAVA.format(tex_w=TEX_W, tex_h=opt["tex"].shape[0], normal=_look(opt["looks"]["normal"]),
+                            rage=_look(opt["looks"]["rage"]), name_y=opt["name_y"], height=opt["height"]))
 
 
 # ---------------------------------------------------------------- everything
 
 
 def build_all(write_files=True):
-    opts = [make_option(n, name, fn) for n, name, fn in OPTIONS]
+    opt = make_bar()
     os.makedirs(PREVIEW_DIR, exist_ok=True)
     if write_files:
-        os.makedirs(TEX_DIR, exist_ok=True)
-        for o in opts:
-            Image.fromarray(o["tex"], "RGBA").save(os.path.join(TEX_DIR, f"option_{o['number']}.png"))
-        for name in os.listdir(TEX_DIR):
-            if name not in {f"option_{o['number']}.png" for o in opts}:
-                os.remove(os.path.join(TEX_DIR, name))
-                print(f"  removed stale {name}")
-        write_java(opts, JAVA_PATH)
-    top = min(o["name_y"] for o in opts)
-    bottom = max(o["bottom"] for o in opts)
-    for o in opts:
-        option_preview(o, os.path.join(PREVIEW_DIR, f"option_{o['number']}.png"), top, bottom)
-        print(f"  bar option {o['number']} {o['name']}: art {o['art'][0]} x {o['art'][1]} px, name at "
-              f"{o['name_y']}, height {o['height']}, texture {TEX_W}x{o['tex'].shape[0]}")
-    overview(opts, os.path.join(PREVIEW_DIR, "all_options.png"), top, bottom)
-    return opts
+        os.makedirs(os.path.dirname(TEX_PATH), exist_ok=True)
+        Image.fromarray(opt["tex"], "RGBA").save(TEX_PATH)
+        write_java(opt, JAVA_PATH)
+    preview(opt, os.path.join(PREVIEW_DIR, f"option_{NUMBER}.png"))
+    print(f"  boss bar No. {NUMBER} {TITLE}: art {opt['art'][0]} x {opt['art'][1]} px, name at {opt['name_y']}, "
+          f"height {opt['height']}, texture {TEX_W}x{opt['tex'].shape[0]}")
+    return opt
 
 
 if __name__ == "__main__":

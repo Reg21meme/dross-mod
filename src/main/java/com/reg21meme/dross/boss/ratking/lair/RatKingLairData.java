@@ -11,15 +11,14 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.saveddata.SavedData;
 
 /**
- * Remembers (in the world save) each rat cave's Rat King: which one he is, whether he's awake, and whether (and when)
- * he was beaten: a beaten cave stays empty for good (no respawn, the user's decision of October 16). Saved as
+ * Remembers (in the world save) each rat cave's Rat King: which one he is, whether he's awake, and whether he was
+ * beaten: a beaten cave stays empty for good (no respawn, the user's decision of October 16). Saved as
  * {@code data/dross_rat_king_lairs.dat} in the Overworld's save folder (the Overworld is always loaded), like the Colossus
  * lairs' data. A cave is known by its id ({@code RatCaves.RatCave.id()}, its sewer network's first chunk), which never
  * changes.
  * <p>
  * {@code Caves}: a list of {@code Id} (the cave's id), {@code King} (his UUID, while he exists), {@code Awake} (he has
- * been woken), {@code Beaten} (true for good once he's beaten), {@code DefeatedAt} (the Overworld's game
- * time he was beaten), {@code Appearances} (how many kings this cave has had). A cave nobody has been near has no entry.
+ * been woken), {@code Beaten} (true for good once he's beaten). A cave nobody has been near has no entry.
  * Server thread only.
  */
 public final class RatKingLairData extends SavedData
@@ -35,8 +34,6 @@ public final class RatKingLairData extends SavedData
         UUID king;
         boolean awake;
         boolean beaten;
-        long defeatedAt;
-        int appearances;
     }
 
     static RatKingLairData get(MinecraftServer server)
@@ -55,8 +52,6 @@ public final class RatKingLairData extends SavedData
             entry.king = cave.hasUUID("King") ? cave.getUUID("King") : null;
             entry.awake = cave.getBoolean("Awake");
             entry.beaten = cave.getBoolean("Beaten");
-            entry.defeatedAt = cave.getLong("DefeatedAt");
-            entry.appearances = cave.getInt("Appearances");
             data.caves.put(cave.getLong("Id"), entry);
         }
         return data;
@@ -77,8 +72,6 @@ public final class RatKingLairData extends SavedData
             }
             cave.putBoolean("Awake", entry.awake);
             cave.putBoolean("Beaten", entry.beaten);
-            cave.putLong("DefeatedAt", entry.defeatedAt);
-            cave.putInt("Appearances", entry.appearances);
             list.add(cave);
         }
         tag.put("Caves", list);
@@ -120,21 +113,6 @@ public final class RatKingLairData extends SavedData
         return entry != null && entry.beaten;
     }
 
-    /** The game time the cave's king was last beaten (only meaningful while {@link #beaten}). */
-    long defeatedAt(long cave)
-    {
-        Entry entry = find(cave);
-        return entry == null ? 0L : entry.defeatedAt;
-    }
-
-    /** How many kings this cave has had. */
-    int appearances(long cave)
-    {
-        Entry entry = find(cave);
-        return entry == null ? 0 : entry.appearances;
-    }
-
-
     // ---------------------------------------------------------------- changes
 
     /** A new king has appeared in the cave: he's its king now, asleep, not beaten. */
@@ -144,7 +122,6 @@ public final class RatKingLairData extends SavedData
         entry.king = king;
         entry.awake = false;
         entry.beaten = false;
-        entry.appearances++;
         setDirty();
     }
 
@@ -166,17 +143,16 @@ public final class RatKingLairData extends SavedData
         }
     }
 
-    /** The cave's king was beaten at {@code gameTime}. */
-    void recordDefeat(long cave, long gameTime)
+    /** The cave's king was beaten: the cave stays empty for good. */
+    void recordDefeat(long cave)
     {
         Entry entry = entry(cave);
         entry.beaten = true;
         entry.awake = false;
-        entry.defeatedAt = gameTime;
         setDirty();
     }
 
-    /** The cave's king is gone (his body vanished, or he was removed): only the time he was beaten is kept. */
+    /** The cave's king is gone (his body vanished, or he was removed): only whether he was beaten is kept. */
     void forgetKing(long cave)
     {
         Entry entry = find(cave);
@@ -186,15 +162,6 @@ public final class RatKingLairData extends SavedData
             entry.awake = false;
             setDirty();
         }
-    }
-
-    /** Tests: as if the cave's king was beaten at {@code gameTime} (long ago: a long wait faked). It may be before the world began. */
-    void setDefeatedAtForTests(long cave, long gameTime)
-    {
-        Entry entry = entry(cave);
-        entry.beaten = true;
-        entry.defeatedAt = gameTime;
-        setDirty();
     }
 
     /** Tests: the cave as if nobody had ever been near it (no king, never beaten). */

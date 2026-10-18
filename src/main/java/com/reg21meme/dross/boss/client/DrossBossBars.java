@@ -15,9 +15,6 @@ import net.minecraftforge.client.event.CustomizeGuiOverlayEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * Draws the Dross bosses' boss bars ourselves (client only): Minecraft's own bars come in seven colours and none of
  * them is lava orange. The server sends a normal boss bar (a {@code ServerBossEvent}); its name is a translation key,
@@ -27,9 +24,9 @@ import java.util.regex.Pattern;
  *   <li>the Cinder Colossus ({@code boss.dross.cinder_colossus.}...): {@code shell}, obsidian purple with glassy
  *       glints; {@code cracking}, the same obsidian split by glowing orange cracks; {@code core}, lava red with brighter
  *       streaks flowing along it;</li>
- *   <li>the Rat King ({@code boss.dross.rat_king.option<n>}, {@code .rage} in his Rage, and the showcase's
- *       {@code boss.dross.rat_king.showcase.option<n>[.rage]}): design {@code n} of {@link RatKingBarStyles}, drawn from
- *       its texture (the empty bar, the full bar cut off at his health, the decorations, the name).</li>
+ *   <li>the Rat King ({@code boss.dross.rat_king.bar}, {@code .rage} in his Rage): the user's pick, a rusty sewer pipe
+ *       with a rat peeking over it, drawn from its texture ({@link RatKingBarArt}: the empty bar, the full bar cut off at
+ *       his health, the decorations, the name).</li>
  * </ul>
  * Any other bar is left to Minecraft. Every colour comes from {@link DrossColors} (the "Boss" section).
  */
@@ -40,9 +37,6 @@ public final class DrossBossBars
     private static final String COLOSSUS_SHELL = "boss.dross.cinder_colossus.shell";
     private static final String COLOSSUS_CRACKING = "boss.dross.cinder_colossus.cracking";
     private static final String COLOSSUS_CORE = "boss.dross.cinder_colossus.core";
-    /** The Rat King's bar names: his fight's ({@code option<n>[.rage]}) and the showcase's ({@code showcase.option<n>[.rage]}). */
-    private static final Pattern RAT_KING_KEY = Pattern.compile(Pattern.quote(RatKingTuning.BAR_KEY_PREFIX)
-            + "(?:showcase\\.)?option(\\d+)(\\.rage)?");
     /** Minecraft's boss bar size: 182 pixels wide, 5 tall, the name 9 pixels above it. */
     private static final int WIDTH = 182;
     private static final int HEIGHT = 5;
@@ -80,48 +74,45 @@ public final class DrossBossBars
                     event.getPartialTick());
             return;
         }
-        Matcher ratKing = RAT_KING_KEY.matcher(key);
-        if (ratKing.matches())
+        if (key.equals(RatKingTuning.BAR_KEY) || key.equals(RatKingTuning.BAR_KEY_RAGE))
         {
             event.setCanceled(true);
-            RatKingBarStyles.Style style = RatKingBarStyles.byNumber(Integer.parseInt(ratKing.group(1)));
-            boolean rage = ratKing.group(2) != null;
-            drawRatKing(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), style, rage);
-            event.setIncrement(style.height());
+            boolean rage = key.equals(RatKingTuning.BAR_KEY_RAGE);
+            drawRatKing(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), rage);
+            event.setIncrement(RatKingBarArt.HEIGHT);
         }
     }
 
     /**
-     * One of the Rat King's bars ({@link RatKingBarStyles}): the empty bar, the full bar cut off at the health, the
-     * decorations and the name. A design whose name stands higher than vanilla's is moved down so its name sits where
-     * vanilla's would (it never runs off the top of the screen); each takes {@link RatKingBarStyles.Style#height()}.
+     * The Rat King's bar ({@link RatKingBarArt}): the empty bar, the full bar cut off at the health, the decorations and
+     * the name. Its name stands higher than vanilla's, so it's moved down to sit where vanilla's would (it never runs off
+     * the top of the screen); it takes {@link RatKingBarArt#HEIGHT} pixels.
      */
-    private static void drawRatKing(GuiGraphics g, int x, int barY, float progress, Component name, RatKingBarStyles.Style style,
-                                    boolean rage)
+    private static void drawRatKing(GuiGraphics g, int x, int barY, float progress, Component name, boolean rage)
     {
-        RatKingBarStyles.Look look = rage ? style.rage() : style.normal();
-        int y = barY + Math.max(0, -style.nameY() - NAME_ABOVE);
+        RatKingBarArt.Look look = rage ? RatKingBarArt.RAGE : RatKingBarArt.NORMAL;
+        int y = barY + Math.max(0, -RatKingBarArt.NAME_Y - NAME_ABOVE);
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        blitPart(g, style, look.empty(), x, y);
+        blitPart(g, look.empty(), x, y);
         int filled = Math.round(Math.max(0.0F, Math.min(1.0F, progress)) * look.fillWidth());
         if (filled > 0)
         {
-            RatKingBarStyles.Part full = look.full();
-            g.blit(style.texture(), x + full.x() + look.fillLeft(), y + full.y(), full.u() + look.fillLeft(), full.v(), filled,
-                    full.height(), style.textureWidth(), style.textureHeight());
+            RatKingBarArt.Part full = look.full();
+            g.blit(RatKingBarArt.TEXTURE, x + full.x() + look.fillLeft(), y + full.y(), full.u() + look.fillLeft(), full.v(), filled,
+                    full.height(), RatKingBarArt.TEXTURE_WIDTH, RatKingBarArt.TEXTURE_HEIGHT);
         }
-        blitPart(g, style, look.decorations(), x, y);
+        blitPart(g, look.decorations(), x, y);
         RenderSystem.disableBlend();
         Font font = Minecraft.getInstance().font;
         int nameColor = rage ? DrossColors.RAT_KING_BAR_NAME_RAGE : DrossColors.RAT_KING_BAR_NAME;
-        g.drawString(font, name, x + WIDTH / 2 - font.width(name) / 2, y + style.nameY(), nameColor, true);
+        g.drawString(font, name, x + WIDTH / 2 - font.width(name) / 2, y + RatKingBarArt.NAME_Y, nameColor, true);
     }
 
-    private static void blitPart(GuiGraphics g, RatKingBarStyles.Style style, RatKingBarStyles.Part part, int x, int y)
+    private static void blitPart(GuiGraphics g, RatKingBarArt.Part part, int x, int y)
     {
-        g.blit(style.texture(), x + part.x(), y + part.y(), part.u(), part.v(), part.width(), part.height(),
-                style.textureWidth(), style.textureHeight());
+        g.blit(RatKingBarArt.TEXTURE, x + part.x(), y + part.y(), part.u(), part.v(), part.width(), part.height(),
+                RatKingBarArt.TEXTURE_WIDTH, RatKingBarArt.TEXTURE_HEIGHT);
     }
 
     private static void draw(GuiGraphics g, int x, int y, float progress, Component name, String style, float partialTick)

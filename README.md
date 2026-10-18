@@ -331,11 +331,12 @@ and lights set in the floor.
 - **Where:** there are many lairs, one in **every group of 3 Cinder Wastes patches**: the 3 patches nearest the hub
   hold one lair, the next 3 nearest another, and so on outwards forever (never two in one patch; the other two patches
   of each group are kept for future fire bosses). A lair is built in the background the first time you come within
-  about 384 blocks of it. `/dross goto lair colossus` takes you to the nearest one's entrance (building it first if
-  it isn't yet).
+  about 384 blocks of it, a little at a time (at most about 40 ms of work each game tick, so the game never stutters).
+  `/dross goto lair colossus` takes you to the nearest one's entrance (building it first if it isn't yet; never onto a
+  half-built volcano).
 - **Outside:** a volcano rising about 40 blocks over its arena, with a jagged crater that smokes and throws embers, lava
-  streams and pools round its foot (they never spread), and a big cave mouth with obsidian teeth. The way in never
-  steps more than 1 block: on steep land a rock ramp leads to the mouth.
+  streams and pools round its foot (they never spread, and neither do natural lava pools on its flanks), and a big cave
+  mouth with obsidian teeth. The way in never steps more than 1 block: on steep land a rock ramp leads to the mouth.
 - **Inside:** a domed cavern about 41 blocks across under the crater, with an obsidian and magma floor, lava glowing
   through sealed fissures below it, and obsidian stalactites. No lava can be reached from the floor, and nothing
   spawns inside by itself.

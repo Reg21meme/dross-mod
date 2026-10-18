@@ -22,11 +22,11 @@ import net.minecraft.world.phys.Vec3;
  * boss-site planner put it in ({@code Patch.id()}, the same for the same seed forever), so a patch never gets two. Saved as
  * {@code data/dross_colossus_lairs.dat} in the Overworld's save folder (the Overworld is always loaded).
  * <p>
- * {@code Lairs}: a list of {@code Id}, {@code Group} (the planner's group, 0 = the nearest), {@code SiteX/Z} (the planned
- * spot), {@code CenterX/Z}, {@code FloorY}, {@code Tunnel}, {@code Mouth}, {@code RimY}, {@code HighLand},
- * {@code GullyEnd}, {@code ApproachEnd}, {@code EntranceX/Y/Z}, {@code EntranceYaw}, {@code BuildMillis}, {@code Boss}
- * (UUID, while it has one), {@code Beaten} (true for good once its Colossus is beaten: no respawn), {@code DefeatedAt} (the
- * game time, for the log), {@code Rises}. A planned lair nobody has come near has no entry yet.
+ * {@code Lairs}: a list of {@code Id}, {@code Group} (the planner's group, 0 = the nearest), {@code CenterX/Z} (the
+ * planned spot), {@code FloorY}, {@code Tunnel}, {@code Mouth}, {@code RimY}, {@code HighLand}, {@code GullyEnd},
+ * {@code ApproachEnd}, {@code EntranceX/Y/Z}, {@code EntranceYaw}, {@code BuildMillis}, {@code Boss} (UUID, while it has
+ * one), {@code Beaten} (true for good once its Colossus is beaten: no respawn). A planned lair nobody has come near has no
+ * entry yet.
  * Server thread only.
  */
 public final class ColossusLairData extends SavedData
@@ -40,8 +40,6 @@ public final class ColossusLairData extends SavedData
     {
         final long id;
         int group;
-        int siteX;
-        int siteZ;
         int centerX;
         int centerZ;
         int floorY;
@@ -57,8 +55,6 @@ public final class ColossusLairData extends SavedData
         @Nullable
         UUID boss;
         boolean beaten;
-        long defeatedAt;
-        int rises;
 
         Entry(long id)
         {
@@ -148,16 +144,6 @@ public final class ColossusLairData extends SavedData
         {
             return beaten;
         }
-
-        long defeatedAt()
-        {
-            return defeatedAt;
-        }
-
-        int rises()
-        {
-            return rises;
-        }
     }
 
     static ColossusLairData get(MinecraftServer server)
@@ -174,8 +160,6 @@ public final class ColossusLairData extends SavedData
             CompoundTag t = list.getCompound(i);
             Entry e = new Entry(t.getLong("Id"));
             e.group = t.getInt("Group");
-            e.siteX = t.getInt("SiteX");
-            e.siteZ = t.getInt("SiteZ");
             e.centerX = t.getInt("CenterX");
             e.centerZ = t.getInt("CenterZ");
             e.floorY = t.getInt("FloorY");
@@ -191,8 +175,6 @@ public final class ColossusLairData extends SavedData
             e.buildMillis = t.getLong("BuildMillis");
             e.boss = t.hasUUID("Boss") ? t.getUUID("Boss") : null;
             e.beaten = t.getBoolean("Beaten");
-            e.defeatedAt = t.getLong("DefeatedAt");
-            e.rises = t.getInt("Rises");
             data.lairs.put(e.id, e);
         }
         return data;
@@ -207,8 +189,6 @@ public final class ColossusLairData extends SavedData
             CompoundTag t = new CompoundTag();
             t.putLong("Id", e.id);
             t.putInt("Group", e.group);
-            t.putInt("SiteX", e.siteX);
-            t.putInt("SiteZ", e.siteZ);
             t.putInt("CenterX", e.centerX);
             t.putInt("CenterZ", e.centerZ);
             t.putInt("FloorY", e.floorY);
@@ -228,8 +208,6 @@ public final class ColossusLairData extends SavedData
                 t.putUUID("Boss", e.boss);
             }
             t.putBoolean("Beaten", e.beaten);
-            t.putLong("DefeatedAt", e.defeatedAt);
-            t.putInt("Rises", e.rises);
             list.add(t);
         }
         tag.put("Lairs", list);
@@ -263,13 +241,11 @@ public final class ColossusLairData extends SavedData
         return new ArrayList<>(lairs.values());
     }
 
-    /** A lair has been built at its planned site. */
-    Entry markBuilt(long id, int group, int siteX, int siteZ, LairBuilder.Layout layout, long millis)
+    /** A lair has been built at its planned site (the floor's middle is the planned spot). */
+    Entry markBuilt(long id, int group, LairBuilder.Layout layout, long millis)
     {
         Entry e = new Entry(id);
         e.group = group;
-        e.siteX = siteX;
-        e.siteZ = siteZ;
         e.centerX = layout.centerX();
         e.centerZ = layout.centerZ();
         e.floorY = layout.floorY();
@@ -293,15 +269,13 @@ public final class ColossusLairData extends SavedData
     void setRisen(Entry e, UUID id)
     {
         e.boss = id;
-        e.rises++;
         setDirty();
     }
 
-    /** The lair's Colossus was beaten at {@code gameTime}: the lair stays empty for good. */
-    void recordDefeat(Entry e, long gameTime)
+    /** The lair's Colossus was beaten: the lair stays empty for good. */
+    void recordDefeat(Entry e)
     {
         e.beaten = true;
-        e.defeatedAt = gameTime;
         setDirty();
     }
 
@@ -317,15 +291,6 @@ public final class ColossusLairData extends SavedData
     {
         e.boss = null;
         e.beaten = false;
-        e.defeatedAt = 0L;
-        setDirty();
-    }
-
-    /** Tests: as if it was beaten at {@code gameTime} (long ago: a "long wait" faked). */
-    void setDefeatedAtForTests(Entry e, long gameTime)
-    {
-        e.beaten = true;
-        e.defeatedAt = gameTime;
         setDirty();
     }
 }

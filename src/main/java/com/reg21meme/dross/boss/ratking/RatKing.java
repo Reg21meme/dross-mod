@@ -102,7 +102,7 @@ import java.util.UUID;
  *       A hit never skips a burrow: his health stops at it.</li>
  *   <li>At {@link RatKingTuning#RAGE_AT} of his health he flies into a <b>rage</b> (his health stops there and he can't
  *       be hurt while it plays): red eyes from then on, and the Rage numbers.</li>
- *   <li>His boss bar ({@code boss.dross.rat_king.option<n>[.rage]}, drawn by {@code boss.client.DrossBossBars}) shows
+ *   <li>His boss bar ({@code boss.dross.rat_king.bar[.rage]}, drawn by {@code boss.client.DrossBossBars}) shows
  *       to players within {@link RatKingTuning#BOSS_BAR_RANGE} blocks once he's awake.</li>
  *   <li>When he dies he plays his silly death and lies there for {@link RatKingTuning#CORPSE_TICKS} ticks, then
  *       vanishes in a puff of smoke; his rats crumble. The player credited with the kill and every player within the
@@ -852,7 +852,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
         }
         boolean rage = this.isEnraged()
                 && !(this.getAction() == RatKingAction.RAGE && this.animationTicks() < this.getDesign().rageEyes());
-        Component name = Component.translatable(RatKingTuning.barKey(RatKingTuning.BOSS_BAR_STYLE, rage));
+        Component name = Component.translatable(rage ? RatKingTuning.BAR_KEY_RAGE : RatKingTuning.BAR_KEY);
         BossEvent.BossBarColor color = rage ? BossEvent.BossBarColor.RED : BossEvent.BossBarColor.GREEN;
         if (this.bossBar == null)
         {

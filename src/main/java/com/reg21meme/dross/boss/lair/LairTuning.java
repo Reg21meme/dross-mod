@@ -334,11 +334,20 @@ public final class LairTuning
     /** At most this many lairs are loaded and built at the same time (each loads about 200 chunks). */
     public static final int MAX_BUILDS_AT_ONCE = 1;
     /**
-     * A lair is built in steps, one step a tick (trees, the cone, the shell and cavern, the crater and floor, the way in
-     * and stalactites, the safety passes and veins, then all the lava at once), so the server never stalls for the whole
-     * build (about 1.6 s) in one tick.
+     * A lair is built a piece at a time (a row of the cone, a rivulet, a few thousand blocks of a safety pass...), the
+     * pieces always in the same order: each server tick does pieces for at most about this many milliseconds (a tick is
+     * 50), so the game never stalls (the whole build is about 150-600 ms of work). Like the hub's and the cathedral's
+     * building (world-builder's {@code GroundFit.STEP_MILLIS}). The one exception is the lava's work (placing it, walling
+     * it in, its banks and clearing what burns near it, about 5-30 ms): it always runs in one tick of its own, so no lava
+     * is ever left half walled in between ticks.
      */
-    public static final int BUILD_STEPS = 7;
+    public static final long STEP_MILLIS = 40L;
+    /** The pieces' sizes: the real ground's columns read before planning... */
+    public static final int GROUND_COLUMNS_PER_PIECE = 512;
+    /** ...the blocks of a safety pass (sealing fluids, loose plants, the last seal)... */
+    public static final int SAFETY_BLOCKS_PER_PIECE = 4096;
+    /** ...and the lava blocks walled in, given banks or guarded from fire (all in the lava's one tick). */
+    public static final int LAVA_BLOCKS_PER_PIECE = 64;
     /** As the world starts, the first this many groups' lair spots are worked out on a background thread (so they're ready). */
     public static final int WARM_UP_GROUPS = 2;
 

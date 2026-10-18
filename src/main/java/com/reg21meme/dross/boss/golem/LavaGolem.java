@@ -246,11 +246,5 @@ public class LavaGolem extends GolemMinion
         {
             this.entityData.set(DATA_FUSE, tag.getInt(TAG_FUSE));
         }
-        if (!this.isFuseLit())
-        {
-            // A wild one waiting for a player has its whole fuse (one from a spawn egg saved before wild lava golems
-            // waited may have been part-way down it).
-            this.entityData.set(DATA_FUSE, ColossusTuning.LAVA_GOLEM_FUSE_TICKS);
-        }
     }
 }

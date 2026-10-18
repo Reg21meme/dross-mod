@@ -255,7 +255,7 @@ public final class RatKingLairKeeper
             {
                 if (!king.isAlive() && !data.beaten(id))
                 {
-                    data.recordDefeat(id, now); // dead (lying there), but his death wasn't seen
+                    data.recordDefeat(id); // dead (lying there), but his death wasn't seen
                 }
                 return; // he's there (asleep, fighting or lying dead): nothing more appears
             }
@@ -287,8 +287,8 @@ public final class RatKingLairKeeper
         }
         king.getPersistentData().put(HOME_TAG, homeTag(cave));
         data.setKing(cave.id(), king.getUUID());
-        LOGGER.info("Rat cave {}: the Rat King appears asleep on his nest at {} (king {} of this cave, game time {}).", where(cave),
-                BlockPos.containing(feet).toShortString(), data.appearances(cave.id()), now);
+        LOGGER.info("Rat cave {}: the Rat King appears asleep on his nest at {} (game time {}).", where(cave),
+                BlockPos.containing(feet).toShortString(), now);
         return king;
     }
 
@@ -431,7 +431,7 @@ public final class RatKingLairKeeper
         {
             return; // an old copy, not the cave's king now
         }
-        data.recordDefeat(cave.get(), level.getServer().overworld().getGameTime());
+        data.recordDefeat(cave.get());
         LOGGER.info("Rat cave: its Rat King was beaten ({}); the cave stays empty for good (no respawn).", event.getSource().getMsgId());
     }
 

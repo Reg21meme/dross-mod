@@ -228,12 +228,12 @@ public final class RatKingTuning
     /** His boss bar shows to players within this many blocks, once he's awake. */
     public static final double BOSS_BAR_RANGE = 40.0D;
     /**
-     * Which bar design he uses (boss.client.RatKingBarStyles; /dross showcase bossbars ratking): the user's pick, 9,
+     * His boss bar's name, normal and in the Rage (the client's DrossBossBars draws these two bars itself, from
+     * boss.client.RatKingBarArt). Its look: nine designs were made (tools/ratking/bossbars.py) and the user picked 9,
      * "Pipe & eyes" (option 6's sewer pipe with option 8's rat peeking over it, browner, no pink fingers on the bar).
      */
-    public static final int BOSS_BAR_STYLE = 9;
-    /** The start of his boss bars' names (the client's DrossBossBars draws every bar whose name starts with it). */
-    public static final String BAR_KEY_PREFIX = "boss.dross.rat_king.";
+    public static final String BAR_KEY = "boss.dross.rat_king.bar";
+    public static final String BAR_KEY_RAGE = "boss.dross.rat_king.bar.rage";
     /** He lies there this many ticks after his death animation, then vanishes in a puff of smoke. */
     public static final int CORPSE_TICKS = 200;
     /** A kill counts as a player's if they hit him within this many ticks before he died. */
@@ -346,16 +346,4 @@ public final class RatKingTuning
     public static final int RAT_SEWER_SPAWN_MAX_BLOCK_LIGHT = 7;
 
     private RatKingTuning() {}
-
-    /** The name key of his boss bar in a design (1-8) and look: {@code boss.dross.rat_king.option<n>[.rage]}. */
-    public static String barKey(int option, boolean rage)
-    {
-        return BAR_KEY_PREFIX + "option" + option + (rage ? ".rage" : "");
-    }
-
-    /** The name key of a showcase bar ({@code /dross showcase bossbars ratking}): {@code boss.dross.rat_king.showcase.option<n>[.rage]}. */
-    public static String showcaseBarKey(int option, boolean rage)
-    {
-        return BAR_KEY_PREFIX + "showcase.option" + option + (rage ? ".rage" : "");
-    }
 }

@@ -50,9 +50,10 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  *       it's instant.</li>
  *   <li><b>Load</b>: a site with no lair yet is queued; its chunks ({@link LairTuning#LOAD_RADIUS} round it) are generated
  *       in the background with chunk tickets, at most {@link LairTuning#MAX_BUILDS_AT_ONCE} lair at a time.</li>
- *   <li><b>Build</b> ({@link LairBuilder}) a step a tick ({@link LairTuning#BUILD_STEPS} steps), then the chunks stay
- *       loaded a few seconds for their lighting. The lair is saved with its patch ({@link ColossusLairData}), so each is
- *       built once and a patch never gets two.</li>
+ *   <li><b>Build</b> ({@link LairBuilder}) a piece at a time, at most about {@link LairTuning#STEP_MILLIS} ms of work a
+ *       tick (the lava's work gets one tick of its own; a typical lair takes 4 to 12 ticks), then the chunks stay loaded
+ *       a few seconds for their lighting. The lair is saved with its patch ({@link ColossusLairData}) only once it's
+ *       finished, so each is built once, a patch never gets two, and nobody is ever sent to a half-built one.</li>
  * </ol>
  * {@code /dross goto lair colossus} asks for the nearest site and waits for its lair here ({@link #whenBuilt}). If the
  * server stops while a lair is half built, it's finished at once (the world is still there); one that was still loading
@@ -166,10 +167,7 @@ final class LairPlacer
                 LOGGER.info("Colossus lairs: the server is stopping while the lair at {} {} is half built; finishing it now.", job.x, job.z);
                 try
                 {
-                    while (!job.build.step())
-                    {
-                        // the rest at once
-                    }
+                    job.build.finish(); // the rest at once
                     job.finish(server);
                 }
                 catch (RuntimeException e)
@@ -249,12 +247,6 @@ final class LairPlacer
             }
         }
         return false;
-    }
-
-    /** True while any lair is waiting, loading or being built (tests). */
-    static boolean isBusy()
-    {
-        return !QUEUE.isEmpty() || !JOBS.isEmpty();
     }
 
     // ---------------------------------------------------------------- who's near which site
@@ -413,7 +405,7 @@ final class LairPlacer
                     {
                         LOGGER.warn("Colossus lairs: the chunks round {} {} still weren't all loaded after {} s; building anyway.", x, z, waited / 1000);
                     }
-                    ready = true; // planned on the next tick, never in the same one as the check
+                    ready = true; // planned and built from the next tick on, never in the same one as the check
                     return false;
                 }
                 Map<Long, Integer> heights = null;
@@ -426,9 +418,8 @@ final class LairPlacer
                     LOGGER.warn("Colossus lairs: the generator's heights round {} {} weren't ready; planning reads them itself.", x, z);
                 }
                 build = LairBuilder.start(dross, x, z, heights);
-                return false;
             }
-            if (!build.step())
+            if (!build.step(LairBuilder.Budget.millis(STEP_MILLIS)))
             {
                 return false;
             }
@@ -442,16 +433,18 @@ final class LairPlacer
             LairBuilder.Result result = build.result();
             LairBuilder.Layout layout = result.layout();
             ColossusLairData data = ColossusLairData.get(server);
-            ColossusLairData.Entry entry = data.markBuilt(id, site.patch().group(), x, z, layout, result.millis());
+            ColossusLairData.Entry entry = data.markBuilt(id, site.patch().group(), layout, result.millis());
             LairKeeper.refresh(data);
             LOGGER.info("Colossus lairs: built the volcano of Cinder Wastes group {} (patch {}) at {} {} in {} ms of work over {} ticks (the longest "
-                            + "tick's share {} ms; chunk loading {} s): {}; cave mouth {} blocks out, gully {} blocks, way in: {}, entrance {} {} {}; "
-                            + "{} blocks changed, {} tree(s) removed, {} block(s) sealed against fluids, {} stalactite(s), {} fissure block(s) of "
-                            + "lava under the floor, {} lava rivulet(s) with {} lava block(s) outside.", site.patch().group() + 1, site.patch().number(),
-                    x, z, result.millis(), BUILD_STEPS + 1, build.longestStep(), loadMillis < 0 ? "?" : Math.round(loadMillis / 1000.0D),
-                    result.plan().describe(), layout.mouth(), result.gullyLength(), result.approach().describe(), Math.round(layout.entrance().x),
-                    Math.round(layout.entrance().y), Math.round(layout.entrance().z), result.changed(), result.trees(), result.sealed(),
-                    result.stalactites(), result.fissureCells(), result.rivulets(), result.outsideLava());
+                            + "tick's share {} ms; chunk loading {} s; each kind of work, ms (ticks): {}): {}; cave mouth {} blocks out, gully {} "
+                            + "blocks, way in: {}, entrance {} {} {}; {} blocks changed, {} tree(s) removed, {} block(s) sealed against fluids, {} "
+                            + "stalactite(s), {} fissure block(s) of lava under the floor, {} lava rivulet(s) with {} lava block(s) outside, {} "
+                            + "emptied block(s) sealed against lava or water already there.", site.patch().group() + 1, site.patch().number(),
+                    x, z, result.millis(), build.steps(), build.longestStepMillis(), loadMillis < 0 ? "?" : Math.round(loadMillis / 1000.0D),
+                    build.describeSteps(), result.plan().describe(), layout.mouth(), result.gullyLength(), result.approach().describe(),
+                    Math.round(layout.entrance().x), Math.round(layout.entrance().y), Math.round(layout.entrance().z), result.changed(),
+                    result.trees(), result.sealed(), result.stalactites(), result.fissureCells(), result.rivulets(), result.outsideLava(),
+                    result.openingsSealed());
             if (!result.approach().meetsLand())
             {
                 LOGGER.warn("Colossus lairs: the land in front of the volcano at {} {} is too steep for the way in to meet it within {} blocks "

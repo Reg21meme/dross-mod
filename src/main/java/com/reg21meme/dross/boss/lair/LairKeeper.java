@@ -244,7 +244,7 @@ public final class LairKeeper
                 }
                 if (!entry.beaten())
                 {
-                    data.recordDefeat(entry, now); // dead (cooling, or a statue), but its death wasn't seen
+                    data.recordDefeat(entry); // dead (cooling, or a statue), but its death wasn't seen
                 }
             }
             else
@@ -347,7 +347,7 @@ public final class LairKeeper
         {
             return; // not a lair we know, or an old copy of its Colossus
         }
-        data.recordDefeat(entry, level.getServer().overworld().getGameTime());
+        data.recordDefeat(entry);
         LOGGER.info("Colossus lair {} {}: its Colossus was beaten ({}); the lair stays empty for good (no respawn).", entry.centerX(),
                 entry.centerZ(), event.getSource().getMsgId());
     }

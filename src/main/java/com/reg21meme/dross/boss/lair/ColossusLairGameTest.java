@@ -81,7 +81,8 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  *       {@code DROSS_LAIR_PREVIEWS} set it writes the first lair's blocks for the preview images
  *       (tools/golems/lair_preview.py).</li>
  *   <li>{@link #colossusRisesOnceAndNeverAgain}: a stand-in player stepping onto a lair's floor makes the Colossus rise in
- *       the middle; once it's dead the lair stays empty, even after a faked long wait and for a newcomer (no respawn).
+ *       the middle; once it's dead the lair stays empty, for the player who stayed (over two waits) and for a newcomer
+ *       (no respawn).
  *       Cleans up after itself (no Colossus left, the lair's boss data reset).</li>
  * </ul>
  */
@@ -120,8 +121,6 @@ public final class ColossusLairGameTest
     private static final int NEAR_STANDIN_DISTANCE = 200;
     /** The lairs of the planner's groups 0 and 1 are built and checked; this group's, which nobody comes near, must not be. */
     private static final int FAR_GROUP = 6;
-    /** A faked long wait after the Colossus is beaten: its defeat is moved this many ticks into the past (a few game days). */
-    private static final long LONG_WAIT_TICKS = 1_000_000L;
     /** The Colossus must rise within this long of the stand-in stepping in (real time; loading the chunks takes a moment). */
     private static final long RISE_TIMEOUT_MILLIS = 2 * 60 * 1000L;
     /** The tick limits are only a backstop behind the real-time limits (the test server can run hundreds of ticks a second). */
@@ -132,8 +131,6 @@ public final class ColossusLairGameTest
     private static final int FOOTPRINT_RADIUS = 48;
     /** ...every this many blocks. */
     private static final int FOOTPRINT_STEP = 4;
-    /** A spot may lie this many degrees outside its cone (it's nudged a little after the search). */
-    private static final double CONE_SLACK_DEGREES = 5.0D;
     /** The floor is at least this share obsidian... */
     private static final double MIN_OBSIDIAN_SHARE = 0.4D;
     /** ...with at least this many magma blocks, but no more than this share of it... */
@@ -1435,7 +1432,8 @@ public final class ColossusLairGameTest
                             if (LairBuilder.lavaCouldEnter(level, q, state))
                             {
                                 loose++;
-                                example = example == null ? "lava at " + p.toShortString() + " could flow to " + q.toShortString() : example;
+                                example = example == null ? "lava at " + p.toShortString() + " could flow to " + q.toShortString() + " ("
+                                        + state + ")" : example;
                             }
                         }
                         for (int ox = -FIRE_GUARD_REACH; ox <= FIRE_GUARD_REACH; ox++)
@@ -1632,7 +1630,7 @@ public final class ColossusLairGameTest
                 .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.alive() != null, "the Colossus to rise")))
                 .thenExecute(() -> run.guard(run::checkRiseAndKill))
                 .thenIdle(QUIET_TICKS)
-                .thenExecute(() -> run.guard(run::checkStillEmptyThenLongWait))
+                .thenExecute(() -> run.guard(run::checkStillEmpty))
                 .thenIdle(QUIET_TICKS)
                 .thenExecute(() -> run.guard(run::checkStillEmptyThenNewcomer))
                 .thenIdle(2 * QUIET_TICKS)
@@ -1768,31 +1766,28 @@ public final class ColossusLairGameTest
                 throw new GameTestAssertException("with its Colossus up, the lair's state is " + ColossusLair.state(server, lair) + ", not AWAKE");
             }
             first = boss.getUUID();
-            long killedAt = server.overworld().getGameTime();
             boss.kill();
-            if (!entry.beaten() || entry.defeatedAt() != killedAt || ColossusLair.state(server, lair) != ColossusLair.State.BEATEN)
+            if (!entry.beaten() || ColossusLair.state(server, lair) != ColossusLair.State.BEATEN)
             {
-                throw new GameTestAssertException("its death wasn't recorded (beaten " + entry.beaten() + ", at " + entry.defeatedAt()
-                        + ", killed at " + killedAt + ", state " + ColossusLair.state(server, lair) + ")");
+                throw new GameTestAssertException("its death wasn't recorded (beaten " + entry.beaten() + ", state "
+                        + ColossusLair.state(server, lair) + ")");
             }
             LOGGER.info("[lair test] The Colossus rose in the middle and was killed; checking it never rises again.");
         }
 
-        void checkStillEmptyThenLongWait()
+        void checkStillEmpty()
         {
             if (alive() != null || countAlive() > 0)
             {
                 throw new GameTestAssertException("a Colossus rose again straight after the last one died");
             }
-            // A long wait faked: its defeat moved far into the past (no respawn timer may bring it back).
-            ColossusLairData.get(server).setDefeatedAtForTests(entry, server.overworld().getGameTime() - LONG_WAIT_TICKS);
         }
 
         void checkStillEmptyThenNewcomer()
         {
             if (alive() != null || countAlive() > 0)
             {
-                throw new GameTestAssertException("a Colossus rose again after a (faked) long wait, for the player who stayed");
+                throw new GameTestAssertException("a Colossus rose again a while later, for the player who stayed");
             }
             arrive(); // someone new walks in
         }
@@ -1807,7 +1802,7 @@ public final class ColossusLairGameTest
             {
                 throw new GameTestAssertException("the beaten lair's state is " + ColossusLair.state(server, lair));
             }
-            LOGGER.info("[lair test] Beaten, the lair stayed empty after a long wait and for a newcomer (no respawn).");
+            LOGGER.info("[lair test] Beaten, the lair stayed empty for the player who stayed and for a newcomer (no respawn).");
         }
 
         /** Living Colossi in the cavern. */

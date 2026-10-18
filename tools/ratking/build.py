@@ -13,7 +13,7 @@ Run from the project folder:
     python tools/ratking/build.py --clip 1 4      # the clipping check (ratkit/clip.py) on these builds only
     python tools/ratking/build.py --ball          # only his poison ball (ratkit/ball.py)
     python tools/ratking/build.py --charge <dir>  # only the spear charge's page (side views) into <dir>
-    python tools/ratking/build.py --bars          # only the boss bar options (bossbars.py)
+    python tools/ratking/build.py --bars          # only the boss bar (bossbars.py)
     python tools/ratking/build.py --trophies-only # only his five trophies (ratkit/trophies.py; a few minutes)
     python tools/ratking/build.py --trophies-only --candidates   # the ten trophy candidates' previews again (the
                                                                  # record, in boss-previews/rat_king/trophies/candidates/)
@@ -25,8 +25,8 @@ It writes:
                                                                                     and the fight's run, sweep, cast,
                                                                                     charge_start, charge, charge_skid
   src/main/resources/assets/dross/{geo,animations,textures}/entity/plague_ball/... his poison ball (ratkit/ball.py)
-  src/main/resources/assets/dross/textures/gui/rat_king_bar/option_<n>.png         the boss bar options (bossbars.py)
-  src/main/java/com/reg21meme/dross/boss/client/RatKingBarStyles.java              (generated, bossbars.py)
+  src/main/resources/assets/dross/textures/gui/rat_king_bar.png                    the boss bar (bossbars.py)
+  src/main/java/com/reg21meme/dross/boss/client/RatKingBarArt.java                 (generated, bossbars.py)
   src/main/resources/assets/dross/textures/entity/rat_king/<id>.png, _glow.png, _rage.png
   src/main/resources/assets/dross/{geo,animations,textures}/entity/rat/<id>...      the rats (idle, run)
   src/main/resources/assets/dross/textures/particle/zzz_<n>.png                     the "Zzz" particle
@@ -655,11 +655,11 @@ def build_everything(king_numbers=None, rats=True, previews_only=False):
         d, m, b, rig, anims, tex = built[0]
         build_trophies(d, m, tex, animations=anims, rig=rig, previews_only=previews_only)
     if all_kings:
-        # His fight's poison ball and the boss bar options (their own folders: remove_stale never touches them).
+        # His fight's poison ball and the boss bar (their own folders: remove_stale never touches them).
         from ratkit import ball as BALL
         BALL.build_all(ASSETS, PREVIEWS, write_files=not previews_only)
         import bossbars as BB
-        print("Boss bar options")
+        print("Boss bar")
         BB.build_all(write_files=not previews_only)
     if rats:
         from ratdesigns import rats as RD
