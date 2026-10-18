@@ -6,9 +6,8 @@ import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.sewer.SewerSites;
 import com.reg21meme.dross.portal.DrossHub;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.ints.IntArrays;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,23 +15,29 @@ import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.levelgen.RandomState;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.server.ServerStartedEvent;
 import net.minecraftforge.event.server.ServerStoppedEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.server.ServerLifecycleHooks;
@@ -72,9 +77,29 @@ import org.slf4j.Logger;
  *   <li>A boss plugs in its own fit test with {@link #setFinder} (during mod setup, before any world loads: the plan
  *       depends on it, so changing it moves the lairs).</li>
  * </ul>
- * Everything here is safe on any thread (world generation calls it from its own threads). The work is done lazily and
- * remembered: the biome map is read outwards from the hub ring by ring, as far as the questions need, and each group is
- * planned the first time it's asked about (about a second for a group of 3 Blightwood patches).
+ * <h2>How it's worked out (and why world generation doesn't wait for it)</h2>
+ * Numbering patches by distance needs every patch nearer than the one asked about, so the biome map is read outwards
+ * from the hub ring by ring (rings of 16-block cells round the hub's cell), as far as the questions need; each group is
+ * planned the first time it's asked about (its 3 patches' fit tests side by side, on the planner's helper threads: about
+ * a third of a second for a group of 3 Blightwood patches).
+ * Everything here is safe on any thread (world generation calls it from its own threads), and the answers never depend
+ * on which thread asks first or when:
+ * <ul>
+ *   <li><b>Read in the background.</b> When the world starts, a background thread ({@link #startReader}) reads the map out
+ *       to {@link BossSitesTuning#READ_AT_START} blocks, then keeps it read {@link BossSitesTuning#READ_AHEAD} blocks past
+ *       the furthest player in the Dross, and plans the groups of the patches within
+ *       {@link BossSitesTuning#PREPLAN_RADIUS} of each player. So world generation nearly always finds its answer ready.</li>
+ *   <li><b>Answers without waiting.</b> What's been read is published after each step ({@link Published}: how far, and
+ *       the numbered patches; each map cell knows its patch, {@link BiomeCells}), and a question about a place already read
+ *       is answered from that, without the lock. A cell that isn't a boss biome is "no patch here" at once, however far
+ *       out it is (one remembered biome sample).</li>
+ *   <li><b>Reading further, quickly.</b> Only a question about a place further out than the map has been read waits: the
+ *       thread reads the next rings itself, a band at a time, with the planner's sampling threads helping
+ *       ({@link PlannerThreads}), publishing after each band, so other threads waiting for nearer places go as soon as
+ *       theirs is read. A wait longer than {@link BossSitesTuning#SLOW_READ_LOG_MILLIS} is logged.</li>
+ *   <li><b>Quicker samples.</b> Each biome sample is about twice as quick as Minecraft's own sampler, with exactly the
+ *       same answers ({@link SiteTerrain}).</li>
+ * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class BossSites
@@ -153,15 +178,28 @@ public final class BossSites
     // ---------------------------------------------------------------------------------------------
 
     private static final Map<RandomState, BossSites> WORLDS = new IdentityHashMap<>();
+    /** The plan world generation asked for last (checked before taking WORLDS' lock: nearly always the one). */
+    @Nullable
+    private static volatile BossSites lastWorld;
+    /** Where the Dross's players are (refreshed every {@link BossSitesTuning#READER_PLAYER_TICKS} on the server thread), for the background reader. */
+    private static volatile List<BlockPos> drossPlayers = List.of();
 
     /** The running world's plan (the Dross level's). Any thread. */
     public static BossSites forLevel(ServerLevel dross)
     {
         RandomState state = dross.getChunkSource().randomState();
+        BossSites last = lastWorld;
+        if (last != null && last.terrain.randomState() == state)
+        {
+            return last;
+        }
+        BossSites sites;
         synchronized (WORLDS)
         {
-            return WORLDS.computeIfAbsent(state, s -> new BossSites(SiteTerrain.forWorld(dross)));
+            sites = WORLDS.computeIfAbsent(state, s -> new BossSites(SiteTerrain.forWorld(dross)));
         }
+        lastWorld = sites;
+        return sites;
     }
 
     /** The plan a world with this seed would have: a new one each call (not remembered), for the headless checks and previews. */
@@ -174,11 +212,17 @@ public final class BossSites
     @Nullable
     public static BossSites forWorldgen(RandomState state)
     {
+        BossSites last = lastWorld;
+        if (last != null && last.terrain.randomState() == state)
+        {
+            return last;
+        }
         synchronized (WORLDS)
         {
             BossSites known = WORLDS.get(state);
             if (known != null)
             {
+                lastWorld = known;
                 return known;
             }
         }
@@ -191,13 +235,65 @@ public final class BossSites
         return null;
     }
 
+    /** When the world has started: the background reader begins reading the Dross's biome map. */
+    @SubscribeEvent
+    public static void onServerStarted(ServerStartedEvent event)
+    {
+        ServerLevel dross = event.getServer().getLevel(ModDimensions.DROSS_LEVEL);
+        if (dross != null)
+        {
+            forLevel(dross).startReader();
+        }
+    }
+
+    /** Every second: where the Dross's players are (the background reader keeps the map read past them). */
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event)
+    {
+        if (event.phase != TickEvent.Phase.END || event.getServer().getTickCount() % BossSitesTuning.READER_PLAYER_TICKS != 0)
+        {
+            return;
+        }
+        ServerLevel dross = event.getServer().getLevel(ModDimensions.DROSS_LEVEL);
+        if (dross == null || dross.players().isEmpty())
+        {
+            if (!drossPlayers.isEmpty())
+            {
+                drossPlayers = List.of();
+            }
+            return;
+        }
+        List<BlockPos> where = new ArrayList<>();
+        for (ServerPlayer player : dross.players())
+        {
+            if (!player.isSpectator())
+            {
+                where.add(player.blockPosition());
+            }
+        }
+        drossPlayers = List.copyOf(where);
+    }
+
+    @SubscribeEvent
+    public static void onServerStopping(ServerStoppingEvent event)
+    {
+        synchronized (WORLDS)
+        {
+            WORLDS.values().forEach(BossSites::stopReader);
+        }
+        drossPlayers = List.of();
+    }
+
     @SubscribeEvent
     public static void onServerStopped(ServerStoppedEvent event)
     {
         synchronized (WORLDS)
         {
+            WORLDS.values().forEach(BossSites::stopReader);
             WORLDS.clear();
         }
+        lastWorld = null;
+        drossPlayers = List.of();
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -209,30 +305,60 @@ public final class BossSites
     private final int hubZ = DrossHub.CENTER.getZ();
     private final int hubCellX = Math.floorDiv(this.hubX, BossSitesTuning.CELL);
     private final int hubCellZ = Math.floorDiv(this.hubZ, BossSitesTuning.CELL);
-    /** Guards the biome map's reading (rings, patches, numbering). Never held while a group is planned. */
-    private final Object scanLock = new Object();
-    /** Rings 0 to this (cells round the hub's chunk, by their Chebyshev distance) have been read. */
+    /** The biome map: each cell's kind (sampled once) and owner (its shape, then its patch). */
+    private final BiomeCells cells;
+    /**
+     * Guards reading the map further (rings, patches, numbering, the cells' owners). Fair, so a thread that needs more
+     * goes next. Never held while a group is planned, and never needed to answer about a place already read.
+     */
+    private final ReentrantLock scanLock = new ReentrantLock(true);
+    /** Rings 0 to this (cells round the hub's cell, by their Chebyshev distance) have been read. (scanLock) */
     private int scannedRing = -1;
-    /** Every patch nearer the hub than this has been found and numbered. */
+    /** Every cell of rings 0 to this has been sampled (written with scanLock held; read by the background reader without it). */
+    private volatile int sampledRing = -1;
+    /** Every patch nearer the hub than this has been found and numbered. (scanLock) */
     private double complete = -1.0D;
+    /** (scanLock) */
     private boolean limitReached;
+    /** Time spent following new patches and numbering found ones, so far (scanLock; for the log). */
+    private long floodNanos;
+    private long numberNanos;
+    /** What's been read so far, for any thread (replaced after every step). */
+    private volatile Published published;
     private final Map<ResourceKey<Biome>, BiomePlan> biomes = new LinkedHashMap<>();
+    /** The boss biomes' plans, by their index in {@link #BOSS_BIOMES}. */
+    private final BiomePlan[] plans;
     /** Where each use would fit in a patch (its finder's answer), by use, patch and relaxed. */
     private final Map<FitKey, Optional<Site>> fits = new ConcurrentHashMap<>();
     private final Map<String, Map<Long, Object>> caches = new ConcurrentHashMap<>();
+    /** The background reader (only the running world's plan has one). */
+    @Nullable
+    private Thread reader;
+    private volatile boolean stopReading;
 
     private record FitKey(SiteUse use, long patch, boolean relaxed)
     {
     }
 
-    /** A found patch, before and after it's numbered. */
-    private static final class Shape
+    /**
+     * What's been read so far, as one unchanging snapshot: every cell nearer the hub than {@code complete} has been read
+     * and owns its final answer ({@link BiomeCells#owner}: written before this snapshot was published), and each biome's
+     * first {@code counts[i]} patches are {@code numbered[i][0..counts[i] - 1]} (those entries never change).
+     */
+    private record Published(int ring, double complete, boolean limit, Patch[][] numbered, int[] counts)
+    {
+    }
+
+    /** What a cell queued while a new patch is being followed is owned by, until the patch is recorded. */
+    private static final Object QUEUED = new Object();
+
+    /** A found patch waiting to be numbered (its cells own it until its {@link Patch} replaces it). Immutable. */
+    static final class Shape
     {
         final long[] cells;
         final long nearest;
         final double distance;
         final boolean speck;
-        @Nullable Patch patch;
 
         Shape(long[] cells, long nearest, double distance, boolean speck)
         {
@@ -243,26 +369,56 @@ public final class BossSites
         }
     }
 
-    private final class BiomePlan
+    private static final class BiomePlan
     {
         final BossBiome config;
-        final Long2ObjectOpenHashMap<Shape> cells = new Long2ObjectOpenHashMap<>();
+        final int index;
+        final byte kind;
+        /** Found patches not numbered yet. (scanLock) */
         final List<Shape> pending = new ArrayList<>();
-        final List<Patch> numbered = new ArrayList<>();
+        /** The numbered patches, nearest first; only appended to (a full array is copied into a bigger one). (scanLock) */
+        Patch[] numbered = new Patch[64];
+        int count;
         final Map<Integer, CompletableFuture<Optional<Group>>> groups = new ConcurrentHashMap<>();
 
-        BiomePlan(BossBiome config)
+        BiomePlan(BossBiome config, int index)
         {
             this.config = config;
+            this.index = index;
+            this.kind = BiomeCells.bossKind(index);
+        }
+
+        void add(Patch patch)
+        {
+            if (this.count == this.numbered.length)
+            {
+                this.numbered = Arrays.copyOf(this.numbered, this.numbered.length * 2);
+            }
+            this.numbered[this.count++] = patch;
         }
     }
 
     private BossSites(SiteTerrain terrain)
     {
         this.terrain = terrain;
-        for (BossBiome b : BOSS_BIOMES)
+        this.plans = new BiomePlan[BOSS_BIOMES.size()];
+        List<ResourceKey<Biome>> keys = new ArrayList<>();
+        for (int i = 0; i < BOSS_BIOMES.size(); i++)
         {
-            this.biomes.put(b.biome(), new BiomePlan(b));
+            BossBiome b = BOSS_BIOMES.get(i);
+            this.plans[i] = new BiomePlan(b, i);
+            this.biomes.put(b.biome(), this.plans[i]);
+            keys.add(b.biome());
+        }
+        this.cells = new BiomeCells(terrain, keys, this.hubCellX, this.hubCellZ);
+        this.scanLock.lock();
+        try
+        {
+            publish();
+        }
+        finally
+        {
+            this.scanLock.unlock();
         }
     }
 
@@ -276,6 +432,13 @@ public final class BossSites
     public long seed()
     {
         return this.terrain.seed();
+    }
+
+    /** How far out from the hub the biome map has been read (every patch nearer than this is numbered); for logs and checks. */
+    public double readDistance()
+    {
+        Published p = this.published;
+        return p.limit() ? BossSitesTuning.MAX_DISTANCE : Math.max(0.0D, p.complete());
     }
 
     /**
@@ -295,11 +458,8 @@ public final class BossSites
     public List<Patch> patches(ResourceKey<Biome> biome, int count)
     {
         BiomePlan b = plan(biome);
-        synchronized (this.scanLock)
-        {
-            numberUpTo(b, count);
-            return List.copyOf(b.numbered.subList(0, Math.min(count, b.numbered.size())));
-        }
+        Published p = numberedUpTo(b, count);
+        return List.of(Arrays.copyOf(p.numbered()[b.index], Math.min(Math.max(count, 0), p.counts()[b.index])));
     }
 
     /** The biome's patch with this number (1 = the nearest), if it's within {@link BossSitesTuning#MAX_DISTANCE}. */
@@ -310,23 +470,38 @@ public final class BossSites
             return Optional.empty();
         }
         BiomePlan b = plan(biome);
-        synchronized (this.scanLock)
-        {
-            numberUpTo(b, number);
-            return number <= b.numbered.size() ? Optional.of(b.numbered.get(number - 1)) : Optional.empty();
-        }
+        Published p = numberedUpTo(b, number);
+        return number <= p.counts()[b.index] ? Optional.of(p.numbered()[b.index][number - 1]) : Optional.empty();
     }
 
     /** The patch of {@code biome} the column is in (empty: not that biome there, a speck, or too far). */
     public Optional<Patch> patchAt(ResourceKey<Biome> biome, int x, int z)
     {
         BiomePlan b = plan(biome);
-        long cell = ChunkPos.asLong(Math.floorDiv(x, BossSitesTuning.CELL), Math.floorDiv(z, BossSitesTuning.CELL));
-        synchronized (this.scanLock)
+        int cx = Math.floorDiv(x, BossSitesTuning.CELL);
+        int cz = Math.floorDiv(z, BossSitesTuning.CELL);
+        double distance = cellDistance(ChunkPos.asLong(cx, cz));
+        while (true)
         {
-            scanPast(cellDistance(cell));
-            Shape shape = b.cells.get(cell);
-            return shape == null || shape.patch == null ? Optional.empty() : Optional.of(shape.patch);
+            Published p = this.published;   // (read before the owner: the owners it vouches for were written before it)
+            Object owner = this.cells.owner(cx, cz);
+            if (owner instanceof Patch patch)
+            {
+                return patch.biome().equals(biome) ? Optional.of(patch) : Optional.empty();   // (a patch never changes)
+            }
+            if (owner instanceof Shape shape && shape.speck)
+            {
+                return Optional.empty();   // (a speck is never numbered)
+            }
+            if (this.cells.kind(cx, cz) != b.kind)
+            {
+                return Optional.empty();   // (not this biome: the quick answer, however far out)
+            }
+            if (p.limit() || distance < p.complete())
+            {
+                return Optional.empty();   // (read, and not in a numbered patch: past the planner's reach)
+            }
+            readPast(distance);
         }
     }
 
@@ -399,7 +574,8 @@ public final class BossSites
             return Optional.empty();
         }
         BossBiome config = b.config;
-        // the boss: one patch where it fits, picked by the seed
+        // the boss: one patch where it fits, picked by the seed (the fit tests side by side: each depends only on its patch)
+        PlannerThreads.runAll(patches.size(), i -> fitIn(config.boss(), patches.get(i), false));
         List<Integer> fitting = new ArrayList<>();
         List<Optional<Site>> bossFits = new ArrayList<>();
         for (int i = 0; i < patches.size(); i++)
@@ -452,14 +628,23 @@ public final class BossSites
         {
             slots.add(i == bossIndex ? 0 : next++);
         }
-        // the fillers in the kept patches
+        // the fillers in the kept patches (their fit tests side by side too)
         List<Boolean> rolled = new ArrayList<>();
-        List<Optional<Site>> fillers = new ArrayList<>();
+        List<Patch> toFit = new ArrayList<>();
         for (int i = 0; i < patches.size(); i++)
         {
             boolean roll = i != bossIndex && config.filler() != null && fillerRoll(patches.get(i)) < config.fillerChance();
             rolled.add(roll);
-            fillers.add(roll ? fitIn(config.filler(), patches.get(i), false) : Optional.empty());
+            if (roll)
+            {
+                toFit.add(patches.get(i));
+            }
+        }
+        PlannerThreads.runAll(toFit.size(), i -> fitIn(config.filler(), toFit.get(i), false));
+        List<Optional<Site>> fillers = new ArrayList<>();
+        for (int i = 0; i < patches.size(); i++)
+        {
+            fillers.add(rolled.get(i) ? fitIn(config.filler(), patches.get(i), false) : Optional.empty());
         }
         Group group = new Group(config.biome(), index, List.copyOf(patches), List.copyOf(slots), bossSite, List.copyOf(rolled), List.copyOf(fillers));
         if (LOGGER.isDebugEnabled())
@@ -533,7 +718,8 @@ public final class BossSites
     {
         int x = chunk.getMiddleBlockX();
         int z = chunk.getMiddleBlockZ();
-        if (hubDistance(x, z) > BossSitesTuning.MAX_DISTANCE || !this.terrain.isBiome(use.biome(), x, z))
+        BiomePlan b = this.biomes.get(use.biome());
+        if (b == null || hubDistance(x, z) > BossSitesTuning.MAX_DISTANCE || !isBiome(b, x, z))
         {
             return Optional.empty();   // (the quick answer for nearly every chunk: not even the biome)
         }
@@ -549,6 +735,18 @@ public final class BossSites
     public boolean isSiteChunk(SiteUse use, int chunkX, int chunkZ)
     {
         return siteAtChunk(use, new ChunkPos(chunkX, chunkZ)).isPresent();
+    }
+
+    /** True if the column is the biome (a column at a cell's middle, like a chunk's middle: from the remembered biome map). */
+    private boolean isBiome(BiomePlan b, int x, int z)
+    {
+        int cx = Math.floorDiv(x, BossSitesTuning.CELL);
+        int cz = Math.floorDiv(z, BossSitesTuning.CELL);
+        if (cx * BossSitesTuning.CELL + BossSitesTuning.CELL / 2 == x && cz * BossSitesTuning.CELL + BossSitesTuning.CELL / 2 == z)
+        {
+            return this.cells.kind(cx, cz) == b.kind;
+        }
+        return this.terrain.isBiome(b.config.biome(), x, z);
     }
 
     /**
@@ -650,19 +848,16 @@ public final class BossSites
         int c1x = Math.floorDiv(x + reach, BossSitesTuning.CELL);
         int c0z = Math.floorDiv(z - reach, BossSitesTuning.CELL);
         int c1z = Math.floorDiv(z + reach, BossSitesTuning.CELL);
+        // (every cell holding a spot within the radius is nearer the hub than this, so its patch is numbered by then)
+        readPast(hubDistance(x, z) + reach + BossSitesTuning.CELL);
         List<Integer> groups = new ArrayList<>();
-        synchronized (this.scanLock)
+        for (int cz = c0z; cz <= c1z; cz++)
         {
-            scanPast(hubDistance(x, z) + reach + BossSitesTuning.CELL);
-            for (int cz = c0z; cz <= c1z; cz++)
+            for (int cx = c0x; cx <= c1x; cx++)
             {
-                for (int cx = c0x; cx <= c1x; cx++)
+                if (this.cells.owner(cx, cz) instanceof Patch patch && patch.biome().equals(biome) && !groups.contains(patch.group()))
                 {
-                    Shape shape = b.cells.get(ChunkPos.asLong(cx, cz));
-                    if (shape != null && shape.patch != null && !groups.contains(shape.patch.group()))
-                    {
-                        groups.add(shape.patch.group());
-                    }
+                    groups.add(patch.group());
                 }
             }
         }
@@ -684,7 +879,7 @@ public final class BossSites
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Reading the biome map, ring by ring out from the hub
+    // Reading the biome map further (any thread that needs it, and the background reader)
     // ---------------------------------------------------------------------------------------------
 
     private BiomePlan plan(ResourceKey<Biome> biome)
@@ -697,40 +892,247 @@ public final class BossSites
         return b;
     }
 
-    /** Reads rings until the biome has {@code count} numbered patches (or the limit). Hold scanLock. */
-    private void numberUpTo(BiomePlan b, int count)
+    /** Makes sure every patch nearer the hub than {@code distance} is numbered (reading further if needed, with help). */
+    private void readPast(double distance)
     {
-        while (b.numbered.size() < count && !this.limitReached)
+        Published p = this.published;
+        if (p.limit() || p.complete() > distance)
         {
-            scanNextRing();
+            return;
+        }
+        long started = System.nanoTime();
+        double before = p.complete();
+        StepTimes here = new StepTimes();
+        while (true)
+        {
+            p = this.published;
+            if (p.limit() || p.complete() > distance)
+            {
+                break;
+            }
+            if (lockOrWait())
+            {
+                try
+                {
+                    while (this.complete <= distance && !this.limitReached)
+                    {
+                        step(here);
+                    }
+                }
+                finally
+                {
+                    this.scanLock.unlock();
+                }
+            }
+        }
+        logWait(started, before, "out to " + Math.round(distance) + " blocks", here);
+    }
+
+    /** Makes sure the biome has {@code count} numbered patches (or the limit is reached), and returns what's published then. */
+    private Published numberedUpTo(BiomePlan b, int count)
+    {
+        Published p = this.published;
+        if (p.limit() || p.counts()[b.index] >= count)
+        {
+            return p;
+        }
+        long started = System.nanoTime();
+        double before = p.complete();
+        StepTimes here = new StepTimes();
+        while (true)
+        {
+            p = this.published;
+            if (p.limit() || p.counts()[b.index] >= count)
+            {
+                break;
+            }
+            if (lockOrWait())
+            {
+                try
+                {
+                    while (b.count < count && !this.limitReached)
+                    {
+                        step(here);
+                    }
+                }
+                finally
+                {
+                    this.scanLock.unlock();
+                }
+            }
+        }
+        logWait(started, before, "until " + b.config.biome().location().getPath() + " has " + count + " patches", here);
+        return p;
+    }
+
+    /** Takes the scan lock (true), or gives up after a short wait (false: look again at what's been published meanwhile). */
+    private boolean lockOrWait()
+    {
+        try
+        {
+            return this.scanLock.tryLock(BossSitesTuning.READ_WAIT_POLL_MILLIS, TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException e)
+        {
+            Thread.currentThread().interrupt();
+            this.scanLock.lock();
+            return true;
         }
     }
 
-    /** Reads rings until every patch nearer than {@code distance} is numbered (or the limit). Hold scanLock. */
-    private void scanPast(double distance)
+    private void logWait(long startedNanos, double before, String what, StepTimes here)
     {
-        long started = Util.getMillis();
-        int rings = 0;
-        while (this.complete <= distance && !this.limitReached)
+        long took = (System.nanoTime() - startedNanos) / 1_000_000L;
+        if (took >= BossSitesTuning.SLOW_READ_LOG_MILLIS)
         {
-            scanNextRing();
-            rings++;
-        }
-        long took = Util.getMillis() - started;
-        if (took > 2000L)
-        {
-            LOGGER.info("[boss sites] read the biome map out to {} blocks from the hub ({} more rings) in {} ms", Math.round(this.complete), rings, took);
+            LOGGER.info("[boss sites] waited {} ms for the biome map to be read {} (it had been read out to {} blocks; now {}){}", took, what,
+                    Math.round(Math.max(0.0D, before)), Math.round(readDistance()),
+                    here.steps > 0 ? String.format(Locale.ROOT, "; this thread read %d band(s) of it: %d ms sampling (%d samples, with %d helper "
+                            + "threads), %d ms joining the cells into patches (%d following new patches, %d numbering them; %d cells sampled "
+                            + "while joining)", here.steps, here.sampleNanos / 1_000_000L, here.samples, PlannerThreads.HELPERS,
+                            here.joinNanos / 1_000_000L, here.floodNanos / 1_000_000L, here.numberNanos / 1_000_000L, here.joinSamples) : "");
         }
     }
 
-    private void scanNextRing()
+    /** What a thread's steps took (for the log). */
+    private static final class StepTimes
     {
-        int r = this.scannedRing + 1;
+        int steps;
+        long samples;
+        long sampleNanos;
+        long joinNanos;
+        long floodNanos;
+        long numberNanos;
+        long joinSamples;
+    }
+
+    /**
+     * Reads the next band of rings for a thread that's waiting for it (scanLock held): samples them (and
+     * {@link BossSitesTuning#SAMPLE_AHEAD_RINGS} more, for the patches reaching out past them) with the helper threads,
+     * joins and numbers them, and publishes.
+     */
+    private void step(StepTimes times)
+    {
+        long t0 = System.nanoTime();
+        int from = this.scannedRing + 1;
+        int to = from + bandRings(from) - 1;
+        int sampleTo = Math.min(to, lastRing()) + BossSitesTuning.SAMPLE_AHEAD_RINGS;
+        if (sampleTo > this.sampledRing)
+        {
+            long before = SiteTerrain.SAMPLES.sum();
+            this.cells.sampleRings(this.hubCellX, this.hubCellZ, this.sampledRing + 1, sampleTo, true);
+            this.sampledRing = sampleTo;
+            times.samples += SiteTerrain.SAMPLES.sum() - before;
+        }
+        long t1 = System.nanoTime();
+        long flood0 = this.floodNanos;
+        long number0 = this.numberNanos;
+        long samples0 = SiteTerrain.SAMPLES.sum();
+        for (int r = from; r <= to && !this.limitReached; r++)
+        {
+            scanRing(r);
+        }
+        times.joinSamples += SiteTerrain.SAMPLES.sum() - samples0;
+        publish();
+        times.steps++;
+        times.sampleNanos += t1 - t0;
+        times.joinNanos += System.nanoTime() - t1;
+        times.floodNanos += this.floodNanos - flood0;
+        times.numberNanos += this.numberNanos - number0;
+    }
+
+    /**
+     * One step of the background reader towards {@code target} blocks out: samples the next band of rings on this thread
+     * without the lock (sampling is the slow part), then takes the lock only to join and number what's been sampled.
+     */
+    private void backgroundStep(double target, StepTimes times)
+    {
+        long t0 = System.nanoTime();
+        int want = Math.min(ringFor(target), lastRing()) + BossSitesTuning.SAMPLE_AHEAD_RINGS;
+        int from = this.sampledRing + 1;
+        int to = Math.min(want, from + bandRings(Math.max(0, from - BossSitesTuning.SAMPLE_AHEAD_RINGS)) - 1);
+        if (from <= to)
+        {
+            long before = SiteTerrain.SAMPLES.sum();
+            this.cells.sampleRings(this.hubCellX, this.hubCellZ, from, to, false);
+            times.samples += SiteTerrain.SAMPLES.sum() - before;
+        }
+        long t1 = System.nanoTime();
+        times.sampleNanos += t1 - t0;
+        this.scanLock.lock();
+        try
+        {
+            if (to > this.sampledRing)
+            {
+                this.sampledRing = to;   // (it only grows: rings up to from - 1 were sampled before, so all up to `to` are now)
+            }
+            int joinTo = (this.sampledRing >= want ? want : this.sampledRing) - BossSitesTuning.SAMPLE_AHEAD_RINGS;
+            joinTo = Math.max(joinTo, this.scannedRing + 1);   // (at least one ring, so it always gets on)
+            long t2 = System.nanoTime();
+            long flood0 = this.floodNanos;
+            long number0 = this.numberNanos;
+            long samples0 = SiteTerrain.SAMPLES.sum();
+            while (this.scannedRing < joinTo && !this.limitReached && this.complete <= target)
+            {
+                scanRing(this.scannedRing + 1);
+            }
+            times.joinSamples += SiteTerrain.SAMPLES.sum() - samples0;
+            publish();
+            times.steps++;
+            times.joinNanos += System.nanoTime() - t2;
+            times.floodNanos += this.floodNanos - flood0;
+            times.numberNanos += this.numberNanos - number0;
+        }
+        finally
+        {
+            this.scanLock.unlock();
+        }
+    }
+
+    /** How many rings a step reads from ring {@code from} on: about {@link BossSitesTuning#BAND_CELLS} cells. */
+    private static int bandRings(int from)
+    {
+        return Math.max(BossSitesTuning.BAND_MIN_RINGS, Math.min(BossSitesTuning.BAND_MAX_RINGS, BossSitesTuning.BAND_CELLS / (8 * Math.max(1, from))));
+    }
+
+    /** The last ring the planner reads (reading it reaches {@link BossSitesTuning#MAX_DISTANCE}). */
+    private static int lastRing()
+    {
+        return (BossSitesTuning.MAX_DISTANCE + BossSitesTuning.CELL) / BossSitesTuning.CELL + 1;
+    }
+
+    /** The first ring whose reading reads every cell nearer the hub than {@code distance} (capped at the last ring). */
+    private int ringFor(double distance)
+    {
+        int r = Math.max(0, (int) (distance / BossSitesTuning.CELL) - 2);
+        while (r < lastRing() && completeRadius(r) <= distance)
+        {
+            r++;
+        }
+        return r;
+    }
+
+    /** Publishes what's been read so far (scanLock held). */
+    private void publish()
+    {
+        Patch[][] numbered = new Patch[this.plans.length][];
+        int[] counts = new int[this.plans.length];
+        for (int i = 0; i < this.plans.length; i++)
+        {
+            numbered[i] = this.plans[i].numbered;
+            counts[i] = this.plans[i].count;
+        }
+        this.published = new Published(this.scannedRing, this.complete, this.limitReached, numbered, counts);
+    }
+
+    /** Reads ring r (= scannedRing + 1; scanLock held): follows every new patch met, and numbers those now known complete. */
+    private void scanRing(int r)
+    {
         if ((long) r * BossSitesTuning.CELL > BossSitesTuning.MAX_DISTANCE + BossSitesTuning.CELL)
         {
             this.limitReached = true;
             this.complete = Double.MAX_VALUE;
-            for (BiomePlan b : this.biomes.values())
+            for (BiomePlan b : this.plans)
             {
                 promote(b, BossSitesTuning.MAX_DISTANCE);
             }
@@ -763,7 +1165,7 @@ public final class BossSites
         }
         this.scannedRing = r;
         this.complete = completeRadius(r);
-        for (BiomePlan b : this.biomes.values())
+        for (BiomePlan b : this.plans)
         {
             promote(b, this.complete);
         }
@@ -781,59 +1183,54 @@ public final class BossSites
         return Math.min(Math.min(east, west), Math.min(south, north));
     }
 
+    /** A cell met on a ring (scanLock held): if it's a boss biome and no patch has it yet, a new patch starts there. */
     private void visit(int cx, int cz)
     {
-        long cell = ChunkPos.asLong(cx, cz);
-        for (BiomePlan b : this.biomes.values())
+        if (this.cells.owner(cx, cz) != null)
         {
-            if (b.cells.containsKey(cell))
-            {
-                return;
-            }
+            return;
         }
-        Holder<Biome> biome = this.terrain.biome(cx * BossSitesTuning.CELL + BossSitesTuning.CELL / 2, cz * BossSitesTuning.CELL + BossSitesTuning.CELL / 2);
-        for (BiomePlan b : this.biomes.values())
+        int boss = BiomeCells.bossIndex(this.cells.kind(cx, cz));
+        if (boss >= 0)
         {
-            if (biome.is(b.config.biome()))
-            {
-                flood(b, cell);
-                return;
-            }
+            flood(this.plans[boss], ChunkPos.asLong(cx, cz));
         }
     }
 
-    /** Follows a new patch out from one of its cells (4-way, nearest neighbours first) and records it. */
+    /** Follows a new patch out from one of its cells (4-way, nearest neighbours first) and records it (scanLock held). */
     private void flood(BiomePlan b, long start)
     {
+        long t0 = System.nanoTime();
         ResourceKey<Biome> key = b.config.biome();
-        LongArrayList cells = new LongArrayList();
-        LongOpenHashSet seen = new LongOpenHashSet();
+        // (a queued cell is marked as owned by QUEUED until the patch is recorded, so it's never queued twice)
         LongArrayList queue = new LongArrayList();
         queue.add(start);
-        seen.add(start);
+        this.cells.setOwner(start, QUEUED);
         int head = 0;
         int[][] steps = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
-        while (head < queue.size() && cells.size() < BossSitesTuning.MAX_PATCH_CELLS)
+        while (head < queue.size() && head < BossSitesTuning.MAX_PATCH_CELLS)
         {
             long cell = queue.getLong(head++);
-            cells.add(cell);
             int cx = ChunkPos.getX(cell);
             int cz = ChunkPos.getZ(cell);
             for (int[] s : steps)
             {
-                long n = ChunkPos.asLong(cx + s[0], cz + s[1]);
-                if (!seen.add(n) || b.cells.containsKey(n))
+                // (a cell another patch owns is never this one's: patches of one biome that touch are one patch, and a
+                // cell of another biome isn't this biome)
+                if (this.cells.owner(cx + s[0], cz + s[1]) == null && this.cells.kind(cx + s[0], cz + s[1]) == b.kind)
                 {
-                    continue;
-                }
-                if (this.terrain.isBiome(key, (cx + s[0]) * BossSitesTuning.CELL + BossSitesTuning.CELL / 2,
-                        (cz + s[1]) * BossSitesTuning.CELL + BossSitesTuning.CELL / 2))
-                {
+                    long n = ChunkPos.asLong(cx + s[0], cz + s[1]);
+                    this.cells.setOwner(n, QUEUED);
                     queue.add(n);
                 }
             }
         }
-        long[] sorted = cells.toLongArray();
+        // (cells queued past the size limit aren't this patch's: they're free again, for a later patch)
+        for (int i = head; i < queue.size(); i++)
+        {
+            this.cells.setOwner(queue.getLong(i), null);
+        }
+        long[] sorted = Arrays.copyOf(queue.elements(), head);
         Arrays.sort(sorted);
         long nearest = sorted[0];
         double nearestDistance = Double.MAX_VALUE;
@@ -850,20 +1247,21 @@ public final class BossSites
         Shape shape = new Shape(sorted, nearest, nearestDistance, speck);
         for (long c : sorted)
         {
-            b.cells.put(c, shape);
+            this.cells.setOwner(c, shape);
         }
         if (!speck)
         {
             b.pending.add(shape);
         }
-        if (cells.size() >= BossSitesTuning.MAX_PATCH_CELLS)
+        if (head >= BossSitesTuning.MAX_PATCH_CELLS)
         {
             LOGGER.warn("[boss sites] a {} patch near {} reached {} chunks and was cut there", key.location().getPath(),
                     Patch.middle(start).toShortString(), BossSitesTuning.MAX_PATCH_CELLS);
         }
+        this.floodNanos += System.nanoTime() - t0;
     }
 
-    /** Numbers the found patches nearer than {@code radius} (all patches that near have been found), nearest first. */
+    /** Numbers the found patches nearer than {@code radius} (all patches that near have been found), nearest first (scanLock held). */
     private void promote(BiomePlan b, double radius)
     {
         List<Shape> ready = new ArrayList<>();
@@ -878,13 +1276,19 @@ public final class BossSites
         {
             return;
         }
+        long t0 = System.nanoTime();
         b.pending.removeAll(ready);
         ready.sort(Comparator.comparingDouble((Shape s) -> s.distance).thenComparingLong(s -> s.nearest));
         for (Shape s : ready)
         {
-            s.patch = makePatch(b.config.biome(), b.numbered.size() + 1, s);
-            b.numbered.add(s.patch);
+            Patch patch = makePatch(b.config.biome(), b.count + 1, s);
+            b.add(patch);
+            for (long c : s.cells)
+            {
+                this.cells.setOwner(c, patch);
+            }
         }
+        this.numberNanos += System.nanoTime() - t0;
     }
 
     /** The patch's geometry: how deep each of its cells lies (a two-pass distance transform over its box). */
@@ -950,21 +1354,25 @@ public final class BossSites
         for (int i = 0; i < s.cells.length; i++)
         {
             int k = (ChunkPos.getZ(s.cells[i]) - z0 + 1) * w + (ChunkPos.getX(s.cells[i]) - x0 + 1);
-            double cells = Math.sqrt((double) ox[k] * ox[k] + (double) oz[k] * oz[k]);
-            depths[i] = (float) (cells * BossSitesTuning.CELL - BossSitesTuning.CELL / 2.0D);
+            double cellsOut = Math.sqrt((double) ox[k] * ox[k] + (double) oz[k] * oz[k]);
+            depths[i] = (float) (cellsOut * BossSitesTuning.CELL - BossSitesTuning.CELL / 2.0D);
         }
-        Integer[] order = new Integer[s.cells.length];
-        for (int i = 0; i < order.length; i++)
+        // the cells deepest first (ties: nearer the hub, then the smaller cell; every cell differs, so there's only one order)
+        double[] fromHub = new double[s.cells.length];
+        int[] byDepth = new int[s.cells.length];
+        for (int i = 0; i < byDepth.length; i++)
         {
-            order[i] = i;
+            fromHub[i] = cellDistance(s.cells[i]);
+            byDepth[i] = i;
         }
-        Arrays.sort(order, Comparator.comparingDouble((Integer i) -> -depths[i]).thenComparingDouble(i -> cellDistance(s.cells[i]))
-                .thenComparingLong(i -> s.cells[i]));
-        int[] byDepth = new int[order.length];
-        for (int i = 0; i < order.length; i++)
-        {
-            byDepth[i] = order[i];
-        }
+        IntArrays.quickSort(byDepth, (a, c) -> {
+            int order = Double.compare(-depths[a], -depths[c]);
+            if (order == 0)
+            {
+                order = Double.compare(fromHub[a], fromHub[c]);
+            }
+            return order != 0 ? order : Long.compare(s.cells[a], s.cells[c]);
+        });
         return new Patch(biome, number, s.distance, s.nearest, s.cells, depths, byDepth);
     }
 
@@ -1010,6 +1418,132 @@ public final class BossSites
         h = (h ^ (h >>> 30)) * 0xBF58476D1CE4E5B9L;
         h = (h ^ (h >>> 27)) * 0x94D049BB133111EBL;
         return h ^ (h >>> 31);
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The background reader (the running world's plan only)
+    // ---------------------------------------------------------------------------------------------
+
+    /** Starts the background reader (once): see "How it's worked out" above. */
+    synchronized void startReader()
+    {
+        if (this.reader != null || this.stopReading)
+        {
+            return;
+        }
+        Thread t = new Thread(this::readInBackground, "Dross boss sites reader");
+        t.setDaemon(true);
+        t.setPriority(BossSitesTuning.READER_THREAD_PRIORITY);
+        this.reader = t;
+        t.start();
+    }
+
+    /** Stops the background reader (when the server stops): it finishes what it's doing and quits. */
+    synchronized void stopReader()
+    {
+        this.stopReading = true;
+        if (this.reader != null)
+        {
+            this.reader.interrupt();
+        }
+    }
+
+    private void readInBackground()
+    {
+        long started = Util.getMillis();
+        StepTimes times = new StepTimes();
+        boolean startRead = false;
+        double lastLogged = 0.0D;
+        int failures = 0;
+        while (!this.stopReading)
+        {
+            try
+            {
+                double target = readerTarget();
+                Published p = this.published;
+                if (!p.limit() && p.complete() <= target)
+                {
+                    backgroundStep(target, times);
+                    continue;
+                }
+                if (!startRead)
+                {
+                    startRead = true;
+                    lastLogged = readDistance();
+                    LOGGER.info("[boss sites] read the Dross's biome map out to {} blocks from the hub in the background in {} ms ({} ms sampling: {} "
+                                    + "biome samples, quick sampler {}; {} ms joining the cells into patches: {} following new patches, {} numbering them); "
+                                    + "it now keeps {} blocks past the furthest player and plans the groups within {} blocks of them",
+                            Math.round(readDistance()), Util.getMillis() - started, times.sampleNanos / 1_000_000L, times.samples,
+                            this.terrain.quickSampler() ? "on" : "OFF", times.joinNanos / 1_000_000L, times.floodNanos / 1_000_000L,
+                            times.numberNanos / 1_000_000L, BossSitesTuning.READ_AHEAD, BossSitesTuning.PREPLAN_RADIUS);
+                }
+                else if (readDistance() >= lastLogged + 1000.0D)
+                {
+                    lastLogged = readDistance();
+                    LOGGER.debug("[boss sites] the background reader has read the biome map out to {} blocks", Math.round(lastLogged));
+                }
+                planNearPlayers();
+                Thread.sleep(BossSitesTuning.READER_PAUSE_MILLIS);
+            }
+            catch (InterruptedException e)
+            {
+                break;
+            }
+            catch (RuntimeException e)
+            {
+                failures++;
+                LOGGER.error("[boss sites] the background reader failed{}", failures >= 3 ? "; it stops (world generation reads the map itself)" : "", e);
+                if (failures >= 3)
+                {
+                    break;
+                }
+            }
+        }
+    }
+
+    /** How far the background reader keeps the map read: past the furthest player, at least the start distance. */
+    private double readerTarget()
+    {
+        double furthest = BossSitesTuning.READ_AT_START;
+        for (BlockPos pos : drossPlayers)
+        {
+            furthest = Math.max(furthest, hubDistance(pos.getX(), pos.getZ()) + BossSitesTuning.READ_AHEAD);
+        }
+        return Math.min(furthest, BossSitesTuning.MAX_DISTANCE + 2.0D * BossSitesTuning.CELL);
+    }
+
+    /** Plans the groups of every patch near a player (each group once), so world generation finds them planned. */
+    private void planNearPlayers()
+    {
+        for (BlockPos pos : drossPlayers)
+        {
+            for (BossBiome b : BOSS_BIOMES)
+            {
+                if (this.stopReading)
+                {
+                    return;
+                }
+                sitesNear(b.biome(), pos.getX(), pos.getZ(), BossSitesTuning.PREPLAN_RADIUS);
+            }
+        }
+    }
+
+    /**
+     * Reads the map out past {@code distance} the way the background reader does (this thread alone, sampling without the
+     * lock), for the checks that compare it with reading on demand.
+     */
+    void readInBackgroundTo(double distance)
+    {
+        StepTimes times = new StepTimes();
+        while (true)
+        {
+            Published p = this.published;
+            if (p.limit() || p.complete() > distance)
+            {
+                return;
+            }
+            backgroundStep(distance, times);
+        }
     }
 
     // ---------------------------------------------------------------------------------------------

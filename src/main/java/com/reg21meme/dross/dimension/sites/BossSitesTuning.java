@@ -40,6 +40,47 @@ public final class BossSitesTuning
     public static final int MAX_DISTANCE = 32_000;
 
     // ---------------------------------------------------------------------------------------------
+    // Reading the biome map (so world generation doesn't wait for it; see BossSites, "How it's worked out")
+    // ---------------------------------------------------------------------------------------------
+
+    /**
+     * When the world starts, a background thread reads the biome map out to this far from the hub (blocks; about 1 s of
+     * one thread's time, measured October 17 2026; the first 15-20 groups of each boss biome)...
+     */
+    public static final int READ_AT_START = 6_000;
+    /**
+     * ...then keeps it read this far past the furthest player in the Dross (blocks; reading a ring 10,000 blocks out
+     * takes about 10 ms, so it keeps ahead of an elytra flight with plenty to spare).
+     */
+    public static final int READ_AHEAD = 3_000;
+    /**
+     * It also plans the groups of every patch within this distance of a player (blocks), so world generation finds them
+     * planned (planning a group, its fit tests, takes about half a second).
+     */
+    public static final int PREPLAN_RADIUS = 1_024;
+    /** Where the players are is noted this often (server ticks)... */
+    public static final int READER_PLAYER_TICKS = 20;
+    /** ...and the background reader looks at it this often once it has caught up (milliseconds, real time). */
+    public static final int READER_PAUSE_MILLIS = 1_000;
+    /** The background reader's thread priority (below normal: world generation and the server come first). */
+    public static final int READER_THREAD_PRIORITY = Thread.NORM_PRIORITY - 2;
+    /** The map is read a band of rings at a time: about this many cells (16 x 16 blocks each)... */
+    public static final int BAND_CELLS = 16_384;
+    /** ...but at least this many rings and at most this many. */
+    public static final int BAND_MIN_RINGS = 4;
+    public static final int BAND_MAX_RINGS = 64;
+    /**
+     * Rings are sampled this far ahead of the rings being joined into patches (a patch found on a ring reaches out past
+     * it, and following it reads those cells; 64 rings = 1,024 blocks, more than nearly any patch reaches: with 24, a
+     * sixth of the cells were left to be sampled one by one while joining).
+     */
+    public static final int SAMPLE_AHEAD_RINGS = 64;
+    /** A thread that needs the map read further than it is looks this often whether another thread has read it meanwhile (ms). */
+    public static final int READ_WAIT_POLL_MILLIS = 5;
+    /** A wait for the map longer than this is logged (ms). */
+    public static final int SLOW_READ_LOG_MILLIS = 250;
+
+    // ---------------------------------------------------------------------------------------------
     // Groups: the 3 nearest patches, then the next 3, and so on forever
     // ---------------------------------------------------------------------------------------------
 

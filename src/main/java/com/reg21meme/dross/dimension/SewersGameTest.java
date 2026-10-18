@@ -135,9 +135,15 @@ public final class SewersGameTest
     /** The rat cave: at least this wide (its floor, blocks) and tall (its highest air column), the user's 35-40 x 12-16. */
     private static final int CAVE_MIN_WIDTH = 34;
     private static final int CAVE_MIN_HEIGHT = 12;
-    /** The hoard's mix (the user's request: about 70% Dross gold ore, 30% gold blocks), give or take this much. */
+    /** The hoard's mix (the user's request: about 70% Dross gold ore, 30% gold blocks), give or take this much... */
     private static final double GOLD_ORE_SHARE = 0.70D;
     private static final double GOLD_TOLERANCE = 0.12D;
+    /**
+     * ...or, if more, this many standard deviations of the share's own chance spread: each hoard block is ore on its own
+     * 70% roll (RatCavePiece.gold), so with about 90 blocks the share wanders about 5 points either way, and a fixed 12
+     * points failed about one world in 70 (a world with 57% failed on October 17); 4 deviations fail one in 16,000.
+     */
+    private static final double GOLD_SIGMAS = 4.0D;
     private static final int GOLD_MIN = 40;
     /**
      * The hoard lies within this many blocks of the nest (its heaps reach SewerTuning.GOLD_HEAP_DISTANCE_MAX +
@@ -699,7 +705,9 @@ public final class SewersGameTest
         }
         int gold = ore + goldBlocks;
         double oreShare = gold == 0 ? 0.0D : ore / (double) gold;
-        if (gold < GOLD_MIN || Math.abs(oreShare - GOLD_ORE_SHARE) > GOLD_TOLERANCE)
+        double tolerance = gold == 0 ? GOLD_TOLERANCE
+                : Math.max(GOLD_TOLERANCE, GOLD_SIGMAS * Math.sqrt(GOLD_ORE_SHARE * (1.0D - GOLD_ORE_SHARE) / gold));
+        if (gold < GOLD_MIN || Math.abs(oreShare - GOLD_ORE_SHARE) > tolerance)
         {
             problems.add(String.format(Locale.ROOT, "the hoard is %d gold ore and %d gold blocks (%.0f%% ore; about 70%% expected, at least %d blocks)",
                     ore, goldBlocks, 100.0D * oreShare, GOLD_MIN));

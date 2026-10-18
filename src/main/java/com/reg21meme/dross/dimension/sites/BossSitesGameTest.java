@@ -59,6 +59,11 @@ import org.slf4j.Logger;
  *       patches; the regular sewers' rolls come up on about half the kept Blightwood patches; and a second plan of the
  *       same seed, asked in another order (a far chunk first), gives exactly the same answers, as does the running
  *       world's own plan.</li>
+ *   <li>{@link #sameAnswersWithOrWithoutTheBackgroundReader}: for two more seeds, one plan is read the way the background
+ *       reader reads it (sampling without the lock) while 6 threads ask it about places all over at once (so some wait and
+ *       read further themselves, with the helper threads), and a second plan is asked the same things on one thread, the
+ *       furthest first: every answer (each place's patch, the numbered patches, the first groups' plans and their site
+ *       chunks) is the same. Also: the quick biome sampler is in use and agrees with Minecraft's on 20,000 columns.</li>
  *   <li>{@link #sewersStartAtTheirPlannedSites}: in this world, every planned sewer of Blightwood's first two groups
  *       starts in its planned chunk, as the right kind (dross:rat_cave or dross:sewers), and none starts in the deepest
  *       chunk of a kept patch without one.</li>
@@ -345,6 +350,186 @@ public final class BossSitesGameTest
         }
         g.bossSite().ifPresent(b -> s.append(" boss ").append(b.patch().number()).append(" at ").append(b.pos().toShortString())
                 .append(b.relaxed() ? " (smallest form)" : ""));
+        return s.toString();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The same answers whoever reads the map, in whatever order (the background reader, waiting threads, one thread)
+    // ---------------------------------------------------------------------------------------------
+
+    /** The seeds compared (not the ones above). */
+    private static final long[] READER_SEEDS = {7L, 424_242L};
+    /** The background-style reading goes this far... */
+    private static final int READER_DISTANCE = 3_000;
+    /** ...while the questions reach this far (blocks from the hub), so some of them have to wait and read further. */
+    private static final int QUESTION_DISTANCE = 5_000;
+    private static final int QUESTIONS = 3_000;
+    private static final int QUESTION_THREADS = 6;
+    private static final int COMPARED_GROUPS = 4;
+    private static final int SAMPLER_CHECKS = 20_000;
+
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_boss_sites_reader", timeoutTicks = BACKSTOP_TICKS)
+    public static void sameAnswersWithOrWithoutTheBackgroundReader(GameTestHelper helper)
+    {
+        ServerLevel dross = dross(helper);
+        List<CompletableFuture<List<String>>> runs = new ArrayList<>();
+        for (long seed : READER_SEEDS)
+        {
+            runs.add(CompletableFuture.supplyAsync(() -> compareReaders(dross, seed), Util.backgroundExecutor()));
+        }
+        CompletableFuture<Void> all = CompletableFuture.allOf(runs.toArray(new CompletableFuture[0]));
+        long deadline = Util.getMillis() + TIMEOUT_MILLIS;
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (!all.isDone() && Util.getMillis() < deadline)
+                    {
+                        throw new GameTestAssertException("still comparing");
+                    }
+                })
+                .thenExecute(() -> {
+                    if (!all.isDone())
+                    {
+                        throw new GameTestAssertException("comparing took more than " + TIMEOUT_MILLIS / 1000 + " s");
+                    }
+                    List<String> problems = new ArrayList<>();
+                    runs.forEach(r -> problems.addAll(r.join()));
+                    if (!problems.isEmpty())
+                    {
+                        throw new GameTestAssertException("the answers depend on who reads the map: " + String.join("; ", problems.subList(0, Math.min(8, problems.size()))));
+                    }
+                })
+                .thenSucceed();
+    }
+
+    /** Asks two plans of one seed the same things, read in two different ways; returns what differs. Any thread. */
+    private static List<String> compareReaders(ServerLevel dross, long seed)
+    {
+        long started = Util.getMillis();
+        List<String> problems = new ArrayList<>();
+        java.util.Random random = new java.util.Random(seed);
+        int[][] places = new int[QUESTIONS][];
+        for (int i = 0; i < QUESTIONS; i++)
+        {
+            places[i] = new int[] {DrossHub.CENTER.getX() + random.nextInt(2 * QUESTION_DISTANCE + 1) - QUESTION_DISTANCE,
+                    DrossHub.CENTER.getZ() + random.nextInt(2 * QUESTION_DISTANCE + 1) - QUESTION_DISTANCE};
+        }
+        // plan A: the background reader's way, with 6 threads asking at the same time
+        BossSites a = BossSites.forSeed(dross, seed);
+        String[] answersA = new String[QUESTIONS];
+        CompletableFuture<Void> reading = CompletableFuture.runAsync(() -> a.readInBackgroundTo(READER_DISTANCE), Util.backgroundExecutor());
+        List<CompletableFuture<Void>> asking = new ArrayList<>();
+        for (int t = 0; t < QUESTION_THREADS; t++)
+        {
+            final int tt = t;
+            asking.add(CompletableFuture.runAsync(() -> {
+                for (int i = tt; i < QUESTIONS; i += QUESTION_THREADS)
+                {
+                    answersA[i] = answer(a, places[i]);
+                }
+            }, Util.backgroundExecutor()));
+        }
+        reading.join();
+        asking.forEach(CompletableFuture::join);
+        // plan B: one thread, the furthest places first
+        BossSites b = BossSites.forSeed(dross, seed);
+        Integer[] order = new Integer[QUESTIONS];
+        for (int i = 0; i < QUESTIONS; i++)
+        {
+            order[i] = i;
+        }
+        java.util.Arrays.sort(order, (i, j) -> Double.compare(b.hubDistance(places[j][0], places[j][1]), b.hubDistance(places[i][0], places[i][1])));
+        String[] answersB = new String[QUESTIONS];
+        for (int i : order)
+        {
+            answersB[i] = answer(b, places[i]);
+        }
+        int different = 0;
+        for (int i = 0; i < QUESTIONS; i++)
+        {
+            if (!answersA[i].equals(answersB[i]))
+            {
+                if (different++ < 3)
+                {
+                    problems.add(String.format(Locale.ROOT, "seed %d: the patch at %d, %d is %s read by the background reader and waiting threads, %s read "
+                            + "by one thread", seed, places[i][0], places[i][1], answersA[i], answersB[i]));
+                }
+            }
+        }
+        if (different > 3)
+        {
+            problems.add("seed " + seed + ": " + different + " places differ in all");
+        }
+        // the numbered patches and the first groups' plans, and their sites' chunks
+        for (BossSites.BossBiome bb : BossSites.BOSS_BIOMES)
+        {
+            String name = bb.biome().location().getPath();
+            List<Patch> pa = a.patches(bb.biome(), 40);
+            List<Patch> pb = b.patches(bb.biome(), 40);
+            for (int k = 0; k < Math.max(pa.size(), pb.size()); k++)
+            {
+                String da = k < pa.size() ? pa.get(k).toString() + " " + pa.get(k).id() : "none";
+                String db = k < pb.size() ? pb.get(k).toString() + " " + pb.get(k).id() : "none";
+                if (!da.equals(db))
+                {
+                    problems.add("seed " + seed + " " + name + " patch " + (k + 1) + ": " + da + " / " + db);
+                    break;
+                }
+            }
+            for (int g = 0; g < COMPARED_GROUPS; g++)
+            {
+                Optional<Group> ga = a.group(bb.biome(), g);
+                String da = describe(ga);
+                String db = describe(b.group(bb.biome(), g));
+                if (!da.equals(db))
+                {
+                    problems.add("seed " + seed + " " + name + " group " + (g + 1) + ": " + da + " / " + db);
+                }
+                for (Site site : ga.map(Group::sites).orElse(List.of()))
+                {
+                    ChunkPos c = site.chunk();
+                    boolean bothYes = a.isSiteChunk(site.use(), c.x, c.z) && b.isSiteChunk(site.use(), c.x, c.z);
+                    boolean bothNo = !a.isSiteChunk(site.use(), c.x + 1, c.z) && !b.isSiteChunk(site.use(), c.x + 1, c.z);
+                    if (!bothYes || !bothNo)
+                    {
+                        problems.add("seed " + seed + " " + name + " group " + (g + 1) + ": the " + site.use() + " site's chunk " + c + " isn't answered the same");
+                    }
+                }
+            }
+        }
+        // the quick biome sampler: in use, and the same biomes as Minecraft's own
+        SiteTerrain terrain = a.terrain();
+        if (!terrain.quickSampler())
+        {
+            problems.add("seed " + seed + ": the quick biome sampler failed its check and isn't in use (see the ERROR above)");
+        }
+        int wrong = 0;
+        for (int i = 0; i < SAMPLER_CHECKS; i++)
+        {
+            int x = random.nextInt(64_001) - 32_000;
+            int z = random.nextInt(64_001) - 32_000;
+            if (!terrain.biome(x, z).equals(terrain.biomeByMinecraft(x, z)))
+            {
+                wrong++;
+            }
+        }
+        if (wrong > 0)
+        {
+            problems.add("seed " + seed + ": the quick biome sampler disagrees with Minecraft's at " + wrong + " of " + SAMPLER_CHECKS + " columns");
+        }
+        LOGGER.info("[boss sites] seed {}: a plan read in the background while {} threads asked {} questions, and a plan asked on one thread, furthest "
+                + "first, gave {} ({} ms)", seed, QUESTION_THREADS, QUESTIONS, problems.isEmpty() ? "the same answers" : problems.size() + " differences",
+                Util.getMillis() - started);
+        return problems;
+    }
+
+    /** What a plan says about a place: its Blightwood or Cinder Wastes patch (number and id), or none. */
+    private static String answer(BossSites sites, int[] place)
+    {
+        StringBuilder s = new StringBuilder();
+        for (BossSites.BossBiome bb : BossSites.BOSS_BIOMES)
+        {
+            s.append(sites.patchAt(bb.biome(), place[0], place[1]).map(p -> p.number() + "/" + p.id()).orElse("-")).append(' ');
+        }
         return s.toString();
     }
 

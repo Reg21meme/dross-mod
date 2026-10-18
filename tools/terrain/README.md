@@ -462,8 +462,36 @@ for its smallest form).
 
 **How it works.** The biome map is read outwards from the hub ring by ring (one sample per chunk), as far as a question
 needs; each new patch is followed out whole, and a patch is numbered once every patch nearer than it has been found. Each
-group is planned the first time it's asked about (about a second for a Blightwood group) and remembered. All of it is
-thread-safe (world generation asks from its own threads).
+group is planned the first time it's asked about (its patches' fit tests side by side: about a third of a second for a
+Blightwood group) and remembered. All of it is thread-safe (world generation asks from its own threads), and no answer
+depends on which thread asks first or when.
+
+**Why world generation doesn't wait for it** (October 17 2026; it used to stall chunk generation for 2-13 s when a player
+went far out, while one thread read the map out to there under a lock and every other thread waited behind it):
+
+- **Read in the background.** When the world starts, a background thread reads the map out to `READ_AT_START` (6,000
+  blocks, about 2 s of one thread), then keeps it `READ_AHEAD` (3,000 blocks) past the furthest player in the Dross and
+  plans the groups of the patches within `PREPLAN_RADIUS` (1,024 blocks) of each player.
+- **Answers without waiting.** What's been read is published after each step (how far, and the numbered patches; each map
+  cell remembers its biome and its patch, `BiomeCells`), so a question about a place already read never takes the lock.
+  A column that isn't a boss biome is "no patch here" at once, however far out (one remembered sample).
+- **Reading further, quickly.** A question about a place further out than the map has been read reads it itself, a band
+  of rings at a time, with the planner's helper threads (`PlannerThreads`, half the processors, 1 to 8) sampling;
+  threads waiting for nearer places go as soon as their band is published. Waits over 250 ms are logged (`[boss sites]
+  waited ... ms`, with the time split into sampling and joining).
+- **Quicker samples.** `SiteTerrain.biome` uses a copy of the climate functions that works the shared warp noises out
+  once per point instead of four times (6 noise reads instead of 12): exactly the same biome (checked against
+  Minecraft's own sampler when it starts, with a fallback), about 1.1-1.9 times quicker (it varies run to run).
+
+The patches, numbers and plans are exactly the same as before this change (checked: a fingerprint of every patch out to
+8,000 blocks and the first six groups' plans for five seeds matched the old code bit for bit). Measured on 22 processors
+(seed 1752286405569615815, quiet runs): reading the map from nothing out to 12,000 blocks took 1.7-2.0 s (9.7-11.1 s
+before); threads asking about places already read waited 0-7 ms while another thread read out to 12,000 blocks (8.5-10.4 s
+before); 8 threads going through the 625 chunks round a spot 12,000 blocks out (as if a player had just teleported there)
+waited 1.6-1.7 s at worst (5.2-6.9 s before), and round a spot 5,000 blocks out (already read) 0.15-0.2 s (1.6-2.1 s).
+`BossSitesSpeedGameTest` measures it (its own GameTest namespace, so the normal run leaves it out:
+`.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_speed -PgameTestWorld=<a new folder> --console=plain`), and
+`BossSitesFingerprintGameTest` (same namespace) prints the fingerprints to compare two versions of the planner.
 
 **The measurements behind the numbers** (the coordinator's run, 60 seeds): the nearest patches start about 418 / 623 /
 848 blocks out (Cinder Wastes) and 419 / 552 / 724 (Blightwood); group 3 ends about 1,500-1,700 blocks out, group 10 about
@@ -473,7 +501,9 @@ across (median). A round 140-block maze fits only 58-68% of Blightwood patches, 
 **The checks** `dimension/sites/BossSitesGameTest`: for 4 fixed seeds, the patches numbered nearest first with no specks,
 group g holding patches 3g+1 to 3g+3, exactly one boss patch per group and two kept, every site inside its patch and its
 biome, fillers only in kept patches, the regular sewers' rolls on about half the kept Blightwood patches, and the same
-answers from a second plan asked in another order (a far chunk first) and from the world's own plan; in this world, every
+answers from a second plan asked in another order (a far chunk first) and from the world's own plan; for two more seeds,
+the same answers from a plan read the background reader's way while 6 threads ask it questions at once and from a plan
+asked on one thread, furthest first, and the quick biome sampler agreeing with Minecraft's on 20,000 columns; in this world, every
 planned sewer of Blightwood's first two groups starts in its planned chunk as the right kind, and none in a kept patch
 without one. `terrain-previews/boss_sites.png` (with `DROSS_SEWER_PREVIEWS=1` or `DROSS_TERRAIN_PREVIEWS=1`) shows this
 world's patches round the hub, numbered, their groups, the bosses and the regular sewers.
