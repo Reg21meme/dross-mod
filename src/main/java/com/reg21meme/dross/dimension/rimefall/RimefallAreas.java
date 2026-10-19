@@ -213,6 +213,29 @@ public final class RimefallAreas
             }
             spots.add(spot.atY(heights.top(spot.getX(), spot.getZ()) + 1));
         }
+        if (spots.isEmpty())
+        {
+            // A small patch its lake fills: one herd at the spot furthest from the lake, off its shore.
+            BlockPos best = null;
+            double far = RimefallTuning.SHORE_WIDTH + RimefallTuning.HERD_LAKE_CLEARANCE_LAST;
+            for (BlockPos spot : patch.spots(RimefallTuning.HERD_LAST_TRIES, RimefallTuning.HERD_LAST_SPACING))
+            {
+                double out = lake == null ? Double.MAX_VALUE : lake.outside(spot.getX(), spot.getZ());
+                if (out >= far)
+                {
+                    far = out;
+                    best = spot;
+                    if (lake == null)
+                    {
+                        break;
+                    }
+                }
+            }
+            if (best != null)
+            {
+                spots.add(best.atY(heights.top(best.getX(), best.getZ()) + 1));
+            }
+        }
         return spots;
     }
 

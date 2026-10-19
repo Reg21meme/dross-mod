@@ -6,6 +6,8 @@ import com.reg21meme.dross.boss.golem.ColossusRock;
 import com.reg21meme.dross.boss.golem.LavaBlob;
 import com.reg21meme.dross.boss.golem.LavaGolem;
 import com.reg21meme.dross.boss.golem.StoneGolem;
+import com.reg21meme.dross.boss.huntsman.AlphaMoose;
+import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.ratking.PlagueBall;
 import com.reg21meme.dross.boss.ratking.PoisonCloud;
 import com.reg21meme.dross.boss.ratking.Rat;
@@ -153,6 +155,24 @@ public final class ModEntities
                     .sized(1.8F, 2.3F)
                     .clientTrackingRange(10)
                     .build("pond_skater"));
+
+    /**
+     * Boss area: the Huntsman ({@code dross:huntsman}, about 4.5 blocks to his hood on foot) and his Alpha Moose
+     * ({@code dross:alpha_moose}, about 5.3 to its antler tips), who rides it in stage 1 of his fight (CLAUDE.md step
+     * 14). On show only for now ({@code /dross showcase boss_designs huntsman}).
+     */
+    public static final RegistryObject<EntityType<Huntsman>> HUNTSMAN = ENTITY_TYPES.register("huntsman",
+            () -> EntityType.Builder.<Huntsman>of(Huntsman::new, MobCategory.MONSTER)
+                    .sized(1.2F, 4.4F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("huntsman"));
+    public static final RegistryObject<EntityType<AlphaMoose>> ALPHA_MOOSE = ENTITY_TYPES.register("alpha_moose",
+            () -> EntityType.Builder.<AlphaMoose>of(AlphaMoose::new, MobCategory.MONSTER)
+                    .sized(2.8F, 4.6F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("alpha_moose"));
 
     private ModEntities() {}
 }

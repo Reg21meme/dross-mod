@@ -72,12 +72,16 @@ public class RimehornHerdFeature extends Feature<NoneFeatureConfiguration>
         BlockPos.MutableBlockPos at = new BlockPos.MutableBlockPos();
         for (int i = 0; i < size; i++)
         {
-            for (int tries = 0; tries < 10; tries++)
+            for (int tries = 0; tries < RimefallTuning.HERD_NEAR_TRIES + RimefallTuning.HERD_CHUNK_TRIES; tries++)
             {
-                int x = clamp(spot.getX() + random.nextInt(2 * RimefallTuning.HERD_SPREAD + 1) - RimefallTuning.HERD_SPREAD,
-                        chunk.getMinBlockX() + 1, chunk.getMaxBlockX() - 1);
-                int z = clamp(spot.getZ() + random.nextInt(2 * RimefallTuning.HERD_SPREAD + 1) - RimefallTuning.HERD_SPREAD,
-                        chunk.getMinBlockZ() + 1, chunk.getMaxBlockZ() - 1);
+                // Round its spot first; where that's full of trees or boulders, anywhere in the chunk.
+                boolean near = tries < RimefallTuning.HERD_NEAR_TRIES;
+                int x = near ? clamp(spot.getX() + random.nextInt(2 * RimefallTuning.HERD_SPREAD + 1) - RimefallTuning.HERD_SPREAD,
+                        chunk.getMinBlockX() + 1, chunk.getMaxBlockX() - 1)
+                        : chunk.getMinBlockX() + 2 + random.nextInt(12);
+                int z = near ? clamp(spot.getZ() + random.nextInt(2 * RimefallTuning.HERD_SPREAD + 1) - RimefallTuning.HERD_SPREAD,
+                        chunk.getMinBlockZ() + 1, chunk.getMaxBlockZ() - 1)
+                        : chunk.getMinBlockZ() + 2 + random.nextInt(12);
                 int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z);
                 at.set(x, y, z);
                 if (!level.getBlockState(at.below()).is(RimefallAnimals.ANIMALS_SPAWN_ON) || !level.getFluidState(at).isEmpty()

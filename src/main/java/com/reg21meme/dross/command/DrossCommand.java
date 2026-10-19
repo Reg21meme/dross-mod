@@ -88,6 +88,8 @@ import net.minecraftforge.fml.common.Mod;
  *       Skater), frozen, with signs; {@code /dross showcase rimefall_mobs idle|walk|run|charge|eat|attack} plays their
  *       animations ({@link RimefallMobShowcase}). {@code /dross showcase mob_sounds rimefall} lists their sounds with
  *       play buttons ({@link RimefallMobSoundShowcase}; the boss area's {@code RimefallMobSounds}).</li>
+ *   <li>{@code /dross showcase boss_designs huntsman [<animation>]}: the Huntsman riding his Alpha Moose, on foot,
+ *       and the moose alone, frozen, playing the animation clicked ({@link HuntsmanShowcase}).</li>
  *   <li>{@code /dross showcase hunter_villages}: builds the ten hunter village designs and the Huntsman's lodge ahead
  *       of you, one a tick, with [go] buttons ({@link HunterVillageShowcase}).</li>
  *   <li>{@code /dross showcase bossbars huntsman [<1-10>] [angry]}: shows one of the Huntsman's ten boss bar designs
@@ -181,7 +183,9 @@ public final class DrossCommand
                                 .then(colossusDesignShowcase())
                                 .then(ratKingDesignShowcase())
                                 // The Rimefall boss candidates (22 frozen models in a gallery; RimefallShowcase).
-                                .then(Commands.literal("rimefall").executes(RimefallShowcase::buildGallery)))
+                                .then(Commands.literal("rimefall").executes(RimefallShowcase::buildGallery))
+                                // The Huntsman and his Alpha Moose and their animations (HuntsmanShowcase).
+                                .then(huntsmanDesignShowcase()))
                         // Boss area's Rat King's rats (regular and enraged), with their controls (RatShowcase).
                         .then(ratShowcase())
                         // Boss area's Rimefall animals (Rimehorns, moose, a Pond Skater), with their controls
@@ -231,6 +235,21 @@ public final class DrossCommand
             biome.then(Commands.literal(DrossBiomes.name(key)).executes(context -> GotoBiome.teleport(context.getSource(), key)));
         }
         return biome;
+    }
+
+    /**
+     * {@code /dross showcase boss_designs huntsman}: the Huntsman riding his Alpha Moose, on foot, and the moose alone,
+     * on show; {@code ... huntsman <animation>} plays one of their animations (one literal each, so they tab-complete;
+     * {@link HuntsmanShowcase}).
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> huntsmanDesignShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> node = Commands.literal("huntsman").executes(HuntsmanShowcase::spawn);
+        for (String name : HuntsmanShowcase.names())
+        {
+            node.then(Commands.literal(name).executes(context -> HuntsmanShowcase.play(context, name)));
+        }
+        return node;
     }
 
     /**

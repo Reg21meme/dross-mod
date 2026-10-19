@@ -193,7 +193,8 @@ public final class RimefallLakeGameTest
                 {
                     problems.add(name + "'s herd " + (i + 1) + " is outside it");
                 }
-                if (lake != null && lake.outside(h.getX(), h.getZ()) < RimefallTuning.SHORE_WIDTH + RimefallTuning.HERD_LAKE_CLEARANCE - 0.5D)
+                double clearance = herds.size() == 1 ? RimefallTuning.HERD_LAKE_CLEARANCE_LAST : RimefallTuning.HERD_LAKE_CLEARANCE;
+                if (lake != null && lake.outside(h.getX(), h.getZ()) < RimefallTuning.SHORE_WIDTH + clearance - 0.5D)
                 {
                     problems.add(name + "'s herd " + (i + 1) + " is by its lake");
                 }

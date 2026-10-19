@@ -247,7 +247,17 @@ public final class GotoBiomeGameTest
             chat.expectLast(GotoBiome.SUCCESS_FROM_YOU, where);
             checkLanding(player, DrossBiomes.CINDER_WASTES, where);
             double distance = GotoBiome.horizontalDistance(origin, player.position());
-            if (distance > foundDistance + NOT_MUCH_FURTHER)
+            // Where the nearest Cinder Wastes is inside a lair's circle (a planned lair can sit right at the edge of the
+            // biome nearest the hub, on some seeds), the landing must go round it: allow the circle's width more.
+            double allowed = foundDistance + NOT_MUCH_FURTHER;
+            for (GotoBiome.LairZone zone : GotoBiome.lairZones(dross, found.getX(), found.getZ()))
+            {
+                if (zone.contains(found.getX(), found.getZ()))
+                {
+                    allowed = Math.max(allowed, foundDistance + 2.0D * zone.radius() + NOT_MUCH_FURTHER);
+                }
+            }
+            if (distance > allowed)
             {
                 throw new GameTestAssertException(where + ": landed " + Math.round(distance) + " blocks away, but the biome search found it "
                         + Math.round(foundDistance) + " blocks away (at " + found.getX() + ", " + found.getZ() + ")");

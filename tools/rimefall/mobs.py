@@ -6,7 +6,8 @@ unchanged), its textures, its animations, a clipping check, and previews.
   python tools/rimefall/mobs.py rimehorn           just these
   python tools/rimefall/mobs.py rimehorn --no-gif  without the animated GIFs (much quicker)
 
-Writes, for each animal <id> (rimehorn, moose, pondskater):
+Writes, for each animal <id> (rimehorn, moose, pondskater; and the Huntsman's alpha_moose, huntsman (on foot) and
+huntsman_rider (in the saddle)):
   src/main/resources/assets/dross/geo/entity/<id>/<id>.geo.json
   src/main/resources/assets/dross/animations/entity/<id>/<id>.animation.json     (animation.<id>.<name>)
   src/main/resources/assets/dross/textures/entity/<id>/<variant>.png (+ _glow, _ice, _iceglow when it has them)
@@ -34,7 +35,7 @@ from rimekit import mobkit, uvpack, view as V  # noqa: E402
 
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
 PREVIEWS = os.path.join(ROOT, "boss-previews", "rimefall", "mobs")
-MOBS = ("rimehorn", "moose", "pondskater")
+MOBS = ("rimehorn", "moose", "pondskater", "alpha_moose", "huntsman", "huntsman_rider")
 
 
 def write_json(path, data):

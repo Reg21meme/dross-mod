@@ -1,0 +1,85 @@
+package com.reg21meme.dross.boss.huntsman;
+
+import software.bernie.geckolib.core.animation.RawAnimation;
+
+import java.util.List;
+
+/**
+ * The Huntsman's and the Alpha Moose's animations (made by {@code tools/rimefall/mobs.py}: the modules
+ * {@code rimemobs/huntsman.py}, {@code huntsman_rider.py} and {@code alpha_moose.py}), as their files name them
+ * ({@code animation.<model>.<name>}), with how long each lasts. The Huntsman has two models: on foot ({@code huntsman})
+ * and in the saddle ({@code huntsman_rider}), whose animations all start with {@code ride_}.
+ */
+public final class HuntAnims
+{
+    /**
+     * One animation.
+     *
+     * @param model the model whose file it's in ({@code huntsman}, {@code huntsman_rider}, {@code alpha_moose})
+     * @param name  its name
+     * @param ticks how long it lasts once (0 for a loop)
+     */
+    public record Anim(String model, String name, int ticks)
+    {
+        public boolean loop()
+        {
+            return ticks == 0;
+        }
+
+        public RawAnimation raw()
+        {
+            String id = "animation." + model + "." + name;
+            return loop() ? RawAnimation.begin().thenLoop(id) : RawAnimation.begin().thenPlayAndHold(id);
+        }
+    }
+
+    private static Anim loop(String model, String name)
+    {
+        return new Anim(model, name, 0);
+    }
+
+    private static Anim once(String model, String name, double seconds)
+    {
+        return new Anim(model, name, (int) Math.round(seconds * 20.0D));
+    }
+
+    public static final String FOOT = "huntsman";
+    public static final String RIDER = "huntsman_rider";
+    public static final String MOOSE = "alpha_moose";
+
+    /** The Huntsman on foot (stage 2 of his fight). The first is the one he plays when nothing else is. */
+    public static final List<Anim> HUNTSMAN = List.of(
+            loop(FOOT, "idle"), loop(FOOT, "walk"), loop(FOOT, "run"),
+            once(FOOT, "spear_combo", 1.9), once(FOOT, "thrust_sweep", 1.4), once(FOOT, "leap_strike", 1.7),
+            once(FOOT, "throw_spear", 1.3), once(FOOT, "catch_spear", 0.8), once(FOOT, "aimed_shot", 2.1),
+            once(FOOT, "backstep_shoot", 2.0), once(FOOT, "arrow_rain", 2.2), once(FOOT, "snare_throw", 1.4),
+            once(FOOT, "horn_blow", 2.2), once(FOOT, "land", 0.7), once(FOOT, "death", 3.2));
+
+    /** The Huntsman in the saddle (stage 1, the Wild Hunt). */
+    public static final List<Anim> RIDING = List.of(
+            loop(RIDER, "ride_idle"), loop(RIDER, "ride_gallop"),
+            once(RIDER, "ride_thrust", 1.1), once(RIDER, "ride_shoot", 1.7), once(RIDER, "ride_rain", 2.2),
+            once(RIDER, "ride_horn", 2.2), once(RIDER, "ride_bola", 1.5), once(RIDER, "ride_leap", 0.9));
+
+    /** The Alpha Moose. */
+    public static final List<Anim> ALPHA_MOOSE = List.of(
+            loop(MOOSE, "idle"), loop(MOOSE, "walk"), loop(MOOSE, "run"), loop(MOOSE, "charge"),
+            once(MOOSE, "ram", 1.1), once(MOOSE, "back_kick", 1.2), once(MOOSE, "antler_toss", 1.3),
+            once(MOOSE, "stomp", 1.2), once(MOOSE, "bellow", 2.2), once(MOOSE, "crack_stamp", 2.2),
+            once(MOOSE, "rear", 2.4), once(MOOSE, "eat", 6.0));
+
+    /** The one called {@code name} in {@code anims}, or null. */
+    public static Anim named(List<Anim> anims, String name)
+    {
+        for (Anim a : anims)
+        {
+            if (a.name().equals(name))
+            {
+                return a;
+            }
+        }
+        return null;
+    }
+
+    private HuntAnims() {}
+}

@@ -274,17 +274,19 @@ def tack(s, v):
     s.rbox(CUP, (6, 7, 6), "leather", c=1)
     s.ring(CUP + [0, 3, 0], (0, 1, 0), 3.2, 1, 2, "iron", n=6)
     quiver(s)
+    # The bridle on its head and the reins along its neck (their own parts, so they move with them when it's animated).
+    bridle = s.part("head")
     if moose:
         bit = [(x * 9, 92, -98) for x in (-1, 1)]
         for x in (-1, 1):
-            s.seg((x * 10, 104, -84), (x * 9.5, 90, -97), 2, 2, "leather")
-        s.ring((0, 92, -96), (0, 0.3, -1), 10, 2, 2, "leather", n=10)
+            bridle.seg((x * 10, 104, -84), (x * 9.5, 90, -97), 2, 2, "leather")
+        bridle.ring((0, 92, -96), (0, 0.3, -1), 10, 2, 2, "leather", n=10)
     else:
         bit = [(x * 6, 124, -100) for x in (-1, 1)]
         for x in (-1, 1):
-            s.seg((x * 8, 138, -82), (x * 6.5, 125, -99), 2, 2, "leather")
-        s.ring((0, 124, -98), (0, 0.4, -1), 7, 2, 2, "leather", n=8)
-    reins(s, bit, held="rider" in v["parts"])
+            bridle.seg((x * 8, 138, -82), (x * 6.5, 125, -99), 2, 2, "leather")
+        bridle.ring((0, 124, -98), (0, 0.4, -1), 7, 2, 2, "leather", n=8)
+    reins(s.part("neck"), bit, held="rider" in v["parts"])
 
 
 def quiver(s):
@@ -325,27 +327,31 @@ def rider(s, v):
     pose = v["pose"]
     r = s if pose == "ride" else Moved(s, (0.0, STAND_DROP, 0.0))
     legs_rider(r, pose)
-    torso(r)
-    mantle(r)
-    cloak(r, pose)
+    torso(r.part("chest"))
+    mantle(r.part("chest"))
+    cloak(r.part("cape"), pose)
     fists = RIDE_FISTS if pose == "ride" else STAND_FISTS
     arms(r, fists, pose)
-    spear(r, fists[0], pose)
-    bow(r)
-    head(r)
+    spear(r.part("spear"), fists[0], pose)
+    bow(r.part("bow"))
+    if v.get("props"):
+        props_in_hand(r, fists, pose)
+    head(r.part("head"))
 
 
 def legs_rider(s, pose):
     """His hips and legs: trousers to the knee, an iron knee plate, leather over the shin, fur-topped boots."""
-    s.rbox((0, HIP_Y + 1, 1), (22, 10, 15), "cloth", c=2)                       # his hips, under the belt
+    s.part("hips").rbox((0, HIP_Y + 1, 1), (22, 10, 15), "cloth", c=2)          # his hips, under the belt
     for x in (-1, 1):
+        side = "l" if x > 0 else "r"
+        thigh, shin, boot = s.part(f"thigh_{side}"), s.part(f"shin_{side}"), s.part(f"boot_{side}")
         hip, knee, ankle = ride_leg(x) if pose == "ride" else stand_leg(x)
-        s.taper([hip + [0, 2, 0], knee], [11, 9], "cloth")
-        s.taper([knee, ankle], [8, 7], "leather")
-        s.blob(knee, (5, 5, 5), "plate", slices=3)
+        thigh.taper([hip + [0, 2, 0], knee], [11, 9], "cloth")
+        shin.taper([knee, ankle], [8, 7], "leather")
+        shin.blob(knee, (5, 5, 5), "plate", slices=3)
         d = unit(knee - ankle)
-        s.rbox(ankle + [0, -ANKLE / 2.0 + 0.5, -3], (9, 8, 14), "boot", c=2)
-        s.ring(ankle + d * 3.0, d, 5.2, 3, 4, "mantle", n=6)
+        boot.rbox(ankle + [0, -ANKLE / 2.0 + 0.5, -3], (9, 8, 14), "boot", c=2)
+        shin.ring(ankle + d * 3.0, d, 5.2, 3, 4, "mantle", n=6)
 
 
 def torso(s):
@@ -430,11 +436,13 @@ def cloak(s, pose):
 def arms(s, fists, pose):
     poles = ((-1.0, -0.2, 0.7), (1.0, -0.2, 0.7)) if pose == "ride" else ((-0.5, 0.0, 0.85), (0.3, 0.0, 1.0))
     for x, fist, pole in ((-1, fists[0], poles[0]), (1, fists[1], poles[1])):
+        side = "l" if x > 0 else "r"
         sh = SHOULDER * np.array([x, 1.0, 1.0])
         el = elbow(sh, fist, pole)
-        s.taper([sh, el, fist + unit(el - fist) * 2.0], [8, 7, 6], "leather")
-        s.rbox(fist, (7, 7, 7), "gauntlet", c=2)
-        s.ring(el, unit(fist - sh), 4.0, 2, 3, "plate", n=6)
+        s.part(f"arm_{side}").taper([sh, el], [8, 7], "leather")
+        s.part(f"forearm_{side}").taper([el, fist + unit(el - fist) * 2.0], [7, 6], "leather")
+        s.part(f"hand_{side}").rbox(fist, (7, 7, 7), "gauntlet", c=2)
+        s.part(f"forearm_{side}").ring(el, unit(fist - sh), 4.0, 2, 3, "plate", n=6)
 
 
 def spear(s, fist, pose):
@@ -476,6 +484,24 @@ def bow(s):
     s.seg(top, low, 1, 1, "string")
     s.curve([mid + [0, 0, 1.0], (mid[0] - 0.5, mid[1] + 3, 14.5), (13, 155, 6)], 4, [2, 2, 2], "leather",
             depths=[1, 1, 1])
+
+
+def props_in_hand(s, fists, pose):
+    """For the animated Huntsman (rimemobs/huntsman.py): a second bow, upright in his left fist with an ice arrow on
+    the string, and his horn in the same fist; each on a bone of its own that the animations show only while he
+    shoots or blows it (the statue never builds them)."""
+    fist = fists[1]
+    b = s.part("bow_held")
+    u = np.array([0.0, 1.0, 0.0])
+    out = np.array([0.0, 0.0, -1.0])
+    pts = [fist + u * BOW * (t - 0.5) + out * BOW_BEND * math.sin(math.pi * t) for t in (1.0, 0.75, 0.5, 0.25, 0.0)]
+    b.curve(pts, 12, [1.8, 2.6, 3.4, 2.6, 1.8], "bowwood", depths=[1.8, 2.2, 2.6, 2.2, 1.8])
+    b.seg(pts[0], pts[-1], 1, 1, "string")
+    b.seg(fist + [0, 0, 1.0], fist + [0, 0, 24.0], 1, 1, "shaft")
+    b.cone(fist + [0, 0, -1.0], fist + [0, 0, -6.0], 2, "lance", steps=2)
+    h = s.part("horn_held")
+    h.curve([fist + [0, 2, 0], fist + [-3, 6, -3], fist + [-5, 11, -1]], 5, [3, 4.5, 6], "bone")
+    h.ring(fist + [-5, 11, -1], (0, 1, 0), 3.6, 1, 2, "iron", n=8)
 
 
 def head(s):

@@ -51,8 +51,10 @@ def _fragments(layers, view, scale, bounds, pose=None, hidden=()):
     ys = by0 + (np.arange(height) + 0.5) / s16
     ice_frags = []
     for li, (model, tex) in enumerate(layers):
+        # (pose: one for the first layer, or a list of one per layer: the Huntsman on his moose)
+        p = pose[li] if isinstance(pose, list) else (pose if li == 0 else None)
         _raster(li, model, tex, view, s16, bounds, xs, ys, width, height, depth, tu_b, tv_b, layer_b, light, glight,
-                hit, ice_frags, pose if li == 0 else None, hidden if li == 0 else ())
+                hit, ice_frags, p, hidden if li == 0 else ())
     return dict(depth=depth, u=tu_b, v=tv_b, layer=layer_b, light=light, glight=glight, hit=hit, width=width,
                 height=height, ice=ice_frags)
 

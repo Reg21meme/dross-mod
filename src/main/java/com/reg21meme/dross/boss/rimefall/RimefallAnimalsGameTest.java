@@ -590,6 +590,8 @@ public final class RimefallAnimalsGameTest
         helper.setBlock(floor, Blocks.PACKED_ICE);
         PondSkater skater = spawn(helper, ModEntities.POND_SKATER.get(), MIDDLE, 0.0F);
         skater.setNoAi(true);
+        // (a monster far from the nearest player despawns: another test's player may be online somewhere far off)
+        skater.setPersistenceRequired();
         double base = RimefallMobTuning.SKATER_SPEED;
         helper.runAfterDelay(10, () ->
         {

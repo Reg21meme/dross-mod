@@ -77,10 +77,18 @@ public final class RimefallTuning
     public static final int HERD_SPACING = 96;
     public static final int HERD_TRIES = 64;
     public static final double HERD_LAKE_CLEARANCE = 24.0D;
+    /** A patch so small that its lake leaves no spot that far out still gets one herd: the spot furthest from the lake,
+     * at least this far past its shore (and these many candidate spots, this far apart, are looked at for it). */
+    public static final double HERD_LAKE_CLEARANCE_LAST = 6.0D;
+    public static final int HERD_LAST_TRIES = 256;
+    public static final int HERD_LAST_SPACING = 12;
     /** A herd's size (the user's 6-8: its first 2 males, the rest females) and how far round its spot they stand. */
     public static final int HERD_MIN = 6;
     public static final int HERD_MAX = 8;
     public static final int HERD_SPREAD = 6;
+    /** Tries at a free spot for each Rimehorn round its herd's spot, then anywhere in the herd's chunk. */
+    public static final int HERD_NEAR_TRIES = 15;
+    public static final int HERD_CHUNK_TRIES = 40;
 
     // ---------------------------------------------------------------- Pond Skaters
     // The user: a big lake holds 2 at most; a frozen pond at least ~30 blocks across, 1; anything smaller none ("one

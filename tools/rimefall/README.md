@@ -48,6 +48,19 @@ python tools/rimefall/sounds.py                  # writes sounds/rimehorn|moose|
                                                  # boss-previews/rimefall/mobs/sounds/index.html (every version)
 ```
 
+The Huntsman and his Alpha Moose are built the same way (step 14 part 4): `rimemobs/alpha_moose.py` (the moose in its
+tack, nobody on it), `rimemobs/huntsman.py` (him on foot) and `rimemobs/huntsman_rider.py` (him in the saddle: the
+model's floor is the moose's ground, so in the game he sits at the moose's own position), their skeleton in
+`rimemobs/hunter_rig.py` (his left is +x; a second bow and his horn in his left hand, `bow_held` and `horn_held`, shown
+only while he uses them). His arms are posed by hand (`hunter_rig.arm`, `huntsman.grip`: the spear's angle from
+upright, the wrist turning by what the shoulder and elbow haven't); his legs stand on IK; his kneeling death and the
+moose's rear are found by search so nothing goes under the floor (`hunter_rig.keep_on_floor`). The two together:
+
+```
+python tools/rimefall/wildhunt.py                # him riding the moose: wild_hunt.png and wild_hunt_<animation>.gif
+                                                 # in boss-previews/rimefall/mobs/huntsman_rider/ (after mobs.py)
+```
+
 The check (printed by `mobs.py`): nothing goes more than 0.6 units under the ground, and no part goes into another
 deeper than it already sits in the rest pose (the groups and pairs are each module's `clip_group` and `CLIP_PAIRS`).
 Lessons from the first three: a straight leg can't tell which way to fold (each knee starts the IK a little bent); legs
