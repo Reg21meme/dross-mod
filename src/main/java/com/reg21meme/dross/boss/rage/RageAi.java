@@ -5,6 +5,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.Brain;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -40,8 +41,9 @@ import java.util.WeakHashMap;
  *   <li><b>Goal-based mobs</b> (most of Minecraft's: zombies, skeletons, creepers, spiders, endermen, iron golems,
  *       wolves, the Cinder Colossus, the Rat King...): their own attack goals go for whatever their target is.</li>
  *   <li><b>Brain-based fighters</b> (piglins, piglin brutes, hoglins, zoglins, axolotls, the warden): their brain's
- *       attack target is set too, and piglins are made angry at it, the warden too (best effort: a brain may still
- *       drop a target its own rules don't like).</li>
+ *       attack target is set too, and piglins are made angry at it (best effort: a brain may still drop a target its
+ *       own rules don't like). The warden gets more care ({@link #wardenAttack}): its roar can't leave it stuck, and its
+ *       anger at its enemy never fades away.</li>
  *   <li><b>Mobs with no attack of their own</b> ({@link #headbutts}: no attack strength, like cows, pigs, sheep,
  *       chickens, villagers, horses, llamas, snow golems): they headbutt ({@link RageHeadbuttGoal}).</li>
  *   <li><b>Slimes and magma cubes</b> only hurt players and iron golems by touching them in Minecraft; a raged one
@@ -331,6 +333,11 @@ public final class RageAi
         {
             held.add(walkingAt);
         }
+        LivingEntity roarTarget = memory(brain, MemoryModuleType.ROAR_TARGET);
+        if (roarTarget != null)
+        {
+            held.add(roarTarget);             // (a warden's: it would roar at it, then go for it)
+        }
         return held;
     }
 
@@ -347,6 +354,10 @@ public final class RageAi
         {
             brain.eraseMemory(MemoryModuleType.HURT_BY_ENTITY);
             brain.eraseMemory(MemoryModuleType.HURT_BY);
+        }
+        if (memory(brain, MemoryModuleType.ROAR_TARGET) == mate)
+        {
+            brain.eraseMemory(MemoryModuleType.ROAR_TARGET);
         }
         if (walkingAt(brain) == mate)
         {
@@ -369,18 +380,56 @@ public final class RageAi
     /** A brain-based fighter: its brain's attack target is its raged enemy, and it's angry at it (piglins, the warden). */
     private static void brainAttack(Mob mob, LivingEntity target)
     {
+        if (mob instanceof Warden warden)
+        {
+            wardenAttack(warden, target);
+            return;
+        }
         Brain<?> brain = mob.getBrain();
         if (memory(brain, MemoryModuleType.ATTACK_TARGET) != target)
         {
             brain.setMemory(MemoryModuleType.ATTACK_TARGET, target);
-            if (mob instanceof Warden warden)
-            {
-                warden.increaseAngerAt(target, RageTuning.WARDEN_ANGER, false);
-            }
         }
         if (brain.checkMemory(MemoryModuleType.ANGRY_AT, MemoryStatus.REGISTERED))
         {
             brain.setMemoryWithExpiry(MemoryModuleType.ANGRY_AT, target.getUUID(), RageTuning.BRAIN_ANGER_TICKS);
+        }
+    }
+
+    /**
+     * The warden fights through its own brain, which has two traps (the user's bug: a raged warden that ignored a raged
+     * Rat King of another team, even when he hit it after his burrow):
+     * <ul>
+     *   <li>it roars before it fights: its brain picks a roar target (whatever it's angry at), roars, and only then makes
+     *       it its attack target. But its roar only starts while it has no attack target, and it stays "about to roar"
+     *       as long as it has a roar target; so a roar target picked just before the Rage set its attack target (the
+     *       Rat King coming out of the ground, say) left it standing there for ever, fighting nothing. Here a roar
+     *       already going is turned on its raged enemy and left to finish (its end makes that its attack target); any
+     *       other roar target is dropped, so it fights at once;</li>
+     *   <li>it drops a target it's no longer angry at (Minecraft's {@code StopAttackingIfTargetInvalid}), and its anger
+     *       fades a point a tick: whenever its anger at its raged enemy falls under "angry", it's raised again
+     *       ({@link RageTuning#WARDEN_ANGER}).</li>
+     * </ul>
+     */
+    private static void wardenAttack(Warden warden, LivingEntity target)
+    {
+        Brain<Warden> brain = warden.getBrain();
+        if (warden.hasPose(Pose.ROARING))
+        {
+            if (memory(brain, MemoryModuleType.ROAR_TARGET) != target)
+            {
+                brain.setMemory(MemoryModuleType.ROAR_TARGET, target);
+            }
+            return;
+        }
+        brain.eraseMemory(MemoryModuleType.ROAR_TARGET);
+        if (memory(brain, MemoryModuleType.ATTACK_TARGET) != target)
+        {
+            warden.setAttackTarget(target);
+        }
+        if (!warden.getAngerLevel().isAngry())
+        {
+            warden.increaseAngerAt(target, RageTuning.WARDEN_ANGER, false);
         }
     }
 

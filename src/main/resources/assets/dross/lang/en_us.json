@@ -309,5 +309,7 @@
   "item.dross.rage_wand.team.green": "Green",
   "item.dross.rage_wand.team.yellow": "Yellow",
   "item.dross.rage_wand.team.purple": "Purple",
-  "dross.rat_king.showcase.charge": "No. %1$s %2$s (%3$s): charges, his staff levelled like a spear"
+  "dross.rat_king.showcase.charge": "No. %1$s %2$s (%3$s): charges, his staff levelled like a spear",
+  "entity.dross.rimefall_candidate": "Rimefall Boss Candidate",
+  "dross.rimefall.showcase.info": "No. %1$s %2$s (%3$s), about %4$s blocks tall"
 }

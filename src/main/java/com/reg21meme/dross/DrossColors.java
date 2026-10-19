@@ -95,6 +95,12 @@ public final class DrossColors {
      */
     public static final int RAT_SHOWCASE_BUTTON = 0x8FD14F;
 
+    /**
+     * The clickable [go] buttons of /dross showcase boss_designs rimefall (one per candidate). Pale frost blue, not the
+     * Dross's electric blue: the Rimefall bosses serve the Ice Necromancer. Used in command/RimefallShowcase.
+     */
+    public static final int RIMEFALL_SHOWCASE_BUTTON = 0xA6D8F2;
+
     // ---------------------------------------------------------------- Dimension (dimension-builder)
     // The Dross's own blocks and plants. (Their texture colors live in the Python palettes in tools/terrain/draw_blocks.py.)
 

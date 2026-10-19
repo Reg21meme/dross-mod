@@ -71,6 +71,10 @@ import net.minecraftforge.fml.common.Mod;
  *       you, each with a numbered sign; {@code /dross showcase boss_designs ratking
  *       sleep|wake|idle|walk|burrow|popup|rage|die} plays one of their animations ({@link RatKingShowcase}; the designs
  *       are the boss area's {@code RatKingDesigns}).</li>
+ *   <li>{@code /dross showcase boss_designs rimefall}: builds a snowy gallery in front of you with the 22 Rimefall boss
+ *       candidates (frozen models of the Ice Necromancer's possible servants), each with a numbered sign, and lists them
+ *       in chat with a button that takes you to each ({@link RimefallShowcase}; the designs are the boss area's
+ *       {@code RimefallDesigns}).</li>
  *   <li>{@code /dross showcase rats}: spawns the Rat King's rats in a row in front of you, each on a pedestal with a
  *       sign: the Plague Rat, then the Plague Ravager (the enraged breed); {@code /dross showcase rats idle|run}
  *       switches their animation ({@link RatShowcase}; the designs are the boss area's {@code RatDesigns}).</li>
@@ -152,13 +156,16 @@ public final class DrossCommand
                         .then(Commands.literal("reset").executes(QuestCommands::reset))
                         .then(Commands.literal("complete").executes(QuestCommands::complete)))
                 // Test showcases that build things side by side to compare them: showcase <kind> [<boss>]
-                // (the logic lives in GolemShowcase, RatKingShowcase, RatShowcase, RatSoundShowcase and TrophyShowcase).
+                // (the logic lives in GolemShowcase, RatKingShowcase, RimefallShowcase, RatShowcase, RatSoundShowcase and
+                // TrophyShowcase).
                 .then(Commands.literal("showcase")
                         .requires(source -> source.hasPermission(2))
                         // Boss area's designs, one literal per boss.
                         .then(Commands.literal("boss_designs")
                                 .then(colossusDesignShowcase())
-                                .then(ratKingDesignShowcase()))
+                                .then(ratKingDesignShowcase())
+                                // The Rimefall boss candidates (22 frozen models in a gallery; RimefallShowcase).
+                                .then(Commands.literal("rimefall").executes(RimefallShowcase::buildGallery)))
                         // Boss area's Rat King's rats (regular and enraged), with their controls (RatShowcase).
                         .then(ratShowcase())
                         // Boss area's sounds, one literal per boss (RatSoundShowcase).

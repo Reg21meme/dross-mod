@@ -10,6 +10,7 @@ import com.reg21meme.dross.boss.ratking.PlagueBall;
 import com.reg21meme.dross.boss.ratking.PoisonCloud;
 import com.reg21meme.dross.boss.ratking.Rat;
 import com.reg21meme.dross.boss.ratking.RatKing;
+import com.reg21meme.dross.boss.rimefall.RimefallCandidate;
 import com.reg21meme.dross.villager.DrossTrader;
 import com.reg21meme.dross.villager.Survivor;
 import net.minecraft.world.entity.EntityType;
@@ -115,6 +116,18 @@ public final class ModEntities
                     .clientTrackingRange(6)
                     .updateInterval(Integer.MAX_VALUE)
                     .build("poison_cloud"));
+
+    /**
+     * Boss area: the Rimefall boss candidates, frozen models of the Ice Necromancer's 22 possible servants for
+     * /dross showcase boss_designs rimefall. One type wears any of the 22 looks; its hitbox follows the look (from the
+     * size of a player to about 15 blocks tall), so the size given here is only its first one.
+     */
+    public static final RegistryObject<EntityType<RimefallCandidate>> RIMEFALL_CANDIDATE = ENTITY_TYPES.register("rimefall_candidate",
+            () -> EntityType.Builder.<RimefallCandidate>of(RimefallCandidate::new, MobCategory.MISC)
+                    .sized(2.0F, 2.6F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("rimefall_candidate"));
 
     private ModEntities() {}
 }

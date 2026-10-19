@@ -10,10 +10,12 @@ import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Unit;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -32,6 +34,7 @@ import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.Pig;
 import net.minecraft.world.entity.monster.Pillager;
 import net.minecraft.world.entity.monster.Zombie;
+import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -90,6 +93,11 @@ import static com.reg21meme.dross.boss.golem.ColossusGameTest.waitForArena;
  *       join its team and never target it or each other, and it and they go for the raged enemy.</li>
  *   <li>{@link #ragedRatKingWakesAndHisRatsJoinHim}: raging a sleeping Rat King wakes him; his new rat joins his team
  *       and never targets him, and goes for the raged enemy.</li>
+ *   <li>{@link #ragedWardenFightsAfterItsRoar}: a raged warden whose own brain has just picked its raged enemy to roar
+ *       at (and the Rage sets its attack target before the roar starts) still fights it: it hits it. (The user's bug:
+ *       it stood there for ever.)</li>
+ *   <li>{@link #ragedWardenFightsTheRatKingAfterHisBurrow}: a raged warden and a raged Rat King of another team: after
+ *       his burrow, when he's out of the ground again, the warden goes for him and hits him.</li>
  *   <li>{@link #rageSurvivesSaveAndLoad}: a raged zombie saved and loaded again (NBT) keeps its Rage (for ever) and its
  *       team, its rage goals come back, and it goes for its enemy, never its own team.</li>
  * </ul>
@@ -812,6 +820,109 @@ public final class RageGameTest
                     discard(spawned);
                 })
                 .thenSucceed();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The warden (its own brain: it roars before it fights)
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = ARENA, batch = "dross_rage_warden_roar", timeoutTicks = ARENA_WAIT_TICKS + FIGHT_WAIT_TICKS + 100)
+    public static void ragedWardenFightsAfterItsRoar(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::ragedWardenFightsAfterItsRoar))
+        {
+            return;
+        }
+        Warden warden = warden(helper, MIDDLE.offset(-4, 0, 0));
+        Zombie enemy = tough(zombie(helper, MIDDLE.offset(4, 0, 0)));
+        // The warden's own brain has just picked the zombie to roar at (it roars at what it's angry at before it fights),
+        // and the Rage sets its attack target before the roar can start: the user's bug, a warden that stood there for
+        // ever ignoring its enemy (its roar never starts while it has an attack target, and it never stops waiting to).
+        warden.getBrain().setMemory(MemoryModuleType.ROAR_TARGET, enemy);
+        Rage.enrage(warden, RageTeam.RED);
+        Rage.enrage(enemy, RageTeam.BLUE);
+        float before = enemy.getHealth();
+        List<Entity> spawned = List.of(warden, enemy);
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (enemy.getHealth() >= before - HEALTH_TOLERANCE)
+                    {
+                        throw new GameTestAssertException("the raged warden hasn't hit its raged enemy (target "
+                                + warden.getTarget() + ", roar target " + warden.getBrain().getMemory(
+                                MemoryModuleType.ROAR_TARGET).orElse(null) + ")");
+                    }
+                })
+                .thenExecute(() -> discard(spawned))
+                .thenSucceed();
+    }
+
+    @GameTest(template = ARENA, batch = "dross_rage_warden_ratking",
+            timeoutTicks = ARENA_WAIT_TICKS + 3 * FIGHT_WAIT_TICKS + 100)
+    public static void ragedWardenFightsTheRatKingAfterHisBurrow(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::ragedWardenFightsTheRatKingAfterHisBurrow))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        RatKing king = RatKing.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(5, 0, 0))), 90.0F);
+        if (king == null)
+        {
+            helper.fail("couldn't spawn a Rat King");
+            return;
+        }
+        Warden warden = warden(helper, MIDDLE.offset(-5, 0, 0));
+        Rage.enrage(warden, RageTeam.RED);
+        Rage.enrage(king, RageTeam.GREEN);                  // (it wakes him)
+        float[] atPopUp = new float[1];
+        List<Entity> spawned = new ArrayList<>(List.of(warden, king));
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (!king.isFightActive())
+                    {
+                        throw new GameTestAssertException("the Rat King is still waking up");
+                    }
+                })
+                // A heavy blow takes him to his first burrow (at 175 of 200): he digs in and tunnels towards the warden.
+                .thenExecute(() -> king.hurt(level.damageSources().mobAttack(warden), 30.0F))
+                .thenWaitUntil(() -> {
+                    if (!king.isUnderground())
+                    {
+                        throw new GameTestAssertException("the Rat King hasn't gone under the ground");
+                    }
+                })
+                .thenWaitUntil(() -> {
+                    if (king.isUnderground())
+                    {
+                        throw new GameTestAssertException("the Rat King is still under the ground");
+                    }
+                })
+                .thenExecute(() -> {
+                    atPopUp[0] = king.getHealth();
+                    spawned.addAll(level.getEntitiesOfClass(Rat.class, king.getBoundingBox().inflate(32.0D)));
+                })
+                // Out again: the warden goes for him and hits him (his health drops, or a hit takes him to his next burrow).
+                .thenWaitUntil(() -> {
+                    if (king.getHealth() >= atPopUp[0] - HEALTH_TOLERANCE && king.isAlive())
+                    {
+                        throw new GameTestAssertException("the raged warden hasn't hit the raged Rat King since his burrow "
+                                + "(target " + warden.getTarget() + ", roar target " + warden.getBrain().getMemory(
+                                MemoryModuleType.ROAR_TARGET).orElse(null) + ")");
+                    }
+                })
+                .thenExecute(() -> {
+                    spawned.addAll(level.getEntitiesOfClass(Rat.class, king.getBoundingBox().inflate(32.0D)));
+                    discard(spawned);
+                })
+                .thenSucceed();
+    }
+
+    /** A warden standing in the arena, its dig cooldown set (a warden with nothing to do digs back into the ground). */
+    private static Warden warden(GameTestHelper helper, BlockPos at)
+    {
+        Warden warden = spawn(helper, EntityType.WARDEN, at);
+        warden.getBrain().setMemoryWithExpiry(MemoryModuleType.DIG_COOLDOWN, Unit.INSTANCE, 12000L);
+        return warden;
     }
 
     // ---------------------------------------------------------------------------------------------

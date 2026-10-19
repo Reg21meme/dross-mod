@@ -76,6 +76,7 @@ public final class DrossCommandGameTest
             "dross quest status", "dross quest reset", "dross quest complete",
             "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",
             "dross showcase boss_designs ratking", "dross showcase rats", "dross showcase boss_sounds ratking",
+            "dross showcase boss_designs rimefall",
             "dross boss summon ratking", "dross boss arena ratking",
             "dross boss summon colossus", "dross boss arena colossus",
     };
