@@ -93,6 +93,8 @@ def designs():
         raise SystemExit(f"two designs share a number: {numbers}")
     entries = []
     for mod in mods:
+        if not getattr(mod, "GALLERY", True):
+            continue                # a real animal now (mobs.py builds it); not a statue in the gallery any more
         for v in mod.VARIANTS:
             entries.append(Entry(mod, v, len(entries) + 1))
     return entries

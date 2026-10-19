@@ -15,7 +15,7 @@ import java.util.List;
  * and {@code _rage.png} (his red eyes, at {@code rage}). Bones a design hides are scaled to 0 by its pose.
  * <p>
  * The five are the user's pick of ten candidates ({@code candidate}: its number among them; previews in
- * {@code boss-previews/rat_king/trophies/}, the candidates in its {@code candidates/} folder).
+ * {@code boss-previews/blightwood/rat_king/trophies/}, the candidates in its {@code candidates/} folder).
  * <p>
  * Points are in the block (0 to 1) for a trophy facing north; the mod turns them for the other directions.
  */

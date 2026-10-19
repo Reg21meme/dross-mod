@@ -11,7 +11,7 @@ kept as a record); the user picked five (PICKED), which are the ones in the game
      5     10  Belly Up           on his back, legs up, tongue out, X eyes, crown askew   death   its end (crown on his head)
 
 The other candidates (2 Rude Awakening, 3 Sly Schemer, 4 Staff Sweep, 5 Plague Flick, 8 Down the Hole) stay in
-TROPHIES; `build.py --trophies-only --candidates` renders all ten again into boss-previews/rat_king/trophies/candidates/
+TROPHIES; `build.py --trophies-only --candidates` renders all ten again into boss-previews/blightwood/rat_king/trophies/candidates/
 (previews only: the game files are left alone).
 
 Each pose is taken from his own animations at one moment (TROPHIES: the animation and the time) and held as a GeckoLib
@@ -39,8 +39,8 @@ It writes (all outside the rat_king/ and rat/ folders, so build.remove_stale nev
                                                          his textures (the same texels) with the mound below them; the
                                                          glow (the orb, his crown's gem; full-bright); his red eyes
                                                          (game designs 2 and 3)
-  boss-previews/rat_king/trophies/trophies.png           the five on their blocks, numbered and named
-  boss-previews/rat_king/trophies/trophy_<nn>_<key>_<front|side>.png
+  boss-previews/blightwood/rat_king/trophies/trophies.png           the five on their blocks, numbered and named
+  boss-previews/blightwood/rat_king/trophies/trophy_<nn>_<key>_<front|side>.png
   src/main/java/com/reg21meme/dross/boss/ratking/trophy/RatKingTrophyModels.java
                                                          generated: scale, outline box, glow, red eyes, light level,
                                                          the sign's look and the particle spots of each design
@@ -1150,7 +1150,7 @@ import java.util.List;
  * and {{@code _rage.png}} (his red eyes, at {{@code rage}}). Bones a design hides are scaled to 0 by its pose.
  * <p>
  * The five are the user's pick of ten candidates ({{@code candidate}}: its number among them; previews in
- * {{@code boss-previews/rat_king/trophies/}}, the candidates in its {{@code candidates/}} folder).
+ * {{@code boss-previews/blightwood/rat_king/trophies/}}, the candidates in its {{@code candidates/}} folder).
  * <p>
  * Points are in the block (0 to 1) for a trophy facing north; the mod turns them for the other directions.
  */

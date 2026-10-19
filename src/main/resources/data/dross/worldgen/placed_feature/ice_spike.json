@@ -13,6 +13,9 @@
       "heightmap": "MOTION_BLOCKING_NO_LEAVES"
     },
     {
+      "type": "dross:not_on_rimefall_lake"
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

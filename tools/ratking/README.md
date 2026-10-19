@@ -12,9 +12,9 @@ golem kit (`tools/golems/kit`) for the model maths, IK, noise, painting and rend
 ## Rounds
 
 - **Round 1** (six designs, archived in `ratdesigns/round1/`, previews and in-game screenshots in
-  `boss-previews/rat_king/round1/`): the user picked No. 1, **Gnawrick**, and two rats: R3 Plague Rat and E3 Plague
+  `boss-previews/blightwood/rat_king/round1/`): the user picked No. 1, **Gnawrick**, and two rats: R3 Plague Rat and E3 Plague
   Ravager.
-- **Round 2** (seven builds of Gnawrick, archived in `ratdesigns/round2/`, previews in `boss-previews/rat_king/round2/`):
+- **Round 2** (seven builds of Gnawrick, archived in `ratdesigns/round2/`, previews in `boss-previews/blightwood/rat_king/round2/`):
   the same look and height, different widths and depths: 1A the original, 1B skinny, 1C broad shoulders, 1D barrel
   chest, 1E potbelly, 1F hulking, 1G hunchback. Built in: he sleeps curled up on the ground; his ears and the staff
   never pass through each other, nor the staff through him or the floor; the burrow's dirt mound is where his head goes
@@ -59,18 +59,18 @@ A full build takes about 10 minutes (the clipping check and the staff guard run 
 | `assets/dross/{geo,animations,textures}/entity/rat/<id>...` | the rats (`animation.rat.` idle, run); `_glow.png` red eyes and boils |
 | `assets/dross/textures/particle/zzz.png`, `particles/zzz.json` | the Zzz particle |
 | `boss/ratking/RatKingDesigns.java`, `RatDesigns.java` | the generated design lists (names, sign text, every animation timing the mod's particles and sounds use) |
-| `boss-previews/rat_king/` | `ratking_<label>_<id>_<front/side/back>.png`, `ratking_<label>_<id>_sheet.png` (four views, at night, enraged, and a filmstrip of every animation with the Zzz and steam sketched in), `ratking_<label>_<id>_charge.png` (the spear charge from the side, blended between its animations the way GeckoLib does), `ratking_all.png` |
-| `boss-previews/rat_king/rats/` | `rat_<label>_<id>_<front/side/back>.png` and `rats_sheet.png` |
-| `boss-previews/rat_king/plague_ball.png` | the poison ball from a few angles, at night, and its tumble |
-| `boss-previews/rat_king/bossbar-previews/` | `option_9.png` (the pick: normal and Rage at full, half and low health, 3x) |
+| `boss-previews/blightwood/rat_king/` | `ratking_<label>_<id>_<front/side/back>.png`, `ratking_<label>_<id>_sheet.png` (four views, at night, enraged, and a filmstrip of every animation with the Zzz and steam sketched in), `ratking_<label>_<id>_charge.png` (the spear charge from the side, blended between its animations the way GeckoLib does), `ratking_all.png` |
+| `boss-previews/blightwood/rat_king/rats/` | `rat_<label>_<id>_<front/side/back>.png` and `rats_sheet.png` |
+| `boss-previews/blightwood/rat_king/plague_ball.png` | the poison ball from a few angles, at night, and its tumble |
+| `boss-previews/blightwood/rat_king/bossbar-previews/` | `option_9.png` (the pick: normal and Rage at full, half and low health, 3x) |
 | `assets/dross/sounds/rat_king/`, `rat/`, `enraged_rat/` | the sounds (`sounds.py`) |
 | `assets/dross/sounds.json`, `lang/en_us.json` | their events and subtitles (`sounds.py` adds its own and leaves the rest alone) |
 | `boss/ratking/RatKingSounds.java` | the list of every sound event, for `/dross showcase boss_sounds ratking` |
-| `boss-previews/rat_king/sounds/index.html`, `spectrograms.png` | a page that plays every sound (open it in a browser), and what each looks like |
+| `boss-previews/blightwood/rat_king/sounds/index.html`, `spectrograms.png` | a page that plays every sound (open it in a browser), and what each looks like |
 | `assets/dross/geo/block/` and `geo/item/rat_king_trophy.geo.json` | his trophies' model (`ratkit/trophies.py`, below): his model plus the trophies' extra bones; two copies (GeckoLib shares a model's bones between everything drawn with it) |
 | `assets/dross/animations/block/rat_king_trophy.animation.json` | `animation.rat_king_trophy.design_<1-5>`: each trophy's held pose |
 | `assets/dross/textures/block/rat_king_trophy/rat_king_trophy.png`, `_glow.png`, `_rage.png` | his texels with the mound's under them (256 x 256); the glow; his red eyes |
-| `boss-previews/rat_king/trophies/` | `trophies.png` (the five on their blocks, and at night) and `trophy_<nn>_<key>_<front/side>.png`; the ten candidates' previews (the record) in `candidates/` |
+| `boss-previews/blightwood/rat_king/trophies/` | `trophies.png` (the five on their blocks, and at night) and `trophy_<nn>_<key>_<front/side>.png`; the ten candidates' previews (the record) in `candidates/` |
 | `boss/ratking/trophy/RatKingTrophyModels.java` | generated: each trophy's scale, outline box, glow, red eyes, light level, sign look and particle spots |
 | `assets/dross/lang/en_us.json` | the trophies' names (`block.dross.rat_king_trophy` and `.design_<n>`; only those keys are added or changed) |
 
@@ -156,7 +156,7 @@ Colossus's (`tools/golems/kit/trophies.py`). Each is his own model and textures 
 base, holding one moment of his own animations (`TROPHIES`: the animation, the time, how far the figure is turned on its
 block, and the showcase sign's `look`).
 
-Phase 1 made ten candidates (kept in `TROPHIES` as a record; previews in `boss-previews/rat_king/trophies/candidates/`,
+Phase 1 made ten candidates (kept in `TROPHIES` as a record; previews in `boss-previews/blightwood/rat_king/trophies/candidates/`,
 rendered again with `--trophies-only --candidates`): 1 Fast Asleep (sleep), 2 Rude Awakening (wake, snatching up his
 staff), 3 Sly Schemer (idle, the drum), 4 Staff Sweep (sweep), 5 Plague Flick (cast, the flick), 6 Tantrum (rage, the
 screech), 7 Ground Pound (rage, the slam), 8 Down the Hole (burrow, the dive), 9 Pop Goes the King (popup), 10 Belly Up

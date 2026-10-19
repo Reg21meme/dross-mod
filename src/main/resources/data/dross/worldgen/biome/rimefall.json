@@ -20,85 +20,25 @@
       "offset": 2.0
     }
   },
+  "creature_spawn_probability": 0.008,
   "spawners": {
     "monster": [
       {
-        "type": "minecraft:zombie",
-        "weight": 95,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:zombie_villager",
-        "weight": 5,
-        "minCount": 1,
-        "maxCount": 1
-      },
-      {
-        "type": "minecraft:skeleton",
+        "type": "dross:pond_skater",
         "weight": 100,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:enderman",
-        "weight": 10,
         "minCount": 1,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:witch",
-        "weight": 5,
-        "minCount": 1,
-        "maxCount": 1
+        "maxCount": 2
       }
     ],
     "creature": [
       {
-        "type": "minecraft:sheep",
-        "weight": 12,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:pig",
-        "weight": 10,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:chicken",
-        "weight": 10,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:cow",
-        "weight": 8,
-        "minCount": 4,
-        "maxCount": 4
-      },
-      {
-        "type": "minecraft:horse",
-        "weight": 5,
-        "minCount": 2,
-        "maxCount": 6
-      },
-      {
-        "type": "minecraft:donkey",
+        "type": "dross:moose",
         "weight": 1,
         "minCount": 1,
-        "maxCount": 3
+        "maxCount": 1
       }
     ],
-    "ambient": [
-      {
-        "type": "minecraft:bat",
-        "weight": 10,
-        "minCount": 8,
-        "maxCount": 8
-      }
-    ],
+    "ambient": [],
     "axolotls": [],
     "underground_water_creature": [],
     "water_creature": [],
@@ -135,6 +75,7 @@
       "dross:snow_drifts"
     ],
     [
+      "dross:rimehorn_herds",
       "dross:tidy_up"
     ]
   ]

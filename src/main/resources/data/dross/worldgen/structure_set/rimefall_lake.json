@@ -1,0 +1,13 @@
+{
+  "structures": [
+    {
+      "structure": "dross:rimefall_lake",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:boss_site",
+    "use": "dross:rimefall_area",
+    "salt": 1910201926
+  }
+}

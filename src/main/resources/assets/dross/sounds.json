@@ -613,5 +613,148 @@
       {"name": "dross:enraged_rat/attack_2"},
       {"name": "dross:enraged_rat/attack_3"}
     ]
+  },
+  "entity.rimehorn.ambient": {
+    "subtitle": "subtitles.dross.rimehorn.ambient",
+    "sounds": [
+      {"name": "dross:rimehorn/ambient_1"},
+      {"name": "dross:rimehorn/ambient_2"},
+      {"name": "dross:rimehorn/ambient_3"},
+      {"name": "dross:rimehorn/ambient_4"}
+    ]
+  },
+  "entity.rimehorn.hurt": {
+    "subtitle": "subtitles.dross.rimehorn.hurt",
+    "sounds": [
+      {"name": "dross:rimehorn/hurt_1"},
+      {"name": "dross:rimehorn/hurt_2"}
+    ]
+  },
+  "entity.rimehorn.death": {
+    "subtitle": "subtitles.dross.rimehorn.death",
+    "sounds": [
+      {"name": "dross:rimehorn/death"}
+    ]
+  },
+  "entity.rimehorn.step": {
+    "subtitle": "subtitles.dross.rimehorn.step",
+    "sounds": [
+      {"name": "dross:rimehorn/step_1", "volume": 0.6},
+      {"name": "dross:rimehorn/step_2", "volume": 0.6}
+    ]
+  },
+  "entity.rimehorn.eat": {
+    "subtitle": "subtitles.dross.rimehorn.eat",
+    "sounds": [
+      {"name": "dross:rimehorn/eat_1"},
+      {"name": "dross:rimehorn/eat_2"}
+    ]
+  },
+  "entity.rimehorn.flick": {
+    "subtitle": "subtitles.dross.rimehorn.flick",
+    "sounds": [
+      {"name": "dross:rimehorn/flick_1"},
+      {"name": "dross:rimehorn/flick_2"}
+    ]
+  },
+  "entity.rimehorn.rush": {
+    "subtitle": "subtitles.dross.rimehorn.rush",
+    "sounds": [
+      {"name": "dross:rimehorn/rush_1"},
+      {"name": "dross:rimehorn/rush_2"}
+    ]
+  },
+  "entity.moose.ambient": {
+    "subtitle": "subtitles.dross.moose.ambient",
+    "sounds": [
+      {"name": "dross:moose/ambient_1"},
+      {"name": "dross:moose/ambient_2"},
+      {"name": "dross:moose/ambient_3"},
+      {"name": "dross:moose/ambient_4"}
+    ]
+  },
+  "entity.moose.hurt": {
+    "subtitle": "subtitles.dross.moose.hurt",
+    "sounds": [
+      {"name": "dross:moose/hurt_1"},
+      {"name": "dross:moose/hurt_2"}
+    ]
+  },
+  "entity.moose.death": {
+    "subtitle": "subtitles.dross.moose.death",
+    "sounds": [
+      {"name": "dross:moose/death"}
+    ]
+  },
+  "entity.moose.step": {
+    "subtitle": "subtitles.dross.moose.step",
+    "sounds": [
+      {"name": "dross:moose/step_1", "volume": 0.5},
+      {"name": "dross:moose/step_2", "volume": 0.5}
+    ]
+  },
+  "entity.moose.eat": {
+    "subtitle": "subtitles.dross.moose.eat",
+    "sounds": [
+      {"name": "dross:moose/eat_1"},
+      {"name": "dross:moose/eat_2"}
+    ]
+  },
+  "entity.moose.charge": {
+    "subtitle": "subtitles.dross.moose.charge",
+    "sounds": [
+      {"name": "dross:moose/charge_1"},
+      {"name": "dross:moose/charge_2"}
+    ]
+  },
+  "entity.moose.attack": {
+    "subtitle": "subtitles.dross.moose.attack",
+    "sounds": [
+      {"name": "dross:moose/attack_1"},
+      {"name": "dross:moose/attack_2"}
+    ]
+  },
+  "entity.pondskater.ambient": {
+    "subtitle": "subtitles.dross.pondskater.ambient",
+    "sounds": [
+      {"name": "dross:pondskater/ambient_1", "volume": 0.8},
+      {"name": "dross:pondskater/ambient_2", "volume": 0.8},
+      {"name": "dross:pondskater/ambient_3", "volume": 0.8},
+      {"name": "dross:pondskater/ambient_4", "volume": 0.8}
+    ]
+  },
+  "entity.pondskater.hurt": {
+    "subtitle": "subtitles.dross.pondskater.hurt",
+    "sounds": [
+      {"name": "dross:pondskater/hurt_1"},
+      {"name": "dross:pondskater/hurt_2"}
+    ]
+  },
+  "entity.pondskater.death": {
+    "subtitle": "subtitles.dross.pondskater.death",
+    "sounds": [
+      {"name": "dross:pondskater/death"}
+    ]
+  },
+  "entity.pondskater.step": {
+    "subtitle": "subtitles.dross.pondskater.step",
+    "sounds": [
+      {"name": "dross:pondskater/step_1", "volume": 0.35},
+      {"name": "dross:pondskater/step_2", "volume": 0.35}
+    ]
+  },
+  "entity.pondskater.skate": {
+    "subtitle": "subtitles.dross.pondskater.skate",
+    "sounds": [
+      {"name": "dross:pondskater/skate_1", "volume": 0.6},
+      {"name": "dross:pondskater/skate_2", "volume": 0.6}
+    ]
+  },
+  "entity.pondskater.attack": {
+    "subtitle": "subtitles.dross.pondskater.attack",
+    "sounds": [
+      {"name": "dross:pondskater/attack_1"},
+      {"name": "dross:pondskater/attack_2"}
+    ]
   }
 }

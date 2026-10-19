@@ -1,0 +1,7 @@
+{
+  "type": "dross:rimefall_lake",
+  "biomes": "#dross:has_structure/rimefall_lake",
+  "spawn_overrides": {},
+  "step": "lakes",
+  "terrain_adaptation": "none"
+}

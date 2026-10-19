@@ -661,6 +661,49 @@ def shag(pal, seed=45, strand=1.0, ragged=1.0, frost_amount=0.2, outline=0.0, ro
     return paint
 
 
+@_factory(lambda *a, **kw: kw.get('ragged', 0.0) <= 0 and kw.get('holes', 0.0) <= 0)
+def worn_hide(pal, inner=None, seed=61, strand=2.4, frost_amount=0.25, ragged=0.0, holes=0.0, wear=0.0):
+    """
+    A fur cloak (the Huntsman's bearskin, round 4): fur on each plate's outer face, bare hide on the inner face
+    (Shape.plate() turns a box's own +z towards the inside: GeckoLib's mirrored x flips the cross product). Optionally its end worn away (the user: "a worn off end"): a ragged bottom edge with deep tatters torn up into
+    it (cut out), holes worn through near it (through both faces), and the fur thinning and fading towards it (`wear`).
+    The end is each box's own bottom (its -y), so build the end plates with `up` pointing away from the end.
+    """
+    inner = LEATHER if inner is None else inner
+
+    def paint(tx):
+        cen = _centres(tx)
+        q, size = _box_frame(tx)
+        from_end = q[:, 1]                                       # units from the box's bottom (the cloak's end)
+        s = noise.fbm(tx.Pw * np.array([1.0, 0.25, 1.0]), 2.0, 2, seed)
+        sp = _speck(tx.Pw, seed + 3) - 0.5
+        k = 2.6 + (s - 0.5) * strand + sp * 0.9 + bevel(tx.P, tx.N, cen, 0.9) * 0.5 + _shade(tx)
+        worn = np.clip(1.0 - from_end / 16.0, 0.0, 1.0) * wear
+        k = k + worn * 0.9 + (noise.fbm(tx.P, 1.6, 2, seed + 4) - 0.5) * worn * 1.6      # faded, patchy
+        col = pick(pal, k)
+        ki = 2.4 + (noise.fbm(noise.warp(tx.Pw, 1.5, 8.0, seed + 5), 5.0, 3, seed + 6) - 0.5) * 1.6 + _shade(tx)
+        col = np.where((tx.N[:, 2] > 0.5)[:, None], pick(inner, ki + worn * 0.6), col)
+        col = _outline(tx, col, 0.1)
+        col = frost(tx, col, frost_amount, seed + 11)
+        a = np.full(tx.n, 255.0)
+        if ragged > 0:
+            # A jagged edge along the cloak's width, and here and there a tatter torn much further up.
+            across = tx.P * np.array([1.0, 0.0, 0.0])
+            jag = noise.fbm(across, 1.3, 3, seed + 7) * ragged * 7.0
+            strip = np.floor(q[:, 0] / 2.5)
+            torn = noise.hash_float(strip, tx.cube_index.astype(float), 1.0, seed + 8)
+            jag = jag + np.where(torn > 0.72, (torn - 0.72) / 0.28 * ragged * 11.0, 0.0)
+            a = np.where((from_end < jag) & (tx.N[:, 1] > -0.5), 0.0, a)
+            a = np.where(tx.N[:, 1] < -0.5, 0.0, a)              # (no solid strip under the ragged edge)
+        if holes > 0:
+            near = np.clip(1.0 - from_end / 26.0, 0.0, 1.0)
+            hm = noise.fbm(tx.P * np.array([1.0, 1.0, 0.0]), 2.2, 2, seed + 9) > 1.0 - holes * near
+            a = np.where(hm & (tx.edge > 1.0) & (np.abs(tx.N[:, 2]) > 0.5), 0.0, a)
+        return _out(tx, col, a)
+
+    return paint
+
+
 @_factory(True)
 def eye_plain(pal=HORN_DARK, seed=47):
     """An ordinary dark animal eye (no glow): glossy, with one bright glint near its top front corner."""

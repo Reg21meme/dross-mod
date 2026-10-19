@@ -29,6 +29,9 @@
       }
     },
     {
+      "type": "dross:not_on_rimefall_lake"
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

@@ -75,6 +75,10 @@ class Shape:
         self.count = 0
         self.blocks = []
 
+    def part(self, name):
+        """The Shape for one named part of a design (a statue: all on its one bone; an animated mob: see Parts)."""
+        return self
+
     # ------------------------------------------------------------ real Minecraft blocks
 
     def block(self, state, corner, bright=False):
@@ -305,6 +309,9 @@ class Scaled:
     def _p(self, p):
         return None if p is None else v3(p) * self.k
 
+    def part(self, name):
+        return Scaled(self.s.part(name), self.k)
+
     def _l(self, xs):
         return None if xs is None else [x * self.k for x in xs]
 
@@ -350,6 +357,49 @@ class Scaled:
     def ring(self, center, axis, radius, thick, width, mat, n=8, side=None, tag=None, phase=0.0):
         return self.s.ring(self._p(center), axis, radius * self.k, thick * self.k, width * self.k, mat, n=n, side=side,
                            tag=tag, phase=phase)
+
+
+class Moved(Scaled):
+    """
+    A Shape seen through a shift: every position handed to it is moved by `offset` (sizes stay as they are), so one
+    part can be built in two places with the same code (the Huntsman's rider in the saddle and standing on the ground).
+    """
+
+    def __init__(self, shape, offset):
+        super().__init__(shape, 1.0)
+        self.offset = v3(offset)
+
+    def _p(self, p):
+        return None if p is None else v3(p) + self.offset
+
+    def part(self, name):
+        return Moved(self.s.part(name), self.offset)
+
+
+class Parts:
+    """
+    A design's parts routed to the bones of an animated mob (round 4, the Rimefall animals): part(name) is the Shape
+    that puts boxes on that part's bone (`routes`: part -> bone; anything else goes on `default`). The bones must
+    exist already (with their pivots and parents). Drawing straight on a Parts draws on the default bone.
+    """
+
+    def __init__(self, model, routes, default="body"):
+        self.m = model
+        self.routes = dict(routes)
+        self.default = default
+        self.blocks = []
+        self._shapes = {}
+
+    def part(self, name):
+        bone = self.routes.get(name, name if name in self.m.by_name else self.default)
+        if bone not in self._shapes:
+            sh = Shape(self.m, bone)
+            sh.blocks = self.blocks
+            self._shapes[bone] = sh
+        return self._shapes[bone]
+
+    def __getattr__(self, attr):
+        return getattr(self.part(self.default), attr)
 
 
 def catmull(control, n):

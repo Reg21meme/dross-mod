@@ -1,6 +1,8 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.rimefall.RimefallLakePiece;
+import com.reg21meme.dross.dimension.rimefall.RimefallLakeStructure;
 import com.reg21meme.dross.dimension.sewer.RatCavePiece;
 import com.reg21meme.dross.dimension.sewer.SewerGrandPipePiece;
 import com.reg21meme.dross.dimension.sewer.SewerNodePiece;
@@ -47,6 +49,12 @@ public final class ModStructures
     // put a site (the sewers' structure sets)
     public static final RegistryObject<StructurePlacementType<BossSitePlacement>> BOSS_SITE_PLACEMENT = STRUCTURE_PLACEMENTS.register("boss_site",
             () -> () -> BossSitePlacement.CODEC);
+
+    // Dimension area: dross:rimefall_lake, each Rimefall patch's big frozen lake (dimension/rimefall), and its one piece
+    public static final RegistryObject<StructureType<RimefallLakeStructure>> RIMEFALL_LAKE = STRUCTURE_TYPES.register("rimefall_lake",
+            () -> () -> RimefallLakeStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> RIMEFALL_LAKE_PIECE = STRUCTURE_PIECES.register("rimefall_lake",
+            () -> (StructurePieceType.ContextlessType) RimefallLakePiece::new);
 
     private ModStructures() {}
 }

@@ -16,7 +16,7 @@ Run from the project folder:
     python tools/ratking/build.py --bars          # only the boss bar (bossbars.py)
     python tools/ratking/build.py --trophies-only # only his five trophies (ratkit/trophies.py; a few minutes)
     python tools/ratking/build.py --trophies-only --candidates   # the ten trophy candidates' previews again (the
-                                                                 # record, in boss-previews/rat_king/trophies/candidates/)
+                                                                 # record, in boss-previews/blightwood/rat_king/trophies/candidates/)
 
 It writes:
   src/main/resources/assets/dross/geo/entity/rat_king/<id>.geo.json                the model
@@ -31,10 +31,10 @@ It writes:
   src/main/resources/assets/dross/{geo,animations,textures}/entity/rat/<id>...      the rats (idle, run)
   src/main/resources/assets/dross/textures/particle/zzz_<n>.png                     the "Zzz" particle
   src/main/java/com/reg21meme/dross/boss/ratking/RatKingDesigns.java and RatDesigns.java   (generated)
-  boss-previews/rat_king/ (and rats/)                                               every preview
+  boss-previews/blightwood/rat_king/ (and rats/)                                               every preview
   and (also alone, with --trophies-only) his five trophies (ratkit/trophies.py: outside the rat_king/ and rat/ folders):
   src/main/resources/assets/dross/geo/block/ and geo/item/rat_king_trophy.geo.json, animations/block/
-  rat_king_trophy.animation.json, textures/block/rat_king_trophy/; boss-previews/rat_king/trophies/;
+  rat_king_trophy.animation.json, textures/block/rat_king_trophy/; boss-previews/blightwood/rat_king/trophies/;
   src/main/java/com/reg21meme/dross/boss/ratking/trophy/RatKingTrophyModels.java (generated); and their names in
   src/main/resources/assets/dross/lang/en_us.json (only the block.dross.rat_king_trophy keys)
 
@@ -76,7 +76,7 @@ RAT_ANIM = os.path.join(ASSETS, "animations", "entity", "rat")
 RAT_TEX = os.path.join(ASSETS, "textures", "entity", "rat")
 PARTICLE_TEX = os.path.join(ASSETS, "textures", "particle")
 PARTICLE_JSON = os.path.join(ASSETS, "particles")
-PREVIEWS = os.path.join(ROOT, "boss-previews", "rat_king")      # every boss has its own folder
+PREVIEWS = os.path.join(ROOT, "boss-previews", "blightwood", "rat_king")      # every boss has its own folder
 TROPHY_PREVIEWS = os.path.join(PREVIEWS, "trophies")
 TROPHY_TEX = os.path.join(ASSETS, "textures", "block", "rat_king_trophy")
 TROPHY_CANDIDATES = os.path.join(TROPHY_PREVIEWS, "candidates")  # the ten candidates' previews (the record)
@@ -438,7 +438,7 @@ def frames(argv):
 def build_trophies(d, m, tex, animations=None, rig=None, previews_only=False, candidates=False):
     """His five trophies (ratkit/trophies.py): their own model, poses and textures, previews, the generated
     RatKingTrophyModels.java and their names in en_us.json. With `candidates`, the ten candidates' previews only (into
-    boss-previews/rat_king/trophies/candidates/; no game files)."""
+    boss-previews/blightwood/rat_king/trophies/candidates/; no game files)."""
     from ratkit import trophies as TR
     if candidates:
         print("Rat King trophy candidates (previews only)")

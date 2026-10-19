@@ -74,7 +74,7 @@ Keep every tuning number a labelled constant.
 **Outputs:**
 - **Assets:** `src/main/resources/assets/dross/{geo,animations,textures}/entity/<boss>/<id>...`, with a `<id>_glow.png` for full-bright parts and any extra layer textures (the Rat King's `<id>_rage.png` red eyes).
 - **Java:** the generated design list(s) in `src/main/java/com/reg21meme/dross/boss/<boss>/` (marked "don't edit by hand").
-- **Previews:** in **`boss-previews/<boss>/`**. Every boss has its own folder, and minions go in a subfolder (`boss-previews/rat_king/rats/`).
+- **Previews:** in **`boss-previews/<biome>/<boss>/`**, inside the folder of the biome it lives in (`cinder_wastes/cinder_colossus/`, `blightwood/rat_king/`, `rimefall/`). Every boss has its own folder, and minions go in a subfolder (`boss-previews/blightwood/rat_king/rats/`).
 
 **Flags:**
 
@@ -94,7 +94,7 @@ A full Rat King build takes about 15 minutes (the clipping check and the staff g
 
 ## 2. Check the previews yourself (the review loop)
 
-The previews use GeckoLib's own maths, so they match the game. **Look at every one** (the Read tool shows PNGs) and iterate until each reads clearly. Use `--quick` and `--frames` into the session's scratchpad while iterating, and write the final previews into `boss-previews/<boss>/`.
+The previews use GeckoLib's own maths, so they match the game. **Look at every one** (the Read tool shows PNGs) and iterate until each reads clearly. Use `--quick` and `--frames` into the session's scratchpad while iterating, and write the final previews into `boss-previews/<biome>/<boss>/`.
 
 What to check, every round:
 - **Size and silhouette:** the build prints each candidate's measured size. Each design should be recognisable from the front, side and back.
@@ -193,7 +193,7 @@ The previews can drift from the game, so check the real thing:
   - **"Verify over time"** lines for whatever wasn't seen in-game;
   - the user's rules for the look.
 - Update `.claude/agents/boss-builder.md` (and `world-builder.md` for the commands) and `README.md`.
-- Optionally drop the losing candidates from `build.py` and archive them: `tools/<boss>/designs/round1/` and `boss-previews/<boss>/round1/`.
+- Optionally drop the losing candidates from `build.py` and archive them: `tools/<boss>/designs/round1/` and `boss-previews/<biome>/<boss>/round1/`.
 - Commit on the branch, then merge into `main` when the user says so. The fight is the next request.
 
 ---

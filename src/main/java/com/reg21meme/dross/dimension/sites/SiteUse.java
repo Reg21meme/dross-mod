@@ -18,9 +18,26 @@ public final class SiteUse
 
     SiteUse(ResourceLocation id, ResourceKey<Biome> biome, SiteFinder finder)
     {
+        this(id, biome, finder, false);
+    }
+
+    SiteUse(ResourceLocation id, ResourceKey<Biome> biome, SiteFinder finder, boolean perPatch)
+    {
         this.id = id;
         this.biome = biome;
         this.finder = finder;
+        this.perPatch = perPatch;
+    }
+
+    private final boolean perPatch;
+
+    /**
+     * True for a use every patch of its biome gets (where its finder finds a spot), whatever its group's slots: Rimefall's
+     * areas (a lake and herds in each). False for a boss or a filler, which the groups place.
+     */
+    public boolean perPatch()
+    {
+        return this.perPatch;
     }
 
     /** Its name ({@code dross:rat_king_sewer}...), as the structure sets' placement JSON names it. */

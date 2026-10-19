@@ -356,6 +356,15 @@ public final class DrossColors {
 
     /** Plague Ravager spawn egg spots: its glowing green boils. Used in registry/ModItems. */
     public static final int ENRAGED_RAT_EGG_SPOTS = 0xA6EC5B;
+    /** Spawn egg: the Rimehorn (frosted wool, clear ice horn). */
+    public static final int RIMEHORN_EGG_BASE = 0xD3D8DE;
+    public static final int RIMEHORN_EGG_SPOTS = 0x8FC6EC;
+    /** Spawn egg: the moose (near-black brown coat, pale legs and antlers). */
+    public static final int MOOSE_EGG_BASE = 0x2A231D;
+    public static final int MOOSE_EGG_SPOTS = 0xB9B1A7;
+    /** Spawn egg: the Pond Skater (dark frosted chitin, pale frost). */
+    public static final int POND_SKATER_EGG_BASE = 0x1C2733;
+    public static final int POND_SKATER_EGG_SPOTS = 0xA9D4F0;
 
     /** Cinder Colossus trophy: the item's name, lava orange. Used in boss/trophy/ColossusTrophyItem. */
     public static final int TROPHY_NAME = 0xFF8A1F;

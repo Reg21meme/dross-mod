@@ -1,14 +1,14 @@
 # Golem generator (Cinder Colossus)
 
 Generates the Cinder Colossus (the golem mini-boss that serves the Fire Necromancer): its GeckoLib model, animations
-(including the fight's moves) and textures, the two minions it summons, the preview images in `boss-previews/cinder_colossus/`, and
+(including the fight's moves) and textures, the two minions it summons, the preview images in `boss-previews/cinder_wastes/cinder_colossus/`, and
 the Java design list `boss/golem/GolemDesigns.java` (with the fight's timings and hit points). The mod itself only
 reads the finished files; Python is needed only to change the design.
 
 **The pick:** the user picked **3G Saddleback** (`designs/d3g_saddleback.py`) from round 3, the only design built
 now. Its parts are shared with the other round-3 designs in `designs/calderon.py`. **Rounds 1 to 3**' other
 candidates are kept for reference in `designs/round1/` to `round3/` (not built; their previews are in
-`boss-previews/cinder_colossus/round1/` to `round3/`). Rounds 1 and 2 were written for older versions of the kit (round 2's volcano
+`boss-previews/cinder_wastes/cinder_colossus/round1/` to `round3/`). Rounds 1 and 2 were written for older versions of the kit (round 2's volcano
 stood upright, with a `tilt` argument) and need changes to build again; round 3's still build if added back to
 `DESIGN_MODULES` in `build.py` (with today's kit: eruptions along the volcanoes, longer forearms).
 
@@ -41,12 +41,12 @@ deletes the generated game files of designs that are no longer in the list.
 | `.../<id>_cracks.png` | the fight's Cracking stage: bright lava cracks across the shell (the mod fades it in as the shell cracks) |
 | `.../<id>_statue.png` | the golem cooled into obsidian (the death fades it in) |
 | `assets/dross/{geo,animations,textures}/entity/golem_minion/<id>...` | the two minions (`stone_golem`, `lava_golem`): model, `idle`/`walk`/`attack`/`spawn` animations (`animation.golem_minion.*`), texture and `_glow` |
-| `boss-previews/cinder_colossus/NN_<id>_<dormant/erupted/core>_<front/side/back>.png`, `NN_<id>_sheet.png`, `NN_<id>_fight.png`, `all_golems.png`, `minions.png` | previews (the fight page: the Cracking look and every move) |
+| `boss-previews/cinder_wastes/cinder_colossus/NN_<id>_<dormant/erupted/core>_<front/side/back>.png`, `NN_<id>_sheet.png`, `NN_<id>_fight.png`, `all_golems.png`, `minions.png` | previews (the fight page: the Cracking look and every move) |
 | `src/main/java/.../boss/golem/GolemDesigns.java` | the design list, timings, the fight's move timings and hit points, the loose plates and the minions (generated: don't edit it by hand) |
 | `assets/dross/geo/block/colossus_trophy.geo.json`, `geo/item/colossus_trophy.geo.json` | the trophies' model: copies of the boss's, one for the placed trophy and one for the item (GeckoLib shares a model's bones between everything drawn with it) |
 | `assets/dross/animations/block/colossus_trophy.animation.json` | the five trophy poses, held (`animation.colossus_trophy.design_<n>`) |
 | `assets/dross/textures/block/colossus_trophy/design_<n>_flow.png`, `_flow_base.png` | each trophy's lava streams, hot and cool (alpha: how far down the stream) |
-| `boss-previews/cinder_colossus/trophies.png` | the five trophies from four sides and at night |
+| `boss-previews/cinder_wastes/cinder_colossus/trophies.png` | the five trophies from four sides and at night |
 | `src/main/java/.../boss/trophy/TrophyModels.java` | the trophies' scale, outline box, drip spots, craters, glow and crack strength (generated) |
 
 ## The trophies
@@ -150,7 +150,7 @@ The death cools it into obsidian from any stage.
 ## The lair's previews
 
 The Colossus's lair (a volcano in the Cinder Wastes) is built by the mod itself (`boss/lair/LairBuilder.java`), not
-by these tools. `lair_preview.py` draws it from a real test world, for `boss-previews/cinder_colossus/`:
+by these tools. `lair_preview.py` draws it from a real test world, for `boss-previews/cinder_wastes/cinder_colossus/`:
 
 ```
 $env:DROSS_LAIR_PREVIEWS="1"; .\gradlew.bat runGameTestServer -PgameTestWorld=<a new folder> --console=plain

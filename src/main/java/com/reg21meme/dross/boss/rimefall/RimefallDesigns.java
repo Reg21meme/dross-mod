@@ -202,12 +202,11 @@ public final class RimefallDesigns
                     new Placed(-24.00F, 112.00F, -252.00F, "minecraft:cobblestone", false),
                     new Placed(8.00F, 128.00F, -252.00F, "minecraft:lantern[hanging=false]", true),
                     new Placed(-8.00F, 278.00F, -146.00F, "minecraft:lantern[hanging=true]", true))),
-            new Design(6, "6A", "huntsmana", "The Huntsman", "spear and bow", true, 5.21F, 7.94F, 4.24F, 2.59F, 2.61F, 2.61F, 7.94F, 2.35F, true, true, true, List.of()),
-            new Design(7, "7A", "rimehorna", "Rimehorn", "frosted coat", false, 3.88F, 4.90F, 5.63F, 3.76F, 1.97F, 1.91F, 4.90F, 1.74F, false, true, true, List.of()),
-            new Design(8, "7B", "rimehornb", "Rimehorn", "dark brown coat", false, 3.88F, 5.00F, 5.63F, 3.76F, 1.97F, 1.91F, 5.00F, 1.74F, false, true, true, List.of()),
-            new Design(9, "8C", "pondskaterc", "Pond Skater", "legs 20% short", false, 8.45F, 3.07F, 3.79F, 4.66F, 6.12F, 6.12F, 3.07F, 3.80F, true, false, false, List.of()),
-            new Design(10, "9C", "thawedc", "Thawed Soldier", "axe, 4 tall", false, 1.63F, 4.09F, 0.91F, 0.72F, 1.31F, 2.09F, 4.09F, 0.73F, true, true, true, List.of()),
-            new Design(11, "9D", "thawedd", "Thawed Soldier", "spear, 4 tall", false, 2.11F, 5.36F, 1.38F, 0.72F, 1.44F, 1.45F, 5.36F, 0.95F, true, true, true, List.of())
+            new Design(6, "6A", "huntsmana", "The Huntsman", "the Wild Hunt", true, 5.21F, 8.77F, 4.24F, 2.62F, 2.61F, 2.61F, 8.77F, 2.35F, true, true, true, List.of()),
+            new Design(7, "6A1", "huntsmana1", "The Huntsman", "on foot", true, 1.49F, 5.62F, 0.78F, 0.70F, 1.06F, 1.17F, 5.62F, 0.67F, true, true, true, List.of()),
+            new Design(8, "6A2", "huntsmana2", "The Huntsman", "alpha moose", true, 5.21F, 5.35F, 4.24F, 2.59F, 2.61F, 2.61F, 5.35F, 2.35F, true, true, true, List.of()),
+            new Design(9, "9C", "thawedc", "Thawed Soldier", "axe, 4 tall", false, 1.63F, 4.09F, 0.91F, 0.72F, 1.31F, 2.09F, 4.09F, 0.73F, true, true, true, List.of()),
+            new Design(10, "9D", "thawedd", "Thawed Soldier", "spear, 4 tall", false, 2.11F, 5.36F, 1.38F, 0.72F, 1.44F, 1.45F, 5.36F, 0.95F, true, true, true, List.of())
     );
 
     /** The candidate with this number (the first if there's none). */

@@ -18,7 +18,7 @@ It writes (all outside the cinder_colossus folders, so build.remove_stale_files 
                                                                       block, its lowest point on the floor)
   assets/dross/textures/block/colossus_trophy/design_<n>_flow.png      the lava streams, hot (the bright pulses)
                                                 .../design_<n>_flow_base.png  the same streams, cooler (between pulses)
-  boss-previews/cinder_colossus/trophies.png                                          the five designs from four sides and at night
+  boss-previews/cinder_wastes/cinder_colossus/trophies.png                                          the five designs from four sides and at night
   src/main/java/com/reg21meme/dross/boss/trophy/TrophyModels.java     scale, outline, drip spots, craters (generated)
 
 The streams are painted over the figure as it stands in its own pose (lava runs downhill from the craters), and each
@@ -360,7 +360,7 @@ def shot(m, textures, t, yaw, elevation, scale, bounds_, light=1.0, background=N
 
 
 def sheet(d, m, textures, built, out_dir):
-    """boss-previews/cinder_colossus/trophies.png: each design from four sides and at night."""
+    """boss-previews/cinder_wastes/cinder_colossus/trophies.png: each design from four sides and at night."""
     from . import previews
     views = (("front", 25.0, 12.0, 1.0), ("side", 90.0, 8.0, 1.0), ("back", 205.0, 14.0, 1.0),
              ("at night", 35.0, 16.0, previews.NIGHT_LIGHT))

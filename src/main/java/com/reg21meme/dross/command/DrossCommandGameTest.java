@@ -71,12 +71,12 @@ public final class DrossCommandGameTest
             "dross goto cathedral", "dross goto hub", "dross goto trader",
             "dross goto biome silverwood_forest", "dross goto biome cinder_wastes", "dross goto biome blightwood",
             "dross goto biome rimefall", "dross goto biome gravecrags",
-            "dross goto lair colossus", "dross goto lair ratking", "dross goto sewer",
+            "dross goto lair colossus", "dross goto lair ratking", "dross goto sewer", "dross goto lake",
             "dross trader sendhome",
             "dross quest status", "dross quest reset", "dross quest complete",
             "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",
             "dross showcase boss_designs ratking", "dross showcase rats", "dross showcase boss_sounds ratking",
-            "dross showcase boss_designs rimefall",
+            "dross showcase boss_designs rimefall", "dross showcase rimefall_mobs", "dross showcase mob_sounds rimefall",
             "dross boss summon ratking", "dross boss arena ratking",
             "dross boss summon colossus", "dross boss arena colossus",
     };
@@ -130,6 +130,10 @@ public final class DrossCommandGameTest
             expected.add(control.command().substring(1));
         }
         for (RatShowcase.Control control : RatShowcase.Control.values())
+        {
+            expected.add(control.command().substring(1));
+        }
+        for (RimefallMobShowcase.Control control : RimefallMobShowcase.Control.values())
         {
             expected.add(control.command().substring(1));
         }

@@ -66,6 +66,18 @@ public final class ModItems
             () -> new ForgeSpawnEggItem(ModEntities.ENRAGED_RAT, DrossColors.ENRAGED_RAT_EGG_BASE,
                     DrossColors.ENRAGED_RAT_EGG_SPOTS, new Item.Properties()));
 
+    // Boss area: Rimefall's animals (CLAUDE.md step 14). A Rimehorn egg makes a male or a female at random; used on a
+    // grown one (a Rimehorn or a moose) it makes a calf.
+    public static final RegistryObject<Item> RIMEHORN_SPAWN_EGG = ITEMS.register("rimehorn_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.RIMEHORN, DrossColors.RIMEHORN_EGG_BASE, DrossColors.RIMEHORN_EGG_SPOTS,
+                    new Item.Properties()));
+    public static final RegistryObject<Item> MOOSE_SPAWN_EGG = ITEMS.register("moose_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.MOOSE, DrossColors.MOOSE_EGG_BASE, DrossColors.MOOSE_EGG_SPOTS,
+                    new Item.Properties()));
+    public static final RegistryObject<Item> POND_SKATER_SPAWN_EGG = ITEMS.register("pond_skater_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.POND_SKATER, DrossColors.POND_SKATER_EGG_BASE, DrossColors.POND_SKATER_EGG_SPOTS,
+                    new Item.Properties()));
+
     // Boss area: the Cinder Colossus trophy (its design is in the item; fireproof, never despawns)
     public static final RegistryObject<Item> COLOSSUS_TROPHY = ITEMS.register("colossus_trophy",
             () -> new ColossusTrophyItem(ModBlocks.COLOSSUS_TROPHY.get()));

@@ -7,7 +7,7 @@ It writes (build.py runs it; its own folders, so build.py's stale-file cleanup o
   assets/dross/geo/entity/plague_ball/plague_ball.geo.json             the model
   assets/dross/animations/entity/plague_ball/plague_ball.animation.json  animation.plague_ball.spin (loop)
   assets/dross/textures/entity/plague_ball/plague_ball.png, _glow.png   the texture; the faint glow (alpha = strength)
-  boss-previews/rat_king/plague_ball.png                                 a few angles, at night, and the tumble
+  boss-previews/blightwood/rat_king/plague_ball.png                                 a few angles, at night, and the tumble
 
 The model: bone `root` (pivot at the origin, never animated) > `ball` (the tumble; pivot at the ball's middle,
 BALL_CENTRE_Y units above the origin, so a 0.5-block entity box holds it) > `lump_0` .. `lump_5` (each pulses a

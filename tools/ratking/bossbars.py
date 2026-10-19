@@ -12,7 +12,7 @@ Run on its own (python tools/ratking/bossbars.py) or as part of build.py. It wri
                                                         full bar and the decorations, in fixed regions (listed in the
                                                         Java file)
   boss/client/RatKingBarArt.java                        (generated) where each region is and where it's drawn
-  boss-previews/rat_king/bossbar-previews/option_9.png  normal and Rage at full, half and low health, 3x, with the name
+  boss-previews/blightwood/rat_king/bossbar-previews/option_9.png  normal and Rage at full, half and low health, 3x, with the name
                                                         above like the vanilla bar
 
 How the game draws it (boss/client/DrossBossBars): Minecraft's boss bar sits at (x, y), 182 x 5 pixels, its name 9
@@ -40,7 +40,7 @@ ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
 TEX_PATH = os.path.join(ASSETS, "textures", "gui", "rat_king_bar.png")
 JAVA_PATH = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "client",
                          "RatKingBarArt.java")
-PREVIEW_DIR = os.path.join(ROOT, "boss-previews", "rat_king", "bossbar-previews")
+PREVIEW_DIR = os.path.join(ROOT, "boss-previews", "blightwood", "rat_king", "bossbar-previews")
 
 NUMBER = 9                  # the pick's number among the nine designs (its preview's name and sky)
 TITLE = "Pipe & eyes"

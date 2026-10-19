@@ -208,6 +208,10 @@ public final class BossSitesGameTest
         StringBuilder summary = new StringBuilder();
         for (BossSites.BossBiome b : BossSites.BOSS_BIOMES)
         {
+            if (b.boss() == null)
+            {
+                continue;   // (Rimefall: no boss yet; its per-patch lakes and herds have their own test, RimefallLakeGameTest)
+            }
             int count = b.biome().equals(DrossBiomes.BLIGHTWOOD) ? BLIGHTWOOD_GROUPS : CINDER_GROUPS;
             String name = b.biome().location().getPath();
             // numbering: nearest first, consecutive, no specks
@@ -305,6 +309,10 @@ public final class BossSitesGameTest
         });
         for (BossSites.BossBiome bb : BossSites.BOSS_BIOMES)
         {
+            if (bb.boss() == null)
+            {
+                continue;
+            }
             List<String> lines = described.get(bb.biome());
             for (int g = lines.size() - 1; g >= 0; g--)
             {

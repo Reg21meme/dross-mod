@@ -1,0 +1,8 @@
+{
+  "feature": "dross:rimehorn_herds",
+  "placement": [
+    {
+      "type": "minecraft:biome"
+    }
+  ]
+}

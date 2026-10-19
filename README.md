@@ -50,7 +50,7 @@ How a player moves through the mod, from a normal survival world to the Dross.
   - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds.
   - **Cinder Wastes**: ash, basalt and magma, enclosed lava pools, basalt spires, charred trees, Emberweed and Cinder Vents. Home of the Cinder Colossus's volcano.
   - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog. No zombies, skeletons or endermen: the mobs here are rats (Plague Rats, and about 1 in 5 Plague Ravagers) and the odd witch (7 in 100). Underneath are **the sewers** (below).
-  - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds.
+  - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds, and one **big frozen lake** in every Rimefall area. Its only mobs are its own animals: Rimehorn herds, moose and Pond Skaters (below).
   - **The Gravecrags**: the mountains, Cragstone cliffs with glowing Storm Lichen and Crag Thistles, snow on the peaks. Never near the hub.
   - (There was a sixth, the **Nether Scar**, until October 17, 2026; it was removed and its land went to the biomes round it. Its four blocks are kept as building blocks: see the blocks below.)
 - **Ores** under every biome, in Duskstone (the Dross's stone): coal, gold (drops nuggets), **Moonsilver** (Raw Moonsilver, smelted into Moonsilver Ingots) and **Stormite** (glowing Stormite Shards; needs an iron pickaxe). Moonsilver and Stormite are for gear that comes later.
@@ -99,6 +99,30 @@ half the time. That repeats outwards forever, so there are many of both, never t
 
 `/dross goto lair ratking` takes you to the nearest rat cave and `/dross goto sewer` to the nearest regular sewer
 (Minecraft's `/locate` can't find them). Sewers only appear in newly generated chunks.
+
+### Rimefall's animals and lakes
+
+- **The big lakes:** every Rimefall area has one big frozen lake, about 100 blocks across (a smaller one, about 64,
+  where there's no room), in its flattest spot: a sheet of ice over dark water, deeper in the middle, with 4-6
+  **open holes** you can fall into (they never freeze over), and a gentle snowy shore. Nothing grows on the ice.
+  `/dross goto lake` takes you to the nearest one's shore. They only appear in newly generated land.
+- **Rimehorns:** woolly rhinos about 4.5 blocks tall and 8 long, in herds of 6-8 (2 frosted males, the rest dark
+  brown females). Each Rimefall area has 2 herds, sometimes 3 (a small area 1, sometimes 2), placed when the land is made, away from
+  the lake. They're **neutral**: hurt one and its herd comes for you, head on, but gives up after about half a minute
+  or 24 blocks (a hurt calf runs off). Up close it **flicks** you up into the air with its horn; further off (or when
+  you shoot it from afar) it **rushes** you in a quick, low dash. Its face, snout and rump can be hit, not just its
+  middle (so can a moose's head). Feed **Frostbloom**
+  to a male and a female and they make a calf, which grows up in 35 minutes and **never attacks you**, even when its
+  herd is angry. No drops yet.
+- **Moose:** about 3.8 blocks tall, alone, in Rimefall and now and then in the Silverwood Forest (never round the
+  hub). Neutral: hit one and it charges and rams you, throwing you back (a bull hits harder than a cow). A **mother**
+  with her calf goes for you if you come within about 6 blocks of her or the calf, but never chases you more than 10
+  blocks from her calf. No drops yet.
+- **Pond Skaters:** hostile long-legged skaters that spawn on ice at night: at most 1 or 2 on a big lake (lakes differ), at
+  most 1 on any other patch of ice at least 20 blocks across, none on smaller ice. As fast as a spider off the ice and very fast on it;
+  they rear up and stab with their beak. Their legs have hitboxes of their own.
+- Every one of their sounds is original (`/dross showcase mob_sounds rimefall`). Spawn eggs for all three are in the
+  Dross tab, and `/dross showcase rimefall_mobs` lines them up with animation buttons.
 
 ---
 
@@ -318,9 +342,9 @@ one behind it), horns and spikes, and **volcanoes on its back**. After three rou
 **3G Saddleback**, a variation of Old Calderon (No. 3 of the first five designs): two great volcanoes grow out of its
 back and merge into one saddle of rock, big obsidian spikes stand in the saddle and down its lower back, it has horns,
 spikes pointing up off its shoulders and a beard of obsidian shards, all in dark scorched stone. Its volcanoes erupt
-out along their own angle, and its craters always hold glowing lava. Previews are in `boss-previews/cinder_colossus/`
+out along their own angle, and its craters always hold glowing lava. Previews are in `boss-previews/cinder_wastes/cinder_colossus/`
 (`all_golems.png`, `01_saddleback_sheet.png`, the fight page `01_saddleback_fight.png` and `minions.png`; the other
-candidates are in `boss-previews/cinder_colossus/round1/` to `round3/`).
+candidates are in `boss-previews/cinder_wastes/cinder_colossus/round1/` to `round3/`).
 
 It lives in its **lair**, a volcano in the Cinder Wastes (below). For testing you can also get one from the
 **Cinder Colossus Spawn Egg** (Dross creative tab) or `/dross boss summon colossus`, and `/dross boss arena colossus` builds a
@@ -342,7 +366,7 @@ and lights set in the floor.
   spawns inside by itself.
 - **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). Once it's beaten, that
   lair stays empty for good: no respawn.
-- Previews: `boss-previews/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
+- Previews: `boss-previews/cinder_wastes/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
 
 ### The fight
 It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
@@ -403,7 +427,7 @@ the stage thresholds, the trophy design it drops, the wild golems' spawning) are
 ### The trophies
 The **Cinder Colossus Trophy** (`dross:colossus_trophy`) is a decorative block: a miniature of the boss, its own model
 scaled down to fit one block (about a sixth of its size), with no base or pedestal. It has five designs, each a
-different pose and look (previews: `boss-previews/cinder_colossus/trophies.png`), and every trophy can show any of them:
+different pose and look (previews: `boss-previews/cinder_wastes/cinder_colossus/trophies.png`), and every trophy can show any of them:
 
 | No. | Name | Pose | Look |
 |---|---|---|---|
@@ -495,7 +519,7 @@ each attack sound for the fight, to pick from later.
   right-clicking him plays his next one (sneak + right-click: he dies).
 - `/dross showcase rats` puts the two rats on pedestals; `idle` / `run` switch them.
 - `/dross showcase boss_sounds ratking` lists every sound with a button that plays it.
-- Previews: `boss-previews/rat_king/` (the rats in `rats/`, the sounds in `sounds/`: open `index.html` to listen;
+- Previews: `boss-previews/blightwood/rat_king/` (the rats in `rats/`, the sounds in `sounds/`: open `index.html` to listen;
   the earlier rounds in `round1/` and `round2/`). They're made by `tools/ratking/`.
 
 ---
@@ -566,6 +590,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto biome <name>` | Teleports you to safe ground in the nearest example of a Dross biome: `silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall` or `gravecrags`. |
 | `/dross goto lair colossus` | Teleports you to the nearest Cinder Colossus lair's entrance. If it isn't built yet, it says so, builds it, and teleports you once it's ready. |
 | `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
+| `/dross goto lake` | Teleports you to the shore of the nearest of Rimefall's big frozen lakes, facing it. |
 | `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
 | `/dross trader sendhome` | Sends the trader home. |
 | `/dross quest status` | Shows your quest progress. |
@@ -582,6 +607,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
 | `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
 | `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
+| `/dross showcase rimefall_mobs` | Lines up Rimefall's animals, frozen, on ice pedestals with signs: a male, a female and a calf Rimehorn, a bull, a cow and a calf moose, and a Pond Skater. Right-click one to play its next animation. |
+| `/dross showcase rimefall_mobs idle` / `walk` / `run` / `charge` / `eat` / `attack` | Plays that animation on every showcase animal nearby (attack: the Rimehorn's horn flick, the moose's ram, the Pond Skater's stab). |
+| `/dross showcase mob_sounds rimefall` | Lists every Rimehorn, moose and Pond Skater sound in chat, each with a [play] button. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
 | `/dross boss summon ratking` | Summons a fighting Rat King, asleep, 14 blocks in front of you, facing you (not on Peaceful). |
@@ -615,12 +643,12 @@ From the project folder, on Windows:
   - Top-down maps of a generated area are in `terrain-previews/`.
   - See `tools/terrain/README.md` (and `TERRAIN_DESIGN.md` for the design).
 - **`tools/golems/`:** generates the Cinder Colossus designs and its trophies.
-  - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/cinder_colossus/`, and writes `GolemDesigns.java`.
-  - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/cinder_colossus/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
-  - `lair_preview.py` renders the lair previews (`boss-previews/cinder_colossus/lair_*.png`).
+  - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/cinder_wastes/cinder_colossus/`, and writes `GolemDesigns.java`.
+  - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/cinder_wastes/cinder_colossus/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
+  - `lair_preview.py` renders the lair previews (`boss-previews/cinder_wastes/cinder_colossus/lair_*.png`).
   - See `tools/golems/README.md`.
 - **`tools/ratking/`:** generates the Rat King design candidates and his rats (models, animations, textures, the Zzz
-  particle, `RatKingDesigns.java` and `RatDesigns.java`) and renders the previews in `boss-previews/rat_king/`; its
+  particle, `RatKingDesigns.java` and `RatDesigns.java`) and renders the previews in `boss-previews/blightwood/rat_king/`; its
   `sounds.py` makes all their sounds from scratch. It reuses the golem kit. See `tools/ratking/README.md`.
 - **Making a new boss:** follow `BOSS_GUIDE.md` (the whole process, from design candidates to the user's pick).
   Every boss's previews go in its own folder under `boss-previews/`.

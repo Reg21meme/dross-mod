@@ -82,9 +82,11 @@ def _local_frames(cubes, mats):
     return np.array(inv), np.array(lo), np.array(hi)
 
 
-def hidden_faces(model, opaque):
+def hidden_faces(model, opaque, animated=False):
     """
     {(cube index, face name)} of faces nobody can see. `opaque(cube)` says whether a cube hides what's inside it.
+    `animated` (a mob that moves): only a box on the same bone hides a face (a bent knee or a turned head shows what
+    another bone's box covered in the rest pose), and nothing counts as under the floor (feet lift).
     """
     cubes = model.cubes()
     mats = model.pose_matrices()
@@ -105,10 +107,12 @@ def hidden_faces(model, opaque):
     owner = np.array(owner)
     F = len(owner)
     hidden = np.zeros(F, dtype=bool)
+    bone_of = np.array([c.bone.name for c in cubes], dtype=object)
     # Under the floor.
     ys = corners[:, :, 1]
-    hidden |= ys.max(axis=1) < -GROUND_EPS
-    hidden |= (normals[:, 1] < -0.9) & (ys.max(axis=1) < GROUND_EPS)
+    if not animated:
+        hidden |= ys.max(axis=1) < -GROUND_EPS
+        hidden |= (normals[:, 1] < -0.9) & (ys.max(axis=1) < GROUND_EPS)
     # Inside an opaque box.
     inv, lo, hi = _local_frames(cubes, mats)
     flat = np.concatenate([corners.reshape(-1, 3), np.ones((F * 4, 1))], axis=1)       # (4F, 4)
@@ -119,6 +123,8 @@ def hidden_faces(model, opaque):
         q = (flat @ inv[bi].T)[:, :3].reshape(F, 4, 3)
         inside = np.all((q >= lo[bi] - EPS) & (q <= hi[bi] + EPS), axis=(1, 2))
         inside &= owner != bi
+        if animated:
+            inside &= bone_of[owner] == b.bone.name
         if not inside.any():
             continue
         cand = np.nonzero(inside & ~hidden)[0]
@@ -162,14 +168,14 @@ def _skyline_pack(rects, width):
     return pos, int(sky.max())
 
 
-def optimize(model, opaque, density=1.0):
+def optimize(model, opaque, density=1.0, animated=False):
     """
     Drops the faces nobody sees (and boxes left with none), then gives every remaining face its own rectangle of
     texture, `density` texels per unit (lowered automatically if the texture would hold more than MAX_TEXELS).
     Sets model.tex_w / tex_h. Returns (faces dropped, boxes removed).
     """
     cubes = model.cubes()
-    gone = hidden_faces(model, opaque)
+    gone = hidden_faces(model, opaque, animated)
     removed = 0
     keep = {}
     for ci, c in enumerate(cubes):

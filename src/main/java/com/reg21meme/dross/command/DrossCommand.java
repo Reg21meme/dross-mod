@@ -58,6 +58,8 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>{@code /dross goto sewer}: teleports you to the foot of a pipe of the nearest regular sewer under Blightwood
  *       (nearest to you if you're in the Dross, otherwise to the hub), facing the pipe, on safe ground ({@link GotoSewer};
  *       the sewers are the dimension area's {@code Sewers}). It fails if no sewer is found.</li>
+ *   <li>{@code /dross goto lake}: teleports you to the shore of the nearest of Rimefall's big frozen lakes, facing it
+ *       ({@link GotoLake}; the lakes are the dimension area's {@code RimefallAreas}).</li>
  *   <li>{@code /dross goto trader}: teleports you to the Dross trader. {@code /dross trader sendhome}: sends him home.
  *       From the villager area ({@link TraderCommands}).</li>
  *   <li>{@code /dross quest status|reset|complete}: shows, clears or finishes your quest progress.
@@ -80,6 +82,10 @@ import net.minecraftforge.fml.common.Mod;
  *       switches their animation ({@link RatShowcase}; the designs are the boss area's {@code RatDesigns}).</li>
  *   <li>{@code /dross showcase boss_sounds ratking}: lists every Rat King and rat sound in chat, each with a button
  *       that plays it ({@link RatSoundShowcase}; the list is the boss area's {@code RatKingSounds}).</li>
+ *   <li>{@code /dross showcase rimefall_mobs}: Rimefall's animals in a row in front of you (Rimehorns, moose, a Pond
+ *       Skater), frozen, with signs; {@code /dross showcase rimefall_mobs idle|walk|run|charge|eat|attack} plays their
+ *       animations ({@link RimefallMobShowcase}). {@code /dross showcase mob_sounds rimefall} lists their sounds with
+ *       play buttons ({@link RimefallMobSoundShowcase}; the boss area's {@code RimefallMobSounds}).</li>
  *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
  *       you, each on a pedestal facing you with a sign giving its number and name ({@link TrophyShowcase}; the designs
  *       are the boss area's {@code ColossusTrophies}).</li>
@@ -144,7 +150,10 @@ public final class DrossCommand
                                 .then(Commands.literal("ratking").executes(context -> GotoLair.ratKing(context.getSource()))))
                         // The nearest regular sewer under Blightwood (the logic lives in GotoSewer; the sewers are the
                         // dimension area's).
-                        .then(Commands.literal("sewer").executes(context -> GotoSewer.teleport(context.getSource()))))
+                        .then(Commands.literal("sewer").executes(context -> GotoSewer.teleport(context.getSource())))
+                        // The nearest of Rimefall's big frozen lakes (the logic lives in GotoLake; the lakes are the
+                        // dimension area's RimefallAreas).
+                        .then(Commands.literal("lake").executes(context -> GotoLake.teleport(context.getSource()))))
                 // Villager area's test commands: trader <action> (the logic lives in TraderCommands).
                 .then(Commands.literal("trader")
                         .requires(source -> source.hasPermission(2))
@@ -168,6 +177,11 @@ public final class DrossCommand
                                 .then(Commands.literal("rimefall").executes(RimefallShowcase::buildGallery)))
                         // Boss area's Rat King's rats (regular and enraged), with their controls (RatShowcase).
                         .then(ratShowcase())
+                        // Boss area's Rimefall animals (Rimehorns, moose, a Pond Skater), with their controls
+                        // (RimefallMobShowcase), and their sounds (RimefallMobSoundShowcase).
+                        .then(rimefallMobShowcase())
+                        .then(Commands.literal("mob_sounds")
+                                .then(Commands.literal("rimefall").executes(RimefallMobSoundShowcase::list)))
                         // Boss area's sounds, one literal per boss (RatSoundShowcase).
                         .then(Commands.literal("boss_sounds")
                                 .then(Commands.literal("ratking").executes(RatSoundShowcase::list)))
@@ -233,6 +247,20 @@ public final class DrossCommand
             ratking.then(Commands.literal(control.word()).executes(context -> RatKingShowcase.control(context, control)));
         }
         return ratking;
+    }
+
+    /**
+     * {@code /dross showcase rimefall_mobs} and its controls ({@code idle}, {@code walk}, {@code run}, {@code charge},
+     * {@code eat}, {@code attack}), one per {@link RimefallMobShowcase.Control}.
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> rimefallMobShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> mobs = Commands.literal("rimefall_mobs").executes(RimefallMobShowcase::spawnAnimals);
+        for (RimefallMobShowcase.Control control : RimefallMobShowcase.Control.values())
+        {
+            mobs.then(Commands.literal(control.word()).executes(context -> RimefallMobShowcase.control(context, control)));
+        }
+        return mobs;
     }
 
     /** {@code /dross showcase rats} and its controls ({@code idle}, {@code run}), one per {@link RatShowcase.Control}. */

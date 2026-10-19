@@ -12,8 +12,8 @@ It writes:
   src/main/resources/assets/dross/sounds.json        adds (or replaces) its own events; the Colossus's stay as they are
   src/main/resources/assets/dross/lang/en_us.json    adds the subtitles it needs (never changes other keys)
   src/main/java/com/reg21meme/dross/boss/ratking/RatKingSounds.java   every event, for /dross showcase boss_sounds
-  boss-previews/rat_king/sounds/index.html           a page that plays every sound (open it in a browser)
-  boss-previews/rat_king/sounds/spectrograms.png     what each sound looks like (pitch over time)
+  boss-previews/blightwood/rat_king/sounds/index.html           a page that plays every sound (open it in a browser)
+  boss-previews/blightwood/rat_king/sounds/spectrograms.png     what each sound looks like (pitch over time)
 
 Needs numpy, scipy, Pillow and soundfile (`pip install soundfile`: writes the .ogg files).
 """
@@ -41,7 +41,7 @@ SOUND_DIR = os.path.join(ASSETS, "sounds")
 SOUNDS_JSON = os.path.join(ASSETS, "sounds.json")
 LANG = os.path.join(ASSETS, "lang", "en_us.json")
 JAVA = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "ratking", "RatKingSounds.java")
-PREVIEWS = os.path.join(ROOT, "boss-previews", "rat_king", "sounds")
+PREVIEWS = os.path.join(ROOT, "boss-previews", "blightwood", "rat_king", "sounds")
 
 # Which train whistle his rage plays (1, 2 or 3; all three are in the sound showcase). The user picked 1, 'choo-choo-chooo'.
 RAGE_WHISTLE = 1
@@ -808,7 +808,7 @@ def write_page():
     for group, evs in groups.items():
         html.append(f"<h2>{group}</h2>")
         for ev in evs:
-            players = "".join(f'<audio controls preload="none" src="../../../src/main/resources/assets/dross/sounds/{ev.folder}/{name}.ogg"></audio>'
+            players = "".join(f'<audio controls preload="none" src="../../../../src/main/resources/assets/dross/sounds/{ev.folder}/{name}.ogg"></audio>'
                               for name, _m in ev.files)
             html.append(f'<div class="row"><div class="label">{ev.label}<div class="id">dross:{ev.event}</div></div>{players}</div>')
     with open(os.path.join(PREVIEWS, "index.html"), "w", encoding="utf-8", newline="\n") as f:

@@ -799,6 +799,39 @@ SPAWN_OVERRIDES = {
     },
 }
 
+# --- Mob spawns: Rimefall's own list (CLAUDE.md step 14; the user, October 19, 2026) -----------------------------------
+# "The skaters, the rimehorns and the moose should be the only mobs spawning there": no zombies, skeletons, endermen,
+# witches, bats or vanilla animals (those need grass, which Rimefall hasn't got, anyway). The animals (boss area:
+# dross:rimehorn and dross:moose, creatures) spawn mostly as the land is made, on Rimefall's ground (the block tag
+# dross:rimefall_animals_spawnable_on): a Rimehorn pack is 6-8 (the user's numbers; its first 2 males, the rest
+# females), a moose comes alone (now and then a mother with her calf). They're big, so few groups: one try in
+# RIMEFALL_ANIMAL_CHANCE of the chunks (vanilla's 0.1 would put hundreds of them in each Rimefall patch). The Pond
+# Skaters (dross:pond_skater, monsters) spawn only on ice, in the dark, one or two at a time.
+# Then (the user, October 19): Rimehorn herds only "a few per area": they're no longer in the spawn list; each Rimefall
+# patch gets a few herds as its land is made, at spots the boss-site planner picks (the rimehorn_herds feature,
+# dimension/rimefall: RimefallTuning.HERDS). The Pond Skaters spawn only on a patch's big frozen lake (2 at most) or a
+# frozen pond at least 30 blocks across (1 at most: RimefallAreas.skaterMayAppear). The moose keep about the share of
+# the creature tries they had (RIMEFALL_MOOSE_CHANCE: 0.02 x 5/13 before) and spawn in Silverwood Forest too, less often
+# (SILVERWOOD_MOOSE_WEIGHT, below).
+RIMEFALL_MOOSE_CHANCE = 0.008
+RIMEFALL_SKATER_WEIGHT = 100
+RIMEFALL_SKATER_GROUP_MIN = 1
+RIMEFALL_SKATER_GROUP_MAX = 2
+SPAWN_OVERRIDES["rimefall"] = {
+    "creature": [
+        ("dross:moose", 1, 1, 1),
+    ],
+    "monster": [
+        ("dross:pond_skater", RIMEFALL_SKATER_WEIGHT, RIMEFALL_SKATER_GROUP_MIN, RIMEFALL_SKATER_GROUP_MAX),
+    ],
+    "creature_spawn_probability": RIMEFALL_MOOSE_CHANCE,
+}
+# Moose in Silverwood Forest (the user: "in the main Dross forest but with less probability"): one more entry in its
+# animals' list (the base list, weights 46 in all); with Minecraft's 0.1 creature tries a chunk that's 0.1 x 2 / 48,
+# about half Rimefall's chance (the spawn rule keeps them out of the hub's safe zone: boss/rimefall/RimefallAnimals).
+SILVERWOOD_MOOSE_WEIGHT = 2
+SPAWN_REPLACEMENTS["silverwood_forest"] = {"creature": BASE_CREATURES + [("dross:moose", SILVERWOOD_MOOSE_WEIGHT, 1, 1)]}
+
 MOOD_SOUND = "minecraft:ambient.cave"   # the occasional cave sound in the dark, in every biome (like the Overworld)
 MOOD_DELAY = 6000
 ADDITIONS_CHANCE = 0.0111               # vanilla's chance per tick of an "additions" sound in the Nether biomes
@@ -1075,7 +1108,7 @@ def biome_spawns(biome_id, spawns_from):
             out["spawners"][category] = replaced
     else:
         categories = list(spawns_from.get("spawners", {}))
-        unknown = [c for c in override if c != "spawn_costs" and c not in categories]
+        unknown = [c for c in override if c not in ("spawn_costs", "creature_spawn_probability") and c not in categories]
         if unknown:
             fail(f"SPAWN_OVERRIDES[{biome_id!r}] names {unknown}, which aren't spawn categories ({categories})")
         spawners = {}
@@ -1096,6 +1129,11 @@ def biome_spawns(biome_id, spawns_from):
                 fail(f"{biome_id}: {entity}'s energy budget and charge must both be above 0")
             costs[entity] = {"energy_budget": float(budget), "charge": float(charge)}
         out = {"spawners": spawners, "spawn_costs": costs}
+        if "creature_spawn_probability" in override:
+            chance = override["creature_spawn_probability"]
+            if not 0.0 < chance <= 0.9999999:
+                fail(f"{biome_id}: creature_spawn_probability must be above 0 and below 1")
+            out = {"creature_spawn_probability": float(chance), **out}
     for category, entries in out.get("spawners", {}).items():
         for entry in entries:
             check_entity(entry["type"], category)
@@ -1453,6 +1491,12 @@ def not_near_sewer_entrance():
     return {"type": "dross:not_near_sewer_entrance"}
 
 
+def not_on_rimefall_lake():
+    """Keeps a Rimefall feature off its big frozen lakes and their edges (dross:not_on_rimefall_lake; the distance is
+    RimefallTuning.FEATURE_CLEARANCE: the lakes come from the boss-site planner, one per Rimefall patch)."""
+    return {"type": "dross:not_on_rimefall_lake"}
+
+
 def random_offset(xz, y):
     return {"type": "minecraft:random_offset", "xz_spread": xz, "y_spread": y}
 
@@ -1598,7 +1642,8 @@ def features():
                 per_chunk(SILVERWOOD_PONDS) + surface_air + [not_near_hub()])
     add_feature("lakes", "pond_blightwood", [bw], pond(BLIGHTWOOD_POND_SHORE, max_bank=BLIGHTWOOD_POND_MAX_BANK),
                 per_chunk(BLIGHTWOOD_PONDS) + surface_air + [not_near_sewer_entrance()])
-    add_feature("lakes", "pond_rimefall", [rf], pond(RIMEFALL_POND_SHORE), per_chunk(RIMEFALL_PONDS) + surface_air)
+    add_feature("lakes", "pond_rimefall", [rf], pond(RIMEFALL_POND_SHORE), per_chunk(RIMEFALL_PONDS) + surface_air
+                + [not_on_rimefall_lake()])
     # The Cinder Wastes' lava pools are small ponds of lava (the same feature, a smaller box): every lava block is held
     # in by solid ground on every side and below, so it never flows; a rim of blackstone and magma.
     add_feature("lakes", "lava_pool", [cw], pond(LAVA_POOL_SHORE, "minecraft:lava", LAVA_POOL_SIZE),
@@ -1637,7 +1682,8 @@ def features():
         "lumps": uniform_int(*ICE_BOULDER_LUMPS), "lump_radius": uniform_float(*ICE_BOULDER_RADIUS),
         "replaceable": rock_face_tag}},
         per_chunk(ICE_BOULDERS) + ground_air
-        + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"], DOWN))])
+        + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block", "minecraft:packed_ice"], DOWN)),
+           not_on_rimefall_lake()])
     add_feature("local_modifications", "crag_boulder", [gc], {"type": "dross:boulder", "config": {
         "stone": provider("dross:cragstone"), "top": provider("dross:cragstone"), "top_chance": 0.0,
         "lumps": uniform_int(*CRAG_BOULDER_LUMPS), "lump_radius": uniform_float(*CRAG_BOULDER_RADIUS),
@@ -1713,10 +1759,12 @@ def features():
     add_feature("vegetal_decoration", "frost_trees", [rf], {"type": "minecraft:random_selector", "config": {
         "features": [{"chance": FROST_TREE_FORKED, "feature": inline("dross:frost_tree_forked")}],
         "default": inline("dross:frost_tree_branching")}},
-        per_chunk(FROST_TREES) + tree_spot + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block"], DOWN))])
+        per_chunk(FROST_TREES) + tree_spot + [predicate_filter(matching(["dross:hoarfrost", "minecraft:snow_block"], DOWN)),
+                                              not_on_rimefall_lake()])
     # Ice spikes after the trees: a spike forms round a branch in its way (the other way round, the branch would have a
     # gap where the spike stands).
-    add_feature("vegetal_decoration", "ice_spike", [rf], "minecraft:ice_spike", per_chunk(ICE_SPIKE_TRIES) + ground_air)
+    add_feature("vegetal_decoration", "ice_spike", [rf], "minecraft:ice_spike", per_chunk(ICE_SPIKE_TRIES) + ground_air
+                + [not_on_rimefall_lake()])
 
     # Ground plants, last (under the canopy: the heightmap that looks through leaves).
     under_canopy = [IN_SQUARE, heightmap("MOTION_BLOCKING_NO_LEAVES")]
@@ -1738,12 +1786,13 @@ def features():
                 patch(provider("dross:sporepod"), SPOREPOD_TRIES, 6, 2), per_chunk(SPOREPOD_PATCHES) + under_canopy
                 + [not_near_sewer_entrance()])
     add_feature("vegetal_decoration", "frostblooms", [rf],
-                patch(provider("dross:frostbloom"), FROSTBLOOM_TRIES, 5, 2), per_chunk(FROSTBLOOM_PATCHES) + under_canopy)
+                patch(provider("dross:frostbloom"), FROSTBLOOM_TRIES, 5, 2), per_chunk(FROSTBLOOM_PATCHES) + under_canopy
+                + [not_on_rimefall_lake()])
     snow_layer = {"type": "minecraft:randomized_int_state_provider", "property": "layers",
                   "values": uniform_int(*SNOW_LAYER_DEPTH), "source": provider("minecraft:snow", layers=1)}
     add_feature("vegetal_decoration", "snow_drifts", [rf],
                 patch(snow_layer, SNOW_LAYER_TRIES, 7, 2, [matching(["dross:hoarfrost", "minecraft:snow_block"], DOWN)]),
-                per_chunk(SNOW_LAYER_PATCHES) + under_canopy)
+                per_chunk(SNOW_LAYER_PATCHES) + under_canopy + [not_on_rimefall_lake()])
     add_feature("vegetal_decoration", "crag_thistles", [gc],
                 patch(provider("dross:crag_thistle"), CRAG_THISTLE_TRIES, 5, 3), per_chunk(CRAG_THISTLE_PATCHES) + under_canopy)
     # Storm Lichen: from a spot at the foot of a cliff (up to STORM_LICHEN_REACH_UP above the ground), onto the rock face
@@ -1763,6 +1812,10 @@ def features():
     # ground a later feature turned to rock (or a pond's shore), a hanging Stormvine strand loses its top to another
     # tree's crown, or a few leaves where two trees meet are marked too far from a log (they'd decay). It removes what
     # couldn't stay and gives such leaves their real distance (or removes them if no log holds them up).
+    # Rimefall's Rimehorn herds (the user: "a few per area"): the boss-site planner gives each Rimefall patch a few herd
+    # spots (dimension/rimefall/RimefallAreas, RimefallTuning.HERDS); the chunk holding one gets its herd here, on the
+    # finished ground. It runs in every Rimefall chunk and does nothing in nearly all of them.
+    add_feature("top_layer_modification", "rimehorn_herds", [rf], {"type": "dross:rimehorn_herd", "config": {}}, [])
     add_feature("top_layer_modification", "tidy_up", list(BIOMES), {"type": "dross:tidy_up", "config": {}}, [])
 
     ore_tag = {"replace": False, "values": [check_block(b) for b in ORE_REPLACEABLE]}
@@ -1931,6 +1984,22 @@ def sewer_structures(cave_weights):
     structure_tag = {"replace": False, "values": ["dross:sewers", "dross:rat_cave"]}
     return structures, structure_sets, biome_tag, structure_tag
 
+
+# Rimefall's big frozen lakes (the user, October 19: "each rimefall should have 1 big lake", about 100 blocks across,
+# with open water holes): one per Rimefall patch, where the boss-site planner puts it (the use dross:rimefall_area,
+# dimension/rimefall/RimefallAreas; every number is in RimefallTuning). Built in the "lakes" step, before the trees and
+# plants (which keep off it: dross:not_on_rimefall_lake).
+RIMEFALL_AREA_USE = "dross:rimefall_area"
+RIMEFALL_LAKE_SALT = 1910201926
+
+
+def rimefall_lake_structures():
+    structure = {"type": "dross:rimefall_lake", "biomes": "#dross:has_structure/rimefall_lake", "spawn_overrides": {},
+                 "step": "lakes", "terrain_adaptation": "none"}
+    structure_set = {"structures": [{"structure": "dross:rimefall_lake", "weight": 1}],
+                     "placement": {"type": "dross:boss_site", "use": RIMEFALL_AREA_USE, "salt": RIMEFALL_LAKE_SALT}}
+    return structure, structure_set, {"replace": False, "values": ["dross:rimefall"]}
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2084,6 +2153,10 @@ def main():
         write_json("structure_set", name, js)
     write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "sewers.json"), biome_tag)
     write_file(os.path.join(DATA, "tags", "worldgen", "structure", "sewers.json"), structure_tag)
+    lake, lake_set, lake_biomes = rimefall_lake_structures()
+    write_json("structure", "rimefall_lake", lake)
+    write_json("structure_set", "rimefall_lake", lake_set)
+    write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "rimefall_lake.json"), lake_biomes)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())

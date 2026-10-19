@@ -94,6 +94,27 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> ENRAGED_RAT_ATTACK = register("entity.enraged_rat.attack");
     // Boss area: the Rat King's spear charge (its own original sound, tools/ratking/sounds.py).
     public static final RegistryObject<SoundEvent> RAT_KING_CHARGE = register("entity.rat_king.charge");
+    // Boss area: Rimefall's animals (all original, made by tools/rimefall/sounds.py).
+    public static final RegistryObject<SoundEvent> RIMEHORN_AMBIENT = register("entity.rimehorn.ambient");
+    public static final RegistryObject<SoundEvent> RIMEHORN_HURT = register("entity.rimehorn.hurt");
+    public static final RegistryObject<SoundEvent> RIMEHORN_DEATH = register("entity.rimehorn.death");
+    public static final RegistryObject<SoundEvent> RIMEHORN_STEP = register("entity.rimehorn.step");
+    public static final RegistryObject<SoundEvent> RIMEHORN_EAT = register("entity.rimehorn.eat");
+    public static final RegistryObject<SoundEvent> RIMEHORN_FLICK = register("entity.rimehorn.flick");
+    public static final RegistryObject<SoundEvent> RIMEHORN_RUSH = register("entity.rimehorn.rush");
+    public static final RegistryObject<SoundEvent> MOOSE_AMBIENT = register("entity.moose.ambient");
+    public static final RegistryObject<SoundEvent> MOOSE_HURT = register("entity.moose.hurt");
+    public static final RegistryObject<SoundEvent> MOOSE_DEATH = register("entity.moose.death");
+    public static final RegistryObject<SoundEvent> MOOSE_STEP = register("entity.moose.step");
+    public static final RegistryObject<SoundEvent> MOOSE_EAT = register("entity.moose.eat");
+    public static final RegistryObject<SoundEvent> MOOSE_CHARGE = register("entity.moose.charge");
+    public static final RegistryObject<SoundEvent> MOOSE_ATTACK = register("entity.moose.attack");
+    public static final RegistryObject<SoundEvent> POND_SKATER_AMBIENT = register("entity.pondskater.ambient");
+    public static final RegistryObject<SoundEvent> POND_SKATER_HURT = register("entity.pondskater.hurt");
+    public static final RegistryObject<SoundEvent> POND_SKATER_DEATH = register("entity.pondskater.death");
+    public static final RegistryObject<SoundEvent> POND_SKATER_STEP = register("entity.pondskater.step");
+    public static final RegistryObject<SoundEvent> POND_SKATER_SKATE = register("entity.pondskater.skate");
+    public static final RegistryObject<SoundEvent> POND_SKATER_ATTACK = register("entity.pondskater.attack");
 
     private static RegistryObject<SoundEvent> register(String name)
     {

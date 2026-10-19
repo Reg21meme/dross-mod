@@ -54,10 +54,11 @@ import org.slf4j.Logger;
  * {@code tools/terrain/worldgen.py}: BIOMES, {@code SPAWN_OVERRIDES}). Run them with
  * {@code .\gradlew.bat runGameTestServer --console=plain}.
  * <ul>
- *   <li>{@link #spawnListsPerBiome}: three biomes (Silverwood Forest, Rimefall, the Gravecrags) have the Dross's base
- *       spawn lists exactly (worldgen.py's {@code BASE_MONSTERS}, {@code BASE_CREATURES}, {@code BASE_AMBIENT}: the plains
- *       monsters minus slimes, creepers and spiders, the plains animals, bats; Silverwood Forest's lists are the reference
- *       the other two must match);
+ *   <li>{@link #spawnListsPerBiome}: the Gravecrags have the Dross's base spawn lists exactly (worldgen.py's
+ *       {@code BASE_MONSTERS}, {@code BASE_CREATURES}, {@code BASE_AMBIENT}: the plains monsters minus slimes, creepers and
+ *       spiders, the plains animals, bats; the reference the others are checked against); Silverwood Forest has them
+ *       too, with a few moose among its animals; Rimefall lists only its own animals (the Pond Skater and lone moose; its
+ *       Rimehorn herds are placed with the land);
  *       Blightwood keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
  *       witches 7% of the mobs spawning there, 1 in 5 of the rats enraged); the sewers
  *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only the Cinder
@@ -114,11 +115,11 @@ public final class DrossSpawnsGameTest
     public static void spawnListsPerBiome(GameTestHelper helper)
     {
         Registry<Biome> biomes = helper.getLevel().registryAccess().registryOrThrow(Registries.BIOME);
-        // The base lists, as the main biome (Silverwood Forest) has them; the other plain biomes must match it exactly.
-        Biome reference = biomes.get(DrossBiomes.SILVERWOOD_FOREST);
+        // The base lists, as the Gravecrags have them (Silverwood Forest has them too, plus the odd moose since October 19).
+        Biome reference = biomes.get(DrossBiomes.GRAVECRAGS);
         if (reference == null)
         {
-            throw new GameTestAssertException("the biome " + DrossBiomes.SILVERWOOD_FOREST.location() + " isn't registered");
+            throw new GameTestAssertException("the biome " + DrossBiomes.GRAVECRAGS.location() + " isn't registered");
         }
         MobSpawnSettings baseMobs = reference.getMobSettings();
         List<String> problems = new ArrayList<>();
@@ -161,7 +162,15 @@ public final class DrossSpawnsGameTest
             {
                 checkBlightwoodLists(biome.getMobSettings(), baseMobs, problems);
             }
-            else if (!key.equals(DrossBiomes.SILVERWOOD_FOREST))
+            else if (key.equals(DrossBiomes.RIMEFALL))
+            {
+                checkRimefallLists(biome.getMobSettings(), problems);
+            }
+            else if (key.equals(DrossBiomes.SILVERWOOD_FOREST))
+            {
+                checkSilverwoodLists(biome.getMobSettings(), baseMobs, problems);
+            }
+            else if (!key.equals(DrossBiomes.GRAVECRAGS))
             {
                 checkSameAsBase(DrossBiomes.name(key), biome.getMobSettings(), baseMobs, problems);
             }
@@ -297,6 +306,82 @@ public final class DrossSpawnsGameTest
     }
 
     /** The Cinder Wastes: only stone and lava golems, as monsters, 1 in 5 a lava golem, both with spawn costs; nothing else. */
+    /**
+     * Silverwood Forest: the base lists, and the moose among its animals, alone and rarely (the user, October 19: moose
+     * "in the main Dross forest too, with less probability").
+     */
+    private static void checkSilverwoodLists(MobSpawnSettings mobs, MobSpawnSettings baseMobs, List<String> problems)
+    {
+        for (MobCategory category : MobCategory.values())
+        {
+            if (category != MobCategory.CREATURE && !describe(mobs.getMobs(category)).equals(describe(baseMobs.getMobs(category))))
+            {
+                problems.add("Silverwood Forest's " + category.getName() + " list should be the base Dross list");
+            }
+        }
+        List<String> animals = new ArrayList<>(describe(mobs.getMobs(MobCategory.CREATURE)));
+        List<String> base = describe(baseMobs.getMobs(MobCategory.CREATURE));
+        int total = 0;
+        int moose = 0;
+        for (MobSpawnSettings.SpawnerData data : mobs.getMobs(MobCategory.CREATURE).unwrap())
+        {
+            total += data.getWeight().asInt();
+            if (data.type == ModEntities.MOOSE.get())
+            {
+                moose += data.getWeight().asInt();
+                if (data.maxCount != 1)
+                {
+                    problems.add("Silverwood Forest's moose should come alone, but it's " + data.minCount + "-" + data.maxCount);
+                }
+            }
+        }
+        animals.removeIf(s -> s.startsWith(EntityType.getKey(ModEntities.MOOSE.get()).toString()));
+        if (moose == 0 || !animals.equals(base) || moose * 10 > total)
+        {
+            problems.add("Silverwood Forest's animals should be the base list and a few moose (under a tenth of the weight), but they're "
+                    + describe(mobs.getMobs(MobCategory.CREATURE)));
+        }
+    }
+
+    /**
+     * Rimefall (CLAUDE.md step 14, the user's rule): only its own animals. Monsters: only the Pond Skater; animals: only
+     * the moose, alone, with fewer tries than vanilla's (they're big); nothing else, no bats. Its Rimehorns aren't in the
+     * list: its few herds are put in as the land is made (the user, October 19: "a few per area"; RimefallLakeGameTest).
+     */
+    private static void checkRimefallLists(MobSpawnSettings mobs, List<String> problems)
+    {
+        List<EntityType<?>> monsters = mobs.getMobs(MobCategory.MONSTER).unwrap().stream().<EntityType<?>>map(d -> d.type).toList();
+        if (!monsters.equals(List.of(ModEntities.POND_SKATER.get())))
+        {
+            problems.add("Rimefall's monsters should be just the Pond Skater, but they're " + describe(mobs.getMobs(MobCategory.MONSTER)));
+        }
+        WeightedRandomList<MobSpawnSettings.SpawnerData> creatures = mobs.getMobs(MobCategory.CREATURE);
+        List<EntityType<?>> animals = creatures.unwrap().stream().<EntityType<?>>map(d -> d.type).toList();
+        if (!animals.equals(List.of(ModEntities.MOOSE.get())))
+        {
+            problems.add("Rimefall's animals should be just the moose (its Rimehorn herds are placed with the land), but they're "
+                    + describe(creatures));
+        }
+        for (MobSpawnSettings.SpawnerData data : creatures.unwrap())
+        {
+            if (data.type == ModEntities.MOOSE.get() && data.maxCount != 1)
+            {
+                problems.add("Rimefall's moose should come alone, but it's " + data.minCount + "-" + data.maxCount);
+            }
+        }
+        if (mobs.getCreatureProbability() >= 0.1F)
+        {
+            problems.add("Rimefall's big animals should have fewer tries than vanilla's 0.1, but it's " + mobs.getCreatureProbability());
+        }
+        for (MobCategory category : MobCategory.values())
+        {
+            if (category != MobCategory.MONSTER && category != MobCategory.CREATURE && !mobs.getMobs(category).isEmpty())
+            {
+                problems.add("Rimefall's " + category.getName() + " list should be empty, but it's " + describe(mobs.getMobs(category)));
+            }
+        }
+    }
+
     private static void checkCinderLists(MobSpawnSettings mobs, List<String> problems)
     {
         EntityType<?> stone = ModEntities.STONE_GOLEM.get();

@@ -119,6 +119,9 @@ public final class ModCreativeTabs
                         output.accept(ModItems.RAT_KING_SPAWN_EGG.get());
                         output.accept(ModItems.RAT_SPAWN_EGG.get());
                         output.accept(ModItems.ENRAGED_RAT_SPAWN_EGG.get());
+                        output.accept(ModItems.RIMEHORN_SPAWN_EGG.get());
+                        output.accept(ModItems.MOOSE_SPAWN_EGG.get());
+                        output.accept(ModItems.POND_SKATER_SPAWN_EGG.get());
 
                         // 5. Weapons and tools
                         // Villager area: the test-only Admin Sword

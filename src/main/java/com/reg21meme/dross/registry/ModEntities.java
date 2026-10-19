@@ -10,7 +10,10 @@ import com.reg21meme.dross.boss.ratking.PlagueBall;
 import com.reg21meme.dross.boss.ratking.PoisonCloud;
 import com.reg21meme.dross.boss.ratking.Rat;
 import com.reg21meme.dross.boss.ratking.RatKing;
+import com.reg21meme.dross.boss.rimefall.Moose;
+import com.reg21meme.dross.boss.rimefall.PondSkater;
 import com.reg21meme.dross.boss.rimefall.RimefallCandidate;
+import com.reg21meme.dross.boss.rimefall.Rimehorn;
 import com.reg21meme.dross.villager.DrossTrader;
 import com.reg21meme.dross.villager.Survivor;
 import net.minecraft.world.entity.EntityType;
@@ -128,6 +131,28 @@ public final class ModEntities
                     .fireImmune()
                     .clientTrackingRange(12)
                     .build("rimefall_candidate"));
+
+    /**
+     * Boss area: Rimefall's animals (CLAUDE.md step 14), the only mobs that spawn there: the Rimehorn (a woolly rhino
+     * about 4.5 blocks tall and 8 long, in packs; its square hitbox covers its body, its head and horn reach past it),
+     * the wild moose (about 3.5-4 blocks tall with its antlers) and the Pond Skater (its body; each leg has a small
+     * hitbox of its own, a PondSkaterPart).
+     */
+    public static final RegistryObject<EntityType<Rimehorn>> RIMEHORN = ENTITY_TYPES.register("rimehorn",
+            () -> EntityType.Builder.<Rimehorn>of(Rimehorn::new, MobCategory.CREATURE)
+                    .sized(3.4F, 4.2F)
+                    .clientTrackingRange(10)
+                    .build("rimehorn"));
+    public static final RegistryObject<EntityType<Moose>> MOOSE = ENTITY_TYPES.register("moose",
+            () -> EntityType.Builder.<Moose>of(Moose::new, MobCategory.CREATURE)
+                    .sized(2.0F, 3.3F)
+                    .clientTrackingRange(10)
+                    .build("moose"));
+    public static final RegistryObject<EntityType<PondSkater>> POND_SKATER = ENTITY_TYPES.register("pond_skater",
+            () -> EntityType.Builder.<PondSkater>of(PondSkater::new, MobCategory.MONSTER)
+                    .sized(1.8F, 2.3F)
+                    .clientTrackingRange(10)
+                    .build("pond_skater"));
 
     private ModEntities() {}
 }

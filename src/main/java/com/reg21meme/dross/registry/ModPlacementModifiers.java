@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.worldgen.NotNearHubFilter;
 import com.reg21meme.dross.dimension.worldgen.NotNearSewerEntranceFilter;
+import com.reg21meme.dross.dimension.worldgen.NotOnRimefallLakeFilter;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -25,6 +26,11 @@ public final class ModPlacementModifiers
     // sewers' entrances and the Rat King's poisoned ground
     public static final RegistryObject<PlacementModifierType<NotNearSewerEntranceFilter>> NOT_NEAR_SEWER_ENTRANCE =
             PLACEMENT_MODIFIERS.register("not_near_sewer_entrance", () -> () -> NotNearSewerEntranceFilter.CODEC);
+
+    // Dimension area: dross:not_on_rimefall_lake, keeps Rimefall's trees, spikes, boulders, ponds, plants and drifts off its
+    // big frozen lakes
+    public static final RegistryObject<PlacementModifierType<NotOnRimefallLakeFilter>> NOT_ON_RIMEFALL_LAKE =
+            PLACEMENT_MODIFIERS.register("not_on_rimefall_lake", () -> () -> NotOnRimefallLakeFilter.CODEC);
 
     private ModPlacementModifiers() {}
 }

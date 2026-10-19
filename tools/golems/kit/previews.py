@@ -1,5 +1,5 @@
 """
-Preview pictures for the golem designs (boss-previews/cinder_colossus/):
+Preview pictures for the golem designs (boss-previews/cinder_wastes/cinder_colossus/):
 
   NN_<id>_<dormant|erupted|core>_<front|side|back>.png
         dormant  - its rock shell at the start of the fight, the volcano only smoking

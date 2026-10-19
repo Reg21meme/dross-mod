@@ -2,17 +2,22 @@
 import numpy as np
 
 from rimekit import mats as M
+from rimekit.shapes import Scaled, unit
 
 NUMBER = 7
 ID = "rimehorn"
 NAME = "Rimehorn"
 SECTION = "mob"
+# Round 4 (CLAUDE.md step 14): a real Rimefall animal now (tools/rimefall/mobs.py), so it leaves the statue gallery.
+GALLERY = False
 BLURB = ("An ice-age woolly rhino: a high shoulder hump, a long low head, and a thick coat of fur in layers, stepping "
-         "out from its back to a long shaggy skirt along its belly, icicles hanging off it, a ruff round its neck and "
-         "a beard under its throat. Its two horns, a great sweeping one on its nose and a short one behind it, are clear "
+         "out from its back to a long shaggy skirt along its belly, icicles hanging off it, a ruff round its neck. "
+         "Its two horns, a great sweeping one on its nose and a short one behind it, are clear "
          "ice. Plain black eyes. Round 2: a regular mob, the same size as before, the ice block on its back gone (the "
          "user's notes). Round 3: the coat rebuilt from straight layers (the hanging locks crossed through each other "
-         "and the body), black eyes with no fur over them, and on the brown one a patch of snow on its back.")
+         "and the body), black eyes with no fur over them, and on the brown one a patch of snow on its back. Round 4 "
+         "(a Rimefall animal now: packs of 6-8, frosted males and dark brown females): about 4.5 blocks tall and 8 "
+         "long (the user's size; it was 4.9 and 9.4).")
 VARIANTS = (
     dict(letter="A", mood="frosted coat", fur=M.WOOLLY_PALE, skin=M.FROST_SKIN),
     dict(letter="B", mood="dark brown coat", fur=M.WOOLLY, skin=M.STONE, snow=True),
@@ -21,12 +26,23 @@ VARIANTS = (
 # is archived in round3/.
 VARIANTS = tuple(v for v in VARIANTS if v["letter"] in ('A', 'B'))
 
+# Round 4 (the user: "make them like four and a half blocks tall and like eight blocks long"; round 3's are archived
+# in round4/): the body one slice shorter (its sections pulled in to match) and the whole animal at K of the size.
+K = 0.92
 # The body's cross-section along its length: (z, centre height, half-width, half-height).
-SECTIONS = ((-40, 50, 20, 22), (-22, 51, 25, 28), (0, 46, 24, 26), (20, 43, 23, 24), (38, 42, 19, 20), (46, 42, 13, 14))
+SECTIONS = ((-40, 50, 20, 22), (-24, 51, 25, 28), (-4, 46, 24, 26), (14, 43, 23, 24), (31, 42, 19, 20), (38, 42, 13, 14))
 # The coat is built in slices this long (units), front to back, each slice from straight boxes only: nothing is turned,
 # so no two pieces of fur cut through each other (the user: "a lot of clipping of the body that doesn't look good").
 SLICE = 8
-SLICES = tuple(range(-42, 47, SLICE))       # their middles
+SLICES = tuple(range(-42, 39, SLICE))       # their middles (11; round 3 had 12)
+LEGS_Z = (-26, 24)                          # the front and hind legs (round 3: -26 and 30)
+LEGS = (("fl", 1, LEGS_Z[0]), ("fr", -1, LEGS_Z[0]), ("hl", 1, LEGS_Z[1]), ("hr", -1, LEGS_Z[1]))   # his left is +x
+
+
+def leg_points(x, z):
+    """A leg's hip, knee, ankle and the middle of its foot (design units)."""
+    hip = np.array([15.0 * x, 36.0, z])
+    return hip, hip + [1 * x, -18, -2], hip + [1 * x, -30, -1], hip + [1 * x, -33, -1]
 SKIRT_DROP = 7                              # how far the skirt hangs below the belly
 EYE = M.palette("#040405", "#08080a", "#0d0d10", "#141418")    # black
 
@@ -42,13 +58,18 @@ def jitter(k, seed, amount):
 
 
 def slab(s, x0, x1, y0, y1, z0, z1, mat):
-    """A straight box between two corners (whole units; either order)."""
-    a = np.array([round(x0), round(y0), round(z0)], dtype=float)
-    b = np.array([round(x1), round(y1), round(z1)], dtype=float)
+    """
+    A straight box between two corners (either order), its corners on whole units of the finished (scaled) model, so
+    neighbouring slabs still meet exactly after the scaling (no hairline gaps, no overlaps).
+    """
+    k = getattr(s, "k", 1.0)
+    raw = getattr(s, "s", s)
+    a = np.round(np.array([x0, y0, z0], dtype=float) * k)
+    b = np.round(np.array([x1, y1, z1], dtype=float) * k)
     lo, hi = np.minimum(a, b), np.maximum(a, b)
     if (hi - lo).min() <= 0:
         return
-    s.box((lo + hi) / 2.0, hi - lo, mat)
+    raw.box((lo + hi) / 2.0, hi - lo, mat)
 
 
 def coat(s, v):
@@ -57,6 +78,7 @@ def coat(s, v):
     the belly underneath, and a long shaggy skirt hanging outside the flanks below the belly, icicles off its edge.
     Returns each slice's (z0, z1, top, back half-width) for the snow.
     """
+    s = s.part("body")
     tops = []
     for k, zc in enumerate(SLICES):
         cy, rx, ry = body_at(zc)
@@ -95,7 +117,9 @@ def head(s):
     nostrils, sweeping forward and up, flattened side to side like a real woolly rhino's (the user's note). Nothing
     hangs under its chin or throat (the user saw "this weird part below his mouth").
     """
-    s.seg((0, 47, -44), (0, 40, -60), 22, 22, "fur", side=(1, 0, 0))                # the neck
+    s.part("neck").seg((0, 47, -44), (0, 40, -60), 22, 22, "fur", side=(1, 0, 0))   # the neck
+    ears = {1: s.part("ear_l"), -1: s.part("ear_r")}
+    s = s.part("head")
     s.seg((0, 41, -56), (0, 35, -70), 18, 19, "fur", side=(1, 0, 0))                # the skull
     # (The face and muzzle 6 units shorter than the first version of this head: the user found the snout stuck out
     # too far.)
@@ -109,8 +133,8 @@ def head(s):
         s.plate(tip + up * 2.5 + [x * 3.5, 0, 0], d, up, 2, 2, 1, "mouth")              # nostrils
         s.box((9.6 * x, 40, -64), (2, 3, 3), "eye")                                      # plain black eyes
         # Ears: small, tufted, on top of the neck behind the eyes.
-        s.plate((8 * x, 56, -54), (x, 0.2, -0.3), (x * 0.3, 1, -0.1), 6, 9, 2, "fur")
-        s.plate((8.8 * x, 59.5, -54), (x, 0.2, -0.3), (x * 0.5, 1, -0.1), 4, 5, 2, "shag")
+        ears[x].plate((8 * x, 56, -54), (x, 0.2, -0.3), (x * 0.3, 1, -0.1), 6, 9, 2, "fur")
+        ears[x].plate((8.8 * x, 59.5, -54), (x, 0.2, -0.3), (x * 0.5, 1, -0.1), 4, 5, 2, "shag")
     s.plate(tip - up * 4.6, d, up, 10, 1, 1, "mouth")                                    # its mouth
     # The horns: a short one on top of its head, the great one off the top of its nose.
     s.curve([(0, 44, -65), (0, 50.5, -67), (0, 56.5, -66)], 6, [7, 5, 2], "horn", depths=[9, 6, 2])
@@ -119,35 +143,41 @@ def head(s):
 
 
 def build(s, v):
+    s = Scaled(s, K)
     tops = coat(s, v)
     front = SLICES[0] - SLICE / 2                  # the front of the body
     rear = SLICES[-1] + SLICE / 2
     # A ruff of fur round the neck where it leaves the body.
-    slab(s, -14, 14, 30, 56, front - 4, front + 1, "fur")
+    slab(s.part("body"), -14, 14, 30, 56, front - 4, front + 1, "fur")
     head(s)
     if v.get("snow"):
         # A patch of snow lying on its back (the user's note for the brown one): flat drifts on the tops of the
         # slices over its hump and shoulders, ragged at the edges, a few small lumps.
+        snow = s.part("snow")
         for k, (z0, z1, top, back) in enumerate(tops):
             if not -40 <= z0 <= 10:
                 continue
             w = back - 2 - abs(jitter(k, 5, 2))
             dx = jitter(k, 6, 2)
-            slab(s, dx - w, dx + w, top, top + 2, z0 + abs(jitter(k, 7, 1)), z1 - abs(jitter(k, 8, 1)), "snowpatch")
+            slab(snow, dx - w, dx + w, top, top + 2, z0 + abs(jitter(k, 7, 1)), z1 - abs(jitter(k, 8, 1)), "snowpatch")
             if k % 2 == 0:
-                slab(s, dx - 3, dx + 4, top + 2, top + 3, z0 + 2, z1 - 2, "snowpatch")
+                slab(snow, dx - 3, dx + 4, top + 2, top + 3, z0 + 2, z1 - 2, "snowpatch")
     # The rump and a short tufted tail.
-    s.taper([(0, 50, rear - 2), (0, 44, rear + 6), (0, 38, rear + 8)], [6, 4, 3], "fur")
-    slab(s, -3, 3, 26, 38, rear + 7, rear + 9, "shag")
-    # Legs: thick pillars of fur, a shaggy cuff round each shin, three-toed feet.
-    for x, z in ((-1, -26), (1, -26), (-1, 30), (1, 30)):
-        hip = np.array([15.0 * x, 36.0, z])
-        s.taper([hip, hip + [1 * x, -18, -2], hip + [1 * x, -30, -1]], [16, 14, 13], "fur")
-        foot = hip + [1 * x, -33, -1]
-        slab(s, foot[0] - 8.5, foot[0] + 8.5, 6, 17, foot[2] - 8.5, foot[2] + 8.5, "shag")
-        s.rbox(foot, (15, 6, 15), "hoof", c=2)
+    tail = s.part("tail")
+    tail.taper([(0, 50, rear - 2), (0, 44, rear + 6), (0, 38, rear + 8)], [6, 4, 3], "fur")
+    slab(tail, -3, 3, 26, 38, rear + 7, rear + 9, "shag")
+    # Legs: thick pillars of fur, a shaggy cuff round each shin, three-toed feet. (Round 4: each in two parts, the
+    # upper leg and the shin, so it can bend at the knee when it walks.)
+    for name, x, z in LEGS:
+        hip, knee, ankle, foot = leg_points(x, z)
+        s.part(f"leg_{name}").taper([hip, knee], [16, 14], "fur")
+        sh = s.part(f"shin_{name}")
+        sh.taper([knee + unit(knee - ankle) * 2.0, knee, ankle], [14, 14, 13], "fur")
+        slab(sh, foot[0] - 8.5, foot[0] + 8.5, 6, 17, foot[2] - 8.5, foot[2] + 8.5, "shag")
+        hoof = s.part(f"foot_{name}")                   # (round 4: on its own bone, the ankle, so it stays flat)
+        hoof.rbox(foot, (15, 6, 15), "hoof", c=2)
         for k in (-1, 0, 1):
-            s.rbox(foot + [k * 4.5, -0.5, -7], (4, 5, 3), "hoof", c=1)
+            hoof.rbox(foot + [k * 4.5, -0.5, -7], (4, 5, 3), "hoof", c=1)
 
 
 def materials(v):

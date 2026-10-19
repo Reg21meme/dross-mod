@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    "#dross:rimefall_animals_spawnable_on",
+    "dross:silvermoss",
+    "minecraft:podzol",
+    "minecraft:moss_block"
+  ]
+}

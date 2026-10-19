@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.dimension.rimefall.RimefallAreas;
 import com.reg21meme.dross.dimension.sewer.SewerSites;
 import com.reg21meme.dross.portal.DrossHub;
 import it.unimi.dsi.fastutil.ints.IntArrays;
@@ -63,9 +64,10 @@ import org.slf4j.Logger;
  *       chance ({@link BossSitesTuning#REGULAR_SEWER_CHANCE}, a roll per patch fixed by the seed), if one fits. A patch
  *       never holds more than one sewer network.</li>
  * </ol>
- * The boss biomes now: {@link DrossBiomes#CINDER_WASTES} (the Cinder Colossus, {@link #COLOSSUS_LAIR}) and
- * {@link DrossBiomes#BLIGHTWOOD} (the Rat King's sewer, {@link #RAT_KING_SEWER}; filler {@link #REGULAR_SEWER}). Rimefall
- * joins when its first boss arrives (add it to {@link #BOSS_BIOMES}).
+ * The boss biomes now: {@link DrossBiomes#CINDER_WASTES} (the Cinder Colossus, {@link #COLOSSUS_LAIR}),
+ * {@link DrossBiomes#BLIGHTWOOD} (the Rat King's sewer, {@link #RAT_KING_SEWER}; filler {@link #REGULAR_SEWER}) and
+ * {@link DrossBiomes#RIMEFALL} (no boss yet; every patch gets its lake and herds, {@link #RIMEFALL_AREA}: a <b>per-patch</b>
+ * use, {@link SiteUse#perPatch}, placed in every patch of its biome whatever its slot).
  * <h2>Using it</h2>
  * <ul>
  *   <li>{@link #forLevel} the running world's plan (cached); {@link #forSeed} any seed's (a new one each call: tests,
@@ -121,23 +123,47 @@ public final class BossSites
     public static final SiteUse RAT_KING_SEWER = new SiteUse(id("rat_king_sewer"), DrossBiomes.BLIGHTWOOD, SewerSites::findRatKingSewer);
     /** A regular sewer (3 pipes, rats only, no king), in the Blightwood patches kept for future bosses. */
     public static final SiteUse REGULAR_SEWER = new SiteUse(id("regular_sewer"), DrossBiomes.BLIGHTWOOD, SewerSites::findRegularSewer);
+    /**
+     * A Rimefall patch's own things, in every Rimefall patch whatever its slot (a per-patch use): its big frozen lake
+     * and its Rimehorn herds' spots ({@link RimefallAreas.RimefallArea}; the user's requests of October 19, 2026).
+     */
+    public static final SiteUse RIMEFALL_AREA = new SiteUse(id("rimefall_area"), DrossBiomes.RIMEFALL, RimefallAreas::find, true);
 
     /** Every use, by id (the structure sets' placement JSON names one: {@code "use": "dross:rat_king_sewer"}). */
-    public static final List<SiteUse> USES = List.of(COLOSSUS_LAIR, RAT_KING_SEWER, REGULAR_SEWER);
+    public static final List<SiteUse> USES = List.of(COLOSSUS_LAIR, RAT_KING_SEWER, REGULAR_SEWER, RIMEFALL_AREA);
 
     /**
-     * A boss biome: its current boss (slot 0 of every group) and the filler for the two kept patches (or null).
+     * A boss biome: its current boss (slot 0 of every group; null while its bosses haven't come yet: then every group's
+     * patches take slots 1, 2 and 3) and the filler for the two kept patches (or null).
      *
      * @param fillerChance the chance each kept patch gets the filler (if it fits)
      */
-    public record BossBiome(ResourceKey<Biome> biome, SiteUse boss, @Nullable SiteUse filler, double fillerChance)
+    public record BossBiome(ResourceKey<Biome> biome, @Nullable SiteUse boss, @Nullable SiteUse filler, double fillerChance)
     {
     }
 
-    /** The boss biomes. */
+    /**
+     * The boss biomes. Rimefall has no boss yet (the Huntsman's home comes later), but its patches are planned for their
+     * lakes and herds ({@link #RIMEFALL_AREA}).
+     */
     public static final List<BossBiome> BOSS_BIOMES = List.of(
             new BossBiome(DrossBiomes.CINDER_WASTES, COLOSSUS_LAIR, null, 0.0D),
-            new BossBiome(DrossBiomes.BLIGHTWOOD, RAT_KING_SEWER, REGULAR_SEWER, BossSitesTuning.REGULAR_SEWER_CHANCE));
+            new BossBiome(DrossBiomes.BLIGHTWOOD, RAT_KING_SEWER, REGULAR_SEWER, BossSitesTuning.REGULAR_SEWER_CHANCE),
+            new BossBiome(DrossBiomes.RIMEFALL, null, null, 0.0D));
+
+    /** The per-patch uses of a biome (every patch of it gets one, where it fits). */
+    private static List<SiteUse> perPatchUses(ResourceKey<Biome> biome)
+    {
+        List<SiteUse> uses = new ArrayList<>();
+        for (SiteUse use : USES)
+        {
+            if (use.perPatch() && use.biome().equals(biome))
+            {
+                uses.add(use);
+            }
+        }
+        return uses;
+    }
 
     /** The use with this id, if there is one. */
     public static Optional<SiteUse> use(ResourceLocation id)
@@ -575,21 +601,28 @@ public final class BossSites
         }
         BossBiome config = b.config;
         // the boss: one patch where it fits, picked by the seed (the fit tests side by side: each depends only on its patch)
-        PlannerThreads.runAll(patches.size(), i -> fitIn(config.boss(), patches.get(i), false));
         List<Integer> fitting = new ArrayList<>();
         List<Optional<Site>> bossFits = new ArrayList<>();
-        for (int i = 0; i < patches.size(); i++)
+        if (config.boss() != null)
         {
-            Optional<Site> fit = fitIn(config.boss(), patches.get(i), false);
-            bossFits.add(fit);
-            if (fit.isPresent())
+            PlannerThreads.runAll(patches.size(), i -> fitIn(config.boss(), patches.get(i), false));
+            for (int i = 0; i < patches.size(); i++)
             {
-                fitting.add(i);
+                Optional<Site> fit = fitIn(config.boss(), patches.get(i), false);
+                bossFits.add(fit);
+                if (fit.isPresent())
+                {
+                    fitting.add(i);
+                }
             }
         }
         int bossIndex = -1;
         Optional<Site> bossSite = Optional.empty();
-        if (!fitting.isEmpty())
+        if (config.boss() == null)
+        {
+            // (no boss yet: every patch is kept, slots 1 to 3)
+        }
+        else if (!fitting.isEmpty())
         {
             long h = mix(seed() ^ BossSitesTuning.BOSS_PICK_SALT, config.biome().location().hashCode(), index);
             bossIndex = fitting.get((int) Math.floorMod(h, (long) fitting.size()));
@@ -710,6 +743,10 @@ public final class BossSites
         {
             return Optional.empty();
         }
+        if (use.perPatch())
+        {
+            return fitIn(use, patch, false);   // (every patch, whatever its group: no need to plan the group)
+        }
         return group(patch.biome(), patch.group()).map(g -> g.siteFor(use, patch));
     }
 
@@ -814,6 +851,10 @@ public final class BossSites
 
     private List<Site> sitesOf(SiteUse use, int group)
     {
+        if (use.perPatch())
+        {
+            return group(use.biome(), group).map(g -> g.patches().stream().flatMap(p -> site(use, p).stream()).toList()).orElse(List.of());
+        }
         return group(use.biome(), group).map(g -> g.sites().stream().filter(s -> s.use() == use).toList()).orElse(List.of());
     }
 
@@ -862,11 +903,20 @@ public final class BossSites
             }
         }
         List<Site> near = new ArrayList<>();
+        List<SiteUse> perPatch = perPatchUses(biome);
         Collections.sort(groups);
         for (int g : groups)
         {
             group(biome, g).ifPresent(grp -> {
-                for (Site s : grp.sites())
+                List<Site> sites = new ArrayList<>(grp.sites());
+                for (SiteUse use : perPatch)
+                {
+                    for (Patch p : grp.patches())
+                    {
+                        site(use, p).ifPresent(sites::add);
+                    }
+                }
+                for (Site s : sites)
                 {
                     if (s.distanceTo(x, z) <= radius)
                     {

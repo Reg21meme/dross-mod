@@ -27,7 +27,11 @@ DIM = (150, 162, 176)
 HOLE = 26
 
 
-def _fragments(layers, view, scale, bounds):
+def _hidden(bone, hidden):
+    return bool(hidden) and any(a.name in hidden for a in bone.ancestors())
+
+
+def _fragments(layers, view, scale, bounds, pose=None, hidden=()):
     """
     Rasterizes every face of every (model, textures) layer into one picture. Returns the solid buffers (with the layer
     each pixel came from) and the list of ice fragments.
@@ -48,19 +52,19 @@ def _fragments(layers, view, scale, bounds):
     ice_frags = []
     for li, (model, tex) in enumerate(layers):
         _raster(li, model, tex, view, s16, bounds, xs, ys, width, height, depth, tu_b, tv_b, layer_b, light, glight,
-                hit, ice_frags)
+                hit, ice_frags, pose if li == 0 else None, hidden if li == 0 else ())
     return dict(depth=depth, u=tu_b, v=tv_b, layer=layer_b, light=light, glight=glight, hit=hit, width=width,
                 height=height, ice=ice_frags)
 
 
 def _raster(li, model, tex, view, s16, bounds, xs, ys, width, height, depth, tu_b, tv_b, layer_b, light, glight, hit,
-            ice_frags):
+            ice_frags, pose=None, hidden=()):
     bx0, by0, bx1, by1 = bounds
-    mats = model.pose_matrices(None, yaw_deg=0.0)
+    mats = model.pose_matrices(pose, yaw_deg=0.0)
     a_base = tex["base"][..., 3]
     a_ice = tex["ice"][..., 3]
     for bone in model.bones:
-        if not bone.cubes:
+        if not bone.cubes or _hidden(bone, hidden):
             continue
         m = mats[bone.name]
         for cube in bone.cubes:
@@ -121,16 +125,18 @@ def _raster(li, model, tex, view, s16, bounds, xs, ys, width, height, depth, tu_
 
 
 def draw(model, tex, yaw=30.0, elevation=12.0, scale=4.0, bounds=None, world_light=1.0, glow_strength=1.0,
-         background=BG, grid=True, figure=True, extra=()):
+         background=BG, grid=True, figure=True, extra=(), pose=None, hidden=()):
     """
     One picture of a candidate (front faces the camera at yaw 0). `extra`: more (model, textures) drawn with it (its
-    real Minecraft blocks).
+    real Minecraft blocks). `pose`: an animation pose (bone -> (rotation, position, scale)) for an animated mob;
+    `hidden`: bones (and their children) not drawn (a male Rimehorn's snow, a cow moose's antlers).
     """
     layers = [(model, tex)] + [e for e in extra if e is not None]
     view = render.camera(yaw, elevation)
     if bounds is None:
-        bounds = window(model, yaw, elevation, figure=figure, extra=[m for m, _t in layers[1:]])
-    buf = _fragments(layers, view, scale, bounds)
+        bounds = window(model, yaw, elevation, figure=figure, extra=[m for m, _t in layers[1:]], pose=pose,
+                        hidden=hidden)
+    buf = _fragments(layers, view, scale, bounds, pose, hidden)
     h, w = buf["height"], buf["width"]
     img = np.zeros((h, w, 3))
     img[:] = background
@@ -196,11 +202,13 @@ def draw(model, tex, yaw=30.0, elevation=12.0, scale=4.0, bounds=None, world_lig
     return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB")
 
 
-def corners(model):
+def corners(model, pose=None, hidden=()):
     """Every box corner of the model (Bedrock units, posed)."""
-    mats = model.pose_matrices()
+    mats = model.pose_matrices(pose)
     pts = []
     for b in model.bones:
+        if _hidden(b, hidden):
+            continue
         m = mats[b.name]
         for c in b.cubes:
             cm = m @ c.cube_matrix()
@@ -215,11 +223,11 @@ def corners(model):
     return np.array(pts)
 
 
-def window(model, yaw, elevation, margin=0.35, figure=True, ground=True, extra=()):
+def window(model, yaw, elevation, margin=0.35, figure=True, ground=True, extra=(), pose=None, hidden=()):
     """The view window (blocks, view space) that holds the model (and the `extra` models), the ground under it and a
     player figure."""
     view = render.camera(yaw, elevation)
-    pts = np.concatenate([corners(model)] + [corners(e) for e in extra])
+    pts = np.concatenate([corners(model, pose, hidden)] + [corners(e) for e in extra])
     g = np.stack([-pts[:, 0] / 16.0, pts[:, 1] / 16.0, pts[:, 2] / 16.0], axis=1)
     # GeckoLib model space -> world at yaw 0 (the camera maths uses world space).
     wpts = np.stack([-g[:, 0], g[:, 1], -g[:, 2]], axis=1)

@@ -1,6 +1,7 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.rimefall.RimehornHerdFeature;
 import com.reg21meme.dross.dimension.worldgen.BoulderFeature;
 import com.reg21meme.dross.dimension.worldgen.FallenLogFeature;
 import com.reg21meme.dross.dimension.worldgen.PondFeature;
@@ -41,6 +42,10 @@ public final class ModFeatures
     // Dimension area: dross:tidy_up, the last feature of every Dross chunk: removes loose plants and vines, settles stray leaves
     public static final RegistryObject<TidyUpFeature> TIDY_UP = FEATURES.register("tidy_up",
             () -> new TidyUpFeature(NoneFeatureConfiguration.CODEC));
+
+    // Dimension area: dross:rimehorn_herd, Rimefall's few Rimehorn herds, put in as the land is made (dimension/rimefall)
+    public static final RegistryObject<RimehornHerdFeature> RIMEHORN_HERD = FEATURES.register("rimehorn_herd",
+            RimehornHerdFeature::new);
 
     private ModFeatures() {}
 }
