@@ -408,6 +408,10 @@ public final class DrossColors {
     /** The Huntsman's boss bar showcase: the chat buttons for the designs, and the one being shown. */
     public static final int HUNTSMAN_BAR_BUTTON = 0x96D2F0;
     public static final int HUNTSMAN_BAR_BUTTON_SHOWN = 0xFFFFFF;
+    /** The hunter village showcase (/dross showcase hunter_villages): its [go] buttons (pale ice) and the [overview]
+     * button (snow white). Used in command/HunterVillageShowcase. */
+    public static final int HUNTER_VILLAGE_BUTTON = 0x96D2F0;
+    public static final int HUNTER_VILLAGE_OVERVIEW_BUTTON = 0xF2F8FC;
 
     /** The "[Summon the Rat King]" button in /dross boss arena ratking's chat message: poison green. Used in boss/BossCommands. */
     public static final int RAT_KING_COMMAND_BUTTON = 0x8FD14F;

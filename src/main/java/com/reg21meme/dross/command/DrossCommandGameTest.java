@@ -73,6 +73,7 @@ public final class DrossCommandGameTest
             "dross goto biome rimefall", "dross goto biome gravecrags",
             "dross goto lair colossus", "dross goto lair ratking", "dross goto sewer", "dross goto lake",
             "dross showcase bossbars huntsman", "dross showcase bossbars huntsman 7", "dross showcase bossbars huntsman 7 angry",
+            "dross showcase hunter_villages",
             "dross trader sendhome",
             "dross quest status", "dross quest reset", "dross quest complete",
             "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",

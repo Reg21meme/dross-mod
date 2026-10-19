@@ -88,6 +88,8 @@ import net.minecraftforge.fml.common.Mod;
  *       Skater), frozen, with signs; {@code /dross showcase rimefall_mobs idle|walk|run|charge|eat|attack} plays their
  *       animations ({@link RimefallMobShowcase}). {@code /dross showcase mob_sounds rimefall} lists their sounds with
  *       play buttons ({@link RimefallMobSoundShowcase}; the boss area's {@code RimefallMobSounds}).</li>
+ *   <li>{@code /dross showcase hunter_villages}: builds the ten hunter village designs and the Huntsman's lodge ahead
+ *       of you, one a tick, with [go] buttons ({@link HunterVillageShowcase}).</li>
  *   <li>{@code /dross showcase bossbars huntsman [<1-10>] [angry]}: shows one of the Huntsman's ten boss bar designs
  *       on your screen for a minute, draining and filling (the fight's three bars, or the two angry looks), with chat
  *       buttons for the others ({@link HuntsmanBarShowcase}).</li>
@@ -196,7 +198,9 @@ public final class DrossCommand
                                 .then(Commands.literal("ratking").executes(TrophyShowcase::placeRatKingTrophies)))
                         // Boss area's boss bar designs to pick from, one literal per boss (HuntsmanBarShowcase).
                         .then(Commands.literal("bossbars")
-                                .then(huntsmanBarShowcase())))
+                                .then(huntsmanBarShowcase()))
+                        // Boss area's hunter villages (ten designs and the Huntsman's lodge; HunterVillageShowcase).
+                        .then(Commands.literal("hunter_villages").executes(HunterVillageShowcase::run)))
                 // Boss area's test commands: boss <action> <boss> (the logic lives in BossCommands). The arena's chat
                 // buttons run BossCommands.SUMMON_COMMAND ("/dross boss summon colossus") and SUMMON_RAT_KING_COMMAND
                 // ("/dross boss summon ratking"), so keep those paths exactly as they are.

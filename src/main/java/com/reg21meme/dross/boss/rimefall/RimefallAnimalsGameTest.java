@@ -601,14 +601,22 @@ public final class RimefallAnimalsGameTest
                         + ", but it's " + onIce + (skater.isOnIce() ? "" : " (it doesn't know it's on ice)"));
                 return;
             }
+            // Off the ice: the floor under it turned to stone, and it put back on that block's middle (on ice the
+            // least nudge slides it a long way; with no AI it never steps back).
             helper.setBlock(floor, Blocks.STONE);
+            BlockPos at = helper.absolutePos(floor);
+            skater.setDeltaMovement(net.minecraft.world.phys.Vec3.ZERO);
+            skater.teleportTo(at.getX() + 0.5D, at.getY() + 1.0D, at.getZ() + 0.5D);
             helper.runAfterDelay(10, () ->
             {
                 double off = skater.getAttributeValue(Attributes.MOVEMENT_SPEED);
+                String under = skater.level().getBlockState(BlockPos.containing(skater.getX(), skater.getY() - 0.2D,
+                        skater.getZ())).getBlock().getName().getString();
                 skater.discard();
                 if (Math.abs(off - base) > 0.01D)
                 {
-                    helper.fail("off the ice its speed should be a spider's, " + base + ", but it's " + off);
+                    helper.fail("off the ice its speed should be a spider's, " + base + ", but it's " + off
+                            + " (standing on " + under + ")");
                     return;
                 }
                 helper.succeed();
