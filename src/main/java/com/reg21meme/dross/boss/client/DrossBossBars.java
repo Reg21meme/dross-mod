@@ -3,6 +3,7 @@ package com.reg21meme.dross.boss.client;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.huntsman.HuntsmanBarShowcase;
 import com.reg21meme.dross.boss.ratking.RatKingTuning;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -26,7 +27,9 @@ import net.minecraftforge.fml.common.Mod;
  *       streaks flowing along it;</li>
  *   <li>the Rat King ({@code boss.dross.rat_king.bar}, {@code .rage} in his Rage): the user's pick, a rusty sewer pipe
  *       with a rat peeking over it, drawn from its texture ({@link RatKingBarArt}: the empty bar, the full bar cut off at
- *       his health, the decorations, the name).</li>
+ *       his health, the decorations, the name);</li>
+ *   <li>the Huntsman's ten candidate designs ({@code boss.dross.huntsman.showcase.<look>}, the design's number its
+ *       argument; {@link HuntsmanBarStyles}), shown by {@code /dross showcase bossbars huntsman} for the user to pick.</li>
  * </ul>
  * Any other bar is left to Minecraft. Every colour comes from {@link DrossColors} (the "Boss" section).
  */
@@ -80,7 +83,75 @@ public final class DrossBossBars
             boolean rage = key.equals(RatKingTuning.BAR_KEY_RAGE);
             drawRatKing(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), rage);
             event.setIncrement(RatKingBarArt.HEIGHT);
+            return;
         }
+        if (key.startsWith(HuntsmanBarShowcase.KEY_PREFIX))
+        {
+            String look = key.substring(HuntsmanBarShowcase.KEY_PREFIX.length());
+            HuntsmanBarStyles.Style style = HuntsmanBarStyles.byNumber(designNumber(contents));
+            event.setCanceled(true);
+            drawHuntsman(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), style, look);
+            event.setIncrement(style.height());
+        }
+    }
+
+    /** The design number a Huntsman bar's name carries as its argument (a number, or its text after a trip over the network). */
+    private static int designNumber(TranslatableContents contents)
+    {
+        Object[] args = contents.getArgs();
+        if (args.length == 0)
+        {
+            return 1;
+        }
+        Object arg = args[0];
+        if (arg instanceof Number number)
+        {
+            return number.intValue();
+        }
+        String text = arg instanceof Component component ? component.getString() : String.valueOf(arg);
+        try
+        {
+            return Integer.parseInt(text.trim());
+        }
+        catch (NumberFormatException e)
+        {
+            return 1;
+        }
+    }
+
+    /**
+     * A Huntsman bar ({@link HuntsmanBarStyles}: one of the ten designs, one of its five looks): the empty bar, the full
+     * bar cut off at the health, the decorations and the name. Its name may stand higher than vanilla's, so the first
+     * bar is moved down to keep it on the screen; each takes its design's height.
+     */
+    private static void drawHuntsman(GuiGraphics g, int x, int barY, float progress, Component name, HuntsmanBarStyles.Style style,
+                                     String lookKey)
+    {
+        HuntsmanBarStyles.Look look = style.look(lookKey);
+        int y = barY + Math.max(0, -style.nameY() - NAME_ABOVE);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        blitHuntsman(g, style, look.empty(), x, y);
+        int filled = Math.round(Math.max(0.0F, Math.min(1.0F, progress)) * look.fillWidth());
+        if (filled > 0)
+        {
+            HuntsmanBarStyles.Part full = look.full();
+            g.blit(style.texture(), x + full.x() + look.fillLeft(), y + full.y(), full.u() + look.fillLeft(), full.v(), filled,
+                    full.height(), style.textureWidth(), style.textureHeight());
+        }
+        blitHuntsman(g, style, look.decorations(), x, y);
+        RenderSystem.disableBlend();
+        int nameColor = lookKey.endsWith("angry") ? DrossColors.HUNTSMAN_BAR_NAME_ANGRY
+                : lookKey.equals("huntsman") ? DrossColors.HUNTSMAN_BAR_NAME_HUNTER
+                : lookKey.equals("alpha_moose") ? DrossColors.HUNTSMAN_BAR_NAME_MOOSE : DrossColors.HUNTSMAN_BAR_NAME_WILD;
+        Font font = Minecraft.getInstance().font;
+        g.drawString(font, name, x + WIDTH / 2 - font.width(name) / 2, y + style.nameY(), nameColor, true);
+    }
+
+    private static void blitHuntsman(GuiGraphics g, HuntsmanBarStyles.Style style, HuntsmanBarStyles.Part part, int x, int y)
+    {
+        g.blit(style.texture(), x + part.x(), y + part.y(), part.u(), part.v(), part.width(), part.height(), style.textureWidth(),
+                style.textureHeight());
     }
 
     /**

@@ -398,6 +398,16 @@ public final class DrossColors {
     /** Rat King's boss bar: the name over it, normal and in the Rage (as the bar previews draw it). Used in boss/client/DrossBossBars. */
     public static final int RAT_KING_BAR_NAME = 0xFFFFFF;
     public static final int RAT_KING_BAR_NAME_RAGE = 0xFFBEB0;
+    /** The Huntsman's boss bars: the names over them (as tools/huntsman/bossbars.py's previews draw them): the Wild Hunt
+     * (frost white), the Huntsman (pale ice), the Alpha Moose (pale amber), and either one angry (pale red). Used in
+     * boss/client/DrossBossBars. */
+    public static final int HUNTSMAN_BAR_NAME_WILD = 0xECF6FC;
+    public static final int HUNTSMAN_BAR_NAME_HUNTER = 0xCEEAFA;
+    public static final int HUNTSMAN_BAR_NAME_MOOSE = 0xFCE4B8;
+    public static final int HUNTSMAN_BAR_NAME_ANGRY = 0xFFB2A2;
+    /** The Huntsman's boss bar showcase: the chat buttons for the designs, and the one being shown. */
+    public static final int HUNTSMAN_BAR_BUTTON = 0x96D2F0;
+    public static final int HUNTSMAN_BAR_BUTTON_SHOWN = 0xFFFFFF;
 
     /** The "[Summon the Rat King]" button in /dross boss arena ratking's chat message: poison green. Used in boss/BossCommands. */
     public static final int RAT_KING_COMMAND_BUTTON = 0x8FD14F;

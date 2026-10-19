@@ -1,11 +1,13 @@
 package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.BossCommands;
+import com.reg21meme.dross.boss.huntsman.HuntsmanBarShowcase;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
@@ -86,6 +88,9 @@ import net.minecraftforge.fml.common.Mod;
  *       Skater), frozen, with signs; {@code /dross showcase rimefall_mobs idle|walk|run|charge|eat|attack} plays their
  *       animations ({@link RimefallMobShowcase}). {@code /dross showcase mob_sounds rimefall} lists their sounds with
  *       play buttons ({@link RimefallMobSoundShowcase}; the boss area's {@code RimefallMobSounds}).</li>
+ *   <li>{@code /dross showcase bossbars huntsman [<1-10>] [angry]}: shows one of the Huntsman's ten boss bar designs
+ *       on your screen for a minute, draining and filling (the fight's three bars, or the two angry looks), with chat
+ *       buttons for the others ({@link HuntsmanBarShowcase}).</li>
  *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
  *       you, each on a pedestal facing you with a sign giving its number and name ({@link TrophyShowcase}; the designs
  *       are the boss area's {@code ColossusTrophies}).</li>
@@ -188,7 +193,10 @@ public final class DrossCommand
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))
-                                .then(Commands.literal("ratking").executes(TrophyShowcase::placeRatKingTrophies))))
+                                .then(Commands.literal("ratking").executes(TrophyShowcase::placeRatKingTrophies)))
+                        // Boss area's boss bar designs to pick from, one literal per boss (HuntsmanBarShowcase).
+                        .then(Commands.literal("bossbars")
+                                .then(huntsmanBarShowcase())))
                 // Boss area's test commands: boss <action> <boss> (the logic lives in BossCommands). The arena's chat
                 // buttons run BossCommands.SUMMON_COMMAND ("/dross boss summon colossus") and SUMMON_RAT_KING_COMMAND
                 // ("/dross boss summon ratking"), so keep those paths exactly as they are.
@@ -219,6 +227,23 @@ public final class DrossCommand
             biome.then(Commands.literal(DrossBiomes.name(key)).executes(context -> GotoBiome.teleport(context.getSource(), key)));
         }
         return biome;
+    }
+
+    /**
+     * {@code /dross showcase bossbars huntsman [<design>] [angry]}: shows one of the Huntsman's ten boss bar designs on
+     * your screen (design 1 if none is given): the fight's three bars, or with {@code angry} the two angry looks
+     * ({@link HuntsmanBarShowcase}).
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> huntsmanBarShowcase()
+    {
+        return Commands.literal("huntsman")
+                .executes(context -> HuntsmanBarShowcase.show(context.getSource(), 1, false))
+                .then(Commands.argument("design", IntegerArgumentType.integer(1, 10))
+                        .executes(context -> HuntsmanBarShowcase.show(context.getSource(),
+                                IntegerArgumentType.getInteger(context, "design"), false))
+                        .then(Commands.literal("angry")
+                                .executes(context -> HuntsmanBarShowcase.show(context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "design"), true))));
     }
 
     /**

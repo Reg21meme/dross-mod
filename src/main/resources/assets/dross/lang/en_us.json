@@ -348,5 +348,18 @@
   "commands.dross.goto.lake.no_dross": "The Dross dimension isn't loaded, so there's no lake to go to.",
   "commands.dross.goto.lake.not_found": "Found no big Rimefall lake in the Dross (within 12,000 blocks).",
   "commands.dross.goto.lake.stopped": "Something stopped you from going to the Dross.",
-  "commands.dross.goto.lake.success": "Teleported to the shore of a Rimefall lake at %s, %s, %s (about %s blocks across, %s holes in its ice)."
+  "commands.dross.goto.lake.success": "Teleported to the shore of a Rimefall lake at %s, %s, %s (about %s blocks across, %s holes in its ice).",
+  "boss.dross.huntsman.showcase.wild_hunt": "The Wild Hunt",
+  "boss.dross.huntsman.showcase.huntsman": "The Huntsman",
+  "boss.dross.huntsman.showcase.huntsman_angry": "The Huntsman",
+  "boss.dross.huntsman.showcase.alpha_moose": "Alpha Moose",
+  "boss.dross.huntsman.showcase.alpha_moose_angry": "Alpha Moose",
+  "commands.dross.showcase.bossbars_huntsman.shown": "Huntsman boss bar design %s, %s: %s, for %s seconds. Designs:",
+  "commands.dross.showcase.bossbars_huntsman.set_normal": "stage 1 (The Wild Hunt) and stage 2 (The Huntsman, Alpha Moose)",
+  "commands.dross.showcase.bossbars_huntsman.set_angry": "the angry looks (when the other one has died)",
+  "commands.dross.showcase.bossbars_huntsman.button": "Show design %s: %s",
+  "commands.dross.showcase.bossbars_huntsman.toggle_angry": "[angry looks]",
+  "commands.dross.showcase.bossbars_huntsman.toggle_normal": "[stages 1 and 2]",
+  "commands.dross.showcase.bossbars_huntsman.not_player": "Only a player can see boss bars.",
+  "commands.dross.showcase.bossbars_huntsman.no_such": "There's no design %s (they're 1 to %s)."
 }
