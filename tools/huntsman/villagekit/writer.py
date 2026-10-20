@@ -36,6 +36,26 @@ def animal(kind, x, y, z, yaw=0.0, **flags):
     return {"x": float(x), "y": float(y), "z": float(z), "nbt": data}
 
 
+def item(kind, colour=None):
+    """An item stack's saved data (one of it): `kind` its id ("minecraft:stone_sword"), `colour` a dyed leather
+    piece's colour (0xRRGGBB)."""
+    data = {"id": kind, "Count": nbt.Byte(1)}
+    if colour is not None:
+        data["tag"] = {"display": {"color": nbt.Int(colour)}}
+    return data
+
+
+def armor_stand(x, y, z, yaw=0.0, head=None, chest=None, legs=None, feet=None, mainhand=None, offhand=None):
+    """An armor stand for grid.entities, standing at (x, y, z) like animal() (x and z the middle of its block), facing
+    `yaw` (0 south, 90 west, 180 north, -90 east), its arms showing; the pieces are item() data or None."""
+    empty = {}
+    armour = nbt.List(nbt.COMPOUND, [feet or empty, legs or empty, chest or empty, head or empty])
+    hands = nbt.List(nbt.COMPOUND, [mainhand or empty, offhand or empty])
+    data = {"id": "minecraft:armor_stand", "ShowArms": nbt.Byte(1), "ArmorItems": armour, "HandItems": hands,
+            "Rotation": nbt.List(nbt.FLOAT, [nbt.Float(yaw), nbt.Float(0.0)])}
+    return {"x": float(x), "y": float(y), "z": float(z), "nbt": data}
+
+
 def write(grid, path):
     used = {}
     palette = nbt.List(nbt.COMPOUND)

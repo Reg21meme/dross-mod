@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/crop",
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "crop": "dross:block/frostroots_stage2",
+    "particle": "dross:block/frostroots_stage2"
+  }
+}

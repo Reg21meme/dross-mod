@@ -17,7 +17,8 @@ import java.util.Optional;
 /**
  * Places one hunter igloo or one decoration ({@link HunterIglooDesigns}: a template each, made by
  * tools/huntsman/igloos.py, its doorway or front at the south) with its middle on a ground block and its front facing
- * any way: the igloo showcase uses it now, the villages will once the user has picked their igloos.
+ * any way: the igloo showcase uses it now, the villages will once the user has picked their igloos. Its entities (the
+ * guards: armor stands in the barracks and the Long Hall) are put in by {@link VillageAnimals}, once their land is ready.
  */
 public final class HunterIgloos
 {
@@ -53,8 +54,8 @@ public final class HunterIgloos
 
     /**
      * Places it with its middle on {@code ground} (the ground block: the template's ground layer goes there), its front
-     * (an igloo's doorway) facing {@code front}, and has the game light it. Nothing round it is touched. Returns false if
-     * its template is missing.
+     * (an igloo's doorway) facing {@code front}, its entities (armor stands) too, and has the game light it. Nothing round
+     * it is touched. Returns false if its template is missing.
      */
     public static boolean place(ServerLevel level, Piece piece, BlockPos ground, Direction front)
     {
@@ -64,7 +65,9 @@ public final class HunterIgloos
             return false;
         }
         BlockPos origin = origin(ground, piece);
-        found.get().placeInWorld(level, origin, origin, settings(piece, front), level.getRandom(), Block.UPDATE_CLIENTS);
+        StructurePlaceSettings settings = settings(piece, front);
+        found.get().placeInWorld(level, origin, origin, settings, level.getRandom(), Block.UPDATE_CLIENTS);
+        VillageAnimals.place(level, found.get(), origin, settings);
         HunterVillages.relight(level, footprint(ground, front, piece));
         return true;
     }

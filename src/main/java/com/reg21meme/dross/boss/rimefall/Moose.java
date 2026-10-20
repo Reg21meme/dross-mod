@@ -2,6 +2,7 @@ package com.reg21meme.dross.boss.rimefall;
 
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.registry.ModEntities;
+import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -29,12 +30,14 @@ import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.BreedGoal;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.FollowParentGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.PanicGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
+import net.minecraft.world.entity.ai.goal.TemptGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
@@ -42,6 +45,7 @@ import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
 import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ServerLevelAccessor;
@@ -207,6 +211,9 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
                 return Moose.this.isBaby() && super.canUse();     // a calf runs; a grown moose fights
             }
         });
+        this.goalSelector.addGoal(3, new BreedGoal(this, 1.0D));
+        this.goalSelector.addGoal(3, new TemptGoal(this, 1.1D, Ingredient.of(ModItems.SNOW_LICHEN.get(),
+                ModItems.FROSTBLOOM.get()), false));
         this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.15D));
         this.goalSelector.addGoal(5, new EatGoal());
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0D));
@@ -351,11 +358,20 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         return result;
     }
 
-    /** Moose aren't bred (a spawn egg used on one still makes a calf). */
+    /** Snow Lichen, or Frostbloom, Rimefall's flower, brings a bull and a cow into love (the user, October 20, 2026:
+     * "the snow lichen for the [moose] ... we have a flower ... we can use that for both"; until then moose weren't
+     * bred). */
     @Override
     public boolean isFood(ItemStack stack)
     {
-        return false;
+        return stack.is(ModItems.SNOW_LICHEN.get()) || stack.is(ModItems.FROSTBLOOM.get());
+    }
+
+    /** It takes a bull and a cow. */
+    @Override
+    public boolean canMate(Animal other)
+    {
+        return other != this && other instanceof Moose mate && mate.isBull() != this.isBull() && super.canMate(other);
     }
 
     @Nullable

@@ -363,5 +363,13 @@
   "commands.dross.showcase.bossbars_huntsman.set_angry": "the angry looks (the survivor's bar, once the other has died)",
   "commands.dross.showcase.bossbars_huntsman.toggle_angry": "[angry looks]",
   "commands.dross.showcase.bossbars_huntsman.toggle_normal": "[stages 1 and 2]",
-  "commands.dross.showcase.bossbars_huntsman.not_player": "Only a player can see boss bars."
+  "commands.dross.showcase.bossbars_huntsman.not_player": "Only a player can see boss bars.",
+  "block.dross.frostroots": "Frostroots",
+  "block.dross.snow_lichen": "Snow Lichen",
+  "block.dross.rimeberry_bush": "Rimeberry Bush",
+  "block.dross.frostroot_crate": "Frostroot Crate",
+  "block.dross.rimeberry_basket": "Rimeberry Basket",
+  "item.dross.frostroot": "Frostroot",
+  "item.dross.snow_lichen": "Snow Lichen",
+  "item.dross.rimeberries": "Rimeberries"
 }

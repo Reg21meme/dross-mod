@@ -10,7 +10,7 @@ seat and light has its place:
                  ...], 2: [...]}   # other character a block from LEGEND (or the design's own legend)
 
 Placeholders in a legend's states: {in} faces into the room (towards the middle of its dome), {wall} the other way,
-{rot_in} a standing skull's or banner's rotation facing in. A bed is two characters, its head ("B") and its foot ("b")
+{rot_in} a standing banner's rotation facing in, {skull_in} a standing skull's. A bed is two characters, its head ("B") and its foot ("b")
 side by side: the head's facing is worked out from where its foot is. A campfire ("F") gets a smoke vent through the
 roof over it, a collar of packed ice round the hole outside.
 
@@ -22,9 +22,9 @@ import mc
 import numpy as np
 from voxel import AIR, STEP, Grid
 
-from villagekit import checks, walk
+from villagekit import checks, walk, writer
 from villagekit.igloo import DEFAULT, Massing
-from villagekit.local import ROT16
+from villagekit.local import ROT16, SKULL_ROT16
 
 # ---------------------------------------------------------------- the common legend
 
@@ -58,9 +58,11 @@ LEGEND = {
     "Z": "cartography_table",
     "U": "target",
     "E": "bookshelf",
+    # PLACEHOLDER: a lightning rod stands in for a spear until the real spear model and item exist (the user, October
+    # 20, 2026: "we will eventually create a spear model and a spear item, keep the rods as is"); replace every one then
     "I": "lightning_rod[facing=up]",
     "V": "bone_block[axis=y]",
-    "s": "skeleton_skull[rotation={rot_in}]",
+    "s": "skeleton_skull[rotation={skull_in}]",
     "W": "white_carpet",
     "w": "light_gray_carpet",
     "n": "brown_carpet",
@@ -74,6 +76,18 @@ LEGEND = {
     "4": "candle[candles=4,lit=true]",
     "q": "spruce_trapdoor[facing={in},half=top,open=false]",
 }
+
+# The hunters' guards: armor stands in a skeleton's skull, blue leather and a stone sword (the user, October 20, 2026:
+# the Long Hall's "skulls face inwards with leather armor that is blue maybe with stone sword"; the barracks' stands in
+# place of its spears)
+GUARD_BLUE = 0x3A6FB0             # their leather's dye: a glacier blue
+GUARD = {"head": writer.item("minecraft:skeleton_skull"),
+         "chest": writer.item("minecraft:leather_chestplate", GUARD_BLUE),
+         "legs": writer.item("minecraft:leather_leggings", GUARD_BLUE),
+         "feet": writer.item("minecraft:leather_boots", GUARD_BLUE),
+         "mainhand": writer.item("minecraft:stone_sword")}
+YAW = {"south": 0.0, "west": 90.0, "north": 180.0, "east": -90.0}
+
 
 def P(text):
     """A plan layer written with its row numbers: lines like "  -3 |  OCO  |" (the number is the row's distance south
@@ -123,16 +137,20 @@ ICE_BLOCKS = ("ice", "packed_ice", "blue_ice")
 FULL_TOP_SPECIAL = ("barrel", "chest", "crafting_table", "fletching_table", "cartography_table", "smithing_table",
                     "loom", "smoker", "furnace", "bookshelf", "target", "hay_block", "dried_kelp_block")
 MIN_FLOOR_LIGHT = 5          # every clear floor cell at least this lit (monsters spawn in the Dross only at 0)
+CROP_LIGHT = 9               # every crop and bush under a roof lit this much by its lamps, or it never grows
+CROPS = ("frostroots", "snow_lichen", "rimeberry_bush", "wheat", "carrots", "potatoes", "beetroots")
 
 
 class Igloo:
     """One design: its id and name, what it is (home, storage, cook, barracks, workshop, hall, extra, lodge), its story,
     its domes [(dx, dz, r, h[, windows[, skylight]])] (the first one holds the way in, facing south; windows are (angle
     from the doorway, clockwise; height over the floor)), its plans and legend, beds {head char: (colour, foot char)},
-    things hung on chains from the ceiling [(dx, dz, y, state)], and a function for anything else (outside it)."""
+    things hung on chains from the ceiling [(dx, dz, y, state)], armor stands on the floor [(dx, dz, facing or None for
+    "into the room", outfit)], and a function for anything else (outside it). The doorway is 1 wide (tunnel_half 1),
+    2 wide (tunnel_half 1, tunnel_extra 1: the second column to its west) or 3 wide (tunnel_half 2)."""
 
     def __init__(self, id, name, kind, lore, domes, plans, legend=None, beds=None, hangs=(), style=DEFAULT,
-                 outside=None, tunnel=1, tunnel_half=1, tunnel_height=3):
+                 outside=None, tunnel=1, tunnel_half=1, tunnel_height=3, tunnel_extra=0, stands=()):
         self.id, self.name, self.kind, self.lore = id, name, kind, lore
         self.domes = [tuple(d) for d in domes]
         self.plans = plans
@@ -146,6 +164,8 @@ class Igloo:
         self.tunnel = tunnel
         self.tunnel_half = tunnel_half          # 1: a doorway 1 block wide; 2: 3 wide (the lodge)
         self.tunnel_height = tunnel_height      # 3: 2 tall; 5: 4 tall
+        self.tunnel_extra = tunnel_extra        # 1: one more column (a doorway 2 wide)
+        self.stands = [tuple(s) for s in stands]
 
 
 class Custom:
@@ -163,6 +183,7 @@ def build_custom(design):
     W, D, H = design.size
     g = Grid(W, H, D, G=1, seed=1)
     g.block_nbt = {}
+    g.entities = []
     entrance, mouth, rooms = design.draw(g)
     problems = check(g, None, rooms, entrance, centre=(W // 2, D // 2))
     return Built(design, g, None, entrance, mouth, rooms, problems)
@@ -204,6 +225,7 @@ def build(design, seed=1):
     W, D, H = _size(design)
     g = Grid(W, H, D, G=1, seed=seed)
     g.block_nbt = {}
+    g.entities = []
     m = Massing(g)
     cx, cz = W // 2, D // 2
     domes = []
@@ -213,7 +235,8 @@ def build(design, seed=1):
         skylight = d[5] if len(d) > 5 else True
         domes.append(m.dome(cx + dx, cz + dz, r, h, style=design.style, door="south" if i == 0 else None,
                             tunnel=design.tunnel if i == 0 else None, windows=windows, skylight=skylight,
-                            name=design.id, tunnel_half=design.tunnel_half, tunnel_height=design.tunnel_height))
+                            name=design.id, tunnel_half=design.tunnel_half, tunnel_height=design.tunnel_height,
+                            tunnel_extra=design.tunnel_extra))
     m.build()
     problems = []
     centres = [(dm.cx, dm.cz) for dm in domes]
@@ -248,13 +271,15 @@ def build(design, seed=1):
                 state = design.legend.get(ch)
                 if state is None:
                     raise SystemExit(f"{design.id}: no block for '{ch}'")
+                if callable(state):                   # chosen per cell (a crop's age), from its place in the plan
+                    state = state(x - cx, z - cz)
                 data = None
                 if isinstance(state, tuple):          # (its state, its block entity data: a banner's pattern)
                     state, data = state
                 ccx, ccz = centre_of(x, z)
                 facing_in = _dir_in(x, z, ccx, ccz)
                 state = (state.replace("{in}", facing_in).replace("{wall}", OPP[facing_in])
-                         .replace("{rot_in}", str(ROT16[facing_in])))
+                         .replace("{rot_in}", str(ROT16[facing_in])).replace("{skull_in}", str(SKULL_ROT16[facing_in])))
                 g.set(x, y, z, state, force=True)
                 if data is not None:
                     g.block_nbt[(x, y, z)] = data
@@ -291,6 +316,16 @@ def build(design, seed=1):
         if above is None or mc.kind(above) != "full":
             problems.append(f"the hung {mc.base(state)} at {dx},{y},{dz} has no ceiling to hang from")
         g.set(x, y, z, state, force=True)
+    # armor stands on the floor, facing into the room (or the way given)
+    for dx, dz, facing, outfit in design.stands:
+        x, z = cx + dx, cz + dz
+        if not (m.is_room(x, 1, z) and m.is_room(x, 2, z)) or not mc.is_air(g.get(x, 1, z) or AIR)                 or not mc.is_air(g.get(x, 2, z) or AIR):
+            problems.append(f"the armor stand at {dx},{dz} has no room to stand (2 clear blocks inside)")
+            continue
+        if facing is None:
+            ccx, ccz = centre_of(x, z)
+            facing = _dir_in(x, z, ccx, ccz)
+        g.entities.append(writer.armor_stand(x + 0.5, 1, z + 0.5, YAW[facing], **outfit))
     # a smoke vent over every fire: open up through the roof, a collar of packed ice round the hole outside
     for x, y, z in fires:
         yy = y + 1
@@ -349,6 +384,8 @@ def full_top(state):
 def holds_up(below, above):
     """Can `above` stand on `below`? (the user: "stuff on slabs ... random carpet floating, because it's on slabs")"""
     a = mc.base(above)
+    if a.endswith("rimeberry_bush") and below is not None and mc.base(below).endswith("rimeberry_bush"):
+        return True                 # a two-block bush's upper half on its lower one
     if a in ("lantern", "soul_lantern") and mc.props_of(above).get("hanging") == "true":
         return True
     needs = (mc.kind(above) in ("carpet", "cross") or a.endswith("_pressure_plate") or a.endswith("candle")
@@ -419,6 +456,19 @@ def check_blocks(g):
         problems.append(f"{len(blocked_chests)} chest(s) with a block over them (they can't open), e.g. {blocked_chests[:4]}")
     found, light = checks.check(g)
     problems += found
+    # crops under a roof need their lamps' light to grow (out in the open the sky does it)
+    dim = []
+    for x, yi, z, s in g.blocks():
+        b = mc.base(s).split(":")[-1]
+        if b not in CROPS or light[x, yi, z] >= CROP_LIGHT:
+            continue
+        above = [g.get(x, y, z) for y in range(yi - G + 1, g.H - G)]
+        roofed = any(a is not None and not mc.is_air(a) and mc.base(a).split(":")[-1] not in CROPS for a in above)
+        if roofed:
+            dim.append((int(light[x, yi, z]), x, yi - G, z))
+    if dim:
+        dim.sort()
+        problems.append(f"{len(dim)} crop(s) under a roof lit under {CROP_LIGHT} (they'd never grow), e.g. {dim[:4]}")
     return problems, light
 
 

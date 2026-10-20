@@ -4,11 +4,13 @@ designs"), and other things a hunters' camp would have. Each draw(f) builds roun
 showcase's walkway; u to its right; y = 1 on the ground). Nothing stands on a bottom slab (the user: "anything over a
 slab ... floats"): things stand on full blocks or the ground.
 """
+from villagekit import props
 from villagekit.props import OPEN_WATER
 
 
 # ---------------------------------------------------------------- lights
 
+# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
 def antler_lamp(f):
     """A birch post crowned with antlers, a lantern hung from its arm."""
     for y in (1, 2, 3):
@@ -66,7 +68,7 @@ def skull_lamp(f):
     """A post with a skull on it facing out, a blue lantern hung from its arm."""
     f.set(0, 1, 0, "spruce_fence")
     f.set(0, 2, 0, "spruce_fence")
-    f.set(0, 3, 0, "skeleton_skull[rotation={rot_front}]")
+    f.set(0, 3, 0, "skeleton_skull[rotation={skull_front}]")
     f.set(1, 2, 0, "spruce_fence")
     f.set(1, 1, 0, "soul_lantern[hanging=true]")
 
@@ -188,6 +190,23 @@ def hide_tent(f):
     f.set(0, 5, 0, "spruce_fence")
 
 
+# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
+def harvest_sled(f):
+    """A sled loaded with the farms' harvest: crates of Frostroot, baskets of Rimeberries."""
+    props.sled(f, cargo="harvest")
+
+
+def harvest_heap(f):
+    """The harvest stacked by a door: Frostroot Crates and Rimeberry Baskets on and round a barrel."""
+    f.set(0, 1, 0, "barrel[facing=up,open=false]")
+    f.set(0, 2, 0, "dross:rimeberry_basket")
+    f.set(1, 1, 0, "dross:frostroot_crate")
+    f.set(1, 2, 0, "dross:frostroot_crate")
+    f.set(-1, 1, 0, "dross:frostroot_crate")
+    f.set(0, 1, -1, "dross:rimeberry_basket")
+    f.set(1, 1, -1, "barrel[facing=up,open=false]")
+
+
 def palm_antlers(f):
     """A moose's great palm antlers mounted on a post."""
     for y in (1, 2, 3):
@@ -211,4 +230,7 @@ IDEAS = [
     ("cairn_cache", "Cairn cache", "A chest hidden in a cairn of stones.", cairn_cache),
     ("hide_tent", "Hide tent", "A small tent of hides round a pole.", hide_tent),
     ("palm_antlers", "Palm antlers", "A moose's great antlers on a post.", palm_antlers),
+    ("harvest_sled", "Harvest sled", "A sled loaded with crates of Frostroot and baskets of Rimeberries.", harvest_sled),
+    ("harvest_heap", "Harvest heap", "Frostroot Crates and Rimeberry Baskets stacked on and round a barrel.",
+     harvest_heap),
 ]

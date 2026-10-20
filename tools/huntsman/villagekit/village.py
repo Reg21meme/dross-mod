@@ -64,7 +64,7 @@ class Village:
             dx, dz = x - f.ox, z - f.oz
             u = dx * f.rx + dz * f.rz
             v = dx * f.fx + dz * f.fz
-            if abs(u) <= t.half + margin and t.v0 - margin <= v <= t.v1 + margin:
+            if getattr(t, 'lo', -t.half) - margin <= u <= getattr(t, 'hi', t.half) + margin and t.v0 - margin <= v <= t.v1 + margin:
                 return True
         return False
 

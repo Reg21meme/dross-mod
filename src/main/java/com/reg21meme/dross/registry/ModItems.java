@@ -11,6 +11,7 @@ import com.reg21meme.dross.quest.WeatheredLetterItem;
 import com.reg21meme.dross.villager.AdminSwordItem;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemNameBlockItem;
 import net.minecraftforge.common.ForgeSpawnEggItem;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
@@ -174,6 +175,16 @@ public final class ModItems
     public static final RegistryObject<Item> MEAT_BLOCK = ITEMS.register("meat_block", () -> new BlockItem(ModBlocks.MEAT_BLOCK.get(), new Item.Properties()));
     // Boss area, the hunter villages: Roasted Meat Block
     public static final RegistryObject<Item> ROASTED_MEAT_BLOCK = ITEMS.register("roasted_meat_block", () -> new BlockItem(ModBlocks.ROASTED_MEAT_BLOCK.get(), new Item.Properties()));
+    // Boss area, the hunter villages: Frostroot Crate
+    public static final RegistryObject<Item> FROSTROOT_CRATE = ITEMS.register("frostroot_crate", () -> new BlockItem(ModBlocks.FROSTROOT_CRATE.get(), new Item.Properties()));
+    // Boss area, the hunter villages: Rimeberry Basket
+    public static final RegistryObject<Item> RIMEBERRY_BASKET = ITEMS.register("rimeberry_basket", () -> new BlockItem(ModBlocks.RIMEBERRY_BASKET.get(), new Item.Properties()));
+    // Boss area, Rimefall's crops: Frostroot (plants Frostroots; not food yet: the user, "we will do that later")
+    public static final RegistryObject<Item> FROSTROOT = ITEMS.register("frostroot", () -> new ItemNameBlockItem(ModBlocks.FROSTROOTS.get(), new Item.Properties()));
+    // Boss area, Rimefall's crops: Snow Lichen (plants Snow Lichen; the moose's food)
+    public static final RegistryObject<Item> SNOW_LICHEN = ITEMS.register("snow_lichen", () -> new ItemNameBlockItem(ModBlocks.SNOW_LICHEN.get(), new Item.Properties()));
+    // Boss area, Rimefall's crops: Rimeberries (plant a Rimeberry Bush; the Rimehorns' food)
+    public static final RegistryObject<Item> RIMEBERRIES = ITEMS.register("rimeberries", () -> new ItemNameBlockItem(ModBlocks.RIMEBERRY_BUSH.get(), new Item.Properties()));
 
     // Dimension area: Stormite Shard (a glowing blue crystal from Stormite Ore; for special arrows and the Great Mystic Bow later)
     public static final RegistryObject<Item> STORMITE_SHARD = ITEMS.register("stormite_shard", () -> new Item(new Item.Properties()));

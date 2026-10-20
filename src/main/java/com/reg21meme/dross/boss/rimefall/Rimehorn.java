@@ -211,7 +211,8 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
             }
         });
         this.goalSelector.addGoal(2, new MateGoal());
-        this.goalSelector.addGoal(3, new TemptGoal(this, 1.1D, Ingredient.of(ModItems.FROSTBLOOM.get()), false));
+        this.goalSelector.addGoal(3, new TemptGoal(this, 1.1D, Ingredient.of(ModItems.FROSTBLOOM.get(),
+                ModItems.RIMEBERRIES.get()), false));
         this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.1D));
         this.goalSelector.addGoal(5, new EatGoal());
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0D));
@@ -278,11 +279,12 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
 
     // ---------------------------------------------------------------- calves
 
-    /** Frostbloom, Rimefall's flower, brings two Rimehorns into love. */
+    /** Frostbloom, Rimefall's flower, or Rimeberries bring two Rimehorns into love (the user, October 20, 2026: "you
+     * can use rimeberry bush for rimehorn ... we have a flower ... we can use that for both"). */
     @Override
     public boolean isFood(ItemStack stack)
     {
-        return stack.is(ModItems.FROSTBLOOM.get());
+        return stack.is(ModItems.FROSTBLOOM.get()) || stack.is(ModItems.RIMEBERRIES.get());
     }
 
     /** It takes a male and a female (the user: "it needs a male and a female"). */

@@ -168,8 +168,9 @@ class Room:
                 i += 1
                 continue
             facing_in = {"north": "south", "south": "north", "east": "west", "west": "east"}[wall]
-            from .local import ROT16
-            s = state.replace("{in}", facing_in).replace("{wall}", wall).replace("{rot_in}", str(ROT16[facing_in]))
+            from .local import ROT16, SKULL_ROT16
+            s = (state.replace("{in}", facing_in).replace("{wall}", wall).replace("{rot_in}", str(ROT16[facing_in]))
+                 .replace("{skull_in}", str(SKULL_ROT16[facing_in])))
             if self.put(u, v, s):
                 placed.append((x, z))
                 i += 1
@@ -267,10 +268,10 @@ class Room:
             k += 1
             if k % every:
                 continue
-            from .local import ROT16
+            from .local import ROT16, SKULL_ROT16
             dx, dz = self.d.cx - x, self.d.cz - z
             inward = ("east" if dx > 0 else "west") if abs(dx) > abs(dz) else ("south" if dz > 0 else "north")
-            state = states[b].replace("{rot_in}", str(ROT16[inward]))
+            state = states[b].replace("{rot_in}", str(ROT16[inward])).replace("{skull_in}", str(SKULL_ROT16[inward]))
             self.g.set(x, y + 1, z, self.f.state(state), force=True)
 
     def fire(self, kind="campfire", stones="cobblestone_slab[type=bottom]", u=0, v=0):
@@ -351,8 +352,8 @@ def trophy(m, d):
     r.rug(mats=("white_carpet", "brown_carpet"))
     r.against_back(["stripped_spruce_log[axis=y]", "barrel[facing=up,open=false]", "stripped_spruce_log[axis=y]",
                     "chest[facing={in},type=single]", "stripped_spruce_log[axis=y]", "bone_block[axis=y]"])
-    r.on_top({"stripped_spruce_log": "skeleton_skull[rotation={rot_in}]",
-              "bone_block": "skeleton_skull[rotation={rot_in}]", "barrel": "candle[candles=3,lit=true]"})
+    r.on_top({"stripped_spruce_log": "skeleton_skull[rotation={skull_in}]",
+              "bone_block": "skeleton_skull[rotation={skull_in}]", "barrel": "candle[candles=3,lit=true]"})
     r.lamp("soul_lantern")
     return r
 
@@ -385,7 +386,7 @@ def hall(m, d, benches=True):
             ax = "{lr}" if abs(math.cos(a)) > abs(math.sin(a)) else "{fb}"
             r.put(u, v, f"stripped_spruce_log[axis={ax}]")
     r.against_back(["chest[facing={in},type=single]", "barrel[facing=up,open=false]",
-                    "skeleton_skull[rotation={rot_in}]", "barrel[facing=up,open=false]",
+                    "skeleton_skull[rotation={skull_in}]", "barrel[facing=up,open=false]",
                     "white_banner[rotation={rot_in}]", "white_banner[rotation={rot_in}]",
                     "lantern[hanging=false]", "lantern[hanging=false]", "barrel[facing=up,open=false]",
                     "dross:roasted_meat_block[axis=y]"])

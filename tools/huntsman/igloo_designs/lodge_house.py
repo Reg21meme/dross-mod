@@ -15,7 +15,7 @@ posts, the skulls on them facing out.
 import mc
 from voxel import AIR, Mix
 
-from villagekit.local import Frame
+from villagekit.local import SKULL_ROT16, Frame
 from villagekit.writer import banner
 
 import lodge as old_lodge
@@ -46,7 +46,7 @@ def _rug(cols, a="g", b="n"):
 LODGE = Igloo(
     "huntsman_lodge", "The Huntsman's Lodge", "lodge",
     "His great lodge: his seat at the back facing the door under his antlers, the fire and its benches, his table of "
-    "roasted meat, his bedroom on the west, the armoury on the east, his banners outside.",
+    "roasted meat, his bedroom on the west with its triple bed, the armoury on the east, his banners outside.",
     [(0, 0, 9, 9.5, [(-60, 2), (130, 3), (-130, 3)], False),
      (-12, -2, 5, 5.6, [], False), (12, -2, 5, 5.6, [], False)],
     {1: L(15, {
@@ -54,9 +54,9 @@ LODGE = Igloo(
         -6: (-4, 4, sym({4: "C", 3: "O"})),
         -5: ([(-13, -11), (-5, 5), (11, 13)], {-13: "O", -12: "D", -11: "O", **_rug(range(-2, 3)),
                                               11: "I", 12: "I", 13: "I"}),
-        -4: ([(-14, -10), (-6, 6), (10, 14)], {-13: "B", -12: "O", -11: "B", **sym({6: "J"}),
+        -4: ([(-14, -10), (-6, 6), (10, 14)], {-14: "O", -13: "B", -12: "B", -11: "B", -10: "O", **sym({6: "J"}),
                                               **_rug(range(-2, 3), "n", "g"), 13: "G", 14: "X"}),
-        -3: (-15, 15, {-13: "b", -11: "b", -1: "e", 0: "e", 1: "e", 15: "C"}),
+        -3: (-15, 15, {-13: "b", -12: "b", -11: "b", -1: "e", 0: "e", 1: "e", 15: "C"}),
         -2: (-15, 15, {-15: "C", **_rug(range(-13, -10)), 15: "A"}),
         -1: (-15, 15, {**_rug(range(-13, -10), "n", "g"), **sym({3: "i"}), 15: "I"}),
         0: (-14, 14, {-14: "O", **sym({3: "i"}), 0: "F", 14: "U"}),
@@ -71,7 +71,7 @@ LODGE = Igloo(
     }), 2: L(15, {
         -7: (None, None, {**sym({2: "%"}), -1: "J", 1: "J"}),
         -6: (None, None, sym({3: "4"})),
-        -4: (None, None, {-12: "L", **sym({6: "s"}), 14: "L"}),
+        -4: (None, None, {-14: "L", -10: "L", **sym({6: "s"}), 14: "L"}),
         2: (None, None, {-6: "R"}),
         3: (None, None, {-6: "R"}),
         4: (None, None, sym({6: "s"})),
@@ -189,16 +189,17 @@ def _barn(g):
     g.set(x1 - 1, 2, z0 + 9, "brown_carpet", force=True)
     g.set(x1 - 1, 1, z0 + 11, "spruce_fence", force=True)
     g.set(x1 - 1, 2, z0 + 11, "red_carpet", force=True)
-    for z in (z0 + 13, z0 + 14):
+    for z in (z0 + 13, z0 + 14):          # PLACEHOLDER spears (lightning rods) until the real spear model and item exist
         g.set(x1 - 1, 1, z, "lightning_rod[facing=up]", force=True)
-    # beams across under the roof with lanterns hanging from them on chains, low enough to light the floor, and a
-    # lantern on the stall's fence by the door
-    for z in (z0 + 8, z0 + 13):
+    # beams across under the roof, a lantern hanging from the middle of each on one short chain (the user: "the
+    # lanterns not have such long chains and be centered on the middle of the support"), and a lantern on the stall's
+    # fence by the door
+    for z in (z0 + 7, z0 + 10, z0 + 13):
         for x in range(x0 + 1, x1):
             g.set(x, BH, z, "spruce_log[axis=x]", force=True)
-        for y in range(4, BH):
-            g.set(mid - 2, y, z, "chain[axis=y]", force=True)
-        g.set(mid - 2, 3, z, "lantern[hanging=true]", force=True)
+        for y in (BH - 1, BH - 2):
+            g.set(mid, y, z, "chain[axis=y]", force=True)
+        g.set(mid, BH - 3, z, "lantern[hanging=true]", force=True)
     g.set(x1 - 4, 2, z1 - 2, "lantern[hanging=false]", force=True)
     old_lodge.moose_head(Frame(g, mid, z1, "south"), 7)
     # the corral, east of the barn: bone posts (their skulls facing out) and spruce rails, a gate at the south, a
@@ -222,8 +223,7 @@ def _barn(g):
                 g.set(x, 2, z, "bone_block[axis=y]", force=True)
                 if (x - cx0) % 6 == 0 and z in (cz0, cz1) or (z - cz0) % 6 == 0 and x in (cx0, cx1):
                     out = "north" if z == cz0 else "south" if z == cz1 else "west" if x == cx0 else "east"
-                    g.set(x, 3, z, "skeleton_skull[rotation={}]".format({"south": 0, "west": 4, "north": 8,
-                                                                         "east": 12}[out]), force=True)
+                    g.set(x, 3, z, f"skeleton_skull[rotation={SKULL_ROT16[out]}]", force=True)
             else:
                 g.set(x, 1, z, "spruce_fence", force=True)
     for x in range(cx0 + 2, cx0 + 5):

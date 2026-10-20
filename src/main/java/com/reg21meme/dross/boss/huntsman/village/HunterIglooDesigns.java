@@ -12,7 +12,8 @@ import net.minecraft.resources.ResourceLocation;
  * An igloo is {@code dross:hunter_igloo/<id>}, {@code width} x {@code depth} blocks and {@code layers} tall, the
  * ground at layer {@code groundLayer}, its doorway at the south: {@code doorX}, {@code doorZ} is the doorway's outer
  * cell (the template's own coordinates). {@code probe} is its darkest clear floor cell (template coordinates), lit
- * enough that nothing spawns there. A decoration is {@code dross:hunter_decor/<id>}, its middle the template's middle,
+ * enough that nothing spawns there. {@code stands} is how many armor stands it has (its guards), {@code crops} how
+ * many crop and bush blocks. A decoration is {@code dross:hunter_decor/<id>}, its middle the template's middle,
  * its front at the south; {@code group} is "camp", "light" (for the ring of lights round a village) or "new".
  */
 public final class HunterIglooDesigns
@@ -20,7 +21,8 @@ public final class HunterIglooDesigns
     private HunterIglooDesigns() {}
 
     public record Igloo(String id, String name, String kind, String lore, int width, int depth, int layers, int groundLayer,
-                        int doorX, int doorZ, int probeX, int probeY, int probeZ, int beds, int chests)
+                        int doorX, int doorZ, int probeX, int probeY, int probeZ, int beds, int chests, int stands,
+                        int crops)
     {
         public ResourceLocation template()
         {
@@ -42,59 +44,69 @@ public final class HunterIglooDesigns
         }
     }
 
-    /** Every igloo, in order: the homes, the work igloos, the halls, the extras, the Huntsman's lodge and barn. */
+    /** Every igloo, in order: the homes, the work igloos, the halls, the extras, the Huntsman's lodge and barn, the
+     * farms. */
     public static final List<Igloo> IGLOOS = List.of(
             new Igloo("trappers_hut", "The Trapper's Hut", "home",
                     "A loner who sets snares for hares and foxes out on the ice and comes back only to sleep and skin his catch.",
-                    15, 17, 11, 1, 7, 14, 7, 2, 12, 1, 1),
+                    15, 17, 11, 1, 7, 14, 7, 2, 12, 1, 1, 0, 0),
             new Igloo("family_igloo", "The Family Igloo", "home",
                     "A hunter, his wife and their two children: the parents' beds at the back, the children's along the wall by their shared chest, and a warm kitchen corner.",
-                    17, 19, 12, 1, 8, 16, 5, 2, 11, 4, 1),
+                    17, 19, 12, 1, 8, 16, 5, 2, 11, 4, 1, 0, 0),
             new Igloo("elders_igloo", "The Elder's Igloo", "home",
                     "The oldest of the hunters, keeper of the stories: his books and the skulls of hunts long past, and a blue lamp over the lectern he reads them from.",
-                    15, 17, 11, 1, 7, 14, 4, 2, 7, 1, 1),
+                    15, 17, 11, 1, 7, 14, 4, 2, 7, 1, 1, 0, 0),
             new Igloo("twin_hunters", "The Twin Hunters", "home",
                     "Two brothers who hunt as one: every bed, chest and spear of theirs has its twin across the room.",
-                    17, 19, 12, 1, 8, 16, 8, 2, 6, 2, 2),
+                    17, 19, 12, 1, 8, 16, 8, 2, 6, 2, 2, 0, 0),
             new Igloo("scouts_igloo", "The Scout's Igloo", "home",
                     "The village's lookout: a wide window of clear ice at the back to watch the plain from, his maps, and his bed out of the draught.",
-                    15, 17, 11, 1, 7, 14, 4, 2, 7, 1, 1),
+                    15, 17, 11, 1, 7, 14, 4, 2, 7, 1, 1, 0, 0),
             new Igloo("apprentice_igloo", "The Apprentice's Igloo", "home",
                     "A young hunter still learning the bow: targets against a bale of hay at the back to practise on, his fletching table, and a small bed.",
-                    15, 17, 11, 1, 7, 14, 7, 2, 12, 1, 1),
+                    15, 17, 11, 1, 7, 14, 7, 2, 12, 1, 1, 0, 0),
             new Igloo("storage_igloo", "The Storehouse", "storage",
-                    "The village's winter store: barrels stacked two high down both walls, chests at the back, meat hung from the roof to keep, and blocks of packed ice to keep it all cold. Lanterns hang over the aisle.",
-                    17, 19, 12, 1, 8, 16, 5, 2, 9, 0, 2),
+                    "The village's winter store: barrels stacked two high down both walls, chests at the back, meat hung from the roof to keep, crates of Frostroot and baskets of Rimeberries, and blocks of packed ice to keep it all cold. Lanterns hang over the aisle.",
+                    17, 19, 12, 1, 8, 16, 5, 2, 9, 0, 2, 0, 0),
             new Igloo("cook_igloo", "The Cookhouse", "cook",
-                    "Where the village eats: a fire in the middle under its smoke vent, joints of meat hung round it to smoke, stew pots either side, smokers and chopping blocks at the back.",
-                    17, 19, 12, 1, 8, 16, 4, 2, 8, 0, 0),
+                    "Where the village eats: a fire in the middle under its smoke vent, joints of meat hung round it to smoke, stew pots either side, smokers and chopping blocks at the back, a crate of Frostroot and a basket of Rimeberries by the way in.",
+                    17, 19, 12, 1, 8, 16, 4, 2, 8, 0, 0, 0, 0),
             new Igloo("barracks_igloo", "The Barracks", "barracks",
-                    "Where the hunting party sleeps between hunts: twelve beds in two rows, a nightstand between each pair, footlockers at the ends and the spear rack in the alcove at the back. A lantern hangs in each of its three domes.",
-                    27, 17, 11, 1, 13, 14, 10, 2, 6, 12, 3),
+                    "Where the hunting party sleeps between hunts: twelve beds in two rows, a nightstand between each pair, footlockers at the ends, and two guards in blue leather either side of the chest in the alcove at the back. A lantern hangs in each of its three domes.",
+                    27, 17, 11, 1, 13, 14, 10, 2, 6, 12, 3, 2, 0),
             new Igloo("workshop_igloo", "The Workshop", "workshop",
                     "Where the bows, arrows and spears are made: the fletcher's, the grinder's and the loom along the back, a work table in the middle under its lamp, spears waiting for their heads along the walls.",
-                    17, 19, 12, 1, 8, 16, 7, 2, 13, 0, 2),
+                    17, 19, 12, 1, 8, 16, 7, 2, 13, 0, 2, 0, 0),
             new Igloo("round_hall", "The Round Hall", "hall",
-                    "Where the village meets: a fire in the middle under its vent, benches round it, the Huntsman's banners and the hall's trophy at the back, skulls on posts round the walls, lanterns either side of the way in.",
-                    21, 23, 14, 1, 10, 20, 9, 2, 5, 0, 2),
+                    "Where the village meets: a fire in the middle under its vent, benches round it, the Huntsman's banners and the hall's trophy at the back, skulls on posts round the walls, lanterns either side of its wide way in.",
+                    21, 23, 14, 1, 10, 20, 9, 2, 5, 0, 2, 0, 0),
             new Igloo("long_hall", "The Long Hall", "hall",
-                    "The feast hall: a long table down the middle with benches either side, a fire under a vent in each end dome, the Huntsman's banners on the end walls, skulls on posts, lanterns over the table and either side of the way in.",
-                    33, 21, 12, 1, 16, 17, 16, 2, 6, 0, 2),
+                    "The feast hall: a long table down the middle with benches either side, a fire under a vent in each end dome, the Huntsman's banners on the end walls, four guards in blue leather facing the table, lanterns over it and either side of the wide way in.",
+                    33, 21, 12, 1, 16, 17, 16, 2, 6, 0, 2, 4, 0),
             new Igloo("fishing_hut", "The Ice-Fishing Hut", "extra",
                     "A little hut over a hole cut through the ice: a stool by the water, the day's catch drying on the rack, a barrel of fish and a lantern to fish by in the long night.",
-                    15, 17, 10, 1, 7, 13, 7, 2, 12, 0, 1),
+                    15, 17, 10, 1, 7, 13, 7, 2, 12, 0, 1, 0, 0),
             new Igloo("tannery_igloo", "The Tannery", "extra",
                     "Where the hides of the hunt are cured: soaking vats along the back, hides stretched on the walls to dry, scraping benches in the middle under the lamps, barrels of salt and furs on the drying posts.",
-                    17, 19, 12, 1, 8, 16, 4, 2, 10, 0, 1),
-            new Igloo("snow_angel_shrine", "The Snow Angel's Shrine", "extra",
-                    "The hunters' shrine to the Ice Necromancer, the Snow Angel they serve: its statue of snow and ice, wings spread and a blue light for a halo, an offering on the altar before it, cushions to kneel on, candles on bones.",
-                    17, 19, 14, 1, 8, 16, 8, 2, 14, 0, 0),
+                    17, 19, 12, 1, 8, 16, 4, 2, 10, 0, 1, 0, 0),
+            new Igloo("snow_angel_shrine", "The Snow Angel's Shrine", "shrine",
+                    "The hunters' shrine to the Ice Necromancer, the Snow Angel they serve, three domes joined: in the great middle one its statue of snow and ice, wings spread and a blue light for a halo, the altar with its offering and candles before it, cushions to kneel on either side of the aisle; on the west the Hall of the Fallen, the books and skulls of the hunters who never came back; on the east the Offerings Chapel, barrels and chests of what the hunt gave, meat laid out, candles burning on bones. It stands alone in a village, joined to no other igloo.",
+                    39, 23, 16, 1, 19, 20, 19, 2, 5, 0, 2, 0, 0),
             new Igloo("huntsman_lodge", "The Huntsman's Lodge", "lodge",
-                    "His great lodge: his seat at the back facing the door under his antlers, the fire and its benches, his table of roasted meat, his bedroom on the west, the armoury on the east, his banners outside.",
-                    39, 29, 15, 1, 19, 26, 26, 2, 13, 2, 4),
+                    "His great lodge: his seat at the back facing the door under his antlers, the fire and its benches, his table of roasted meat, his bedroom on the west with its triple bed, the armoury on the east, his banners outside.",
+                    39, 29, 15, 1, 19, 26, 26, 2, 13, 3, 4, 0, 0),
             new Igloo("alpha_moose_barn", "The Alpha Moose's Barn", "lodge",
                     "The Alpha Moose's barn: its stall of straw with feed and water troughs, the tack wall, feed and a chest at the back lit by lanterns, a hay loft with a chest up the ladder, and its corral beside it, the skulls on the posts facing out.",
-                    29, 21, 18, 1, 7, 17, 12, 2, 9, 0, 2));
+                    29, 21, 18, 1, 7, 17, 2, 2, 11, 0, 2, 0, 0),
+            new Igloo("root_house", "The Root House", "farm",
+                    "Where the village grows its Frostroot: two domes end to end, four long beds either side of a water channel down the middle, lanterns hung over the channel to grow them by, crates of the harvest, compost bins and barrels along the walls.",
+                    17, 35, 12, 1, 8, 24, 5, 2, 19, 0, 1, 0, 52),
+            new Igloo("lichen_house", "The Lichen House", "farm",
+                    "Where the village grows Snow Lichen, the moose's winter feed: one round dome, its beds in two rings round a pool of water, a lantern over each corner of the walk between them, the harvest's barrels, bins and chests against the wall.",
+                    21, 23, 13, 1, 10, 19, 10, 2, 18, 0, 2, 0, 47),
+            new Igloo("rimeberry_patch", "The Rimeberry Patch", "farm",
+                    "The village's berry patch, out in the open: three hedges of two-block Rimeberry Bushes on Hoarfrost, windbreaks of snow round three sides, lantern posts at the ends of the paths, and the pickers' barrels and baskets by the way in.",
+                    19, 17, 10, 1, 9, 15, 2, 2, 3, 0, 0, 0, 66));
 
     /** Every decoration, in order: the camp's, the lights, the new ideas. */
     public static final List<Decoration> DECORATIONS = List.of(
@@ -153,5 +165,7 @@ public final class HunterIglooDesigns
             new Decoration("angel_statue", "Snow Angel statue", "A little statue of the Snow Angel, a blue light for its halo.", "new", 3, 1, 12, 1),
             new Decoration("cairn_cache", "Cairn cache", "A chest hidden in a cairn of stones.", "new", 3, 3, 12, 1),
             new Decoration("hide_tent", "Hide tent", "A small tent of hides round a pole.", "new", 3, 3, 12, 1),
-            new Decoration("palm_antlers", "Palm antlers", "A moose's great antlers on a post.", "new", 7, 1, 12, 1));
+            new Decoration("palm_antlers", "Palm antlers", "A moose's great antlers on a post.", "new", 7, 1, 12, 1),
+            new Decoration("harvest_sled", "Harvest sled", "A sled loaded with crates of Frostroot and baskets of Rimeberries.", "new", 5, 7, 12, 1),
+            new Decoration("harvest_heap", "Harvest heap", "Frostroot Crates and Rimeberry Baskets stacked on and round a barrel.", "new", 3, 3, 12, 1));
 }

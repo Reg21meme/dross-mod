@@ -3,7 +3,10 @@ package com.reg21meme.dross.command;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.huntsman.village.HunterIglooDesigns;
+import com.reg21meme.dross.boss.huntsman.village.HardyCropBlock;
 import com.reg21meme.dross.boss.huntsman.village.HunterIgloos;
+import com.reg21meme.dross.boss.huntsman.village.RimeberryBushBlock;
+import com.reg21meme.dross.boss.huntsman.village.VillageAnimals;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -12,7 +15,13 @@ import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.item.DyeableLeatherItem;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
@@ -23,6 +32,7 @@ import net.minecraft.world.level.block.state.properties.BedPart;
 import net.minecraft.world.level.block.state.properties.SlabType;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
@@ -38,7 +48,9 @@ import java.util.Set;
  * {@link HunterIglooDesigns}): every igloo's and decoration's template is in the mod at its table's size; the whole
  * showcase, built in the world, stands with every bed whole, every chest able to open (nothing solid over its lid),
  * nothing standing on a bottom slab (the user: "anything over a slab ... floats"), no clear ice or snow layer lit
- * enough to melt, and every igloo's darkest floor cell lit (nothing can spawn in it).
+ * enough to melt, and every igloo's darkest floor cell lit (nothing can spawn in it); every igloo has its guards (armor
+ * stands in a skull, dyed leather and a stone sword, as many as its table says) and all its crops (none popped off when
+ * the template went down).
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -51,6 +63,8 @@ public final class HunterIglooShowcaseGameTest
     private static final int LIGHT_RETRY_TICKS = 200;
     private static final int LIGHT_RETRIES = 3;
     private static final int ICE_MELTS_ABOVE = 10;
+    private static final int GUARD_RETRY_TICKS = 20;
+    private static final int GUARD_RETRIES = 30;
     private static final int SNOW_MELTS_ABOVE = 11;
 
     private HunterIglooShowcaseGameTest() {}
@@ -85,7 +99,7 @@ public final class HunterIglooShowcaseGameTest
     }
 
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_hunter_igloos_built",
-            timeoutTicks = LIGHT_TICKS + (LIGHT_RETRIES + 1) * LIGHT_RETRY_TICKS + 400)
+            timeoutTicks = LIGHT_TICKS + (LIGHT_RETRIES + 1) * LIGHT_RETRY_TICKS + GUARD_RETRIES * GUARD_RETRY_TICKS + 400)
     public static void igloosStandAndNeverMelt(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel().getServer().overworld();
@@ -121,14 +135,23 @@ public final class HunterIglooShowcaseGameTest
                 checked += check(level, plan, plot);
             }
             int blocks = checked;
-            whenLit(helper, level, plan, LIGHT_RETRIES, () ->
+            whenLit(helper, level, plan, LIGHT_RETRIES, () -> whenGuardsIn(helper, level, GUARD_RETRIES, () ->
             {
+                int guards = 0;
+                int crops = 0;
+                for (HunterIglooShowcase.Plot plot : plan.plots())
+                {
+                    int[] found = guardsAndCrops(level, plan, plot);
+                    guards += found[0];
+                    crops += found[1];
+                }
                 forced.forEach(c -> level.setChunkForced(c.x, c.z, false));
                 LOGGER.info("[hunter igloo test] {} igloos and {} decorations stand: {} blocks looked at, beds whole, "
-                                + "chests open, nothing on a slab, nothing melting, every igloo's floor lit",
-                        HunterIglooDesigns.IGLOOS.size(), HunterIglooDesigns.DECORATIONS.size(), blocks);
+                                + "chests open, nothing on a slab, nothing melting, every igloo's floor lit, {} guards, "
+                                + "{} crops", HunterIglooDesigns.IGLOOS.size(), HunterIglooDesigns.DECORATIONS.size(),
+                        blocks, guards, crops);
                 helper.succeed();
-            });
+            }));
         });
     }
 
@@ -161,6 +184,74 @@ public final class HunterIglooShowcaseGameTest
             throw new GameTestAssertException(dark);
         }
         helper.runAfterDelay(LIGHT_RETRY_TICKS, () -> whenLit(helper, level, plan, tries - 1, then));
+    }
+
+    /** Runs {@code then} once every template's entities (the guards) are in, looking again {@code tries} more times. */
+    private static void whenGuardsIn(GameTestHelper helper, ServerLevel level, int tries, Runnable then)
+    {
+        if (VillageAnimals.waiting(level) == 0)
+        {
+            then.run();
+            return;
+        }
+        if (tries <= 0)
+        {
+            throw new GameTestAssertException("the igloos' armor stands never went in: " + VillageAnimals.describeWaiting(level));
+        }
+        helper.runAfterDelay(GUARD_RETRY_TICKS, () -> whenGuardsIn(helper, level, tries - 1, then));
+    }
+
+    /** One igloo's guards (armor stands) and crops, as many as its table says, the guards in their outfit. */
+    private static int[] guardsAndCrops(ServerLevel level, HunterIglooShowcase.Plan plan, HunterIglooShowcase.Plot plot)
+    {
+        if (plot.igloo() == null)
+        {
+            return new int[] {0, 0};
+        }
+        HunterIglooDesigns.Igloo igloo = plot.igloo();
+        BoundingBox box = HunterIgloos.footprint(plot.ground(), plan.front(), plot.piece());
+        AABB area = new AABB(box.minX(), box.minY(), box.minZ(), box.maxX() + 1, box.maxY() + 1, box.maxZ() + 1);
+        List<ArmorStand> stands = level.getEntitiesOfClass(ArmorStand.class, area);
+        if (stands.size() != igloo.stands())
+        {
+            throw new GameTestAssertException(igloo.id() + " should have " + igloo.stands() + " armor stand(s), but has "
+                    + stands.size());
+        }
+        for (ArmorStand stand : stands)
+        {
+            ItemStack chest = stand.getItemBySlot(EquipmentSlot.CHEST);
+            if (!stand.getItemBySlot(EquipmentSlot.HEAD).is(Items.SKELETON_SKULL) || !chest.is(Items.LEATHER_CHESTPLATE)
+                    || !(chest.getItem() instanceof DyeableLeatherItem dyed && dyed.hasCustomColor(chest))
+                    || !stand.getItemBySlot(EquipmentSlot.LEGS).is(Items.LEATHER_LEGGINGS)
+                    || !stand.getItemBySlot(EquipmentSlot.FEET).is(Items.LEATHER_BOOTS)
+                    || !stand.getItemBySlot(EquipmentSlot.MAINHAND).is(Items.STONE_SWORD))
+            {
+                throw new GameTestAssertException(igloo.id() + ": the guard at " + stand.blockPosition().toShortString()
+                        + " isn't in its skull, dyed leather and stone sword");
+            }
+        }
+        int crops = 0;
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int x = box.minX(); x <= box.maxX(); x++)
+        {
+            for (int z = box.minZ(); z <= box.maxZ(); z++)
+            {
+                for (int y = box.minY(); y <= box.maxY(); y++)
+                {
+                    Block block = level.getBlockState(pos.set(x, y, z)).getBlock();
+                    if (block instanceof HardyCropBlock || block instanceof RimeberryBushBlock)
+                    {
+                        crops++;
+                    }
+                }
+            }
+        }
+        if (crops != igloo.crops())
+        {
+            throw new GameTestAssertException(igloo.id() + " should have " + igloo.crops() + " crop blocks, but has "
+                    + crops + " (some popped off?)");
+        }
+        return new int[] {stands.size(), crops};
     }
 
     /** Looks at one plot's blocks; returns how many it looked at. */

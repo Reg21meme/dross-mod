@@ -30,6 +30,7 @@ public final class ModCreativeTabs
      *   <li>Weapons and tools: the Admin Sword and the like</li>
      *   <li>Enchanted books: every level of Necromancy, then every level of Deathforged</li>
      *   <li>Materials: ore materials and the like (Raw Moonsilver, Moonsilver Ingot, Stormite Shard)</li>
+     *   <li>Crops: what plants Rimefall's crops (Frostroot, Snow Lichen, Rimeberries)</li>
      * </ol>
      */
     public static final RegistryObject<CreativeModeTab> DROSS = CREATIVE_TABS.register("dross",
@@ -88,6 +89,9 @@ public final class ModCreativeTabs
                         // Boss area: the hunter villages' meat (the Meat Block, the Roasted Meat Block)
                         output.accept(ModItems.MEAT_BLOCK.get());
                         output.accept(ModItems.ROASTED_MEAT_BLOCK.get());
+                        // Boss area: the hunter villages' Frostroot Crate and Rimeberry Basket
+                        output.accept(ModItems.FROSTROOT_CRATE.get());
+                        output.accept(ModItems.RIMEBERRY_BASKET.get());
 
                         // 2. Quest items
                         // Quest area: a Weathered Letter (gets its text once it's in your inventory)
@@ -148,6 +152,12 @@ public final class ModCreativeTabs
                         output.accept(ModItems.RAW_MOONSILVER.get());
                         output.accept(ModItems.MOONSILVER_INGOT.get());
                         output.accept(ModItems.STORMITE_SHARD.get());
+
+                        // 8. Crops
+                        // Boss area: Rimefall's crops (boss/huntsman/village/HunterCrops)
+                        output.accept(ModItems.FROSTROOT.get());
+                        output.accept(ModItems.SNOW_LICHEN.get());
+                        output.accept(ModItems.RIMEBERRIES.get());
                     })
                     .build());
 

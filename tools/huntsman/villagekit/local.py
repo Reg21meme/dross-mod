@@ -1,8 +1,12 @@
 """Local coordinates that turn with a door, so furniture and props are written once and face any way."""
 from voxel import CCW, CW, OPP, STEP
 
-# A standing banner's, sign's or skull's "rotation" (0-15) that faces each way.
+# A standing banner's or sign's "rotation" (0-15) that faces each way.
 ROT16 = {"south": 0, "west": 4, "north": 8, "east": 12}
+# A standing skull's or head's: the game counts these from the other side (SkullBlock places a skull with the
+# player's own yaw, BannerBlock with it turned round), so the same number faces the opposite way. Every skull was
+# backwards until October 20, 2026 (the user: "the skulls ... are facing [the wrong] way").
+SKULL_ROT16 = {"north": 0, "east": 4, "south": 8, "west": 12}
 
 
 class Frame:
@@ -10,7 +14,8 @@ class Frame:
 
     Block states may name directions relative to the frame, filled in when placed: {front}, {back}, {left}, {right}
     (compass directions), {fb} and {lr} (the log axis along front-back and left-right), and {rot_front},
-    {rot_back}, {rot_left}, {rot_right} (a standing banner's or skull's rotation facing that way)."""
+    {rot_back}, {rot_left}, {rot_right} (a standing banner's or sign's rotation facing that way), {skull_front},
+    {skull_back}, {skull_left}, {skull_right} (a standing skull's)."""
 
     def __init__(self, grid, ox, oz, front):
         self.g = grid
@@ -26,6 +31,7 @@ class Frame:
         self.names["lr"] = "x" if along == "z" else "z"
         for k, d in self.dirs.items():
             self.names["rot_" + k] = str(ROT16[d])
+            self.names["skull_" + k] = str(SKULL_ROT16[d])
 
     def xz(self, u, v):
         return self.ox + u * self.rx + v * self.fx, self.oz + u * self.rz + v * self.fz

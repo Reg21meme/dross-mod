@@ -81,14 +81,16 @@ class Dome:
 
 
 class Tunnel:
-    """A tunnel along the frame's front from v0 to v1: `half` blocks each side of the middle, `height` tall in the
-    middle and one less at its sides (a rounded roof), from y = base."""
+    """A tunnel along the frame's front from v0 to v1: `half` blocks each side of the middle (and `extra` more on its
+    right, for a doorway an even number of blocks wide: half 1, extra 1 is 2 wide), `height` tall, from y = base."""
 
     def __init__(self, frame, v0, v1, half=1, height=3, base=1, style=DEFAULT, open_end=True, door_block=None,
-                 mouth=True):
+                 mouth=True, extra=0):
         self.f = frame
         self.v0, self.v1 = min(v0, v1), max(v0, v1)
         self.half = half
+        self.extra = extra
+        self.lo, self.hi = -half, half + extra       # its walls' u (the opening is between them)
         self.height = height
         self.ybase = base
         self.style = style
@@ -98,13 +100,12 @@ class Tunnel:
 
     def col_height(self, u):
         """The top y of the solid at |u|."""
-        u = abs(u)
-        if u > self.half:
+        if u < self.lo or u > self.hi:
             return None
         return self.ybase + self.height - 1
 
     def cells(self):
-        for u in range(-self.half, self.half + 1):
+        for u in range(self.lo, self.hi + 1):
             top = self.col_height(u)
             for v in range(self.v0, self.v1 + 1):
                 x, z = self.f.xz(u, v)
@@ -167,7 +168,7 @@ class Massing:
 
     # ---------------------------------------------------------------- shapes
     def dome(self, cx, cz, r, h=None, base=1.0, style=DEFAULT, door="south", tunnel=2, windows=(), skylight=True,
-             door_block=None, name="igloo", tunnel_half=1, tunnel_height=3):
+             door_block=None, name="igloo", tunnel_half=1, tunnel_height=3, tunnel_extra=0):
         """A dome round (cx, cz), r blocks out at its base and h tall, its doorway towards `door` through a tunnel
         `tunnel` blocks long (0: a doorway straight in the wall; None: no way in). windows: (angle in degrees from the
         door, clockwise seen from above; height above the floor) pairs."""
@@ -189,7 +190,7 @@ class Massing:
             edge = int(math.floor(r))  # the dome wall's v at the floor
             ybase = int(math.ceil(base - 0.5))
             t = Tunnel(f, edge - 1, edge + tunnel, half=tunnel_half, height=tunnel_height, base=ybase,
-                       style=style, door_block=door_block)
+                       style=style, door_block=door_block, extra=tunnel_extra)
             self.add_tunnel(t)
             d.tunnel_shape = t
         else:
@@ -324,7 +325,7 @@ class Massing:
                     if shape.mouth is not None and shape.style.smooth:
                         # sides of the roof get half a block, so the roof reads round
                         u = self._tunnel_u(shape, x, z)
-                        if u is not None and abs(u) < shape.half:
+                        if u is not None and shape.lo < u < shape.hi:
                             partial = 0.375
                 else:
                     t = self.smooth_tops[x, z]
@@ -352,25 +353,25 @@ class Massing:
             st = t.style
             # the mouth: open the end, and its frame of packed ice
             for y in range(t.ybase, t.ybase + t.height - 1):
-                for u in range(-t.half + 1, t.half):
+                for u in range(t.lo + 1, t.hi):
                     x, z = f.xz(u, t.v1)
                     g.set(x, y, z, AIR, force=True)
             if t.mouth and st.mouth:
                 for y in range(t.ybase, t.ybase + t.height - 1):
-                    for u in (-t.half, t.half):
+                    for u in (t.lo, t.hi):
                         x, z = f.xz(u, t.v1)
                         g.set(x, y, z, st.mouth, force=True)
-                for u in range(-t.half + 1, t.half):
+                for u in range(t.lo + 1, t.hi):
                     x, z = f.xz(u, t.v1)
                     g.set(x, t.ybase + t.height - 1, z, st.mouth, force=True)
                 # no snow on top of the ice frame
-                for u in range(-t.half, t.half + 1):
+                for u in range(t.lo, t.hi + 1):
                     x, z = f.xz(u, t.v1)
                     for y in range(t.ybase, t.ybase + t.height + 1):
                         s = g.get(x, y, z)
                         if s and mc.base(s) == "snow":
                             g.set(x, y, z, AIR, force=True)
-            if t.door_block and t.half == 1:
+            if t.door_block and t.half == 1 and t.extra == 0:
                 x, z = f.xz(0, t.v1)
                 door = t.door_block
                 g.set(x, t.ybase, z, f"{door}[facing={f.front},half=lower,hinge=left,open=false]", force=True)

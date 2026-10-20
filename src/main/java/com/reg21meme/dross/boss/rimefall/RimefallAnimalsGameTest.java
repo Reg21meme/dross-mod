@@ -727,7 +727,8 @@ public final class RimefallAnimalsGameTest
     @GameTest(template = ColossusGameTest.ARENA, batch = "dross_rimefall_ponds", timeoutTicks = TIMEOUT)
     public static void pondSkatersNeedABigPond(GameTestHelper helper)
     {
-        if (ColossusGameTest.waitForArena(helper, RimefallAnimalsGameTest::pondSkatersNeedABigPond))
+        if (ColossusGameTest.waitForArena(helper, RimefallAnimalsGameTest::pondSkatersNeedABigPond)
+                || waitForPondGround(helper))
         {
             return;
         }
@@ -821,8 +822,57 @@ public final class RimefallAnimalsGameTest
             {
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2 | 16);
             }
+            pondGround(helper).forEach(c -> level.setChunkForced(c.x, c.z, false));
         }
         helper.succeed();
+    }
+
+    /** The ponds and patches reach this far round the arena's middle (blocks), past its own 17 blocks. */
+    private static final int POND_GROUND = 40;
+    private static final long POND_GROUND_WAIT_MILLIS = 60_000L;
+
+    /** The chunks under the ponds, the patches and the skaters moved round them. */
+    private static List<net.minecraft.world.level.ChunkPos> pondGround(GameTestHelper helper)
+    {
+        BlockPos c = helper.absolutePos(MIDDLE);
+        List<net.minecraft.world.level.ChunkPos> out = new ArrayList<>();
+        for (int x = (c.getX() - POND_GROUND) >> 4; x <= (c.getX() + POND_GROUND) >> 4; x++)
+        {
+            for (int z = (c.getZ() - POND_GROUND) >> 4; z <= (c.getZ() + POND_GROUND) >> 4; z++)
+            {
+                out.add(new net.minecraft.world.level.ChunkPos(x, z));
+            }
+        }
+        return out;
+    }
+
+    /**
+     * The skaters this test moves about stand beyond the arena: their land must have its creatures loaded, or one moved
+     * there isn't found (the test once failed for that when the test layout moved, nothing to do with the skaters).
+     * Loads it and runs the test again once it's ready; false if it already is.
+     */
+    private static boolean waitForPondGround(GameTestHelper helper)
+    {
+        ServerLevel level = helper.getLevel();
+        List<net.minecraft.world.level.ChunkPos> chunks = pondGround(helper);
+        java.util.function.BooleanSupplier ready = () -> chunks.stream().allMatch(c -> level.areEntitiesLoaded(c.toLong())
+                && level.isPositionEntityTicking(c.getWorldPosition()));
+        chunks.forEach(c -> level.setChunkForced(c.x, c.z, true));
+        if (ready.getAsBoolean())
+        {
+            return false;
+        }
+        long deadline = net.minecraft.Util.getMillis() + POND_GROUND_WAIT_MILLIS;
+        helper.startSequence()
+                .thenWaitUntil(() ->
+                {
+                    if (!ready.getAsBoolean() && net.minecraft.Util.getMillis() < deadline)
+                    {
+                        helper.fail("the land round the ponds hasn't finished loading"); // keeps waiting
+                    }
+                })
+                .thenExecute(() -> pondSkatersNeedABigPond(helper));
+        return true;
     }
 
     /** A patch of packed ice, {@code 2 * half + 1} across, on stone, its top one above {@code centre} (like a pond's ice). */

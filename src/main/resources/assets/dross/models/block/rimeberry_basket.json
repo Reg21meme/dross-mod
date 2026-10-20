@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "top": "dross:block/rimeberry_basket_top",
+    "side": "dross:block/rimeberry_basket_side",
+    "bottom": "dross:block/rimeberry_basket_bottom"
+  }
+}

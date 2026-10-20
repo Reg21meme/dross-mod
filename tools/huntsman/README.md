@@ -117,13 +117,31 @@ logic of `villages.py`, which the user likes).
   more, nothing melting, everything that opens facing the room (`check`, `check_blocks`).
 - `igloo_designs/homes.py` (six homes with their stories), `work.py` (storehouse, cookhouse, barracks, workshop),
   `halls.py` (the round and the long hall), `extras.py` (ice-fishing hut, tannery, Snow Angel's shrine),
-  `lodge_house.py` (the Huntsman's lodge and the Alpha Moose's barn).
+  `lodge_house.py` (the Huntsman's lodge and the Alpha Moose's barn), `farms.py` (the Root House, the Lichen House
+  and the outdoor Rimeberry Patch, their crops' ages mixed per cell).
+- Legend extras: `{skull_in}` turns a standing skull into the room (skulls count their rotation from the other side to
+  banners: `villagekit/local.py` `SKULL_ROT16`); a legend entry can be a function of the cell (a crop's age); an
+  `Igloo` can have `stands` (armor stands, e.g. `plan.GUARD`: a skull, blue leather, a stone sword) and a doorway 2 wide
+  (`tunnel_extra=1`). Crops under a roof must be lit 9 or more (`plan.CROP_LIGHT`). `# PLACEHOLDER` marks the block
+  antlers and moose heads (the user's own model replaces them later) and the lightning rods standing in for spears.
 - `igloo_designs/decor_catalog.py` (every decoration, the villages' own from `villagekit/props.py`) and `decor_new.py`
   (the lights for a ring round a village and the new ideas).
 
 Writes `data/dross/structures/hunter_igloo/<id>.nbt` and `hunter_decor/<id>.nbt`,
 `boss/huntsman/village/HunterIglooDesigns.java` (don't edit by hand) and `boss-previews/rimefall/huntsman/igloos/`
 (`<id>.png`, `decorations.png`, `all_igloos.png`, `index.html`).
+
+## Rimefall's crops: `crops.py`
+
+```
+python tools/huntsman/crops.py
+```
+
+Draws Frostroots (four stages), Snow Lichen (four stages), the two-block Rimeberry Bush (a sprout, then a lower and an
+upper half for each of three stages), the items (Frostroot, Snow Lichen, Rimeberries), and the Frostroot Crate and the
+Rimeberry Basket (top, side, bottom): original 16 x 16 pixel art from fixed seeds. Writes
+`assets/dross/textures/block/` and `item/`, and the preview `boss-previews/rimefall/huntsman/igloos/crops.png`. The
+blocks themselves: `boss/huntsman/village/HunterCrops`.
 
 ## Meat blocks: `meat_blocks.py`
 

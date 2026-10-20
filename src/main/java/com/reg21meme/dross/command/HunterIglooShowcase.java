@@ -6,6 +6,7 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.huntsman.village.HunterIglooDesigns;
 import com.reg21meme.dross.boss.huntsman.village.HunterIgloos;
+import com.reg21meme.dross.boss.huntsman.village.VillageAnimals;
 import com.reg21meme.dross.registry.ModBlocks;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -16,10 +17,14 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -41,8 +46,9 @@ import java.util.Locale;
  * note the ones I don't like"). The boss area's {@link HunterIglooDesigns} (made by tools/huntsman/igloos.py).
  * <p>
  * Rows of plots, their fronts (an igloo's doorway) facing you: the six homes; the storehouse, cookhouse, barracks,
- * workshop and the two halls; the extras, the Huntsman's lodge and his barn; then the decorations, {@link #DECOR_PER_ROW}
- * to a row. Each plot is cleared, floored with Hoarfrost and snow and gets a numbered sign in front of it (igloos "No. N",
+ * workshop and the two halls; the extras, the Snow Angel's shrine, the Huntsman's lodge and his barn; the farms (the
+ * Root House, the Lichen House, the Rimeberry Patch); then the decorations, {@link #DECOR_PER_ROW} to a row. A plot built
+ * again loses the armor stands (and dropped items) of the one before. Each plot is cleared, floored with Hoarfrost and snow and gets a numbered sign in front of it (igloos "No. N",
  * decorations "D N", as in the previews). One plot is built each server tick; when it's done the chat lists the igloos
  * with [go] buttons (each stands you at its doorway) and an [overview] button. Use a flat world: it's about 220 blocks
  * wide and 160 deep.
@@ -97,12 +103,17 @@ public final class HunterIglooShowcase
 
     private HunterIglooShowcase() {}
 
-    /** The igloos' rows (homes; the work igloos and the halls; the extras and the Huntsman's two), then the decorations'. */
+    /** Each row of igloos, by kind: the homes; the work igloos and the halls; the extras, the shrine and the Huntsman's
+     * two; the farms. The decorations' rows come after them. */
+    static final String[][] IGLOO_ROWS = {{"home"}, {"storage", "cook", "barracks", "workshop", "hall"},
+            {"extra", "shrine", "lodge"}, {"farm"}};
+
+    /** The igloos' rows ({@link #IGLOO_ROWS}), then the decorations'. */
     static List<List<Plot>> rows()
     {
         List<List<Plot>> rows = new ArrayList<>();
         List<HunterIglooDesigns.Igloo> all = HunterIglooDesigns.IGLOOS;
-        String[][] kinds = {{"home"}, {"storage", "cook", "barracks", "workshop", "hall"}, {"extra", "lodge"}};
+        String[][] kinds = IGLOO_ROWS;
         for (String[] row : kinds)
         {
             List<Plot> plots = new ArrayList<>();
@@ -156,7 +167,7 @@ public final class HunterIglooShowcase
                 plots.add(new Plot(p.number(), p.name(), p.piece(), p.igloo(), ground));
                 lateral += p.piece().width() + GAP;
             }
-            along += deepest + (r == 2 ? 2 * ROW_GAP : ROW_GAP);
+            along += deepest + (r == IGLOO_ROWS.length - 1 ? 2 * ROW_GAP : ROW_GAP);
         }
         return new Plan(origin, look, floorY, plots);
     }
@@ -218,6 +229,12 @@ public final class HunterIglooShowcase
     {
         BoundingBox box = HunterIgloos.footprint(plot.ground(), plan.front(), plot.piece());
         int top = plan.floorY() + (plot.piece().layers() - plot.piece().groundLayer()) + CLEAR_ABOVE;
+        // the armor stands of a showcase built here before (a template brings its own), and the crops' pickings
+        AABB area = new AABB(box.minX() - FLOOR_MARGIN, plan.floorY(), box.minZ() - FLOOR_MARGIN,
+                box.maxX() + FLOOR_MARGIN + 1, top + 1, box.maxZ() + FLOOR_MARGIN + 1);
+        VillageAnimals.cancelIn(level, area);
+        level.getEntitiesOfClass(ArmorStand.class, area).forEach(Entity::discard);
+        level.getEntitiesOfClass(ItemEntity.class, area).forEach(Entity::discard);
         BlockState air = Blocks.AIR.defaultBlockState();
         BlockState hoarfrost = ModBlocks.HOARFROST.get().defaultBlockState();
         BlockState snow = Blocks.SNOW_BLOCK.defaultBlockState();

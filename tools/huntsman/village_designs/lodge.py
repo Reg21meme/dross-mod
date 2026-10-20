@@ -41,6 +41,7 @@ STONE = Mix(("cobblestone", 3), ("stone", 2), ("mossy_cobblestone", 1), ("cobble
 STRAW = Mix(("hay_block[axis=x]", 2), ("hay_block[axis=z]", 2), ("coarse_dirt", 1), patch=0.5)
 
 
+# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
 def moose_head(f, y, bone="bone_block[axis=y]"):
     """A moose skull mounted over a doorway (facing f's front): the bone muzzle and brow, dark eyes, broad palm
     antlers spreading sideways and up, their tines of birch fence."""
@@ -62,6 +63,7 @@ def moose_head(f, y, bone="bone_block[axis=y]"):
         f.set(side * 5, y + 6, 1, "birch_fence")
 
 
+# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
 def antler_crown(g, cx, cz, top, r=2):
     """A ring of antlers (birch fences branching up) round the lodge's skylight cap."""
     for k in range(8):
@@ -176,6 +178,7 @@ def barn(g, x0, z0, w=13, d=17, h=8):
     g.set(x1 - 1, 1, z0 + 11, "spruce_fence", force=True)
     g.set(x1 - 1, 2, z0 + 11, "red_carpet", force=True)
     for z in (z0 + 13, z0 + 14):
+        # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
         g.set(x1 - 1, 1, z, "lightning_rod[facing=up]", force=True)
     # beams across under the roof with lanterns hanging from them
     for z in (z0 + 8, z0 + 13):
@@ -269,7 +272,7 @@ def build_into(g, bx1, bz1, bx2, bz2, seed=1111):
         f.set(u, 2, back - 1, "stripped_spruce_wood[axis=y]")
         f.set(u, 1, back - 1, "stripped_spruce_wood[axis=y]")
         f.set(u, 3, back - 1, "birch_fence")
-    f.set(0, 4, back - 1, "skeleton_skull[rotation={rot_front}]")
+    f.set(0, 4, back - 1, "skeleton_skull[rotation={skull_front}]")
     for u in (-2, -1, 1, 2):
         f.set(u, 4, back - 1, "birch_fence")
     for u in (-3, -2, 2, 3):
@@ -292,10 +295,11 @@ def build_into(g, bx1, bz1, bx2, bz2, seed=1111):
         c = r.cell(u, vv)
         if c is not None:
             g.set(c[0], c[1] + 1, c[2], props.MEAT if vv == -1 else "barrel[facing=up,open=false]", force=True)
+    # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
     r.against_back(["chest[facing={in},type=single]", "lightning_rod[facing=up]", "lightning_rod[facing=up]",
-                    "skeleton_skull[rotation={rot_in}]", "barrel[facing=up,open=false]", "lightning_rod[facing=up]",
+                    "skeleton_skull[rotation={skull_in}]", "barrel[facing=up,open=false]", "lightning_rod[facing=up]",
                     "smoker[facing={in},lit=false]", "chest[facing={in},type=single]", "fletching_table",
-                    "grindstone[face=floor,facing={in}]", "skeleton_skull[rotation={rot_in}]",
+                    "grindstone[face=floor,facing={in}]", "skeleton_skull[rotation={skull_in}]",
                     "barrel[facing=up,open=false]"])
     # trophies on the wall: skulls on posts and antlers over them, round the room
     for ang in (60, 120, 240, 300):
@@ -311,6 +315,7 @@ def build_into(g, bx1, bz1, bx2, bz2, seed=1111):
 
     # -- the armoury: spears and bows, a weapon rack, a chest of arrows
     ra = Room(m, arm)
+    # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
     ra.against_back(["lightning_rod[facing=up]", "lightning_rod[facing=up]", "fletching_table",
                      "chest[facing={in},type=single]", "lightning_rod[facing=up]", "grindstone[face=floor,facing={in}]",
                      "barrel[facing=up,open=false]", "lightning_rod[facing=up]", "target"])

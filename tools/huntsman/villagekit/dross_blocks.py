@@ -14,9 +14,16 @@ BLOCKS = {
     # the hunters' meat (boss/huntsman/village/MeatBlocks): pillars like a log, the bone along their axis
     "dross:meat_block": {"properties": {"axis": ["x", "y", "z"]}, "default": {"axis": "y"}},
     "dross:roasted_meat_block": {"properties": {"axis": ["x", "y", "z"]}, "default": {"axis": "y"}},
+    # Rimefall's crops (boss/huntsman/village/HunterCrops) and their crate and basket
+    "dross:frostroots": {"properties": {"age": [str(a) for a in range(8)]}, "default": {"age": "0"}},
+    "dross:snow_lichen": {"properties": {"age": [str(a) for a in range(8)]}, "default": {"age": "0"}},
+    "dross:rimeberry_bush": {"properties": {"age": ["0", "1", "2", "3"], "half": ["lower", "upper"]},
+                             "default": {"age": "0", "half": "lower"}},
+    "dross:frostroot_crate": {"properties": {}, "default": {}},
+    "dross:rimeberry_basket": {"properties": {}, "default": {}},
 }
 mc.MOD_BLOCKS.update(BLOCKS)
-mc.CROSS_PLANTS.update({"frostbloom", "icicle"})
+mc.CROSS_PLANTS.update({"frostbloom", "icicle", "frostroots", "snow_lichen", "rimeberry_bush"})
 
 # pillars the shrine kit doesn't know lie down like logs in the previews (bark on top, the end facing its axis)
 PILLARS = {"meat_block", "roasted_meat_block"}

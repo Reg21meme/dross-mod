@@ -41,7 +41,7 @@ MANIFEST = os.path.join(HERE, "out", "igloos.json")
 def designs():
     from igloo_designs import homes
     out = list(homes.HOMES)
-    for name in ("work", "halls", "extras", "lodge_house"):
+    for name in ("work", "halls", "extras", "lodge_house", "farms"):
         try:
             mod = __import__(f"igloo_designs.{name}", fromlist=["DESIGNS"])
         except ModuleNotFoundError:
@@ -89,9 +89,11 @@ def build_one(design, write=True):
              "depth": g.D, "layers": g.H, "ground_layer": g.G, "height": int(ys.max()) - g.G,
              "door": [int(built.mouth[0]), int(built.mouth[1])], "probe": list(probe) if probe else None,
              "chests": sum(1 for *_c, s in g.blocks() if mc.base(s) == "chest"),
+             "stands": sum(1 for e in getattr(g, "entities", ()) if e["nbt"]["id"] == "minecraft:armor_stand"),
+             "crops": sum(1 for *_c, s in g.blocks() if mc.base(s).split(":")[-1] in plan.CROPS),
              "beds": sum(1 for *_c, s in g.blocks() if mc.base(s).endswith("_bed") and "part=head" in s)}
     print(f"{design.id}: {design.name} ({design.kind}), {g.W} x {g.D} x {g.H}, {entry['beds']} beds, "
-          f"{entry['chests']} chests")
+          f"{entry['chests']} chests, {entry['stands']} stands, {entry['crops']} crops")
     for p in built.problems:
         print("  PROBLEM:", p)
     return entry, built.problems
@@ -141,7 +143,8 @@ def write_java(entries, decor):
         igloos.append(f'            new Igloo("{e["id"]}", "{_j(e["name"])}", "{e["kind"]}",\n'
                       f'                    "{_j(e["lore"])}",\n'
                       f'                    {e["width"]}, {e["depth"]}, {e["layers"]}, {e["ground_layer"]}, '
-                      f'{e["door"][0]}, {e["door"][1]}, {px}, {py}, {pz}, {e["beds"]}, {e["chests"]})')
+                      f'{e["door"][0]}, {e["door"][1]}, {px}, {py}, {pz}, {e["beds"]}, {e["chests"]}, '
+                      f'{e.get("stands", 0)}, {e.get("crops", 0)})')
     decos = []
     for e in decor:
         decos.append(f'            new Decoration("{e["id"]}", "{_j(e["name"])}", "{_j(e["note"])}", "{e["group"]}", '
@@ -160,7 +163,8 @@ import net.minecraft.resources.ResourceLocation;
  * An igloo is {{@code dross:hunter_igloo/<id>}}, {{@code width}} x {{@code depth}} blocks and {{@code layers}} tall, the
  * ground at layer {{@code groundLayer}}, its doorway at the south: {{@code doorX}}, {{@code doorZ}} is the doorway's outer
  * cell (the template's own coordinates). {{@code probe}} is its darkest clear floor cell (template coordinates), lit
- * enough that nothing spawns there. A decoration is {{@code dross:hunter_decor/<id>}}, its middle the template's middle,
+ * enough that nothing spawns there. {{@code stands}} is how many armor stands it has (its guards), {{@code crops}} how
+ * many crop and bush blocks. A decoration is {{@code dross:hunter_decor/<id>}}, its middle the template's middle,
  * its front at the south; {{@code group}} is "camp", "light" (for the ring of lights round a village) or "new".
  */
 public final class HunterIglooDesigns
@@ -168,7 +172,8 @@ public final class HunterIglooDesigns
     private HunterIglooDesigns() {{}}
 
     public record Igloo(String id, String name, String kind, String lore, int width, int depth, int layers, int groundLayer,
-                        int doorX, int doorZ, int probeX, int probeY, int probeZ, int beds, int chests)
+                        int doorX, int doorZ, int probeX, int probeY, int probeZ, int beds, int chests, int stands,
+                        int crops)
     {{
         public ResourceLocation template()
         {{
@@ -190,7 +195,8 @@ public final class HunterIglooDesigns
         }}
     }}
 
-    /** Every igloo, in order: the homes, the work igloos, the halls, the extras, the Huntsman's lodge and barn. */
+    /** Every igloo, in order: the homes, the work igloos, the halls, the extras, the Huntsman's lodge and barn, the
+     * farms. */
     public static final List<Igloo> IGLOOS = List.of(
 {",\n".join(igloos)});
 

@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.CinderFireBlock;
 import com.reg21meme.dross.boss.golem.CinderLavaBlock;
+import com.reg21meme.dross.boss.huntsman.village.HunterCrops;
 import com.reg21meme.dross.boss.huntsman.village.MeatBlocks;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyBlock;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyBlock;
@@ -118,6 +119,16 @@ public final class ModBlocks
     public static final RegistryObject<Block> MEAT_BLOCK = BLOCKS.register("meat_block", MeatBlocks::meat);
     // Boss area, the hunter villages: Roasted Meat Block (nine of any cooked meat, or a Meat Block cooked; on the spits)
     public static final RegistryObject<Block> ROASTED_MEAT_BLOCK = BLOCKS.register("roasted_meat_block", MeatBlocks::roasted);
+    // Boss area, Rimefall's crops (boss/huntsman/village/HunterCrops): Frostroots (a crop on farmland, planted with Frostroot)
+    public static final RegistryObject<Block> FROSTROOTS = BLOCKS.register("frostroots", HunterCrops::frostroots);
+    // Boss area, Rimefall's crops: Snow Lichen (a crop on farmland, planted with its own clumps)
+    public static final RegistryObject<Block> SNOW_LICHEN = BLOCKS.register("snow_lichen", HunterCrops::snowLichen);
+    // Boss area, Rimefall's crops: Rimeberry Bush (two blocks tall, berries on both halves; planted with Rimeberries)
+    public static final RegistryObject<Block> RIMEBERRY_BUSH = BLOCKS.register("rimeberry_bush", HunterCrops::rimeberryBush);
+    // Boss area, the hunter villages: Frostroot Crate (nine Frostroots packed in a block; a decoration with the meat)
+    public static final RegistryObject<Block> FROSTROOT_CRATE = BLOCKS.register("frostroot_crate", HunterCrops::frostrootCrate);
+    // Boss area, the hunter villages: Rimeberry Basket (nine Rimeberries packed in a block)
+    public static final RegistryObject<Block> RIMEBERRY_BASKET = BLOCKS.register("rimeberry_basket", HunterCrops::rimeberryBasket);
 
     private ModBlocks() {}
 }
