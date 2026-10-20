@@ -113,6 +113,11 @@ import net.minecraftforge.fml.common.Mod;
  *       round you, with a chat button that summons him. From the boss area ({@link BossCommands#summonRatKing},
  *       {@link BossCommands#buildRatKingArena}). The button runs {@link BossCommands#SUMMON_RAT_KING_COMMAND}, so the
  *       {@code boss summon ratking} path must match it exactly.</li>
+ *   <li>{@code /dross boss summon huntsman}: the Huntsman rides in on his Alpha Moose in front of you, facing you, calm
+ *       until one of them is hit (not on Peaceful); {@code /dross boss arena huntsman} builds his basic arena (a round
+ *       floor of snow and packed ice with lantern posts) round you, with a chat button that summons him. From the boss
+ *       area ({@link BossCommands#summonHuntsman}, {@link BossCommands#buildHuntsmanArena}). The button runs
+ *       {@link BossCommands#SUMMON_HUNTSMAN_COMMAND}, so the {@code boss summon huntsman} path must match it exactly.</li>
  * </ul>
  * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase boss_sounds},
  * {@code showcase trophies}, {@code boss summon}
@@ -218,12 +223,16 @@ public final class DrossCommand
                                 .then(Commands.literal("colossus")
                                         .executes(context -> BossCommands.summonColossus(context.getSource())))
                                 .then(Commands.literal("ratking")
-                                        .executes(context -> BossCommands.summonRatKing(context.getSource()))))
+                                        .executes(context -> BossCommands.summonRatKing(context.getSource())))
+                                .then(Commands.literal("huntsman")
+                                        .executes(context -> BossCommands.summonHuntsman(context.getSource()))))
                         .then(Commands.literal("arena")
                                 .then(Commands.literal("colossus")
                                         .executes(context -> BossCommands.buildArena(context.getSource())))
                                 .then(Commands.literal("ratking")
-                                        .executes(context -> BossCommands.buildRatKingArena(context.getSource()))))));
+                                        .executes(context -> BossCommands.buildRatKingArena(context.getSource())))
+                                .then(Commands.literal("huntsman")
+                                        .executes(context -> BossCommands.buildHuntsmanArena(context.getSource()))))));
     }
 
     /**

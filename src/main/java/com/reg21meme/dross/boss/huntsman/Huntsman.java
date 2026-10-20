@@ -1,16 +1,25 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.goal.FloatGoal;
+import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.ServerLevelAccessor;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.core.animation.AnimationController;
 import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.core.object.PlayState;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -21,11 +30,18 @@ import java.util.List;
  * In the saddle a second animation controller moves him with the saddle: it plays his {@code carry_<name>} for the
  * moose's animation (started with it), so he rides along when the moose rears, kicks or kneels; not while he leaps off.
  * At the end of his leap ({@link HuntAnims#LEAP}) he gets off and lands on foot beside the moose ({@link HuntCues#LEAP_OUT}
- * blocks to its left), playing {@code land}. For now he's on show only ({@link HuntMob}); his fight comes later.
+ * blocks to its left), playing {@code land}; at the split he then blows his horn.
+ * <p>
+ * Fighting ({@link HuntFight}): a spawn egg or {@code /summon} brings him in his Alpha Moose's saddle; in stage 1 the
+ * moose's {@link WildHuntGoal} picks his moves too, in stage 2 his own {@link FootGoal}.
  */
 public class Huntsman extends HuntMob
 {
     private int carrySeen = -1;
+    /** At the split: once he has landed, his horn. */
+    boolean hornWhenLanded;
+    /** His spear is out (thrown, on its way back): {@link HuntSpear}. */
+    boolean spearOut;
 
     public Huntsman(EntityType<? extends Huntsman> type, Level level)
     {
@@ -35,9 +51,18 @@ public class Huntsman extends HuntMob
     public static AttributeSupplier.Builder createAttributes()
     {
         return Mob.createMobAttributes()
-                .add(Attributes.MAX_HEALTH, 150.0D)
-                .add(Attributes.MOVEMENT_SPEED, 0.3D)
-                .add(Attributes.KNOCKBACK_RESISTANCE, 0.8D);
+                .add(Attributes.MAX_HEALTH, HuntsmanTuning.HUNTSMAN_HEALTH)
+                .add(Attributes.MOVEMENT_SPEED, HuntsmanTuning.HUNTSMAN_SPEED)
+                .add(Attributes.KNOCKBACK_RESISTANCE, 0.8D)
+                .add(Attributes.FOLLOW_RANGE, HuntsmanTuning.FOLLOW_RANGE);
+    }
+
+    @Override
+    protected void registerGoals()
+    {
+        this.goalSelector.addGoal(0, new FloatGoal(this));
+        this.goalSelector.addGoal(1, new FootGoal(this));
+        this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12.0F));
     }
 
     /** True while he's in a saddle (he wears his riding model). Works on both sides. */
@@ -57,6 +82,25 @@ public class Huntsman extends HuntMob
     public double getMyRidingOffset()
     {
         return 0.0D;
+    }
+
+    /** A fighting Huntsman (a spawn egg, {@code /summon}) comes in his Alpha Moose's saddle. */
+    @Nullable
+    @Override
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType reason,
+                                        @Nullable SpawnGroupData data, @Nullable CompoundTag tag)
+    {
+        SpawnGroupData out = super.finalizeSpawn(level, difficulty, reason, data, tag);
+        if (!this.isShowcase() && this.getVehicle() == null)
+        {
+            AlphaMoose moose = HuntsmanPair.newMoose(level.getLevel(), this.position(), this.getYRot());
+            if (moose != null)
+            {
+                HuntFight.link(this, moose);
+                this.startRiding(moose, true);
+            }
+        }
+        return out;
     }
 
     @Override
@@ -84,6 +128,23 @@ public class Huntsman extends HuntMob
         this.yBodyRotO = yaw;
         this.yHeadRotO = yaw;
         this.play("land");
+    }
+
+    /** At the split, his horn once he has landed. */
+    @Override
+    protected void onMoveEnded(HuntAnims.Anim move)
+    {
+        if (move.name().equals("land") && this.hornWhenLanded)
+        {
+            this.hornWhenLanded = false;
+            this.playLater("horn_blow", HuntsmanTuning.SPLIT_HORN_DELAY);
+        }
+    }
+
+    /** His thrown spear is back in his hand. */
+    void spearBack()
+    {
+        this.spearOut = false;
     }
 
     // ---------------------------------------------------------------- GeckoLib

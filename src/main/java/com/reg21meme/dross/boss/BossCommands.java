@@ -3,6 +3,8 @@ package com.reg21meme.dross.boss;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.golem.CinderColossus;
+import com.reg21meme.dross.boss.huntsman.Huntsman;
+import com.reg21meme.dross.boss.huntsman.HuntsmanPair;
 import com.reg21meme.dross.boss.ratking.RatKing;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.commands.CommandSourceStack;
@@ -39,6 +41,10 @@ public final class BossCommands
     public static final String SUMMON_COMMAND = "/dross boss summon colossus";
     /** The command that summons the Rat King (his arena's chat button runs it). */
     public static final String SUMMON_RAT_KING_COMMAND = "/dross boss summon ratking";
+    /** The command the Huntsman's arena's button runs (it must match {@code /dross boss summon huntsman}). */
+    public static final String SUMMON_HUNTSMAN_COMMAND = "/dross boss summon huntsman";
+    /** The Huntsman rides in this far ahead (or as close to it as there's room). */
+    private static final int HUNTSMAN_SUMMON_AHEAD = 16;
     /** The Colossus is summoned this many blocks in front of you (closer if there's no room there)... */
     private static final int SUMMON_AHEAD = 10;
     /** ...but never closer than this. */
@@ -204,6 +210,79 @@ public final class BossCommands
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, SUMMON_RAT_KING_COMMAND))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                         Component.translatable("commands.dross.boss.arena.summon_hover", SUMMON_RAT_KING_COMMAND)))));
+        source.sendSuccess(() -> message, true);
+        return Math.max(1, result.changed());
+    }
+
+    /**
+     * {@code /dross boss summon huntsman}: the Huntsman appears riding his Alpha Moose {@link #HUNTSMAN_SUMMON_AHEAD}
+     * blocks in front of you (or as close as there's room), facing you, calm: hitting either of them starts the hunt (and
+     * his horn). Not on Peaceful.
+     *
+     * @return 1 if he was summoned, 0 if not (the reason is sent as a failure message)
+     */
+    public static int summonHuntsman(CommandSourceStack source)
+    {
+        ServerLevel level = source.getLevel();
+        if (level.getDifficulty() == Difficulty.PEACEFUL)
+        {
+            source.sendFailure(Component.translatable("commands.dross.boss.summon_huntsman.peaceful"));
+            return 0;
+        }
+        Vec3 from = source.getPosition();
+        float lookYaw = source.getRotation().y;
+        Vec3 look = new Vec3(-Mth.sin(lookYaw * Mth.DEG_TO_RAD), 0.0D, Mth.cos(lookYaw * Mth.DEG_TO_RAD));
+        Vec3 feet = null;
+        int distance = 0;
+        for (int d = HUNTSMAN_SUMMON_AHEAD; d >= SUMMON_NEAREST && feet == null; d--)
+        {
+            feet = standingSpot(level, ModEntities.ALPHA_MOOSE.get(), from.add(look.scale(d)));
+            distance = d;
+        }
+        if (feet == null)
+        {
+            feet = from;
+            distance = 0;
+        }
+        Huntsman huntsman = HuntsmanPair.spawn(level, feet, lookYaw + 180.0F);
+        if (huntsman == null)
+        {
+            source.sendFailure(Component.translatable("commands.dross.boss.summon_huntsman.failed"));
+            return 0;
+        }
+        int ahead = distance;
+        LOGGER.info("Summoned the Huntsman for {} at {} in {}", source.getTextName(), BlockPos.containing(feet).toShortString(),
+                level.dimension().location());
+        source.sendSuccess(() -> Component.translatable("commands.dross.boss.summon_huntsman.success", ahead), true);
+        return 1;
+    }
+
+    /**
+     * {@code /dross boss arena huntsman}: builds his basic arena ({@link HuntsmanArena}) round you, its floor where you
+     * stand: a round floor of snow and packed ice with lantern posts round its edge. You stay in its middle; the chat
+     * message has a button that summons him.
+     *
+     * @return how many blocks were changed (at least 1)
+     */
+    public static int buildHuntsmanArena(CommandSourceStack source)
+    {
+        ServerLevel level = source.getLevel();
+        BlockPos floor = BossArena.floorUnder(level, BlockPos.containing(source.getPosition()));
+        RatKingArena.Result result = HuntsmanArena.build(level, floor);
+        LOGGER.info("Built the Huntsman's arena for {} round {} in {} ({} blocks changed, {} block entities left alone)",
+                source.getTextName(), floor.toShortString(), level.dimension().location(), result.changed(),
+                result.keptBlockEntities());
+        int across = 2 * HuntsmanArena.RADIUS + 1;
+        MutableComponent message = Component.translatable("commands.dross.boss.arena_huntsman.success", across);
+        if (result.keptBlockEntities() > 0)
+        {
+            message.append(" ").append(Component.translatable("commands.dross.boss.arena.kept", result.keptBlockEntities()));
+        }
+        message.append(" ").append(Component.translatable("commands.dross.boss.arena_huntsman.summon_button").withStyle(style -> style
+                .withColor(DrossColors.HUNTSMAN_COMMAND_BUTTON)
+                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, SUMMON_HUNTSMAN_COMMAND))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable("commands.dross.boss.arena.summon_hover", SUMMON_HUNTSMAN_COMMAND)))));
         source.sendSuccess(() -> message, true);
         return Math.max(1, result.changed());
     }

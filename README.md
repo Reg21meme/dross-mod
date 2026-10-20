@@ -524,6 +524,34 @@ each attack sound for the fight, to pick from later.
 
 ---
 
+## The Huntsman
+
+One of the Ice Necromancer's three servants: a hunter in a wolf-head hood with a stag's antlers, riding his **Alpha
+Moose**. For now he comes only from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`; his home in a hunter
+village comes later. `/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice,
+lantern posts round the edge) with a chat button to summon him.
+
+- **Calm until you hit them.** The first hit starts the fight and he blows his hunting horn.
+- **Stage 1, The Wild Hunt** (one bar of 200 for both): he fights from the saddle with a spear thrust, the Horn of the
+  Hunt (a cone of icy wind that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed),
+  **arrow rain** (15 arrows falling round you with no warning; each hit frosts you), and the circling hunt (the
+  moose gallops round you while he shoots). The moose charges (6.5 hearts) and kicks anyone behind it (4.5).
+- **The split:** at 0 the moose rears and he leaps off and blows his horn; neither can be hurt for 2 seconds. Then
+  each has his own bar of 150: **The Huntsman** and **Alpha Moose**.
+- **Stage 2:** on foot he uses spear combos, a leaping strike, a thrown spear (it comes back to his hand), an aimed
+  shot after a frost glint (it freezes you for a moment), a backstep and shot, the arrow rain, the bola and the horn.
+  The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow that burst into
+  ice spikes under you. The moose goes for the closest player, he goes for the furthest.
+- **Kill one** and the other gets angry: its bar turns blood red, and it's faster and hits harder.
+- **Kill both:** the advancement **The Hunter Hunted** for whoever got the last kill and everyone within 40 blocks.
+- **Walk away** (no one within 64 blocks for 30 seconds) and the fight is broken off: both are back at full health,
+  him in the saddle, calm.
+- The thrown spear is drawn as a trident and the sounds are stand-ins until the real ones are made.
+- `/dross showcase boss_designs huntsman` shows him riding, on foot and the moose alone, with a button for every
+  animation; `/dross showcase bossbars huntsman` shows his boss bars.
+
+---
+
 ## The Rage Wand
 
 A creative-only testing tool in the Dross tab (after the Admin Sword), with five **teams**: **right-click** to switch
@@ -560,6 +588,7 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | Rise! | Raise the undead with Necromancy | Challenge |
 | Set in Stone | Defeat the Cinder Colossus | Challenge, under *Enter the Dross*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
 | Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Enter the Dross*. Goes to the player who killed him and everyone within 40 blocks when he dies |
+| The Hunter Hunted | Bring down the Huntsman and his Alpha Moose | Challenge, under *Enter the Dross*. Goes to the player with the last kill and everyone within 40 blocks |
 
 ---
 
@@ -614,6 +643,8 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
 | `/dross boss summon ratking` | Summons a fighting Rat King, asleep, 14 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena ratking` | Builds the Rat King's placeholder arena round you (a 31-block round floor of dirt and coarse dirt), with a chat button to summon him. |
+| `/dross boss summon huntsman` | Summons the Huntsman riding his Alpha Moose 16 blocks in front of you, calm until hit (not on Peaceful). |
+| `/dross boss arena huntsman` | Builds the Huntsman's placeholder arena round you (a 41-block round floor of snow and packed ice, with lantern posts), with a chat button to summon him. |
 
 ---
 

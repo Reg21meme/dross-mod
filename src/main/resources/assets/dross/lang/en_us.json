@@ -371,5 +371,17 @@
   "block.dross.rimeberry_basket": "Rimeberry Basket",
   "item.dross.frostroot": "Frostroot",
   "item.dross.snow_lichen": "Snow Lichen",
-  "item.dross.rimeberries": "Rimeberries"
+  "item.dross.rimeberries": "Rimeberries",
+  "item.dross.huntsman_spawn_egg": "Huntsman Spawn Egg",
+  "item.dross.bola": "Hunter's Bola",
+  "entity.dross.bola": "Bola",
+  "entity.dross.hunt_spear": "Huntsman's Spear",
+  "effect.dross.snared": "Snared",
+  "advancements.dross.the_hunter_hunted.title": "The Hunter Hunted",
+  "advancements.dross.the_hunter_hunted.description": "Bring down the Huntsman and his Alpha Moose.",
+  "commands.dross.boss.summon_huntsman.success": "The Huntsman rides in %s blocks in front of you on his Alpha Moose. Hit either of them and the hunt begins.",
+  "commands.dross.boss.summon_huntsman.peaceful": "The Huntsman can't be summoned on Peaceful difficulty.",
+  "commands.dross.boss.summon_huntsman.failed": "Couldn't summon the Huntsman here.",
+  "commands.dross.boss.arena_huntsman.success": "Built the Huntsman's arena around you: a round floor of snow and packed ice %s blocks across, lantern posts round its edge.",
+  "commands.dross.boss.arena_huntsman.summon_button": "[Summon the Huntsman]"
 }

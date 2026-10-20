@@ -365,6 +365,13 @@ public final class DrossColors {
     /** Spawn egg: the Pond Skater (dark frosted chitin, pale frost). */
     public static final int POND_SKATER_EGG_BASE = 0x1C2733;
     public static final int POND_SKATER_EGG_SPOTS = 0xA9D4F0;
+    /** The Huntsman's spawn egg: his bone-pale mask, the glacier blue of his ice. */
+    public static final int HUNTSMAN_EGG_BASE = 0xE4DACA;
+    public static final int HUNTSMAN_EGG_SPOTS = 0x6FA8D8;
+    /** Snared (his bola, his aimed shot): the effect's swirl. */
+    public static final int HUNTSMAN_SNARED = 0xA8D8F0;
+    /** The [Summon the Huntsman] button his arena's message has. */
+    public static final int HUNTSMAN_COMMAND_BUTTON = 0x96D2F0;
 
     /** Cinder Colossus trophy: the item's name, lava orange. Used in boss/trophy/ColossusTrophyItem. */
     public static final int TROPHY_NAME = 0xFF8A1F;

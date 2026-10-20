@@ -142,6 +142,7 @@ public final class HuntsmanShowcase
         {
             return null;
         }
+        mob.setShowcase(true);                       // on show: frozen, only /kill hurts it (not the fight's)
         mob.moveTo(feet.x, feet.y, feet.z, yaw, 0.0F);
         mob.setYHeadRot(yaw);
         mob.setYBodyRot(yaw);

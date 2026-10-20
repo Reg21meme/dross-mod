@@ -20,7 +20,7 @@ import java.util.List;
  *
  * <p>The Dross tab, in order: {@link #ROOT} (silent, unlocks the tab) → {@link #WEATHERED_LETTER} →
  * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose children are {@link #RISE},
- * {@link #SET_IN_STONE} and {@link #DOWN_THE_DRAIN}.</p>
+ * {@link #SET_IN_STONE}, {@link #DOWN_THE_DRAIN} and {@link #THE_HUNTER_HUNTED}.</p>
  */
 public final class DrossAdvancements
 {
@@ -42,6 +42,9 @@ public final class DrossAdvancements
     public static final String SET_IN_STONE = "set_in_stone";
     /** "Down the Drain": the boss area grants it when a player defeats the Rat King. Not part of the quest. */
     public static final String DOWN_THE_DRAIN = "down_the_drain";
+    /** "The Hunter Hunted" (the user's pick of name): the boss area grants it when a player helps beat the Huntsman and
+     * his Alpha Moose. Not part of the quest. */
+    public static final String THE_HUNTER_HUNTED = "the_hunter_hunted";
 
     /** The advancements {@code /dross quest reset} takes away ("Rise!", "Set in Stone" and "Down the Drain" stay: they're about Necromancy and the bosses, not the quest). */
     static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, PROVEN_WORTHY, KEYMASTER, ENTERED_THE_DROSS);

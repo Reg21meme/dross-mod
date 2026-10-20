@@ -7,6 +7,8 @@ import com.reg21meme.dross.boss.golem.LavaBlob;
 import com.reg21meme.dross.boss.golem.LavaGolem;
 import com.reg21meme.dross.boss.golem.StoneGolem;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
+import com.reg21meme.dross.boss.huntsman.Bola;
+import com.reg21meme.dross.boss.huntsman.HuntSpear;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.ratking.PlagueBall;
 import com.reg21meme.dross.boss.ratking.PoisonCloud;
@@ -159,7 +161,8 @@ public final class ModEntities
     /**
      * Boss area: the Huntsman ({@code dross:huntsman}, about 4.5 blocks to his hood on foot) and his Alpha Moose
      * ({@code dross:alpha_moose}, about 5.3 to its antler tips), who rides it in stage 1 of his fight (CLAUDE.md step
-     * 14). On show only for now ({@code /dross showcase boss_designs huntsman}).
+     * 14): his fight (a spawn egg, {@code /dross boss summon huntsman}) and on show
+     * ({@code /dross showcase boss_designs huntsman}).
      */
     public static final RegistryObject<EntityType<Huntsman>> HUNTSMAN = ENTITY_TYPES.register("huntsman",
             () -> EntityType.Builder.<Huntsman>of(Huntsman::new, MobCategory.MONSTER)
@@ -173,6 +176,20 @@ public final class ModEntities
                     .fireImmune()
                     .clientTrackingRange(12)
                     .build("alpha_moose"));
+    // Boss area: the Huntsman's bola (a weighted rope of ice he throws: it snares what it hits)
+    public static final RegistryObject<EntityType<Bola>> BOLA = ENTITY_TYPES.register("bola",
+            () -> EntityType.Builder.<Bola>of(Bola::new, MobCategory.MISC)
+                    .sized(0.4F, 0.4F)
+                    .clientTrackingRange(6)
+                    .updateInterval(10)
+                    .build("bola"));
+    // Boss area: the Huntsman's thrown spear (it flies back to his hand; drawn as a trident until the user's spear model)
+    public static final RegistryObject<EntityType<HuntSpear>> HUNT_SPEAR = ENTITY_TYPES.register("hunt_spear",
+            () -> EntityType.Builder.<HuntSpear>of(HuntSpear::new, MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(6)
+                    .updateInterval(20)
+                    .build("hunt_spear"));
 
     private ModEntities() {}
 }

@@ -78,6 +78,12 @@ public final class ModItems
     public static final RegistryObject<Item> POND_SKATER_SPAWN_EGG = ITEMS.register("pond_skater_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.POND_SKATER, DrossColors.POND_SKATER_EGG_BASE, DrossColors.POND_SKATER_EGG_SPOTS,
                     new Item.Properties()));
+    // Boss area: the Huntsman (he comes riding his Alpha Moose, calm until the first hit)
+    public static final RegistryObject<Item> HUNTSMAN_SPAWN_EGG = ITEMS.register("huntsman_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.HUNTSMAN, DrossColors.HUNTSMAN_EGG_BASE, DrossColors.HUNTSMAN_EGG_SPOTS,
+                    new Item.Properties()));
+    // Boss area: the Huntsman's bola (how it looks flying; not in the creative tab)
+    public static final RegistryObject<Item> BOLA = ITEMS.register("bola", () -> new Item(new Item.Properties()));
 
     // Boss area: the Cinder Colossus trophy (its design is in the item; fireproof, never despawns)
     public static final RegistryObject<Item> COLOSSUS_TROPHY = ITEMS.register("colossus_trophy",

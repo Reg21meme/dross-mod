@@ -81,7 +81,7 @@ public final class DrossCommandGameTest
             "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",
             "dross showcase boss_designs ratking", "dross showcase rats", "dross showcase boss_sounds ratking",
             "dross showcase boss_designs rimefall", "dross showcase rimefall_mobs", "dross showcase mob_sounds rimefall",
-            "dross boss summon ratking", "dross boss arena ratking",
+            "dross boss summon ratking", "dross boss arena ratking", "dross boss summon huntsman", "dross boss arena huntsman",
             "dross boss summon colossus", "dross boss arena colossus",
     };
     /** Unfinished or unknown commands, which must not run (the Nether Scar biome was removed on October 17, 2026). */
