@@ -91,6 +91,9 @@ import net.minecraftforge.fml.common.Mod;
  *       and the moose alone, frozen, playing the animation clicked ({@link HuntsmanShowcase}).</li>
  *   <li>{@code /dross showcase hunter_villages}: builds the ten hunter village designs and the Huntsman's lodge ahead
  *       of you, one a tick, with [go] buttons ({@link HunterVillageShowcase}).</li>
+ *   <li>{@code /dross showcase hunter_igloos}: builds every hunter igloo template (homes, work igloos, halls, extras,
+ *       the Huntsman's lodge and barn) and every decoration ahead of you, one a tick, with numbered signs and [go]
+ *       buttons, for the user to pick from ({@link HunterIglooShowcase}).</li>
  *   <li>{@code /dross showcase bossbars huntsman [angry]}: shows the Huntsman's boss bars (the user's picks) on your
  *       screen for a minute, draining and filling (the fight's three bars, or the two angry looks), with a chat button
  *       for the other set ({@link HuntsmanBarShowcase}).</li>
@@ -203,7 +206,9 @@ public final class DrossCommand
                         .then(Commands.literal("bossbars")
                                 .then(huntsmanBarShowcase()))
                         // Boss area's hunter villages (ten designs and the Huntsman's lodge; HunterVillageShowcase).
-                        .then(Commands.literal("hunter_villages").executes(HunterVillageShowcase::run)))
+                        .then(Commands.literal("hunter_villages").executes(HunterVillageShowcase::run))
+                        // Boss area's hunter igloos and decorations, one template each (HunterIglooShowcase).
+                        .then(Commands.literal("hunter_igloos").executes(HunterIglooShowcase::run)))
                 // Boss area's test commands: boss <action> <boss> (the logic lives in BossCommands). The arena's chat
                 // buttons run BossCommands.SUMMON_COMMAND ("/dross boss summon colossus") and SUMMON_RAT_KING_COMMAND
                 // ("/dross boss summon ratking"), so keep those paths exactly as they are.

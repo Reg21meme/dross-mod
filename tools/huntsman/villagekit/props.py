@@ -144,11 +144,16 @@ def woodpile(f, length=3, height=2):
 def sled(f, cargo=True):
     """A sled 2 wide and 4 long, its runners curling up at the front (v), with a load: True or "mixed" (a barrel,
     hides and furs), "logs" (firewood), "meat" (joints of meat under a hide), "hides" (bundles of wool), "ice" (cut
-    blocks of packed ice) or None."""
+    blocks of packed ice) or None. Its deck is planks, full blocks, so the load sits on it (the user, October 20:
+    anything on a slab floats; "redesign the sleighs so it's just a full block"), trapdoors along its sides for the
+    runners, a stair for its curled-up prow."""
     for u in (0, 1):
         for v in range(0, 3):
-            f.set(u, 1, v, "spruce_slab[type=bottom]")
+            f.set(u, 1, v, "spruce_planks")
         f.set(u, 1, 3, "spruce_stairs[facing={front},half=bottom]")
+    for v in range(0, 3):
+        f.set(-1, 1, v, "spruce_trapdoor[facing={left},half=bottom,open=true]")
+        f.set(2, 1, v, "spruce_trapdoor[facing={right},half=bottom,open=true]")
     if cargo is True or cargo == "mixed":
         f.set(0, 2, 1, "barrel[facing=up,open=false]")
         f.set(1, 2, 0, "brown_wool")
@@ -641,7 +646,7 @@ def kayak_rack(f):
             f.set(u, 1, v, "spruce_fence")
     for u in (0, 1):
         for v in (-1, 0, 1):
-            f.set(u, 2, v, "spruce_slab[type=bottom]")
+            f.set(u, 2, v, "spruce_slab[type=top]")          # (a top slab: the hide lies flush on it)
         f.set(u, 2, 2, "spruce_stairs[facing={back},half=bottom]")
         f.set(u, 2, -2, "spruce_stairs[facing={front},half=bottom]")
         f.set(u, 3, 0, "brown_carpet")
@@ -661,15 +666,13 @@ def snow_block_stack(f):
 
 
 def ice_block_stack(f):
-    """Blocks of lake ice cut for walls (packed and blue ice), stacked on a sled-board."""
-    for u in range(3):
-        f.set(u, 1, 0, "spruce_slab[type=bottom]")
+    """Blocks of lake ice cut for walls (packed and blue ice), stacked on the ground."""
+    f.set(0, 1, 0, "packed_ice")
+    f.set(1, 1, 0, "blue_ice")
+    f.set(2, 1, 0, "packed_ice")
     f.set(0, 2, 0, "packed_ice")
-    f.set(1, 2, 0, "blue_ice")
-    f.set(2, 2, 0, "packed_ice")
-    f.set(0, 3, 0, "packed_ice")
-    f.set(1, 3, 0, "packed_ice")
-    f.set(0, 4, 0, "blue_ice")
+    f.set(1, 2, 0, "packed_ice")
+    f.set(0, 3, 0, "blue_ice")
 
 
 def lane_arch(f, width=5, height=6, mat="bone_block[axis=y]"):
@@ -739,8 +742,7 @@ def smoking_rack(f, length=3):
         f.set(u, 4, 0, "spruce_fence")
         f.set(u, 3, 0, "chain[axis=y]")
         f.set(u, 2, 0, MEAT if u % 2 == 0 else DRIED)
-        f.set(u, 1, 0, "campfire[facing=north,lit=true,signal_fire=false]" if u == length // 2 else
-              "cobblestone_slab[type=bottom]")
+        f.set(u, 1, 0, "campfire[facing=north,lit=true,signal_fire=false]" if u == length // 2 else "cobblestone")
 
 
 def hide_line(f, length=5, colours=("brown", "light_gray", "white")):

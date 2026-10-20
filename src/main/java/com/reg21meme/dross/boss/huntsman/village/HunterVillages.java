@@ -129,7 +129,7 @@ public final class HunterVillages
      * empty until the village filled it can miss the light of the blocks put in it (a room read dark in a test, its
      * lanterns and fire there), and the rooms must be lit so nothing spawns in them.
      */
-    private static void relight(ServerLevel level, BoundingBox box)
+    static void relight(ServerLevel level, BoundingBox box)
     {
         LevelLightEngine light = level.getChunkSource().getLightEngine();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();

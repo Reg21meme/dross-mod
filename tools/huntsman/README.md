@@ -94,6 +94,37 @@ animals, each room's darkest floor cell) and the previews `boss-previews/rimefal
 `_rolled`, `_inside`, `_igloos`, `_back`, `_top`, `all_villages.png`, `index.html`). In the game:
 `/dross showcase hunter_villages`.
 
+## Igloo templates and decorations: `igloos.py`
+
+```
+python tools/huntsman/igloos.py                     # every igloo and decoration: templates, previews, the Java table
+python tools/huntsman/igloos.py trappers_hut        # only these igloos (and --decor for the decorations too)
+python tools/huntsman/igloos.py --blank cook_igloo  # the room of a design's domes, layer by layer (to draw its plan on)
+```
+
+The plan of October 20, 2026 (after the user's play test: "go back to the drawing board ... create a general template
+for each house ... then copy and paste them"): every igloo is designed by hand first, shown on its own in
+`/dross showcase hunter_igloos`, and only the ones the user picks are joined into villages afterwards (with the layout
+logic of `villages.py`, which the user likes).
+
+- `igloo_designs/plan.py`: the engine. An `Igloo` is its domes (hollowed out together by `villagekit/igloo.py`, the
+  first one holding the doorway: 1 wide and 2 tall, no door, at the south), its floor plan drawn as text layer by layer
+  (`P()` for rows typed out with their row numbers, `L()` for wide rooms built from each row's items, `sym()` for
+  mirrored pairs), its legend (`LEGEND` and the design's own: `{in}` faces into the room), its beds (a head character
+  beside its foot), things hung from the ceiling on chains, and anything outside it. A fire gets a smoke vent. A
+  `Custom` design (the barn) draws itself. Every build is checked: nothing on a bottom slab, nothing that needs a floor
+  without one, chests with air over their lids, beds whole, every floor cell walkable from the doorway and lit to 5 or
+  more, nothing melting, everything that opens facing the room (`check`, `check_blocks`).
+- `igloo_designs/homes.py` (six homes with their stories), `work.py` (storehouse, cookhouse, barracks, workshop),
+  `halls.py` (the round and the long hall), `extras.py` (ice-fishing hut, tannery, Snow Angel's shrine),
+  `lodge_house.py` (the Huntsman's lodge and the Alpha Moose's barn).
+- `igloo_designs/decor_catalog.py` (every decoration, the villages' own from `villagekit/props.py`) and `decor_new.py`
+  (the lights for a ring round a village and the new ideas).
+
+Writes `data/dross/structures/hunter_igloo/<id>.nbt` and `hunter_decor/<id>.nbt`,
+`boss/huntsman/village/HunterIglooDesigns.java` (don't edit by hand) and `boss-previews/rimefall/huntsman/igloos/`
+(`<id>.png`, `decorations.png`, `all_igloos.png`, `index.html`).
+
 ## Meat blocks: `meat_blocks.py`
 
 ```
