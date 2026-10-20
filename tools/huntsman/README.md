@@ -6,38 +6,37 @@ numpy and Pillow.
 ## Boss bars: `bossbars.py`
 
 ```
-python tools/huntsman/bossbars.py                 # textures, the Java table and the previews
-python tools/huntsman/bossbars.py --previews-only # only the pictures
-python tools/huntsman/bossbars.py 3 7             # only designs 3 and 7's previews (quick checks)
+python tools/huntsman/bossbars.py                 # the texture, the Java table and the preview
+python tools/huntsman/bossbars.py --previews-only # only the picture
 ```
 
-Twenty designs for the user to pick from, drawn as Minecraft GUI pixel art (1 pixel = 1 GUI pixel, 1 px outlines), so
-the previews and the game look exactly alike. Every design has the fight's five looks:
+The Huntsman's boss bars, the user's picks (October 19-20, 2026), drawn as Minecraft GUI pixel art (1 pixel = 1 GUI
+pixel, 1 px outlines), so the preview and the game look exactly alike:
 
-| look | when | fill |
-|---|---|---|
-| `wild_hunt` | stage 1, "The Wild Hunt" (him riding the Alpha Moose, one bar for both) | frost white |
-| `huntsman` | stage 2, "The Huntsman" on foot | glacier blue |
-| `alpha_moose` | stage 2, "Alpha Moose" | antler amber |
-| `huntsman_angry`, `alpha_moose_angry` | stage 2, once the other has died | blood red |
+| look | when | design | fill |
+|---|---|---|---|
+| `wild_hunt` | stage 1, "The Wild Hunt" (him riding the Alpha Moose, one bar for both) | 9, Skull Trophy | frost white |
+| `huntsman` | stage 2, "The Huntsman" on foot | 11, Wolf & Antlers | glacier blue |
+| `alpha_moose` | stage 2, "Alpha Moose" | 1, Antler Frame | antler amber |
+| `huntsman_angry`, `alpha_moose_angry` | stage 2, once the other has died | 11, 1 | blood red |
+
+The other eighteen candidates (round 1's 2-8 and 10, round 2's 12-20) were removed on October 20, 2026. Each bar keeps
+the spacing it had in the showcase the user picked from (its name's height and the room it takes come from its own
+design).
 
 - `barkit.py`: the pixel canvas (negative coordinates: decorations stick out on every side), shapes (discs, polygons,
   lit tubes for antlers and tines, Catmull-Rom curves), Minecraft's own font for the names (read from the game jar in
   the Gradle cache; previews only, nothing is copied into the mod), and the game's way of drawing a bar.
-- `bardesigns.py`: the colours and round 1's ten drawings (`t_antlers`, `t_horn`, ... `t_aurora`). Each returns the
-  empty bar, the full bar and the decorations for one bar and look.
-- `hunterbars.py`: round 2 (the user's picks of round 1: design 9 for the Wild Hunt, design 1 (or 3) for the Alpha
-  Moose; none for the Huntsman, so ten more for him alone in design 9's style, 11-20, of which he picked 11, Wolf &
-  Antlers). Their Wild Hunt and moose looks are design 9's and 1's.
-- `bossbars.py`: lays each design's 15 parts out in its texture, checks the sizes (every fill exactly 182 pixels, the art
-  at most 240 x 34), draws the previews and writes `boss/client/HuntsmanBarStyles.java`.
+- `bardesigns.py`: the colours and the drawings of designs 9 and 1 (`t_skull`, `t_antlers`). Each returns the empty bar,
+  the full bar and the decorations for one bar and look.
+- `hunterbars.py`: the Huntsman's bar, design 11 (`h_wolf`: a wolf's head worn as a hood, a stag's antlers out of it).
+- `bossbars.py`: takes each look from its pick, lays the 15 parts out in one texture, checks the sizes (every fill
+  exactly 182 pixels, the art at most 240 x 34), draws the preview and writes `boss/client/HuntsmanBarArt.java`.
 
-Writes `assets/dross/textures/gui/huntsman_bar/option_<n>.png`, `boss/client/HuntsmanBarStyles.java` (don't edit by
-hand) and `boss-previews/rimefall/huntsman/bossbars/` (`option_<n>.png`, `all_options.png`, `round2_<n>.png`,
-`round2_all.png`, `index.html`). In the game: `/dross showcase bossbars huntsman [<1-20>] [angry]` (it opens on 11).
-
-Colours: the Ice Necromancer's pale blues and white, the hunt's bone, leather, grey bearskin and spruce, the moose's
-browns; never the Dross's electric blue.
+Writes `assets/dross/textures/gui/huntsman_bar.png`, `boss/client/HuntsmanBarArt.java` (don't edit by hand) and
+`boss-previews/rimefall/huntsman/bossbars/` (`bars.png`, `index.html`). In the game: `/dross showcase bossbars huntsman`
+(the fight's three bars) and `/dross showcase bossbars huntsman angry` (the angry looks). The bars are named
+`boss.dross.huntsman.bar.<look>`.
 
 ## Hunter villages: `villages.py`
 

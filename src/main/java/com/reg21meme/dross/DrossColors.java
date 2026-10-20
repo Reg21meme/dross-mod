@@ -405,9 +405,8 @@ public final class DrossColors {
     public static final int HUNTSMAN_BAR_NAME_HUNTER = 0xCEEAFA;
     public static final int HUNTSMAN_BAR_NAME_MOOSE = 0xFCE4B8;
     public static final int HUNTSMAN_BAR_NAME_ANGRY = 0xFFB2A2;
-    /** The Huntsman's boss bar showcase: the chat buttons for the designs, and the one being shown. */
+    /** The Huntsman's boss bar showcase: its chat button (the other set of bars). */
     public static final int HUNTSMAN_BAR_BUTTON = 0x96D2F0;
-    public static final int HUNTSMAN_BAR_BUTTON_SHOWN = 0xFFFFFF;
     /** The hunter village showcase (/dross showcase hunter_villages): its [go] buttons (pale ice) and the [overview]
      * button (snow white). Used in command/HunterVillageShowcase. */
     public static final int HUNTER_VILLAGE_BUTTON = 0x96D2F0;

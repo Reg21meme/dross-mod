@@ -4,6 +4,7 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.DrossHubSafeZone;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.rimefall.RimefallAreas;
+import com.reg21meme.dross.dimension.rimefall.RimefallTuning;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -93,9 +94,10 @@ public final class RimefallAnimals
     }
 
     /**
-     * A Pond Skater: on ice, in the dark, never on Peaceful (a spawner skips the ground and the light); and only on a big
-     * frozen lake (2 at most) or a frozen pond at least 30 blocks across (1 at most): the Dimension area's
-     * {@link RimefallAreas#skaterMayAppear} (the user: they saw 10 on one small pond).
+     * A Pond Skater: on ice, in the dark, never on Peaceful (a spawner skips the ground and the light); only now and then
+     * ({@link #skaterRolls}); and only where there's room: never more than 3 in an area, a big frozen lake 2 at most, a
+     * patch of ice at least 20 blocks across 1 at most (the Dimension area's {@link RimefallAreas#skaterMayAppear}; the
+     * user saw 10 on one small pond, then 7).
      */
     public static boolean checkSkaterSpawn(EntityType<PondSkater> type, ServerLevelAccessor level, MobSpawnType reason,
                                            BlockPos pos, RandomSource random)
@@ -110,7 +112,14 @@ public final class RimefallAnimals
         }
         return level.getBlockState(pos.below()).is(BlockTags.ICE) && level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()
                 && level.getFluidState(pos).isEmpty() && Monster.isDarkEnoughToSpawn(level, pos, random)
-                && RimefallAreas.skaterMayAppear(level.getLevel(), pos);
+                && skaterRolls(random) && RimefallAreas.skaterMayAppear(level.getLevel(), pos);
+    }
+
+    /** A Pond Skater's natural spawn happens only now and then ({@link RimefallTuning#SKATER_SPAWN_CHANCE}; the user:
+     * "they should have a random spawn rate"). */
+    public static boolean skaterRolls(RandomSource random)
+    {
+        return random.nextDouble() < RimefallTuning.SKATER_SPAWN_CHANCE;
     }
 
     /** Puts a showcase animal in the world, frozen: no AI, silent, never despawning, facing {@code yaw}. */

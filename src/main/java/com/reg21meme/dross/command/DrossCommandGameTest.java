@@ -72,7 +72,7 @@ public final class DrossCommandGameTest
             "dross goto biome silverwood_forest", "dross goto biome cinder_wastes", "dross goto biome blightwood",
             "dross goto biome rimefall", "dross goto biome gravecrags",
             "dross goto lair colossus", "dross goto lair ratking", "dross goto sewer", "dross goto lake",
-            "dross showcase bossbars huntsman", "dross showcase bossbars huntsman 7", "dross showcase bossbars huntsman 7 angry", "dross showcase bossbars huntsman 17",
+            "dross showcase bossbars huntsman", "dross showcase bossbars huntsman angry",
             "dross showcase hunter_villages", "dross showcase boss_designs huntsman",
             "dross showcase boss_designs huntsman ride_gallop", "dross showcase boss_designs huntsman spear_combo",
             "dross showcase boss_designs huntsman rear",

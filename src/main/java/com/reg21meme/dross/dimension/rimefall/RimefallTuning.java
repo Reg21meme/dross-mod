@@ -94,7 +94,21 @@ public final class RimefallTuning
     // The user: a big lake holds 2 at most; a frozen pond at least ~30 blocks across, 1; anything smaller none ("one
     // that's 10 blocks shouldn't even get one"; they saw 10 on one small pond). Then (October 19): "don't force 2 to
     // always be in a large lake, just make it so 2 could possibly spawn", and "a little more common": any patch of ice
-    // 20 blocks across or more may have 1 ("if I'm not at a large lake but a decent sized patch of ice").
+    // 20 blocks across or more may have 1 ("if I'm not at a large lake but a decent sized patch of ice"). Then (October
+    // 20, after seeing 7 on one pond): "no more than ... maybe 3 can spawn in an area, and the big lake in every biome has
+    // the max of 2", and "don't make them instantly spawn in, they should have a random spawn rate". (The 7 came from
+    // skaters wandering off their pond, where it no longer counted them, and from a pond's ice at several heights, each
+    // counted as its own pond.)
+
+    /** Never more than this many within {@link #SKATER_AREA_RADIUS} blocks (sideways; {@link #SKATER_AREA_HEIGHT} up and
+     * down) of where one would spawn, whatever the ice. */
+    public static final int SKATERS_PER_AREA = 3;
+    public static final double SKATER_AREA_RADIUS = 48.0D;
+    public static final double SKATER_AREA_HEIGHT = 24.0D;
+    /** A skater this far off its lake or patch (wandered onto the shore, or on a step of the same ice) still counts for it. */
+    public static final double SKATER_WANDER_MARGIN = 16.0D;
+    /** A natural spawn that may happen happens only this often (so they turn up now and then, not the moment there's room). */
+    public static final double SKATER_SPAWN_CHANCE = 0.15D;
 
     /** A big lake holds this many at most, or one more with this chance (a roll per lake, fixed by its seed). */
     public static final int SKATERS_PER_LAKE = 1;

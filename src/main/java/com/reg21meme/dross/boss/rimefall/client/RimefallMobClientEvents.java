@@ -3,6 +3,7 @@ package com.reg21meme.dross.boss.rimefall.client;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.rimefall.Moose;
 import com.reg21meme.dross.boss.rimefall.PondSkater;
+import com.reg21meme.dross.boss.rimefall.RimefallMobTuning;
 import com.reg21meme.dross.boss.rimefall.Rimehorn;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraftforge.api.distmarker.Dist;
@@ -44,6 +45,6 @@ public final class RimefallMobClientEvents
                 1.5F, MOOSE_CALF, false));
         event.registerEntityRenderer(ModEntities.POND_SKATER.get(), context -> new RimefallMobRenderer<>(context,
                 new RimefallMobModel<PondSkater>(PondSkater.MOB, s -> "pondskater", List.of(), s -> Set.of(), 1.0F),
-                1.2F, 1.0F, false));
+                1.2F, 1.0F, RimefallMobTuning.SKATER_SCALE, false));
     }
 }

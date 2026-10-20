@@ -1,7 +1,6 @@
 package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.CommandDispatcher;
-import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -92,9 +91,9 @@ import net.minecraftforge.fml.common.Mod;
  *       and the moose alone, frozen, playing the animation clicked ({@link HuntsmanShowcase}).</li>
  *   <li>{@code /dross showcase hunter_villages}: builds the ten hunter village designs and the Huntsman's lodge ahead
  *       of you, one a tick, with [go] buttons ({@link HunterVillageShowcase}).</li>
- *   <li>{@code /dross showcase bossbars huntsman [<1-20>] [angry]}: shows the Huntsman's boss bar designs
- *       on your screen for a minute, draining and filling (the fight's three bars, or the two angry looks), with chat
- *       buttons for the others ({@link HuntsmanBarShowcase}).</li>
+ *   <li>{@code /dross showcase bossbars huntsman [angry]}: shows the Huntsman's boss bars (the user's picks) on your
+ *       screen for a minute, draining and filling (the fight's three bars, or the two angry looks), with a chat button
+ *       for the other set ({@link HuntsmanBarShowcase}).</li>
  *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
  *       you, each on a pedestal facing you with a sign giving its number and name ({@link TrophyShowcase}; the designs
  *       are the boss area's {@code ColossusTrophies}).</li>
@@ -200,7 +199,7 @@ public final class DrossCommand
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))
                                 .then(Commands.literal("ratking").executes(TrophyShowcase::placeRatKingTrophies)))
-                        // Boss area's boss bar designs to pick from, one literal per boss (HuntsmanBarShowcase).
+                        // Boss area's boss bars, one literal per boss (HuntsmanBarShowcase).
                         .then(Commands.literal("bossbars")
                                 .then(huntsmanBarShowcase()))
                         // Boss area's hunter villages (ten designs and the Huntsman's lodge; HunterVillageShowcase).
@@ -253,20 +252,15 @@ public final class DrossCommand
     }
 
     /**
-     * {@code /dross showcase bossbars huntsman [<design>] [angry]}: shows the Huntsman's boss bar designs on your screen
-     * (round 2's design 11 if none is given: the Huntsman bars 11 to 20 with the user's round-1 picks; designs 1 to 10
-     * are round 1's), or with {@code angry} the angry looks ({@link HuntsmanBarShowcase}).
+     * {@code /dross showcase bossbars huntsman [angry]}: shows the Huntsman's boss bars on your screen, the fight's three
+     * or with {@code angry} the two angry looks ({@link HuntsmanBarShowcase}).
      */
     private static LiteralArgumentBuilder<CommandSourceStack> huntsmanBarShowcase()
     {
         return Commands.literal("huntsman")
-                .executes(context -> HuntsmanBarShowcase.show(context.getSource(), HuntsmanBarShowcase.FIRST_ROUND2, false))
-                .then(Commands.argument("design", IntegerArgumentType.integer(1, 20))
-                        .executes(context -> HuntsmanBarShowcase.show(context.getSource(),
-                                IntegerArgumentType.getInteger(context, "design"), false))
-                        .then(Commands.literal("angry")
-                                .executes(context -> HuntsmanBarShowcase.show(context.getSource(),
-                                        IntegerArgumentType.getInteger(context, "design"), true))));
+                .executes(context -> HuntsmanBarShowcase.show(context.getSource(), false))
+                .then(Commands.literal("angry")
+                        .executes(context -> HuntsmanBarShowcase.show(context.getSource(), true)));
     }
 
     /**

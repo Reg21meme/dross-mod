@@ -152,7 +152,7 @@ public final class ModEntities
                     .build("moose"));
     public static final RegistryObject<EntityType<PondSkater>> POND_SKATER = ENTITY_TYPES.register("pond_skater",
             () -> EntityType.Builder.<PondSkater>of(PondSkater::new, MobCategory.MONSTER)
-                    .sized(1.8F, 2.3F)
+                    .sized(1.44F, 1.84F)   // its body at RimefallMobTuning.SKATER_SCALE (0.8) of the model's 1.8 x 2.3
                     .clientTrackingRange(10)
                     .build("pond_skater"));
 

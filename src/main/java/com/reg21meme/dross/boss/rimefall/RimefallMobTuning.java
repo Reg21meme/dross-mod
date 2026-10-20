@@ -101,6 +101,10 @@ public final class RimefallMobTuning
 
     // ---------------------------------------------------------------- the Pond Skater
 
+    /** Its size: the gallery design (rimedesigns/d08_pondskater.py) drawn at this much (the user, October 20: "decrease
+     * the skater size by around 20%, it seems too big"). Its hitbox (ModEntities), its legs' hitboxes and spots, its reach
+     * and its strides all follow. */
+    public static final float SKATER_SCALE = 0.8F;
     public static final double SKATER_HEALTH = 16.0D;
     public static final double SKATER_DAMAGE = 3.0D;
     /** A spider's speed (the user: "as fast as a spider"). */
@@ -113,10 +117,10 @@ public final class RimefallMobTuning
     public static final int STAB_TICKS = 22;
     public static final int STAB_HIT_TICK = 10;
     public static final int STAB_COOLDOWN = 12;
-    public static final double STAB_REACH = 2.2D;
+    public static final double STAB_REACH = 2.2D * SKATER_SCALE;
     /** Its legs' little hitboxes (the user: "make its leg also part of the hitbox, but a small hitbox for the legs"). */
-    public static final float LEG_PART_WIDTH = 0.7F;
-    public static final float LEG_PART_HEIGHT = 0.9F;
+    public static final float LEG_PART_WIDTH = 0.7F * SKATER_SCALE;
+    public static final float LEG_PART_HEIGHT = 0.9F * SKATER_SCALE;
 
     private RimefallMobTuning() {}
 }

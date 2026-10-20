@@ -67,6 +67,7 @@ public final class HunterVillageShowcaseGameTest
      * once more before a dark room counts. */
     private static final int LIGHT_TICKS = 100;
     private static final int LIGHT_RETRY_TICKS = 200;
+    private static final int LIGHT_RETRIES = 3;
     /** While a village's animals wait for their land, it's looked at again this often. */
     private static final int ANIMAL_POLL_TICKS = 20;
     /** Clear ice melts over this block light, a snow layer over the next (IceBlock, SnowLayerBlock). */
@@ -168,7 +169,7 @@ public final class HunterVillageShowcaseGameTest
     }
 
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_hunter_villages_built",
-            timeoutTicks = 10 * (LIGHT_TICKS + 30) + 3 * LIGHT_RETRY_TICKS + 2 * VillageAnimals.MAX_WAIT_TICKS + 600)
+            timeoutTicks = 10 * (LIGHT_TICKS + 30) + 6 * LIGHT_RETRY_TICKS + 2 * VillageAnimals.MAX_WAIT_TICKS + 600)
     public static void villagesStandAndNeverMelt(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel().getServer().overworld();
@@ -203,24 +204,31 @@ public final class HunterVillageShowcaseGameTest
                 throw new GameTestAssertException(design.id() + ": only " + decor[0] + " of " + decor[1]
                         + " of its decorations' blocks are there with all of them kept");
             }
-            // (the light engine can still be catching up on a village this big: a dark room is looked at once more)
-            if (darkRoom(level, design, ground, front) == null)
+            // (the light engine can still be catching up on a village this big: a dark room is looked at again, a few
+            // times; one read light 0 once beside its lanterns, then 7 the next run)
+            whenLit(helper, level, design, ground, front, LIGHT_RETRIES, () ->
             {
-                unload(level, forced);
-                tryNext(helper, level, index + 1);
-                return;
-            }
-            helper.runAfterDelay(LIGHT_RETRY_TICKS, () ->
-            {
-                String dark = darkRoom(level, design, ground, front);
-                if (dark != null)
-                {
-                    throw new GameTestAssertException(dark);
-                }
                 unload(level, forced);
                 tryNext(helper, level, index + 1);
             });
         }));
+    }
+
+    /** Runs {@code then} once every room of the village reads lit, looking again {@code tries} more times if not. */
+    private static void whenLit(GameTestHelper helper, ServerLevel level, HunterVillageDesigns.Design design, BlockPos ground,
+                                Direction front, int tries, Runnable then)
+    {
+        String dark = darkRoom(level, design, ground, front);
+        if (dark == null)
+        {
+            then.run();
+            return;
+        }
+        if (tries <= 0)
+        {
+            throw new GameTestAssertException(dark);
+        }
+        helper.runAfterDelay(LIGHT_RETRY_TICKS, () -> whenLit(helper, level, design, ground, front, tries - 1, then));
     }
 
     /**

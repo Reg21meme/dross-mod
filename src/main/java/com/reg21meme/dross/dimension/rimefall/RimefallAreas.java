@@ -294,20 +294,31 @@ public final class RimefallAreas
     // ---------------------------------------------------------------- Pond Skaters
 
     /**
-     * May a Pond Skater spawn naturally with its feet at {@code pos} (on ice)? On a big lake while fewer than its
-     * {@link RimefallLake#skaterCap()} (1 or 2) are on it; on any other patch of ice at least
-     * {@link RimefallTuning#PATCH_MIN_ACROSS} blocks across while fewer than {@link RimefallTuning#SKATERS_PER_PATCH} are on
-     * it; anywhere smaller never (the user: "one that's 10 blocks shouldn't even get one").
+     * Is there room for a Pond Skater to spawn naturally with its feet at {@code pos} (on ice)? Never while
+     * {@link RimefallTuning#SKATERS_PER_AREA} (3) are within {@link RimefallTuning#SKATER_AREA_RADIUS} blocks; on a big
+     * lake while fewer than its {@link RimefallLake#skaterCap()} (1 or 2) are on it or its shore; on any other patch of
+     * ice at least {@link RimefallTuning#PATCH_MIN_ACROSS} blocks across while fewer than
+     * {@link RimefallTuning#SKATERS_PER_PATCH} are on it or near it; anywhere smaller never (the user: "one that's 10
+     * blocks shouldn't even get one"). Skaters that wandered off count where they came from
+     * ({@link RimefallTuning#SKATER_WANDER_MARGIN}). The spawn rule also rolls its chance
+     * ({@link RimefallTuning#SKATER_SPAWN_CHANCE}).
      */
     public static boolean skaterMayAppear(ServerLevel level, BlockPos pos)
     {
+        AABB area = new AABB(pos).inflate(RimefallTuning.SKATER_AREA_RADIUS, RimefallTuning.SKATER_AREA_HEIGHT,
+                RimefallTuning.SKATER_AREA_RADIUS);
+        if (skatersIn(level, area) >= RimefallTuning.SKATERS_PER_AREA)
+        {
+            return false;
+        }
+        double margin = RimefallTuning.SKATER_WANDER_MARGIN;
         Optional<RimefallLake> lake = level.dimension().equals(ModDimensions.DROSS_LEVEL)
                 ? lakeAt(BossSites.forLevel(level), pos.getX(), pos.getZ()) : Optional.empty();
         if (lake.isPresent() && lake.get().inLake(pos.getX(), pos.getZ()))
         {
             RimefallLake l = lake.get();
-            double r = l.reach() + 2.0D;
-            AABB box = new AABB(l.centre().getX() - r, l.iceY() - 3, l.centre().getZ() - r, l.centre().getX() + r, l.iceY() + 6,
+            double r = l.reach() + margin;
+            AABB box = new AABB(l.centre().getX() - r, l.iceY() - 6, l.centre().getZ() - r, l.centre().getX() + r, l.iceY() + 8,
                     l.centre().getZ() + r);
             return skatersIn(level, box) < l.skaterCap();
         }
@@ -316,7 +327,7 @@ public final class RimefallAreas
         {
             return false;
         }
-        return skatersIn(level, patch.box()) < RimefallTuning.SKATERS_PER_PATCH;
+        return skatersIn(level, patch.box().inflate(margin, 4.0D, margin)) < RimefallTuning.SKATERS_PER_PATCH;
     }
 
     /**

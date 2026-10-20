@@ -685,13 +685,14 @@ public final class RimefallAnimalsGameTest
                 {
                     throw new GameTestAssertException("it should have six leg hitboxes, but has " + legs.length);
                 }
-                // The middle legs (the oars) are about 3.6 blocks out to each side.
+                // The middle legs (the oars) are about 3.6 blocks out to each side at the model's size (2.9 at 80%).
                 for (int i = 0; i < 2; i++)
                 {
                     double out = Math.hypot(legs[i].getX() - skater.getX(), legs[i].getZ() - skater.getZ());
-                    if (Math.abs(out - 3.6D) > 0.3D)
+                    double expected = 3.6D * RimefallMobTuning.SKATER_SCALE;
+                    if (Math.abs(out - expected) > 0.3D)
                     {
-                        throw new GameTestAssertException("a middle leg's hitbox should be about 3.6 blocks out, but it's " + out);
+                        throw new GameTestAssertException("a middle leg's hitbox should be about " + expected + " blocks out, but it's " + out);
                     }
                 }
                 AABB box = legs[0].getBoundingBox();
@@ -718,8 +719,10 @@ public final class RimefallAnimalsGameTest
     /**
      * Pond Skaters spawn only on ice big enough for them (the user: they saw 10 on one small pond; "one that's 10 blocks
      * shouldn't even get one"): a frozen pond 31 across may get one, a 9 across one none, and a big pond with one on it
-     * already none more. (Rimefall's big lakes, 2 each, are checked in RimefallLakeGameTest.) Its own batch: the ponds
-     * are built over the arena, a little wider than it.
+     * already none more, even when that one has wandered off onto the rock beside it; never more than 3 in an area (the
+     * user, after seeing 7 on one pond); and a natural spawn with room happens only about 15% of the time. (Rimefall's big
+     * lakes, 2 each, are checked in RimefallLakeGameTest.) Its own batch: the ponds are built over the arena, a little
+     * wider than it.
      */
     @GameTest(template = ColossusGameTest.ARENA, batch = "dross_rimefall_ponds", timeoutTicks = TIMEOUT)
     public static void pondSkatersNeedABigPond(GameTestHelper helper)
@@ -739,6 +742,7 @@ public final class RimefallAnimalsGameTest
         buildIcePatch(level, patch, 10, built);          // 21 across, packed ice on stone: no water
         buildIcePatch(level, littlePatch, 7, built);     // 15 across
         PondSkater skater = null;
+        List<PondSkater> crowd = new ArrayList<>();
         try
         {
             boolean onPatch = com.reg21meme.dross.dimension.rimefall.RimefallAreas.skaterMayAppear(level, patch.above(2));
@@ -764,6 +768,47 @@ public final class RimefallAnimalsGameTest
                 throw new GameTestAssertException("a Pond Skater should spawn on a frozen pond 31 across (it may: " + onBig
                         + "), not on one 9 across (it may: " + onSmall + "), and not on the big one once one is on it (it may: " + onBigAgain + ")");
             }
+            // One that wandered off onto the rock beside its pond still counts for it (7 once spawned on one pond that way).
+            skater.moveTo(big.getX() + 19.5D, big.getY() + 2, big.getZ() + 0.5D, 0.0F, 0.0F);
+            if (com.reg21meme.dross.dimension.rimefall.RimefallAreas.skaterMayAppear(level, big.offset(-6, 2, -6)))
+            {
+                throw new GameTestAssertException("a Pond Skater that wandered 4 blocks off its pond should still count for it");
+            }
+            skater.discard();
+            skater = null;
+            // Never more than 3 in an area: three a little way off the 21-wide patch (not on it, nor near enough to count
+            // for it) leave no room on it; with two, there's room again.
+            for (int i = 0; i < 3; i++)
+            {
+                PondSkater near = ModEntities.POND_SKATER.get().create(level);
+                near.setNoAi(true);
+                near.setNoGravity(true);
+                near.moveTo(patch.getX() + 31.5D, patch.getY() + 2, patch.getZ() + 0.5D + i * 3, 0.0F, 0.0F);
+                level.addFreshEntity(near);
+                crowd.add(near);
+            }
+            boolean crowded = com.reg21meme.dross.dimension.rimefall.RimefallAreas.skaterMayAppear(level, patch.above(2));
+            crowd.remove(0).discard();
+            boolean roomAgain = com.reg21meme.dross.dimension.rimefall.RimefallAreas.skaterMayAppear(level, patch.above(2));
+            if (crowded || !roomAgain)
+            {
+                throw new GameTestAssertException("with 3 Pond Skaters 31 blocks off, none more should spawn on the patch (it may: "
+                        + crowded + "); with 2, one may (it may: " + roomAgain + ")");
+            }
+            // And a natural spawn with room happens only now and then.
+            net.minecraft.util.RandomSource dice = net.minecraft.util.RandomSource.create(20261020L);
+            int rolls = 4000;
+            int yes = 0;
+            for (int i = 0; i < rolls; i++)
+            {
+                yes += RimefallAnimals.skaterRolls(dice) ? 1 : 0;
+            }
+            double share = yes / (double) rolls;
+            if (Math.abs(share - com.reg21meme.dross.dimension.rimefall.RimefallTuning.SKATER_SPAWN_CHANCE) > 0.02D)
+            {
+                throw new GameTestAssertException("a Pond Skater's natural spawn should happen "
+                        + com.reg21meme.dross.dimension.rimefall.RimefallTuning.SKATER_SPAWN_CHANCE + " of the time, but it did " + share);
+            }
         }
         finally
         {
@@ -771,6 +816,7 @@ public final class RimefallAnimalsGameTest
             {
                 skater.discard();
             }
+            crowd.forEach(PondSkater::discard);
             for (BlockPos pos : built)
             {
                 level.setBlock(pos, Blocks.AIR.defaultBlockState(), 2 | 16);

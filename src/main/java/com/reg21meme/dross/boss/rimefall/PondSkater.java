@@ -71,16 +71,18 @@ public class PondSkater extends Monster implements GeoEntity, RimefallAnimal
 
     public static final String MOB = "pondskater";
     public static final RimefallAnims.Anim IDLE = RimefallAnims.loop(MOB, "idle", 0.0D);
-    public static final RimefallAnims.Anim WALK = RimefallAnims.loop(MOB, "walk", 3.27D);
-    /** One stroke of the oars covers its stroke length (1.88 blocks) in 0.9 s, gliding on after it. */
-    public static final RimefallAnims.Anim SKATE = RimefallAnims.loop(MOB, "skate", 4.2D);
+    /** How far one loop of the walk and of the skate carries it (the model's own, times its size): one stroke of the oars
+     * covers its stroke length (1.88 blocks at full size) in 0.9 s, gliding on after it. */
+    public static final RimefallAnims.Anim WALK = RimefallAnims.loop(MOB, "walk", 3.27D * RimefallMobTuning.SKATER_SCALE);
+    public static final RimefallAnims.Anim SKATE = RimefallAnims.loop(MOB, "skate", 4.2D * RimefallMobTuning.SKATER_SCALE);
     public static final RimefallAnims.Anim ATTACK = RimefallAnims.once(MOB, "attack", RimefallMobTuning.STAB_TICKS);
     public static final List<RimefallAnims.Anim> ANIMS = List.of(IDLE, WALK, SKATE, ATTACK);
     private static final int BLEND_TICKS = 3;
 
     /**
-     * Where each leg's little hitbox sits, in blocks from its feet (its own left is +x, its front -z): the middle and
-     * hind legs' ankles and the raised front legs' hooks (from {@code rimedesigns/d08_pondskater.py}'s leg points).
+     * Where each leg's little hitbox sits, in blocks from its feet (its own left is +x, its front -z) at the model's full
+     * size (times {@link RimefallMobTuning#SKATER_SCALE} in the world): the middle and hind legs' ankles and the raised
+     * front legs' hooks (from {@code rimedesigns/d08_pondskater.py}'s leg points).
      */
     private static final double[][] LEG_SPOTS = {
             {3.6D, 1.4D, 0.0D}, {-3.6D, 1.4D, 0.0D},          // the middle legs (the oars)
@@ -190,15 +192,15 @@ public class PondSkater extends Monster implements GeoEntity, RimefallAnimal
         double sin = Mth.sin(yaw);
         for (int i = 0; i < this.legs.length; i++)
         {
-            double lx = LEG_SPOTS[i][0];
-            double lz = LEG_SPOTS[i][2];
+            double lx = LEG_SPOTS[i][0] * RimefallMobTuning.SKATER_SCALE;
+            double lz = LEG_SPOTS[i][2] * RimefallMobTuning.SKATER_SCALE;
             // Its own left (+x) and front (-z) turned by its body's yaw into the world: facing (-sin, cos), its left
             // (cos, sin).
             double wx = lx * cos + lz * sin;
             double wz = lx * sin - lz * cos;
             PondSkaterPart leg = this.legs[i];
             double x = this.getX() + wx;
-            double y = this.getY() + LEG_SPOTS[i][1] - RimefallMobTuning.LEG_PART_HEIGHT / 2.0D;
+            double y = this.getY() + LEG_SPOTS[i][1] * RimefallMobTuning.SKATER_SCALE - RimefallMobTuning.LEG_PART_HEIGHT / 2.0D;
             double z = this.getZ() + wz;
             leg.xo = leg.getX();
             leg.yo = leg.getY();
@@ -443,11 +445,11 @@ public class PondSkater extends Monster implements GeoEntity, RimefallAnimal
         return this.animationCache;
     }
 
-    /** Its legs reach about 6 blocks out each side: drawn whenever any of it could be on screen. */
+    /** Its legs reach about 5 blocks out each side: drawn whenever any of it could be on screen. */
     @Override
     public AABB getBoundingBoxForCulling()
     {
-        return this.getBoundingBox().inflate(6.0D, 1.0D, 6.0D);
+        return this.getBoundingBox().inflate(5.0D, 1.0D, 5.0D);
     }
 
     // ---------------------------------------------------------------- showcase Pond Skaters

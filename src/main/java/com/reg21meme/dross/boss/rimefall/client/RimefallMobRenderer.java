@@ -18,22 +18,31 @@ import javax.annotation.Nullable;
 /**
  * Draws one of Rimefall's animals with GeckoLib, the way the Rimefall gallery draws its statues: the solid parts cut out,
  * then (if it has any) the see-through ice blended over them and the ice's own glow full-bright (the Rimehorn's clear
- * horns). A calf is drawn at {@code babyScale} of a grown one (its head scaled back up by {@link RimefallMobModel}).
+ * horns). A grown one is drawn at {@code scale} of its model (the Pond Skater smaller than its gallery design), a calf at
+ * {@code babyScale} of a grown one (its head scaled back up by {@link RimefallMobModel}).
  */
 public class RimefallMobRenderer<T extends LivingEntity & GeoEntity> extends GeoEntityRenderer<T>
 {
     private final RimefallMobModel<T> mobModel;
     private final float babyScale;
+    private final float scale;
     private final float shadow;
 
     public RimefallMobRenderer(EntityRendererProvider.Context context, RimefallMobModel<T> model, float shadow, float babyScale,
                                boolean ice)
     {
+        this(context, model, shadow, babyScale, 1.0F, ice);
+    }
+
+    public RimefallMobRenderer(EntityRendererProvider.Context context, RimefallMobModel<T> model, float shadow, float babyScale,
+                               float scale, boolean ice)
+    {
         super(context, model);
         this.mobModel = model;
         this.babyScale = babyScale;
-        this.shadow = shadow;
-        this.shadowRadius = shadow;
+        this.scale = scale;
+        this.shadow = shadow * scale;
+        this.shadowRadius = this.shadow;
         if (ice)
         {
             this.addRenderLayer(new IceLayer<>(this, false));
@@ -53,7 +62,7 @@ public class RimefallMobRenderer<T extends LivingEntity & GeoEntity> extends Geo
     public void scaleModelForRender(float widthScale, float heightScale, PoseStack poseStack, T animal, BakedGeoModel model,
                                     boolean isReRender, float partialTick, int packedLight, int packedOverlay)
     {
-        float k = animal.isBaby() ? this.babyScale : 1.0F;
+        float k = (animal.isBaby() ? this.babyScale : 1.0F) * this.scale;
         super.scaleModelForRender(widthScale * k, heightScale * k, poseStack, animal, model, isReRender, partialTick,
                 packedLight, packedOverlay);
     }
