@@ -8,7 +8,9 @@ import java.util.List;
  * The Huntsman's and the Alpha Moose's animations (made by {@code tools/rimefall/mobs.py}: the modules
  * {@code rimemobs/huntsman.py}, {@code huntsman_rider.py} and {@code alpha_moose.py}), as their files name them
  * ({@code animation.<model>.<name>}), with how long each lasts. The Huntsman has two models: on foot ({@code huntsman})
- * and in the saddle ({@code huntsman_rider}), whose animations all start with {@code ride_}.
+ * and in the saddle ({@code huntsman_rider}), whose animations all start with {@code ride_}. In the saddle he also has
+ * a {@code carry_<name>} animation for each of the Alpha Moose's (the saddle's motion, {@link #carry}), played on a
+ * second controller so he rides along with whatever the moose does.
  */
 public final class HuntAnims
 {
@@ -18,8 +20,9 @@ public final class HuntAnims
      * @param model the model whose file it's in ({@code huntsman}, {@code huntsman_rider}, {@code alpha_moose})
      * @param name  its name
      * @param ticks how long it lasts once (0 for a loop)
+     * @param stays true if its last pose stays (a death) instead of going back to standing
      */
-    public record Anim(String model, String name, int ticks)
+    public record Anim(String model, String name, int ticks, boolean stays)
     {
         public boolean loop()
         {
@@ -35,12 +38,18 @@ public final class HuntAnims
 
     private static Anim loop(String model, String name)
     {
-        return new Anim(model, name, 0);
+        return new Anim(model, name, 0, false);
     }
 
     private static Anim once(String model, String name, double seconds)
     {
-        return new Anim(model, name, (int) Math.round(seconds * 20.0D));
+        return new Anim(model, name, (int) Math.round(seconds * 20.0D), false);
+    }
+
+    /** A move whose last pose stays: a death. */
+    private static Anim last(String model, String name, double seconds)
+    {
+        return new Anim(model, name, (int) Math.round(seconds * 20.0D), true);
     }
 
     public static final String FOOT = "huntsman";
@@ -51,22 +60,35 @@ public final class HuntAnims
     public static final List<Anim> HUNTSMAN = List.of(
             loop(FOOT, "idle"), loop(FOOT, "walk"), loop(FOOT, "run"),
             once(FOOT, "spear_combo", 1.9), once(FOOT, "thrust_sweep", 1.4), once(FOOT, "leap_strike", 1.7),
-            once(FOOT, "throw_spear", 1.3), once(FOOT, "catch_spear", 0.8), once(FOOT, "aimed_shot", 2.1),
-            once(FOOT, "backstep_shoot", 2.0), once(FOOT, "arrow_rain", 2.2), once(FOOT, "snare_throw", 1.4),
-            once(FOOT, "horn_blow", 2.2), once(FOOT, "land", 0.7), once(FOOT, "death", 3.2));
+            once(FOOT, "throw_spear", 1.3), once(FOOT, "catch_spear", 0.8), once(FOOT, "aimed_shot", 2.9),
+            once(FOOT, "backstep_shoot", 2.75), once(FOOT, "arrow_rain", 4.2), once(FOOT, "snare_throw", 1.4),
+            once(FOOT, "horn_blow", 3.7), once(FOOT, "land", 0.7), last(FOOT, "death", 4.6));
 
     /** The Huntsman in the saddle (stage 1, the Wild Hunt). */
     public static final List<Anim> RIDING = List.of(
             loop(RIDER, "ride_idle"), loop(RIDER, "ride_gallop"),
-            once(RIDER, "ride_thrust", 1.1), once(RIDER, "ride_shoot", 1.7), once(RIDER, "ride_rain", 2.2),
-            once(RIDER, "ride_horn", 2.2), once(RIDER, "ride_bola", 1.5), once(RIDER, "ride_leap", 0.9));
+            once(RIDER, "ride_thrust", 1.3), once(RIDER, "ride_shoot", 2.9), once(RIDER, "ride_rain", 4.2),
+            once(RIDER, "ride_horn", 3.7), once(RIDER, "ride_bola", 1.5), once(RIDER, "ride_leap", 1.0));
+
+    /** His leap off the moose (the split): at its end he gets off and lands on foot ({@code land}). */
+    public static final String LEAP = "ride_leap";
 
     /** The Alpha Moose. */
     public static final List<Anim> ALPHA_MOOSE = List.of(
             loop(MOOSE, "idle"), loop(MOOSE, "walk"), loop(MOOSE, "run"), loop(MOOSE, "charge"),
             once(MOOSE, "ram", 1.1), once(MOOSE, "back_kick", 1.2), once(MOOSE, "antler_toss", 1.3),
             once(MOOSE, "stomp", 1.2), once(MOOSE, "bellow", 2.2), once(MOOSE, "crack_stamp", 2.2),
-            once(MOOSE, "rear", 2.4), once(MOOSE, "eat", 6.0));
+            once(MOOSE, "rear", 2.4), once(MOOSE, "eat", 6.0), last(MOOSE, "death", 4.6));
+
+    /**
+     * The saddle's motion while the moose plays {@code moose} ({@code carry_<name>} in the riding model's file), looped
+     * or held like the moose's own.
+     */
+    public static RawAnimation carry(Anim moose)
+    {
+        String id = "animation." + RIDER + ".carry_" + moose.name();
+        return moose.loop() ? RawAnimation.begin().thenLoop(id) : RawAnimation.begin().thenPlayAndHold(id);
+    }
 
     /** The one called {@code name} in {@code anims}, or null. */
     public static Anim named(List<Anim> anims, String name)

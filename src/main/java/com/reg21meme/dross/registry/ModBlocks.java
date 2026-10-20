@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.CinderFireBlock;
 import com.reg21meme.dross.boss.golem.CinderLavaBlock;
+import com.reg21meme.dross.boss.huntsman.village.MeatBlocks;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyBlock;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyBlock;
 import com.reg21meme.dross.dimension.block.TerrainBlocks;
@@ -112,6 +113,11 @@ public final class ModBlocks
     public static final RegistryObject<Block> SEWER_SLUDGE = BLOCKS.register("sewer_sludge", TerrainBlocks::sewerSludge);
     // Dimension area, the Rat King's sewer: Blight Vent (glowing poison-green crack breathing spores, at his grand entrance)
     public static final RegistryObject<Block> BLIGHT_VENT = BLOCKS.register("blight_vent", TerrainBlocks::blightVent);
+
+    // Boss area, the hunter villages: Meat Block (a joint of raw meat: nine of any raw meat; hangs on the hunters' racks)
+    public static final RegistryObject<Block> MEAT_BLOCK = BLOCKS.register("meat_block", MeatBlocks::meat);
+    // Boss area, the hunter villages: Roasted Meat Block (nine of any cooked meat, or a Meat Block cooked; on the spits)
+    public static final RegistryObject<Block> ROASTED_MEAT_BLOCK = BLOCKS.register("roasted_meat_block", MeatBlocks::roasted);
 
     private ModBlocks() {}
 }

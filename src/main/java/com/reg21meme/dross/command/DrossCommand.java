@@ -92,7 +92,7 @@ import net.minecraftforge.fml.common.Mod;
  *       and the moose alone, frozen, playing the animation clicked ({@link HuntsmanShowcase}).</li>
  *   <li>{@code /dross showcase hunter_villages}: builds the ten hunter village designs and the Huntsman's lodge ahead
  *       of you, one a tick, with [go] buttons ({@link HunterVillageShowcase}).</li>
- *   <li>{@code /dross showcase bossbars huntsman [<1-10>] [angry]}: shows one of the Huntsman's ten boss bar designs
+ *   <li>{@code /dross showcase bossbars huntsman [<1-20>] [angry]}: shows the Huntsman's boss bar designs
  *       on your screen for a minute, draining and filling (the fight's three bars, or the two angry looks), with chat
  *       buttons for the others ({@link HuntsmanBarShowcase}).</li>
  *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
@@ -253,15 +253,15 @@ public final class DrossCommand
     }
 
     /**
-     * {@code /dross showcase bossbars huntsman [<design>] [angry]}: shows one of the Huntsman's ten boss bar designs on
-     * your screen (design 1 if none is given): the fight's three bars, or with {@code angry} the two angry looks
-     * ({@link HuntsmanBarShowcase}).
+     * {@code /dross showcase bossbars huntsman [<design>] [angry]}: shows the Huntsman's boss bar designs on your screen
+     * (round 2's design 11 if none is given: the Huntsman bars 11 to 20 with the user's round-1 picks; designs 1 to 10
+     * are round 1's), or with {@code angry} the angry looks ({@link HuntsmanBarShowcase}).
      */
     private static LiteralArgumentBuilder<CommandSourceStack> huntsmanBarShowcase()
     {
         return Commands.literal("huntsman")
-                .executes(context -> HuntsmanBarShowcase.show(context.getSource(), 1, false))
-                .then(Commands.argument("design", IntegerArgumentType.integer(1, 10))
+                .executes(context -> HuntsmanBarShowcase.show(context.getSource(), HuntsmanBarShowcase.FIRST_ROUND2, false))
+                .then(Commands.argument("design", IntegerArgumentType.integer(1, 20))
                         .executes(context -> HuntsmanBarShowcase.show(context.getSource(),
                                 IntegerArgumentType.getInteger(context, "design"), false))
                         .then(Commands.literal("angry")

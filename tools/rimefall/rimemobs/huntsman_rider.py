@@ -7,25 +7,40 @@ Animations (animation.huntsman_rider.*):
 
   ride_idle     (loop)  sitting easy in the saddle, breathing, looking round
   ride_gallop   (loop)  riding the moose's gallop (its run's 0.6 s stride): rising and falling with it
-  ride_thrust   (once)  the spear driven down and forward from the saddle (the hit at its meta)
-  ride_shoot    (once)  the bow out, drawn and loosed (circling hunt's shots)
-  ride_rain     (once)  the bow raised to the sky, three quick shots (the arrow rain)
-  ride_horn     (once)  the Horn of the Hunt
-  ride_bola     (once)  a bola whirled over his head and thrown
-  ride_leap     (once)  the split: he stands in the stirrups and leaps off
+  ride_thrust   (once)  his arm drawn back, then the spear driven forward and down past the moose's right side, under
+                        its antlers (the hit at its meta), and brought back out to his right and up, never across its
+                        antlers (a check plays it against the moose's own animations, from any moment of its idle)
+  ride_shoot    (once)  the circling hunt's shots: the bow off his back, his bow arm straight, two arrows from the
+                        saddle's quiver drawn to his chin and loosed at a target out to his left (rimemobs/archery.py;
+                        his spear stays in its cup)
+  ride_rain     (once)  the arrow rain: the bow raised to the sky, four loosings of three arrows each
+  ride_horn     (once)  the Horn of the Hunt held to his lips for a long call, the bell up and out
+  (in every one his cloak keeps lying over the moose's rump, whatever his hips and chest do: _keep_cape)
+  ride_bola     (once)  a bola whirled over his head and thrown (his spear left standing in its cup)
+  ride_leap     (once)  the split: he rises in the stirrups, springs up and off to the moose's left and drops to the
+                        snow beside it, LEAP_OUT units out, landing in a crouch with his boots on the snow (in the game
+                        he then gets off there and plays `land` on foot, which starts in that crouch)
+  carry_<name>  (each of the Alpha Moose's animations)  the saddle's motion: its body bone's (root and all), on the bone
+                        "carry" above everything he has. In the game a second animation controller plays the one
+                        matching the moose's animation, so he rides along with whatever it does (rears, kicks, kneels,
+                        gallops) while his own animation plays on top; not while he leaps off (ride_leap).
 """
 import math
 
 import numpy as np
 
-from kit.anims import bump, ramp
+from kit.anims import bump, ramp, smooth
+from kit.clipping import _box_frame
+from kit.geo import euler_bedrock, gecko
 from kit.moves import keyed
+from rimedesigns import d06_huntsman as H
 from rimekit import mobkit
 from rimekit.mobkit import Pose
 
+from . import archery, hunt_ik
 from . import hunter_rig as R
 from . import alpha_moose
-from .huntsman import grip, _armkeys, REST, BOW_ARM, DRAW_ARM, NOCK_ARM, SKY_BOW, SKY_DRAW
+from .huntsman import horn_moves, _shots_meta, HORN_CALL
 
 ID = "huntsman_rider"
 NAME = "The Huntsman (riding)"
@@ -34,16 +49,25 @@ K = R.K
 DESIGN = R.Design
 BUILD_VARIANT = R.variant(POSE)
 VARIANTS = (dict(name="huntsman_rider", design=BUILD_VARIANT, hidden=()),)
-BONES = R.bones(POSE)
+# His whole skeleton hangs from "carry", which moves like the moose's back (carry_<name>); its pivot is his seat.
+CARRY = "carry"
+BONES = ([(CARRY, tuple(float(v) for v in R.joints(POSE)["hips"]), None)]
+         + [(n, piv, CARRY if par is None else par) for n, piv, par in R.bones(POSE)])
 ROUTES = R.ROUTES
-FREE = ("bow_held", "horn_held", "spear")
+FREE = ("bow_held", "horn_held", "spear", "string_top", "string_bot", "arrow_nock", "arrow_hand", "spear_free",
+        "quiver_hip")
 LEGS = []
 GIF_VIEW = (55.0, 8.0, 2.6)
-HITS = {"ride_thrust": (0.45,), "ride_shoot": (1.05,), "ride_rain": (0.7, 1.15, 1.6), "ride_horn": (0.5,),
+LEAP_OUT = 46.0                 # he lands this far to the moose's left of its middle (units: about 2.9 blocks)
+HITS = {"ride_thrust": (0.62,), "ride_shoot": (1.15, 2.05), "ride_rain": (1.0, 1.75, 2.5, 3.25), "ride_horn": (0.85,),
         "ride_bola": (0.95,), "ride_leap": (0.45,)}
+# What the spear mustn't touch on the moose (the user: the thrust went through its antlers), checked by mobs.py.
+MOOSE_KEEP_CLEAR = ("antlers", "head", "neck", "ear_l", "ear_r", "body")
+SPEAR_AXIS = (H.RIDE_FISTS[0] - (H.CUP + np.array([0.0, 1.0, 0.0])))
+SPEAR_AXIS = SPEAR_AXIS / np.linalg.norm(SPEAR_AXIS)          # (the spear in the saddle, butt to tip: in its rest)
 
 clip_group = R.clip_group
-CLIP_PAIRS = ()
+CLIP_PAIRS = (("arms", "body"),)
 
 # Riding: the reins in his left fist, the spear's butt in its cup; so the right arm's rest already holds the spear.
 GALLOP_T = alpha_moose.GALLOP[0]
@@ -51,6 +75,23 @@ GALLOP_T = alpha_moose.GALLOP[0]
 
 def _sit(p, t, T):
     R.breathe(p, t, T, 0.8)
+
+
+def _keep_cape(p):
+    """His cloak lies over the moose's rump (the user: "his cape clips through the moose while he rides it, it should
+    always stay on top"): whatever his hips and chest do, it's turned back by their turn, so it keeps lying where it
+    lies at rest; only its own flutter (the frame's own turn of the cape, kept small and upwards) is added."""
+    from kit.geo import gecko_rotation
+    I = np.eye(3)
+    rh = gecko_rotation(*p["hips"][0])[:3, :3] if "hips" in p else I
+    rc = gecko_rotation(*p["chest"][0])[:3, :3] if "chest" in p else I
+    rf = gecko_rotation(*p["cape"][0])[:3, :3] if "cape" in p else I
+    p.get3("cape")[0] = list(euler_bedrock((rh @ rc).T @ rf))
+
+
+def _show(p, props=()):
+    _keep_cape(p)
+    R.show(p, props)
 
 
 def ride_idle(rig):
@@ -61,122 +102,154 @@ def ride_idle(rig):
         _sit(p, t, T)
         look = float(keyed(t, [(0.0, 0.0), (1.0, 0.0), (1.6, -18.0), (2.6, -18.0), (3.2, 0.0), (T, 0.0)]))
         p.rot("head", 0.0, look, 0.0)
-        R.show(p)
+        _show(p)
         return p
 
     return mobkit.record(rig, "ride_idle", T, frame)
 
 
 def ride_gallop(rig):
+    """His own part of riding the gallop (the saddle's rise and fall comes from carry_run): he absorbs it, a little
+    behind the moose's stride."""
     T = GALLOP_T
 
     def frame(t):
         p = Pose()
         w = 2 * math.pi * t / T
-        p.pos("hips", 0.0, 2.5 * math.sin(w), -1.0 * math.cos(w))
+        p.pos("hips", 0.0, 1.0 * math.sin(w), -0.6 * math.cos(w))
         p.rot("hips", -3.0 * math.sin(w), 0.0, 0.0)
         p.rot("chest", 10.0 + 4.0 * math.sin(w - 0.8), 0.0, 0.0)
         p.rot("head", -10.0 - 3.0 * math.sin(w - 1.2), 0.0, 0.0)
         # (the riding cloak drapes far back over the rump, so a few degrees at his shoulders move its end a lot)
-        p.rot("cape", 2.0 + 2.0 * math.sin(w), 0.0, 0.0)
+        p.rot("cape", 1.5 + 1.5 * math.sin(w), 0.0, 0.0)
         R.arm(p, "l", sh=(-6.0 * math.sin(w - 0.5), 0.0, 0.0))
         R.arm(p, "r", sh=(-4.0 * math.sin(w - 0.5), 0.0, 0.0))
-        R.show(p)
+        _show(p)
         return p
 
     return mobkit.record(rig, "ride_gallop", T, frame)
 
 
 def ride_thrust(rig):
-    T = 1.1
+    """
+    The thrust from the saddle (the user's note: it "goes through the moose's antlers ... he should pull his arm back
+    and thrust underneath the moose's antlers"): he draws his arm back, the spear lifted out of its cup and levelled,
+    its point low; then drives it forward and down past the moose's right shoulder, under its broad right antler, his
+    body leaning in behind it; and brings it back to its cup. The IK puts his fist and the spear's line where they go.
+    """
+    T = 1.3
     hit, = HITS["ride_thrust"]
+    hands = hunt_ik.Hands(rig, R.joints(POSE))
+    k = hands.k
+    rest = hands.j["hand_r"]
+    # (Bedrock units, the rider's frame = the moose's: his right is -x, ahead is -z)
+    keys_fist = [(0.0, rest), (0.12, rest + np.array([-1.0, 2.0, 2.0])),
+                 (0.42, rest + np.array([-5.0, 5.0, 12.0])),                  # drawn back, high by his shoulder
+                 (hit, rest + np.array([-10.0, -5.0, -7.0]), "in"),          # driven forward and down past the moose
+                 (0.8, rest + np.array([-9.0, -4.5, -5.5])),
+                 (0.98, rest + np.array([-8.0, -1.0, 5.0])),                 # pulled back along its own line
+                 (1.15, rest + np.array([-5.0, 2.0, 2.0])), (T, rest)]
+    level = hunt_ik.unit(np.array([-0.24, -0.4, -0.88]))
+    # (the way back: the spear pulled back and swung out to his right as it rises: its point never comes across the
+    # antlers, which reach forward and up from the moose's head; the user saw it go through them)
+    out_right = hunt_ik.unit(np.array([-0.82, 0.38, 0.42]))
+    keys_dir = [(0.0, SPEAR_AXIS), (0.12, SPEAR_AXIS), (0.42, hunt_ik.unit(np.array([-0.22, -0.36, -0.9]))),
+                (hit, level, "in"), (0.8, level), (0.98, hunt_ik.unit(np.array([-0.7, -0.15, -0.7]))),
+                (1.12, out_right), (T, SPEAR_AXIS)]
 
     def frame(t):
         p = Pose()
         _sit(p, t, T)
-        lift = grip((-60.0, 0.0, -15.0), (-60.0, 0.0, 0.0), 100.0)
-        jab = grip((-60.0, 0.0, -5.0), (0.0, 0.0, 0.0), 125.0)
-        keys = [(0.0, REST), (0.3, lift), (hit, jab, "in"), (0.7, jab), (T, REST)]
-        R.arm(p, "r", **_armkeys(keys, t))
-        lean = float(keyed(t, [(0.0, 0.0), (0.3, -4.0), (hit, 16.0, "in"), (0.75, 10.0), (T, 0.0)]))
-        p.rot("chest", lean, 10.0 * bump(t, 0.2, 0.35, 0.7, 1.0), 0.0)
-        R.show(p)
+        wind = bump(t, 0.1, 0.42, 0.45, hit)
+        drive = bump(t, 0.45, hit, 0.85, 1.15)
+        p.rot("chest", -4.0 * wind + 14.0 * drive, 16.0 * wind - 14.0 * drive, 0.0)
+        p.rot("head", 4.0 * wind - 8.0 * drive, -10.0 * wind + 10.0 * drive, 0.0)
+        p.pos("hips", 0.0, 0.0, -2.0 * drive)
+        fist = np.asarray(keyed(t, keys_fist), dtype=float)
+        d = hunt_ik.unit(np.asarray(keyed(t, keys_dir), dtype=float))
+        if 0.04 < t < T - 0.04:
+            hands.arm(p, "r", fist, down_local=SPEAR_AXIS, down=d, key="spear", w_down=5.0)
+        _show(p)
         return p
 
     a = mobkit.record(rig, "ride_thrust", T, frame, loop=False)
-    a.meta["hits"] = list(HITS["ride_thrust"])
+    a.meta["hits"] = [hit]
+    a.meta["ik_miss"] = round(hands.miss, 2)
     return a
 
 
-def _bow(p, t, left, right):
-    R.arm(p, "l", **_armkeys(left, t))
-    R.arm(p, "r", **_armkeys(right, t))
-    p.scale("spear", 0.0)
-    R.show(p, ("bow_held",))
+def _rider_shots(rig, name, T, shots, aim, chest, head, lean=0.0, lift=0.0, hold=0.12, quick=1.0, face=-65.0,
+                 volley=1, nock_down=archery.NOCK_DOWN):
+    """A shooting animation in the saddle: his body turned (chest, head: degrees, positive his right), the bow out
+    of the archery code (his spear stays in its cup meanwhile; his arrows from the saddle's quiver)."""
+    hands = hunt_ik.Hands(rig, R.joints(POSE))
+    quiver = H.SADDLE_QUIVER * hands.k
+    archer = archery.Archer(rig, hands, shots, aim, start=0.05, end=T - 0.05, hold=hold, quick=quick, drop=0.0,
+                            face=face, volley=volley, quiver=lambda p, mats: quiver, reach_turn=25.0,
+                            nock_down=nock_down)
+
+    def frame(t):
+        p = Pose()
+        _sit(p, t, T)
+        kk = smooth((t - 0.06) / 0.35) * (1.0 - smooth((t - (T - 0.55)) / 0.45))
+        p.rot("chest", (2.0 - lean) * kk, chest * kk, 0.0)
+        p.rot("head", (2.0 - lift) * kk, head * kk, 0.0)
+        props = archer.frame(p, t)
+        _show(p, tuple(props))
+        return p
+
+    a = mobkit.record(rig, name, T, frame, loop=False)
+    a.meta["shots"] = list(shots)
+    _shots_meta(rig, hands, a, archer)
+    return a
 
 
 def ride_shoot(rig):
-    T = 1.7
-    rel, = HITS["ride_shoot"]
-
-    def frame(t):
-        p = Pose()
-        _sit(p, t, T)
-        left = [(0.0, REST), (0.35, BOW_ARM), (1.35, BOW_ARM), (T, REST)]
-        right = [(0.0, REST), (0.35, NOCK_ARM), (0.7, DRAW_ARM), (rel, DRAW_ARM), (rel + 0.08, NOCK_ARM, "in"),
-                 (1.35, NOCK_ARM), (T, REST)]
-        _bow(p, t, left, right)
-        p.rot("chest", 0.0, -25.0 * bump(t, 0.2, 0.45, 1.35, T), 0.0)
-        p.rot("head", 0.0, 22.0 * bump(t, 0.2, 0.45, 1.35, T), 0.0)
-        return p
-
-    a = mobkit.record(rig, "ride_shoot", T, frame, loop=False)
-    a.meta["release"] = rel
-    return a
+    """The circling hunt's shots: the moose galloping round you, he looses two arrows out to his left."""
+    T = 2.9
+    return _rider_shots(rig, "ride_shoot", T, list(HITS["ride_shoot"]), lambda t: hunt_ik.elevate(72.0, 3.0),
+                        chest=4.0, head=-62.0, hold=0.1, quick=0.85)
 
 
 def ride_rain(rig):
-    T = 2.2
-    shots = HITS["ride_rain"]
+    """The arrow rain from the saddle: the bow raised to the sky ahead of him and out to his left, four loosings of
+    three arrows each (the user: "he grabs 3 arrows at a time")."""
+    T = 4.2
+    return _rider_shots(rig, "ride_rain", T, list(HITS["ride_rain"]), lambda t: hunt_ik.elevate(25.0, 62.0),
+                        chest=42.0, head=-58.0, lean=8.0, lift=22.0, hold=0.08, quick=0.65, face=-45.0, volley=3,
+                        nock_down=-15.0)      # (the bow held up while he nocks: its lower end clear of the moose's neck)
+
+
+def ride_horn(rig):
+    """The Horn of the Hunt in the saddle: the horn from his belt to his lips, a long call, back again; his spear in
+    his right hand."""
+    T = 3.7
+    blow0, blow1 = HORN_CALL
+    hands = hunt_ik.Hands(rig, R.joints(POSE))
+    horn = horn_moves(rig, hands, 0.0, lower=blow1 + 0.05, back=blow1 + 0.4)
 
     def frame(t):
         p = Pose()
         _sit(p, t, T)
-        left = [(0.0, REST), (0.4, SKY_BOW), (1.85, SKY_BOW), (T, REST)]
-        right = [(0.0, REST), (0.4, NOCK_ARM)]
-        for s in shots:
-            right += [(s - 0.18, SKY_DRAW), (s, SKY_DRAW), (s + 0.08, NOCK_ARM, "in")]
-        right += [(1.85, NOCK_ARM), (T, REST)]
-        _bow(p, t, left, right)
-        p.rot("chest", -12.0 * bump(t, 0.2, 0.4, 1.85, T), 0.0, 0.0)
-        p.rot("head", -22.0 * bump(t, 0.2, 0.45, 1.8, T), 0.0, 0.0)
-        return p
-
-    a = mobkit.record(rig, "ride_rain", T, frame, loop=False)
-    a.meta["shots"] = list(shots)
-    return a
-
-
-def ride_horn(rig):
-    T = 2.2
-
-    def frame(t):
-        p = Pose()
-        up = ramp(t, 0.1, 0.45) * (1.0 - ramp(t, 1.75, 2.1))
-        blow = bump(t, 0.45, 0.55, 1.6, 1.75)
-        R.arm(p, "l", sh=(-115.0 * up, -30.0 * up, 0.0), el=(-95.0 * up, 0.0, 0.0))
-        p.rot("chest", -10.0 * up, 0.0, 0.0)
-        p.rot("head", -18.0 * up + 2.0 * math.sin(2 * math.pi * 6.0 * t) * blow, 0.0, 0.0)
-        R.show(p, ("horn_held",) if up > 0.3 else ())
+        breath = bump(t, 0.4, 0.75, 0.8, blow0 + 0.1)
+        blowing = bump(t, blow0 - 0.05, blow0 + 0.15, blow1 - 0.2, blow1 + 0.05)
+        rise = ramp(t, blow0, blow1)
+        p.rot("chest", -5.0 * breath - (3.0 + 4.0 * rise) * blowing, 6.0 * blowing, 0.0)
+        p.pos("chest", 0.0, 0.6 * breath, 0.0)
+        p.rot("head", -8.0 * breath - (8.0 + 10.0 * rise) * blowing + 1.2 * math.sin(2 * math.pi * 7.0 * t) * blowing,
+              8.0 * blowing, 0.0)
+        props = horn(p, t)
+        _show(p, tuple(props))
         return p
 
     a = mobkit.record(rig, "ride_horn", T, frame, loop=False)
-    a.meta.update(blow=0.5, end=1.6)
+    a.meta.update(blow=blow0, end=blow1, ik_miss=round(hands.miss, 2))
     return a
 
 
 def ride_bola(rig):
-    """The spear back in its cup (his right hand free), a bola whirled round over his head three times and thrown."""
+    """He lets go of the spear (it stays standing in its cup), whirls a bola round over his head three times and
+    throws it."""
     T = 1.5
     rel, = HITS["ride_bola"]
 
@@ -189,8 +262,7 @@ def ride_bola(rig):
                           18.0 * spin * math.sin(a)), el=(-20.0 * spin, 0.0, 0.0),
               hand=(25.0 * spin * math.cos(a), 0.0, 0.0))
         p.rot("chest", 6.0 * bump(t, rel - 0.1, rel, rel + 0.2, T), -10.0 * bump(t, rel - 0.15, rel, rel + 0.2, T), 0.0)
-        p.scale("spear", 0.0)
-        R.show(p)
+        _show(p, ("spear_free",) if 0.06 < t < T - 0.08 else ())
         return p
 
     a = mobkit.record(rig, "ride_bola", T, frame, loop=False)
@@ -199,28 +271,125 @@ def ride_bola(rig):
 
 
 def ride_leap(rig):
-    """The split: he rises in the stirrups, then springs up and off to the moose's left side (in the game the rider
-    then becomes the Huntsman on foot, landing)."""
-    T = 0.9
+    """The split: he rises in the stirrups, springs up and off to the moose's left side and drops to the snow beside
+    it; his riding pose is a crouch already, so he lands in it, his boots on the snow, LEAP_OUT units out."""
+    T = 1.0
     jump, = HITS["ride_leap"]
+    down = 0.86                                    # his boots touch the snow
+
+    crouch = _landing_legs()
+
+    def legs(p, k):
+        # his legs from round the moose's back to under him: a crouch on the snow, boots flat
+        for bone, e in crouch.items():
+            p.rot(bone, *(v * k for v in e))
+
+    landed = Pose()
+    legs(landed, 1.0)
+    mats = rig.m.pose_matrices(landed.as_geo())
+    feet = min(float(mobkit._grid(_box_frame(mats, c))[:, 1].min() * 16.0)
+               for bone in ("boot_l", "boot_r") for c in rig.m[bone].cubes)
 
     def frame(t):
         p = Pose()
         rise = bump(t, 0.0, 0.25, 0.3, jump)
-        up = float(keyed(t, [(0.0, 0.0), (jump, 0.0), (0.7, 40.0, "out"), (T, 30.0)]))
-        out = float(keyed(t, [(0.0, 0.0), (jump, 0.0), (T, 34.0)]))
+        up = float(keyed(t, [(0.0, 0.0), (jump, 0.0), (0.64, 16.0, "out"), (down, -feet, "in"), (T, -feet)]))
+        squash = bump(t, down - 0.02, down + 0.05, down + 0.08, T)
+        out = LEAP_OUT * smooth((t - jump) / (down - 0.05 - jump))
         p.pos("root", out, up + 6.0 * rise, 0.0)
-        p.rot("root", 0.0, 0.0, -20.0 * ramp(t, jump, T))
+        p.rot("root", 0.0, 0.0, -16.0 * bump(t, jump, 0.6, 0.66, down))
+        air = bump(t, jump, 0.6, 0.7, down)
+        legs(p, ramp(t, 0.6, down))
         for side in ("l", "r"):
-            p.rot(f"thigh_{side}", 25.0 * ramp(t, jump, 0.7), 0.0, 0.0)
-        p.rot("cape", 12.0 * ramp(t, jump, 0.75), 0.0, 0.0)
-        R.arm(p, "l", sh=(-60.0 * ramp(t, jump, 0.7), 0.0, 30.0 * ramp(t, jump, 0.7)))
-        R.show(p)
+            p.rot(f"thigh_{side}", 22.0 * air, 0.0, 0.0)
+        p.rot("chest", 10.0 * squash, 0.0, 0.0)
+        p.rot("cape", 14.0 * bump(t, jump, 0.62, 0.75, T), 0.0, 0.0)
+        R.arm(p, "l", sh=(-55.0 * air - 20.0 * squash, 0.0, 30.0 * air + 22.0 * squash))
+        _show(p)
         return p
 
     a = mobkit.record(rig, "ride_leap", T, frame, loop=False)
-    a.meta["jump"] = jump
+    a.meta.update(jump=jump, down=down, out=LEAP_OUT)
     return a
+
+
+def _arc(a, b):
+    """The shortest rotation (3x3) taking direction a to direction b."""
+    a = a / np.linalg.norm(a)
+    b = b / np.linalg.norm(b)
+    v = np.cross(a, b)
+    c = float(np.dot(a, b))
+    if np.linalg.norm(v) < 1e-9:
+        return np.eye(3)
+    vx = np.array([[0.0, -v[2], v[1]], [v[2], 0.0, -v[0]], [-v[1], v[0], 0.0]])
+    return np.eye(3) + vx + vx @ vx / (1.0 + c)
+
+
+# The landing crouch: the thigh forward and down under him, the shin angled back (design directions, his left leg).
+LAND_THIGH = np.array([0.18, -0.72, -0.62])
+LAND_SHIN = np.array([0.03, -0.95, 0.3])
+
+
+def _landing_legs():
+    """The thighs', shins' and boots' rotations (Bedrock degrees) that take his legs from round the moose's back (the
+    riding pose) to the landing crouch, the boots kept as they were."""
+    flip = np.array([-1.0, 1.0, 1.0])                  # (Bedrock directions to GeckoLib space and back)
+    out = {}
+    for x, side in ((1.0, "l"), (-1.0, "r")):
+        hip, knee, ankle = (np.asarray(v, dtype=float) for v in H.ride_leg(x))
+        mirror = np.array([x, 1.0, 1.0])
+        r1 = _arc((knee - hip) * flip, LAND_THIGH * mirror * flip)
+        shin_now = r1 @ ((ankle - knee) * flip)
+        r2w = _arc(shin_now, LAND_SHIN * mirror * flip)
+        out[f"thigh_{side}"] = euler_bedrock(r1)
+        out[f"shin_{side}"] = euler_bedrock(r1.T @ r2w @ r1)
+        out[f"boot_{side}"] = euler_bedrock((r2w @ r1).T)
+    return out
+
+
+def carries(rig, moose=None):
+    """carry_<name> for every one of the Alpha Moose's animations: the transform that takes its body bone from rest to
+    each frame (root and all), as the carry bone's rotation round his seat and a shift. Its body carries the saddle, so
+    he moves exactly as the saddle does. `moose` (its model and animations) is built here if not given."""
+    if moose is None:
+        mm, _t = mobkit.build_model(alpha_moose, verbose=False)
+        moose = (mm, alpha_moose.animations(mobkit.MobRig(mm, alpha_moose)))
+    mm, manims = moose
+    pc = gecko(np.asarray(rig.m[CARRY].pivot, dtype=float))
+    out = {}
+    for name, a in manims.items():
+        prev = [None]
+
+        def frame(t, a=a, prev=prev):
+            g = mm.pose_matrices(a.sample(t))["body"]
+            rot = g[:3, :3]
+            shift = g[:3, 3] - pc + rot @ pc
+            e = euler_bedrock(rot, prev[0])
+            prev[0] = e
+            p = Pose()
+            p.rot(CARRY, *e)
+            p.pos(CARRY, -shift[0] * 16.0, shift[1] * 16.0, shift[2] * 16.0)
+            return p
+
+        out[f"carry_{name}"] = mobkit.record(rig, f"carry_{name}", a.length, frame, loop=a.loop is True)
+    return out
+
+
+def with_carry(a, carry):
+    """`a` played with the carry animation `carry` (or as it is if None): for previews and the checks."""
+    if carry is None:
+        return a
+
+    class _Both:
+        name, length, loop, meta = a.name, a.length, a.loop, a.meta
+
+        @staticmethod
+        def sample(t):
+            out = dict(a.sample(t))
+            out[CARRY] = carry.sample(t if carry.loop is not True else t % carry.length)[CARRY]
+            return out
+
+    return _Both
 
 
 def animations(rig):
@@ -233,4 +402,5 @@ def animations(rig):
         "ride_horn": ride_horn(rig),
         "ride_bola": ride_bola(rig),
         "ride_leap": ride_leap(rig),
+        **carries(rig),
     }

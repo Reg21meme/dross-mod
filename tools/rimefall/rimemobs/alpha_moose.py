@@ -18,12 +18,15 @@ Animations (animation.alpha_moose.*):
   crack_stamp   (once)  it paws the ground three times, then stamps (the cracks start at CRACK_HIT)
   rear          (once)  the split: it rears up on its hind legs, front hooves pawing the air, and comes down (2.4 s)
   eat           (once)  it kneels on its front knees to graze (like the wild moose)
+  death         (once)  its own death (the user's request): it rears up high with a last great bellow, front hooves
+                        thrashing, crashes down onto its front knees, its hind legs give way and it rolls over onto its
+                        side, legs out; they kick feebly, it lifts its head once and lays it down, and it's still
 """
 import math
 
 import numpy as np
 
-from kit.anims import bump, ramp
+from kit.anims import bump, ramp, smooth
 from kit.moves import keyed
 from rimedesigns import d06_huntsman as H
 from rimekit import mobkit
@@ -65,6 +68,8 @@ TOSS_HIT = 0.55
 STOMP_HIT = 0.62
 BELLOW_START, BELLOW_END = 0.55, 1.75
 CRACK_HIT = 1.55
+DEATH_CRY = 0.5                 # its last bellow starts (the game's loud roar)
+DEATH_DOWN = 2.85               # it's on its side
 GIF_VIEW = (55.0, 12.0, 2.6)
 
 # The gaits, as the wild moose's scaled up: (cycle seconds, stance share, stride units, lift units, sink units).
@@ -340,6 +345,79 @@ def bellow(rig):
     return a
 
 
+def death(rig):
+    """Its death: a last great rear and bellow, down onto its knees, over onto its side; a few kicks, its head lifted
+    once and laid down, a last breath."""
+    T = 4.6
+    rot, kpitch, kdrop = M.kneel_pose(rig)
+    # (it rests on its own body: its fur, legs and muzzle; the tack (stirrups, the skulls on the saddle, straps) and
+    # its antlers may sink into the snow, so a stirrup under it doesn't hold it up off the ground: the user saw it float)
+    body_cubes = [c for b in rig.m.bones if b.name not in ("antlers", "ear_l", "ear_r") for c in b.cubes
+                  if c.mat in RESTS_ON]
+
+    def frame(t):
+        p = Pose()
+        pitch = float(keyed(t, [(0.0, 0.0), (0.15, 4.0), (0.62, -56.0, "out"), (1.15, -50.0), (1.48, 4.0, "in"),
+                                (1.6, 0.0), (T, 0.0)]))
+        cry = bump(t, DEATH_CRY - 0.05, DEATH_CRY + 0.15, 1.2, 1.4)
+        shake = math.sin(2 * math.pi * 4.0 * t) * cry
+        if t < 1.55:
+            _rearing(rig, t, pitch, bump(t, 0.55, 0.75, 1.05, 1.25), p)
+            p.rot("neck", 0.45 * pitch - 18.0 * cry, 4.0 * shake, 0.0)
+            p.rot("head", 0.25 * pitch - 22.0 * cry + 5.0 * shake, 3.0 * shake, 0.0)
+        else:
+            # down on its front knees, then over onto its side
+            down = smooth((t - 1.5) / 0.45)
+            fold = smooth((t - 1.45) / 0.25)
+            over = smooth((t - 2.05) / 0.8)
+            p.pos("body", 0.0, -kdrop * down, 0.0)
+            p.rot("body", kpitch * down * (1.0 - 0.6 * over), 0.0, 0.0)
+            for bone, r in rot.items():
+                if bone.startswith("leg_f"):
+                    p.rot(bone, *(v * down * (1.0 - 0.7 * over) for v in r))
+                elif bone.startswith(("shin_f", "foot_f")):
+                    p.rot(bone, *(v * fold * (1.0 - 0.6 * over) for v in r))
+            if over < 0.02:
+                rig.plant(p, which=("hl", "hr"))
+            else:
+                # its hind legs give way: out straight as it goes over
+                for side in ("l", "r"):
+                    p.rot(f"leg_h{side}", -12.0 * over, 0.0, 0.0)
+                    p.rot(f"shin_h{side}", 18.0 * over, 0.0, 0.0)
+                p.rot("root", 0.0, 0.0, 84.0 * over + 4.0 * bump(t, 2.8, 2.88, 2.92, 3.05))
+            # the head: low as it kneels, then lifted once on its side and laid down
+            lift_head = bump(t, 3.1, 3.35, 3.5, 3.85)
+            p.rot("neck", rot["neck"][0] * 0.4 * down * (1.0 - over) - 14.0 * lift_head, 0.0, -38.0 * over)
+            p.rot("head", rot["head"][0] * 0.4 * down * (1.0 - over) - 10.0 * lift_head, 0.0, -18.0 * over)
+            # kicks, weaker each time
+            kick = math.sin(2 * math.pi * 3.0 * (t - 2.9)) * max(0.0, 1.0 - (t - 2.9) / 0.9) if t > 2.9 else 0.0
+            for side, ph in (("l", 0.0), ("r", 1.3)):
+                p.rot(f"shin_h{side}", 14.0 * kick * math.cos(ph), 0.0, 0.0)
+                p.rot(f"shin_f{side}", 10.0 * kick * math.sin(ph + 0.7), 0.0, 0.0)
+            p.pos("body", 0.0, 0.0, 0.0)
+            p.rot("body", 1.0 * bump(t, 3.95, 4.15, 4.2, 4.45), 0.0, 0.0)     # a last breath
+        _ears_back(p, bump(t, 0.2, 0.5, 4.0, 4.5))
+        p.rot("tail", 25.0 * bump(t, 0.3, 0.6, 1.6, 2.0), 0.0, 0.0)
+        # nothing of it under the snow (but an antler may dig in)
+        mats = rig.m.pose_matrices(p.as_geo())
+        low = _lowest_of(mats, body_cubes)
+        if low < -0.3:
+            p.pos("root", 0.0, -low, 0.0)
+        return p
+
+    a = mobkit.record(rig, "death", T, frame, loop=False)
+    a.meta.update(cry=DEATH_CRY, down=DEATH_DOWN)
+    return a
+
+
+RESTS_ON = ("fur", "mane", "leg", "leg2", "muzzle", "hoof")
+
+
+def _lowest_of(mats, cubes):
+    from kit.clipping import _box_frame
+    return min(float(mobkit._grid(_box_frame(mats, c))[:, 1].min() * 16.0) for c in cubes)
+
+
 def animations(rig):
     return {
         "idle": M.idle(rig),
@@ -354,4 +432,5 @@ def animations(rig):
         "crack_stamp": crack_stamp(rig),
         "rear": rear(rig),
         "eat": M.eat(rig),
+        "death": death(rig),
     }

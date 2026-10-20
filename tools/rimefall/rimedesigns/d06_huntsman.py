@@ -327,13 +327,13 @@ def rider(s, v):
     pose = v["pose"]
     r = s if pose == "ride" else Moved(s, (0.0, STAND_DROP, 0.0))
     legs_rider(r, pose)
-    torso(r.part("chest"))
+    torso(r.part("chest"), r)
     mantle(r.part("chest"))
     cloak(r.part("cape"), pose)
     fists = RIDE_FISTS if pose == "ride" else STAND_FISTS
     arms(r, fists, pose)
     spear(r.part("spear"), fists[0], pose)
-    bow(r.part("bow"))
+    bow(r.part("bow_back"))
     if v.get("props"):
         props_in_hand(r, fists, pose)
     head(r.part("head"))
@@ -354,7 +354,7 @@ def legs_rider(s, pose):
         shin.ring(ankle + d * 3.0, d, 5.2, 3, 4, "mantle", n=6)
 
 
-def torso(s):
+def torso(s, root=None):
     # A tunic, a leather jerkin, ribs of bone over it, a belt with a buckle, trophies at his hips, a horn behind.
     s.rbox((0, 122, 0), (22, 14, 14), "cloth", c=3)
     s.rbox((0, 136, -1), (26, 16, 16), "leather", c=3)
@@ -368,8 +368,10 @@ def torso(s):
     s.rbox((15.5, 107.5, 4.5), (4, 4, 4), "bone", c=1)
     # The hunting horn across his belly above the belt, on a cord over his left shoulder (round 4: on his hip it hung
     # over his thigh in the saddle and poked through the cloak standing).
-    s.curve([(7, 124, -9.5), (2, 122.5, -11), (-4, 122, -11.5), (-9, 124, -10.5)], 5, [3, 4, 5, 6], "bone")
-    s.ring((-9, 124, -10.5), unit(np.array([-1.0, 0.3, 0.15])), 3.4, 1, 2, "iron", n=8)
+    # (on a bone of its own in the animated Huntsman: hidden while he holds his horn up to blow it)
+    belt_horn = (root if root is not None else s).part("horn_belt")
+    belt_horn.curve([(7, 124, -9.5), (2, 122.5, -11), (-4, 122, -11.5), (-9, 124, -10.5)], 5, [3, 4, 5, 6], "bone")
+    belt_horn.ring((-9, 124, -10.5), unit(np.array([-1.0, 0.3, 0.15])), 3.4, 1, 2, "iron", n=8)
     s.curve([(7, 124.5, -10), (10, 134, -11.6), (12.5, 146, -8.5)], 4, [1, 1, 1], "cord")
 
 
@@ -377,6 +379,8 @@ def mantle(s):
     """The pale wolf-fur mantle over his shoulders, under pauldrons of bone plates stacked like shingles, a spike rising
     off each (6H's)."""
     s.rbox((0, 146, 2), (34, 7, 20), "mantle", c=2)
+    # the wolf's pelt from his hood, lying over his shoulders behind his neck (on his chest, so it stays put)
+    s.plate((0, 151.5, 11.6), (0, 0.35, 1), (0, 1, 0), 18, 8, 2, "pelt")
     # (Neighbouring locks differ in length and lie a little apart, so no two faces share a plane.)
     for k in range(10):
         a = math.pi * (0.05 + 0.9 * k / 9)
@@ -486,22 +490,98 @@ def bow(s):
             depths=[1, 1, 1])
 
 
+# The props the animated Huntsman holds (rimemobs/huntsman.py, huntsman_rider.py; the statue never builds them).
+DRAW = 38.0                  # how far he draws the string back from where it rests (design units): to his chin
+ARROW = 52.0                 # an arrow, nock to point (about 2 blocks: right for a 4.5-block giant)
+FACE_ANCHOR = np.array([-5.5, 150.5, -10.5])  # where his drawing fist comes back to: by the right of his chin, just off
+                                              # the hood (riding frame)
+MOUTH = np.array([0.0, 151.5, -10.0])        # his mouth, under the wolf's snout (where the horn goes)
+HORN_MOUTH = np.array([-1.0, 5.0, 8.0])     # the horn's mouthpiece, from his left fist (behind it)
+HORN_BELL = np.array([0.0, 10.0, -19.0])    # its bell's middle
+QUIVER_TOP = np.array([-15.0, 121.0, 14.0])  # the mouth of the quiver at his right hip (riding frame)
+SADDLE_QUIVER = np.array([-26.5, 119.0, 22.0])  # the arrows' ends in the saddle's quiver, where his hand takes them
+
+
+def arrow(s, nock, forward):
+    """An arrow from its nock along `forward`: a spruce shaft, an ice head, three ice-blue fletchings by the nock."""
+    forward = unit(np.asarray(forward, dtype=float))
+    nock = np.asarray(nock, dtype=float)
+    head = nock + forward * ARROW
+    s.seg(nock, head - forward * 5.0, 1, 1, "shaft")
+    s.cone(head - forward * 6.0, head, 2, "lance", steps=2)
+    side = unit(np.cross(forward, np.array([0.0, 1.0, 0.0]))) if abs(forward[1]) < 0.9 else np.array([1.0, 0.0, 0.0])
+    up = unit(np.cross(side, forward))
+    for n in (up, side, -side):
+        s.plate(nock + forward * 4.0 + n * 1.2, np.cross(n, forward), forward, 2, 6, 1, "lance")
+
+
+def arrows3(s, nock, forward):
+    """The volley's three arrows (the arrow rain: "he grabs 3 arrows at a time"): one in the middle, one above and one
+    below it on the string (FAN_GAP apart), their points fanned out (FAN degrees), as archery.volley_arrows says."""
+    from rimemobs.archery import volley_arrows
+    forward = unit(np.asarray(forward, dtype=float))
+    up = np.array([0.0, 1.0, 0.0])
+    for gap, fan in volley_arrows(3):
+        a = math.radians(fan)
+        arrow(s, np.asarray(nock, dtype=float) + up * gap, forward * math.cos(a) + up * math.sin(a))
+
+
 def props_in_hand(s, fists, pose):
-    """For the animated Huntsman (rimemobs/huntsman.py): a second bow, upright in his left fist with an ice arrow on
-    the string, and his horn in the same fist; each on a bone of its own that the animations show only while he
-    shoots or blows it (the statue never builds them)."""
-    fist = fists[1]
+    """
+    For the animated Huntsman: what he holds in some animations, each on a bone of its own that the animations show
+    only while he uses it.
+
+      bow_held     his bow, its grip in his left fist, its limbs curving back towards him to the tips
+      string_top   the bowstring's halves, from each tip to the middle: the animations turn and stretch them so they
+      string_bot   meet at his drawing fingers
+      arrow_nock   an arrow on the string, drawn to the full (the animations slide it forward as he draws less)
+      arrow_hand   the arrow he brings up in his right hand from the quiver, its nock in his fingers
+      horn_held    his hunting horn in his left fist (the one on his belt is hidden meanwhile), its mouthpiece behind
+                   the fist
+      spear_free   the spear when he lets go of it: standing in the snow (or its cup on the saddle) where it was in
+                   his hand, or falling when he dies
+      arrow_nock3  the volley's three arrows on the string (archery.volley_arrows: a little apart, fanned)
+      arrow_hand3  and in his right hand
+      quiver_hip   a quiver of arrows at his right hip (on foot only: in the saddle his cloak lies there, and he takes
+                   his arrows from the saddle's quiver, SADDLE_QUIVER)
+    """
+    right, left = np.asarray(fists[0], dtype=float), np.asarray(fists[1], dtype=float)
+    up = np.array([0.0, 1.0, 0.0])
+    back = np.array([0.0, 0.0, 1.0])
     b = s.part("bow_held")
-    u = np.array([0.0, 1.0, 0.0])
-    out = np.array([0.0, 0.0, -1.0])
-    pts = [fist + u * BOW * (t - 0.5) + out * BOW_BEND * math.sin(math.pi * t) for t in (1.0, 0.75, 0.5, 0.25, 0.0)]
+    pts = [left + up * BOW * (t - 0.5) + back * BOW_BEND * (1.0 - math.sin(math.pi * t))
+           for t in (1.0, 0.75, 0.5, 0.25, 0.0)]
     b.curve(pts, 12, [1.8, 2.6, 3.4, 2.6, 1.8], "bowwood", depths=[1.8, 2.2, 2.6, 2.2, 1.8])
-    b.seg(pts[0], pts[-1], 1, 1, "string")
-    b.seg(fist + [0, 0, 1.0], fist + [0, 0, 24.0], 1, 1, "shaft")
-    b.cone(fist + [0, 0, -1.0], fist + [0, 0, -6.0], 2, "lance", steps=2)
+    b.seg(left - up * 4.0, left + up * 4.0, 4, 4, "leather")                       # the grip, in his fist
+    mid = left + back * BOW_BEND
+    s.part("string_top").seg(pts[0], mid, 1, 1, "string")
+    s.part("string_bot").seg(pts[-1], mid, 1, 1, "string")
+    arrow(s.part("arrow_nock"), mid + back * DRAW, -back)
+    arrow(s.part("arrow_hand"), right, -back)
+    arrows3(s.part("arrow_nock3"), mid + back * DRAW, -back)
+    arrows3(s.part("arrow_hand3"), right, -back)
     h = s.part("horn_held")
-    h.curve([fist + [0, 2, 0], fist + [-3, 6, -3], fist + [-5, 11, -1]], 5, [3, 4.5, 6], "bone")
-    h.ring(fist + [-5, 11, -1], (0, 1, 0), 3.6, 1, 2, "iron", n=8)
+    mouth, bell = left + HORN_MOUTH, left + HORN_BELL
+    path = [mouth, left + np.array([-0.5, 2.0, 1.0]), left + np.array([0.0, 2.5, -7.0]),
+            left + np.array([0.0, 5.0, -13.5]), bell]
+    h.curve(path[:4], 8, [1.6, 2.4, 3.0, 3.8], "bone")
+    h.cone(path[3], bell, 3.8, "bone", w1=10.0, steps=4)                             # the bell flaring out
+    h.ring(bell, unit(bell - path[3]), 4.8, 1, 2, "iron", n=10)                     # the bell's rim
+    h.ring(mouth, unit(path[1] - mouth), 1.8, 1, 2, "iron", n=6)                    # the silver mouthpiece
+    h.ring(path[2], unit(path[3] - path[1]), 3.2, 1, 1, "leather", n=8)            # a binding
+    spear(s.part("spear_free"), right, pose)
+    if pose == "ride":
+        return                    # (in the saddle he takes his arrows from the saddle's quiver: SADDLE_QUIVER)
+    q = s.part("quiver_hip")
+    top = QUIVER_TOP
+    low = top + np.array([1.5, -17.0, -6.0])
+    q.seg(low, top, 6, 6, "leather")
+    q.ring(top, unit(top - low), 3.4, 1, 2, "iron", n=8)
+    for k in range(5):
+        a0 = top + np.array([(k % 3 - 1) * 1.6, -1.0, (k // 3 - 0.5) * 1.6])
+        end = a0 + unit(top - low) * (6 + (k % 2) * 2)
+        q.seg(a0, end, 1, 1, "shaft")
+        q.plate(end - unit(end - a0) * 2, (1, 0, 0), end - a0, 2, 5, 1, "lance")
 
 
 def head(s):
@@ -522,7 +602,9 @@ def head(s):
                 "antler")
         for (y, dz, dx) in ((176, -6, 4), (184, -2, 6), (191, -10, 3)):
             s.cone((x * (10 + dx * 0.2), y, -5), (x * (12 + dx), y + 7, -5 + dz), 1.6, "antler", steps=1)
-    s.plate((0, 158, 10.5), (0, 0.15, 1), (0, 1, 0), 16, 16, 2, "pelt")
+    # its pelt down the back of his head, ending above his mantle (the rest lies on his shoulders: mantle()), so
+    # turning his head never cuts it into the mantle (the user saw "a weird glitch with his head and the wolf cloth")
+    s.plate((0, 161, 10.5), (0, 0.15, 1), (0, 1, 0), 16, 11, 2, "pelt")
 
 
 def build(s, v):
@@ -535,40 +617,42 @@ def build(s, v):
 
 def materials(v):
     moose = v["mount"] == "moose"
+    # (a moose that didn't spawn in Rimefall has no frost on it: v["plain"]; the user: only Rimefall's moose are white)
+    fr = (lambda x: 0.0) if v.get("plain") else (lambda x: x)
     coat = M.MOOSE if moose else M.ELK
     return {
-        "fur": M.fur(coat, seed=1601, strand=3.4, frost_amount=0.35),
-        "mane": M.shag(coat, seed=1603, ragged=0.9, frost_amount=0.3),
-        "leg": M.fur(M.MOOSE_LEG if moose else M.ELK, seed=1605, strand=2.4, frost_amount=0.2),
-        "leg2": M.fur(M.MOOSE_LEG if moose else M.ELK, seed=1606, strand=2.0, frost_amount=0.3),
-        "muzzle": M.skin(M.HORN_DARK, seed=1607, mottle=0.8, frost_amount=0.1),
+        "fur": M.fur(coat, seed=1601, strand=3.4, frost_amount=fr(0.35)),
+        "mane": M.shag(coat, seed=1603, ragged=0.9, frost_amount=fr(0.3)),
+        "leg": M.fur(M.MOOSE_LEG if moose else M.ELK, seed=1605, strand=2.4, frost_amount=fr(0.2)),
+        "leg2": M.fur(M.MOOSE_LEG if moose else M.ELK, seed=1606, strand=2.0, frost_amount=fr(0.3)),
+        "muzzle": M.skin(M.HORN_DARK, seed=1607, mottle=0.8, frost_amount=fr(0.1)),
         "hoof": M.claw(),
         "eye": M.eye_plain() if v.get("wild") else M.eye(M.GLOW, pupil=False),     # (a wild moose's: plain)
         "eyesocket": M.glowing(M.GLOW, seed=1609, idx=3.8),
         "mouth": M.mouth(),
         "teeth": M.teeth(),
-        "antler": M.bone(seed=1611, frost_amount=0.45, cracks=0.2),
+        "antler": M.bone(seed=1611, frost_amount=fr(0.45), cracks=0.2),
         "icicle": M.solid(M.ICE, idx=3.6, seed=1613, grain=0.8, bev=0.9, outline=0.05),
-        "bone": M.bone(seed=1615, frost_amount=0.15),
-        "leather": M.skin(M.LEATHER, seed=1617, mottle=0.7, frost_amount=0.15),
-        "belt": M.skin(M.LEATHER, seed=1619, mottle=0.4, frost_amount=0.0),
-        "boot": M.skin(M.HORN_DARK, seed=1621, mottle=0.6, frost_amount=0.2),
-        "blanket": M.cloth(M.CLOTH_DARK, seed=1623, folds=1.2, ragged=0.8, frost_amount=0.3),
-        "cloth": M.cloth(M.CLOTH_DARK, seed=1625, folds=1.0, frost_amount=0.25),
-        "mantle": M.fur(M.WOOLLY_PALE, seed=1631, strand=2.6, frost_amount=0.3),
-        "mantlefringe": M.shag(M.WOOLLY_PALE, seed=1633, ragged=0.8, frost_amount=0.3),
-        "pelt": M.fur(M.WOLVERINE, seed=1635, strand=2.4, frost_amount=0.3),
-        "cape": M.worn_hide(BEARSKIN, seed=1651, frost_amount=0.3),
-        "capeworn": M.worn_hide(BEARSKIN, seed=1655, frost_amount=0.3, holes=0.18, wear=0.5),
-        "capeend": M.worn_hide(BEARSKIN, seed=1653, frost_amount=0.3, ragged=1.3, holes=0.35, wear=1.0),
-        "plate": M.metal(M.IRON, seed=1637, frost_amount=0.3),
-        "gauntlet": M.metal(M.IRON, seed=1639, frost_amount=0.25),
-        "iron": M.metal(M.IRON, seed=1641, frost_amount=0.2),
+        "bone": M.bone(seed=1615, frost_amount=fr(0.15)),
+        "leather": M.skin(M.LEATHER, seed=1617, mottle=0.7, frost_amount=fr(0.15)),
+        "belt": M.skin(M.LEATHER, seed=1619, mottle=0.4, frost_amount=fr(0.0)),
+        "boot": M.skin(M.HORN_DARK, seed=1621, mottle=0.6, frost_amount=fr(0.2)),
+        "blanket": M.cloth(M.CLOTH_DARK, seed=1623, folds=1.2, ragged=0.8, frost_amount=fr(0.3)),
+        "cloth": M.cloth(M.CLOTH_DARK, seed=1625, folds=1.0, frost_amount=fr(0.25)),
+        "mantle": M.fur(M.WOOLLY_PALE, seed=1631, strand=2.6, frost_amount=fr(0.3)),
+        "mantlefringe": M.shag(M.WOOLLY_PALE, seed=1633, ragged=0.8, frost_amount=fr(0.3)),
+        "pelt": M.fur(M.WOLVERINE, seed=1635, strand=2.4, frost_amount=fr(0.3)),
+        "cape": M.worn_hide(BEARSKIN, seed=1651, frost_amount=fr(0.3)),
+        "capeworn": M.worn_hide(BEARSKIN, seed=1655, frost_amount=fr(0.3), holes=0.18, wear=0.5),
+        "capeend": M.worn_hide(BEARSKIN, seed=1653, frost_amount=fr(0.3), ragged=1.3, holes=0.35, wear=1.0),
+        "plate": M.metal(M.IRON, seed=1637, frost_amount=fr(0.3)),
+        "gauntlet": M.metal(M.IRON, seed=1639, frost_amount=fr(0.25)),
+        "iron": M.metal(M.IRON, seed=1641, frost_amount=fr(0.2)),
         "cord": M.solid(M.ROPE, seed=1643, outline=0.0),
-        "rein": M.skin(REIN, seed=1649, mottle=0.5, frost_amount=0.1),          # pale tan: easy to see on the moose
-        "bowwood": M.wood(M.WOOD, seed=1661, plank=3.0, axis=1, frost_amount=0.25),     # (round 3)
+        "rein": M.skin(REIN, seed=1649, mottle=0.5, frost_amount=fr(0.1)),          # pale tan: easy to see on the moose
+        "bowwood": M.wood(M.WOOD, seed=1661, plank=3.0, axis=1, frost_amount=fr(0.25)),     # (round 3)
         "string": M.solid(M.RIME, idx=1.6, seed=1663, outline=0.0),
-        "shaft": M.wood(M.WOOD, seed=1645, plank=2.0, axis=0, frost_amount=0.2),
+        "shaft": M.wood(M.WOOD, seed=1645, plank=2.0, axis=0, frost_amount=fr(0.2)),
         "lance": M.ice(M.ICE, alpha=(180, 235), seed=1647, cracks=0.4, glow_pal=M.GLOW, glow_alpha=90, crack_glow=1.0),
     }
 

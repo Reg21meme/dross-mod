@@ -95,9 +95,10 @@ def build(s, v):
 
 
 def materials(v):
+    # (no frost on it: the user, October 19: "remove the snow on the pond skater's model")
     return {
-        "shell": M.chitin(M.CHITIN, seed=201, gloss=1.6, hairs=0.02, frost_amount=0.15),
-        "back": M.chitin(M.CHITIN, seed=202, gloss=1.4, hairs=0.04, frost_amount=0.6),
-        "leg": M.chitin(M.CHITIN, seed=203, gloss=1.2, hairs=0.035, frost_amount=0.1),
+        "shell": M.chitin(M.CHITIN, seed=201, gloss=1.6, hairs=0.02, frost_amount=0.0),
+        "back": M.chitin(M.CHITIN, seed=202, gloss=1.4, hairs=0.04, frost_amount=0.0),
+        "leg": M.chitin(M.CHITIN, seed=203, gloss=1.2, hairs=0.035, frost_amount=0.0),
         "eye": M.chitin(M.BLACK_ICE, seed=205, gloss=2.2, frost_amount=0.0, outline=0.0),
     }

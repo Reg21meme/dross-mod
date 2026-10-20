@@ -5,6 +5,7 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.HuntAnims;
+import com.reg21meme.dross.boss.huntsman.HuntCues;
 import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.registry.ModEntities;
@@ -36,7 +37,9 @@ import java.util.Set;
  * <p>
  * With an animation's name, every one of them within {@link #RANGE} blocks that has it plays it (the riding Huntsman's
  * start with {@code ride_}); the moose carrying him gallops with him ({@code run} with {@code ride_gallop}, either way
- * round). The chat lists every animation as a button. Running it again replaces them.
+ * round), and when it rears or dies he leaps off first (the split: the moose starts as he springs, and he lands on foot
+ * beside it). The chat lists every animation as a button, and [reset] puts the three back. Running it again replaces
+ * them.
  */
 public final class HuntsmanShowcase
 {
@@ -48,6 +51,8 @@ public final class HuntsmanShowcase
     static final int GAP = 9;
     /** Controls and old exhibits reach this far (X and Z). */
     static final int RANGE = 64;
+    /** The moose's animations that throw its rider off first. */
+    static final List<String> SPLITS = List.of("rear", "death");
 
     private HuntsmanShowcase() {}
 
@@ -78,6 +83,11 @@ public final class HuntsmanShowcase
         source.sendSuccess(() -> buttons("Riding", HuntAnims.RIDING), false);
         source.sendSuccess(() -> buttons("On foot", HuntAnims.HUNTSMAN), false);
         source.sendSuccess(() -> buttons("Alpha Moose", HuntAnims.ALPHA_MOOSE), false);
+        source.sendSuccess(() -> Component.literal("Once he has leapt off, ").append(Component.literal("[reset]")
+                .withStyle(style -> style.withColor(DrossColors.HUNTER_VILLAGE_BUTTON)
+                        .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, COMMAND))
+                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(COMMAND)))))
+                .append(" puts him back in the saddle."), false);
         return spawned.size();
     }
 
@@ -163,12 +173,22 @@ public final class HuntsmanShowcase
         return play(nearby(level, near), name);
     }
 
-    /** Each of {@code mobs} that has {@code name} plays it (a moose carrying the Huntsman gallops with him). */
+    /** Each of {@code mobs} that has {@code name} plays it (a moose carrying the Huntsman gallops with him; rearing or
+     * dying, it throws him off first). */
     static int play(List<HuntMob> mobs, String name)
     {
         int played = 0;
         for (HuntMob mob : mobs)
         {
+            if (mob instanceof AlphaMoose moose && moose.getFirstPassenger() instanceof Huntsman h
+                    && SPLITS.contains(name))
+            {
+                // the split: he springs off, and the moose rears (or dies) as he does
+                h.play(HuntAnims.LEAP);
+                moose.playLater(name, HuntCues.moment(HuntAnims.RIDER, HuntAnims.LEAP, "jump"));
+                played++;
+                continue;
+            }
             if (mob.play(name))
             {
                 played++;

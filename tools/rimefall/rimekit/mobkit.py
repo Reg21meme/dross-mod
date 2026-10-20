@@ -352,3 +352,39 @@ def save_textures(tex, folder, name):
 
 
 Pose = Pose          # (re-exported for the mob modules)
+
+
+def cross_clip(ma, anim_a, bones_a, mb, anim_b, bones_b, step=0.05, phase=0.0):
+    """
+    Two mobs drawn in one place (the Huntsman in the Alpha Moose's saddle: both models share the moose's ground and
+    middle): how deep the boxes of `bones_a` of model A go into the boxes of `bones_b` of model B while A plays anim_a
+    and B anim_b (a loop wraps). Returns (deepest units, seconds, "a bone/b bone"), or (0, None, "") if they never
+    touch. Hidden bones (scaled to nothing) don't count. `phase`: B's loop started this many seconds earlier (in the
+    game the moose's idle may be anywhere in its loop when he moves).
+    """
+    length = anim_a.length
+    worst = (0.0, None, "")
+    for t in np.arange(0.0, length + 1e-6, step):
+        ta = float(t)
+        tb = (float((t + phase) % anim_b.length) if anim_b.loop is True and anim_b.length > 0
+              else float(min(t, anim_b.length)))
+        mats_a = ma.pose_matrices(anim_a.sample(ta))
+        mats_b = mb.pose_matrices(anim_b.sample(tb))
+        pts = []
+        for name in bones_a:
+            b = ma[name]
+            M = mats_a[name]
+            if abs(np.linalg.det(M[:3, :3])) < 1e-6:
+                continue
+            for c in b.cubes:
+                pts.append((_grid(_box_frame(mats_a, c)), name))
+        if not pts:
+            continue
+        for name in bones_b:
+            for c in mb[name].cubes:
+                fr = _box_frame(mats_b, c)
+                for p, an in pts:
+                    d = float(_inside_depth(p, fr).max())
+                    if d > worst[0]:
+                        worst = (d, ta, f"{an}/{name}")
+    return worst

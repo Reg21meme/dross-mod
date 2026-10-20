@@ -3,10 +3,15 @@ The Huntsman's skeleton, shared by his two models (CLAUDE.md step 14, his fight)
 fights in stage 2) and rimemobs/huntsman_rider.py (in the Alpha Moose's saddle, stage 1). Both are the gallery's 6A
 rider (rimedesigns/d06_huntsman.py) unchanged, his parts on bones of the same names, so one set of helpers moves both:
 
-  root > hips > thigh_l/r > shin_l/r > boot_l/r
-              > chest > head, cape, bow (on his back)
-                      > arm_l > forearm_l > hand_l > bow_held, horn_held (shown only while he shoots or blows it)
-                      > arm_r > forearm_r > hand_r > spear
+  root > hips > thigh_l/r > shin_l/r > boot_l/r, quiver_hip
+              > chest > head, cape, bow_back (slung on his back), horn_belt (on his belt)
+                      > arm_l > forearm_l > hand_l > bow_held > string_top, string_bot, arrow_nock
+                                                  > horn_held
+                      > arm_r > forearm_r > hand_r > spear, arrow_hand
+       > spear_free (the spear when he lets go of it)
+
+bow_held, horn_held, arrow_nock, arrow_hand and spear_free are shown only while an animation uses them (show()); the
+bow on his back and the horn on his belt are hidden meanwhile, and so is the spear in his hand while spear_free is.
 
 His left is +x. In the saddle the model's floor (y 0) is the moose's: the rider stands on the moose's own ground, so in
 the game he sits at the moose's feet' position and the saddle is where it is in the gallery.
@@ -19,7 +24,9 @@ from rimedesigns import d06_huntsman as H
 from rimekit.shapes import Scaled
 
 K = H.K
-PROPS = ("bow_held", "horn_held")   # hidden unless an animation shows them
+PROPS = ("bow_held", "horn_held", "arrow_nock", "arrow_hand", "arrow_nock3", "arrow_hand3", "spear_free")   # hidden unless an animation shows them
+# what each prop stands in for (hidden while it's shown)
+STANDS_FOR = {"bow_held": "bow_back", "horn_held": "horn_belt", "spear_free": "spear"}
 
 
 class Design:
@@ -58,14 +65,34 @@ def joints(pose):
     j["spear"] = j["hand_r"]
     j["bow_held"] = j["hand_l"]
     j["horn_held"] = j["hand_l"]
+    j["arrow_nock"] = j["hand_l"]
+    j["arrow_hand"] = j["hand_r"]
+    j["arrow_nock3"] = j["hand_l"]
+    j["arrow_hand3"] = j["hand_r"]
+    j["spear_free"] = j["hand_r"]
+    up = np.array([0.0, 1.0, 0.0])
+    back = np.array([0.0, 0.0, 1.0])
+    j["string_top"] = j["hand_l"] + up * H.BOW * 0.5 + back * H.BOW_BEND   # the bow's tips (its grip in the left
+    j["string_bot"] = j["hand_l"] - up * H.BOW * 0.5 + back * H.BOW_BEND   # fist, its limbs curving back to them)
+    j["bow_back"] = j["chest"]
+    j["horn_belt"] = j["chest"]
+    j["quiver_hip"] = j["hips"]
+    # points that aren't joints (carried by the head; for the IK)
+    j["anchor"] = H.FACE_ANCHOR.copy()
+    j["mouth"] = H.MOUTH.copy()
+    j["quiver_top"] = H.QUIVER_TOP.copy()
     return {k: (v + drop) for k, v in j.items()}
 
 
-PARENTS = [("hips", "root"), ("chest", "hips"), ("head", "chest"), ("cape", "chest"),
+PARENTS = [("hips", "root"), ("chest", "hips"), ("head", "chest"), ("cape", "chest"), ("bow_back", "chest"),
+           ("horn_belt", "chest"),
            ("arm_l", "chest"), ("forearm_l", "arm_l"), ("hand_l", "forearm_l"), ("bow_held", "hand_l"),
+           ("string_top", "bow_held"), ("string_bot", "bow_held"), ("arrow_nock", "bow_held"),
            ("horn_held", "hand_l"), ("arm_r", "chest"), ("forearm_r", "arm_r"), ("hand_r", "forearm_r"),
-           ("spear", "hand_r"), ("thigh_l", "hips"), ("shin_l", "thigh_l"), ("boot_l", "shin_l"),
-           ("thigh_r", "hips"), ("shin_r", "thigh_r"), ("boot_r", "shin_r")]
+           ("spear", "hand_r"), ("arrow_hand", "hand_r"), ("arrow_hand3", "hand_r"), ("arrow_nock3", "bow_held"),
+           ("spear_free", "root"),
+           ("thigh_l", "hips"), ("shin_l", "thigh_l"), ("boot_l", "shin_l"),
+           ("thigh_r", "hips"), ("shin_r", "thigh_r"), ("boot_r", "shin_r"), ("quiver_hip", "hips")]
 
 
 def bones(pose):
@@ -76,7 +103,7 @@ def bones(pose):
     return out
 
 
-ROUTES = {"bow": "chest"}
+ROUTES = {}
 
 
 def clip_group(bone):
@@ -90,10 +117,13 @@ def clip_group(bone):
 
 
 def show(p, props=()):
-    """Hides the props he isn't holding (scale 0)."""
+    """Hides the props he isn't holding (scale 0), and what a shown prop stands in for (the bow on his back while he
+    holds it, the horn on his belt, the spear in his hand while it stands free)."""
     for prop in PROPS:
         if prop not in props:
             p.scale(prop, 0.0)
+        elif prop in STANDS_FOR:
+            p.scale(STANDS_FOR[prop], 0.0)
 
 
 # ---------------------------------------------------------------- arm and body poses (FK, degrees)

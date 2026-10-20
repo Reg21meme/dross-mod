@@ -300,6 +300,8 @@
   "biome.dross.sewers": "The Sewers",
   "block.dross.sewer_sludge": "Sewer Sludge",
   "block.dross.blight_vent": "Blight Vent",
+  "block.dross.meat_block": "Meat Block",
+  "block.dross.roasted_meat_block": "Roasted Meat Block",
   "subtitles.dross.rat_king.charge": "Rat King charges",
   "item.dross.rage_wand.tooltip.team": "Team: %s",
   "item.dross.rage_wand.tooltip.hint": "Right-click to change team",
@@ -363,5 +365,10 @@
   "commands.dross.showcase.bossbars_huntsman.toggle_angry": "[angry looks]",
   "commands.dross.showcase.bossbars_huntsman.toggle_normal": "[stages 1 and 2]",
   "commands.dross.showcase.bossbars_huntsman.not_player": "Only a player can see boss bars.",
-  "commands.dross.showcase.bossbars_huntsman.no_such": "There's no design %s (they're 1 to %s)."
+  "commands.dross.showcase.bossbars_huntsman.no_such": "There's no design %s (they're 1 to %s).",
+  "commands.dross.showcase.bossbars_huntsman.shown_round2": "Huntsman boss bar design %s, %s: %s, for %s seconds.",
+  "commands.dross.showcase.bossbars_huntsman.set_normal_round2": "the Wild Hunt (design 9), then the Huntsman over both Alpha Moose candidates (design 1 above, design 3 below)",
+  "commands.dross.showcase.bossbars_huntsman.set_angry_round2": "the angry looks: the Huntsman, then the Alpha Moose (design 1 above, design 3 below)",
+  "commands.dross.showcase.bossbars_huntsman.round2": "Round 2 (the Huntsman):",
+  "commands.dross.showcase.bossbars_huntsman.round1": "Round 1:"
 }

@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:smelting",
+  "category": "food",
+  "cookingtime": 600,
+  "experience": 1.5,
+  "group": "roasted_meat_block",
+  "ingredient": {
+    "item": "dross:meat_block"
+  },
+  "result": "dross:roasted_meat_block"
+}

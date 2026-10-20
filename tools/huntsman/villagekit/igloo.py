@@ -116,6 +116,36 @@ class Tunnel:
         return None
 
 
+class Burrow:
+    """A covered passage along any straight line from (x1, z1) to (x2, z2): every column within `radius` of it, from
+    y = base up `height` blocks (hollowed with everything else, so it opens into the domes at its ends). Underground
+    its sides are the ground's (lined later); above the ground it's a snow roof."""
+
+    def __init__(self, x1, z1, x2, z2, radius=2.0, height=4, base=1, style=DEFAULT):
+        self.p1, self.p2 = (x1, z1), (x2, z2)
+        self.radius = radius
+        self.height = height
+        self.ybase = base
+        self.style = style
+        self.mouth = None
+
+    def dist(self, x, z):
+        (ax, az), (bx, bz) = self.p1, self.p2
+        dx, dz = bx - ax, bz - az
+        L = dx * dx + dz * dz
+        t = 0.0 if L == 0 else max(0.0, min(1.0, ((x - ax) * dx + (z - az) * dz) / L))
+        return math.hypot(x - (ax + t * dx), z - (az + t * dz))
+
+    def cells(self):
+        (ax, az), (bx, bz) = self.p1, self.p2
+        r = int(math.ceil(self.radius)) + 1
+        for x in range(int(min(ax, bx)) - r, int(max(ax, bx)) + r + 1):
+            for z in range(int(min(az, bz)) - r, int(max(az, bz)) + r + 1):
+                if self.dist(x, z) <= self.radius:
+                    for y in range(self.ybase, self.ybase + self.height):
+                        yield x, y, z
+
+
 class Massing:
     def __init__(self, grid):
         self.g = grid
@@ -187,6 +217,14 @@ class Massing:
         t = Tunnel(f, 0, n, half=half, height=height, base=base, style=style, mouth=False)
         t.open_end = False
         return self.add_tunnel(t)
+
+    def burrow(self, x1, z1, x2, z2, radius=2.0, height=4, base=1, style=DEFAULT):
+        b = Burrow(x1, z1, x2, z2, radius=radius, height=height, base=base, style=style)
+        for x, y, z in b.cells():
+            if self.g.inb(x, y, z):
+                self._add(x, y, z, b)
+        self.burrows = getattr(self, "burrows", []) + [b]
+        return b
 
     def _add(self, x, y, z, shape):
         yi = y + self.g.G

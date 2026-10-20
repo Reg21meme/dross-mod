@@ -49,6 +49,7 @@ public class Dross
         ModStructures.STRUCTURE_TYPES.register(modEventBus);
         ModStructures.STRUCTURE_PIECES.register(modEventBus);
         ModStructures.STRUCTURE_PLACEMENTS.register(modEventBus);
+        ModStructures.STRUCTURE_PROCESSORS.register(modEventBus);
 
         LOGGER.info("Dross is loading");
     }

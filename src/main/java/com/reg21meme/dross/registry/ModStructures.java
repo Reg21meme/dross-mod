@@ -1,6 +1,7 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.huntsman.village.HunterDecorFilter;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakePiece;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakeStructure;
 import com.reg21meme.dross.dimension.sewer.RatCavePiece;
@@ -14,6 +15,7 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
 import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -26,6 +28,7 @@ public final class ModStructures
     public static final DeferredRegister<StructureType<?>> STRUCTURE_TYPES = DeferredRegister.create(Registries.STRUCTURE_TYPE, Dross.MODID);
     public static final DeferredRegister<StructurePieceType> STRUCTURE_PIECES = DeferredRegister.create(Registries.STRUCTURE_PIECE, Dross.MODID);
     public static final DeferredRegister<StructurePlacementType<?>> STRUCTURE_PLACEMENTS = DeferredRegister.create(Registries.STRUCTURE_PLACEMENT, Dross.MODID);
+    public static final DeferredRegister<StructureProcessorType<?>> STRUCTURE_PROCESSORS = DeferredRegister.create(Registries.STRUCTURE_PROCESSOR, Dross.MODID);
 
     // Dimension area: dross:sewers, the sewer networks under Blightwood (structures dross:sewers and dross:rat_cave)
     public static final RegistryObject<StructureType<SewerStructure>> SEWERS = STRUCTURE_TYPES.register("sewers", () -> () -> SewerStructure.CODEC);
@@ -55,6 +58,10 @@ public final class ModStructures
             () -> () -> RimefallLakeStructure.CODEC);
     public static final RegistryObject<StructurePieceType> RIMEFALL_LAKE_PIECE = STRUCTURE_PIECES.register("rimefall_lake",
             () -> (StructurePieceType.ContextlessType) RimefallLakePiece::new);
+
+    // Boss area: dross:hunter_decor, leaves out the decorations a hunter village didn't roll (boss/huntsman/village)
+    public static final RegistryObject<StructureProcessorType<HunterDecorFilter>> HUNTER_DECOR = STRUCTURE_PROCESSORS.register("hunter_decor",
+            () -> () -> HunterDecorFilter.CODEC);
 
     private ModStructures() {}
 }

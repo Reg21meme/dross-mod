@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_column",
+  "textures": {
+    "end": "dross:block/roasted_meat_block_end",
+    "side": "dross:block/roasted_meat_block"
+  }
+}

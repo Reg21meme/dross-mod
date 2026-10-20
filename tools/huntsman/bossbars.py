@@ -62,6 +62,13 @@ LOOKS = (
 )
 
 from bardesigns import DESIGNS, NAME_COLOURS, fill_key  # noqa: E402
+from hunterbars import ROUND2  # noqa: E402
+
+# Round 2 (the user's picks of October 19): design 9's Wild Hunt, design 1 or 3 for the Alpha Moose, and ten new bars
+# for the Huntsman (11-20). Each round-2 preview shows a design as the fight would: under 9's Wild Hunt, over both
+# moose bars.
+WILD_PICK = 9
+MOOSE_PICKS = (1, 3)
 
 
 def make_design(number, title, fn):
@@ -85,7 +92,10 @@ def make_design(number, title, fn):
         for part in looks[key][:3]:
             tex[part.v:part.v + part.h, part.u:part.u + part.w] = part.img
     xs, ys, top_mid = [], [], 0
+    own = getattr(fn, "own", None)          # a round-2 design: only its own looks set its size and name height
     for key, *_ in LOOKS:
+        if own and key not in own:
+            continue
         for part in looks[key][:3]:
             if part.img[..., 3].any():
                 rows, cols = np.nonzero(part.img[..., 3])
@@ -94,6 +104,7 @@ def make_design(number, title, fn):
                 for r, c in zip(rows, cols):
                     if abs(part.x + c - CENTRE_X) <= NAME_CENTRE_HALF:
                         top_mid = min(top_mid, part.y + r)
+    for key, *_ in LOOKS:
         fl, fr = looks[key][3], looks[key][4]
         if looks[key][1].w - fl - fr != BAR_W:
             raise SystemExit(f"design {number} {key}: the fill is {looks[key][1].w - fl - fr} wide, not {BAR_W}")
@@ -130,6 +141,79 @@ def render_stack(opt, entries, pad=10):
         FONT.draw(img, name, bx + CENTRE_X - FONT.width(name) // 2, y + opt["name_y"], col)
         y += opt["height"]
     return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB")
+
+
+def render_set(entries, pad=10):
+    """Bars of different designs one above the other: entries are (design, look key, progress)."""
+    width = max(max(BAR_W, o["right"] - min(0, o["left"])) for o, _k, _p in entries) + 2 * pad + 16
+    first = entries[0][0]
+    first_shift = max(0, -first["name_y"] - NAME_ABOVE)
+    height = pad * 2 + sum(o["height"] for o, _k, _p in entries) + first_shift
+    img = night(width, height, seed=len(entries) * 13 + first["number"])
+    bx = (width - BAR_W) // 2
+    y = pad + (-first["name_y"])
+    prev = None
+    for opt, key, progress in entries:
+        if prev is not None:
+            y += prev["height"] - (-prev["name_y"]) + (-opt["name_y"])
+        empty, full, deco, fl, fr = opt["looks"][key]
+        blit(img, empty, bx + empty.x, y + empty.y)
+        n = int(round(max(0.0, min(1.0, progress)) * (full.w - fl - fr)))
+        blit(img, full, bx + full.x, y + full.y, cols=(fl, fl + n))
+        blit(img, deco, bx + deco.x, y + deco.y)
+        bar, angry, name = next((b, a, nm) for k, b, a, nm in LOOKS if k == key)
+        FONT.draw(img, name, bx + CENTRE_X - FONT.width(name) // 2, y + opt["name_y"], NAME_COLOURS[fill_key(bar, angry)])
+        prev = opt
+    return Image.fromarray(np.clip(img, 0, 255).astype(np.uint8), "RGB")
+
+
+def preview_round2(opt, picks, out_path):
+    """A round-2 design as the fight would show it: stage 1's Wild Hunt (design 9), then stage 2 with this Huntsman bar
+    over each Alpha Moose candidate (designs 1 and 3), and the angry looks."""
+    wild = picks[WILD_PICK]
+    m1, m3 = (picks[n] for n in MOOSE_PICKS)
+    cells = [
+        ("Stage 1: The Wild Hunt (design 9)", [(wild, "wild_hunt", 0.8)], ACCENT),
+        (f"Stage 2: Huntsman {opt['number']}, Alpha Moose design 1", [(opt, "huntsman", 0.7), (m1, "alpha_moose", 0.45)], ACCENT),
+        (f"Stage 2: Huntsman {opt['number']}, Alpha Moose design 3", [(opt, "huntsman", 0.7), (m3, "alpha_moose", 0.45)], ACCENT),
+        ("Angry: the moose is dead", [(opt, "huntsman_angry", 0.55)], ANGRY_ACCENT),
+        ("Angry: he is dead (moose 1, then 3)", [(m1, "alpha_moose_angry", 0.5), (m3, "alpha_moose_angry", 0.5)], ANGRY_ACCENT),
+    ]
+    ims = [(lab, big(render_set(entries)), col) for lab, entries, col in cells]
+    gap, head, lab_h = 18, 92, 26
+    colw = max(im.width for _l, im, _c in ims)
+    left, right = ims[:3], ims[3:]
+    H = head + max(sum(im.height + lab_h + gap for _l, im, _c in col) for col in (left, right)) + gap
+    sheet = Image.new("RGB", (2 * colw + 3 * gap, H), SHEET_BG)
+    dr = ImageDraw.Draw(sheet)
+    dr.text((gap, 12), f"Huntsman boss bar, round 2, design {opt['number']}: {opt['name']}", font=_font(32), fill=TEXT)
+    dr.text((gap, 56), f"With your picks: design 9's Wild Hunt, and the Alpha Moose of design 1 or 3. Drawn "
+                       f"{PREVIEW_SCALE}x as the game draws it.", font=_font(15, False), fill=DIM)
+    for ci, column in enumerate((left, right)):
+        x = gap + ci * (colw + gap)
+        y = head
+        for lab, im, col in column:
+            dr.text((x, y), lab, font=_font(17), fill=col)
+            sheet.paste(im, (x, y + lab_h))
+            y += im.height + lab_h + gap
+    sheet.save(out_path)
+
+
+def overview_round2(opts, out_path):
+    ims = [(opt, big(render_set([(opt, "huntsman", 0.7), (opt, "huntsman_angry", 0.4)], pad=8))) for opt in opts]
+    gap, head, lab_h = 18, 70, 30
+    colw = max(im.width for _o, im in ims)
+    rowh = max(im.height for _o, im in ims) + lab_h + gap
+    rows = (len(ims) + 1) // 2
+    sheet = Image.new("RGB", (2 * colw + 3 * gap, head + rows * rowh + gap), SHEET_BG)
+    dr = ImageDraw.Draw(sheet)
+    dr.text((gap, 14), "The Huntsman's bar, round 2: ten new designs (normal, then angry)", font=_font(30), fill=TEXT)
+    for k, (opt, im) in enumerate(ims):
+        x = gap + (k % 2) * (colw + gap)
+        y = head + (k // 2) * rowh
+        dr.text((x, y), f"{opt['number']}. {opt['name']}", font=_font(20), fill=ACCENT)
+        sheet.paste(im, (x, y + lab_h))
+    sheet.save(out_path)
 
 
 def _font(size, bold=True):
@@ -211,7 +295,7 @@ def overview(opts, out_path):
     sheet.save(out_path)
 
 
-def write_page(opts):
+def write_page(opts, round2=()):
     rows = ["<!doctype html><meta charset='utf-8'><title>Huntsman boss bars</title>",
             "<style>body{background:#14171c;color:#ecf2f8;font-family:Segoe UI,Arial,sans-serif;margin:24px}"
             "h1{font-size:26px}h2{color:#96d2f0;margin-top:30px}p{color:#9fb0c0;max-width:900px}"
@@ -222,6 +306,15 @@ def write_page(opts):
             "other's bar turns angry (red). Drawn 3x, exactly as the game draws them. In the game: "
             "<code>/dross showcase bossbars huntsman</code>.</p>",
             "<img src='all_options.png'>"]
+    if round2:
+        head = ["<h1>Round 2: the Huntsman's bar</h1>",
+                "<p>Your picks from round 1: design 9 for the Wild Hunt, design 1 or 3 for the Alpha Moose (both "
+                "shown). Ten new bars for the Huntsman, each shown with them. In the game: "
+                "<code>/dross showcase bossbars huntsman 11</code> (to 20).</p>",
+                "<img src='round2_all.png'>"]
+        head += [f"<h2>{o['number']}. {o['name']}</h2><img src='round2_{o['number']}.png'>" for o in round2]
+        head.append("<h1>Round 1</h1>")
+        rows[2:2] = head
     for opt in opts:
         rows.append(f"<h2>{opt['number']}. {opt['name']}</h2><img src='option_{opt['number']}.png'>")
     with open(os.path.join(PREVIEW_DIR, "index.html"), "w", encoding="utf-8", newline="\n") as f:
@@ -268,7 +361,7 @@ public final class HuntsmanBarStyles
     /**
      * One design.
      *
-     * @param number the design's number (1 to 10)
+     * @param number the design's number (1 to 10; round 2's Huntsman bars 11 to 20)
      * @param name   its working name
      */
     public record Style(int number, String name, ResourceLocation texture, int textureWidth, int textureHeight, Look wildHunt,
@@ -317,7 +410,7 @@ def write_java(opts):
             f"                    {opt['name_y']}, {opt['height']})")
     body.append("    /** Every design, in order. */\n    public static final List<Style> ALL = List.of(\n")
     body.append(",\n".join(entries) + ");\n\n")
-    body.append("""    /** The design with this number (1 to 10), or the first. */
+    body.append("""    /** The design with this number (1 to 20), or the first. */
     public static Style byNumber(int number)
     {
         for (Style style : ALL)
@@ -344,18 +437,25 @@ def write_java(opts):
 def build_all(write_files=True, only=None):
     os.makedirs(PREVIEW_DIR, exist_ok=True)
     opts = []
-    for number, title, fn in DESIGNS:
+    for number, title, fn in DESIGNS + ROUND2:
         if only and number not in only:
             continue
         opt = make_design(number, title, fn)
         opts.append(opt)
-        preview(opt, os.path.join(PREVIEW_DIR, f"option_{number}.png"))
+        if number <= 10:
+            preview(opt, os.path.join(PREVIEW_DIR, f"option_{number}.png"))
         print(f"  {number:2d}. {title:20s} art {opt['art'][0]} x {opt['art'][1]}, name at {opt['name_y']}, "
               f"height {opt['height']}, texture {TEX_W} x {opt['tex'].shape[0]}")
+    picks = {o["number"]: o for o in opts}
+    round2 = [o for o in opts if o["number"] > 10]
+    for opt in round2:
+        if WILD_PICK in picks and all(m in picks for m in MOOSE_PICKS):
+            preview_round2(opt, picks, os.path.join(PREVIEW_DIR, f"round2_{opt['number']}.png"))
     if only:
         return opts
-    overview(opts, os.path.join(PREVIEW_DIR, "all_options.png"))
-    write_page(opts)
+    overview([o for o in opts if o["number"] <= 10], os.path.join(PREVIEW_DIR, "all_options.png"))
+    overview_round2(round2, os.path.join(PREVIEW_DIR, "round2_all.png"))
+    write_page([o for o in opts if o["number"] <= 10], round2)
     if write_files:
         os.makedirs(TEX_DIR, exist_ok=True)
         for opt in opts:

@@ -2,7 +2,9 @@ package com.reg21meme.dross.dimension;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.rimefall.RimefallAreas;
 import com.reg21meme.dross.dimension.sewer.Sewers;
+import com.reg21meme.dross.dimension.sites.BossSites;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import java.util.ArrayList;
@@ -58,7 +60,9 @@ import org.slf4j.Logger;
  *       features add to the ground, such as boulders, pond shores and vents), its ground cover (not bare rock) covers at
  *       least 60%, and its own signature block is there (at least 15%; 40% Cragstone or snow in the Gravecrags).
  *       These shares count only the site's columns of its own biome: a thin sliver of a neighbouring biome that the
- *       search's {@value #SITE_CELL}-block grid stepped over gets that biome's ground (at most 5% of a site may be one);</li>
+ *       search's {@value #SITE_CELL}-block grid stepped over gets that biome's ground (at most 5% of a site may be one);
+ *       a sewer pipe's columns and a Rimefall lake's (with its edge) aren't counted: they have their own tests (a site
+ *       on a seed whose lake lay under it once failed here, its ice not Hoarfrost);</li>
  *   <li>every fluid is a still source, lava has something solid (or lava) on every side and below; every plant, vine,
  *       lichen and snow layer could stay where it is.</li>
  * </ul>
@@ -318,6 +322,7 @@ public final class TerrainChunksGameTest
         {
             int bx = chunk.getPos().getMinBlockX();
             int bz = chunk.getPos().getMinBlockZ();
+            BossSites sites = BossSites.forLevel(dross);
             for (int x = bx; x < bx + 16; x++)
             {
                 for (int z = bz; z < bz + 16; z++)
@@ -325,6 +330,10 @@ public final class TerrainChunksGameTest
                     if (Sewers.columnInAny(pipes, x, z))
                     {
                         continue; // a sewer pipe stands here
+                    }
+                    if (biome.equals(DrossBiomes.RIMEFALL) && RimefallAreas.nearLake(sites, x, z))
+                    {
+                        continue; // one of Rimefall's big frozen lakes, or its edge (RimefallLakeGameTest checks those)
                     }
                     columns++;
                     if (!chunk.getBlockState(pos.set(x, minY, z)).is(Blocks.BEDROCK))

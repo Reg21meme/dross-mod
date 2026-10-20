@@ -4,6 +4,7 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.ColossusGameTest;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -375,12 +376,13 @@ public final class RimefallAnimalsGameTest
         }
         calm.setRemainingPersistentAngerTime(40);
         far.setRemainingPersistentAngerTime(20 * 60);
-        Vec3 farHome = far.position();
-        helper.runAfterDelay(5, () -> far.moveTo(farHome.x + RimefallMobTuning.RIMEHORN_CHASE_LEASH + 2.0D, farHome.y, farHome.z));
-        helper.runAfterDelay(8, () ->
+        // (its chase is set to have begun past its leash once it has surely begun: moving the Rimehorn that far
+        // instead took it out of the 17-block arena, into land that may not tick)
+        helper.runAfterDelay(20, () -> far.setChaseFromForTest(
+                far.position().add(RimefallMobTuning.RIMEHORN_CHASE_LEASH + 2.0D, 0.0D, 0.0D)));
+        helper.runAfterDelay(26, () ->
         {
             boolean farGaveUp = far.getTarget() == null && !far.isAngryAt(player);
-            far.moveTo(farHome.x, farHome.y, farHome.z);
             if (!farGaveUp)
             {
                 cleanUp(made, List.of(player));
@@ -523,6 +525,45 @@ public final class RimefallAnimalsGameTest
             }
             cleanUp(made, List.of(player));
         });
+    }
+
+    /** Only a moose that spawned in Rimefall wears the frosty coat (the user: one from a spawn egg in the Overworld isn't
+     * covered in snow); its calf takes its coat, and the coat is kept through a save. */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void mooseSnowOnlyInRimefall(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, RimefallAnimalsGameTest::mooseSnowOnlyInRimefall))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Moose here = spawn(helper, ModEntities.MOOSE.get(), MIDDLE.offset(-3, 0, 0), 0.0F);
+        ForgeEventFactory.onFinalizeSpawn(here, level, level.getCurrentDifficultyAt(here.blockPosition()),
+                MobSpawnType.SPAWN_EGG, null, null);
+        boolean snowy = here.isSnowy();
+        here.setSnowy(true);
+        Moose calf = (Moose) here.getBreedOffspring(level, here);
+        CompoundTag tag = new CompoundTag();
+        here.saveWithoutId(tag);
+        Moose loaded = ModEntities.MOOSE.get().create(level);
+        if (loaded != null)
+        {
+            loaded.load(tag);
+        }
+        here.discard();
+        if (snowy)
+        {
+            helper.fail("a moose from a spawn egg outside Rimefall shouldn't wear snow");
+        }
+        if (calf == null || !calf.isSnowy())
+        {
+            helper.fail("a Rimefall moose's calf should wear its mother's frosty coat");
+        }
+        if (loaded == null || !loaded.isSnowy())
+        {
+            helper.fail("the frosty coat should be kept through a save");
+        }
+        helper.succeed();
     }
 
     @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)

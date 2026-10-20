@@ -549,6 +549,12 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
      * Gives up a chase once it's {@link RimefallMobTuning#RIMEHORN_CHASE_LEASH} blocks from where it began (and goes back
      * there), so a herd never follows you far.
      */
+    /** For the tests: where its chase began (as if it had already chased its target this far). */
+    void setChaseFromForTest(Vec3 from)
+    {
+        this.chaseFrom = from;
+    }
+
     private void keepToHome()
     {
         LivingEntity target = this.getTarget();

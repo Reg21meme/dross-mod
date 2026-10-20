@@ -46,10 +46,15 @@ class _Design:
 
 DESIGN = _Design
 WILD = dict(letter="W", mood="wild", mount="moose", wild=True)
+# (the user, October 19: "only moose that spawned in Rimefall should have white": a moose from anywhere else, the
+# Silverwood Forest or a spawn egg in the Overworld, wears the same coat with no frost on it)
+PLAIN = dict(WILD, plain=True)
 BUILD_VARIANT = WILD
 VARIANTS = (
     dict(name="bull", texture="moose", design=WILD, hidden=()),
     dict(name="cow", texture="moose", design=WILD, hidden=("antlers",)),
+    dict(name="bull_plain", texture="moose_plain", design=PLAIN, hidden=()),
+    dict(name="cow_plain", texture="moose_plain", design=PLAIN, hidden=("antlers",)),
 )
 BABY = (0.45, "head", 1.4)
 BABY_HIDDEN = ("antlers",)

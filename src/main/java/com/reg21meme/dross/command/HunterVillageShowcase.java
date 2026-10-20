@@ -6,6 +6,9 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageDesigns;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillages;
+import com.reg21meme.dross.boss.huntsman.village.VillageAnimals;
+import com.reg21meme.dross.boss.rimefall.Moose;
+import com.reg21meme.dross.boss.rimefall.Rimehorn;
 import com.reg21meme.dross.registry.ModBlocks;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -16,10 +19,12 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -34,16 +39,19 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * {@code /dross showcase hunter_villages} (test tool, cheats only): builds the ten hunter village designs and the
- * Huntsman's lodge ahead of you on a snowy floor, so they can be looked at and compared (the boss area's
- * {@link HunterVillageDesigns}, made by tools/huntsman/villages.py).
+ * {@code /dross showcase hunter_villages} (test tool, cheats only): builds the hunter villages ahead of you on a snowy
+ * floor, so they can be looked at and compared (the boss area's {@link HunterVillageDesigns}, made by
+ * tools/huntsman/villages.py): the Sunken Warren's eight layouts (10 to 20 igloos) and the Huntsman's two villages.
+ * Every village rolls its decorations as the game will (each a 1 in 2 chance), so building them again shows other
+ * mixes.
  * <p>
- * Two rows of plots {@link #PITCH} blocks apart, their ways in facing you: the first row villages 1-5 and the lodge
- * (on the right), the second row villages 6-10. Each plot is cleared ({@link #CLEAR_ABOVE} blocks over its village),
- * floored with Hoarfrost and snow like Rimefall, and gets a sign at its way in. One plot is built each server tick,
- * so the game doesn't freeze; the chat lists them all with [go] buttons when it's done, and an [overview] button that
- * puts you high above the middle looking down. The floor is raised if the ground is too close to the bottom of the
- * world for the deepest village (a superflat world's is). Use a flat world: it's about 430 blocks wide and 150 deep.
+ * Three rows of plots, their ways in facing you, {@link #GAP} blocks between them: Sunken Warrens 1-4, then 5-8, then
+ * the Huntsman's villages. Each plot is cleared ({@link #CLEAR_ABOVE} blocks over its village), floored with
+ * Hoarfrost and snow like Rimefall, and gets a sign at its way in. One plot is built each server tick, so the game
+ * doesn't freeze; the chat lists them all with [go] buttons when it's done (each stands you at the top of its way in),
+ * and an [overview] button that puts you high above the middle looking down. The floor is raised if the ground is too
+ * close to the bottom of the world for the villages' dug courtyards (a superflat world's is). Use a flat world: it's
+ * about 500 blocks wide and 480 deep.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class HunterVillageShowcase
@@ -51,10 +59,10 @@ public final class HunterVillageShowcase
     private static final Logger LOGGER = LogUtils.getLogger();
 
     public static final String COMMAND = "/dross showcase hunter_villages";
-    /** Blocks between neighbouring plots' middles (every design is at most 63 across). */
-    static final int PITCH = 72;
-    /** Plots in a row (the first row has the lodge as its sixth). */
-    static final int COLUMNS = 6;
+    /** Blocks between neighbouring plots (and rows). */
+    static final int GAP = 14;
+    /** The rows: Sunken Warrens 1-4, 5-8, then the Huntsman's villages. */
+    static final int PER_ROW = 4;
     /** The first row's plots start this many blocks ahead of you. */
     static final int START = 6;
     /** Air is cleared this many blocks above each village's tallest part, and the floor reaches this far past it. */
@@ -64,11 +72,13 @@ public final class HunterVillageShowcase
     static final int MAX_FILL = 12;
     /** About this share of the floor is snow blocks (in patches), the rest Hoarfrost, like Rimefall's ground. */
     static final double SNOW_SHARE = 0.3D;
-    /** The sign stands this many blocks in front of a village's way in, a [go] button puts you this far out. */
+    /** The sign stands this many blocks out from a village's way in (and this far to the side), a [go] button puts you
+     * this far out, looking at it. */
     static final int SIGN_OUT = 3;
-    static final int STAND_OUT = 7;
+    static final int SIGN_SIDE = 3;
+    static final int STAND_OUT = 2;
     /** The [overview] button: this high over the floor, in the middle of the plots. */
-    static final int OVERVIEW_HEIGHT = 90;
+    static final int OVERVIEW_HEIGHT = 150;
     private static final int FLAGS = Block.UPDATE_CLIENTS;
 
     /** One village's plot: its design, its row and column, and its middle's ground block. */
@@ -104,25 +114,46 @@ public final class HunterVillageShowcase
         }
         int floorY = Math.max(origin.getY(), level.getMinBuildHeight() + deepest + 2);
         Direction right = look.getClockWise();
-        List<Plot> plots = new ArrayList<>();
-        List<HunterVillageDesigns.Design> villages = HunterVillageDesigns.villages();
-        for (int i = 0; i < villages.size(); i++)
+        List<List<HunterVillageDesigns.Design>> rows = new ArrayList<>();
+        List<HunterVillageDesigns.Design> regular = HunterVillageDesigns.regular();
+        for (int i = 0; i < regular.size(); i += PER_ROW)
         {
-            int row = i / 5;
-            int column = i % 5;
-            plots.add(plot(villages.get(i), row, column, origin, look, right, floorY));
+            rows.add(regular.subList(i, Math.min(regular.size(), i + PER_ROW)));
         }
-        plots.add(plot(HunterVillageDesigns.lodge(), 0, COLUMNS - 1, origin, look, right, floorY));
+        rows.add(HunterVillageDesigns.huntsmanVillages());
+        List<Plot> plots = new ArrayList<>();
+        int along = START;
+        for (int row = 0; row < rows.size(); row++)
+        {
+            List<HunterVillageDesigns.Design> designs = rows.get(row);
+            int total = GAP * (designs.size() - 1);
+            int deepestRow = 0;
+            for (HunterVillageDesigns.Design d : designs)
+            {
+                total += d.width();
+                deepestRow = Math.max(deepestRow, d.depth());
+            }
+            int lateral = -total / 2;
+            for (int column = 0; column < designs.size(); column++)
+            {
+                HunterVillageDesigns.Design d = designs.get(column);
+                // its way in faces you: its depth runs ahead of you, its width sideways
+                BlockPos ground = new BlockPos(origin.getX(), floorY, origin.getZ())
+                        .relative(look, along + d.depth() / 2).relative(right, lateral + d.width() / 2);
+                plots.add(new Plot(d, row, column, ground));
+                lateral += d.width() + GAP;
+            }
+            along += deepestRow + GAP;
+        }
         return new Plan(origin, look, floorY, plots);
     }
 
-    private static Plot plot(HunterVillageDesigns.Design design, int row, int column, BlockPos origin, Direction look,
-                             Direction right, int floorY)
+    /** Where a village's way in is (the open snow at the top of its steps), in the world. */
+    public static BlockPos wayIn(Plan plan, Plot plot)
     {
-        int along = START + PITCH / 2 + row * PITCH;
-        int lateral = Math.round((column - (COLUMNS - 1) / 2.0F) * PITCH);
-        BlockPos ground = new BlockPos(origin.getX(), floorY, origin.getZ()).relative(look, along).relative(right, lateral);
-        return new Plot(design, row, column, ground);
+        HunterVillageDesigns.Design d = plot.design();
+        return HunterVillages.toWorld(new BlockPos(d.wayInX(), d.groundLayer() + 1, d.wayInZ()), plot.ground(),
+                plan.front(), d);
     }
 
     /** Runs {@code /dross showcase hunter_villages}: plans it and starts building, one plot a tick. */
@@ -135,8 +166,8 @@ public final class HunterVillageShowcase
         BlockPos origin = new BlockPos(Mth.floor(position.x), Showcases.groundY(level, position), Mth.floor(position.z));
         Plan plan = plan(level, origin, look);
         JOBS.add(new Job(level, plan, new ArrayDeque<>(plan.plots()), source));
-        source.sendSuccess(() -> Component.literal("Building the ten hunter villages and the Huntsman's lodge ahead of you ("
-                + plan.plots().size() + " plots, one each tick)..."), true);
+        source.sendSuccess(() -> Component.literal("Building the hunter villages ahead of you (" + plan.plots().size()
+                + " plots, one each tick)..."), true);
         return plan.plots().size();
     }
 
@@ -177,8 +208,15 @@ public final class HunterVillageShowcase
         JOBS.clear();
     }
 
-    /** Prepares one plot (clears it, lays the floor) and places its village and its sign. */
+    /** Prepares one plot (clears it, lays the floor) and places its village (each decoration a 1 in 2 chance) and its
+     * sign. */
     static void build(ServerLevel level, Plan plan, Plot plot)
+    {
+        build(level, plan, plot, HunterVillages.roll(plot.design(), level.getRandom(), HunterVillages.DECOR_CHANCE));
+    }
+
+    /** As {@link #build(ServerLevel, Plan, Plot)}, keeping the decorations {@code keep} says (the tests' way). */
+    static void build(ServerLevel level, Plan plan, Plot plot, boolean[] keep)
     {
         HunterVillageDesigns.Design design = plot.design();
         BoundingBox box = HunterVillages.footprint(plot.ground(), plan.front(), design);
@@ -187,6 +225,11 @@ public final class HunterVillageShowcase
         BlockState hoarfrost = ModBlocks.HOARFROST.get().defaultBlockState();
         BlockState snow = Blocks.SNOW_BLOCK.defaultBlockState();
         BlockState dirt = Blocks.DIRT.defaultBlockState();
+        // the animals of a village built here before go first (each village brings its own: they'd pile up)
+        AABB area = new AABB(box.minX() - FLOOR_MARGIN, plan.floorY() - MAX_FILL, box.minZ() - FLOOR_MARGIN,
+                box.maxX() + FLOOR_MARGIN + 1, top + 1, box.maxZ() + FLOOR_MARGIN + 1);
+        level.getEntitiesOfClass(Mob.class, area, m -> m instanceof Moose || m instanceof Rimehorn).forEach(Mob::discard);
+        VillageAnimals.cancelIn(level, area);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int x = box.minX() - FLOOR_MARGIN; x <= box.maxX() + FLOOR_MARGIN; x++)
         {
@@ -211,19 +254,23 @@ public final class HunterVillageShowcase
                 }
             }
         }
-        if (!HunterVillages.place(level, plot.ground(), plan.front(), design))
+        int kept = HunterVillages.place(level, plot.ground(), plan.front(), design, keep);
+        if (kept < 0)
         {
             return;
         }
-        // its sign on a post of packed ice, in front of its way in, facing you
-        int halfDepth = design.depth() / 2;
-        BlockPos post = plot.ground().relative(plan.front(), halfDepth + SIGN_OUT).above();
+        // its sign on a post of packed ice, beside its way in, facing you
+        BlockPos post = wayIn(plan, plot).relative(plan.front(), SIGN_OUT).relative(plan.look().getClockWise(), SIGN_SIDE);
         level.setBlock(post, Blocks.PACKED_ICE.defaultBlockState(), Block.UPDATE_ALL);
         level.setBlock(post.above(), Blocks.PACKED_ICE.defaultBlockState(), Block.UPDATE_ALL);
-        String[] lines = design.isLodge()
-                ? new String[] {"The Huntsman's", "Lodge", "and stable", "(joins a village)"}
-                : new String[] {"No. " + design.number(), design.name(), design.igloos() + " igloos", ""};
+        String[] lines = design.huntsman()
+                ? new String[] {"The Huntsman's", "village " + (design.number() - 8), design.igloos() + " igloos",
+                        "his lodge, his barn"}
+                : new String[] {"Sunken Warren", "No. " + design.number(), design.igloos() + " igloos",
+                        design.courts() + " courtyards"};
         Showcases.placeWallSign(level, post.above().relative(plan.front()), plan.front(), lines);
+        LOGGER.info("Hunter village showcase: {} at {} facing {}: {} of {} decorations", design.id(),
+                plot.ground().toShortString(), plan.front().getName(), kept, design.decorations().size());
     }
 
     /** Snow patches in the Hoarfrost floor (a smooth pattern, the same every time). */
@@ -239,8 +286,9 @@ public final class HunterVillageShowcase
         CommandSourceStack source = job.source();
         LOGGER.info("Hunter village showcase: built {} plots from {} looking {} (floor at y {})", plan.plots().size(),
                 plan.origin().toShortString(), plan.look().getName(), plan.floorY());
-        source.sendSuccess(() -> Component.literal("Built the hunter villages: the first row is Nos. 1-5 and the "
-                + "Huntsman's lodge (right), the second row Nos. 6-10. Click [go] to stand at one's way in:"), true);
+        source.sendSuccess(() -> Component.literal("Built the hunter villages: the Sunken Warrens 1-4, then 5-8, then the "
+                + "Huntsman's two villages (his lodge and barn at the back). Each decoration is a 1 in 2 chance, so "
+                + "building them again gives other mixes. Click [go] to stand at one's way in:"), true);
         for (Plot plot : plan.plots())
         {
             source.sendSuccess(() -> goLine(plan, plot), false);
@@ -252,24 +300,28 @@ public final class HunterVillageShowcase
     private static Component goLine(Plan plan, Plot plot)
     {
         HunterVillageDesigns.Design design = plot.design();
-        BlockPos stand = plot.ground().relative(plan.front(), design.depth() / 2 + STAND_OUT);
+        BlockPos stand = wayIn(plan, plot).relative(plan.front(), STAND_OUT);
         String command = String.format(Locale.ROOT, "/tp @s %.1f %d %.1f %.1f 15", stand.getX() + 0.5D,
                 plan.floorY() + 1, stand.getZ() + 0.5D, plan.look().toYRot());
         MutableComponent line = Component.literal("[go]").withStyle(style -> style
                 .withColor(DrossColors.HUNTER_VILLAGE_BUTTON)
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(command))));
-        String text = design.isLodge()
-                ? " The Huntsman's lodge and stable: " + design.mood()
-                : String.format(Locale.ROOT, " No. %d %s: %s (%d igloos)", design.number(), design.name(), design.mood(),
-                design.igloos());
+        String text = String.format(Locale.ROOT, " %s: %s (%d decorations, each a 1 in 2 chance)", design.name(),
+                design.mood(), design.decorations().size());
         return line.append(Component.literal(text));
     }
 
     private static Component overviewLine(Plan plan)
     {
+        int far = 0;
+        for (Plot plot : plan.plots())
+        {
+            far = Math.max(far, Math.abs(plot.ground().getX() - plan.origin().getX())
+                    + Math.abs(plot.ground().getZ() - plan.origin().getZ()));
+        }
         BlockPos middle = new BlockPos(plan.origin().getX(), plan.floorY(), plan.origin().getZ())
-                .relative(plan.look(), START + PITCH);
+                .relative(plan.look(), far / 2);
         String command = String.format(Locale.ROOT, "/tp @s %.1f %d %.1f %.1f 90", middle.getX() + 0.5D,
                 plan.floorY() + OVERVIEW_HEIGHT, middle.getZ() + 0.5D, plan.look().toYRot());
         return Component.literal("[overview]").withStyle(style -> style

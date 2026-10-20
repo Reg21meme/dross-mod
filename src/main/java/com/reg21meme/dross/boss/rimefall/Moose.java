@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.rimefall;
 
+import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
@@ -42,6 +43,7 @@ import net.minecraft.world.entity.animal.Animal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
@@ -82,9 +84,12 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     private static final EntityDataAccessor<Integer> DATA_ACTION = SynchedEntityData.defineId(Moose.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ACTION_COUNT = SynchedEntityData.defineId(Moose.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Boolean> DATA_SHOWCASE = SynchedEntityData.defineId(Moose.class, EntityDataSerializers.BOOLEAN);
+    /** Frost on its coat: only a moose that spawned in Rimefall has it (the user, October 19). */
+    private static final EntityDataAccessor<Boolean> DATA_SNOWY = SynchedEntityData.defineId(Moose.class, EntityDataSerializers.BOOLEAN);
 
     private static final String TAG_BULL = "Bull";
     private static final String TAG_SHOWCASE = "Showcase";
+    private static final String TAG_SNOWY = "Snowy";
     private static final UniformInt ANGER = TimeUtil.rangeOfSeconds(RimefallMobTuning.ANGER_MIN_SECONDS,
             RimefallMobTuning.ANGER_MAX_SECONDS);
 
@@ -186,6 +191,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         this.entityData.define(DATA_ACTION, -1);
         this.entityData.define(DATA_ACTION_COUNT, 0);
         this.entityData.define(DATA_SHOWCASE, false);
+        this.entityData.define(DATA_SNOWY, false);
     }
 
     @Override
@@ -236,6 +242,24 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     public void setBull(boolean bull)
     {
         this.entityData.set(DATA_BULL, bull);
+    }
+
+    /** True if it wears the frosty coat: it spawned in Rimefall (the user: "only moose that spawned in Rimefall should
+     * have white"; one in the Silverwood Forest, or from a spawn egg in the Overworld, isn't covered in snow). */
+    public boolean isSnowy()
+    {
+        return this.entityData.get(DATA_SNOWY);
+    }
+
+    public void setSnowy(boolean snowy)
+    {
+        this.entityData.set(DATA_SNOWY, snowy);
+    }
+
+    /** Whether a moose spawning at its feet now spawned in Rimefall. */
+    private boolean inRimefall(LevelReader level)
+    {
+        return level.getBiome(this.blockPosition()).is(DrossBiomes.RIMEFALL);
     }
 
     /** A grown cow with a calf near her (she attacks players who come close). */
@@ -307,6 +331,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         }
         SpawnGroupData result = super.finalizeSpawn(level, difficulty, reason, data, tag);
         this.setBull(this.random.nextBoolean());
+        this.setSnowy(this.inRimefall(level));
         boolean natural = reason == MobSpawnType.NATURAL || reason == MobSpawnType.CHUNK_GENERATION;
         if (natural && !this.isBaby() && this.random.nextFloat() < RimefallMobTuning.MOTHER_CHANCE)
         {
@@ -315,6 +340,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
             if (calf != null)
             {
                 calf.setBull(this.random.nextBoolean());
+                calf.setSnowy(this.isSnowy());
                 calf.setBaby(true);
                 float yaw = this.getYRot() * ((float) Math.PI / 180.0F);
                 calf.moveTo(this.getX() + Math.sin(yaw) * 1.6D, this.getY(), this.getZ() - Math.cos(yaw) * 1.6D,
@@ -340,6 +366,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         if (calf != null)
         {
             calf.setBull(this.random.nextBoolean());
+            calf.setSnowy(this.isSnowy());
         }
         return calf;
     }
@@ -785,6 +812,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         }
         moose.entityData.set(DATA_SHOWCASE, true);
         moose.setBull(bull);
+        moose.setSnowy(level.getBiome(BlockPos.containing(feet)).is(DrossBiomes.RIMEFALL));
         if (calf)
         {
             moose.setBaby(true);
@@ -850,6 +878,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     {
         super.addAdditionalSaveData(tag);
         tag.putBoolean(TAG_BULL, this.isBull());
+        tag.putBoolean(TAG_SNOWY, this.isSnowy());
         if (this.isShowcase())
         {
             tag.putBoolean(TAG_SHOWCASE, true);
@@ -862,6 +891,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     {
         super.readAdditionalSaveData(tag);
         this.setBull(tag.getBoolean(TAG_BULL));
+        this.setSnowy(tag.getBoolean(TAG_SNOWY));
         this.entityData.set(DATA_SHOWCASE, tag.getBoolean(TAG_SHOWCASE));
         this.readPersistentAngerSaveData(this.level(), tag);
     }

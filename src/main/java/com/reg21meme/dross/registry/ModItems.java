@@ -170,6 +170,10 @@ public final class ModItems
     public static final RegistryObject<Item> SEWER_SLUDGE = ITEMS.register("sewer_sludge", () -> new BlockItem(ModBlocks.SEWER_SLUDGE.get(), new Item.Properties()));
     // Dimension area, the Rat King's sewer: Blight Vent
     public static final RegistryObject<Item> BLIGHT_VENT = ITEMS.register("blight_vent", () -> new BlockItem(ModBlocks.BLIGHT_VENT.get(), new Item.Properties()));
+    // Boss area, the hunter villages: Meat Block
+    public static final RegistryObject<Item> MEAT_BLOCK = ITEMS.register("meat_block", () -> new BlockItem(ModBlocks.MEAT_BLOCK.get(), new Item.Properties()));
+    // Boss area, the hunter villages: Roasted Meat Block
+    public static final RegistryObject<Item> ROASTED_MEAT_BLOCK = ITEMS.register("roasted_meat_block", () -> new BlockItem(ModBlocks.ROASTED_MEAT_BLOCK.get(), new Item.Properties()));
 
     // Dimension area: Stormite Shard (a glowing blue crystal from Stormite Ore; for special arrows and the Great Mystic Bow later)
     public static final RegistryObject<Item> STORMITE_SHARD = ITEMS.register("stormite_shard", () -> new Item(new Item.Properties()));

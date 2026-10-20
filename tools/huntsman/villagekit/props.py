@@ -13,6 +13,15 @@ from .local import Frame, ROT16
 STONE_RING = Mix(("cobblestone_slab[type=bottom]", 3), ("stone_slab[type=bottom]", 2),
                  ("cobbled_deepslate_slab[type=bottom]", 1), patch=0.0)
 CAIRN = Mix(("cobblestone", 3), ("stone", 2), ("andesite", 2), ("cobbled_deepslate", 1), ("tuff", 1), patch=0.0)
+# the ground of the camp: snow, gravel, Hoarfrost, packed ice and cobbles (the user, October 19: "I see dirt stuff that
+# shouldn't be there, it looks lame": no dirt, coarse dirt or mud anywhere)
+FIRE_GROUND = Mix(("gravel", 2), ("cobblestone", 1), ("stone", 1), patch=0.0)
+PATH = Mix(("snow_block", 3), ("gravel", 2), ("dross:hoarfrost", 2), ("packed_ice", 1), patch=0.3)
+PLAZA = Mix(("snow_block", 5), ("gravel", 2), ("dross:hoarfrost", 2), ("packed_ice", 1), patch=0.5)
+FROSTBITTEN = "dross:frostbitten_log[axis=y]"
+ROAST = "dross:roasted_meat_block[axis={lr}]"    # a roasted joint on its spit, the bone across (MeatBlocks)
+# open water that never freezes over: a light block of level 0, waterlogged (Minecraft only freezes plain water)
+OPEN_WATER = "light[level=0,waterlogged=true]"
 
 
 def frame(g, x, z, front="south"):
@@ -21,22 +30,21 @@ def frame(g, x, z, front="south"):
 
 # ---------------------------------------------------------------- fires and cooking
 
-def fire_pit(f, r=1, benches=True, spit=False, pot=False, kind="campfire", stones=STONE_RING, bench_r=3):
-    """A campfire in a ring of stone slabs, log benches round it, maybe a roasting spit or a stew pot."""
+def fire_pit(f, r=1, benches=True, spit=False, pot=False, kind="campfire", stones=STONE_RING, bench_r=3, ground=True,
+             bench="stripped_spruce_log", post="spruce_fence"):
+    """A campfire in a ring of stone slabs, log benches round it; spit: a joint of meat (a Roasted Meat Block, its
+    bone across) roasting on a spit between two posts, a block clear of the flames; pot: a stew pot beside it.
+    ground: gravel and cobbles under it (never dirt)."""
     f.set(0, 1, 0, f"{kind}[facing=north,lit=true,signal_fire=false]")
     for u in range(-r - 1, r + 2):
         for v in range(-r - 1, r + 2):
             d = math.hypot(u, v)
-            if 0.5 < d <= r + 0.6 and not (u == 0 and v == 0):
+            if 0.5 < d <= r + 0.6 and not (u == 0 and v == 0) and not (spit and v == 0 and abs(u) == 1):
                 f.set(u, 1, v, stones)
-            if d <= r + 0.6:
-                f.set(u, 0, v, Mix(("gravel", 2), ("coarse_dirt", 1), patch=0.0) if d > 0.5 else "cobblestone")
+            if d <= r + 0.6 and ground:
+                f.set(u, 0, v, FIRE_GROUND if d > 0.5 else "cobblestone")
     if spit:
-        f.set(-1, 1, 0, "spruce_fence")
-        f.set(1, 1, 0, "spruce_fence")
-        f.set(-1, 2, 0, "spruce_fence")
-        f.set(0, 2, 0, "spruce_fence")
-        f.set(1, 2, 0, "spruce_fence")
+        roasting_spit(f, post=post)
     if pot:
         f.set(0, 1, 1, "cauldron")
     if benches:
@@ -48,7 +56,16 @@ def fire_pit(f, r=1, benches=True, spit=False, pot=False, kind="campfire", stone
             for k in (-0.5, 0.5):
                 u, v = int(round(cu + tu * k)), int(round(cv + tv * k))
                 ax = "{lr}" if abs(tu) > abs(tv) else "{fb}"
-                f.set(u, 1, v, f"stripped_spruce_log[axis={ax}]")
+                f.set(u, 1, v, f"{bench}[axis={ax}]")
+
+
+def roasting_spit(f, post="spruce_fence", height=3):
+    """The spit over a fire at (0, 1, 0): two posts either side of it and the joint (a Roasted Meat Block lying
+    across, its bone along the spit) between their tops, a block clear of the flames."""
+    for u in (-1, 1):
+        for y in range(1, height + 1):
+            f.set(u, y, 0, post)
+    f.set(0, height, 0, ROAST)
 
 
 def long_fire(f, length=7, kind="campfire"):
@@ -125,16 +142,41 @@ def woodpile(f, length=3, height=2):
 
 
 def sled(f, cargo=True):
-    """A sled 2 wide and 4 long, its runners curling up at the front (v), with a load."""
+    """A sled 2 wide and 4 long, its runners curling up at the front (v), with a load: True or "mixed" (a barrel,
+    hides and furs), "logs" (firewood), "meat" (joints of meat under a hide), "hides" (bundles of wool), "ice" (cut
+    blocks of packed ice) or None."""
     for u in (0, 1):
         for v in range(0, 3):
             f.set(u, 1, v, "spruce_slab[type=bottom]")
         f.set(u, 1, 3, "spruce_stairs[facing={front},half=bottom]")
-    if cargo:
+    if cargo is True or cargo == "mixed":
         f.set(0, 2, 1, "barrel[facing=up,open=false]")
         f.set(1, 2, 0, "brown_wool")
         f.set(1, 2, 1, "white_carpet")
         f.set(0, 2, 0, "white_carpet")
+    elif cargo == "logs":
+        for u in (0, 1):
+            for v in (0, 1, 2):
+                f.set(u, 2, v, "spruce_log[axis={fb}]")
+        f.set(0, 3, 1, "spruce_log[axis={fb}]")
+    elif cargo == "meat":
+        f.set(0, 2, 0, "dross:meat_block[axis={fb}]")
+        f.set(1, 2, 0, "dross:meat_block[axis={fb}]")
+        f.set(0, 2, 1, "dross:meat_block[axis={fb}]")
+        f.set(1, 2, 1, "brown_carpet")
+        f.set(0, 3, 0, "light_gray_carpet")
+        f.set(0, 2, 2, DRIED)
+    elif cargo == "hides":
+        f.set(0, 2, 0, "brown_wool")
+        f.set(1, 2, 0, "light_gray_wool")
+        f.set(0, 2, 1, "white_wool")
+        f.set(0, 3, 0, "gray_carpet")
+        f.set(1, 2, 1, "brown_carpet")
+    elif cargo == "ice":
+        for u, v in ((0, 0), (1, 0), (0, 1)):
+            f.set(u, 2, v, "packed_ice")
+        f.set(0, 3, 0, "packed_ice")
+        f.set(1, 2, 1, "blue_ice")
 
 
 # ---------------------------------------------------------------- markers
@@ -154,17 +196,29 @@ def inuksuk(f, tall=True):
 
 
 def banner_pole(f, colour="light_blue", height=4, cloth=None):
-    """A spruce pole with a standing banner on top."""
+    """A spruce pole with a standing banner on top (cloth: its patterns, writer.banner's (code, dye) pairs)."""
     for y in range(1, height + 1):
         f.set(0, y, 0, "spruce_fence")
     f.set(0, height + 1, 0, f"{colour}_banner[rotation={{rot_front}}]")
     f.banner_at = (f.xz(0, 0), height + 1)
+    if cloth:
+        from .writer import banner
+        x, z = f.xz(0, 0)
+        nbt = getattr(f.g, "block_nbt", None)
+        if nbt is not None:
+            nbt[(x, height + 1 + getattr(f, "dy", 0), z)] = banner(*cloth)
 
 
-def lantern_post(f, height=3, kind="lantern"):
+def lantern_post(f, height=3, kind="lantern", arm=True):
+    """A spruce post with a lantern: hanging from an arm (or standing on top)."""
     for y in range(1, height + 1):
         f.set(0, y, 0, "spruce_fence")
-    f.set(0, height + 1, 0, f"{kind}[hanging=false]")
+    if arm:
+        f.set(0, height + 1, 0, "spruce_fence")
+        f.set(1, height + 1, 0, "spruce_fence")
+        f.set(1, height, 0, f"{kind}[hanging=true]")
+    else:
+        f.set(0, height + 1, 0, f"{kind}[hanging=false]")
 
 
 def ice_lantern(f, height=2):
@@ -227,10 +281,11 @@ def bone_arch(f, width=5, height=6, mat="bone_block[axis=y]"):
 def curve(f, pts, mat):
     """Blocks along a polyline of local (u, y, v) points, touching face to face."""
     g = f.g
+    dy = getattr(f, "dy", 0)
     for (u1, y1, v1), (u2, y2, v2) in zip(pts, pts[1:]):
         x1, z1 = f.xz(int(round(u1)), int(round(v1)))
         x2, z2 = f.xz(int(round(u2)), int(round(v2)))
-        g.line((x1, int(round(y1)), z1), (x2, int(round(y2)), z2), f.state(mat))
+        g.line((x1, int(round(y1)) + dy, z1), (x2, int(round(y2)) + dy, z2), f.state(mat))
 
 
 def horn_arch(f, width=5, height=7, mat="packed_ice", tip="ice"):
@@ -307,7 +362,7 @@ def rect_cells(x1, z1, x2, z2):
 
 def path(g, pts, width=3, mat=None):
     """A path along the polyline pts [(x, z)] (the ground layer), `width` wide."""
-    mat = mat or Mix(("coarse_dirt", 2), ("gravel", 2), ("snow_block", 2), ("packed_mud", 1), patch=0.3)
+    mat = mat or PATH
     r = (width - 1) / 2.0
     for (x1, z1), (x2, z2) in zip(pts, pts[1:]):
         n = int(max(abs(x2 - x1), abs(z2 - z1)) * 2) + 1
@@ -323,7 +378,7 @@ def path(g, pts, width=3, mat=None):
 
 
 def plaza(g, cx, cz, r, mat=None):
-    mat = mat or Mix(("snow_block", 5), ("gravel", 2), ("coarse_dirt", 2), ("packed_mud", 1), patch=0.5)
+    mat = mat or PLAZA
     for x in range(int(cx - r) - 1, int(cx + r) + 2):
         for z in range(int(cz - r) - 1, int(cz + r) + 2):
             if math.hypot(x - cx, z - cz) <= r and g.inb(x, 0, z) and g.get(x, 0, z) is None:
@@ -340,7 +395,7 @@ def drifts(g, n, area=None, max_layers=4, near_solid=True, salt=0):
             if area is not None and not area(x, z):
                 continue
             if g.get(x, 1, z) is not None or g.get(x, 0, z) is not None and mc.base(g.get(x, 0, z)) in (
-                    "packed_ice", "ice", "blue_ice", "gravel", "packed_mud", "coarse_dirt", "cobblestone"):
+                    "packed_ice", "ice", "blue_ice", "gravel", "cobblestone"):
                 continue
             # next to a wall?
             near = 0
@@ -368,3 +423,351 @@ def frostblooms(g, n, area=None):
         if g.get(x, 1, z) is None and g.get(x, 0, z) is None:
             g.set(x, 1, z, "dross:frostbloom")
             placed += 1
+
+
+# ---------------------------------------------------------------- the hunt's leavings (the Sunken Warren's)
+
+MEAT = "dross:meat_block[axis=y]"   # a joint of raw meat hung to dry (boss/huntsman/village/MeatBlocks)
+DRIED = "dried_kelp_block"          # dried meat and fish, in dark bundles
+
+
+def meat_rack(f, length=4, height=3):
+    """A drying rack hung with joints of red meat and bundles of dried meat."""
+    drying_rack(f, length=length, height=height, hang=(MEAT, DRIED, MEAT))
+
+
+def bone_pile(f, big=False):
+    """A heap of bones by the camp: bone blocks lying every way, a skull on top."""
+    f.set(0, 1, 0, "bone_block[axis={lr}]")
+    f.set(1, 1, 0, "bone_block[axis=y]")
+    f.set(0, 1, 1, "bone_block[axis={fb}]")
+    f.set(0, 2, 0, "skeleton_skull[rotation={rot_front}]")
+    if big:
+        f.set(-1, 1, 0, "bone_block[axis={fb}]")
+        f.set(1, 1, 1, "bone_block[axis={lr}]")
+        f.set(1, 2, 0, "bone_block[axis={lr}]")
+        f.set(1, 3, 0, "skeleton_skull[rotation={rot_right}]")
+
+
+def skull_pile(f):
+    """Skulls heaped on a flat stone: the hunters' count of their kills."""
+    f.set(0, 1, 0, "cobblestone")
+    f.set(1, 1, 0, "cobblestone_slab[type=bottom]")
+    f.set(-1, 1, 0, "cobblestone_slab[type=bottom]")
+    f.set(0, 2, 0, "skeleton_skull[rotation={rot_front}]")
+    f.set(0, 1, 1, "skeleton_skull[rotation={rot_front}]")
+    f.set(0, 1, -1, "bone_block[axis={lr}]")
+    f.set(0, 2, -1, "skeleton_skull[rotation={rot_front}]")
+
+
+def butcher_block(f):
+    """Where the kill is cut up: a log stump to cut on, a carcass hanging from a frame beside it, a barrel, bones."""
+    f.set(0, 1, 0, "stripped_spruce_log[axis=y]")
+    f.set(0, 2, 0, "spruce_pressure_plate")
+    for u in (2, 4):
+        for y in (1, 2, 3):
+            f.set(u, y, 0, "spruce_fence")
+    f.set(3, 3, 0, "spruce_fence")
+    f.set(3, 2, 0, "chain[axis=y]")
+    f.set(3, 1, 0, MEAT)
+    f.set(1, 1, 1, "barrel[facing=up,open=false]")
+    f.set(-1, 1, 0, "bone_block[axis={fb}]")
+
+
+def fishing_hole(f):
+    """A hole cut through the ice to fish in: open water two deep (it never freezes over: a waterlogged light block
+    on top, like the big lakes' holes), ringed and lined with packed ice; a rod (fence posts) leaning over it, a
+    barrel for the catch with dried fish on it, a stool."""
+    f.set(0, 0, 0, OPEN_WATER)
+    f.set(0, -1, 0, "water")
+    f.set(0, -2, 0, "gravel")
+    for u in (-1, 0, 1):
+        for v in (-1, 0, 1):
+            if (u, v) != (0, 0):
+                f.set(u, 0, v, "packed_ice")
+                f.set(u, -1, v, "packed_ice")
+    f.set(2, 1, 0, "barrel[facing=up,open=false]")
+    f.set(2, 2, 0, DRIED)
+    f.set(-2, 1, 0, "spruce_fence")
+    f.set(-2, 2, 0, "spruce_fence")
+    f.set(-1, 2, 0, "spruce_fence")
+    f.set(0, 1, 2, "spruce_slab[type=bottom]")
+
+
+def hide_rack(f, colours=("brown", "light_gray")):
+    """Two hides stretched side by side in one long frame of fences."""
+    hide_frame(f, colour=colours[0], w=2, h=2)
+    g = f.sub(3, 0)
+    for y in range(1, 5):
+        g.set(2, y, 0, "spruce_fence")
+    for u in range(0, 3):
+        g.set(u, 1, 0, "spruce_fence")
+        g.set(u, 4, 0, "spruce_fence")
+    for u in range(0, 2):
+        for y in (2, 3):
+            g.set(u, y, 0, f"{colours[1]}_wool")
+
+
+def spear_stand(f):
+    """Three spears (lightning rods) upright in a stand of logs, a target behind them."""
+    f.set(0, 1, 0, "spruce_log[axis={lr}]")
+    f.set(1, 1, 0, "spruce_log[axis={lr}]")
+    f.set(-1, 1, 0, "spruce_log[axis={lr}]")
+    for u in (-1, 0, 1):
+        f.set(u, 2, 0, "lightning_rod[facing=up]")
+
+
+def lean_to(f, icicles=True):
+    """A hunters' lean-to: log posts, a roof of spruce stairs sloping down to the back with snow on it and its eave
+    hung with icicles, a fur and a barrel under it."""
+    for u in (-1, 1):
+        f.set(u, 1, 0, "spruce_log[axis=y]")
+        f.set(u, 2, 0, "spruce_log[axis=y]")
+        f.set(u, 1, -1, "spruce_log[axis=y]")
+    for u in (-1, 0, 1):
+        f.set(u, 3, 0, "spruce_stairs[facing={front},half=bottom]")
+        f.set(u, 2, -1, "spruce_stairs[facing={front},half=bottom]")
+        f.set(u, 1, -2, "spruce_slab[type=bottom]")
+    f.set(0, 1, 0, "brown_carpet")
+    f.set(0, 1, -1, "barrel[facing=up,open=false]")
+    if icicles:
+        for u in (-1, 0, 1):
+            f.set(u, 3, 1, "spruce_slab[type=bottom]")    # the eave, a block out over the front
+            f.set(u, 2, 1, "dross:icicle")
+
+
+# ---------------------------------------------------------------- more of the camp's life (round 2, October 19)
+
+def meat_cache(f, height=2):
+    """A cache on stilts, out of the animals' reach: four posts of Frostbitten Log, a floor of spruce planks on them,
+    barrels, joints of meat and a hide stored on top, icicles hanging under it, a ladder up one post."""
+    for u in (0, 2):
+        for v in (0, 2):
+            for y in range(1, height + 1):
+                f.set(u, y, v, FROSTBITTEN)
+    top = height + 1
+    for u in range(0, 3):
+        for v in range(0, 3):
+            f.set(u, top, v, "spruce_planks")
+    for u, v in ((1, 0), (0, 1), (2, 1), (1, 2)):
+        f.set(u, height, v, "dross:icicle")
+    f.set(0, top + 1, 0, "barrel[facing=up,open=false]")
+    f.set(2, top + 1, 2, "barrel[facing=up,open=false]")
+    f.set(1, top + 1, 1, MEAT)
+    f.set(2, top + 1, 0, "dross:meat_block[axis={lr}]")
+    f.set(0, top + 1, 2, DRIED)
+    f.set(1, top + 1, 0, "brown_carpet")
+    f.set(1, top + 2, 1, "light_gray_carpet")
+    for y in range(1, top + 1):
+        f.set(0, y, 3, "ladder[facing={front}]")
+
+
+def crate_stack(f, lantern=False):
+    """Barrels and crates (blocks of stripped spruce) stacked against each other, hides thrown over the top."""
+    f.set(0, 1, 0, "barrel[facing=up,open=false]")
+    f.set(1, 1, 0, "stripped_spruce_wood[axis=y]")
+    f.set(2, 1, 0, "barrel[facing=up,open=false]")
+    f.set(0, 1, 1, "stripped_spruce_wood[axis=y]")
+    f.set(1, 1, 1, "barrel[facing=up,open=false]")
+    f.set(0, 2, 0, "stripped_spruce_wood[axis=y]")
+    f.set(1, 2, 0, "barrel[facing=up,open=false]")
+    f.set(0, 3, 0, "brown_carpet")
+    f.set(1, 3, 0, "light_gray_carpet")
+    f.set(0, 2, 1, "white_carpet")
+    f.set(2, 2, 0, "lantern[hanging=false]" if lantern else "gray_carpet")
+
+
+def ice_sculpture(f, kind="rimehorn"):
+    """A statue carved out of ice on a plinth of snow: "rimehorn" (a Rimehorn of packed ice, its great horn of clear
+    ice), "angel" (the Snow Angel, the hunters' Ice Necromancer: a robe of snow, wings and a crown of clear ice),
+    "crystal" (a spire of blue, packed and clear ice)."""
+    if kind == "rimehorn":
+        for u in (0, 1):
+            for v in range(-1, 4):
+                f.set(u, 1, v, "snow_block")
+        for u, v in ((0, -1), (1, -1), (0, 2), (1, 2)):
+            f.set(u, 2, v, "packed_ice")                    # its legs
+        for u in (0, 1):
+            for v in range(-1, 3):
+                f.set(u, 3, v, "packed_ice")                # its body
+            f.set(u, 4, -1, "blue_ice")                     # the shaggy hump
+            f.set(u, 4, 0, "blue_ice")
+            f.set(u, 3, 3, "packed_ice")                    # its head, low
+        f.set(0, 4, 3, "ice")                               # the great horn, rising off its nose
+        f.set(0, 5, 3, "ice")
+        f.set(1, 4, 3, "packed_ice")                        # the small horn
+    elif kind == "angel":
+        for u in range(-1, 2):
+            for v in range(-1, 2):
+                f.set(u, 1, v, "packed_ice")
+        for u, v in ((0, 0), (-1, 0), (1, 0), (0, -1), (0, 1)):
+            f.set(u, 2, v, "snow_block")                    # the robe, wide at its hem
+        f.set(0, 3, 0, "snow_block")
+        f.set(0, 3, -1, "snow_block")
+        f.set(0, 4, 0, "white_wool")                        # the hood
+        f.set(0, 4, -1, "snow_block")
+        f.set(0, 5, 0, "white_wool")
+        for side in (-1, 1):                                # the wings, rising and spreading behind
+            f.set(side, 3, -1, "ice")
+            f.set(side, 4, -1, "ice")
+            f.set(side * 2, 4, -1, "ice")
+            f.set(side * 2, 5, -1, "ice")
+            f.set(side * 3, 5, -1, "ice")
+        f.set(0, 6, 0, "ice")                               # the crown of ice over the hood
+    else:
+        f.set(0, 1, 0, "blue_ice")
+        f.set(1, 1, 0, "packed_ice")
+        f.set(0, 1, 1, "packed_ice")
+        f.set(0, 2, 0, "packed_ice")
+        f.set(1, 2, 0, "ice")
+        f.set(0, 3, 0, "ice")
+        f.set(0, 4, 0, "ice")
+        f.set(0, 2, 1, "ice")
+
+
+def frostbloom_patch(f, spots=((0, 0), (1, 1), (-1, 1), (2, 0), (0, 2)), ground=True):
+    """Frostblooms, Rimefall's glowing flower, planted in a little bed of Hoarfrost (ground=False: straight into the
+    floor, which must be Hoarfrost or snow; Decor checks it)."""
+    for u, v in spots:
+        if ground:
+            f.set(u, 0, v, "dross:hoarfrost")
+        f.set(u, 1, v, "dross:frostbloom")
+
+
+def kayak_rack(f):
+    """A skin kayak resting on two trestles: its hull of spruce, pointed at both ends, a hide over it."""
+    for v in (-1, 1):
+        for u in (0, 1):
+            f.set(u, 1, v, "spruce_fence")
+    for u in (0, 1):
+        for v in (-1, 0, 1):
+            f.set(u, 2, v, "spruce_slab[type=bottom]")
+        f.set(u, 2, 2, "spruce_stairs[facing={back},half=bottom]")
+        f.set(u, 2, -2, "spruce_stairs[facing={front},half=bottom]")
+        f.set(u, 3, 0, "brown_carpet")
+
+
+def snow_block_stack(f):
+    """Blocks of snow cut for building igloos, stacked in steps, snow settled on the top."""
+    for u in range(3):
+        for v in (0, 1):
+            f.set(u, 1, v, "snow_block")
+    for u in range(2):
+        f.set(u, 2, 0, "snow_block")
+    f.set(0, 3, 0, "snow_block")
+    f.set(0, 4, 0, "snow[layers=2]")
+    f.set(1, 3, 0, "snow[layers=3]")
+    f.set(2, 2, 0, "snow[layers=2]")
+
+
+def ice_block_stack(f):
+    """Blocks of lake ice cut for walls (packed and blue ice), stacked on a sled-board."""
+    for u in range(3):
+        f.set(u, 1, 0, "spruce_slab[type=bottom]")
+    f.set(0, 2, 0, "packed_ice")
+    f.set(1, 2, 0, "blue_ice")
+    f.set(2, 2, 0, "packed_ice")
+    f.set(0, 3, 0, "packed_ice")
+    f.set(1, 3, 0, "packed_ice")
+    f.set(0, 4, 0, "blue_ice")
+
+
+def lane_arch(f, width=5, height=6, mat="bone_block[axis=y]"):
+    """A great rib of bone arching over a lane (the lane runs along v), icicles hanging under its crown."""
+    bone_arch(f, width=width, height=height, mat=mat)
+    half = int(width / 2.0 + 0.5)
+    for u in range(-half + 2, half - 1):
+        col = [y for y in range(1, height + 3) if f.get(u, y, 0) is not None]
+        if not col:
+            continue
+        low = min(col)
+        if low - 1 >= 4 and f.get(u, low - 1, 0) is None:
+            f.set(u, low - 1, 0, "dross:icicle")
+
+
+def rimehorn_skull(f):
+    """A Rimehorn's skull mounted on a post: bone, its great horn of clear ice rising off the snout, a small one
+    behind it."""
+    for y in (1, 2):
+        f.set(0, y, 0, "stripped_spruce_log[axis=y]")
+    for u in (-1, 0, 1):
+        f.set(u, 3, 0, "bone_block[axis={lr}]")
+    f.set(0, 3, 1, "bone_block[axis={fb}]")                 # the snout
+    f.set(0, 4, 0, "bone_block[axis=y]")
+    for u in (-1, 1):
+        f.set(u, 3, 1, "polished_blackstone_button[face=wall,facing={front},powered=false]")   # its eye holes
+    f.set(0, 4, 1, "packed_ice")
+    f.set(0, 5, 1, "ice")
+    f.set(0, 6, 1, "ice")
+    f.set(0, 5, 0, "packed_ice")
+
+
+def windbreak(f, length=5):
+    """A low wall of snow blocks against the wind, snow lying along its top and drifted up behind it."""
+    for u in range(length):
+        f.set(u, 1, 0, "snow_block")
+        if 0 < u < length - 1:
+            f.set(u, 2, 0, "snow_block")
+            f.set(u, 3, 0, "snow[layers=3]")
+            f.set(u, 1, -1, "snow[layers=5]")
+        else:
+            f.set(u, 2, 0, "snow[layers=4]")
+
+
+def stew_fire(f):
+    """A fire with a stew pot hung over it from a frame of fences: the pot (a cauldron of water) on a chain, a block
+    over the flames, a ring of stones."""
+    f.set(0, 1, 0, "campfire[facing=north,lit=true,signal_fire=false]")
+    for u in (-1, 1):
+        for y in range(1, 5):
+            f.set(u, y, 0, "spruce_fence")
+    f.set(0, 4, 0, "spruce_fence")
+    f.set(0, 3, 0, "chain[axis=y]")
+    f.set(0, 2, 0, "water_cauldron[level=3]")
+    for u, v in ((0, 1), (0, -1), (-1, 1), (1, 1), (-1, -1), (1, -1)):
+        f.set(u, 1, v, STONE_RING)
+
+
+def smoking_rack(f, length=3):
+    """Joints of meat smoking over a low fire: a log frame over a trench of embers, the meat hung on chains in the
+    smoke."""
+    for u in (-1, length):
+        for y in range(1, 5):
+            f.set(u, y, 0, "spruce_log[axis=y]")
+        f.set(u, 5, 0, "snow[layers=2]")
+    for u in range(0, length):
+        f.set(u, 4, 0, "spruce_fence")
+        f.set(u, 3, 0, "chain[axis=y]")
+        f.set(u, 2, 0, MEAT if u % 2 == 0 else DRIED)
+        f.set(u, 1, 0, "campfire[facing=north,lit=true,signal_fire=false]" if u == length // 2 else
+              "cobblestone_slab[type=bottom]")
+
+
+def hide_line(f, length=5, colours=("brown", "light_gray", "white")):
+    """Hides hung over a line between two posts to dry, in the hunters' colours."""
+    for u in (0, length - 1):
+        for y in range(1, 4):
+            f.set(u, y, 0, "spruce_fence")
+    for u in range(1, length - 1):
+        f.set(u, 3, 0, "spruce_fence")
+        if u % 2 == 1 or length <= 4:
+            f.set(u, 2, 0, f"{colours[(u // 2) % len(colours)]}_wool")
+
+
+def anvil_corner(f):
+    """Where the hunters mend their gear: an anvil, a grindstone, spears (lightning rods) in a rack, a barrel."""
+    f.set(0, 1, 0, "chipped_anvil[facing={left}]")
+    f.set(2, 1, 0, "grindstone[face=floor,facing={front}]")
+    f.set(1, 1, -1, "barrel[facing=up,open=false]")
+    for u in (0, 1, 2):
+        f.set(u, 1, -2, "spruce_fence")
+    f.set(0, 2, -2, "lightning_rod[facing=up]")
+    f.set(2, 2, -2, "lightning_rod[facing=up]")
+    f.set(1, 2, -2, "spruce_fence")
+    f.set(1, 3, -2, "lightning_rod[facing=up]")
+
+
+def dog_sleds(f):
+    """Two sleds side by side, one loaded with firewood, the other with joints of meat."""
+    sled(f, cargo="logs")
+    sled(f.sub(3, 0), cargo="meat")

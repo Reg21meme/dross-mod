@@ -39,7 +39,7 @@ public final class RimefallMobClientEvents
                         r -> r.isMale() || r.isBaby() ? SNOW : Set.of(), RIMEHORN_CALF_HEAD),
                 2.0F, RIMEHORN_CALF, true));
         event.registerEntityRenderer(ModEntities.MOOSE.get(), context -> new RimefallMobRenderer<>(context,
-                new RimefallMobModel<Moose>(Moose.MOB, m -> "moose", List.of("antlers"),
+                new RimefallMobModel<Moose>(Moose.MOB, m -> m.isSnowy() ? "moose" : "moose_plain", List.of("antlers"),
                         m -> m.isBull() && !m.isBaby() ? Set.of() : ANTLERS, MOOSE_CALF_HEAD),
                 1.5F, MOOSE_CALF, false));
         event.registerEntityRenderer(ModEntities.POND_SKATER.get(), context -> new RimefallMobRenderer<>(context,

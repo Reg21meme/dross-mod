@@ -85,6 +85,9 @@ public final class ModCreativeTabs
                         output.accept(ModItems.SEWER_SLUDGE.get());
                         // Dimension area: the Rat King's sewer
                         output.accept(ModItems.BLIGHT_VENT.get());
+                        // Boss area: the hunter villages' meat (the Meat Block, the Roasted Meat Block)
+                        output.accept(ModItems.MEAT_BLOCK.get());
+                        output.accept(ModItems.ROASTED_MEAT_BLOCK.get());
 
                         // 2. Quest items
                         // Quest area: a Weathered Letter (gets its text once it's in your inventory)

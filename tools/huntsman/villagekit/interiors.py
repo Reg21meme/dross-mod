@@ -32,7 +32,8 @@ class Room:
             if (x, z) not in self.floor or y < self.floor[(x, z)]:
                 self.floor[(x, z)] = y
         self.y0 = min(self.floor.values()) if self.floor else 1
-        self.used = set()
+        # cells kept clear for the ways in and through (doorways, passages joining other igloos): nothing goes there
+        self.used = set(getattr(m, "reserved", {}).get(id(d), ()))
 
     def local(self, x, z):
         f = self.f
@@ -69,15 +70,24 @@ class Room:
         """Floor cells against the wall (a neighbour isn't room), with the direction towards the wall, sorted by angle
         from the door (0 = by the door, 180 = the back)."""
         out = []
+        dirs = (("north", (0, -1)), ("south", (0, 1)), ("east", (1, 0)), ("west", (-1, 0)))
         for (x, z), y in self.floor.items():
             if y != self.y0:
                 continue
-            for name, (dx, dz) in (("north", (0, -1)), ("south", (0, 1)), ("east", (1, 0)), ("west", (-1, 0))):
-                if not self.m.is_room(x + dx, y, z + dz):
-                    u, v = self.local(x, z)
-                    ang = math.degrees(math.atan2(u, v)) % 360
-                    out.append((ang, x, z, name))
-                    break
+            # the wall it stands against: one with open room on the far side, so whatever stands here faces into
+            # the room (a cell between two walls, or in a corner with no room in front, isn't one)
+            best = None
+            for name, (dx, dz) in dirs:
+                if not self.m.is_room(x + dx, y, z + dz) and self.m.is_room(x - dx, y, z - dz)                         and _free(self.m, x - dx, y, z - dz):
+                    # of the walls it could stand against, the one most behind it as seen from the middle
+                    out_x, out_z = x - self.d.cx, z - self.d.cz
+                    score = dx * out_x + dz * out_z
+                    if best is None or score > best[0]:
+                        best = (score, name)
+            if best is not None:
+                u, v = self.local(x, z)
+                ang = math.degrees(math.atan2(u, v)) % 360
+                out.append((ang, x, z, best[1]))
         out.sort()
         return out
 
@@ -104,6 +114,33 @@ class Room:
         d = f.d(toward)
         self.put(u, v, f"{colour}_bed[facing={d},part=head,occupied=false]")
         self.put(u - du, v - dv, f"{colour}_bed[facing={d},part=foot,occupied=false]")
+        return True
+
+    def _pair_free(self, x, z, facing):
+        """The head at (x, z) and the foot one step back from `facing` (compass): both free floor cells?"""
+        from voxel import STEP
+        dx, dz = STEP[facing]
+        cells = ((x, z), (x - dx, z - dz))
+        for cx, cz in cells:
+            y = self.floor.get((cx, cz))
+            if y is None or y != self.y0 or (cx, cz) in self.used or not _free(self.m, cx, y, cz):
+                return None
+        return cells
+
+    def bed_against(self, x, z, wall, colour="white", roll=False):
+        """A bed (or with `roll` a bedroll) with its head on the floor cell (x, z) against the wall that way (compass)
+        and its foot out into the room."""
+        cells = self._pair_free(x, z, wall)
+        if cells is None:
+            return False
+        (hx, hz), (fx, fz) = cells
+        if roll:
+            self.g.set(hx, self.y0, hz, "white_carpet", force=True)
+            self.g.set(fx, self.y0, fz, "brown_carpet", force=True)
+        else:
+            self.g.set(hx, self.y0, hz, f"{colour}_bed[facing={wall},part=head,occupied=false]", force=True)
+            self.g.set(fx, self.y0, fz, f"{colour}_bed[facing={wall},part=foot,occupied=false]", force=True)
+        self.used.update(cells)
         return True
 
     def bedroll(self, u, v, toward, fur="brown_carpet", pillow="white_carpet"):
@@ -136,24 +173,105 @@ class Room:
             if self.put(u, v, s):
                 placed.append((x, z))
                 i += 1
+                if "{in}" in state:
+                    # what it opens onto stays clear
+                    dx, dz = {"north": (0, -1), "south": (0, 1), "east": (1, 0), "west": (-1, 0)}[facing_in]
+                    self.used.add((x + dx, z + dz))
         return placed
 
-    def lamp(self, kind="soul_lantern", hang=True):
-        """A lantern hanging on a chain from the top of the dome (or standing in the middle)."""
-        x, z = self.d.cx, self.d.cz
-        ys = sorted(y for (xx, y, zz) in self.d.room if xx == x and zz == z)
-        if not ys:
-            return
-        here = self.g.get(x, self.y0, z)
+    def tops(self):
+        """{(x, z): the highest room cell over the floor in that column (the ceiling is just over it)}."""
+        out = {}
+        for x, y, z in self.d.room:
+            if (x, z) in self.floor and y >= self.floor[(x, z)]:
+                out[(x, z)] = max(out.get((x, z), y), y)
+        return out
+
+    def lamp(self, kind="lantern", hang=True, at=3):
+        """A lantern hanging on a chain from the ceiling `at` blocks over the floor, a little off the middle (the
+        skylight is over the middle: a lantern just under it would melt it), at the back of the room; or standing in
+        the middle where nothing can hang."""
+        here = self.g.get(self.d.cx, self.y0, self.d.cz)
         if here is not None and "campfire" in here:
             return  # the fire lights it, and its smoke hole is overhead
-        top = ys[-1]
-        if hang and top - self.y0 >= 3:
-            self.g.set(x, top, z, "chain[axis=y]", force=True)
-            self.g.set(x, top - 1, z, f"{kind}[hanging=true]", force=True)
-        else:
-            self.g.set(x, self.y0, z, f"{kind}[hanging=false]", force=True)
-            self.used.add((x, z))
+        tops = self.tops()
+        best = None
+        for (x, z), top in tops.items():
+            if self.floor[(x, z)] != self.y0 or top - self.y0 < at:
+                continue
+            d = math.hypot(x - self.d.cx, z - self.d.cz)
+            if not 1.4 <= d <= 2.6:
+                continue
+            above = self.g.get(x, top + 1, z)
+            if above is None or mc.kind(above) != "full":
+                continue
+            u, v = self.local(x, z)
+            score = (-v, top, -abs(d - 2.0))       # towards the back, under the highest ceiling
+            if best is None or score > best[0]:
+                best = (score, x, z, top)
+        if hang and best is not None:
+            _s, x, z, top = best
+            for y in range(self.y0 + at + 1, top + 1):
+                self.g.set(x, y, z, "chain[axis=y]", force=True)
+            self.g.set(x, self.y0 + at, z, f"{kind}[hanging=true]", force=True)
+            return
+        x, z = self.d.cx, self.d.cz
+        self.g.set(x, self.y0, z, f"{kind}[hanging=false]", force=True)
+        self.used.add((x, z))
+
+    def hang(self, state, n=3, ring=2.0, at=3):
+        """Things hung from the ceiling on chains round the middle (joints of meat round a fire, bundles of dried
+        meat): n of them about `ring` blocks out, `at` blocks over the floor."""
+        tops = self.tops()
+        spots = []
+        for (x, z), top in tops.items():
+            if self.floor[(x, z)] != self.y0 or top - self.y0 < at + 1:
+                continue
+            d = math.hypot(x - self.d.cx, z - self.d.cz)
+            if abs(d - ring) > 0.6:
+                continue
+            above = self.g.get(x, top + 1, z)
+            if above is None or mc.kind(above) != "full":
+                continue
+            if self.g.get(x, self.y0 + at, z) not in (None, AIR):
+                continue
+            spots.append((math.atan2(x - self.d.cx, z - self.d.cz), x, z, top))
+        spots.sort()
+        if not spots:
+            return 0
+        step = max(1, len(spots) // n)
+        done = 0
+        for ang, x, z, top in spots[::step][:n]:
+            for y in range(self.y0 + at + 1, top + 1):
+                self.g.set(x, y, z, "chain[axis=y]", force=True)
+            self.g.set(x, self.y0 + at, z, self.f.state(state), force=True)
+            done += 1
+        return done
+
+    def on_top(self, states, every=1):
+        """Puts things on top of what stands along the wall (candles on the barrels, a second barrel on a barrel):
+        states is {what's there (its block id): what goes on it}; every: each how many."""
+        k = 0
+        reserved = getattr(self.m, "reserved", {}).get(id(self.d), ())
+        for (x, z), y in sorted(self.floor.items()):
+            if y != self.y0:
+                continue
+            s = self.g.get(x, y, z)
+            if s is None:
+                continue
+            b = mc.base(s)
+            if b not in states:
+                continue
+            if not _free(self.m, x, y + 1, z) or (x, z) in reserved:
+                continue
+            k += 1
+            if k % every:
+                continue
+            from .local import ROT16
+            dx, dz = self.d.cx - x, self.d.cz - z
+            inward = ("east" if dx > 0 else "west") if abs(dx) > abs(dz) else ("south" if dz > 0 else "north")
+            state = states[b].replace("{rot_in}", str(ROT16[inward]))
+            self.g.set(x, y + 1, z, self.f.state(state), force=True)
 
     def fire(self, kind="campfire", stones="cobblestone_slab[type=bottom]", u=0, v=0):
         c = self.cell(u, v)
@@ -177,75 +295,84 @@ class Room:
 # ---------------------------------------------------------------------------- whole rooms
 
 def sleeping(m, d, beds=2, colour="white", fire=None, extras=("chest[facing={in},type=single]",
-                                                             "barrel[facing=up,open=false]")):
-    """Beds or bedrolls round the back wall, a fur rug, a lamp, a chest."""
+                                                             "barrel[facing=up,open=false]",
+                                                             "white_wool", "barrel[facing=up,open=false]")):
+    """Beds and a bedroll against the walls (from the back round, the head to the wall: two beds, then a bedroll), a
+    fur rug, a lamp, a chest, barrels with candles on them, a bundle of furs."""
     r = Room(m, d)
-    back = -int(d.r - 1.5)
-    rows = [(-1, back), (1, back), (-2, back + 1), (2, back + 1), (0, back)]
     n = 0
-    for i, (u, v) in enumerate(rows):
+    spots = sorted(r.wall_cells(), key=lambda c: abs(180.0 - c[0]))
+    for _ang, x, z, wall in spots:
         if n >= beds:
             break
-        side = "back"
-        if i % 2 == 0:
-            ok = r.bed(u, v, side, colour) if n % 2 == 0 else r.bedroll(u, v, side)
-        else:
-            ok = r.bedroll(u, v, side) if n % 2 == 0 else r.bed(u, v, side, colour)
-        if not ok:
-            ok = r.bedroll(u, v, side)
-        if ok:
+        if r.bed_against(x, z, wall, colour, roll=(n % 3 == 2)):
             n += 1
     if fire:
         r.fire(fire)
     r.rug()
     r.against_back(list(extras))
+    r.on_top({"barrel": "candle[candles=3,lit=true]"})
     r.lamp("lantern" if not fire else "soul_lantern", hang=not fire)
     return r
 
 
 def cookhouse(m, d):
-    """A fire in the middle under its smoke hole, a stew pot, a smoker, barrels of meat."""
+    """A fire in the middle under its smoke hole, joints of meat hung round it to smoke, a stew pot, a smoker,
+    barrels of meat, a butcher's stump."""
     r = Room(m, d)
     r.fire("campfire")
     r.put(1, 0, "cauldron") if r.free(1, 0) else None
     r.against_back(["smoker[facing={in},lit=false]", "barrel[facing=up,open=false]", "barrel[facing=up,open=false]",
-                    "brown_carpet", "spruce_stairs[facing={wall},half=bottom]", "spruce_stairs[facing={wall},half=bottom]"])
+                    "brown_carpet", "spruce_stairs[facing={wall},half=bottom]", "spruce_stairs[facing={wall},half=bottom]",
+                    "stripped_spruce_log[axis=y]", "dross:meat_block[axis=y]", "dried_kelp_block"])
+    r.on_top({"barrel": "dross:meat_block[axis=y]", "stripped_spruce_log": "spruce_pressure_plate"})
+    r.hang("dross:meat_block[axis=y]", n=3, ring=2.2)
     return r
 
 
 def workshop(m, d):
-    """A hunter's workshop: fletching table, grindstone, spears (lightning rods) leaning on the wall, a chest."""
+    """A hunter's workshop: fletching table, grindstone, an anvil, spears (lightning rods) leaning on the wall, a
+    target, a chest."""
     r = Room(m, d)
     r.against_back(["fletching_table", "grindstone[face=floor,facing={in}]", "crafting_table",
                     "lightning_rod[facing=up]", "lightning_rod[facing=up]", "chest[facing={in},type=single]",
-                    "loom[facing={in}]", "barrel[facing=up,open=false]"])
+                    "loom[facing={in}]", "barrel[facing=up,open=false]", "chipped_anvil[facing={wall}]", "target",
+                    "barrel[facing=up,open=false]"])
+    r.on_top({"barrel": "candle[candles=2,lit=true]"})
     r.rug(mats=("brown_carpet", "light_gray_carpet"))
     r.lamp("lantern")
     return r
 
 
 def trophy(m, d):
-    """Skulls on the wall, furs, a bed of hides, a lamp."""
+    """Skulls on posts round the wall, furs, a bed of hides, a lamp."""
     r = Room(m, d)
     r.bed(0, -int(d.r - 1.5), "back", "gray") or r.bedroll(0, -int(d.r - 1.5), "back")
     r.rug(mats=("white_carpet", "brown_carpet"))
-    placed = r.against_back(["skeleton_skull[rotation={rot_in}]", "barrel[facing=up,open=false]",
-                             "skeleton_skull[rotation={rot_in}]", "chest[facing={in},type=single]"])
+    r.against_back(["stripped_spruce_log[axis=y]", "barrel[facing=up,open=false]", "stripped_spruce_log[axis=y]",
+                    "chest[facing={in},type=single]", "stripped_spruce_log[axis=y]", "bone_block[axis=y]"])
+    r.on_top({"stripped_spruce_log": "skeleton_skull[rotation={rot_in}]",
+              "bone_block": "skeleton_skull[rotation={rot_in}]", "barrel": "candle[candles=3,lit=true]"})
     r.lamp("soul_lantern")
     return r
 
 
 def storage(m, d):
+    """The village's store: barrels (some stacked two high), chests, hay, joints of meat and bundles of dried meat,
+    blocks of packed ice to keep it cold."""
     r = Room(m, d)
     r.against_back(["barrel[facing=up,open=false]", "barrel[facing=up,open=false]", "chest[facing={in},type=single]",
-                    "hay_block[axis=y]", "barrel[facing=up,open=false]", "chest[facing={in},type=single]",
-                    "hay_block[axis=y]", "barrel[facing=up,open=false]"])
+                    "hay_block[axis=y]", "dross:meat_block[axis=y]", "barrel[facing=up,open=false]",
+                    "chest[facing={in},type=single]", "hay_block[axis=y]", "packed_ice", "dried_kelp_block",
+                    "barrel[facing=up,open=false]", "dross:meat_block[axis=y]"])
+    r.on_top({"barrel": "barrel[facing=up,open=false]", "hay_block": "dross:meat_block[axis=x]"}, every=2)
     r.lamp("soul_lantern")
     return r
 
 
 def hall(m, d, benches=True):
-    """A meeting hall: a big fire in the middle, log benches round it, banners on the wall."""
+    """A meeting hall: a big fire in the middle, log benches round it, banners on the wall, chests and barrels with
+    candles, joints of meat hung from the roof."""
     r = Room(m, d)
     r.fire("campfire")
     ring = d.r * 0.45
@@ -259,5 +386,9 @@ def hall(m, d, benches=True):
             r.put(u, v, f"stripped_spruce_log[axis={ax}]")
     r.against_back(["chest[facing={in},type=single]", "barrel[facing=up,open=false]",
                     "skeleton_skull[rotation={rot_in}]", "barrel[facing=up,open=false]",
-                    "lantern[hanging=false]", "lantern[hanging=false]"])
+                    "white_banner[rotation={rot_in}]", "white_banner[rotation={rot_in}]",
+                    "lantern[hanging=false]", "lantern[hanging=false]", "barrel[facing=up,open=false]",
+                    "dross:roasted_meat_block[axis=y]"])
+    r.on_top({"barrel": "candle[candles=4,lit=true]"})
+    r.hang("dross:meat_block[axis=y]", n=2, ring=d.r * 0.7)
     return r
