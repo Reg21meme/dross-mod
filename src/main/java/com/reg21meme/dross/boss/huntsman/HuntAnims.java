@@ -61,7 +61,7 @@ public final class HuntAnims
             loop(FOOT, "idle"), loop(FOOT, "walk"), loop(FOOT, "run"),
             once(FOOT, "spear_combo", 1.9), once(FOOT, "thrust_sweep", 1.4), once(FOOT, "leap_strike", 1.7),
             once(FOOT, "throw_spear", 1.3), once(FOOT, "catch_spear", 0.8), once(FOOT, "aimed_shot", 2.9),
-            once(FOOT, "backstep_shoot", 2.75), once(FOOT, "arrow_rain", 4.2), once(FOOT, "snare_throw", 1.4),
+            once(FOOT, "backstep_shoot", 2.75), once(FOOT, "arrow_rain", 4.2), once(FOOT, "bola_throw", 1.5),
             once(FOOT, "horn_blow", 3.7), once(FOOT, "land", 0.7), last(FOOT, "death", 4.6));
 
     /** The Huntsman in the saddle (stage 1, the Wild Hunt). */

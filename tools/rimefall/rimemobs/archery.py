@@ -36,10 +36,22 @@ DRAW_TIME = 0.32     # drawing to the chin
 FOLLOW = 0.14        # the hand flying back after the release
 PUT_AWAY = 0.5       # the bow back over the shoulder (the first part), the hands back to rest and the spear
 BACK_GRIP = np.array([18.0, 162.0, 15.0])    # where the bow on his back is grabbed (riding frame): its upper limb
-STRAIGHT = 0.985     # the bow arm's reach, of its full length: straight, a hair short of locked
-NOCK_IN = 30.0       # while he nocks, the bow is held out in front of his chest: the aim turned this far to his right
+# The bow arm's reach, of its full length (the user, October 20: "fully straight in the rain, and nearly straight in
+# the shot"; at 0.985 the elbow was still bent about 20 degrees: near full stretch the reach hardly changes with it)
+STRAIGHT = 0.996     # the shots: the elbow about 10 degrees off straight
+STRAIGHT_RAIN = 0.9995   # the arrow rain: straight (a few degrees off)
+NOCK_IN = 48.0       # while he nocks, the bow is held out in front of his chest: the aim turned this far to his right
+                     # (at 30 the string was out of his drawing hand's reach, and his forearm went into his chest)
 NOCK_DOWN = 12.0     # and this far down (degrees)
 FACE = -70.0         # how far his chest turns to face the target while he nocks (degrees: back to side-on as he draws)
+DRAWN_FACE = 0.45    # of that, how much it keeps at full draw (an open stance: fully side-on his drawing arm had no
+                     # room beside his hood)
+# where his drawing elbow is bent towards after a release and on the way back to his spear (his chest's directions:
+# out to his right, back (negative: forward) and down): side-on, "out to his right" runs along his arm, and alone it
+# slid his elbow up into his hood, so mostly forward of his chest and down
+AFTER_ELBOW = dict(out=0.5, back=-0.6, down=0.5)
+# and his bow arm's elbow, reaching over his left shoulder for the bow on his back: out and up
+REACH_BACK_ELBOW = dict(out=0.8, back=0.1, down=-0.6)
 FAN = 3.0            # a volley's three arrows fan out this far from each other (degrees)
 FAN_GAP = 3.0        # and sit this far apart on the string (design units: their fletchings clear of each other)
 
@@ -78,7 +90,7 @@ class Archer:
     bow is held while he nocks (degrees; negative: up, clear of the moose's neck in front of the saddle)."""
 
     def __init__(self, rig, hands, shots, aim, start=0.0, end=None, hold=0.12, quick=1.0, drop=0.0, face=FACE,
-                 volley=1, quiver=None, reach_turn=0.0, nock_down=NOCK_DOWN):
+                 volley=1, quiver=None, reach_turn=0.0, nock_down=NOCK_DOWN, straight=None):
         self.rig = rig
         self.h = hands
         self.shots = list(shots)
@@ -91,6 +103,7 @@ class Archer:
         self.quiver = quiver
         self.reach_turn = reach_turn
         self.nock_down = nock_down
+        self.straight = straight if straight is not None else (STRAIGHT_RAIN if volley == 3 else STRAIGHT)
         self.drop = np.array([0.0, drop, 0.0])
         self.ready = start + (GRAB + BRING) * quick
         self.end = end if end is not None else self.shots[-1] + FOLLOW + PUT_AWAY + 0.1
@@ -126,14 +139,25 @@ class Archer:
         """The bow fist at the end of a straight arm pointing along d."""
         h = self.h
         shoulder = h.at(p, "arm_l", mats=mats)
-        return shoulder + hunt_ik.unit(d) * (H.UPPER_ARM + H.FOREARM) * h.k * STRAIGHT
+        return shoulder + hunt_ik.unit(d) * (H.UPPER_ARM + H.FOREARM) * h.k * self.straight
 
     def _aim_dir(self, p, aim, mats=None):
-        """Where the straight bow arm points at full draw: towards the spot that brings the drawn string to his chin."""
+        """Where the straight bow arm points at full draw: towards the spot out along the aim from his chin where a
+        full draw brings the string back to it, or, when his straight arm doesn't reach that far, the spot on the aim
+        through his chin it does reach (he then draws a little less: so the arrow still runs past his jaw; until
+        October 20 the bow fell short off that line and the string came back into his face)."""
         h = self.h
         shoulder = h.at(p, "arm_l", mats=mats)
         anchor = h.point(p, "head", h.j["anchor"], mats)
-        fist = hunt_ik.bow_fist(anchor, aim, self._bow_up(aim), 1.0, h.k)
+        full = (H.BOW_BEND + H.DRAW) * h.k
+        reach = (H.UPPER_ARM + H.FOREARM) * h.k * self.straight
+        a = hunt_ik.unit(aim)
+        rel = anchor - shoulder
+        b = float(np.dot(a, rel))
+        c = float(np.dot(rel, rel)) - reach * reach
+        disc = b * b - c
+        s = -b + math.sqrt(disc) if disc >= 0.0 else full
+        fist = anchor + a * min(full, max(s, 0.3 * full))
         return hunt_ik.unit(fist - shoulder)
 
     def _nock_dir(self, aim):
@@ -146,6 +170,16 @@ class Archer:
         a, b = math.radians(NOCK_IN), math.radians(self.nock_down)
         d = flat * math.cos(a) + right * math.sin(a)
         return hunt_ik.unit(d * math.cos(b) - up * math.sin(b))
+
+    def _in_reach(self, p, target, mats=None, side="l"):
+        """The target pulled in towards his shoulder if it's past a straight arm's reach (the bow's ways out and back
+        bulge out from a straight arm's end)."""
+        h = self.h
+        shoulder = h.at(p, f"arm_{side}", mats=mats)
+        v = np.asarray(target, dtype=float) - shoulder
+        reach = (H.UPPER_ARM + H.FOREARM) * h.k * self.straight
+        d = float(np.linalg.norm(v))
+        return shoulder + v * (reach / d) if d > reach else np.asarray(target, dtype=float)
 
     def _quiver(self, p, mats):
         if self.quiver is not None:
@@ -186,7 +220,11 @@ class Archer:
         if phase == "to_string":
             return smooth(u)
         if phase == "draw":
-            return 1.0 - smooth(u)
+            return 1.0 - (1.0 - DRAWN_FACE) * smooth(u)
+        if phase == "hold":
+            return DRAWN_FACE
+        if phase == "follow":
+            return DRAWN_FACE * (1.0 - smooth(u))
         return 0.0
 
     def _bow_dir(self, p, aim, idx, phase, u, mats):
@@ -225,11 +263,14 @@ class Archer:
         rest_r = h.point(p, "forearm_r", h.j["hand_r"], mats)
         grip = self._grip(p, mats)
         # ---- the bow arm
+        left = h.direction(p, "chest", (1.0, 0.0, 0.0), mats)
         put_end = self.away + PUT_AWAY * 0.5
         bow_out = False
         if t < self.start + GRAB * self.q:
             k = smooth((t - self.start) / (GRAB * self.q))
-            h.arm(p, "l", _arc(rest_l, grip, k, 4.0), down=(0.0, -1.0, 0.0), key="bow", w_down=3.0 * k)
+            target = _arc(rest_l, grip, k, 9.0) + left * 4.0 * h.k * math.sin(math.pi * k)   # (up over his pauldron)
+            h.arm(p, "l", target, down=(0.0, -1.0, 0.0), key="bow", w_down=3.0 * k,
+                  elbow=h.elbow_out(p, "l", target, **REACH_BACK_ELBOW, mats=mats))
             if k > 0.9:
                 props.append("bow_held")
         elif t < self.ready:
@@ -237,9 +278,11 @@ class Archer:
             k = smooth((t - self.start - GRAB * self.q) / (BRING * self.q))
             nock = self._nock_dir(aim)
             up = self._bow_up(nock)
-            fist = _lerp(grip, self._straight(p, nock, mats), k)
+            fist = self._in_reach(p, _lerp(grip, self._straight(p, nock, mats), k)
+                                  + left * 4.0 * h.k * math.sin(math.pi * k), mats)
             h.arm(p, "l", fist, down=_nlerp(np.array([0.0, -1.0, 0.0]), -up, k), heading=nock, key="bow",
-                  w_down=3.0 + 3.0 * k, w_head=2.0 * k)
+                  w_down=3.0 + 3.0 * k, w_head=2.0 * k,
+                  elbow=h.elbow_out(p, "l", fist, **REACH_BACK_ELBOW, mats=mats) if k < 0.7 else None)
             props.append("bow_held")
         elif t < self.away:
             props.append("bow_held")
@@ -248,21 +291,25 @@ class Archer:
             k = smooth((t - self.away) / (put_end - self.away))
             up = self._bow_up(aim)
             full = self._straight(p, self._aim_dir(p, aim, mats), mats)
-            h.arm(p, "l", _arc(full, grip, k, 3.0), down=_nlerp(-up, np.array([0.0, -1.0, 0.0]), k), heading=aim,
-                  key="bow", w_head=2.0 * (1.0 - k))
+            target = self._in_reach(p, _arc(full, grip, k, 9.0) + left * 4.0 * h.k * math.sin(math.pi * k), mats)
+            h.arm(p, "l", target, down=_nlerp(-up, np.array([0.0, -1.0, 0.0]), k), heading=aim,
+                  key="bow", w_head=2.0 * (1.0 - k),
+                  elbow=h.elbow_out(p, "l", target, **REACH_BACK_ELBOW, mats=mats) if k > 0.3 else None)
             if k < 0.92:
                 props.append("bow_held")
         else:
             k = smooth((t - put_end) / (self.end - put_end))
-            h.arm(p, "l", _lerp(grip, rest_l, k), down=(0.0, -1.0, 0.0), heading=(0.0, 0.0, -1.0), key="bow",
-                  w_head=2.0 * k)
+            target = _lerp(grip, rest_l, k) + left * 5.0 * h.k * math.sin(math.pi * k)     # (down outside his arm)
+            h.arm(p, "l", target, down=(0.0, -1.0, 0.0), heading=(0.0, 0.0, -1.0), key="bow",
+                  w_head=2.0 * k, elbow=h.elbow_out(p, "l", target, out=0.9, back=0.1, down=0.3, mats=mats))
         # ---- the drawing arm (and the bow, when it's out)
         if bow_out:
             d, facing = self._bow_dir(p, aim, idx, phase, u, mats)
             fist = self._straight(p, d, mats)
             if phase in ("draw", "hold"):
                 draw = H.DRAW * (smooth(u) if phase == "draw" else 1.0)
-                h.bow(p, facing, draw, nocked=True, fist=fist, nock_prop=self.nock_prop)
+                h.bow(p, facing, draw, nocked=True, fist=fist, nock_prop=self.nock_prop,
+                      stop=h.point(p, "head", h.j["anchor"]))
                 props.append(self.nock_prop)
                 return props
             h.bow(p, facing, 0.0, nocked=False, draw_hand=False, fist=fist)
@@ -270,38 +317,55 @@ class Archer:
             h.strings(p, 0.0)
         up = self._bow_up(aim)
         if t >= self.away and idx == len(self.plan) - 1 and phase in ("after",):
-            # back to the spear: the hand where it was after the last shot, easing back to its rest (the angles
-            # blended down to nothing, so the last frame is his standing pose)
+            # back to the spear: the hand from where it was after the last shot round his right side to its rest
+            # (the IK, his elbow out), and the last of it the angles eased down to nothing, so the last frame is his
+            # standing pose (until October 20 the angles alone were eased down, and his arm swept through his chest)
             k = smooth((t - self.away) / (self.end - self.away))
-            h.arm(p, "r", self._after(p, aim, up), down=-up, heading=aim, key="draw")
+            right = h.direction(p, "chest", (-1.0, 0.0, 0.0))
+            front = h.direction(p, "chest", (0.0, 0.0, -1.0))
+            target = _lerp(self._after(p, aim, up), rest_r, k) + (right + front) * 4.0 * h.k * math.sin(math.pi * k)
+            h.arm(p, "r", target, down=_nlerp(-up, np.array([0.0, -1.0, 0.0]), k), heading=_nlerp(aim, front, k),
+                  key="draw", elbow=h.elbow_out(p, "r", target, **AFTER_ELBOW))
+            w = smooth((k - 0.55) / 0.45)
             for b in ("arm_r", "forearm_r", "hand_r"):
                 r = p.get3(b)[0]
-                p.get3(b)[0] = [v * (1.0 - k) for v in r]
+                p.get3(b)[0] = [v * (1.0 - w) for v in r]
             return props
         mats = h.mats(p)
         quiver = self._quiver(p, mats)
         if phase == "wait":
             if idx > 0:
-                h.arm(p, "r", self._after(p, aim, up), down=-up, heading=aim, key="draw")
+                target = self._after(p, aim, up)
+                h.arm(p, "r", target, down=-up, heading=aim, key="draw",
+                      elbow=h.elbow_out(p, "r", target, **AFTER_ELBOW))
             return props
         if phase == "to_quiver":
             start = rest_r if idx == 0 else self._after(p, aim, up)
-            h.arm(p, "r", _arc(start, quiver, smooth(u), 3.0), down=(0.0, -1.0, 0.0), key="draw", w_down=3.0)
+            # (down in front of his chest and out to his right on the way, round it to the quiver at his hip)
+            front = h.direction(p, "chest", (0.0, 0.0, -1.0), mats)
+            right = h.direction(p, "chest", (-1.0, 0.0, 0.0), mats)
+            target = _arc(start, quiver, smooth(u), 3.0) + (front * 14.0 + right * 4.0) * h.k * math.sin(math.pi * smooth(u))
+            h.arm(p, "r", target, down=(0.0, -1.0, 0.0), key="draw", w_down=3.0,
+                  elbow=h.elbow_out(p, "r", target, out=0.9, back=0.0, down=0.4, mats=mats))
             if u > 0.85:
                 props.append(self.hand_prop)
         elif phase == "to_string":
             mid, fwd = self._string_mid(p, mats)
             k = smooth(u)
             bup = self._bow_up(fwd)
-            # (out in front of him on the way, so his arm doesn't cut across his chest)
-            way = _arc(quiver, mid, k, 8.0) + fwd * 6.0 * h.k * math.sin(math.pi * k)
+            # (out in front of him on the way, so his arm doesn't cut across his chest: forward of the bow's way and
+            # of his chest's front, which side-on (the arrow rain) are not the same)
+            front = h.direction(p, "chest", (0.0, 0.0, -1.0), mats)
+            way = _arc(quiver, mid, k, 8.0) + (fwd * 10.0 + front * 14.0) * h.k * math.sin(math.pi * k)
             h.arm(p, "r", way, down=_nlerp(np.array([0.0, -1.0, 0.0]), -bup, k), heading=fwd,
-                  key="draw", w_down=3.0 + 3.0 * k, w_head=2.0 * k * k)
+                  key="draw", w_down=2.0 + 1.0 * k, w_head=1.0 * k * k,
+                  elbow=h.elbow_out(p, "r", way, out=0.6, back=-0.3, down=0.6, mats=mats))
             props.append(self.hand_prop)
         elif phase in ("follow", "after"):
             fo = smooth(min(1.0, u * 1.5)) if phase == "follow" else 1.0
             anchor = h.point(p, "head", h.j["anchor"])
-            h.arm(p, "r", _lerp(anchor, self._after(p, aim, up), fo), down=-up, heading=aim, key="draw")
+            target = _lerp(anchor, self._after(p, aim, up), fo)
+            h.arm(p, "r", target, down=-up, heading=aim, key="draw", elbow=h.elbow_out(p, "r", target, **AFTER_ELBOW))
         return props
 
     def _after(self, p, aim, up):

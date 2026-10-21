@@ -122,6 +122,8 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     private boolean protecting;
     /** Server: ticks before a mother who gave up a chase may start another. */
     private int motherPause;
+    /** Server: a mother who gave up a chase is walking back to her calf. */
+    private boolean returningToCalf;
     /** Server: where it was when it started chasing its target. */
     @Nullable
     private Vec3 chaseFrom;
@@ -546,6 +548,21 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         {
             this.motherPause--;
         }
+        if (this.returningToCalf)
+        {
+            // (her way back is asked for again whenever it stops: the chase's own end, a tick after she gave up,
+            // stopped her first one, and she could wander off further from her calf instead)
+            Moose calf = this.nearestCalf();
+            if (calf == null || this.getTarget() != null
+                    || this.distanceTo(calf) <= RimefallMobTuning.MOTHER_BACK_WITHIN)
+            {
+                this.returningToCalf = false;
+            }
+            else if (this.getNavigation().isDone())
+            {
+                this.getNavigation().moveTo(calf, 1.2D);
+            }
+        }
         if (!this.protecting)
         {
             return;
@@ -565,6 +582,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
             if (calf != null)
             {
                 this.getNavigation().moveTo(calf, 1.2D);
+                this.returningToCalf = true;
             }
         }
     }

@@ -21,6 +21,10 @@ from kit import geo, ik
 from rimedesigns import d06_huntsman as H
 
 ARM_REACH = 0.94             # how straight the bow arm is (of its full length)
+ELBOW_PULL = 1.0            # how hard an elbow is pulled to where it's asked to be (per unit; the hand's place is 1)
+# The bow's cant (degrees, positive: its top limb to his right). Until October 20 it was +8, towards his head, and
+# the user saw the string hit his hood and antlers; now it leans the other way.
+CANT = -14.0
 # other starting folds of an arm for the IK when it's stuck (shoulder x, y, z; elbow x, y, z; wrist x, y, z)
 STARTS = ((0.0, 0.0, 0.0, -20.0, 0.0, 0.0, 0.0, 0.0, 0.0),
           (-90.0, 0.0, 0.0, -20.0, 0.0, 0.0, 0.0, 0.0, 0.0),
@@ -41,6 +45,15 @@ class Hands:
         self.j = {n: np.asarray(v, dtype=float) * rig.k for n, v in joints.items()}   # Bedrock units
         self.prev = {}
         self.miss = 0.0
+        # each elbow's bend in the model's own pose (degrees): his arms are modelled bent (holding the reins or the
+        # spear), so the elbow may open by that much to straighten (until October 20 it could open only 4 degrees
+        # past its modelled bend, and the bow arm never got straight: the user saw it bent)
+        self.bend = {}
+        for side in ("l", "r"):
+            a = self.j[f"forearm_{side}"] - self.j[f"arm_{side}"]
+            b = self.j[f"hand_{side}"] - self.j[f"forearm_{side}"]
+            self.bend[side] = math.degrees(math.acos(float(np.clip(np.dot(a, b) / np.linalg.norm(a) / np.linalg.norm(b),
+                                                                    -1.0, 1.0))))
 
     # ------------------------------------------------------------------ basics
     def mats(self, p):
@@ -64,7 +77,7 @@ class Hands:
     def limb(self, side, contact, down_local, forward_local=(0.0, 0.0, -1.0)):
         joints = [
             ik.Joint(f"arm_{side}", (0, 1, 2), lo=(-185.0, -130.0, -130.0), hi=(75.0, 130.0, 130.0), weight=0.004),
-            ik.Joint(f"forearm_{side}", (0, 1, 2), lo=(-150.0, -40.0, -40.0), hi=(4.0, 40.0, 40.0),
+            ik.Joint(f"forearm_{side}", (0, 1, 2), lo=(-150.0, -40.0, -40.0), hi=(self.bend[side] + 4.0, 40.0, 40.0),
                      prefer=(None, 0.0, 0.0), weight=0.03),
             ik.Joint(f"hand_{side}", (0, 1, 2), lo=(-120.0, -120.0, -120.0), hi=(120.0, 120.0, 120.0),
                      prefer=(0.0, 0.0, 0.0), weight=0.006),
@@ -73,22 +86,24 @@ class Hands:
                        down=np.asarray(down_local, dtype=float), forward=np.asarray(forward_local, dtype=float))
 
     def arm(self, p, side, target, contact=None, down_local=(0.0, -1.0, 0.0), down=(0.0, -1.0, 0.0), heading=None,
-            key=None, w_down=6.0, w_head=2.0):
+            key=None, w_down=6.0, w_head=2.0, elbow=None, w_elbow=ELBOW_PULL):
         """Solves one arm so the hand's `contact` (its fist by default, a rest point) sits on `target`, its
-        `down_local` direction points along `down` and its forward (-z) along `heading`; writes the angles into p."""
+        `down_local` direction points along `down` and its forward (-z) along `heading`; writes the angles into p.
+        `elbow`: where the elbow should be (a world point; elbow_out() gives one out to his side), so the arm doesn't
+        fold in through his body."""
         contact = self.j[f"hand_{side}"] if contact is None else np.asarray(contact, dtype=float)
         limb = self.limb(side, contact, down_local)
         key = key or side
         x0 = self.prev.get(key)
         pose, miss, x = ik.solve(self.m, p.as_geo(), limb, np.asarray(target, dtype=float), heading=heading,
                                  down=np.asarray(down, dtype=float), x0=x0, w_down=w_down, w_head=w_head,
-                                 w_smooth=0.004 if x0 is not None else 0.0)
+                                 w_smooth=0.004 if x0 is not None else 0.0, elbow=elbow, w_elbow=w_elbow)
         if miss > 0.8:
             # stuck in a poor fold of the arm: try again from a few other starts and keep the best
             for start in STARTS:
                 p2, m2, x2 = ik.solve(self.m, p.as_geo(), limb, np.asarray(target, dtype=float), heading=heading,
                                       down=np.asarray(down, dtype=float), x0=np.array(start, dtype=float),
-                                      w_down=w_down, w_head=w_head)
+                                      w_down=w_down, w_head=w_head, elbow=elbow, w_elbow=w_elbow)
                 if m2 < miss - 0.3:
                     pose, miss, x = p2, m2, x2
                 if miss < 0.5:
@@ -99,14 +114,28 @@ class Hands:
         self.miss = max(self.miss, miss)
         return miss
 
+    def elbow_out(self, p, side, target, out=0.7, back=0.3, down=0.5, mats=None):
+        """Where the elbow goes when the fist goes to `target`, bent towards his `side` (out), back and down (his
+        chest's own directions, mixed by those weights): the elbow on the circle its two bones allow, at the point of
+        it nearest that way (a pole, the two-bone IK way), so it's always a spot the arm can take."""
+        mats = mats or self.mats(p)
+        sx = 1.0 if side == "l" else -1.0                       # (his left is +x)
+        pole = (self.direction(p, "chest", (sx, 0.0, 0.0), mats) * out
+                + self.direction(p, "chest", (0.0, 0.0, 1.0), mats) * back
+                + self.direction(p, "chest", (0.0, -1.0, 0.0), mats) * down)
+        return pole_elbow(self.at(p, f"arm_{side}", mats=mats), target, pole, H.UPPER_ARM * self.k,
+                          H.FOREARM * self.k)
+
     # ------------------------------------------------------------------ the bow
-    def bow(self, p, aim, draw, nocked=True, cant=8.0, reach=ARM_REACH, draw_hand=True, extend=1.0, fist=None,
-            nock_prop="arrow_nock"):
+    def bow(self, p, aim, draw, nocked=True, cant=CANT, reach=ARM_REACH, draw_hand=True, extend=1.0, fist=None,
+            nock_prop="arrow_nock", stop=None):
         """
         The bow arm out along `aim` (a unit Bedrock direction), the bow upright (canted `cant` degrees) and square to
         it, held where a full draw brings the string to the right of his chin (the anchor; or, if his arm can't reach
         that far, as far out as `reach` of it); the drawing fist `draw` design units back from where the string rests,
         on the string. With `nocked`, the arrow on the string (slid to the draw); returns the nock's world point.
+        `stop`: a point the string is never drawn past (his chin: with his bow arm straight the bow can sit closer to
+        him than a full draw needs, and the string then went on into his face and chest).
         `extend` (0..1): how far out the bow arm is (an archer nocks with it bent and close, then pushes the bow out
         as he draws: 1 is the full draw's reach). `fist`: where the bow fist goes instead (archery.py: a straight
         arm); `nock_prop`: the arrow (or the volley's three) slid on the string.
@@ -116,7 +145,7 @@ class Hands:
         up = np.array([0.0, 1.0, 0.0])
         up_p = up - aim * np.dot(up, aim)
         up_p /= np.linalg.norm(up_p)
-        # cant: the top limb tipped a little towards his right (the bow hand's thumb side out)
+        # cant: the top limb tipped a little (negative: to his left, away from his head)
         side = np.cross(aim, up_p)
         c = math.radians(cant)
         bow_up = up_p * math.cos(c) + side * math.sin(c)
@@ -133,9 +162,16 @@ class Hands:
         rest_mid = self.j["hand_l"] + np.array([0.0, 0.0, H.BOW_BEND * self.k])
         mid = self.m.point(mats, "bow_held", rest_mid)
         fwd = self.direction(p, "bow_held", (0.0, 0.0, -1.0), mats)
+        if stop is not None:
+            draw = min(draw, max(0.0, float(np.dot(mid - np.asarray(stop, dtype=float), fwd)) / self.k))
         nock = mid - fwd * draw * self.k
         if draw_hand:
-            self.arm(p, "r", nock, down_local=(0.0, -1.0, 0.0), down=-bow_up, heading=fwd, key="draw")
+            # his drawing elbow out to his right, forward of his chest and a little down (his head sits well in
+            # front of his shoulders, so it can't go behind his hand in line with the arrow as a man's does: left to
+            # itself it folded over his hood or into his chest); his wrist held less strictly than his elbow
+            elbow = self.elbow_out(p, "r", nock, out=0.5, back=-0.5, down=0.4, mats=mats)
+            self.arm(p, "r", nock, down_local=(0.0, -1.0, 0.0), down=-bow_up, heading=fwd, key="draw", elbow=elbow,
+                     w_down=2.0, w_head=1.0)
         self.strings(p, draw)
         if nocked:
             p.pos(nock_prop, 0.0, 0.0, -(H.DRAW - draw) * self.k)
@@ -171,6 +207,23 @@ class Hands:
         p.get3("spear_free")[0] = list(e)
         p.get3("spear_free")[1] = [-d[0] * 16.0, d[1] * 16.0, d[2] * 16.0]
         return e, (-d[0] * 16.0, d[1] * 16.0, d[2] * 16.0)
+
+
+def pole_elbow(shoulder, target, pole, upper, fore):
+    """Two-bone IK's elbow: on the circle where an upper arm from `shoulder` and a forearm to `target` meet, at its
+    point nearest the `pole` direction (the target clamped into the arm's reach)."""
+    s = np.asarray(shoulder, dtype=float)
+    v = np.asarray(target, dtype=float) - s
+    d = float(np.linalg.norm(v))
+    n = v / d if d > 1e-9 else np.array([0.0, -1.0, 0.0])
+    d = min(max(d, abs(upper - fore) + 1e-3), (upper + fore) * 0.9995)
+    a = (upper * upper - fore * fore + d * d) / (2.0 * d)
+    r = math.sqrt(max(0.0, upper * upper - a * a))
+    q = np.asarray(pole, dtype=float)
+    q = q - n * float(np.dot(q, n))
+    if np.linalg.norm(q) < 1e-9:
+        q = np.cross(n, np.array([0.0, 1.0, 0.0]))
+    return s + n * a + unit(q) * r
 
 
 def bow_fist(anchor, aim, up_p, extend, k):

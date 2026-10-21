@@ -48,8 +48,10 @@ public final class HunterCropsGameTest
     private static final int DARK_SETTLE_TICKS = 40;
     /** Under this a crop can't stay put unless it's hardy (CropBlock.canSurvive). */
     private static final int CROP_SURVIVES_LIGHT = 8;
-    /** The longest a test waits for its far-off land's creatures to load. */
-    private static final int READY_TICKS = 400;
+    /** The longest a test waits for its far-off land's creatures to load (ticks: the test server can run several times
+     * faster than the game, and the loading goes at its own pace, so this is generous; once 400 ticks proved too few
+     * and the berries, dropped before the land was ready, were gone). */
+    private static final int READY_TICKS = 4000;
 
     private HunterCropsGameTest() {}
 
@@ -176,17 +178,15 @@ public final class HunterCropsGameTest
         whenReady(helper, level, lower, () -> pickBush(helper, level, lower));
     }
 
-    /** Waits (up to {@link #READY_TICKS}) until the land at {@code at} has its creatures loaded and ticking, then runs
-     * {@code then}. */
+    /** Waits until the land at {@code at} has its creatures loaded and ticking, then runs {@code then} (never before:
+     * if it isn't ready by the test's timeout, the test fails saying so). */
     private static void whenReady(GameTestHelper helper, ServerLevel level, BlockPos at, Runnable then)
     {
         ChunkPos c = new ChunkPos(at);
-        int[] waited = {0};
         helper.startSequence()
                 .thenWaitUntil(() ->
                 {
-                    boolean ready = level.areEntitiesLoaded(c.toLong()) && level.isPositionEntityTicking(at);
-                    if (!ready && ++waited[0] < READY_TICKS)
+                    if (!level.areEntitiesLoaded(c.toLong()) || !level.isPositionEntityTicking(at))
                     {
                         helper.fail("the land at " + at.toShortString() + " isn't ready yet"); // keeps waiting
                     }

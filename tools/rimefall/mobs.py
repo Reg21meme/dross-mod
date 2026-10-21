@@ -247,6 +247,9 @@ RIDER_PHASES = 6                                 # moments of each of the moose'
 RIDER_BODY = ("head", "chest", "hips", "arm_l", "forearm_l", "hand_l", "arm_r", "forearm_r", "hand_r", "thigh_l",
               "thigh_r", "shin_l", "shin_r", "boot_l", "boot_r", "spear", "cape")
 MOOSE_FRONT = ("antlers", "head", "ear_l", "ear_r")
+# His cloak lies over the moose's rump: it mustn't go into its back, tail or hind legs while it gallops or charges (the
+# user, October 20: the cape "clips the moose" in the gallop), whatever he does up there.
+MOOSE_BACK = ("body", "tail", "leg_hl", "leg_hr", "shin_hl", "shin_hr")
 
 
 def _shifted(a, phase):
@@ -306,6 +309,17 @@ def check_rider(built):
         if d > body_rest + RIDER_SLACK:
             found.append(("ride_idle", under, d, t, what))
             print(f"  ! sitting still while the moose plays {under}: {what} {d:.1f} units deep at {t:.2f} s")
+    cape_rest = mobkit.cross_clip(rm, riding("ride_idle", "idle"), ("cape",), mm, ma["idle"], MOOSE_BACK)[0]
+    for name in ra:
+        if name.startswith(CARRY_PREFIX) or name == "ride_leap":
+            continue
+        for under in ("run", "charge", "idle"):
+            mine = "ride_gallop" if name == "ride_idle" and under != "idle" else name
+            d, t, what = mobkit.cross_clip(rm, riding(mine, under), ("cape",), mm, ma[under], MOOSE_BACK)
+            if d > cape_rest + RIDER_SLACK:
+                found.append((mine, under, d, t, what))
+                print(f"  ! his cloak in {mine} over the moose's {under}: into its {what}, {d:.1f} units deep at {t:.2f} s "
+                      f"(at rest {cape_rest:.1f})")
     if not found:
         print("  nothing of his goes into the moose")
     return found

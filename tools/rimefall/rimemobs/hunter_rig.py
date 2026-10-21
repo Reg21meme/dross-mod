@@ -7,7 +7,7 @@ rider (rimedesigns/d06_huntsman.py) unchanged, his parts on bones of the same na
               > chest > head, cape, bow_back (slung on his back), horn_belt (on his belt)
                       > arm_l > forearm_l > hand_l > bow_held > string_top, string_bot, arrow_nock
                                                   > horn_held
-                      > arm_r > forearm_r > hand_r > spear, arrow_hand
+                      > arm_r > forearm_r > hand_r > spear, arrow_hand, bola_held
        > spear_free (the spear when he lets go of it)
 
 bow_held, horn_held, arrow_nock, arrow_hand and spear_free are shown only while an animation uses them (show()); the
@@ -24,7 +24,7 @@ from rimedesigns import d06_huntsman as H
 from rimekit.shapes import Scaled
 
 K = H.K
-PROPS = ("bow_held", "horn_held", "arrow_nock", "arrow_hand", "arrow_nock3", "arrow_hand3", "spear_free")   # hidden unless an animation shows them
+PROPS = ("bow_held", "horn_held", "arrow_nock", "arrow_hand", "arrow_nock3", "arrow_hand3", "spear_free", "bola_held")   # hidden unless an animation shows them
 # what each prop stands in for (hidden while it's shown)
 STANDS_FOR = {"bow_held": "bow_back", "horn_held": "horn_belt", "spear_free": "spear"}
 
@@ -70,6 +70,7 @@ def joints(pose):
     j["arrow_nock3"] = j["hand_l"]
     j["arrow_hand3"] = j["hand_r"]
     j["spear_free"] = j["hand_r"]
+    j["bola_held"] = j["hand_r"]
     up = np.array([0.0, 1.0, 0.0])
     back = np.array([0.0, 0.0, 1.0])
     j["string_top"] = j["hand_l"] + up * H.BOW * 0.5 + back * H.BOW_BEND   # the bow's tips (its grip in the left
@@ -89,7 +90,7 @@ PARENTS = [("hips", "root"), ("chest", "hips"), ("head", "chest"), ("cape", "che
            ("arm_l", "chest"), ("forearm_l", "arm_l"), ("hand_l", "forearm_l"), ("bow_held", "hand_l"),
            ("string_top", "bow_held"), ("string_bot", "bow_held"), ("arrow_nock", "bow_held"),
            ("horn_held", "hand_l"), ("arm_r", "chest"), ("forearm_r", "arm_r"), ("hand_r", "forearm_r"),
-           ("spear", "hand_r"), ("arrow_hand", "hand_r"), ("arrow_hand3", "hand_r"), ("arrow_nock3", "bow_held"),
+           ("spear", "hand_r"), ("bola_held", "hand_r"), ("arrow_hand", "hand_r"), ("arrow_hand3", "hand_r"), ("arrow_nock3", "bow_held"),
            ("spear_free", "root"),
            ("thigh_l", "hips"), ("shin_l", "thigh_l"), ("boot_l", "shin_l"),
            ("thigh_r", "hips"), ("shin_r", "thigh_r"), ("boot_r", "shin_r"), ("quiver_hip", "hips")]
@@ -111,8 +112,16 @@ def clip_group(bone):
         return "legs"
     if bone in ("chest", "head"):
         return "body"
-    if bone.startswith(("arm_", "forearm_", "hand_")):
+    if bone.startswith(("forearm_", "hand_")):
+        # (the upper arm's top sits inside his shoulder, so it "goes into" his chest with every swing of the arm: only
+        # the forearms and hands are checked against his body)
         return "arms"
+    if bone in ("string_top", "string_bot"):
+        return "string"          # (the user saw the bowstring hit his hood and antlers)
+    if bone == "bola_held":
+        return "bola"
+    if bone in ("spear", "spear_free"):
+        return "spear"           # (the user saw it go through him in the leap strike)
     return None
 
 

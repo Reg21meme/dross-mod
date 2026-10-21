@@ -72,7 +72,7 @@ def contact_frame(model, mats, limb):
 
 
 def solve(model, pose, limb, target, heading=None, down=(0.0, -1.0, 0.0), x0=None, w_pos=1.0, w_down=6.0,
-          w_head=2.0, w_smooth=0.0):
+          w_head=2.0, w_smooth=0.0, elbow=None, w_elbow=0.0):
     """
     Angles for one limb so that its contact point sits on `target` (Bedrock model space), its `down`
     direction points along `down` (default straight down: lying flat) and its forward direction points
@@ -80,6 +80,8 @@ def solve(model, pose, limb, target, heading=None, down=(0.0, -1.0, 0.0), x0=Non
     the solved total angles).
     x0 starts the search (the previous frame's angles in an animation); w_smooth (per degree) also pulls the answer
     towards x0, so a limb with spare joints doesn't flip from one way of bending to another between frames.
+    `elbow` (Bedrock model space): where the limb's middle joint (the second bone's pivot: an elbow or a knee) should
+    be, pulled there with w_elbow per unit (the end's place still comes first), so an arm bends the way it should.
     Only the limb's own bones are recomputed while solving (the rest of the body is fixed), which keeps it fast.
     """
     target = np.asarray(target, dtype=float)
@@ -115,19 +117,27 @@ def solve(model, pose, limb, target, heading=None, down=(0.0, -1.0, 0.0), x0=Non
         rot, pos, scl = pose.get(b.name, ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)))
         others.append((pos, scl))
     contact = np.append(geo.gecko(limb.contact), 1.0)
+    middle = np.append(geo.gecko(chain[1].pivot), 1.0) if elbow is not None and len(chain) > 1 else None
+    if middle is not None:
+        elbow = np.asarray(elbow, dtype=float)
     d_local = np.array([-limb.down[0], limb.down[1], limb.down[2]])
     f_local = np.array([-limb.forward[0], limb.forward[1], limb.forward[2]])
     axes = [(k, ax) for k, j in enumerate(limb.joints) for ax in j.axes]
 
-    def end_matrix(x):
+    def matrices(x):
         rots = [[0.0, 0.0, 0.0] for _ in chain]
         for (k, ax), v in zip(axes, x):
             rots[k][ax] = v - chain[k].rotation[ax]
         M = base
+        out = []
         for k, b in enumerate(chain):
             pos, scl = others[k]
             M = M @ b.local_matrix(rots[k], pos, scl)
-        return M
+            out.append(M)
+        return out
+
+    def end_matrix(x):
+        return matrices(x)[-1]
 
     def frame(x):
         M = end_matrix(x)
@@ -141,6 +151,9 @@ def solve(model, pose, limb, target, heading=None, down=(0.0, -1.0, 0.0), x0=Non
     def residuals(x):
         cp, cd, cf = frame(x)
         r = [(cp - target) * w_pos, (cd - down) * w_down]
+        if middle is not None:
+            mid = geo.bedrock((matrices(x)[0] @ middle)[:3])
+            r.append((mid - elbow) * w_elbow)
         if heading is not None:
             fflat = cf - down * np.dot(cf, down)
             n = np.linalg.norm(fflat)

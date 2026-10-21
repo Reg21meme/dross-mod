@@ -15,7 +15,8 @@ Animations (animation.huntsman.*; hits and releases at the seconds in their meta
   backstep_shoot  (once)  his spear planted in the snow, the bow out, a leap back out of reach with a shot at the top of
                           it, the landing (three blocks back: in the game he's moved there when it's over, its meta
                           "shift"), and the spear yanked back to his hand on its rope
-  snare_throw     (once)  three ice snares thrown underarm
+  bola_throw      (once)  his spear left in the snow, the bola whirled over his head and thrown (the snare throw
+                          was removed: the user, October 20)
   arrow_rain      (once)  the bow raised to the sky, four volleys of three arrows
   horn_blow       (once)  the Horn of the Hunt held to his lips for a long call
   land            (once)  landing from the leap off the moose
@@ -44,21 +45,21 @@ VARIANTS = (dict(name="huntsman", design=BUILD_VARIANT, hidden=()),)
 BONES = R.bones(POSE)
 ROUTES = R.ROUTES
 FREE = ("bow_held", "horn_held", "spear", "string_top", "string_bot", "arrow_nock", "arrow_hand", "spear_free",
-        "quiver_hip")
+        "quiver_hip", "bola_held")
 _J = R.joints(POSE)
 LEGS = [Leg(side, f"thigh_{side}", f"shin_{side}", (_J[f"boot_{side}"][0], 0.0, _J[f"boot_{side}"][2] - 3.0),
             bend=1, hoof=f"boot_{side}") for side in ("l", "r")]
 GIF_VIEW = (55.0, 8.0, 3.4)
 
 HITS = {"spear_combo": (0.38, 0.78, 1.28), "thrust_sweep": (0.4, 0.88), "leap_strike": (1.02,),
-        "throw_spear": (0.55,), "aimed_shot": (1.7,), "backstep_shoot": (1.32,), "snare_throw": (0.5, 0.75, 1.0),
+        "throw_spear": (0.55,), "aimed_shot": (1.7,), "backstep_shoot": (1.32,), "bola_throw": (0.95,),
         "arrow_rain": (1.0, 1.75, 2.5, 3.25), "horn_blow": (0.85,)}
 HORN_CALL = (0.85, 2.9)          # the horn at his lips: the call (the game's sound about as long)
 BACKSTEP = 48.0                  # how far back the backstep shot's leap takes him (units: 3 blocks), and how high
 BACKSTEP_UP = 26.0
 
 clip_group = R.clip_group
-CLIP_PAIRS = (("arms", "body"),)        # (the user saw his arm go through his body in the backstep shot)
+CLIP_PAIRS = (("arms", "body"), ("string", "body"), ("bola", "body"), ("spear", "body"))        # (the user saw his arm go through his body in the backstep shot)
 
 WALK = (1.1, 0.62, 22.0, 5.0, 0.8)
 RUN = (0.62, 0.42, 30.0, 7.0, 2.0)
@@ -101,7 +102,7 @@ def _stride(rig, name, gait, lean, spear_low):
         if spear_low:
             R.arm(p, "r", **grip((-30.0, 0.0, 0.0), (-10.0, 0.0, 0.0), 80.0))
         else:
-            R.arm(p, "r", sh=(4.0 * math.sin(w), 0.0, 0.0))
+            R.arm(p, "r", sh=(4.0 * math.sin(w), 0.0, 0.0), el=(-8.0, 0.0, 0.0), hand=(8.0, 0.0, 0.0))   # (spear butt off the snow)
         p.rot("cape", 10.0 + (14.0 if spear_low else 4.0) * (1 + math.sin(2 * w)) / 2.0, 0.0, 0.0)
         mobkit.gait(rig, p, t, T, phases, stance, stride, lift)
         R.show(p)
@@ -141,7 +142,8 @@ def _lunge(p, t, keys):
     p.pos("hips", 0.0, -4.0 * f, -6.0 * f)
     p.rot("chest", 14.0 * f, 0.0, 0.0)
     p.rot("head", -10.0 * f, 0.0, 0.0)
-    R.arm(p, "l", sh=(-20.0 * f, 0.0, 25.0 * f), el=(-30.0 * f, 0.0, 0.0))
+    # his free arm out forward and a little to his left for balance (rolled in, it went into his waist)
+    R.arm(p, "l", sh=(-28.0 * f, 0.0, -14.0 * f), el=(-30.0 * f, 0.0, 0.0))
     return f
 
 
@@ -193,8 +195,10 @@ def thrust_sweep(rig):
 
 
 def leap_strike(rig):
-    """A deep crouch, a leap (the body rises about a block and a half, legs tucked), the spear held high in both
-    hands, driven down into the ground as he lands."""
+    """A deep crouch, a leap (the body rises about a block and a half, legs tucked), the spear raised high over his
+    right shoulder, its point forward and down at you, and driven down into the ground in front of him as he lands.
+    (Until October 20 it was held straight up over his head with its point down, and the user saw his arm and the
+    spear go through his body.)"""
     T = 1.7
     hit, = HITS["leap_strike"]
 
@@ -205,12 +209,12 @@ def leap_strike(rig):
         p.pos("root", 0.0, up, 0.0)
         p.pos("hips", 0.0, -12.0 * crouch, 0.0)
         p.rot("chest", 20.0 * crouch, 0.0, 0.0)
-        high = grip((-160.0, 0.0, 15.0), (-20.0, 0.0, 0.0), 175.0)
-        down = grip((-55.0, 0.0, 10.0), (-10.0, 0.0, 0.0), 160.0)
+        high = grip((-145.0, 0.0, 25.0), (60.0, 0.0, 0.0), 120.0)    # (the elbow opened: it's modelled bent)
+        down = grip((-62.0, 0.0, 12.0), (-10.0, 0.0, 0.0), 158.0)
         keys = [(0.0, REST), (0.4, COCK), (0.75, high), (hit, down, "in"), (1.35, down), (T, REST)]
         R.arm(p, "r", **_armkeys(keys, t))
         left = float(keyed(t, [(0.0, 0.0), (0.75, 1.0), (hit, 0.7), (1.35, 0.7), (T, 0.0)]))
-        R.arm(p, "l", sh=(-120.0 * left, 0.0, -20.0 * left), el=(-30.0 * left, 0.0, 0.0))
+        R.arm(p, "l", sh=(-95.0 * left, 0.0, -22.0 * left), el=(-25.0 * left, 0.0, 0.0))
         p.rot("cape", 30.0 * ramp(t, 0.45, 0.7) * (1.0 - ramp(t, hit, 1.3)), 0.0, 0.0)
         tuck = ramp(t, 0.45, 0.62) * (1.0 - ramp(t, 0.85, hit))
         if up > 6.0:
@@ -459,27 +463,27 @@ def arrow_rain(rig):
 
 # ---------------------------------------------------------------- the rest
 
-def snare_throw(rig):
-    """Three ice snares flung underarm from his left hand, one after another."""
-    T = 1.4
-    throws = HITS["snare_throw"]
+def bola_throw(rig):
+    """The bola on foot (in place of the ice snares: the user, October 20, "remove the snare throw, just have it so he
+    throws the bola"): his spear left standing in the snow beside him, the bola whirled round over his head and out
+    to his right, and thrown, his body turning into the throw."""
+    from .huntsman_rider import bola_arm
+    T = 1.5
+    rel, = HITS["bola_throw"]
 
     def frame(t):
         p = Pose()
         _base(p, t)
-        swing = 0.0
-        for k, s in enumerate(throws):
-            swing += bump(t, s - 0.2, s - 0.12, s - 0.1, s) * 1.0 - bump(t, s - 0.02, s, s + 0.05, s + 0.15) * 0.0
-        back = sum(bump(t, s - 0.22, s - 0.12, s - 0.1, s - 0.02) for s in throws)
-        fling = sum(bump(t, s - 0.03, s, s + 0.03, s + 0.15) for s in throws)
-        R.arm(p, "l", sh=(45.0 * back - 70.0 * fling, 0.0, 15.0), el=(-10.0, 0.0, 0.0))
-        p.rot("chest", 8.0 * bump(t, 0.2, 0.35, 1.0, 1.3), 10.0 * fling, 0.0)
+        props = bola_arm(p, t, rel, T)
+        p.rot("chest", 8.0 * bump(t, rel - 0.1, rel, rel + 0.2, T), -14.0 * bump(t, rel - 0.15, rel, rel + 0.25, T),
+              0.0)
+        p.rot("hips", 0.0, -6.0 * bump(t, rel - 0.15, rel, rel + 0.25, T), 0.0)
         rig.plant(p)
-        R.show(p)
+        R.show(p, tuple(props) + (("spear_free",) if 0.06 < t < T - 0.08 else ()))
         return p
 
-    a = mobkit.record(rig, "snare_throw", T, frame, loop=False)
-    a.meta["throws"] = list(throws)
+    a = mobkit.record(rig, "bola_throw", T, frame, loop=False)
+    a.meta["release"] = rel
     return a
 
 
@@ -510,26 +514,33 @@ def horn_moves(rig, hands, drop, grab=0.32, at_mouth=0.75, lower=2.0, back=2.35)
         lips = mouth + fwd * 0.6 * k
         if t < grab:
             u = smooth((t - 0.08) / (grab - 0.08))
-            hands.arm(p, "l", archery._arc(rest_fist, belt, u, 2.0), down=(0.0, -1.0, 0.0), key="horn", w_down=2.0)
+            target = archery._arc(rest_fist, belt, u, 2.0)
+            hands.arm(p, "l", target, down=(0.0, -1.0, 0.0), key="horn", w_down=2.0,
+                      elbow=hands.elbow_out(p, "l", target, back=0.3, down=0.4, mats=mats))
             return ["horn_held"] if u > 0.92 else []
         out = fwd * 5.0 * k                          # (the horn's way up and down bulges out in front of his chest)
         if t < at_mouth:
             u = smooth((t - grab) / (at_mouth - grab))
             target = archery._lerp(belt, lips, u) + out * math.sin(math.pi * u)
             hands.arm(p, "l", target, contact=mouth_rest, down_local=axis_rest,
-                      down=archery._nlerp(np.array([1.0, 0.0, 0.0]), way, u), key="horn", w_down=2.0 + 4.0 * u)
+                      down=archery._nlerp(np.array([1.0, 0.0, 0.0]), way, u), key="horn", w_down=2.0 + 4.0 * u,
+                      elbow=hands.elbow_out(p, "l", target, back=0.0, down=0.6, mats=mats))
             return ["horn_held"]
         if t < lower:
-            hands.arm(p, "l", lips, contact=mouth_rest, down_local=axis_rest, down=way, key="horn")
+            hands.arm(p, "l", lips, contact=mouth_rest, down_local=axis_rest, down=way, key="horn",
+                      elbow=hands.elbow_out(p, "l", lips, back=0.0, down=0.6, mats=mats))
             return ["horn_held"]
         if t < back:
             u = smooth((t - lower) / (back - lower))
-            hands.arm(p, "l", archery._lerp(lips, belt, u) + out * math.sin(math.pi * u), contact=mouth_rest,
-                      down_local=axis_rest,
-                      down=archery._nlerp(way, np.array([1.0, 0.0, 0.0]), u), key="horn", w_down=6.0 - 4.0 * u)
+            target = archery._lerp(lips, belt, u) + out * math.sin(math.pi * u)
+            hands.arm(p, "l", target, contact=mouth_rest, down_local=axis_rest,
+                      down=archery._nlerp(way, np.array([1.0, 0.0, 0.0]), u), key="horn", w_down=6.0 - 4.0 * u,
+                      elbow=hands.elbow_out(p, "l", target, back=0.15, down=0.5, mats=mats))
             return ["horn_held"] if u < 0.95 else []
         u = smooth((t - back) / 0.3)
-        hands.arm(p, "l", archery._lerp(belt, rest_fist, u), down=(0.0, -1.0, 0.0), key="horn", w_down=2.0)
+        target = archery._lerp(belt, rest_fist, u)
+        hands.arm(p, "l", target, down=(0.0, -1.0, 0.0), key="horn", w_down=2.0,
+                  elbow=hands.elbow_out(p, "l", target, back=0.3, down=0.4, mats=mats))
         return []
 
     return frame
@@ -575,12 +586,52 @@ def land(rig):
         c = 1.0 - ramp(t, 0.12, 0.6)
         p.pos("hips", 0.0, -14.0 * c, 0.0)
         p.rot("chest", 22.0 * c, 0.0, 0.0)
-        R.arm(p, "l", sh=(-30.0 * c, 0.0, 30.0 * c))
+        R.arm(p, "l", sh=(-30.0 * c, 0.0, -24.0 * c))          # (out to his left for balance, not across him)
+        R.arm(p, "r", **grip((-45.0 * c, 0.0, 8.0 * c), (-10.0 * c, 0.0, 0.0), 20.0 * c))   # (the spear up off the snow)
         rig.plant(p)
         R.show(p)
         return p
 
     return mobkit.record(rig, "land", T, frame, loop=False)
+
+
+# His arms through his death, keyed (time, pose): the right hand flinches as the spear slips, reaches after it,
+# (catches him on his knee: the IK), then both rise before him with his cry, trail in front of him as he goes over
+# and come down at his sides on the snow (their elbows opened: his arms are modelled bent round the spear and the
+# reins). Rolls (z) out from his body only: rolled in, they went through his chest.
+DEATH_ARMS = {
+    "r": [(0.0, REST),
+          (0.12, dict(sh=(-38.0, 0.0, 22.0), el=(-12.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (0.55, dict(sh=(-62.0, 0.0, 12.0), el=(-5.0, 0.0, 0.0), hand=(10.0, 0.0, 0.0))),
+          (1.25, dict(sh=(-62.0, 0.0, 12.0), el=(-5.0, 0.0, 0.0), hand=(10.0, 0.0, 0.0))),
+          (1.6, dict(sh=(-25.0, 0.0, 16.0), el=(-15.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (1.85, dict(sh=(-25.0, 0.0, 16.0), el=(-15.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (2.2, dict(sh=(-118.0, 0.0, 16.0), el=(45.0, 0.0, 0.0), hand=(-10.0, 0.0, 0.0))),
+          (2.45, dict(sh=(-122.0, 0.0, 18.0), el=(45.0, 0.0, 0.0), hand=(-10.0, 0.0, 0.0))),
+          (2.8, dict(sh=(-75.0, 0.0, 22.0), el=(50.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (3.2, dict(sh=(-35.0, 0.0, 28.0), el=(55.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0)), "in"),
+          (3.45, dict(sh=(-14.0, 0.0, 30.0), el=(60.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (4.6, dict(sh=(-12.0, 0.0, 30.0), el=(60.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0)))],
+    "l": [(0.0, REST),
+          (1.85, dict(sh=(-35.0, 0.0, -14.0), el=(-10.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (2.2, dict(sh=(-118.0, 0.0, -16.0), el=(12.0, 0.0, 0.0), hand=(-10.0, 0.0, 0.0))),
+          (2.45, dict(sh=(-122.0, 0.0, -18.0), el=(12.0, 0.0, 0.0), hand=(-10.0, 0.0, 0.0))),
+          (2.8, dict(sh=(-75.0, 0.0, -22.0), el=(15.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (3.2, dict(sh=(-35.0, 0.0, -28.0), el=(18.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0)), "in"),
+          (3.45, dict(sh=(-14.0, 0.0, -30.0), el=(20.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0))),
+          (4.6, dict(sh=(-12.0, 0.0, -30.0), el=(20.0, 0.0, 0.0), hand=(0.0, 0.0, 0.0)))],
+}
+
+
+def _blend_ik(p, hands, side, w, target, **kw):
+    """The arm's angles part way (w, 0..1) from the pose it has now to the IK's answer for putting the fist on
+    `target`, so a hand that grabs something eases in and out of it instead of jumping."""
+    bones = (f"arm_{side}", f"forearm_{side}", f"hand_{side}")
+    before = {b: list(p.get3(b)[0]) for b in bones}
+    hands.arm(p, side, target, **kw)
+    for b in bones:
+        after = p.get3(b)[0]
+        p.get3(b)[0] = [x + (y - x) * w for x, y in zip(before[b], after)]
 
 
 def death(rig):
@@ -589,8 +640,9 @@ def death(rig):
     better and more dramatic"): he's struck and rears back with a gasp, the spear slipping out of his fingers and
     falling, tumbling, to the snow ahead of him; he clutches his chest and staggers, his knees going, his other hand
     reaching after the spear; he nearly falls, catches himself on his knee, then straightens with the last of his
-    strength, his head thrown back to the sky with a cry, his arms flung wide; and topples backward like a felled
-    tree, crashing down flat on his back, his antlers in the snow; a last breath, and he's still.
+    strength, his head thrown back to the sky with a cry, his arms raised before him; and topples backward like a
+    felled tree, his arms still out in front of him, crashing down flat on his back, his antlers in the snow, his arms
+    falling to his sides; a last breath, and he's still.
     """
     T = 4.6
     slip = 0.04                      # the spear leaves his hand, from where it was (the user: no moving it first)
@@ -599,7 +651,7 @@ def death(rig):
     fall0, fall1 = 2.45, 3.2
     hands = hunt_ik.Hands(rig, R.joints(POSE))
     k = hands.k
-    chest_rest = (np.array([-3.0, 134.0, -10.0]) + np.array([0.0, H.STAND_DROP, 0.0])) * k   # where he clutches
+    chest_rest = (np.array([-1.0, 134.0, -13.0]) + np.array([0.0, H.STAND_DROP, 0.0])) * k   # where he clutches
     knee_r = hands.j["shin_r"]
     state = {}
 
@@ -628,38 +680,25 @@ def death(rig):
         else:
             # straight legs as he goes over
             pass
-        # his arms
+        # his arms (the user, October 20: "arms clip his body, keep them in front of him, more natural"): keyed
+        # (DEATH_ARMS), with his left hand clutching his chest and his right catching him on his knee worked out by
+        # the IK (their elbows kept out at his sides) and blended in and out over the keyed arm
+        for side in ("l", "r"):
+            R.arm(p, side, **_armkeys(DEATH_ARMS[side], t))
         mats = hands.mats(p)
         clutch = smooth((t - 0.32) / 0.25) * (1.0 - smooth((t - 1.8) / 0.3))
         if clutch > 0.01:
             target = hands.point(p, "chest", chest_rest, mats)
-            rest = hands.point(p, "forearm_l", hands.j["hand_l"], mats)
-            hands.arm(p, "l", archery._lerp(rest, target, clutch), down=(0.0, 0.0, 1.0), key="clutch", w_down=1.5)
-        if t < slip + 0.3:
-            flinch = bump(t, slip, slip + 0.1, 0.28, 0.6)
-            R.arm(p, "r", sh=(-30.0 * flinch, 0.0, -45.0 * flinch), el=(-10.0 * flinch, 0.0, 0.0))
-        elif t < 1.3:
-            reach = smooth((t - slip - 0.3) / 0.4)
-            R.arm(p, "r", sh=(-30.0 - 25.0 * reach, 0.0, -45.0 + 35.0 * reach), el=(-10.0 + 5.0 * reach, 0.0, 0.0),
-                  hand=(10.0 * reach, 0.0, 0.0))
-        elif t < 2.0:
-            # caught himself: his hand on his knee
-            u = smooth((t - 1.3) / 0.3)
+            _blend_ik(p, hands, "l", clutch, target, down=(0.0, 0.0, 1.0), key="clutch", w_down=1.5,
+                      elbow=hands.elbow_out(p, "l", target, out=0.75, back=-0.45, down=0.6, mats=mats))
+        on_knee = smooth((t - 1.3) / 0.3) * (1.0 - smooth((t - 1.85) / 0.25))
+        if on_knee > 0.01:
             knee = hands.point(p, "shin_r", knee_r + np.array([0.0, 3.0 * k, -4.0 * k]), mats)
-            rest = hands.point(p, "forearm_r", hands.j["hand_r"], mats)
-            hands.arm(p, "r", archery._lerp(rest, knee, u), key="knee", w_down=1.0)
-        spread = smooth((t - 1.85) / 0.35)
-        if spread > 0.01:
-            for side, z in (("l", 1.0), ("r", -1.0)):
-                if side == "l" and clutch > 0.5:
-                    continue
-                R.arm(p, side, sh=(-25.0 * spread, 0.0, z * 70.0 * spread), el=(-15.0 * spread, 0.0, 0.0))
+            _blend_ik(p, hands, "r", on_knee, knee, key="knee", w_down=1.0,
+                      elbow=hands.elbow_out(p, "r", knee, out=0.8, back=0.2, down=0.2, mats=mats))
         # over he goes: about his heels
         if t >= fall0:
             p.rot("root", tip, 0.0, 0.0)
-            for side, z in (("l", 1.0), ("r", -1.0)):
-                fling = smooth((t - fall0) / 0.4)
-                R.arm(p, side, sh=(-20.0 * (1.0 - fling), 0.0, z * (70.0 + 10.0 * fling)), el=(-10.0, 0.0, 0.0))
             p.rot("head", 10.0 * ramp(t, fall1, fall1 + 0.2) - 12.0 * bump(t, fall1, fall1 + 0.08, fall1 + 0.15, fall1 + 0.35),
                   14.0 * ramp(t, 3.9, 4.4), 0.0)
             p.pos("chest", 0.0, 0.5 * bump(t, 3.7, 3.95, 4.0, 4.3), 0.0)          # a last breath
@@ -774,7 +813,7 @@ def animations(rig):
         "aimed_shot": aimed_shot(rig),
         "backstep_shoot": backstep_shoot(rig),
         "arrow_rain": arrow_rain(rig),
-        "snare_throw": snare_throw(rig),
+        "bola_throw": bola_throw(rig),
         "horn_blow": horn_blow(rig),
         "land": land(rig),
         "death": death(rig),

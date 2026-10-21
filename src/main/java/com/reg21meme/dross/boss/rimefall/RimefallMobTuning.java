@@ -93,6 +93,8 @@ public final class RimefallMobTuning
      * hurt her: then she's angry like any moose). After giving up she won't start again for a moment. */
     public static final double MOTHER_LEASH = 10.0D;
     public static final int MOTHER_GIVE_UP_PAUSE = 60;
+    /** Having given up, she walks back until she's this close to her calf (then she's free to graze and wander). */
+    public static final double MOTHER_BACK_WITHIN = 4.0D;
     /** A naturally spawned moose is a mother with her calf this often (otherwise alone: a bull or a cow, half each). */
     public static final float MOTHER_CHANCE = 0.3F;
     /** Kneeling to graze: how often (one chance in this many each tick) and how long (the animation's 6 seconds). */

@@ -289,16 +289,26 @@ def tack(s, v):
     reins(s.part("neck"), bit, held="rider" in v["parts"])
 
 
+QUIVER_X = -30.0             # the saddle's quiver this far out to the moose's right (round 4: -27, it clipped the cape)
+
+
 def quiver(s):
     """A quiver full of ice-fletched arrows strapped to the saddle behind his right leg (the user: "on his moose a
-    bunch of arrows with the quiver")."""
-    s.seg((-27, 92, 12), (-28, 112, 22), 7, 7, "leather")
-    s.ring((-28, 111, 21.5), unit(np.array([-1.0, 20, 10])), 3.8, 1, 2, "iron", n=8)
+    bunch of arrows with the quiver"); then (October 20) "move it further to the side, its top all blue like the
+    fletching": out past the cloak, a strap holding it to the saddle, only the arrows' ice fletchings showing at its
+    top, round a rim of ice."""
+    x = QUIVER_X
+    s.seg((x, 92, 12), (x - 1, 112, 22), 7, 7, "leather")
+    s.seg((-15.0, 106, 17), (x + 2.5, 104, 16), 2, 2, "leather")              # the strap, from the rolled fur
+    axis = unit(np.array([-1.0, 20, 10]))
+    s.ring((x - 1, 111, 21.5), axis, 3.8, 1, 2, "lance", n=8)
     for k in range(9):
-        q = np.array([-26.0 - (k % 3) * 1.6, 110 + (k % 2), 19 + (k // 3) * 1.6])
-        end = q + np.array([-0.5, 9 + (k % 3), 4])
-        s.seg(q, end, 1, 1, "shaft")
-        s.plate(end - unit(end - q) * 2, (1, 0, 0), end - q, 2, 5, 1, "lance")      # ice fletching
+        # (each a little off the grid: in rows their sides lay in one plane and flickered)
+        q = np.array([x + 1.0 - (k % 3) * 1.6 - (k // 3) * 0.37, 111 + (k % 2) * 0.5 + (k // 3) * 0.29,
+                      19 + (k // 3) * 1.6 + (k % 3) * 0.23])
+        end = q + axis * (6 + (k % 3))
+        s.seg(q, end - axis * 3, 1, 1, "shaft")
+        s.plate(end - axis * 3, (1, 0, 0), axis, 2.4, 6, 1, "lance")           # ice fletching (all of the top)
 
 
 def reins(s, bit, held):
@@ -400,7 +410,10 @@ def mantle(s):
 CLOAK_RIDE = (((0, 148, 9.0), 30), ((0, 124, 10.0), 34), ((0, 121.5, 13.0), 36), ((0, 114.5, 21.5), 38),
               ((0, 112.5, 28.0), 39), ((0, 109, 42.0), 42), ((0, 107.2, 50.0), 44), ((0, 102, 57.5), 46),
               ((0, 91, 66.0), 48))
-CLOAK_RIDE_FOLD = (25, 25, 15, 15, 50, 55, 55, 40)
+CLOAK_RIDE_FOLD = (25, 25, 35, 35, 50, 55, 55, 40)    # (over the saddle 15 until October 20: wide and flat, the quiver
+                                                      # went through it)
+PLEAT = 9.0                  # its middle two panels meeting in a soft ridge (degrees): a fold down it (the user, October
+                             # 20: "the cape needs more shape")
 CLOAK_STAND = (((0, 148, 9.0), 30), ((0, 124, 10.0), 34), ((0, 100, 12.5), 39), ((0, 86, 14.0), 42),
                ((0, 71, 15.5), 46), ((0, 57, 17.0), 48))
 CLOAK_STAND_FOLD = (25, 30, 30, 30, 30)
@@ -427,13 +440,19 @@ def cloak(s, pose):
         mid = (p0 + p1) / 2.0
         mat = ("capeend", "capeworn")[min(1, len(line) - 2 - i)] if i >= len(line) - 3 else "cape"
         cw = W * 0.5
-        s.plate(mid, n, -d, cw + 1, L, 2, mat)
+        pl = math.radians(PLEAT)
+        drop = (cw / 2.0) * math.sin(pl)              # how far in the middle panels' outer edges sit
+        for x in (-1, 1):
+            # the middle: two panels, a soft ridge down between them
+            normal = n * math.cos(pl) + across * x * math.sin(pl)
+            c = mid + across * x * (cw / 4.0) - n * (drop / 2.0)
+            s.plate(c, normal, -d, cw / 2.0 + 1, L - 0.3 * (i % 2), 2, mat)
         th = math.radians(folds[i])
         sw = W * 0.25 + 1.5
         for x in (-1, 1):
             out = across * x * math.cos(th) - n * math.sin(th)
             normal = n * math.cos(th) + across * x * math.sin(th)
-            c = mid + across * x * (cw / 2.0 - 0.5) + out * (sw / 2.0)
+            c = mid + across * x * (cw / 2.0 - 0.5) - n * drop + out * (sw / 2.0)
             s.plate(c, normal, -d, sw, L - 0.5 * (i % 2), 2, mat)
 
 
@@ -451,9 +470,10 @@ def arms(s, fists, pose):
 
 def spear(s, fist, pose):
     """
-    A boar spear of ice in his right fist: an ice leaf of a head, iron lugs under it, leather bindings. In the saddle
-    its butt rests in the leather cup on the saddle's front corner (the user: "make a spot for him to put his spear");
-    standing, it stands upright on the ground beside him.
+    A spear of ice in his right fist: a plain pole, a small collar, the spike (the user, October 20, 2026: "no grip
+    or hilt or butt piece, a plain pole with a small collar and the spike"; it had a boar spear's iron lugs and
+    leather bindings under his fist). In the saddle its butt rests in the leather cup on the saddle's front corner (the
+    user: "make a spot for him to put his spear"); standing, it stands upright on the ground beside him.
     """
     if pose == "ride":
         butt = CUP + np.array([0.0, 1.0, 0.0])
@@ -461,13 +481,9 @@ def spear(s, fist, pose):
         butt = np.array([fist[0], -STAND_DROP + 1.0, fist[2]])
     d = unit(fist - butt)
     tip = butt + d * SPEAR
-    s.seg(butt, tip - d * 20, 3, 3, "shaft")
-    s.cone(tip - d * 21, tip, 7, "lance", d0=3, steps=5)
-    s.ring(tip - d * 22, d, 2.2, 1, 2, "leather", n=6)
-    p = tip - d * 24
-    s.seg(p + [6, 0, 0], p - [6, 0, 0], 2, 2, "iron", side=(0, 1, 0))           # the lugs of a boar spear
-    for t in (-5, -10):                  # the grip's bindings, under his fist (apart, so they never overlap)
-        s.ring(fist + d * t, d, 2.4, 1, 2, "leather", n=6)
+    s.seg(butt, tip - d * 20, 3, 3, "shaft")                                    # the plain pole
+    s.cone(tip - d * 21, tip, 6, "lance", d0=3, steps=5)                        # the spike
+    s.ring(tip - d * 22, d, 2.2, 1, 2, "leather", n=6)                          # its small collar
 
 
 def bow(s):
@@ -493,13 +509,16 @@ def bow(s):
 # The props the animated Huntsman holds (rimemobs/huntsman.py, huntsman_rider.py; the statue never builds them).
 DRAW = 38.0                  # how far he draws the string back from where it rests (design units): to his chin
 ARROW = 52.0                 # an arrow, nock to point (about 2 blocks: right for a 4.5-block giant)
-FACE_ANCHOR = np.array([-5.5, 150.5, -10.5])  # where his drawing fist comes back to: by the right of his chin, just off
-                                              # the hood (riding frame)
+FACE_ANCHOR = np.array([-9.0, 150.0, -10.0])  # where his drawing fist comes back to: by the right of his jaw, out past
+                                              # the hood's side so the forearm behind it clears his hood (riding
+                                              # frame; until October 20 it was 5.5 out, and his forearm and the
+                                              # string went into his hood)
 MOUTH = np.array([0.0, 151.5, -10.0])        # his mouth, under the wolf's snout (where the horn goes)
 HORN_MOUTH = np.array([-1.0, 5.0, 8.0])     # the horn's mouthpiece, from his left fist (behind it)
 HORN_BELL = np.array([0.0, 10.0, -19.0])    # its bell's middle
-QUIVER_TOP = np.array([-15.0, 121.0, 14.0])  # the mouth of the quiver at his right hip (riding frame)
-SADDLE_QUIVER = np.array([-26.5, 119.0, 22.0])  # the arrows' ends in the saddle's quiver, where his hand takes them
+QUIVER_TOP = np.array([-20.0, 121.0, 8.0])   # the mouth of the quiver at his right hip (riding frame; out to his side,
+                                             # clear of the cloak: the user, October 20; it was at -15, 121, 14)
+SADDLE_QUIVER = np.array([-29.0, 118.5, 22.0])  # the arrows' ends in the saddle's quiver, where his hand takes them
 
 
 def arrow(s, nock, forward):
@@ -544,6 +563,7 @@ def props_in_hand(s, fists, pose):
       arrow_hand3  and in his right hand
       quiver_hip   a quiver of arrows at his right hip (on foot only: in the saddle his cloak lies there, and he takes
                    his arrows from the saddle's quiver, SADDLE_QUIVER)
+      bola_held    his bola, its knot in his right fist (while he whirls and throws it)
     """
     right, left = np.asarray(fists[0], dtype=float), np.asarray(fists[1], dtype=float)
     up = np.array([0.0, 1.0, 0.0])
@@ -570,18 +590,37 @@ def props_in_hand(s, fists, pose):
     h.ring(mouth, unit(path[1] - mouth), 1.8, 1, 2, "iron", n=6)                    # the silver mouthpiece
     h.ring(path[2], unit(path[3] - path[1]), 3.2, 1, 1, "leather", n=8)            # a binding
     spear(s.part("spear_free"), right, pose)
+    bola(s.part("bola_held"), right)
     if pose == "ride":
         return                    # (in the saddle he takes his arrows from the saddle's quiver: SADDLE_QUIVER)
     q = s.part("quiver_hip")
     top = QUIVER_TOP
     low = top + np.array([1.5, -17.0, -6.0])
+    axis = unit(top - low)
     q.seg(low, top, 6, 6, "leather")
-    q.ring(top, unit(top - low), 3.4, 1, 2, "iron", n=8)
+    q.ring(top, axis, 3.4, 1, 2, "lance", n=8)            # (its top all blue, like the fletching: the user's)
     for k in range(5):
         a0 = top + np.array([(k % 3 - 1) * 1.6, -1.0, (k // 3 - 0.5) * 1.6])
-        end = a0 + unit(top - low) * (6 + (k % 2) * 2)
-        q.seg(a0, end, 1, 1, "shaft")
-        q.plate(end - unit(end - a0) * 2, (1, 0, 0), end - a0, 2, 5, 1, "lance")
+        end = a0 + axis * (6 + (k % 2) * 2)
+        q.seg(a0, end - axis * 3, 1, 1, "shaft")
+        q.plate(end - axis * 3, (1, 0, 0), axis, 2.4, 6, 1, "lance")
+
+
+BOLA_CORD = 13.0             # each of the bola's cords, knot to weight (design units)
+
+
+def bola(s, fist):
+    """His bola (the user, October 20, 2026: it "throws nothing visible"): a knot in his fist, three cords of rope
+    and on each a round weight of ice, hanging from his hand (whirled, they fly out round it)."""
+    fist = np.asarray(fist, dtype=float)
+    knot = fist + np.array([0.0, -3.5, 0.0])
+    s.blob(knot, (1.6, 1.6, 1.6), "cord", slices=2)
+    for k in range(3):
+        a = math.radians(90.0 + k * 120.0)
+        out = np.array([math.cos(a) * 0.45, -1.0, math.sin(a) * 0.45])
+        end = knot + unit(out) * BOLA_CORD
+        s.seg(knot, end, 1, 1, "cord")
+        s.blob(end + unit(out) * 2.0, (2.6, 2.6, 2.6), "icicle", slices=3)
 
 
 def head(s):

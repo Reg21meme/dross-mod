@@ -249,6 +249,8 @@ def clip_check(m, anims, groups, pairs, hidden=(), step=0.1):
                 g = groups(b.name)
                 if g is None:
                     continue
+                if abs(float(np.linalg.det(mats[b.name][:3, :3]))) < 1e-9:
+                    continue                  # (a prop hidden at scale 0: not there)
                 for c in b.cubes:
                     boxes.setdefault(g, []).append((_box_frame(mats, c), f"{b.name}/{c.mat}"))
             pts = {g: np.concatenate([_grid(fr) for fr, _l in frs]) for g, frs in boxes.items()}

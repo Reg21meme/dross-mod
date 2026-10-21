@@ -55,7 +55,7 @@ BONES = ([(CARRY, tuple(float(v) for v in R.joints(POSE)["hips"]), None)]
          + [(n, piv, CARRY if par is None else par) for n, piv, par in R.bones(POSE)])
 ROUTES = R.ROUTES
 FREE = ("bow_held", "horn_held", "spear", "string_top", "string_bot", "arrow_nock", "arrow_hand", "spear_free",
-        "quiver_hip")
+        "quiver_hip", "bola_held")
 LEGS = []
 GIF_VIEW = (55.0, 8.0, 2.6)
 LEAP_OUT = 46.0                 # he lands this far to the moose's left of its middle (units: about 2.9 blocks)
@@ -67,7 +67,7 @@ SPEAR_AXIS = (H.RIDE_FISTS[0] - (H.CUP + np.array([0.0, 1.0, 0.0])))
 SPEAR_AXIS = SPEAR_AXIS / np.linalg.norm(SPEAR_AXIS)          # (the spear in the saddle, butt to tip: in its rest)
 
 clip_group = R.clip_group
-CLIP_PAIRS = (("arms", "body"),)
+CLIP_PAIRS = (("arms", "body"), ("string", "body"), ("bola", "body"),)
 
 # Riding: the reins in his left fist, the spear's butt in its cup; so the right arm's rest already holds the spear.
 GALLOP_T = alpha_moose.GALLOP[0]
@@ -77,16 +77,39 @@ def _sit(p, t, T):
     R.breathe(p, t, T, 0.8)
 
 
+_RIG = None                     # (set by animations(): _keep_cape needs the model to keep the cloak in place)
+
+
 def _keep_cape(p):
     """His cloak lies over the moose's rump (the user: "his cape clips through the moose while he rides it, it should
     always stay on top"): whatever his hips and chest do, it's turned back by their turn, so it keeps lying where it
-    lies at rest; only its own flutter (the frame's own turn of the cape, kept small and upwards) is added."""
+    lies at rest; only its own flutter (the frame's own turn of the cape, kept small and upwards) is added. And it's
+    moved back by their move too (the user, October 20: still into the moose at a gallop: as he bobbed down and leaned
+    into his moves the whole cloak went down with him into its back), so its top stays where it is on the saddle; it
+    still goes with him when all of him moves (the leap off)."""
     from kit.geo import gecko_rotation
     I = np.eye(3)
     rh = gecko_rotation(*p["hips"][0])[:3, :3] if "hips" in p else I
     rc = gecko_rotation(*p["chest"][0])[:3, :3] if "chest" in p else I
     rf = gecko_rotation(*p["cape"][0])[:3, :3] if "cape" in p else I
     p.get3("cape")[0] = list(euler_bedrock((rh @ rc).T @ rf))
+    if _RIG is None:
+        return
+    m = _RIG.m
+    piv = np.asarray(m["cape"].pivot, dtype=float)
+    still = Pose()
+    for b in (CARRY, "root"):
+        if b in p:
+            still[b] = [list(v) for v in p[b]]
+    want = m.point(m.pose_matrices(still.as_geo()), "chest", piv)
+    for _ in range(3):
+        mats = m.pose_matrices(p.as_geo())
+        err = want - m.point(mats, "cape", piv)
+        if float(np.linalg.norm(err)) < 0.01:
+            break
+        R = mats["chest"][:3, :3]
+        o = R.T @ np.array([-err[0], err[1], err[2]])          # (the offset is in the chest's own frame)
+        p.pos("cape", -o[0], o[1], o[2])
 
 
 def _show(p, props=()):
@@ -247,22 +270,43 @@ def ride_horn(rig):
     return a
 
 
+def bola_arm(p, t, rel, T):
+    """The bola's right arm (shared with the throw on foot): raised high and out to his right, the elbow opened
+    nearly straight (his arm is modelled bent round the spear, so raised as it is the hand came down over his hood),
+    the bola whirled round from his fist about three times, then flung forward at `rel` as the arm comes over and
+    down. Returns the props to show: the bola in his hand until he lets go (the user, October 20: "the bola throws
+    nothing visible and clips him")."""
+    up = ramp(t, 0.08, 0.28) * (1.0 - ramp(t, rel + 0.25, T - 0.05))        # the arm up (and the elbow open)
+    spin = ramp(t, 0.1, 0.28) * (1.0 - ramp(t, rel - 0.12, rel))             # the whirling
+    a = 2 * math.pi * 3.2 * t
+    raise_x = float(keyed(t, [(0.0, 0.0), (0.28, -BOLA_UP), (rel - 0.14, -BOLA_UP - 8.0), (rel, -112.0, "in"),
+                              (rel + 0.18, -72.0, "out"), (T - 0.05, 0.0)]))
+    # (the roll that swings a hanging arm out to his right swings a raised one in, over his head: so it's turned the
+    # other way, and grows with how far up the arm is)
+    roll = -BOLA_OUT * min(1.0, -raise_x / BOLA_UP) ** 2
+    R.arm(p, "r", sh=(raise_x, 0.0, roll + 10.0 * spin * math.sin(a)),
+          el=(BOLA_OPEN * up, 0.0, 0.0), hand=(28.0 * spin * math.cos(a), 0.0, 22.0 * spin * math.sin(a)))
+    return ["bola_held"] if 0.12 < t < rel else []
+
+
+BOLA_UP = 150.0                 # the whirling arm raised this far (degrees; 180 is straight up)
+BOLA_OUT = 36.0                 # and rolled this far out to his right: clear of his hood and antlers
+BOLA_OPEN = 76.0                # its elbow opened this far from its modelled bend (about 5-7 degrees off straight:
+                                # bent more, the forearm folded in over his hood)
+
+
 def ride_bola(rig):
-    """He lets go of the spear (it stays standing in its cup), whirls a bola round over his head three times and
-    throws it."""
+    """He lets go of the spear (it stays standing in its cup), whirls the bola round over his head and out to his
+    right three times and throws it."""
     T = 1.5
     rel, = HITS["ride_bola"]
 
     def frame(t):
         p = Pose()
         _sit(p, t, T)
-        spin = ramp(t, 0.1, 0.25) * (1.0 - ramp(t, rel, rel + 0.15))
-        a = 2 * math.pi * 3.2 * t
-        R.arm(p, "r", sh=(-150.0 * spin - 60.0 * bump(t, rel - 0.05, rel, rel + 0.1, rel + 0.4), 0.0,
-                          18.0 * spin * math.sin(a)), el=(-20.0 * spin, 0.0, 0.0),
-              hand=(25.0 * spin * math.cos(a), 0.0, 0.0))
+        props = bola_arm(p, t, rel, T)
         p.rot("chest", 6.0 * bump(t, rel - 0.1, rel, rel + 0.2, T), -10.0 * bump(t, rel - 0.15, rel, rel + 0.2, T), 0.0)
-        _show(p, ("spear_free",) if 0.06 < t < T - 0.08 else ())
+        _show(p, tuple(props) + (("spear_free",) if 0.06 < t < T - 0.08 else ()))
         return p
 
     a = mobkit.record(rig, "ride_bola", T, frame, loop=False)
@@ -393,6 +437,8 @@ def with_carry(a, carry):
 
 
 def animations(rig):
+    global _RIG
+    _RIG = rig
     return {
         "ride_idle": ride_idle(rig),
         "ride_gallop": ride_gallop(rig),
