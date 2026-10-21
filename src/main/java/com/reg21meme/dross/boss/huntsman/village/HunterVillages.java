@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.huntsman.village;
 
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.Dross;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -12,9 +13,14 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.lighting.LevelLightEngine;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,11 +31,24 @@ import java.util.Optional;
  * the rest left out by {@link HunterDecorFilter}. The templates are made by tools/huntsman/villages.py with their way in
  * facing south; every decoration stands on the village or the ground on its own, so any mix of them is whole.
  */
+@Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class HunterVillages
 {
     private static final Logger LOGGER = LogUtils.getLogger();
     /** Each decoration's chance to be there. */
     public static final double DECOR_CHANCE = 0.5D;
+    /**
+     * The lamps are lit again this many ticks after the village is placed (and once more at the second): the game's
+     * light engine can drop the first try for parts of the world that were empty until the village filled them (a test
+     * room read light 0 beside its lanterns, October 20, 2026, though the same room is lit on its own).
+     */
+    static final int[] RELIGHT_AGAIN_TICKS = {20, 100};
+
+    private record Relight(ServerLevel level, BoundingBox box, long at)
+    {
+    }
+
+    private static final List<Relight> LATER = new ArrayList<>();
 
     private HunterVillages() {}
 
@@ -120,8 +139,37 @@ public final class HunterVillages
         }
         StructurePlaceSettings withDecor = settings(design, front).addProcessor(new HunterDecorFilter(dropped));
         decor.get().placeInWorld(level, origin, origin, withDecor, level.getRandom(), Block.UPDATE_CLIENTS);
-        relight(level, footprint(ground, front, design));
+        BoundingBox box = footprint(ground, front, design);
+        relight(level, box);
+        for (int later : RELIGHT_AGAIN_TICKS)
+        {
+            LATER.add(new Relight(level, box, level.getGameTime() + later));
+        }
         return kept;
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event)
+    {
+        if (event.phase != TickEvent.Phase.END || LATER.isEmpty())
+        {
+            return;
+        }
+        for (Iterator<Relight> it = LATER.iterator(); it.hasNext(); )
+        {
+            Relight r = it.next();
+            if (r.level().getGameTime() >= r.at())
+            {
+                it.remove();
+                relight(r.level(), r.box());
+            }
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerStopping(ServerStoppingEvent event)
+    {
+        LATER.clear();
     }
 
     /**

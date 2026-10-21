@@ -19,7 +19,10 @@ import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -41,17 +44,18 @@ import java.util.Locale;
 /**
  * {@code /dross showcase hunter_villages} (test tool, cheats only): builds the hunter villages ahead of you on a snowy
  * floor, so they can be looked at and compared (the boss area's {@link HunterVillageDesigns}, made by
- * tools/huntsman/villages.py): the Sunken Warren's eight layouts (10 to 20 igloos) and the Huntsman's two villages.
+ * tools/huntsman/villages.py): the Sunken Warren's nine layouts (15 to 20 of the hand-designed igloos, the shrine in
+ * every third) and the Huntsman's two villages.
  * Every village rolls its decorations as the game will (each a 1 in 2 chance), so building them again shows other
  * mixes.
  * <p>
- * Three rows of plots, their ways in facing you, {@link #GAP} blocks between them: Sunken Warrens 1-4, then 5-8, then
+ * Four rows of plots, their ways in facing you, {@link #GAP} blocks between them: Sunken Warrens 1-3, 4-6, 7-9, then
  * the Huntsman's villages. Each plot is cleared ({@link #CLEAR_ABOVE} blocks over its village), floored with
  * Hoarfrost and snow like Rimefall, and gets a sign at its way in. One plot is built each server tick, so the game
  * doesn't freeze; the chat lists them all with [go] buttons when it's done (each stands you at the top of its way in),
  * and an [overview] button that puts you high above the middle looking down. The floor is raised if the ground is too
  * close to the bottom of the world for the villages' dug courtyards (a superflat world's is). Use a flat world: it's
- * about 500 blocks wide and 480 deep.
+ * about 580 blocks wide and 820 deep.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class HunterVillageShowcase
@@ -61,8 +65,8 @@ public final class HunterVillageShowcase
     public static final String COMMAND = "/dross showcase hunter_villages";
     /** Blocks between neighbouring plots (and rows). */
     static final int GAP = 14;
-    /** The rows: Sunken Warrens 1-4, 5-8, then the Huntsman's villages. */
-    static final int PER_ROW = 4;
+    /** The rows: Sunken Warrens 1-3, 4-6, 7-9, then the Huntsman's villages. */
+    static final int PER_ROW = 3;
     /** The first row's plots start this many blocks ahead of you. */
     static final int START = 6;
     /** Air is cleared this many blocks above each village's tallest part, and the floor reaches this far past it. */
@@ -230,6 +234,8 @@ public final class HunterVillageShowcase
                 box.maxX() + FLOOR_MARGIN + 1, top + 1, box.maxZ() + FLOOR_MARGIN + 1);
         level.getEntitiesOfClass(Mob.class, area, m -> m instanceof Moose || m instanceof Rimehorn).forEach(Mob::discard);
         VillageAnimals.cancelIn(level, area);
+        level.getEntitiesOfClass(ArmorStand.class, area).forEach(Entity::discard);   // the guards too
+        level.getEntitiesOfClass(ItemEntity.class, area).forEach(Entity::discard);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int x = box.minX() - FLOOR_MARGIN; x <= box.maxX() + FLOOR_MARGIN; x++)
         {
@@ -264,7 +270,7 @@ public final class HunterVillageShowcase
         level.setBlock(post, Blocks.PACKED_ICE.defaultBlockState(), Block.UPDATE_ALL);
         level.setBlock(post.above(), Blocks.PACKED_ICE.defaultBlockState(), Block.UPDATE_ALL);
         String[] lines = design.huntsman()
-                ? new String[] {"The Huntsman's", "village " + (design.number() - 8), design.igloos() + " igloos",
+                ? new String[] {"The Huntsman's", "village " + (design.number() - HunterVillageDesigns.regular().size()), design.igloos() + " igloos",
                         "his lodge, his barn"}
                 : new String[] {"Sunken Warren", "No. " + design.number(), design.igloos() + " igloos",
                         design.courts() + " courtyards"};
@@ -286,8 +292,9 @@ public final class HunterVillageShowcase
         CommandSourceStack source = job.source();
         LOGGER.info("Hunter village showcase: built {} plots from {} looking {} (floor at y {})", plan.plots().size(),
                 plan.origin().toShortString(), plan.look().getName(), plan.floorY());
-        source.sendSuccess(() -> Component.literal("Built the hunter villages: the Sunken Warrens 1-4, then 5-8, then the "
-                + "Huntsman's two villages (his lodge and barn at the back). Each decoration is a 1 in 2 chance, so "
+        source.sendSuccess(() -> Component.literal("Built the hunter villages: the Sunken Warrens 1-3, 4-6 and 7-9 (the "
+                + "shrine in 3, 6 and 9), then the Huntsman's two villages (his lodge and barn at the back). Each "
+                + "decoration is a 1 in 2 chance, so "
                 + "building them again gives other mixes. Click [go] to stand at one's way in:"), true);
         for (Plot plot : plan.plots())
         {

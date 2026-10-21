@@ -48,11 +48,42 @@ python tools/huntsman/villages.py 3 --no-nbt   # previews only (no templates, no
 
 The Sunken Warren (the user's pick of October 19: round 1's Sunken Hollow and The Warren combined; then "massive":
 15-20 igloos, the Huntsman's village 25-30, more life, animals, meat over the fires, more lanes; round 1's ten designs
-are archived in `village_designs/round1/`). `LAYOUTS` in `villages.py`: eight Sunken Warrens of 15 to 20 igloos and two
-Huntsman's villages of 26 and 29 (his lodge and barn built in). The design is `village_designs/sunken_warren.py` (the
-plan: courtyards dug three blocks down, the igloos round their rims and the outlying ones joined by covered passages,
-sunken lanes between the courtyards in loops, the pens; then the build), `village_designs/lodge.py` (the Huntsman's
-lodge, armoury, yard, barn and corral, built into his village), and the kit in `villagekit/`:
+are archived in `village_designs/round1/`). **Since October 20 (step 2 of the plan) every igloo is one of the
+hand-designed templates** (`igloos.py` below), set in by `village_designs/warren.py`. `LAYOUTS` in `villages.py`: nine
+Sunken Warrens of 15 to 20 igloos (the shrine in 3, 6 and 9) and two Huntsman's villages of 26 and 29.
+
+`warren.py`: the layout is the Sunken Warren's (its planning helpers are `sunken_warren.py`'s: courtyards dug three
+blocks down, sunken lanes between them in loops, steps up, the pens); then the templates:
+
+- **which igloos** (`choose`, the user's spawn table): a regular village always has a meeting hall (Round 60 / Long
+  40), a Cookhouse and a Storehouse, the rest rolled from homes 55 (Family 14, Trapper 9, Twins 9, Scout 8, Apprentice
+  8, Elder 7, only one), work 22 (Workshop 7, Barracks 6, only one, Tannery 5, Storehouse 4) and food 23 (Root House 9,
+  Lichen House 7, Fishing Hut 7), rolled again if it comes up short of a bed for every two igloos; 1-2 Rimeberry
+  Patches; the shrine when the layout says. The Huntsman's: both halls, 2 Barracks, a Cookhouse, a Storehouse, the
+  shrine, 2 Patches, the rest rolled (no more Barracks).
+- **where**: the halls at the backs of their courtyards; **ring igloos** round the courtyards, turned (a quarter turn
+  at a time) so the doorway faces the courtyard and sunk 3 (their doorways on its floor), a short dug way where the
+  doorway isn't quite on it; about a third **warren igloos** behind them, each a few blocks out from a free stretch of
+  a front igloo's wall (`villagekit.stamp`'s spots), its doorway facing it, a covered passage between (3 wide, 3 tall,
+  a snow roof a block over the ground; the wall cut 1 wide and 2 tall where it meets the room; no bed, chest or lamp
+  is moved or blocked); neighbours whose free walls face each other are joined too; **lane igloos** along the lanes if
+  any are left over; the **shrine** alone on the snow about 14 blocks out (never joined to an igloo), a path to the
+  nearest steps lined with lantern posts; the **Patches** on the snow by the village with a path; the Huntsman's
+  **lodge and barn** templates side by side in a 64 x 37 box at the north, his yard before them.
+- **always there**: a ring of lights round the whole village (7 out from everything, one every 11 blocks, two of the
+  seven light designs taking turns), the pens' fences **two high** (posts and corner skulls on top) with nothing an
+  animal could stand on within 2 blocks inside (hay and the trough 3 in), their animals `Penned` (they never go for
+  anyone and run when hurt: `Moose`/`Rimehorn.TAG_PENNED`); windbreaks four times as often among the decorations.
+- the village's own lanterns go only in the passages: every template is lit as it was designed. A sunken template's
+  clear ice window that ends up against the ground is filled with snow (`stamp.bury_windows`).
+
+`villagekit/stamp.py`: a design built once (`Piece`: its blocks, rooms, doorway, domes and passage spots relative to
+its first dome's middle), turned and sunk (`Placed`), and set into the village block for block (`stamp`: facings, axes,
+banners' and skulls' turns, fences' sides and its armor stands turned with it; under the ground only its own body).
+
+`village_designs/sunken_warren.py` is the version before October 20 (its igloos furnished by `villagekit/interiors.py`),
+kept for its helpers; `village_designs/lodge.py` the old lodge (its moose head and styles are still used). The kit in
+`villagekit/`:
 
 - `igloo.py`: igloos as **solids hollowed out together**: each dome, tunnel and covered passage (`burrow`) adds solid
   cells, then every solid cell with solid (or ground) all round it (edges and corners too) becomes room, so joined
@@ -79,7 +110,8 @@ lodge, armoury, yard, barn and corral, built into his village), and the kit in `
 - `checks.py`: **nothing melts** (clear ice over block light 10, snow layers over 11: `cool_lights` softens the lights
   too near to soul ones); snow on ice, half beds and doors, things with nothing under them.
 - `writer.py`: the template writer, with block entity data (banners) and the pens' animals (`animal()`: moose with
-  `Bull` and `Snowy`, Rimehorns with `Male` and a calf's `Age`; all persistent).
+  `Bull` and `Snowy`, Rimehorns with `Male` and a calf's `Age`; a village's are `Penned`; all persistent) and armor
+  stands (`armor_stand()`: the guards).
 - `dross_blocks.py`: teaches the shrine kit the mod's blocks (Hoarfrost, Frostbitten Log, Icicle, Frostbloom, the Meat
   Block and Roasted Meat Block).
 - `local.py`: local coordinates that turn with a door (`{front}`, `{left}`, `{fb}`, `{rot_front}` in block states).

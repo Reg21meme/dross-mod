@@ -1,4 +1,8 @@
-"""The Sunken Warren: the hunters' village (the user's pick, October 19, 2026: "I like the sunken igloos and the warren
+"""(Since October 20, 2026 the villages are built by warren.py, from the hand-designed igloo templates: it uses this
+module's planning helpers, lining, floors, fires and decoration lists. This module's own build(), with its igloos
+furnished by villagekit.interiors, is the version before that, kept for reference.)
+
+The Sunken Warren: the hunters' village (the user's pick, October 19, 2026: "I like the sunken igloos and the warren
 igloos, combine them into something"; then, after looking in-game: "I want the villages to be massive", 15 to 20
 igloos, the Huntsman's 25 to 30; "make the village more interconnected as well, I like the ravines you have in
 between"; "add life with more blocks and stuff"; a moose or two in a paddock, a Rimehorn herd in his).

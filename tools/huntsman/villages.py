@@ -1,6 +1,7 @@
 """Builds the hunter villages: the Sunken Warren layouts (the user's pick of October 19, 2026: Sunken Hollow and The
-Warren combined, 10 to 20 igloos, every decoration a 1 in 2 chance) and the Huntsman's villages (a warren with his
-lodge and barn), their structure templates, previews and the Java table.
+Warren combined, every decoration a 1 in 2 chance; since October 20 built from the hand-designed igloos by
+village_designs/warren.py, 15 to 20 of them) and the Huntsman's villages (a warren with his lodge and barn), their
+structure templates, previews and the Java table.
 
   python tools/huntsman/villages.py             every layout
   python tools/huntsman/villages.py 3 7         only layouts 3 and 7
@@ -41,18 +42,23 @@ MANIFEST = os.path.join(HERE, "out", "villages.json")
 # (number, seed, igloos, the Huntsman's village)
 # (number, seed, igloos, the Huntsman's): the user, October 19: "I want the villages to be massive: put the minimum
 # number of igloos at 15, then make the max around 20 ish, but for the Huntsman's village around 25-30"
+# Step 2 of the plan of October 20 (villagekit/stamp, village_designs/warren): nine regular villages, so the shrine
+# can stand in 1 of 3 (the user's spawn table), and the Huntsman's two (his always has it).
+# (number, seed, igloos, the Huntsman's, the shrine)
 LAYOUTS = (
-    (1, 11, 15, False),
-    (2, 23, 16, False),
-    (3, 37, 17, False),
-    (4, 41, 18, False),
-    (5, 53, 19, False),
-    (6, 67, 20, False),
-    (7, 79, 16, False),
-    (8, 83, 18, False),
-    (9, 97, 26, True),
-    (10, 101, 29, True),
+    (1, 11, 15, False, False),
+    (2, 23, 16, False, False),
+    (3, 37, 17, False, True),
+    (4, 41, 18, False, False),
+    (5, 53, 19, False, False),
+    (6, 67, 20, False, True),
+    (7, 79, 16, False, False),
+    (8, 83, 18, False, False),
+    (9, 89, 17, False, True),
+    (10, 97, 26, True, True),
+    (11, 101, 29, True, True),
 )
+REGULAR = sum(1 for lay in LAYOUTS if not lay[3])
 
 LIGHT_ROUNDS = 6        # rounds of lighting the rooms and softening the lights near ice (build_layout)
 DARK_LIMIT = 5          # a room's floor this dark is a problem (the lanterns aim for lighting.MIN_LIGHT, 7)
@@ -198,13 +204,11 @@ def world_shows(g, when):
     return [f"the world's own ground would show in {len(bad)} place(s) {when}, the first at {bad[0]}"]
 
 
-def build_layout(number, seed, igloos, huntsman, write_nbt=True):
-    import lodge
-    import sunken_warren
+def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
+    import warren
     t0 = time.time()
     lid = layout_id(number, huntsman)
-    g, info, ex = sunken_warren.build(number, seed, igloos, huntsman=huntsman, name=lid,
-                                      lodge_builder=lodge.build_into if huntsman else None)
+    g, info, ex = warren.build(number, seed, igloos, huntsman=huntsman, shrine=shrine, name=lid)
     dec = ex["decor"]
     floating = tidy(g)
     # every room lit so nothing spawns in it (the user: "make sure no mobs spawn in the igloos"): lanterns where it's
@@ -215,11 +219,11 @@ def build_layout(number, seed, igloos, huntsman, write_nbt=True):
     for _round in range(LIGHT_ROUNDS):
         # (lanterns, then the lights near ice softened to soul lanterns; that can leave a corner too dim again, so
         # round again until nothing's too dim and nothing melts)
-        placed, unlit = lighting.light_up(g, base0, ex["floors"], avoid=ex["keep_clear"])
+        placed, unlit = lighting.light_up(g, base0, ex["light_cells"], avoid=ex["keep_clear"])
         lanterns += placed
         softened = lighting.cool_both(g, base0)
         swapped += softened
-        if not softened or not lighting.dark_cells(base0, ex["floors"]):
+        if not softened or not lighting.dark_cells(base0, ex["light_cells"]):
             break
     more, given_up = checks.cool_lights(g)
     swapped += more
@@ -271,7 +275,7 @@ def build_layout(number, seed, igloos, huntsman, write_nbt=True):
     height = int(ys.max()) - g.G
     depth = g.G - int(ys.min())
     stem = lid
-    title = (f"Huntsman's village {number - 8}" if huntsman else f"Sunken Warren {number}")
+    title = (f"Huntsman's village {number - REGULAR}" if huntsman else f"Sunken Warren {number}")
     sub = (f"{g.W} x {g.D}, {info['courts']} courtyards, {igloos} igloos"
            + (", the Huntsman's lodge and barn" if huntsman else "")
            + f"; {len(dec.groups)} decorations, each a 1 in 2 chance")
@@ -293,15 +297,13 @@ def build_layout(number, seed, igloos, huntsman, write_nbt=True):
     top = render.render_top(g, px=max(5, min(10, int(800 / max(g.W, g.D)))))
     label(top, title + "  -  from above", sub + ". The way in is at the bottom.").save(
         os.path.join(PREVIEWS, f"{stem}_top.png"))
-    domes = sorted(ex["plan"].igloos, key=lambda i: -i.r)
-    picks = [domes[0].dome] + [i.dome for i in domes if i.kind in ("cook", "sleeping", "workshop", "trophy")][:2]
+    sunk = [d for d in ex["targets"] if d.base < 0.5]
+    picks = sorted(sunk, key=lambda d: -d.r)[:1] + [d for d in sunk if d.name.endswith(("home", "igloo", "hut"))][:2]
     extra = None
     if huntsman and ex["lodge"] is not None:
         x1, z1, x2, z2 = ex["lodge"]["box"]
         img = render.render_iso(Crop(g, x1 - 1, z1 - 1, x2 + 1, z2 + 1))
         extra = iso_bg(img.resize((int(img.width * 1.4), int(img.height * 1.4)), Image.LANCZOS))
-        lodge_dome = ex["lodge"]["domes"][0]
-        picks = [lodge_dome] + picks[:2]
     closeups(g, picks, stem, title, extra)
     boxes = [grp.box for grp in dec.groups]
     entry = {"number": number, "id": lid, "name": title, "mood": info["mood"], "width": g.W, "depth": g.D,
@@ -310,7 +312,9 @@ def build_layout(number, seed, igloos, huntsman, write_nbt=True):
              "decor": [list(b) for b in boxes], "decor_names": [grp.name for grp in dec.groups],
              "way_in": [int(ex["entrance"][0]), int(ex["entrance"][2])],
              "moose": kinds.count("dross:moose"), "rimehorns": kinds.count("dross:rimehorn"),
-             "probes": [list(c) for c in probes], "lanterns": len(lanterns)}
+             "probes": [list(c) for c in probes], "lanterns": len(lanterns), "shrine": bool(shrine or huntsman),
+             "pens": [list(pen["box"]) for pen in ex.get("pens", ())],
+             "kinds": info.get("kinds", {}), "roles": info.get("roles", {})}
     print(f"{lid}: {g.W}x{g.D}, {height} tall, {igloos} igloos, {beds} beds, {info['courts']} courtyards, "
           f"{info.get('lanes', 0)} lanes ({info.get('loops', 0)} loops), {info.get('passages', 0)} passages, "
           f"{len(dec.groups)} decorations ({n_deco} blocks), {n_base} blocks, {len(lanterns)} lanterns "
@@ -354,10 +358,12 @@ def write_page(entries):
 <style>body{{background:#1c1e26;color:#e6e8ee;font-family:Segoe UI,sans-serif;margin:16px}}
 section{{margin:0 0 40px}}img{{max-width:100%;margin:4px 4px 0 0;vertical-align:top}}h2{{margin:0 0 4px}}
 p{{margin:0 0 8px;color:#aab}}</style></head><body><h1>The hunter villages: the Sunken Warren</h1>
-<p>Your pick: Sunken Hollow and The Warren combined. Courtyards dug into the snow, each ringed by sunken igloos, joined
-by sunken lanes; more igloos behind the rings, joined by covered snow passages. Eight layouts of 15 to 20 igloos, and
-two Huntsman's villages of 26 and 29 (a warren with his lodge, his yard and the Alpha Moose's barn). Every decoration is a 1 in 2
-chance when the game places a village (the second picture of each shows one roll). In the game:
+<p>Your pick: Sunken Hollow and The Warren combined, now built from your hand-designed igloos (step 2 of the plan of
+October 20). Courtyards dug into the snow, each ringed by sunken igloos, joined by sunken lanes; more igloos behind the
+rings, joined by covered snow passages. Nine layouts of 15 to 20 igloos (the shrine, standing alone, in 3, 6 and 9),
+and two Huntsman's villages of 26 and 29 (his lodge, his yard and the Alpha Moose's barn). A ring of lights round each.
+Every decoration is a 1 in 2 chance when the game places a village (the second picture of each shows one roll). In
+the game:
 <code>/dross showcase hunter_villages</code>. Round 1's ten designs are in <a href="round1/index.html">round1/</a>.</p>
 <img src="all_villages.png">
 {''.join(rows)}</body></html>"""
@@ -370,11 +376,12 @@ def write_java(entries):
     for e in entries:
         boxes = ";".join(",".join(str(int(v)) for v in b) for b in e["decor"])
         probes = ";".join(",".join(str(int(v)) for v in c) for c in e.get("probes", []))
+        pens = ";".join(",".join(str(int(v)) for v in b) for b in e.get("pens", []))
         lines.append(f'            new Design({e["number"]}, "{e["id"]}", "{e["name"]}", "{e["mood"]}", {e["width"]}, '
                      f'{e["depth"]}, {e["layers"]}, {e["ground_layer"]}, {e["height"]}, {e["igloos"]}, {e["courts"]}, '
                      f'{"true" if e["huntsman"] else "false"}, {e["way_in"][0]}, {e["way_in"][1]}, '
                      f'{e.get("moose", 0)}, {e.get("rimehorns", 0)},\n'
-                     f'                    "{boxes}",\n                    "{probes}")')
+                     f'                    "{boxes}",\n                    "{probes}",\n                    "{pens}")')
     body = ",\n".join(lines)
     java = f"""package com.reg21meme.dross.boss.huntsman.village;
 
@@ -387,8 +394,9 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 /**
  * The hunter villages (generated by tools/huntsman/villages.py; don't edit by hand): the Sunken Warren's layouts (the
- * user's pick, October 19, 2026: Sunken Hollow and The Warren combined, 15 to 20 igloos) and the Huntsman's villages (a
- * warren of 25 to 30 with his lodge, his yard and the Alpha Moose's barn).
+ * user's pick, October 19, 2026: Sunken Hollow and The Warren combined; since October 20 built from the hand-designed
+ * igloos, 15 to 20 of them, the shrine in every third) and the Huntsman's villages (25 to 30 igloos with his lodge, his
+ * yard and the Alpha Moose's barn).
  * <p>
  * Each is two structure templates of the same size: {{@code dross:hunter_village/<id>}} (the village without its
  * decorations) and {{@code dross:hunter_village/<id>_decor}} (its decorations). Both are {{@code width}} x {{@code depth}}
@@ -398,7 +406,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  * in the template's own coordinates. {{@link #decorBoxes}} holds each decoration's box in the template's own coordinates ("x1,y1,z1,x2,y2,z2;..."): the
  * game keeps each decoration with a 1 in 2 chance ({{@link HunterVillages#DECOR_CHANCE}}). The template holds the
  * animals of its pens too ({{@code moose}} moose, {{@code rimehorns}} Rimehorns), and {{@link #lightProbes}} the darkest
- * floor cell of each of its rooms (template coordinates): lit enough that nothing spawns there.
+ * floor cell of each of its rooms (template coordinates): lit enough that nothing spawns there; {{@link #pens}} its
+ * pens' fence lines (its animals are penned: they stay in them and never go for anyone).
  */
 public final class HunterVillageDesigns
 {{
@@ -406,7 +415,7 @@ public final class HunterVillageDesigns
 
     public record Design(int number, String id, String name, String mood, int width, int depth, int layers,
                          int groundLayer, int height, int igloos, int courts, boolean huntsman, int wayInX, int wayInZ,
-                         int moose, int rimehorns, String decorBoxes, String lightProbes)
+                         int moose, int rimehorns, String decorBoxes, String lightProbes, String penBoxes)
     {{
         public ResourceLocation template()
         {{
@@ -431,6 +440,23 @@ public final class HunterVillageDesigns
                 String[] v = box.split(",");
                 out.add(new BoundingBox(Integer.parseInt(v[0]), Integer.parseInt(v[1]), Integer.parseInt(v[2]),
                         Integer.parseInt(v[3]), Integer.parseInt(v[4]), Integer.parseInt(v[5])));
+            }}
+            return out;
+        }}
+
+        /** Each pen's fence line ({{x1, z1, x2, z2}}, the template's own coordinates): its animals stay inside. */
+        public List<int[]> pens()
+        {{
+            List<int[]> out = new ArrayList<>();
+            if (penBoxes.isEmpty())
+            {{
+                return out;
+            }}
+            for (String box : penBoxes.split(";"))
+            {{
+                String[] v = box.split(",");
+                out.add(new int[] {{Integer.parseInt(v[0]), Integer.parseInt(v[1]), Integer.parseInt(v[2]),
+                        Integer.parseInt(v[3])}});
             }}
             return out;
         }}
@@ -482,13 +508,13 @@ def main(argv):
         with open(MANIFEST) as f:
             manifest = {e["id"]: e for e in json.load(f) if "decor" in e}
     bad = 0
-    for number, seed, igloos, huntsman in LAYOUTS:
+    for number, seed, igloos, huntsman, shrine in LAYOUTS:
         if nums and number not in nums:
             continue
-        entry, problems = build_layout(number, seed, igloos, huntsman, write_nbt)
+        entry, problems = build_layout(number, seed, igloos, huntsman, shrine, write_nbt)
         bad += len(problems)
         manifest[entry["id"]] = entry
-    known = {layout_id(n, h) for n, _s, _i, h in LAYOUTS}
+    known = {layout_id(n, h) for n, _s, _i, h, _sh in LAYOUTS}
     entries = sorted((e for e in manifest.values() if e["id"] in known), key=lambda e: e["number"])
     os.makedirs(os.path.dirname(MANIFEST), exist_ok=True)
     with open(MANIFEST, "w") as f:

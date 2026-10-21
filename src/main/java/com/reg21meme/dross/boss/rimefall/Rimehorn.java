@@ -92,6 +92,9 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
     private static final String TAG_MALE = "Male";
     private static final String TAG_BREEDER = "Breeder";
     private static final String TAG_SHOWCASE = "Showcase";
+    /** A hunter village's animal, in its pen (the template sets it): it never starts a fight, and it runs when hurt
+     * instead of fighting back (the plan of October 20, 2026: "the village animals passive"). */
+    public static final String TAG_PENNED = "Penned";
     private static final UniformInt ANGER = TimeUtil.rangeOfSeconds(RimefallMobTuning.ANGER_MIN_SECONDS,
             RimefallMobTuning.ANGER_MAX_SECONDS);
 
@@ -207,7 +210,7 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
             @Override
             public boolean canUse()
             {
-                return Rimehorn.this.isBaby() && super.canUse();     // a calf runs off; its herd does the fighting
+                return (Rimehorn.this.isBaby() || Rimehorn.this.penned) && super.canUse();     // a calf runs off; its herd does the fighting
             }
         });
         this.goalSelector.addGoal(2, new MateGoal());
@@ -250,6 +253,24 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
     private boolean isBreeder(@Nullable LivingEntity entity)
     {
         return entity != null && this.breeder != null && this.breeder.equals(entity.getUUID());
+    }
+
+    private boolean penned;
+
+    /** A hunter village's penned animal: it never goes for anyone ({@link #TAG_PENNED}). */
+    public boolean isPenned()
+    {
+        return this.penned;
+    }
+
+    public void setPenned(boolean penned)
+    {
+        this.penned = penned;
+        if (penned)
+        {
+            this.setTarget(null);
+            this.stopBeingAngry();
+        }
     }
 
     @Override
@@ -469,7 +490,7 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
     @Override
     public void setTarget(@Nullable LivingEntity target)
     {
-        super.setTarget(this.isBreeder(target) || this.isShowcase() ? null : target);
+        super.setTarget(this.isBreeder(target) || this.isShowcase() || this.penned ? null : target);
     }
 
     @Override
@@ -1055,6 +1076,10 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
         {
             tag.putBoolean(TAG_SHOWCASE, true);
         }
+        if (this.penned)
+        {
+            tag.putBoolean(TAG_PENNED, true);
+        }
         this.addPersistentAngerSaveData(tag);
     }
 
@@ -1065,6 +1090,7 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
         this.setMale(tag.getBoolean(TAG_MALE));
         this.breeder = tag.hasUUID(TAG_BREEDER) ? tag.getUUID(TAG_BREEDER) : null;
         this.entityData.set(DATA_SHOWCASE, tag.getBoolean(TAG_SHOWCASE));
+        this.penned = tag.getBoolean(TAG_PENNED);
         this.readPersistentAngerSaveData(this.level(), tag);
     }
 }

@@ -93,6 +93,9 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
 
     private static final String TAG_BULL = "Bull";
     private static final String TAG_SHOWCASE = "Showcase";
+    /** A hunter village's animal, in its pen (the template sets it): it never starts a fight, and it runs when hurt
+     * instead of fighting back (the plan of October 20, 2026: "the village animals passive"). */
+    public static final String TAG_PENNED = "Penned";
     private static final String TAG_SNOWY = "Snowy";
     private static final UniformInt ANGER = TimeUtil.rangeOfSeconds(RimefallMobTuning.ANGER_MIN_SECONDS,
             RimefallMobTuning.ANGER_MAX_SECONDS);
@@ -208,7 +211,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
             @Override
             public boolean canUse()
             {
-                return Moose.this.isBaby() && super.canUse();     // a calf runs; a grown moose fights
+                return (Moose.this.isBaby() || Moose.this.penned) && super.canUse();     // a calf runs; a grown moose fights
             }
         });
         this.goalSelector.addGoal(3, new BreedGoal(this, 1.0D));
@@ -225,7 +228,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
             @Override
             public boolean canUse()
             {
-                return Moose.this.motherPause <= 0 && super.canUse();
+                return Moose.this.motherPause <= 0 && !Moose.this.penned && super.canUse();
             }
 
             @Override
@@ -315,6 +318,24 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     public float ramDamage()
     {
         return this.isBull() ? RimefallMobTuning.RAM_DAMAGE_BULL : RimefallMobTuning.RAM_DAMAGE_COW;
+    }
+
+    private boolean penned;
+
+    /** A hunter village's penned animal: it never goes for anyone ({@link #TAG_PENNED}). */
+    public boolean isPenned()
+    {
+        return this.penned;
+    }
+
+    public void setPenned(boolean penned)
+    {
+        this.penned = penned;
+        if (penned)
+        {
+            this.setTarget(null);
+            this.stopBeingAngry();
+        }
     }
 
     @Override
@@ -429,7 +450,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     @Override
     public void setTarget(@Nullable LivingEntity target)
     {
-        super.setTarget(this.isShowcase() ? null : target);
+        super.setTarget(this.isShowcase() || this.penned ? null : target);
     }
 
     // ---------------------------------------------------------------- actions
@@ -899,6 +920,10 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         {
             tag.putBoolean(TAG_SHOWCASE, true);
         }
+        if (this.penned)
+        {
+            tag.putBoolean(TAG_PENNED, true);
+        }
         this.addPersistentAngerSaveData(tag);
     }
 
@@ -909,6 +934,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         this.setBull(tag.getBoolean(TAG_BULL));
         this.setSnowy(tag.getBoolean(TAG_SNOWY));
         this.entityData.set(DATA_SHOWCASE, tag.getBoolean(TAG_SHOWCASE));
+        this.penned = tag.getBoolean(TAG_PENNED);
         this.readPersistentAngerSaveData(this.level(), tag);
     }
 }

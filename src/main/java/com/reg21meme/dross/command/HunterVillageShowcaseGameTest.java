@@ -93,7 +93,7 @@ public final class HunterVillageShowcaseGameTest
     public static void templatesMatchTheirTable(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel();
-        if (HunterVillageDesigns.regular().size() != 8 || HunterVillageDesigns.huntsmanVillages().size() != 2)
+        if (HunterVillageDesigns.regular().size() != 9 || HunterVillageDesigns.huntsmanVillages().size() != 2)
         {
             throw new GameTestAssertException("there should be 8 Sunken Warrens and 2 Huntsman's villages, but there are "
                     + HunterVillageDesigns.regular().size() + " and " + HunterVillageDesigns.huntsmanVillages().size());
@@ -169,7 +169,7 @@ public final class HunterVillageShowcaseGameTest
     }
 
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_hunter_villages_built",
-            timeoutTicks = 10 * (LIGHT_TICKS + 30) + 6 * LIGHT_RETRY_TICKS + 2 * VillageAnimals.MAX_WAIT_TICKS + 600)
+            timeoutTicks = 11 * (LIGHT_TICKS + 30) + 6 * LIGHT_RETRY_TICKS + 2 * VillageAnimals.MAX_WAIT_TICKS + 600)
     public static void villagesStandAndNeverMelt(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel().getServer().overworld();
@@ -472,6 +472,31 @@ public final class HunterVillageShowcaseGameTest
                     + design.rimehorns() + " Rimehorns, but has " + moose + " and " + rimehorns + " (its footprint "
                     + box + "; animals near: " + (near.length() == 0 ? "none" : near) + "; still waiting for their land: "
                     + VillageAnimals.waiting(level) + " " + VillageAnimals.describeWaiting(level) + ")");
+        }
+        // every one penned (they never go for anyone) and still inside its pen's fence, a while after it was put in
+        // (the user saw moose and Rimehorns out of their pens, October 20: the fences are two high now)
+        for (Mob m : level.getEntitiesOfClass(Mob.class, area, m -> m instanceof Moose || m instanceof Rimehorn))
+        {
+            boolean penned = m instanceof Moose moose1 ? moose1.isPenned() : ((Rimehorn) m).isPenned();
+            if (!penned)
+            {
+                throw new GameTestAssertException(design.id() + ": the " + m.getClass().getSimpleName() + " at "
+                        + m.blockPosition().toShortString() + " isn't penned");
+            }
+            boolean inside = false;
+            for (int[] pen : design.pens())
+            {
+                BlockPos a = HunterVillages.toWorld(new BlockPos(pen[0], design.groundLayer(), pen[1]), ground, front, design);
+                BlockPos b = HunterVillages.toWorld(new BlockPos(pen[2], design.groundLayer(), pen[3]), ground, front, design);
+                AABB fence = new AABB(Math.min(a.getX(), b.getX()), a.getY() - 2, Math.min(a.getZ(), b.getZ()),
+                        Math.max(a.getX(), b.getX()) + 1, a.getY() + 6, Math.max(a.getZ(), b.getZ()) + 1);
+                inside |= fence.contains(m.position());
+            }
+            if (!inside)
+            {
+                throw new GameTestAssertException(design.id() + ": the " + m.getClass().getSimpleName() + " at "
+                        + m.blockPosition().toShortString() + " is out of its pen");
+            }
         }
         LOGGER.info("[hunter village test] {} (facing {}): {} of {} checked blocks in place, {} clear ice and {} snow layers "
                 + "dim enough, {} whole beds, its rooms' floors at block light {} or more, {} moose, {} Rimehorns",
