@@ -143,7 +143,8 @@ public final class RimefallTuning
     /** A patch's lake goes round the best of the Huntsman's village's places that leaves it room: at most this many
      * tried. */
     public static final int VILLAGE_RESERVE_TRIES = 40;
-    /** The ground under a footprint is sampled this far apart; its edges checked against the patch this far apart. */
+    /** The ground under a footprint is sampled this far apart; the lake's clearance round it checked this far apart
+     * (whether it's in its patch is checked cell by cell). */
     public static final int VILLAGE_SAMPLE_STEP = 12;
     public static final int VILLAGE_EDGE_STEP = 16;
     /** A herd's spot keeps this far off a planned village (past its blend ring). */

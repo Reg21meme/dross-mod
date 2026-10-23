@@ -4,11 +4,13 @@ import com.reg21meme.dross.boss.huntsman.village.HunterVillageDesigns;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillages;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.sites.BossSites;
+import com.reg21meme.dross.dimension.sites.BossSitesTuning;
 import com.reg21meme.dross.dimension.sites.Patch;
 import com.reg21meme.dross.dimension.sites.Site;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 
 import javax.annotation.Nullable;
@@ -207,21 +209,19 @@ public final class RimefallVillages
         {
             return Double.MAX_VALUE;
         }
+        // every 16-block cell it covers must be the patch's: its edges sampled alone missed a corner cell past the last
+        // sample and any pocket of another biome inside it (a test saw one reach out of its patch, October 23, 2026)
+        for (int gx = Math.floorDiv(x0, BossSitesTuning.CELL); gx <= Math.floorDiv(x1, BossSitesTuning.CELL); gx++)
+        {
+            for (int gz = Math.floorDiv(z0, BossSitesTuning.CELL); gz <= Math.floorDiv(z1, BossSitesTuning.CELL); gz++)
+            {
+                if (!patch.containsChunk(new ChunkPos(gx, gz)))
+                {
+                    return Double.MAX_VALUE;
+                }
+            }
+        }
         int step = RimefallTuning.VILLAGE_EDGE_STEP;
-        for (int x = x0; x <= x1; x += step)
-        {
-            if (!patch.contains(x, z0) || !patch.contains(x, z1))
-            {
-                return Double.MAX_VALUE;
-            }
-        }
-        for (int z = z0; z <= z1; z += step)
-        {
-            if (!patch.contains(x0, z) || !patch.contains(x1, z))
-            {
-                return Double.MAX_VALUE;
-            }
-        }
         if (lake != null)
         {
             int ring = RimefallTuning.VILLAGE_BLEND;
