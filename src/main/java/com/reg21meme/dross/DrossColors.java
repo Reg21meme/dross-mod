@@ -271,11 +271,11 @@ public final class DrossColors {
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
     // (Its texture colors live in the Python palettes in tools/golems/kit/materials.py.)
 
-    /** Cinder Colossus spawn egg base: scorched near-black stone. Used in registry/ModItems. */
-    public static final int COLOSSUS_EGG_BASE = 0x221F1E;
-
-    /** Cinder Colossus spawn egg spots: lava orange. Used in registry/ModItems. */
-    public static final int COLOSSUS_EGG_SPOTS = 0xF47A15;
+    /** The Cinder Colossus's spawn egg is drawn whole (its dormant shell with lava up one great crack: the user's pick,
+     * C1, October 23, 2026; tools/eggs/eggs.py), so it's tinted white: it shows as drawn. Used in registry/ModItems.
+     * (It was scorched stone 0x221F1E with lava orange 0xF47A15 spots.) */
+    public static final int COLOSSUS_EGG_BASE = 0xFFFFFF;
+    public static final int COLOSSUS_EGG_SPOTS = 0xFFFFFF;
 
     /** Boss bar (all stages): the dark outline round the bar. Used in boss/client/DrossBossBars. */
     public static final int BOSS_BAR_OUTLINE = 0x0B0710;
@@ -336,11 +336,11 @@ public final class DrossColors {
     /** Lava Golem spawn egg spots: bright lava. Used in registry/ModItems. */
     public static final int LAVA_GOLEM_EGG_SPOTS = 0xFFA328;
 
-    /** Rat King spawn egg base: his sewer grey-green fur. Used in registry/ModItems. */
-    public static final int RAT_KING_EGG_BASE = 0x41493C;
-
-    /** Rat King spawn egg spots: his blood-red cape. Used in registry/ModItems. */
-    public static final int RAT_KING_EGG_SPOTS = 0x87191C;
+    /** The Rat King's spawn egg is drawn whole (his crowned rat face: the user's pick, R1, October 23, 2026;
+     * tools/eggs/eggs.py), so it's tinted white: it shows as drawn. Used in registry/ModItems. (It was grey-green
+     * 0x41493C with blood-red 0x87191C spots.) */
+    public static final int RAT_KING_EGG_BASE = 0xFFFFFF;
+    public static final int RAT_KING_EGG_SPOTS = 0xFFFFFF;
 
     /** The green sparks where the Rat King's staff strikes the ground in his rage. Used in boss/ratking/RatKing. */
     public static final int RAT_KING_SLAM_SPARK = 0x79C93A;

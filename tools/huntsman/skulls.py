@@ -48,8 +48,9 @@ BONE = "skull"                 # the one bone every skull is built on
 
 def moose_skull(s, old):
     """A bare moose skull, no lower jaw: the braincase, the broad forehead the antlers grow from, deep eye sockets, the
-    long face with a moose's great nasal opening on top, the cheek teeth, and its antlers (the animal's own). `old`:
-    the Alpha Moose's, a thicker brow and battle-cracked."""
+    long face with a moose's great nasal opening on top, and its antlers (the animal's own). `old`: the Alpha
+    Moose's, a thicker brow and battle-cracked. (No teeth: its cheek teeth hung under its face as a row of loose
+    stubs, which the user found "very bad", October 23, 2026.)"""
     s.rbox((0, 106, -66), (18, 14, 14), "bone", c=2)                                 # the braincase
     s.rbox((0, 110, -73), (17, 8, 12), "bone", c=2)                                  # the forehead
     s.plate((0, 104, -59.5), (0, 0.15, 1), (0, 1, 0), 15, 12, 2, "bone")             # the back of the skull
@@ -59,8 +60,6 @@ def moose_skull(s, old):
         s.box((8.6 * x, 104, -79), (2, 6, 6), "socket")                              # an eye socket
         s.box((8.0 * x, 108, -79), (3, 2 if not old else 3, 8), "bone")              # its brow
         s.seg((8.5 * x, 100, -73), (8.0 * x, 98, -87), 3, 3, "bone")                  # the cheek bone under it
-        for k in range(5):                                                           # the cheek teeth
-            s.box((4.5 * x, 92.5, -76 - k * 3.2), (2, 2, 3), "tooth")
     s.taper([(0, 104, -80), (0, 97, -92), (0, 91, -102)], [15, 12, 9], "bone", depths=[14, 11, 9])   # the long face
     s.box((0, 100.2, -95), (6, 2, 11), "socket")                                     # the nasal opening on top
     s.rbox((0, 89, -104), (8, 5, 6), "bone", c=1)                                    # the tip of the upper jaw
@@ -75,7 +74,6 @@ def moose_materials(old):
         "antler": M.bone(seed=2103 if old else 2113, frost_amount=0.45 if old else 0.2, cracks=0.25 if old else 0.1),
         "icicle": M.solid(M.ICE, idx=3.6, seed=2105, grain=0.8, bev=0.9, outline=0.05),
         "socket": M.mouth(seed=2107),
-        "tooth": M.solid(M.BONE, idx=4.2, seed=2109, grain=0.6, bev=0.8, outline=0.1),
     }
 
 
@@ -84,8 +82,8 @@ def moose_materials(old):
 
 
 def rimehorn_skull(s):
-    """A bare woolly-rhino skull: long and low, a high crest swept back at its top, small eye sockets, the cheek teeth,
-    a boss of bone on its nose; the great horn of clear ice off the top of its nose and the short one on its brow,
+    """A bare woolly-rhino skull: long and low, a high crest swept back at its top, small eye sockets (no teeth, like
+    the moose's), a boss of bone on its nose; the great horn of clear ice off the top of its nose and the short one on its brow,
     where the Rimehorn's own grow."""
     s.seg((0, 42, -52), (0, 37, -66), 16, 15, "bone", side=(1, 0, 0))                # the braincase
     s.plate((0, 47, -51), (0, 0.5, 1), (0, 1, -0.5), 13, 9, 2, "bone")               # the crest, swept back
@@ -96,8 +94,6 @@ def rimehorn_skull(s):
     for x in (-1, 1):
         s.box((7.6 * x, 38, -62), (2, 4, 4), "socket")                               # an eye socket
         s.seg((7.4 * x, 35, -58), (6.8 * x, 33, -68), 3, 3, "bone")                   # the cheek bone
-        for k in range(5):
-            s.box((4.0 * x, 30.5, -56 - k * 3.0), (2, 2, 3), "tooth")
         s.box((3.2 * x, 29, -80.5), (2, 3, 1), "socket")                             # the nostrils
     # (the Rimehorn's own horns: d07_rimehorn.head)
     s.curve([(0, 44, -65), (0, 50.5, -67), (0, 56.5, -66)], 6, [7, 5, 2], "horn", depths=[9, 6, 2])
@@ -109,7 +105,6 @@ def rimehorn_materials():
     return {
         "bone": M.bone(seed=2201, frost_amount=0.15, cracks=0.18),
         "socket": M.mouth(seed=2203),
-        "tooth": M.solid(M.BONE, idx=4.2, seed=2205, grain=0.6, bev=0.8, outline=0.1),
         "horn": M.ice(M.ICE, alpha=(165, 225), seed=2207, cracks=0.4, bubbles=0.03, glow_pal=M.GLOW, glow_alpha=35),
     }
 
