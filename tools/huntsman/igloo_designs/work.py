@@ -87,7 +87,7 @@ WORKSHOP = Igloo(
     "workshop_igloo", "The Workshop", "workshop",
     "Where the bows, arrows and spears are made: the fletcher's, the grinder's and the loom along the back, a work "
     "table in the middle under its lamp, spears waiting for their heads along the walls.",
-    # its spears ('I') are lightning rods for now: PLACEHOLDER until the real spear model and item exist
+    # its spears ('I'): Planted Moonsilver Spears
     [(0, 0, 6, 6.6, [(150, 1), (-150, 1)], False)],
     {1: P("""
   -5 |         |

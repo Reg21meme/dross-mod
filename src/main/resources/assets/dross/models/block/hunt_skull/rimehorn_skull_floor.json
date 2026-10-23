@@ -1,0 +1,11 @@
+{
+  "loader": "forge:obj",
+  "model": "dross:models/block/hunt_skull/rimehorn_skull_floor.obj",
+  "flip_v": false,
+  "automatic_culling": false,
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "skull": "dross:block/hunt_skull/rimehorn_skull",
+    "particle": "dross:block/hunt_skull/rimehorn_skull"
+  }
+}

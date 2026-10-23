@@ -140,8 +140,8 @@ public final class HunterIglooDesigns
             new Decoration("totem", "Totem", "A carved post of the hunt.", "camp", 3, 3, 12, 1),
             new Decoration("banner_pole", "Banner pole", "The Huntsman's colours on a pole.", "camp", 1, 1, 12, 1),
             new Decoration("skull_post", "Skull post", "A skull on a post, facing out.", "camp", 1, 1, 12, 1),
-            new Decoration("antler_post", "Antler post", "Antlers on a post.", "camp", 7, 1, 12, 1),
-            new Decoration("rimehorn_skull", "Rimehorn skull", "A Rimehorn's skull and horn on a cairn.", "camp", 3, 3, 12, 1),
+            new Decoration("antler_post", "Antler post", "Antlers on a post.", "camp", 1, 1, 12, 1),
+            new Decoration("rimehorn_skull", "Rimehorn skull", "A Rimehorn's skull and horn on a cairn.", "camp", 1, 1, 12, 1),
             new Decoration("bone_pile", "Bone pile", "Bones of the hunt.", "camp", 3, 3, 12, 1),
             new Decoration("skull_pile", "Skull pile", "A heap of skulls.", "camp", 3, 3, 12, 1),
             new Decoration("bone_arch", "Bone arch", "An arch of whale bones over a path.", "camp", 7, 1, 12, 1),
@@ -165,7 +165,7 @@ public final class HunterIglooDesigns
             new Decoration("angel_statue", "Snow Angel statue", "A little statue of the Snow Angel, a blue light for its halo.", "new", 3, 1, 12, 1),
             new Decoration("cairn_cache", "Cairn cache", "A chest hidden in a cairn of stones.", "new", 3, 3, 12, 1),
             new Decoration("hide_tent", "Hide tent", "A small tent of hides round a pole.", "new", 3, 3, 12, 1),
-            new Decoration("palm_antlers", "Palm antlers", "A moose's great antlers on a post.", "new", 7, 1, 12, 1),
+            new Decoration("palm_antlers", "Palm antlers", "A moose's great antlers on a post.", "new", 1, 1, 12, 1),
             new Decoration("harvest_sled", "Harvest sled", "A sled loaded with crates of Frostroot and baskets of Rimeberries.", "new", 5, 7, 12, 1),
             new Decoration("harvest_heap", "Harvest heap", "Frostroot Crates and Rimeberry Baskets stacked on and round a barrel.", "new", 3, 3, 12, 1));
 }

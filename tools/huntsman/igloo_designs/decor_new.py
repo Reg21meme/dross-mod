@@ -10,17 +10,14 @@ from villagekit.props import OPEN_WATER
 
 # ---------------------------------------------------------------- lights
 
-# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
 def antler_lamp(f):
-    """A birch post crowned with antlers, a lantern hung from its arm."""
+    """A birch post crowned with a bull moose's skull and antlers, a lantern hung from its arm (until October 22,
+    2026 antlers of birch fences)."""
     for y in (1, 2, 3):
         f.set(0, y, 0, "birch_fence")
     f.set(1, 3, 0, "birch_fence")
     f.set(1, 2, 0, "lantern[hanging=true]")
-    f.set(0, 4, 0, "birch_fence")
-    for u in (-1, 1):
-        f.set(u, 4, 0, "birch_fence")
-        f.set(u, 5, 0, "birch_fence")
+    f.set(0, 4, 0, props.skull_on_post("moose_skull"))
 
 
 def stone_brazier(f):
@@ -68,7 +65,7 @@ def skull_lamp(f):
     """A post with a skull on it facing out, a blue lantern hung from its arm."""
     f.set(0, 1, 0, "spruce_fence")
     f.set(0, 2, 0, "spruce_fence")
-    f.set(0, 3, 0, "skeleton_skull[rotation={skull_front}]")
+    f.set(0, 3, 0, props.skull_on_post("rimehorn_skull"))
     f.set(1, 2, 0, "spruce_fence")
     f.set(1, 1, 0, "soul_lantern[hanging=true]")
 
@@ -112,7 +109,7 @@ def build_site(f):
 
 
 def trophy_board(f):
-    """A board of planks on posts, skulls and antlers mounted on its face."""
+    """A board of planks on posts: a bull moose's skull and antlers mounted on its face, two skulls under it."""
     for u in (-2, 2):
         for y in (1, 2, 3):
             f.set(u, y, 0, "spruce_log[axis=y]")
@@ -121,11 +118,7 @@ def trophy_board(f):
             f.set(u, y, 0, "spruce_planks")
     for u in (-1, 1):
         f.set(u, 2, 1, "skeleton_wall_skull[facing={front}]")
-    f.set(0, 3, 1, "skeleton_wall_skull[facing={front}]")
-    for u in (-1, 0, 1):
-        f.set(u, 4, 0, "birch_fence")
-    f.set(-1, 5, 0, "birch_fence")
-    f.set(1, 5, 0, "birch_fence")
+    f.set(0, 3, 1, props.skull_on_wall("moose_skull"))
 
 
 def training_dummy(f):
@@ -190,7 +183,6 @@ def hide_tent(f):
     f.set(0, 5, 0, "spruce_fence")
 
 
-# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
 def harvest_sled(f):
     """A sled loaded with the farms' harvest: crates of Frostroot, baskets of Rimeberries."""
     props.sled(f, cargo="harvest")
@@ -208,17 +200,11 @@ def harvest_heap(f):
 
 
 def palm_antlers(f):
-    """A moose's great palm antlers mounted on a post."""
+    """An Alpha Moose's skull and its great palm antlers mounted on a post (until October 22, 2026 antlers of birch
+    wood and fences)."""
     for y in (1, 2, 3):
         f.set(0, y, 0, "spruce_log[axis=y]")
-    f.set(0, 4, 0, "bone_block[axis=y]")
-    for side in (-1, 1):
-        f.set(side, 4, 0, "stripped_birch_wood[axis={lr}]")
-        f.set(2 * side, 4, 0, "stripped_birch_wood[axis={lr}]")
-        f.set(2 * side, 5, 0, "stripped_birch_wood[axis=y]")
-        f.set(3 * side, 5, 0, "stripped_birch_wood[axis=y]")
-        f.set(3 * side, 6, 0, "birch_fence")
-        f.set(2 * side, 6, 0, "birch_fence")
+    f.set(0, 4, 0, props.skull_on_post("alpha_moose_skull"))
 
 
 IDEAS = [

@@ -1,0 +1,22 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "key": {
+    "I": {
+      "item": "dross:moonsilver_ingot"
+    },
+    "S": {
+      "tag": "forge:rods/wooden"
+    }
+  },
+  "pattern": [
+    "  I",
+    " S ",
+    "S  "
+  ],
+  "result": {
+    "count": 1,
+    "item": "dross:moonsilver_spear"
+  },
+  "show_notification": true
+}

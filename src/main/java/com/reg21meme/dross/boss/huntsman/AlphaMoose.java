@@ -1,5 +1,8 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.boss.huntsman.skull.SkullDrops;
+import com.reg21meme.dross.registry.ModItems;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -121,6 +124,17 @@ public class AlphaMoose extends HuntMob
                 rider.setYHeadRot(this.yBodyRot);
                 rider.yHeadRotO = this.yBodyRotO;
             }
+        }
+    }
+
+    /** Its skull, every time it dies fighting ({@link SkullDrops}: a fight broken off and won again gives another). */
+    @Override
+    protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
+    {
+        super.dropCustomDeathLoot(source, looting, recentlyHit);
+        if (!this.isShowcase())
+        {
+            SkullDrops.always(this, ModItems.ALPHA_MOOSE_SKULL.get());
         }
     }
 

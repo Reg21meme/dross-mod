@@ -19,6 +19,8 @@ import numpy as np
 import mc
 from voxel import Grid
 
+from . import dross_blocks
+
 # Over a keep-out zone (a lane, steps, a doorway's way) a decoration may only pass overhead: every block of it there at
 # least this high (ground-relative; a player on the snow stands at 1 and 2, in a trench lower still), like an arch.
 OVERHEAD_Y = 3
@@ -127,6 +129,18 @@ class Decor:
             return self._refuse("empty")
         grp = Group(name, cells, dict(s.block_nbt))
         x1, y1, z1, x2, y2, z2 = grp.box
+        # (a mounted skull's antlers or horns reach past its block: the room they take counts as the decoration's)
+        reach = set()
+        for x, yi, z, st in cells:
+            side, up = dross_blocks.REACH.get(mc.base(st), (0, 0))
+            for dx in range(-side, side + 1):
+                for dz in range(-side, side + 1):
+                    for dy in range(0, up + 1):
+                        reach.add((x + dx, yi + dy, z + dz))
+        if reach:
+            x1, x2 = min(x1, min(c[0] for c in reach)), max(x2, max(c[0] for c in reach))
+            z1, z2 = min(z1, min(c[2] for c in reach)), max(z2, max(c[2] for c in reach))
+            y2 = max(y2, max(c[1] for c in reach))
         G = g.G
         # its box and a margin round it: no other decoration, no keep-out zone
         a1, b1 = max(0, x1 - margin), max(0, z1 - margin)
@@ -141,11 +155,17 @@ class Decor:
                 return self._refuse("keep-out")
         own = {(c[0], c[1], c[2]) for c in cells}
         own_state = {(c[0], c[1], c[2]): c[3] for c in cells}
-        # every block free in the village (unset, air, or unset ground it replaces)
+        # every block free in the village (unset, air, or unset ground it replaces), and the room its skulls' antlers
+        # and horns take
         for x, yi, z, st in cells:
             cur = g.pal[g.a[x, yi, z]]
             if cur is not None and not mc.is_air(cur):
                 return self._refuse("occupied")
+        for x, yi, z in reach - own:
+            if 0 <= x < g.W and 0 <= yi < g.H and 0 <= z < g.D:
+                cur = g.pal[g.a[x, yi, z]]
+                if cur is not None and not mc.is_air(cur):
+                    return self._refuse("no room for its antlers")
         # the village keeps `clearance` blocks of air round it above its floor (nothing of the village's own in its
         # box or next to it)
         c1, d1 = max(0, x1 - clearance), max(0, z1 - clearance)

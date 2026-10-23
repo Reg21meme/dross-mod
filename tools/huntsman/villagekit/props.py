@@ -118,8 +118,8 @@ def weapon_rack(f, n=3):
     f.set(n, 2, 0, "spruce_fence")
     for u in range(1, n):
         f.set(u, 2, 0, "spruce_fence")
-        # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
-        f.set(u, 3, 0, "lightning_rod[facing=up]")
+        # a spear planted upright (a lightning rod stood in for it until October 22, 2026)
+        f.set(u, 3, 0, "dross:planted_spear")
 
 
 def archery_range(f, targets=3, gap=3, distance=10):
@@ -243,42 +243,42 @@ def ice_lantern(f, height=2):
     f.set(0, height + 2, 0, "packed_ice")
 
 
-def skull_post(f, height=2, skull="skeleton_skull"):
+def skull_post(f, height=2, skull="rimehorn_skull"):
+    """A fence post with a mounted skull on it, facing out (a Rimehorn's, or a moose's: the user, October 22, 2026,
+    "instead of the skeleton [skulls] with the fences put those instead")."""
     for y in range(1, height + 1):
         f.set(0, y, 0, "spruce_fence")
-    f.set(0, height + 1, 0, f"{skull}[rotation={{skull_front}}]")
+    f.set(0, height + 1, 0, skull_on_post(skull))
 
 
-# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
-def antler_post(f, height=3, wood="birch_fence"):
-    """A log post crowned with a rack of antlers (pale birch fences branching up)."""
+def skull_on_post(skull):
+    """A mounted skull standing on top of what's under it (boss/huntsman/skull/HuntSkullBlock), facing f's front."""
+    return f"dross:{skull}[facing={{front}},wall=false]"
+
+
+def skull_on_wall(skull):
+    """A mounted skull hung on the wall behind it, facing f's front."""
+    return f"dross:{skull}[facing={{front}},wall=true]"
+
+
+def antler_post(f, height=3, skull="moose_skull"):
+    """A log post crowned with a bull moose's skull and its antlers (until October 22, 2026 a skeleton skull with
+    antlers of birch fences)."""
     for y in range(1, height + 1):
         f.set(0, y, 0, "stripped_spruce_log[axis=y]")
-    y = height + 1
-    f.set(0, y, 0, "skeleton_skull[rotation={skull_front}]")
-    for u in (-1, -2, -3, 1, 2, 3):
-        f.set(u, y, 0, wood)
-    for u in (-3, -1, 1, 3):
-        f.set(u, y + 1, 0, wood)
-    for u in (-3, 3):
-        f.set(u, y + 2, 0, wood)
-        f.set(u - (1 if u < 0 else -1) * 0, y + 2, 0, wood)
+    f.set(0, height + 1, 0, skull_on_post(skull))
 
 
-# PLACEHOLDER: made of blocks until the user's own moose-skull model replaces it (the user, October 20, 2026: "they will be replaced with a real model of the moose skull that I will create later")
-def antler_gate(f, width=3, height=4, wood="birch_fence"):
-    """Two posts over a path (width blocks between them) joined by a beam of antlers."""
+def antler_gate(f, width=3, height=4, wood="birch_fence", skull="moose_skull"):
+    """Two posts over a path (width blocks between them) joined by a beam, a bull moose's skull and antlers in its
+    middle (until October 22, 2026 a skeleton skull and antlers of birch fences)."""
     for u in (-(width // 2) - 1, width // 2 + 1):
         for y in range(1, height + 1):
             f.set(u, y, 0, "stripped_spruce_log[axis=y]")
     top = height + 1
     for u in range(-(width // 2) - 2, width // 2 + 3):
         f.set(u, top, 0, wood)
-    for u in range(-(width // 2) - 2, width // 2 + 3, 2):
-        f.set(u, top + 1, 0, wood)
-    f.set(0, top, 0, "skeleton_skull[rotation={skull_front}]")
-    for u in (-(width // 2) - 2, width // 2 + 2):
-        f.set(u, top + 2, 0, wood)
+    f.set(0, top + 1, 0, skull_on_post(skull))
 
 
 def bone_arch(f, width=5, height=6, mat="bone_block[axis=y]"):
@@ -528,8 +528,8 @@ def spear_stand(f):
     f.set(1, 1, 0, "spruce_log[axis={lr}]")
     f.set(-1, 1, 0, "spruce_log[axis={lr}]")
     for u in (-1, 0, 1):
-        # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
-        f.set(u, 2, 0, "lightning_rod[facing=up]")
+        # a spear planted upright (a lightning rod stood in for it until October 22, 2026)
+        f.set(u, 2, 0, "dross:planted_spear")
 
 
 def lean_to(f, icicles=True):
@@ -698,22 +698,12 @@ def lane_arch(f, width=5, height=6, mat="bone_block[axis=y]"):
             f.set(u, low - 1, 0, "dross:icicle")
 
 
-# PLACEHOLDER: made of blocks until a real Rimehorn skull model replaces it (the user, October 20, 2026: the antlers and the Rimehorns' "will be replaced with a real model")
 def rimehorn_skull(f):
-    """A Rimehorn's skull mounted on a post: bone, its great horn of clear ice rising off the snout, a small one
-    behind it."""
+    """A Rimehorn's skull mounted on a post, its two horns of clear ice (until October 22, 2026 built of bone blocks
+    and ice)."""
     for y in (1, 2):
         f.set(0, y, 0, "stripped_spruce_log[axis=y]")
-    for u in (-1, 0, 1):
-        f.set(u, 3, 0, "bone_block[axis={lr}]")
-    f.set(0, 3, 1, "bone_block[axis={fb}]")                 # the snout
-    f.set(0, 4, 0, "bone_block[axis=y]")
-    for u in (-1, 1):
-        f.set(u, 3, 1, "polished_blackstone_button[face=wall,facing={front},powered=false]")   # its eye holes
-    f.set(0, 4, 1, "packed_ice")
-    f.set(0, 5, 1, "ice")
-    f.set(0, 6, 1, "ice")
-    f.set(0, 5, 0, "packed_ice")
+    f.set(0, 3, 0, skull_on_post("rimehorn_skull"))
 
 
 def windbreak(f, length=5):
@@ -774,12 +764,12 @@ def anvil_corner(f):
     f.set(1, 1, -1, "barrel[facing=up,open=false]")
     for u in (0, 1, 2):
         f.set(u, 1, -2, "spruce_fence")
-    # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
-    f.set(0, 2, -2, "lightning_rod[facing=up]")
-    f.set(2, 2, -2, "lightning_rod[facing=up]")
+    # a spear planted upright (a lightning rod stood in for it until October 22, 2026)
+    f.set(0, 2, -2, "dross:planted_spear")
+    f.set(2, 2, -2, "dross:planted_spear")
     f.set(1, 2, -2, "spruce_fence")
-    # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
-    f.set(1, 3, -2, "lightning_rod[facing=up]")
+    # a spear planted upright (a lightning rod stood in for it until October 22, 2026)
+    f.set(1, 3, -2, "dross:planted_spear")
 
 
 def dog_sleds(f):

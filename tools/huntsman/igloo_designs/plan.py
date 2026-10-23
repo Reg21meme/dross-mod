@@ -58,9 +58,8 @@ LEGEND = {
     "Z": "cartography_table",
     "U": "target",
     "E": "bookshelf",
-    # PLACEHOLDER: a lightning rod stands in for a spear until the real spear model and item exist (the user, October
-    # 20, 2026: "we will eventually create a spear model and a spear item, keep the rods as is"); replace every one then
-    "I": "lightning_rod[facing=up]",
+    # a spear planted upright (the Planted Moonsilver Spear: lightning rods stood in for them until October 22, 2026)
+    "I": "dross:planted_spear",
     "V": "bone_block[axis=y]",
     "s": "skeleton_skull[rotation={skull_in}]",
     "W": "white_carpet",

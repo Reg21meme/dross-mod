@@ -1,0 +1,15 @@
+{
+  "loader": "forge:separate_transforms",
+  "gui_light": "front",
+  "base": {
+    "parent": "dross:item/moonsilver_spear_in_hand"
+  },
+  "perspectives": {
+    "gui": {
+      "parent": "dross:item/moonsilver_spear_icon"
+    },
+    "fixed": {
+      "parent": "dross:item/moonsilver_spear_icon"
+    }
+  }
+}

@@ -336,7 +336,7 @@ def workshop(m, d):
     target, a chest."""
     r = Room(m, d)
     r.against_back(["fletching_table", "grindstone[face=floor,facing={in}]", "crafting_table",
-                    "lightning_rod[facing=up]", "lightning_rod[facing=up]", "chest[facing={in},type=single]",
+                    "dross:planted_spear", "dross:planted_spear", "chest[facing={in},type=single]",
                     "loom[facing={in}]", "barrel[facing=up,open=false]", "chipped_anvil[facing={wall}]", "target",
                     "barrel[facing=up,open=false]"])
     r.on_top({"barrel": "candle[candles=2,lit=true]"})

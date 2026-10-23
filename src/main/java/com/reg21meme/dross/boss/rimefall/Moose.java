@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.rimefall;
 
+import com.reg21meme.dross.boss.huntsman.skull.SkullDrops;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
@@ -344,6 +345,17 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     public boolean isShowcase()
     {
         return this.entityData.get(DATA_SHOWCASE);
+    }
+
+    /** Its skull, now and then, when a player killed a grown bull ({@link SkullDrops}). */
+    @Override
+    protected void dropCustomDeathLoot(DamageSource source, int looting, boolean recentlyHit)
+    {
+        super.dropCustomDeathLoot(source, looting, recentlyHit);
+        if (this.isBull() && !this.isBaby() && !this.isShowcase())
+        {
+            SkullDrops.sometimes(this, ModItems.MOOSE_SKULL.get(), looting, recentlyHit);
+        }
     }
 
     /**

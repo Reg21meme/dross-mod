@@ -9,6 +9,7 @@ import com.reg21meme.dross.boss.golem.StoneGolem;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.Bola;
 import com.reg21meme.dross.boss.huntsman.HuntSpear;
+import com.reg21meme.dross.boss.huntsman.spear.ThrownMoonsilverSpear;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.ratking.PlagueBall;
 import com.reg21meme.dross.boss.ratking.PoisonCloud;
@@ -183,13 +184,21 @@ public final class ModEntities
                     .clientTrackingRange(6)
                     .updateInterval(10)
                     .build("bola"));
-    // Boss area: the Huntsman's thrown spear (it flies back to his hand; drawn as a trident until the user's spear model)
+    // Boss area: the Huntsman's thrown spear (it flies back to his hand; drawn with the Moonsilver Spear's model)
     public static final RegistryObject<EntityType<HuntSpear>> HUNT_SPEAR = ENTITY_TYPES.register("hunt_spear",
             () -> EntityType.Builder.<HuntSpear>of(HuntSpear::new, MobCategory.MISC)
                     .sized(0.5F, 0.5F)
                     .clientTrackingRange(6)
                     .updateInterval(20)
                     .build("hunt_spear"));
+
+    // Boss area: a thrown Moonsilver Spear (a player's: it comes back to its thrower, like a trident with Loyalty)
+    public static final RegistryObject<EntityType<ThrownMoonsilverSpear>> MOONSILVER_SPEAR = ENTITY_TYPES.register("moonsilver_spear",
+            () -> EntityType.Builder.<ThrownMoonsilverSpear>of(ThrownMoonsilverSpear::new, MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(4)
+                    .updateInterval(20)
+                    .build("moonsilver_spear"));
 
     private ModEntities() {}
 }

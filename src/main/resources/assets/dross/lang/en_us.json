@@ -383,5 +383,12 @@
   "commands.dross.boss.summon_huntsman.peaceful": "The Huntsman can't be summoned on Peaceful difficulty.",
   "commands.dross.boss.summon_huntsman.failed": "Couldn't summon the Huntsman here.",
   "commands.dross.boss.arena_huntsman.success": "Built the Huntsman's arena around you: a round floor of snow and packed ice %s blocks across, lantern posts round its edge.",
-  "commands.dross.boss.arena_huntsman.summon_button": "[Summon the Huntsman]"
+  "commands.dross.boss.arena_huntsman.summon_button": "[Summon the Huntsman]",
+  "item.dross.moonsilver_spear": "Moonsilver Spear",
+  "item.dross.moonsilver_spear.hint": "Freezes what it hits. Throw it and it comes back.",
+  "entity.dross.moonsilver_spear": "Moonsilver Spear",
+  "block.dross.planted_spear": "Planted Moonsilver Spear",
+  "block.dross.alpha_moose_skull": "Alpha Moose Skull",
+  "block.dross.moose_skull": "Moose Skull",
+  "block.dross.rimehorn_skull": "Rimehorn Skull"
 }

@@ -365,9 +365,10 @@ public final class DrossColors {
     /** Spawn egg: the Pond Skater (dark frosted chitin, pale frost). */
     public static final int POND_SKATER_EGG_BASE = 0x1C2733;
     public static final int POND_SKATER_EGG_SPOTS = 0xA9D4F0;
-    /** The Huntsman's spawn egg: his bone-pale mask, the glacier blue of his ice. */
-    public static final int HUNTSMAN_EGG_BASE = 0xE4DACA;
-    public static final int HUNTSMAN_EGG_SPOTS = 0x6FA8D8;
+    /** The Huntsman's spawn egg is drawn whole in its three colours (cream, glacier blue and brown: the user's,
+     * October 22, 2026; tools/huntsman/egg.py), so it's tinted white: it shows as drawn. */
+    public static final int HUNTSMAN_EGG_BASE = 0xFFFFFF;
+    public static final int HUNTSMAN_EGG_SPOTS = 0xFFFFFF;
     /** Snared (his bola, his aimed shot): the effect's swirl. */
     public static final int HUNTSMAN_SNARED = 0xA8D8F0;
     /** The [Summon the Huntsman] button his arena's message has. */

@@ -178,8 +178,8 @@ def barn(g, x0, z0, w=13, d=17, h=8):
     g.set(x1 - 1, 1, z0 + 11, "spruce_fence", force=True)
     g.set(x1 - 1, 2, z0 + 11, "red_carpet", force=True)
     for z in (z0 + 13, z0 + 14):
-        # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
-        g.set(x1 - 1, 1, z, "lightning_rod[facing=up]", force=True)
+        # a spear planted upright (a lightning rod stood in for it until October 22, 2026)
+        g.set(x1 - 1, 1, z, "dross:planted_spear", force=True)
     # beams across under the roof with lanterns hanging from them
     for z in (z0 + 8, z0 + 13):
         for x in range(x0 + 1, x1):
@@ -295,9 +295,9 @@ def build_into(g, bx1, bz1, bx2, bz2, seed=1111):
         c = r.cell(u, vv)
         if c is not None:
             g.set(c[0], c[1] + 1, c[2], props.MEAT if vv == -1 else "barrel[facing=up,open=false]", force=True)
-    # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
-    r.against_back(["chest[facing={in},type=single]", "lightning_rod[facing=up]", "lightning_rod[facing=up]",
-                    "skeleton_skull[rotation={skull_in}]", "barrel[facing=up,open=false]", "lightning_rod[facing=up]",
+    # spears planted upright (lightning rods stood in for them until October 22, 2026)
+    r.against_back(["chest[facing={in},type=single]", "dross:planted_spear", "dross:planted_spear",
+                    "skeleton_skull[rotation={skull_in}]", "barrel[facing=up,open=false]", "dross:planted_spear",
                     "smoker[facing={in},lit=false]", "chest[facing={in},type=single]", "fletching_table",
                     "grindstone[face=floor,facing={in}]", "skeleton_skull[rotation={skull_in}]",
                     "barrel[facing=up,open=false]"])
@@ -315,10 +315,10 @@ def build_into(g, bx1, bz1, bx2, bz2, seed=1111):
 
     # -- the armoury: spears and bows, a weapon rack, a chest of arrows
     ra = Room(m, arm)
-    # PLACEHOLDER spear: a lightning rod until the real spear model and item exist (the user, October 20, 2026)
-    ra.against_back(["lightning_rod[facing=up]", "lightning_rod[facing=up]", "fletching_table",
-                     "chest[facing={in},type=single]", "lightning_rod[facing=up]", "grindstone[face=floor,facing={in}]",
-                     "barrel[facing=up,open=false]", "lightning_rod[facing=up]", "target"])
+    # spears planted upright (lightning rods stood in for them until October 22, 2026)
+    ra.against_back(["dross:planted_spear", "dross:planted_spear", "fletching_table",
+                     "chest[facing={in},type=single]", "dross:planted_spear", "grindstone[face=floor,facing={in}]",
+                     "barrel[facing=up,open=false]", "dross:planted_spear", "target"])
     ra.rug(mats=("brown_carpet", "gray_carpet"))
     ra.lamp("soul_lantern")
 

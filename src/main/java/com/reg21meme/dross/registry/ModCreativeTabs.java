@@ -92,6 +92,8 @@ public final class ModCreativeTabs
                         // Boss area: the hunter villages' Frostroot Crate and Rimeberry Basket
                         output.accept(ModItems.FROSTROOT_CRATE.get());
                         output.accept(ModItems.RIMEBERRY_BASKET.get());
+                        // Boss area: a Moonsilver Spear planted upright (the hunter villages' spears)
+                        output.accept(ModItems.PLANTED_SPEAR.get());
 
                         // 2. Quest items
                         // Quest area: a Weathered Letter (gets its text once it's in your inventory)
@@ -114,6 +116,10 @@ public final class ModCreativeTabs
                         {
                             output.accept(design.stack());
                         }
+                        // Boss area: the mounted skulls
+                        output.accept(ModItems.ALPHA_MOOSE_SKULL.get());
+                        output.accept(ModItems.MOOSE_SKULL.get());
+                        output.accept(ModItems.RIMEHORN_SKULL.get());
 
                         // 4. Spawn eggs
                         // Villager area: the Dross Trader
@@ -136,6 +142,8 @@ public final class ModCreativeTabs
                         output.accept(ModItems.ADMIN_SWORD.get());
                         // Boss area: the Rage Wand (hit mobs and they fight each other)
                         output.accept(ModItems.RAGE_WAND.get());
+                        // Boss area: the Moonsilver Spear
+                        output.accept(ModItems.MOONSILVER_SPEAR.get());
 
                         // 6. Enchanted books
                         // Enchantments area: a book for every level of Necromancy (I-V), then Deathforged (I-X).

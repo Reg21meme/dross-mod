@@ -8,6 +8,8 @@ import com.reg21meme.dross.boss.huntsman.village.MeatBlocks;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyBlock;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyBlock;
 import com.reg21meme.dross.dimension.block.TerrainBlocks;
+import com.reg21meme.dross.boss.huntsman.skull.HuntSkullBlock;
+import com.reg21meme.dross.boss.huntsman.spear.PlantedSpearBlock;
 import com.reg21meme.dross.portal.DrossPortalBlock;
 import com.reg21meme.dross.portal.DrossPortalFrameBlock;
 import net.minecraft.world.level.block.Block;
@@ -129,6 +131,14 @@ public final class ModBlocks
     public static final RegistryObject<Block> FROSTROOT_CRATE = BLOCKS.register("frostroot_crate", HunterCrops::frostrootCrate);
     // Boss area, the hunter villages: Rimeberry Basket (nine Rimeberries packed in a block)
     public static final RegistryObject<Block> RIMEBERRY_BASKET = BLOCKS.register("rimeberry_basket", HunterCrops::rimeberryBasket);
+
+    // Boss area: a Moonsilver Spear planted upright (the hunter villages' spears, in place of their lightning rods)
+    public static final RegistryObject<Block> PLANTED_SPEAR = BLOCKS.register("planted_spear", PlantedSpearBlock::new);
+
+    // Boss area: the mounted skulls (the Alpha Moose's, a bull moose's, a Rimehorn's: on a post or on a wall)
+    public static final RegistryObject<Block> ALPHA_MOOSE_SKULL = BLOCKS.register("alpha_moose_skull", HuntSkullBlock::new);
+    public static final RegistryObject<Block> MOOSE_SKULL = BLOCKS.register("moose_skull", HuntSkullBlock::new);
+    public static final RegistryObject<Block> RIMEHORN_SKULL = BLOCKS.register("rimehorn_skull", HuntSkullBlock::new);
 
     private ModBlocks() {}
 }

@@ -21,9 +21,22 @@ BLOCKS = {
                              "default": {"age": "0", "half": "lower"}},
     "dross:frostroot_crate": {"properties": {}, "default": {}},
     "dross:rimeberry_basket": {"properties": {}, "default": {}},
+    # the Moonsilver Spear planted upright (boss/huntsman/spear/PlantedSpearBlock): the villages' spears
+    "dross:planted_spear": {"properties": {}, "default": {}},
+    # the mounted skulls (boss/huntsman/skull/HuntSkullBlock): on a post or on a wall, facing one of four ways
+    **{f"dross:{s}": {"properties": {"facing": ["north", "east", "south", "west"], "wall": ["false", "true"]},
+                      "default": {"facing": "north", "wall": "false"}}
+       for s in ("alpha_moose_skull", "moose_skull", "rimehorn_skull")},
 }
 mc.MOD_BLOCKS.update(BLOCKS)
+
+# How far past their own block the mounted skulls' antlers and horns reach (blocks: out to each side, and up), from
+# their models (tools/huntsman/skulls.py): the Alpha Moose's 3.8 across, a bull's 2.8, a Rimehorn's 0.8 across, 1.8 long
+# and 2.1 tall. A decoration with one keeps that much room round it (villagekit/decor.py).
+REACH = {"alpha_moose_skull": (2, 1), "moose_skull": (1, 1), "rimehorn_skull": (1, 2)}
 mc.CROSS_PLANTS.update({"frostbloom", "icicle", "frostroots", "snow_lichen", "rimeberry_bush"})
+# (a thin pole like the lightning rods it replaced; the skulls are thin already, by their name)
+mc.THIN_EXACT.update({"planted_spear"})
 
 # pillars the shrine kit doesn't know lie down like logs in the previews (bark on top, the end facing its axis)
 PILLARS = {"meat_block", "roasted_meat_block"}

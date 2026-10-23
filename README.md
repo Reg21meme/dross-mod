@@ -252,9 +252,12 @@ Unlimited uses, no restocking, no XP.
 | **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
 | **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
 | **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent (from the old Nether Scar: building blocks now, they no longer generate); Cragstone, Storm Lichen, Crag Thistle); and from Blightwood's sewers **Sewer Sludge** (it slows you down, less than soul sand) and the **Blight Vent** (glows poison green and puffs spores). |
-| **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores, for gear that comes later. Raw Moonsilver smelts into an ingot. |
+| **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores. Raw Moonsilver smelts into an ingot, and the ingot makes the Moonsilver Spear; Stormite is for gear that comes later. |
+| **Moonsilver Spear** | The Huntsman's spear, for players: two sticks on a diagonal with a Moonsilver Ingot at the top right. It stabs for 8, and held back and let go it's thrown like a trident (8) and flies back to you. Whatever it hits is frozen for 4 seconds (frost, shaking, slowed). 500 uses, repaired with Moonsilver Ingots. |
+| **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
+| **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls with their antlers or the Rimehorn's two ice horns, in 3D. Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager), **weapons and tools** (the Admin Sword, the Rage Wand), the **enchanted books** (Necromancy I-V, then Deathforged I-X), then the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -531,8 +534,11 @@ Moose**. For now he comes only from the **Huntsman Spawn Egg** or `/dross boss s
 village comes later. `/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice,
 lantern posts round the edge) with a chat button to summon him.
 
-- **Calm until you hit them.** The first hit starts the fight and he blows his hunting horn.
-- **Stage 1, The Wild Hunt** (one bar of 200 for both): he fights from the saddle with a spear thrust, the Horn of the
+- **He spots you.** The fight starts, and he blows his hunting horn, when he or the moose sees a foe within 30
+  blocks: a player (not in creative or spectator), a hostile mob (he hunts those too) or, raged with the Rage Wand, a
+  mob of another team. A hit starts it too.
+- **Stage 1, The Wild Hunt** (one bar of 200 for both; hitting either of them takes it down): he fights from the
+  saddle with a spear thrust, the Horn of the
   Hunt (a cone of icy wind that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed),
   **arrow rain** (15 arrows falling round you with no warning; each hit frosts you), and the circling hunt (the
   moose gallops round you while he shoots). The moose charges (6.5 hearts) and kicks anyone behind it (4.5).
@@ -541,12 +547,17 @@ lantern posts round the edge) with a chat button to summon him.
 - **Stage 2:** on foot he uses spear combos, a leaping strike, a thrown spear (it comes back to his hand), an aimed
   shot after a frost glint (it freezes you for a moment), a backstep and shot, the arrow rain, the bola and the horn.
   The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow that burst into
-  ice spikes under you. The moose goes for the closest player, he goes for the furthest.
+  ice spikes under you. The moose goes for the closest player, he goes for the furthest. He likes to keep his
+  distance: when you come close he backs off, at range he circles you, far off he closes in, and he keeps out of the
+  moose's way.
 - **Kill one** and the other gets angry: its bar turns blood red, and it's faster and hits harder.
 - **Kill both:** the advancement **The Hunter Hunted** for whoever got the last kill and everyone within 40 blocks.
+  The Alpha Moose drops its skull (a block you can mount: see the items below) every time it dies.
+- **The Rage Wand:** raging either of them rages both, on the same team.
 - **Walk away** (no one within 64 blocks for 30 seconds) and the fight is broken off: both are back at full health,
   him in the saddle, calm.
-- The thrown spear is drawn as a trident and the sounds are stand-ins until the real ones are made.
+- His thrown spear is drawn with the Moonsilver Spear's model, made big; the sounds are stand-ins until the real
+  ones are made.
 - `/dross showcase boss_designs huntsman` shows him riding, on foot and the moose alone, with a button for every
   animation; `/dross showcase bossbars huntsman` shows his boss bars.
 

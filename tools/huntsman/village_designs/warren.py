@@ -37,7 +37,7 @@ from voxel import AIR, Mix
 import sunken_warren as sw
 from villagekit import lighting, props, stamp, walk
 from villagekit.decor import Decor, YFrame
-from villagekit.local import SKULL_ROT16, Frame
+from villagekit.local import Frame
 from villagekit.village import Village, facing_towards
 from villagekit.writer import animal
 
@@ -1223,7 +1223,7 @@ def _build_pen(g, pen, X, Z, rng):
             g.set(x, 2, z, mat, force=True)
             if corral and corner:
                 out = "north" if z == z1 else "south"
-                g.set(x, 3, z, f"skeleton_skull[rotation={SKULL_ROT16[out]}]", force=True)
+                g.set(x, 3, z, f"dross:rimehorn_skull[facing={out},wall=false]", force=True)
         else:
             g.set(x, 1, z, "spruce_fence", force=True)
             g.set(x, 2, z, "spruce_fence", force=True)
@@ -1322,8 +1322,10 @@ def _lodge_yard(g, dec, box, lodge_items, rng):
     yard = []
     for zz in range(lz + 3, z2 - 6, 4):
         for side in (-3, 3):
+            # (his trophies: moose and Rimehorn skulls by turns down his path)
             yard.append(("skull post", lambda s, zz=zz, side=side: props.skull_post(
-                Frame(s, lane_x + side, zz, "east" if side < 0 else "west"), height=2)))
+                Frame(s, lane_x + side, zz, "east" if side < 0 else "west"), height=2,
+                skull="moose_skull" if (zz // 4) % 2 == 0 else "rimehorn_skull")))
     yard += [
         ("roasting fire", lambda s: props.fire_pit(Frame(s, x1 + 31, z2 - 6, "south"), r=1, benches=True, spit=True,
                                                    bench_r=3)),

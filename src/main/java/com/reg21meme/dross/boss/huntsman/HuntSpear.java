@@ -20,8 +20,8 @@ import net.minecraft.world.phys.Vec3;
  * The Huntsman's thrown spear ({@code dross:hunt_spear}; the user's pick: "he hurls it, then pulls it back on its
  * rope"): it hits for {@link HuntsmanTuning#SPEAR_THROW_DAMAGE}, then (or as soon as it hits the ground, or after
  * {@link HuntsmanTuning#SPEAR_RETURN_TICKS}) it flies back to his hand through anything in the way. Nobody can pick it
- * up. PLACEHOLDER: it's drawn as a trident ({@code client/HuntSpearRenderer}) until the user's own spear model and
- * item exist (the user, October 20, 2026: "we will eventually create a spear model and a spear item").
+ * up. It's drawn with the Moonsilver Spear's model, made big ({@code spear/client/SpearRenderer}; until October 22,
+ * 2026 a trident stood in for it).
  */
 public class HuntSpear extends AbstractArrow
 {

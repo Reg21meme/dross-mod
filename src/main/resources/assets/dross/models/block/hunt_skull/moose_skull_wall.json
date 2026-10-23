@@ -1,0 +1,11 @@
+{
+  "loader": "forge:obj",
+  "model": "dross:models/block/hunt_skull/moose_skull_wall.obj",
+  "flip_v": false,
+  "automatic_culling": false,
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "skull": "dross:block/hunt_skull/moose_skull",
+    "particle": "dross:block/hunt_skull/moose_skull"
+  }
+}

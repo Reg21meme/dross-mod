@@ -2,6 +2,7 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.huntsman.spear.MoonsilverSpearItem;
 import com.reg21meme.dross.boss.rage.RageWandItem;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyItem;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyItem;
@@ -198,6 +199,16 @@ public final class ModItems
     public static final RegistryObject<Item> RAW_MOONSILVER = ITEMS.register("raw_moonsilver", () -> new Item(new Item.Properties()));
     // Dimension area: Moonsilver Ingot (a pale metal for anti-undead gear later)
     public static final RegistryObject<Item> MOONSILVER_INGOT = ITEMS.register("moonsilver_ingot", () -> new Item(new Item.Properties()));
+
+    // Boss area: the Moonsilver Spear (the Huntsman's spear for players: stabs, throws and comes back, freezes)
+    public static final RegistryObject<Item> MOONSILVER_SPEAR = ITEMS.register("moonsilver_spear", MoonsilverSpearItem::new);
+    // Boss area: a Moonsilver Spear planted upright (the hunter villages' spears)
+    public static final RegistryObject<Item> PLANTED_SPEAR = ITEMS.register("planted_spear", () -> new BlockItem(ModBlocks.PLANTED_SPEAR.get(), new Item.Properties()));
+
+    // Boss area: the mounted skulls (the Alpha Moose drops its own; bull moose and Rimehorns sometimes)
+    public static final RegistryObject<Item> ALPHA_MOOSE_SKULL = ITEMS.register("alpha_moose_skull", () -> new BlockItem(ModBlocks.ALPHA_MOOSE_SKULL.get(), new Item.Properties()));
+    public static final RegistryObject<Item> MOOSE_SKULL = ITEMS.register("moose_skull", () -> new BlockItem(ModBlocks.MOOSE_SKULL.get(), new Item.Properties()));
+    public static final RegistryObject<Item> RIMEHORN_SKULL = ITEMS.register("rimehorn_skull", () -> new BlockItem(ModBlocks.RIMEHORN_SKULL.get(), new Item.Properties()));
 
     private ModItems() {}
 }

@@ -15,7 +15,8 @@ posts, the skulls on them facing out.
 import mc
 from voxel import AIR, Mix
 
-from villagekit.local import SKULL_ROT16, Frame
+from villagekit import props
+from villagekit.local import Frame
 from villagekit.writer import banner
 
 import lodge as old_lodge
@@ -27,10 +28,11 @@ LODGE_STYLE = old_lodge.LODGE_STYLE
 
 
 def _outside(g, cx, cz, hall):
-    """His moose skull over the way in, his banners either side of it on poles, facing out."""
+    """The Alpha Moose's skull hung over the way in (until October 22, 2026 a moose head built of blocks), his
+    banners either side of it on poles, facing out."""
     t = hall.tunnel_shape
     hx, hz = t.f.xz(0, t.v1 - 1)
-    old_lodge.moose_head(Frame(g, hx, hz, "south"), t.ybase + t.height)
+    Frame(g, hx, hz, "south").set(0, t.ybase + t.height, 1, props.skull_on_wall("alpha_moose_skull"))
     for side in (-4, 4):
         x, z = t.f.xz(side, t.v1 + 1)
         for y in range(1, 6):
@@ -140,10 +142,12 @@ def _barn(g):
             else:
                 g.set(x0 - 1 + k, y, z, "spruce_stairs[facing=east,half=bottom]", force=True)
                 g.set(x1 + 1 - k, y, z, "spruce_stairs[facing=west,half=bottom]", force=True)
-        if 0 < k:
-            for z in (z0, z1):
-                for x in range(x0 - 1 + k + 1, x1 + 1 - k):
-                    g.set(x, y, z, "spruce_planks", force=True)
+        # (from the first course: the gables stand on the end walls, so the roof's courses, which touch each other
+        # only at their edges, are held up by them; until October 22, 2026 the first course had none, a slit along
+        # the walls' tops, and only the block-built moose head over the door joined the roof to the walls)
+        for z in (z0, z1):
+            for x in range(x0 - 1 + k + 1, x1 + 1 - k):
+                g.set(x, y, z, "spruce_planks", force=True)
         k += 1
     for z in range(z0 - 1, z1 + 2, 2):
         for x in (x0 - 1, x1 + 1):
@@ -189,8 +193,8 @@ def _barn(g):
     g.set(x1 - 1, 2, z0 + 9, "brown_carpet", force=True)
     g.set(x1 - 1, 1, z0 + 11, "spruce_fence", force=True)
     g.set(x1 - 1, 2, z0 + 11, "red_carpet", force=True)
-    for z in (z0 + 13, z0 + 14):          # PLACEHOLDER spears (lightning rods) until the real spear model and item exist
-        g.set(x1 - 1, 1, z, "lightning_rod[facing=up]", force=True)
+    for z in (z0 + 13, z0 + 14):          # two spears planted by the tack wall
+        g.set(x1 - 1, 1, z, "dross:planted_spear", force=True)
     # beams across under the roof, a lantern hanging from the middle of each on one short chain (the user: "the
     # lanterns not have such long chains and be centered on the middle of the support"), and a lantern on the stall's
     # fence by the door
@@ -201,7 +205,7 @@ def _barn(g):
             g.set(mid, y, z, "chain[axis=y]", force=True)
         g.set(mid, BH - 3, z, "lantern[hanging=true]", force=True)
     g.set(x1 - 4, 2, z1 - 2, "lantern[hanging=false]", force=True)
-    old_lodge.moose_head(Frame(g, mid, z1, "south"), 7)
+    Frame(g, mid, z1, "south").set(0, 7, 1, props.skull_on_wall("moose_skull"))   # a bull's skull over the door
     # the corral, east of the barn: bone posts (their skulls facing out) and spruce rails, a gate at the south, a
     # water trough and hay inside
     cx0, cx1 = x1 + 2, x1 + 1 + CW
@@ -223,7 +227,7 @@ def _barn(g):
                 g.set(x, 2, z, "bone_block[axis=y]", force=True)
                 if (x - cx0) % 6 == 0 and z in (cz0, cz1) or (z - cz0) % 6 == 0 and x in (cx0, cx1):
                     out = "north" if z == cz0 else "south" if z == cz1 else "west" if x == cx0 else "east"
-                    g.set(x, 3, z, f"skeleton_skull[rotation={SKULL_ROT16[out]}]", force=True)
+                    g.set(x, 3, z, f"dross:moose_skull[facing={out},wall=false]", force=True)
             else:
                 g.set(x, 1, z, "spruce_fence", force=True)
     for x in range(cx0 + 2, cx0 + 5):
