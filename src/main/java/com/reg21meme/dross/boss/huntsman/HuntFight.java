@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.boss.huntsman.village.HuntsmanVillages;
 import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEffects;
@@ -548,6 +549,7 @@ public final class HuntFight
         }
         setStage(mob, HuntStage.WON);
         setStage(partner, HuntStage.WON);
+        HuntsmanVillages.beaten(mob);                // (at his village: never back there)
         if (!source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
         {
             for (ServerPlayer player : victors(mob, source))
@@ -653,6 +655,14 @@ public final class HuntFight
             }
             link(leader, partner);
             Rage.recruit(partner, leader);              // raged, the new one is on its team too
+            if (leader.home() != null)
+            {
+                partner.setHome(leader.homeVillage(), leader.home(), leader.homeGeneration());
+                if (partner instanceof Huntsman h)
+                {
+                    HuntsmanVillages.replaced(h);
+                }
+            }
         }
         for (HuntMob m : new HuntMob[] {leader, partner})
         {
@@ -683,6 +693,13 @@ public final class HuntFight
             h.moveTo(moose.getX(), moose.getY(), moose.getZ(), moose.getYRot(), 0.0F);
             h.startRiding(moose, true);
             h.play("ride_idle");
+        }
+        // home from his village: back to his yard (the user's "walk away: they're back home at full health")
+        if (moose != null && moose.home() != null
+                && moose.position().distanceTo(Vec3.atBottomCenterOf(moose.home())) > HuntsmanTuning.HOME_RETURN)
+        {
+            HuntsmanVillages.spot(level, moose.home()).ifPresent(at ->
+                    moose.teleportTo(at.getX() + 0.5D, at.getY(), at.getZ() + 0.5D));
         }
     }
 

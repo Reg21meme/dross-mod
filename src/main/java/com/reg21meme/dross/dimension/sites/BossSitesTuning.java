@@ -112,6 +112,9 @@ public final class BossSitesTuning
      * user's 1 in 2; a roll per patch fixed by the world seed), if one fits there.
      */
     public static final double REGULAR_SEWER_CHANCE = 0.5D;
+    /** Each of a Rimefall group's two kept patches gets a regular hunter village with this chance (the user, October 23,
+     * 2026: "the other 2 have a 50% chance of a regular, non-hunter village"), if one fits. */
+    public static final double HUNTER_VILLAGE_CHANCE = 0.5D;
     /**
      * The Cinder Colossus's lair, until the boss area plugs in its own test ({@link BossSites#setFinder}): a spot where
      * every column within this radius is Cinder Wastes (its volcano's foot, pools and way in reach about 64 blocks)...

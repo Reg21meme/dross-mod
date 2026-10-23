@@ -1,0 +1,8 @@
+{
+  "type": "dross:hunter_village",
+  "huntsman": true,
+  "biomes": "#dross:has_structure/hunter_village",
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "none"
+}

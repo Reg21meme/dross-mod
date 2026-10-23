@@ -210,7 +210,7 @@ public final class BossSitesGameTest
         {
             if (b.boss() == null)
             {
-                continue;   // (Rimefall: no boss yet; its per-patch lakes and herds have their own test, RimefallLakeGameTest)
+                continue;   // (every boss biome has one now; Rimefall's per-patch lakes and herds have their own test, RimefallLakeGameTest)
             }
             int count = b.biome().equals(DrossBiomes.BLIGHTWOOD) ? BLIGHTWOOD_GROUPS : CINDER_GROUPS;
             String name = b.biome().location().getPath();

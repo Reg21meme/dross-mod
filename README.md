@@ -530,23 +530,35 @@ each attack sound for the fight, to pick from later.
 ## The Huntsman
 
 One of the Ice Necromancer's three servants: a hunter in a wolf-head hood with a stag's antlers, riding his **Alpha
-Moose**. For now he comes only from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`; his home in a hunter
-village comes later. `/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice,
-lantern posts round the edge) with a chat button to summon him.
+Moose**. He lives in **his own hunter village** in Rimefall (below): walk near it and he and the moose are waiting in his
+yard in front of his lodge, calm. He also comes from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`, and
+`/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice, lantern posts round
+the edge) with a chat button to summon him.
+
+- **His villages.** Rimefall's areas come in groups of three, nearest the hub first and on out forever: in every group
+  one area has the Huntsman's village (his lodge, the Alpha Moose's barn, 26 or 29 igloos), and each of the other two
+  has a regular hunter village half the time (15-20 igloos round sunken courtyards). A village sits on the flattest
+  ground of its area, its ground levelled and stepped gently back to the land, never on or next to the big lake. Beat
+  him (both of them) and his village stays without him for good; on Peaceful he never comes. They only appear in newly
+  generated land.
 
 - **He spots you.** The fight starts, and he blows his hunting horn, when he or the moose sees a foe within 30
   blocks: a player (not in creative or spectator), a hostile mob (he hunts those too) or, raged with the Rage Wand, a
   mob of another team. A hit starts it too.
-- **Stage 1, The Wild Hunt** (one bar of 200 for both; hitting either of them takes it down): he fights from the
-  saddle with a spear thrust, the Horn of the
-  Hunt (a cone of icy wind that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed),
-  **arrow rain** (15 arrows falling round you with no warning; each hit frosts you), and the circling hunt (the
-  moose gallops round you while he shoots). The moose charges (6.5 hearts) and kicks anyone behind it (4.5).
+- **Stage 1, The Wild Hunt** (one bar of 250 for both; hitting either of them takes it down). The two attack at the
+  same time, each on its own timer. From the saddle he uses whatever fits where you are: a spear thrust when you're in
+  reach in front or on his right, two bow shots when you're on his left (the moose's antlers are in front of him), the
+  Horn of the Hunt ahead (a cone of icy wind that pushes you away and slows you), a **bola** (held still 2 seconds,
+  then slowed) and the **arrow rain** anywhere (he shoots 12 arrows up and 48 come down round you with no warning,
+  thickest where you stand; each hit frosts you). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
+  cracks across the snow up close, charges (6.5 hearts) and circles you further out, and kicks anyone behind it (4.5).
 - **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
   neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he
   rides, the two are drawn as one model, so he moves exactly with the moose; they become two at the split.)
-- **Stage 2:** on foot he uses spear combos, a leaping strike, a thrown spear (it comes back to his hand), an aimed
-  shot after a frost glint (it freezes you for a moment), a backstep and shot, the arrow rain, the bola and the horn.
+- **Stage 2:** on foot (about 4 blocks to the top of his hood) he uses spear combos, a leaping strike, a thrown spear
+  (it comes back to his hand), an aimed shot after a frost glint (it freezes you for a moment), a backstep and shot (he
+  leaps back three blocks, shooting at the top of the leap, and is ready again as he lands), the arrow rain, the bola,
+  the horn, and whenever those are all cooling down, a quick shot (2 hearts), so at range he keeps shooting.
   The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow that burst into
   ice spikes under you. The moose goes for the closest player, he goes for the furthest. He likes to keep his
   distance: when you come close he backs off, at range he circles you, far off he closes in, and he keeps out of the
@@ -632,6 +644,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto lair colossus` | Teleports you to the nearest Cinder Colossus lair's entrance. If it isn't built yet, it says so, builds it, and teleports you once it's ready. |
 | `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
 | `/dross goto lake` | Teleports you to the shore of the nearest of Rimefall's big frozen lakes, facing it. |
+| `/dross goto lair huntsman` | Teleports you to the way into the nearest Huntsman's village, facing in, and says whether he's at home or beaten. |
+| `/dross goto village` | Teleports you to the way into the nearest hunter village (either kind). `/dross goto village <x> <z>`: the one nearest that spot. |
+| `/dross locate villages` | A test tool for now: lists the 5 nearest hunter villages (which kind, where, how far, how many igloos), each with a [go] button. |
 | `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
 | `/dross trader sendhome` | Sends the trader home. |
 | `/dross quest status` | Shows your quest progress. |
@@ -650,6 +665,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
 | `/dross showcase rimefall_mobs` | Lines up Rimefall's animals, frozen, on ice pedestals with signs: a male, a female and a calf Rimehorn, a bull, a cow and a calf moose, and a Pond Skater. Right-click one to play its next animation. |
 | `/dross showcase rimefall_mobs idle` / `walk` / `run` / `charge` / `eat` / `attack` | Plays that animation on every showcase animal nearby (attack: the Rimehorn's horn flick, the moose's ram, the Pond Skater's stab). |
+| `/dross showcase hunters` | Lines up twelve hunter designs (No. 10A-10L, about 2-2.5 blocks tall, the Huntsman's people) in two rows with signs, to pick from for the villages. |
 | `/dross showcase mob_sounds rimefall` | Lists every Rimehorn, moose and Pond Skater sound in chat, each with a [play] button. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |

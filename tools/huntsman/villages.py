@@ -335,6 +335,7 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
              "courts": info["courts"], "huntsman": huntsman, "blocks": n_base, "decor_blocks": n_deco,
              "decor": [list(b) for b in boxes], "decor_names": [grp.name for grp in dec.groups],
              "way_in": [int(ex["entrance"][0]), int(ex["entrance"][2])],
+             "home": ([int(v) for v in ex["lodge"]["home"]] if huntsman and ex["lodge"] is not None else [-1, -1]),
              "moose": kinds.count("dross:moose"), "rimehorns": kinds.count("dross:rimehorn"),
              "probes": [list(c) for c in probes], "lanterns": len(lanterns), "shrine": bool(shrine or huntsman),
              "pens": [list(pen["box"]) for pen in ex.get("pens", ())],
@@ -405,6 +406,7 @@ def write_java(entries):
         lines.append(f'            new Design({e["number"]}, "{e["id"]}", "{e["name"]}", "{e["mood"]}", {e["width"]}, '
                      f'{e["depth"]}, {e["layers"]}, {e["ground_layer"]}, {e["height"]}, {e["igloos"]}, {e["courts"]}, '
                      f'{"true" if e["huntsman"] else "false"}, {e["way_in"][0]}, {e["way_in"][1]}, '
+                     f'{e.get("home", [-1, -1])[0]}, {e.get("home", [-1, -1])[1]}, '
                      f'{e.get("moose", 0)}, {e.get("rimehorns", 0)},\n'
                      f'                    "{boxes}",\n                    "{probes}",\n                    "{pens}")')
     body = ",\n".join(lines)
@@ -428,7 +430,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  * blocks and {{@code layers}} tall, the ground at layer {{@code groundLayer}} (the layers under it reach into the ground:
  * the courtyards are dug three blocks down), the middle the village's middle, the way in at the south (+Z) edge.
  * {{@code wayInX}}, {{@code wayInZ}}: the open snow at the top of its way in (the steps down into the first courtyard),
- * in the template's own coordinates. {{@link #decorBoxes}} holds each decoration's box in the template's own coordinates ("x1,y1,z1,x2,y2,z2;..."): the
+ * in the template's own coordinates; {{@code homeX}}, {{@code homeZ}}: where the Huntsman and his Alpha Moose wait at
+ * home, his yard (his villages only; -1 elsewhere). {{@link #decorBoxes}} holds each decoration's box in the template's own coordinates ("x1,y1,z1,x2,y2,z2;..."): the
  * game keeps each decoration with a 1 in 2 chance ({{@link HunterVillages#DECOR_CHANCE}}). The template holds the
  * animals of its pens too ({{@code moose}} moose, {{@code rimehorns}} Rimehorns), and {{@link #lightProbes}} the darkest
  * floor cell of each of its rooms (template coordinates): lit enough that nothing spawns there; {{@link #pens}} its
@@ -440,7 +443,8 @@ public final class HunterVillageDesigns
 
     public record Design(int number, String id, String name, String mood, int width, int depth, int layers,
                          int groundLayer, int height, int igloos, int courts, boolean huntsman, int wayInX, int wayInZ,
-                         int moose, int rimehorns, String decorBoxes, String lightProbes, String penBoxes)
+                         int homeX, int homeZ, int moose, int rimehorns, String decorBoxes, String lightProbes,
+                         String penBoxes)
     {{
         public ResourceLocation template()
         {{
@@ -517,6 +521,19 @@ public final class HunterVillageDesigns
     public static List<Design> huntsmanVillages()
     {{
         return ALL.stream().filter(Design::huntsman).toList();
+    }}
+
+    /** The design numbered {{@code number}} (the first if there's none). */
+    public static Design byNumber(int number)
+    {{
+        for (Design d : ALL)
+        {{
+            if (d.number() == number)
+            {{
+                return d;
+            }}
+        }}
+        return ALL.get(0);
     }}
 }}
 """

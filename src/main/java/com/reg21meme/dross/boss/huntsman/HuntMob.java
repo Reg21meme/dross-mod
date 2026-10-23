@@ -78,6 +78,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     private static final String TAG_STAGE = "Stage";
     private static final String TAG_WILD_HUNT = "WildHunt";
     private static final String TAG_ANGRY = "Angry";
+    private static final String TAG_HOME = "DrossHome";
 
     /** The anchor is synced in thousandths of a tick. */
     private static final double ANCHOR_UNITS = 1000.0D;
@@ -109,6 +110,12 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     private boolean showcase;
     @Nullable
     UUID partnerId;
+    /** His village (its id, 0 if none), where in it they wait (their yard), and which of its pairs this is (an older
+     * pair that loads after a newer one came is removed): set by {@link com.reg21meme.dross.boss.huntsman.village.HuntsmanVillages}. */
+    long homeVillage;
+    @Nullable
+    BlockPos home;
+    int homeGeneration;
     HuntStage stage = HuntStage.CALM;
     /** The Wild Hunt's bar (the moose keeps it for both). */
     float wildHunt = HuntsmanTuning.WILD_HUNT_HEALTH;
@@ -586,6 +593,12 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         {
             this.bar.removeAllPlayers();
         }
+        // a Huntsman of a village removed without dying (Peaceful) isn't beaten: his village gets a new pair later
+        if (reason == RemovalReason.DISCARDED && !this.isDeadOrDying() && this instanceof Huntsman h
+                && !this.level().isClientSide)
+        {
+            com.reg21meme.dross.boss.huntsman.village.HuntsmanVillages.removed(h);
+        }
     }
 
     @Override
@@ -659,6 +672,42 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         tag.putString(TAG_STAGE, this.stage.name());
         tag.putFloat(TAG_WILD_HUNT, this.wildHunt);
         tag.putBoolean(TAG_ANGRY, this.angry);
+        if (this.home != null)
+        {
+            CompoundTag home = new CompoundTag();
+            home.putLong("Village", this.homeVillage);
+            home.putLong("Pos", this.home.asLong());
+            home.putInt("Generation", this.homeGeneration);
+            tag.put(TAG_HOME, home);
+        }
+    }
+
+    /** Gives it a home: its village, where in it they wait, which of the village's pairs it is. Calm, it wanders near
+     * there ({@link HuntsmanTuning#HOME_WANDER}). */
+    public void setHome(long village, BlockPos at, int generation)
+    {
+        this.homeVillage = village;
+        this.home = at.immutable();
+        this.homeGeneration = generation;
+        this.restrictTo(this.home, HuntsmanTuning.HOME_WANDER);
+    }
+
+    /** Its village's id (0: it has none: a spawn egg's, a summoned one's). */
+    public long homeVillage()
+    {
+        return this.homeVillage;
+    }
+
+    /** Where they wait at home, or null. */
+    @Nullable
+    public BlockPos home()
+    {
+        return this.home;
+    }
+
+    public int homeGeneration()
+    {
+        return this.homeGeneration;
     }
 
     @Override
@@ -684,6 +733,11 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         }
         this.wildHunt = tag.contains(TAG_WILD_HUNT) ? tag.getFloat(TAG_WILD_HUNT) : HuntsmanTuning.WILD_HUNT_HEALTH;
         this.angry = tag.getBoolean(TAG_ANGRY);
+        if (tag.contains(TAG_HOME))
+        {
+            CompoundTag home = tag.getCompound(TAG_HOME);
+            this.setHome(home.getLong("Village"), BlockPos.of(home.getLong("Pos")), home.getInt("Generation"));
+        }
         this.restartClock();                          // (a move left half played plays again from its start)
     }
 

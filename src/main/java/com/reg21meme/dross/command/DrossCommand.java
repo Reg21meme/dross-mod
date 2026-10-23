@@ -1,6 +1,7 @@
 package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -163,7 +164,17 @@ public final class DrossCommand
                         // GotoLair; the lairs themselves are the boss area's ColossusLair and RatKingLair).
                         .then(Commands.literal("lair")
                                 .then(Commands.literal("colossus").executes(context -> GotoLair.colossus(context.getSource())))
-                                .then(Commands.literal("ratking").executes(context -> GotoLair.ratKing(context.getSource()))))
+                                .then(Commands.literal("ratking").executes(context -> GotoLair.ratKing(context.getSource())))
+                                // the nearest Huntsman's village, his home in Rimefall (GotoVillage)
+                                .then(Commands.literal("huntsman").executes(context -> GotoVillage.huntsman(context.getSource()))))
+                        // The nearest hunter village in Rimefall, either kind; with x z, the one nearest that spot
+                        // (the locate list's [go] buttons). The logic lives in GotoVillage.
+                        .then(Commands.literal("village").executes(context -> GotoVillage.nearest(context.getSource()))
+                                .then(Commands.argument("x", IntegerArgumentType.integer())
+                                        .then(Commands.argument("z", IntegerArgumentType.integer())
+                                                .executes(context -> GotoVillage.nearestTo(context.getSource(),
+                                                        IntegerArgumentType.getInteger(context, "x"),
+                                                        IntegerArgumentType.getInteger(context, "z"))))))
                         // The nearest regular sewer under Blightwood (the logic lives in GotoSewer; the sewers are the
                         // dimension area's).
                         .then(Commands.literal("sewer").executes(context -> GotoSewer.teleport(context.getSource())))
@@ -213,7 +224,14 @@ public final class DrossCommand
                         // Boss area's hunter villages (ten designs and the Huntsman's lodge; HunterVillageShowcase).
                         .then(Commands.literal("hunter_villages").executes(HunterVillageShowcase::run))
                         // Boss area's hunter igloos and decorations, one template each (HunterIglooShowcase).
-                        .then(Commands.literal("hunter_igloos").executes(HunterIglooShowcase::run)))
+                        .then(Commands.literal("hunter_igloos").executes(HunterIglooShowcase::run))
+                        // Boss area's hunter villager candidates, the Huntsman's people (HunterShowcase).
+                        .then(Commands.literal("hunters").executes(HunterShowcase::run)))
+                // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
+                // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).
+                .then(Commands.literal("locate")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("villages").executes(context -> GotoVillage.locate(context.getSource()))))
                 // Boss area's test commands: boss <action> <boss> (the logic lives in BossCommands). The arena's chat
                 // buttons run BossCommands.SUMMON_COMMAND ("/dross boss summon colossus") and SUMMON_RAT_KING_COMMAND
                 // ("/dross boss summon ratking"), so keep those paths exactly as they are.

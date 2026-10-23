@@ -2000,6 +2000,29 @@ def rimefall_lake_structures():
                      "placement": {"type": "dross:boss_site", "use": RIMEFALL_AREA_USE, "salt": RIMEFALL_LAKE_SALT}}
     return structure, structure_set, {"replace": False, "values": ["dross:rimefall"]}
 
+
+# Rimefall's hunter villages (the user, October 23, 2026: "add the villages to the Rimefall biomes ... the same logic"):
+# in every group of 3 Rimefall patches one Huntsman's village (the biome's boss, dross:huntsman_village) and in each of
+# the other two a regular hunter village half the time (its filler, dross:hunter_village), where the boss-site planner
+# puts them (dimension/rimefall/RimefallVillages: off the big lake, deep in the patch). Built in the "surface
+# structures" step, after the lake and before the trees and plants (which keep off them: dross:not_on_rimefall_lake).
+HUNTSMAN_VILLAGE_USE = "dross:huntsman_village"
+HUNTER_VILLAGE_USE = "dross:hunter_village"
+HUNTSMAN_VILLAGE_SALT = 1023202601      # (under 2^31: Minecraft reads a salt as an int)
+HUNTER_VILLAGE_SALT = 1023202602
+
+
+def hunter_village_structures():
+    structures, sets = {}, {}
+    for name, huntsman, use, salt in (("huntsman_village", True, HUNTSMAN_VILLAGE_USE, HUNTSMAN_VILLAGE_SALT),
+                                      ("hunter_village", False, HUNTER_VILLAGE_USE, HUNTER_VILLAGE_SALT)):
+        structures[name] = {"type": "dross:hunter_village", "huntsman": huntsman,
+                            "biomes": "#dross:has_structure/hunter_village", "spawn_overrides": {},
+                            "step": "surface_structures", "terrain_adaptation": "none"}
+        sets[name] = {"structures": [{"structure": f"dross:{name}", "weight": 1}],
+                      "placement": {"type": "dross:boss_site", "use": use, "salt": salt}}
+    return structures, sets, {"replace": False, "values": ["dross:rimefall"]}
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2157,6 +2180,12 @@ def main():
     write_json("structure", "rimefall_lake", lake)
     write_json("structure_set", "rimefall_lake", lake_set)
     write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "rimefall_lake.json"), lake_biomes)
+    villages, village_sets, village_biomes = hunter_village_structures()
+    for name, js in villages.items():
+        write_json("structure", name, js)
+    for name, js in village_sets.items():
+        write_json("structure_set", name, js)
+    write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "hunter_village.json"), village_biomes)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())

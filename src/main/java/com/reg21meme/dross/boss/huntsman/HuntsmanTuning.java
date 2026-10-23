@@ -16,6 +16,10 @@ public final class HuntsmanTuning
     /** Stage 1, the Wild Hunt: one bar for both of them (the user, October 23, 2026: "increase the Wild Hunt's health
      * by 50"; 200 before). */
     public static final float WILD_HUNT_HEALTH = 250.0F;
+    /** At home in his village (since October 23, 2026), calm, they wander at most this far from their yard. */
+    public static final int HOME_WANDER = 24;
+    /** A fight broken off this far or more from home: they go back home (the user: "walk away: they're back home"). */
+    public static final double HOME_RETURN = 16.0D;
     /** Stage 2: each of them on his own bar. */
     public static final float HUNTSMAN_HEALTH = 150.0F;
     public static final float MOOSE_HEALTH = 150.0F;

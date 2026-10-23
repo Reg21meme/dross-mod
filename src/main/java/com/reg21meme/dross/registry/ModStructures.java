@@ -2,6 +2,8 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.huntsman.village.HunterDecorFilter;
+import com.reg21meme.dross.boss.huntsman.village.HunterVillagePiece;
+import com.reg21meme.dross.boss.huntsman.village.HunterVillageStructure;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakePiece;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakeStructure;
 import com.reg21meme.dross.dimension.sewer.RatCavePiece;
@@ -58,6 +60,13 @@ public final class ModStructures
             () -> () -> RimefallLakeStructure.CODEC);
     public static final RegistryObject<StructurePieceType> RIMEFALL_LAKE_PIECE = STRUCTURE_PIECES.register("rimefall_lake",
             () -> (StructurePieceType.ContextlessType) RimefallLakePiece::new);
+
+    // Boss area: dross:hunter_village, Rimefall's hunter villages (the Huntsman's and regular ones; boss/huntsman/village),
+    // and its one piece
+    public static final RegistryObject<StructureType<HunterVillageStructure>> HUNTER_VILLAGE = STRUCTURE_TYPES.register("hunter_village",
+            () -> () -> HunterVillageStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> HUNTER_VILLAGE_PIECE = STRUCTURE_PIECES.register("hunter_village",
+            () -> (StructurePieceType.ContextlessType) HunterVillagePiece::new);
 
     // Boss area: dross:hunter_decor, leaves out the decorations a hunter village didn't roll (boss/huntsman/village)
     public static final RegistryObject<StructureProcessorType<HunterDecorFilter>> HUNTER_DECOR = STRUCTURE_PROCESSORS.register("hunter_decor",

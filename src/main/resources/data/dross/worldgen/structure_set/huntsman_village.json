@@ -1,0 +1,13 @@
+{
+  "structures": [
+    {
+      "structure": "dross:huntsman_village",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:boss_site",
+    "use": "dross:huntsman_village",
+    "salt": 1023202601
+  }
+}

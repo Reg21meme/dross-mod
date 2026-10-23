@@ -119,5 +119,40 @@ public final class RimefallTuning
     /** The most ice a patch's measuring follows (a bigger one counts as big enough). */
     public static final int PATCH_SEARCH_LIMIT = 4000;
 
+    // ---------------------------------------------------------------- the hunter villages (RimefallVillages; October 23, 2026)
+
+    /** Round a village its ground is blended back to the land's own over this many blocks: a column this far out is never
+     * more than this many above or below the village's level (a staircase, at most a block a step). */
+    public static final int VILLAGE_BLEND = 16;
+    /** The village and its blend ring stay this far inside its patch (deep in Rimefall: a chase stays in it). */
+    public static final double VILLAGE_EDGE_MARGIN = 6.0D;
+    /** ... and this far off its lake's edge (the user: "not on the ice lake"; the shore is 16 wide). */
+    public static final double VILLAGE_LAKE_CLEARANCE = SHORE_WIDTH + 12.0D;
+    /** The ground under a village may step this far from its level (the median of its tops) at most, or this far for the
+     * Huntsman's in a group where his fits nowhere by the normal rule. */
+    public static final int VILLAGE_MAX_STEP = 10;
+    public static final int VILLAGE_MAX_STEP_RELAXED = 24;
+    /** The fit test: this many of the patch's deepest spots tried, this far apart; this many of the kind's designs. */
+    public static final int VILLAGE_TRIES = 16;
+    public static final int VILLAGE_SPOT_SPACING = 24;
+    public static final int VILLAGE_DESIGN_TRIES = 3;
+    /** ... and for the Huntsman's in a group where his fits nowhere by the normal rule ("a guarantee of 1"): more spots,
+     * closer together, and only the village itself has to be in the patch (its blend ring may run over the border). */
+    public static final int VILLAGE_TRIES_RELAXED = 48;
+    public static final int VILLAGE_SPOT_SPACING_RELAXED = 12;
+    /** A patch's lake goes round the best of the Huntsman's village's places that leaves it room: at most this many
+     * tried. */
+    public static final int VILLAGE_RESERVE_TRIES = 40;
+    /** The ground under a footprint is sampled this far apart; its edges checked against the patch this far apart. */
+    public static final int VILLAGE_SAMPLE_STEP = 12;
+    public static final int VILLAGE_EDGE_STEP = 16;
+    /** A herd's spot keeps this far off a planned village (past its blend ring). */
+    public static final int HERD_VILLAGE_CLEARANCE = 24;
+    /** Looking for the planned villages near a place: this far round it (a village's middle is at most about 150 from
+     * any of its columns). */
+    public static final int VILLAGE_QUERY_RADIUS = 200;
+    /** Listing the nearest villages: the search widens from this far. */
+    public static final int VILLAGE_LIST_STEP = 1500;
+
     private RimefallTuning() {}
 }

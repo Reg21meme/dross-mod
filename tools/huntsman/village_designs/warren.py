@@ -1402,7 +1402,9 @@ def _lodge_yard(g, dec, box, lodge_items, rng):
     for name, draw in yard:
         dec.place(name, draw)
     dec.keepout[max(0, x1 - 1):x2 + 2, max(0, z1 - 1):z2 + 2] = True
-    return {"box": box, "domes": [], "placed": lodge_items}
+    # where he and the Alpha Moose wait at home (the user, October 23, 2026: "make sure the hunter spawns in his
+    # village"): his yard, on the path out from his door to where it turns to the barn
+    return {"box": box, "domes": [], "placed": lodge_items, "home": (lx, turn_z - 1)}
 
 
 # ---------------------------------------------------------------- the ring of lights and the shrine's path

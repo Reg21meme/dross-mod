@@ -101,6 +101,10 @@ public final class DrossColors {
      */
     public static final int RIMEFALL_SHOWCASE_BUTTON = 0xA6D8F2;
 
+    /** In /dross locate villages (command/GotoVillage; its [go] buttons are the Boss section's HUNTER_VILLAGE_BUTTON),
+     * the Huntsman's villages stand out: antler amber. */
+    public static final int HUNTSMAN_VILLAGE_LABEL = 0xE0B060;
+
     // ---------------------------------------------------------------- Dimension (dimension-builder)
     // The Dross's own blocks and plants. (Their texture colors live in the Python palettes in tools/terrain/draw_blocks.py.)
 

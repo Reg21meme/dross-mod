@@ -14,6 +14,8 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
@@ -48,35 +50,127 @@ public final class RimefallAreas
 
     private RimefallAreas() {}
 
-    /** A Rimefall patch's plan: its lake (null if not even a small one fits) and its herds' spots (y: on the ground). */
-    public record RimefallArea(@Nullable RimefallLake lake, List<BlockPos> herds)
+    /**
+     * A Rimefall patch's plan: its lake (null if not even a small one fits), its herds' spots (y: on the ground), and where
+     * each kind of hunter village would go in it (null: none fits; whether the patch gets one is its group's plan:
+     * {@link BossSites#HUNTSMAN_VILLAGE}, {@link BossSites#HUNTER_VILLAGE}): the Huntsman's, the Huntsman's by the looser
+     * rule (only worked out when his doesn't fit by the normal one), a regular one. The herds keep off all of them.
+     */
+    public record RimefallArea(@Nullable RimefallLake lake, List<BlockPos> herds,
+                               @Nullable RimefallVillages.VillagePlan huntsmanVillage,
+                               @Nullable RimefallVillages.VillagePlan huntsmanVillageRelaxed,
+                               @Nullable RimefallVillages.VillagePlan hunterVillage)
     {
+        List<RimefallVillages.VillagePlan> villages()
+        {
+            List<RimefallVillages.VillagePlan> out = new ArrayList<>(3);
+            for (RimefallVillages.VillagePlan v : new RimefallVillages.VillagePlan[] {this.huntsmanVillage,
+                    this.huntsmanVillageRelaxed, this.hunterVillage})
+            {
+                if (v != null)
+                {
+                    out.add(v);
+                }
+            }
+            return out;
+        }
     }
+
+    /** Each patch's plan, once worked out (the planner asks for it as three uses: the area and the two villages). */
+    private static final Map<Long, RimefallArea> AREAS = new ConcurrentHashMap<>();
+    /** Past this many remembered plans the memory starts over (a world has a few hundred Rimefall patches in reach). */
+    private static final int AREAS_KEPT = 8192;
 
     // ---------------------------------------------------------------- the plan (the planner's fit test)
 
     /** The planner's fit test for {@link BossSites#RIMEFALL_AREA}: every patch gets an area (its spot: the lake's middle, or its deepest point). */
     public static Optional<SiteFinder.Found> find(SiteTerrain terrain, Patch patch, boolean relaxed)
     {
+        RimefallArea area = area(terrain, patch);
+        BlockPos pos = area.lake() != null ? area.lake().centre() : patch.deepest().atY((int) Math.floor(
+                terrain.height(patch.deepest().getX(), patch.deepest().getZ())));
+        return Optional.of(new SiteFinder.Found(pos, area));
+    }
+
+    /** The planner's fit test for {@link BossSites#HUNTSMAN_VILLAGE}: where in the patch his village goes (its middle). */
+    public static Optional<SiteFinder.Found> findHuntsmanVillage(SiteTerrain terrain, Patch patch, boolean relaxed)
+    {
+        RimefallArea area = area(terrain, patch);
+        RimefallVillages.VillagePlan plan = relaxed ? area.huntsmanVillageRelaxed() : area.huntsmanVillage();
+        return Optional.ofNullable(plan).map(p -> new SiteFinder.Found(p.ground(), p));
+    }
+
+    /** The planner's fit test for {@link BossSites#HUNTER_VILLAGE}: where in the patch a regular village goes. */
+    public static Optional<SiteFinder.Found> findHunterVillage(SiteTerrain terrain, Patch patch, boolean relaxed)
+    {
+        RimefallVillages.VillagePlan plan = area(terrain, patch).hunterVillage();
+        return Optional.ofNullable(plan).map(p -> new SiteFinder.Found(p.ground(), p));
+    }
+
+    /** The patch's plan (worked out once: every answer the same for the same seed and patch). */
+    static RimefallArea area(SiteTerrain terrain, Patch patch)
+    {
+        long key = mix(terrain.seed(), patch.id());
+        RimefallArea known = AREAS.get(key);
+        if (known != null)
+        {
+            return known;
+        }
+        RimefallArea area = plan(terrain, patch);
+        if (AREAS.size() > AREAS_KEPT)
+        {
+            AREAS.clear();
+        }
+        RimefallArea previous = AREAS.putIfAbsent(key, area);
+        return previous != null ? previous : area;
+    }
+
+    private static RimefallArea plan(SiteTerrain terrain, Patch patch)
+    {
         long seed = mix(terrain.seed(), patch.id());
         Heights heights = new Heights(terrain);
-        RimefallLake lake = findLake(heights, patch, RimefallTuning.LAKE_RADIUS, seed, RimefallTuning.MAX_CUT, RimefallTuning.MAX_DAM);
-        if (lake == null)
+        // The Huntsman's village is big (about 200 x 240) and every group of three patches has to hold one (the user: "a
+        // guarantee of 1"), so its spot is kept first, from the land alone, and the lake goes round it: his village's
+        // places from the best, until one leaves the lake room; only a patch where none does has its lake planned
+        // first instead (October 23, 2026: with the lake first, half of Rimefall's groups had no room for him).
+        List<RimefallVillages.VillagePlan> options = new ArrayList<>(
+                RimefallVillages.candidates(heights::top, patch, null, seed, true, false));
+        options.addAll(RimefallVillages.candidates(heights::top, patch, null, seed, true, true));
+        RimefallLake lake = null;
+        // (the big lake round any of them first, then the small one: a village never costs a lake its size if it can help)
+        for (int size = 0; size < LAKE_SIZES && lake == null; size++)
         {
-            lake = findLake(heights, patch, RimefallTuning.LAKE_SMALL_RADIUS, seed, RimefallTuning.MAX_CUT, RimefallTuning.MAX_DAM);
+            for (int i = 0; i < options.size() && i < RimefallTuning.VILLAGE_RESERVE_TRIES && lake == null; i++)
+            {
+                lake = findLake(heights, patch, seed, size, options.get(i));
+            }
         }
         if (lake == null)
         {
-            lake = findLake(heights, patch, RimefallTuning.LAKE_SMALL_RADIUS, seed, RimefallTuning.LAST_RESORT_MAX_CUT,
-                    RimefallTuning.LAST_RESORT_MAX_DAM);
+            lake = findLakes(heights, patch, seed, null);
         }
-        List<BlockPos> herds = herdSpots(heights, patch, lake, seed);
-        BlockPos pos = lake != null ? lake.centre() : patch.deepest().atY(heights.top(patch.deepest().getX(), patch.deepest().getZ()) + 1);
-        return Optional.of(new SiteFinder.Found(pos, new RimefallArea(lake, List.copyOf(herds))));
+        RimefallLake lakeFound = lake;
+        // its villages' spots, off the lake (the user: "not on the ice lake, any other part"), then its herds off them
+        RimefallVillages.VillagePlan huntsman = RimefallVillages.plan(heights::top, patch, lake, seed, true, false)
+                .orElse(null);
+        RimefallVillages.VillagePlan relaxedHuntsman = huntsman != null ? null
+                : RimefallVillages.plan(heights::top, patch, lake, seed, true, true).orElse(null);
+        RimefallVillages.VillagePlan hunter = RimefallVillages.plan(heights::top, patch, lake, seed, false, false)
+                .or(() -> RimefallVillages.plan(heights::top, patch, lakeFound, seed, false, true)).orElse(null);
+        List<RimefallVillages.VillagePlan> villages = new ArrayList<>(3);
+        for (RimefallVillages.VillagePlan v : new RimefallVillages.VillagePlan[] {huntsman, relaxedHuntsman, hunter})
+        {
+            if (v != null)
+            {
+                villages.add(v);
+            }
+        }
+        List<BlockPos> herds = herdSpots(heights, patch, lake, villages, seed);
+        return new RimefallArea(lake, List.copyOf(herds), huntsman, relaxedHuntsman, hunter);
     }
 
     /** The ground's top block from the noise, remembered (the fit test asks about the same spots many times). */
-    private static final class Heights
+    static final class Heights
     {
         private final SiteTerrain terrain;
         private final Long2IntOpenHashMap known = new Long2IntOpenHashMap();
@@ -105,7 +199,46 @@ public final class RimefallAreas
      * spot would need cutting more than {@code maxCut} or a dam over {@code maxDam}.
      */
     @Nullable
+    private static RimefallLake findLakes(Heights heights, Patch patch, long seed, @Nullable RimefallVillages.VillagePlan avoid)
+    {
+        RimefallLake lake = null;
+        for (int size = 0; size < LAKE_SIZES && lake == null; size++)
+        {
+            lake = findLake(heights, patch, seed, size, avoid);
+        }
+        return lake;
+    }
+
+    /** The lake's sizes tried, biggest first: the big lake, the small one, the small one cutting and damming more. */
+    private static final int LAKE_SIZES = 3;
+
+    @Nullable
+    private static RimefallLake findLake(Heights heights, Patch patch, long seed, int size,
+                                         @Nullable RimefallVillages.VillagePlan avoid)
+    {
+        return switch (size)
+        {
+            case 0 -> findLake(heights, patch, RimefallTuning.LAKE_RADIUS, seed, RimefallTuning.MAX_CUT,
+                    RimefallTuning.MAX_DAM, avoid);
+            case 1 -> findLake(heights, patch, RimefallTuning.LAKE_SMALL_RADIUS, seed, RimefallTuning.MAX_CUT,
+                    RimefallTuning.MAX_DAM, avoid);
+            default -> findLake(heights, patch, RimefallTuning.LAKE_SMALL_RADIUS, seed, RimefallTuning.LAST_RESORT_MAX_CUT,
+                    RimefallTuning.LAST_RESORT_MAX_DAM, avoid);
+        };
+    }
+
+    /** As {@link #findLake(Heights, Patch, double, long, int, int, RimefallVillages.VillagePlan)} with nothing to avoid. */
+    @Nullable
     static RimefallLake findLake(Heights heights, Patch patch, double radius, long seed, int maxCut, int maxDam)
+    {
+        return findLake(heights, patch, radius, seed, maxCut, maxDam, null);
+    }
+
+    /** ... and, with {@code avoid}, never where its edge comes within {@link RimefallTuning#VILLAGE_LAKE_CLEARANCE} of
+     * that village or its blend ring. */
+    @Nullable
+    static RimefallLake findLake(Heights heights, Patch patch, double radius, long seed, int maxCut, int maxDam,
+                                 @Nullable RimefallVillages.VillagePlan avoid)
     {
         RimefallLake shape = RimefallLake.shape(radius, seed);
         double reach = shape.reach();
@@ -119,6 +252,10 @@ public final class RimefallAreas
                 continue;
             }
             RimefallLake moved = shape.at(spot.getX(), spot.getZ(), 0);
+            if (avoid != null && !RimefallVillages.clearOf(avoid, moved))
+            {
+                continue;
+            }
             int step = RimefallTuning.SAMPLE_STEP;
             int span = (int) Math.ceil(reach) + RimefallTuning.SHORE_WIDTH;
             List<Integer> inside = new ArrayList<>();
@@ -196,8 +333,10 @@ public final class RimefallAreas
         return Math.max(1, base) + (extra ? 1 : 0);
     }
 
-    /** The herds' spots: the patch's deepest spots, {@link RimefallTuning#HERD_SPACING} apart, well away from the lake. */
-    static List<BlockPos> herdSpots(Heights heights, Patch patch, @Nullable RimefallLake lake, long seed)
+    /** The herds' spots: the patch's deepest spots, {@link RimefallTuning#HERD_SPACING} apart, well away from the lake
+     * and off the places its villages would go ({@link RimefallTuning#HERD_VILLAGE_CLEARANCE} past their blend rings). */
+    static List<BlockPos> herdSpots(Heights heights, Patch patch, @Nullable RimefallLake lake,
+                                    List<RimefallVillages.VillagePlan> villages, long seed)
     {
         int count = herdCount(patch, seed);
         List<BlockPos> spots = new ArrayList<>();
@@ -211,6 +350,10 @@ public final class RimefallAreas
             {
                 continue;
             }
+            if (inVillage(villages, spot))
+            {
+                continue;
+            }
             spots.add(spot.atY(heights.top(spot.getX(), spot.getZ()) + 1));
         }
         if (spots.isEmpty())
@@ -221,6 +364,10 @@ public final class RimefallAreas
             for (BlockPos spot : patch.spots(RimefallTuning.HERD_LAST_TRIES, RimefallTuning.HERD_LAST_SPACING))
             {
                 double out = lake == null ? Double.MAX_VALUE : lake.outside(spot.getX(), spot.getZ());
+                if (inVillage(villages, spot))
+                {
+                    continue;
+                }
                 if (out >= far)
                 {
                     far = out;
@@ -237,6 +384,18 @@ public final class RimefallAreas
             }
         }
         return spots;
+    }
+
+    private static boolean inVillage(List<RimefallVillages.VillagePlan> villages, BlockPos spot)
+    {
+        for (RimefallVillages.VillagePlan v : villages)
+        {
+            if (v.covers(spot.getX(), spot.getZ(), RimefallTuning.HERD_VILLAGE_CLEARANCE))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static long mix(long seed, long id)

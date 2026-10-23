@@ -1,5 +1,9 @@
 package com.reg21meme.dross.dimension.worldgen;
 
+import com.reg21meme.dross.dimension.sites.BossSites;
+import com.reg21meme.dross.dimension.rimefall.RimefallVillages;
+import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.dimension.DrossBiomes;
 import com.mojang.serialization.Codec;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -89,12 +93,46 @@ public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
         }
     }
 
+    /** The hunter villages whose ground reaches into the chunks round {@code centre} (none unless one is Rimefall). */
+    private static List<RimefallVillages.VillagePlan> villagesNear(WorldGenLevel level, ChunkPos centre)
+    {
+        if (!level.getLevel().dimension().equals(ModDimensions.DROSS_LEVEL))
+        {
+            return List.of();
+        }
+        BossSites sites = BossSites.forLevel(level.getLevel());
+        boolean rimefall = false;
+        for (int cx = centre.x - REACH_CHUNKS; cx <= centre.x + REACH_CHUNKS && !rimefall; cx++)
+        {
+            for (int cz = centre.z - REACH_CHUNKS; cz <= centre.z + REACH_CHUNKS && !rimefall; cz++)
+            {
+                rimefall = sites.patchAt(DrossBiomes.RIMEFALL, (cx << 4) + 8, (cz << 4) + 8).isPresent();
+            }
+        }
+        return rimefall ? RimefallVillages.villagesAround(sites, centre.x, centre.z, REACH_CHUNKS, 0) : List.of();
+    }
+
+    private static boolean inVillage(List<RimefallVillages.VillagePlan> villages, int x, int z)
+    {
+        for (RimefallVillages.VillagePlan v : villages)
+        {
+            if (v.covers(x, z, 0))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean tidy(FeaturePlaceContext<NoneFeatureConfiguration> context)
     {
         WorldGenLevel level = context.level();
         ChunkPos centre = new ChunkPos(context.origin());
         int minY = level.getMinBuildHeight();
         boolean changed = false;
+        // a hunter village is left as it's built (its wall skulls, lanterns and crops stand on blocks that may be in a
+        // neighbouring chunk not built yet): October 23, 2026
+        List<RimefallVillages.VillagePlan> villages = villagesNear(level, centre);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int cx = centre.x - REACH_CHUNKS; cx <= centre.x + REACH_CHUNKS; cx++)
         {
@@ -118,6 +156,10 @@ public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
                 {
                     for (int z = z0; z < z0 + 16; z++)
                     {
+                        if (inVillage(villages, x, z))
+                        {
+                            continue;
+                        }
                         // the land's top as the terrain made it (world generation's own heightmap: features never change it)
                         int naturalTop = chunk.getHeight(Heightmap.Types.WORLD_SURFACE_WG, x & 15, z & 15);
                         changed |= tidyColumn(level, chunk, pos, x, z, top, minY, naturalTop);

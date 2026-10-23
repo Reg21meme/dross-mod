@@ -128,9 +128,20 @@ public final class BossSites
      * and its Rimehorn herds' spots ({@link RimefallAreas.RimefallArea}; the user's requests of October 19, 2026).
      */
     public static final SiteUse RIMEFALL_AREA = new SiteUse(id("rimefall_area"), DrossBiomes.RIMEFALL, RimefallAreas::find, true);
+    /**
+     * The Huntsman's village (his lodge, the Alpha Moose's barn, 26-29 igloos), Rimefall's boss: one patch of every group
+     * of 3, out forever (the user, October 23, 2026: "the boss is the first 3, then the next 3 ..."). Where in a patch it
+     * fits is worked out with the patch's plan ({@link RimefallAreas}: off its lake, its herds off it).
+     */
+    public static final SiteUse HUNTSMAN_VILLAGE = new SiteUse(id("huntsman_village"), DrossBiomes.RIMEFALL,
+            RimefallAreas::findHuntsmanVillage);
+    /** A regular hunter village (15-20 igloos, no lodge), in Rimefall patches kept for future bosses (a 1 in 2 chance). */
+    public static final SiteUse HUNTER_VILLAGE = new SiteUse(id("hunter_village"), DrossBiomes.RIMEFALL,
+            RimefallAreas::findHunterVillage);
 
     /** Every use, by id (the structure sets' placement JSON names one: {@code "use": "dross:rat_king_sewer"}). */
-    public static final List<SiteUse> USES = List.of(COLOSSUS_LAIR, RAT_KING_SEWER, REGULAR_SEWER, RIMEFALL_AREA);
+    public static final List<SiteUse> USES = List.of(COLOSSUS_LAIR, RAT_KING_SEWER, REGULAR_SEWER, RIMEFALL_AREA,
+            HUNTSMAN_VILLAGE, HUNTER_VILLAGE);
 
     /**
      * A boss biome: its current boss (slot 0 of every group; null while its bosses haven't come yet: then every group's
@@ -143,13 +154,13 @@ public final class BossSites
     }
 
     /**
-     * The boss biomes. Rimefall has no boss yet (the Huntsman's home comes later), but its patches are planned for their
-     * lakes and herds ({@link #RIMEFALL_AREA}).
+     * The boss biomes. Rimefall's boss is the Huntsman's village (since October 23, 2026; until then it had none and its
+     * patches were planned only for their lakes and herds, {@link #RIMEFALL_AREA}), its filler a regular hunter village.
      */
     public static final List<BossBiome> BOSS_BIOMES = List.of(
             new BossBiome(DrossBiomes.CINDER_WASTES, COLOSSUS_LAIR, null, 0.0D),
             new BossBiome(DrossBiomes.BLIGHTWOOD, RAT_KING_SEWER, REGULAR_SEWER, BossSitesTuning.REGULAR_SEWER_CHANCE),
-            new BossBiome(DrossBiomes.RIMEFALL, null, null, 0.0D));
+            new BossBiome(DrossBiomes.RIMEFALL, HUNTSMAN_VILLAGE, HUNTER_VILLAGE, BossSitesTuning.HUNTER_VILLAGE_CHANCE));
 
     /** The per-patch uses of a biome (every patch of it gets one, where it fits). */
     private static List<SiteUse> perPatchUses(ResourceKey<Biome> biome)

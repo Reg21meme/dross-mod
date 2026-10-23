@@ -3,6 +3,7 @@ package com.reg21meme.dross.dimension.worldgen;
 import com.mojang.serialization.Codec;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.rimefall.RimefallAreas;
+import com.reg21meme.dross.dimension.rimefall.RimefallVillages;
 import com.reg21meme.dross.dimension.sites.BossSites;
 import com.reg21meme.dross.registry.ModPlacementModifiers;
 import net.minecraft.core.BlockPos;
@@ -23,6 +24,8 @@ import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
 public class NotOnRimefallLakeFilter extends PlacementFilter
 {
     public static final NotOnRimefallLakeFilter INSTANCE = new NotOnRimefallLakeFilter();
+    /** A feature keeps this far off a hunter village's blend ring too (a tree's crown, a boulder's spread). */
+    private static final int VILLAGE_MARGIN = 6;
     public static final Codec<NotOnRimefallLakeFilter> CODEC = Codec.unit(() -> INSTANCE);
 
     private NotOnRimefallLakeFilter() {}
@@ -35,7 +38,10 @@ public class NotOnRimefallLakeFilter extends PlacementFilter
         {
             return true;
         }
-        return !RimefallAreas.nearLake(BossSites.forLevel(level), pos.getX(), pos.getZ());
+        BossSites sites = BossSites.forLevel(level);
+        // nor on a hunter village or the ring its ground is blended over (October 23, 2026: built before the trees)
+        return !RimefallAreas.nearLake(sites, pos.getX(), pos.getZ())
+                && RimefallVillages.villageAt(sites, pos.getX(), pos.getZ(), VILLAGE_MARGIN).isEmpty();
     }
 
     @Override
