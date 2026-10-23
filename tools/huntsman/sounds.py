@@ -637,8 +637,8 @@ def versions(prefix, fn, labels):
 
 HU, AM = "huntsman", "alpha_moose"
 HUNTSMAN, MOOSE, GEAR = "The Huntsman: his voice", "The Alpha Moose", "The Huntsman: his weapons"
-# The user's picks (October 23, 2026) are each event's `picks`. Not picked: his grunts, hurt and death (remade to sound
-# human, waiting for a pick), and the sounds they skipped (footsteps, landing, the spear's hit and throw, the bow's
+# The user's picks (October 23, 2026) are each event's `picks` (his grunt, hurt, death and war cry picked after his voice
+# was remade with voicekit). Not picked: the sounds they skipped (footsteps, landing, the spear's hit and throw, the bow's
 # draw), which play version 1 until they say otherwise. The spear's swing plays version 1 for a thrust and 2 for a
 # sweep (HuntSoundCues).
 EVENTS = [
@@ -646,21 +646,21 @@ EVENTS = [
                                                                "ow, ow, ooooo",
                                                                "his howl, the pack answering far off",
                                                                "the man's wolf howl (your pick before)")),
-          "Huntsman howls", HUNTSMAN, "War cry, when he spots you", picks=(4,), pending=True),
+          "Huntsman howls", HUNTSMAN, "War cry, when he spots you", picks=(4,)),
     Event("entity.huntsman.ambient", HU, versions("ambient", hu_ambient, ("a slow frosty breath and a low hm",
                                                                            "sniffing out your trail, then a growl",
                                                                            "a low hunting hum")),
           "Huntsman breathes", HUNTSMAN, "Idle", picks=(1, 2, 3)),
     Event("entity.huntsman.effort", HU, versions("effort", hu_effort, ("hup!", "hah!", "hyah! (a battle yell)")),
-          "Huntsman grunts", HUNTSMAN, "The grunt of a blow (spear thrusts, the leap)"),
+          "Huntsman grunts", HUNTSMAN, "The grunt of a blow (spear thrusts, the leap)", picks=(2,)),
     Event("entity.huntsman.hurt", HU, versions("hurt", hu_hurt, ("ugh! (a croak, cut off)",
                                                                   "agh! and a hiss through his teeth",
                                                                   "oof, winded")),
-          "Huntsman hurts", HUNTSMAN, "Hurt"),
+          "Huntsman hurts", HUNTSMAN, "Hurt", picks=(3,)),
     Event("entity.huntsman.death", HU, versions("death", hu_death, ("aaaagh... falling into a croak, his last breath",
                                                                      "nngh... aaah, letting go",
                                                                      "two gasps, then a long sigh")),
-          "Huntsman dies", HUNTSMAN, "Death"),
+          "Huntsman dies", HUNTSMAN, "Death", picks=(1,)),
     Event("entity.huntsman.step", HU, versions("step", hu_step, ("a boot in the snow", "a softer one")),
           "Footsteps", HUNTSMAN, "Footsteps", volume=0.6, picks=(1,)),
     Event("entity.huntsman.land", HU, versions("land", hu_land, ("landing in the snow", "landing, more frost")),

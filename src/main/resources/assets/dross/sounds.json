@@ -816,9 +816,7 @@
   "entity.huntsman.effort": {
     "subtitle": "subtitles.dross.huntsman.effort",
     "sounds": [
-      {"name": "dross:huntsman/effort_1"},
-      {"name": "dross:huntsman/effort_2"},
-      {"name": "dross:huntsman/effort_3"}
+      {"name": "dross:huntsman/effort_2"}
     ]
   },
   "entity.huntsman.effort.v1": {
@@ -842,8 +840,6 @@
   "entity.huntsman.hurt": {
     "subtitle": "subtitles.dross.huntsman.hurt",
     "sounds": [
-      {"name": "dross:huntsman/hurt_1"},
-      {"name": "dross:huntsman/hurt_2"},
       {"name": "dross:huntsman/hurt_3"}
     ]
   },
@@ -868,9 +864,7 @@
   "entity.huntsman.death": {
     "subtitle": "subtitles.dross.huntsman.death",
     "sounds": [
-      {"name": "dross:huntsman/death_1"},
-      {"name": "dross:huntsman/death_2"},
-      {"name": "dross:huntsman/death_3"}
+      {"name": "dross:huntsman/death_1"}
     ]
   },
   "entity.huntsman.death.v1": {
