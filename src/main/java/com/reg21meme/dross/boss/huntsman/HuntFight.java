@@ -40,6 +40,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.entity.PartEntity;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -126,9 +127,14 @@ public final class HuntFight
         return e instanceof HuntMob h && !h.isRemoved() ? h : null;
     }
 
-    /** True if {@code other} is {@code mob}'s partner (or {@code mob} itself). */
+    /** True if {@code other} is {@code mob}'s partner (or {@code mob} itself, or a hitbox of either: the Alpha
+     * Moose's body parts). */
     public static boolean isPartner(HuntMob mob, @Nullable Entity other)
     {
+        if (other instanceof PartEntity<?> part)
+        {
+            return isPartner(mob, part.getParent());
+        }
         return other == mob || other != null && (other.getUUID().equals(mob.partnerId)
                 || other instanceof HuntMob h && mob.getUUID().equals(h.partnerId));
     }

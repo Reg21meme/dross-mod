@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.huntsman;
 
 import com.reg21meme.dross.boss.huntsman.skull.SkullDrops;
+import com.reg21meme.dross.boss.rimefall.RimefallBodyPart;
 import com.reg21meme.dross.registry.ModItems;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -15,6 +16,7 @@ import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraftforge.entity.PartEntity;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.core.animation.RawAnimation;
@@ -43,12 +45,68 @@ public class AlphaMoose extends HuntMob
     /** Ridden, the Huntsman in its saddle reaches this much higher (his antlers, his spear). */
     private static final double DRAWN_ABOVE_RIDDEN = 4.4D;
 
+    /**
+     * Its body's hitboxes past its main one (a square 2.8 across round its middle: it's 6.7 blocks long, so its legs,
+     * chest, rump, head and neck stuck out of it; the user, October 23, 2026: "increase his hitbox near his legs"), in
+     * blocks from its feet (its own left +x, up +y, front -z), measured from its model (alpha_moose.geo.json): its chest
+     * and front legs, its rump and hind legs (both from the ground to its back), its head and neck.
+     */
+    private static final double[][] PART_SPOTS = {{0.0D, 0.0D, -1.9D}, {0.0D, 0.0D, 1.9D}, {0.0D, 2.7D, -3.4D}};
+    private static final float[][] PART_SIZES = {{2.0F, 4.6F}, {2.0F, 4.6F}, {1.6F, 2.3F}};
+
+    private final RimefallBodyPart<AlphaMoose>[] parts;
     private int riderSeen = -1;
     private int carrySeen = -1;
 
+    @SuppressWarnings("unchecked")
     public AlphaMoose(EntityType<? extends AlphaMoose> type, Level level)
     {
         super(type, level, HuntsmanTuning.MOOSE_MOVE_TURN);
+        this.parts = new RimefallBodyPart[PART_SPOTS.length];
+        for (int i = 0; i < this.parts.length; i++)
+        {
+            this.parts[i] = new RimefallBodyPart<>(this, PART_SIZES[i][0], PART_SIZES[i][1]);
+        }
+        // its parts' ids follow its own (like the Ender Dragon's parts)
+        this.setId(ENTITY_COUNTER.getAndAdd(this.parts.length + 1) + 1);
+    }
+
+    @Override
+    public void setId(int id)
+    {
+        super.setId(id);
+        if (this.parts != null)
+        {
+            for (int i = 0; i < this.parts.length; i++)
+            {
+                this.parts[i].setId(id + i + 1);
+            }
+        }
+    }
+
+    @Override
+    public boolean isMultipartEntity()
+    {
+        return true;
+    }
+
+    @Override
+    public PartEntity<?>[] getParts()
+    {
+        return this.parts;
+    }
+
+    /** Its chest, rump and head hitboxes (in {@link #PART_SPOTS}' order). */
+    public RimefallBodyPart<AlphaMoose>[] getBodyParts()
+    {
+        return this.parts;
+    }
+
+    @Override
+    public void tick()
+    {
+        super.tick();
+        RimefallBodyPart.place(this, this.parts, PART_SPOTS, 1.0F);
     }
 
     public static AttributeSupplier.Builder createAttributes()

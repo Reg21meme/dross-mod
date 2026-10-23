@@ -170,12 +170,14 @@ public final class ModEntities
                     .sized(1.2F, 4.4F)
                     .fireImmune()
                     .clientTrackingRange(12)
+                    .updateInterval(1)
                     .build("huntsman"));
     public static final RegistryObject<EntityType<AlphaMoose>> ALPHA_MOOSE = ENTITY_TYPES.register("alpha_moose",
             () -> EntityType.Builder.<AlphaMoose>of(AlphaMoose::new, MobCategory.MONSTER)
                     .sized(2.8F, 4.6F)
                     .fireImmune()
                     .clientTrackingRange(12)
+                    .updateInterval(1)
                     .build("alpha_moose"));
     // Boss area: the Huntsman's bola (a weighted rope of ice he throws: it snares what it hits)
     public static final RegistryObject<EntityType<Bola>> BOLA = ENTITY_TYPES.register("bola",

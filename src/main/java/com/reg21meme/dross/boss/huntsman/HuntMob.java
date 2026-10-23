@@ -62,8 +62,11 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     /** His arrows' speed (a fully drawn bow shoots at 3), and the arrow rain's (into the sky, so they come down near). */
     public static final float ARROW_SPEED = 3.0F;
     public static final float VOLLEY_SPEED = 1.8F;
-    /** Bigger moves than this (blocks) are shown at once ({@link #lerpTo}). */
-    public static final double SNAP = 1.0D;
+    /** Bigger moves than this (blocks) are shown at once ({@link #lerpTo}): his leap off the moose and his backstep
+     * (about 3), never a gallop (their positions are sent every tick, {@code ModEntities}; until October 23, 2026 it was
+     * 1 block, and with vanilla's update every 3 ticks a galloping moose went over it and hopped: the user's "walking
+     * stutter"). */
+    public static final double SNAP = 2.0D;
     /** A shot this steep (its direction's up part) is a volley into the sky. */
     private static final double VOLLEY_UP = 0.6D;
     /** His aimed arrows spread this much (vanilla's skeleton on Normal: about 6). */

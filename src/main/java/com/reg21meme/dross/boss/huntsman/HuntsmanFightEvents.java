@@ -5,8 +5,10 @@ import com.reg21meme.dross.registry.ModEffects;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
+import net.minecraft.world.phys.EntityHitResult;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
 import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -30,6 +32,18 @@ public final class HuntsmanFightEvents
                 && arrow.getPersistentData().contains(HuntFight.ARROW_TAG) && event.getAmount() > 0.0F)
         {
             HuntFight.arrowHit(event.getEntity(), arrow.getPersistentData().getString(HuntFight.ARROW_TAG));
+        }
+    }
+
+    /** What one of them shoots or throws flies through the other and the moose's hitboxes (his arrows from the
+     * saddle passed its head; in the duel they'd glance off each other harmlessly). */
+    @SubscribeEvent
+    public static void onImpact(ProjectileImpactEvent event)
+    {
+        if (event.getRayTraceResult() instanceof EntityHitResult hit
+                && event.getProjectile().getOwner() instanceof HuntMob mob && HuntFight.isPartner(mob, hit.getEntity()))
+        {
+            event.setImpactResult(ProjectileImpactEvent.ImpactResult.SKIP_ENTITY);
         }
     }
 

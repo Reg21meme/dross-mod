@@ -378,6 +378,69 @@ public final class HuntsmanFightGameTest
                 .thenSucceed();
     }
 
+    /** The Alpha Moose's hitboxes past its square middle (the user, October 23, 2026: "increase his hitbox near his
+     * legs"): its chest and front legs ahead, its rump and hind legs behind, its head further ahead; a blow on one
+     * hurts it, and they're the Huntsman's partner (his shots and throws fly through them). */
+    @GameTest(template = ARENA, batch = "dross_huntsman_legs", timeoutTicks = WAIT + 100)
+    public static void theMoosesLegsAreHitboxes(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::theMoosesLegsAreHitboxes))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE, 0.0F);
+        AlphaMoose m = moose(h);
+        h.setNoAi(true);
+        m.setNoAi(true);
+        helper.startSequence()
+                .thenIdle(RIDER_SETTLE_TICKS)
+                .thenExecute(() ->
+                {
+                    var parts = m.getBodyParts();
+                    double yaw = Math.toRadians(m.yBodyRot);
+                    Vec3 ahead = new Vec3(-Math.sin(yaw), 0.0D, Math.cos(yaw));
+                    double[] along = new double[parts.length];
+                    for (int i = 0; i < parts.length; i++)
+                    {
+                        along[i] = parts[i].position().subtract(m.position()).dot(ahead);
+                    }
+                    String problem = null;
+                    if (parts.length != 3 || along[0] < 1.5D || along[1] > -1.5D || along[2] < 3.0D)
+                    {
+                        problem = "its chest, rump and head hitboxes should sit about 1.9 ahead, 1.9 behind and 3.4 ahead, "
+                                + "but they're " + java.util.Arrays.toString(along);
+                    }
+                    else if (parts[1].getBoundingBox().minY > m.getY() + 0.1D)
+                    {
+                        problem = "its rump's hitbox should reach down its hind legs to the ground";
+                    }
+                    else if (!HuntFight.isPartner(h, parts[2]))
+                    {
+                        problem = "its hitboxes should count as his partner (his arrows fly through them)";
+                    }
+                    if (problem == null)
+                    {
+                        float before = m.wildHunt;
+                        m.invulnerableTime = 0;
+                        parts[1].hurt(byZombie(level, m), HIT);
+                        m.invulnerableTime = 0;
+                        parts[1].hurt(byZombie(level, m), HIT);
+                        if (m.stage() != HuntStage.WILD_HUNT || m.wildHunt >= before)
+                        {
+                            problem = "blows on its rump should start the Wild Hunt and come off its bar (" + m.stage()
+                                    + ", " + before + " to " + m.wildHunt + ")";
+                        }
+                    }
+                    clear(h, m);
+                    if (problem != null)
+                    {
+                        throw new GameTestAssertException(problem);
+                    }
+                })
+                .thenSucceed();
+    }
+
     /** A loop played faster or slower goes on from the moment it was at (its beat moves with it); a move plays as
      * made. */
     @GameTest(template = ARENA, batch = "dross_huntsman_clock", timeoutTicks = WAIT + 100)
