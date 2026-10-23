@@ -63,10 +63,11 @@ MARGIN = 13                      # open ground round the village (its ring of li
 H = 24
 G = 5
 
-LODGE_SIZE = (64, 37)            # the Huntsman's lodge, the barn and his yard
+# (October 23, 2026: 9 deeper for his trophy corridor, the barn moved down with his door so his yard stays as it was)
+LODGE_SIZE = (64, 46)            # the Huntsman's lodge, the barn and his yard
 LODGE_DOOR_X = 17                # the lodge's doorway this far from the box's west edge (the lane arrives under it)
 LODGE_AT = (17, 9)               # the lodge's anchor in its box
-BARN_AT = (51, 11)               # the barn's
+BARN_AT = (51, 20)               # the barn's
 
 # the pens: fences two high (an animal standing on anything can't jump them), nothing to climb within two blocks
 PADDOCK = (15, 13)
@@ -77,6 +78,23 @@ RIMEHORN_CALF_AGE = sw.RIMEHORN_CALF_AGE
 
 SURFACE_CLEAR = 4.0              # the shrine and the patches: this much open snow round them
 SHRINE_APART = 14.0              # the shrine stands about this far from the rest of the village (alone)
+# The lamps inside a village (the user, October 22, 2026: "we need some lighting inside the villages, not just the
+# outside ... big poles and stuff"): always there, like the ring of lights. A courtyard gets a tall pole every
+# COURT_LAMP_EVERY blocks round it, COURT_LAMP_IN in from its rim; a lane a pole on its bank every LANE_LAMP_EVERY,
+# by turns on either side, its arm reaching out over the lane.
+COURT_LAMP_EVERY = 7.0
+COURT_LAMP_IN = 1.8
+LANE_LAMP_EVERY = 9.0
+LANE_LAMP_OUT = 1.6 + 1.6         # (from the lane's middle line: just past its edge, on the bank)
+# A staircase's landing (the user, October 22, 2026: the top of the stairs didn't meet the ground): LANDING_LONG rows
+# past its top step, LANDING_HALF either side of its middle, snow at the ground with solid snow under it LANDING_DEEP
+# down, and nothing over it or over its top steps CLEAR_OVER up (a snow layer or a plant of the world's left there).
+LANDING_LONG = 2
+LANDING_HALF = 2
+LANDING_DEEP = 3
+CLEAR_OVER = 2
+LANDING_SOFT = ("snow_block", "dross:hoarfrost", "gravel", "snow")     # what a landing may replace at the ground
+ARCH_CLEAR = 5                    # a lane's arch stands at least this far (blocks) from any stair or landing
 RING_OUT = 7.0                   # the ring of lights this far outside everything
 RING_EVERY = 11.0                # a light every this many blocks round it
 
@@ -274,6 +292,10 @@ def _layout(rng, n, huntsman):
         p.lanes.append(lane)
         p.lodge_lane = lane
         p.lodge_court = north
+        # (its courtyard's steps can't run into the lodge's lane: up to the ground and straight down into the lane, the
+        # user's "the top of the stairs doesn't meet the ground"; the lane and the lodge's stairs are its way up)
+        p.steps = [st for st in p.steps
+                   if not (st[0] is north and sw.seg_seg(st[2], st[3], lane[0], lane[1]) < LANE_HALF + 4)]
     return p
 
 
@@ -859,6 +881,8 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
                     for y in range(FLOOR, 1):
                         m.dig(x, y, z)
                     dug_floor[(x, z)] = FLOOR
+    stair_cells = set()               # every cell of a staircase and its landing (x, z)
+    landings = []                     # the landings' cells (x, z), for the check that the stairs meet the ground
     lodge_box = None
     if p.lodge is not None:
         lx1, lz1 = X(p.lodge[0]), Z(p.lodge[1])
@@ -881,6 +905,14 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
                 g.set(x, top, z, "spruce_stairs[facing=north,half=bottom]", force=True)
                 m.dug[x, top + G, z] = False
                 dug_floor[(x, z)] = top + 1
+        # its landing, at the top of the stairs, north of the top step
+        for z in range(ze - LANDING_LONG, ze + 3):
+            for x in range(lane_x - LANDING_HALF, lane_x + LANDING_HALF + 1):
+                if z < ze:
+                    _landing(g, x, z)
+                    landings.append((x, z))
+                _clear_over(g, x, z)
+                stair_cells.add((x, z))
         for z in range(ze + 3, Z(az_) + 1):
             for x in range(lane_x - 1, lane_x + 2):
                 if (x, z) not in dug_floor:
@@ -911,6 +943,22 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
                 else:
                     dug_floor.setdefault((x, z), FLOOR)
                 steps_cells.append((x, z))
+    # -- a landing at the top of every courtyard's steps: past its top step (at the ground), LANDING_LONG rows of snow
+    # on solid snow, nothing left over it or over the top steps
+    for c, d, _a, _b in p.steps:
+        f = Frame(g, X(c.x), Z(c.z), d)
+        top_v = int(math.floor(c.r)) - FLOOR              # (the top step: the one at the ground, y 0)
+        for vv in range(top_v - 1, top_v + LANDING_LONG + 1):
+            for u in range(-LANDING_HALF, LANDING_HALF + 1):
+                x, z = f.xz(u, vv)
+                if not (0 <= x < W and 0 <= z < D):
+                    continue
+                if vv > top_v:
+                    _landing(g, x, z)
+                    landings.append((x, z))
+                _clear_over(g, x, z)
+                stair_cells.add((x, z))
+    stair_cells |= set(steps_cells)
     # -- the templates, block for block (shifted into the grid)
     owner = {}
     placed = []
@@ -1016,10 +1064,14 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
     lodge_info = None
     if lodge_box is not None:
         lodge_info = _lodge_yard(g, dec, lodge_box, lodge_items, rng)
+    for (x, z) in stair_cells:
+        dec.keep_out(x, z, 0)
     ring_lights = _light_ring(g, dec, p, X, Z, blocked, rng)
+    inside_lights = _light_inside(g, dec, p, X, Z, courts, blocked,
+                                  (lane_x, ze) if lodge_box is not None else None)
     _shrine_lanterns(g, dec, p, X, Z, ox, oz)
     sw._entrance_pair(g, dec, p, X, Z, rng)
-    _decorate(g, dec, courts, p, X, Z, rng, blocked)
+    _decorate(g, dec, courts, p, X, Z, rng, blocked, stair_cells)
     sw._line(g)
     blocked2 = dec.taken | dec.keepout
 
@@ -1072,8 +1124,11 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
             "igloos": igloos, "courts": len(p.courts), "huntsman": huntsman, "plan_attempt": attempt,
             "lanes": len(p.lanes), "loops": p.loops, "passages": len(p.links), "kinds": kinds,
             "roles": {r: sum(1 for i in p.items if i.role == r) for r in ("ring", "lane", "warren", "surface")},
-            "buried_windows": buried, "ring_lights": ring_lights}
+            "buried_windows": buried, "ring_lights": ring_lights, "inside_lights": inside_lights}
+    # (the courtyards', lanes' and steps' floors, where one stands in them: their lamps light them, the checks look)
+    open_floors = lighting.floors(g, None, {(x, y, z) for (x, z), y in dug_floor.items()})
     extras = {"decor": dec, "plan": p, "entrance": (sx, 1, sz), "targets": targets, "courts": courts,
+              "open_floors": open_floors, "landings": landings,
               "lodge": lodge_info, "light_cells": light_cells, "floors": floors, "rooms": rooms,
               "keep_clear": keep_clear, "pens": pens, "massing": None, "placed": placed + lodge_items}
     return g, info, extras
@@ -1460,7 +1515,83 @@ def _ground_items(rng):
     return items
 
 
-def _decorate(g, dec, courts, p, X, Z, rng, blocked):
+def _landing(g, x, z):
+    """A cell of a staircase's landing: snow at the ground (y 0) and solid snow under it, LANDING_DEEP down, where
+    nothing else of the village is (it only replaces snow, Hoarfrost or gravel at the ground)."""
+    for y in range(-LANDING_DEEP + 1, 1):
+        cur = g.get(x, y, z)
+        if cur is None or (y == 0 and mc.base(cur) in LANDING_SOFT):
+            g.set(x, y, z, "snow_block", force=True)
+
+
+def _clear_over(g, x, z):
+    """Nothing over a step or a landing cell, CLEAR_OVER up from the ground (where the village has nothing there)."""
+    for y in range(1, CLEAR_OVER + 1):
+        if g.get(x, y, z) is None:
+            g.set(x, y, z, AIR, force=True)
+
+
+def _light_inside(g, dec, p, X, Z, courts, blocked, lodge_stairs=None):
+    """The lamps inside the village (always there: the village's own, not decorations): tall poles round each
+    courtyard near its rim, facing its middle, and poles along each lane on its banks by turns, their arms over it.
+    Returns how many."""
+    lamps = Decor(g)
+    lamps.keepout = dec.keepout
+    lamps.taken = dec.taken
+    placed = 0
+    for cx, cz, r, _c in courts:
+        n = max(4, int(round(2 * math.pi * r / COURT_LAMP_EVERY)))
+        d = r - COURT_LAMP_IN
+        for i in range(n):
+            for nudge in (0.0, 0.2, -0.2, 0.4, -0.4, 0.6, -0.6):
+                a = 2 * math.pi * (i + 0.5 + nudge) / n
+                x, z = int(round(cx + math.sin(a) * d)), int(round(cz + math.cos(a) * d))
+                front = facing_towards(x, z, cx, cz)
+                if lamps.place("court lamp", lambda s, x=x, z=z, front=front: props.court_lamp(
+                        YFrame(Frame(s, x, z, front), FLOOR - 1)), margin=1):
+                    placed += 1
+                    break
+    for a, b in p.lanes:
+        A, B = (X(a[0]), Z(a[1])), (X(b[0]), Z(b[1]))
+        L = math.hypot(B[0] - A[0], B[1] - A[1])
+        if L < 1:
+            continue
+        ux, uz = (B[0] - A[0]) / L, (B[1] - A[1]) / L
+        side = 1
+        t = LANE_LAMP_EVERY / 2.0
+        while t < L:
+            mx, mz = A[0] + ux * t, A[1] + uz * t
+            if all(math.hypot(mx - cx, mz - cz) > r + 1.0 for cx, cz, r, _c in courts):
+                for sd in (side, -side):
+                    px, pz = -uz * sd, ux * sd
+                    x, z = int(round(mx + px * LANE_LAMP_OUT)), int(round(mz + pz * LANE_LAMP_OUT))
+                    if not (0 <= x < g.W and 0 <= z < g.D) or blocked[x, z]:
+                        continue
+                    front = facing_towards(x, z, mx, mz)
+                    if lamps.place("lane lamp", lambda s, x=x, z=z, front=front: props.lane_lamp(Frame(s, x, z, front)),
+                                   margin=1, overhead=True):
+                        placed += 1
+                        break
+            side = -side
+            t += LANE_LAMP_EVERY
+    # a lantern post either side of every staircase's landing
+    posts = []
+    for c, d, _a, _b in p.steps:
+        f = Frame(g, X(c.x), Z(c.z), d)
+        top_v = int(math.floor(c.r)) - FLOOR
+        posts += [(f.xz(u, top_v + 1), d) for u in (-LANDING_HALF - 1, LANDING_HALF + 1)]
+    if lodge_stairs is not None:
+        lane_x, ze = lodge_stairs
+        posts += [((lane_x + u, ze - 1), "north") for u in (-LANDING_HALF - 1, LANDING_HALF + 1)]
+    for (x, z), d in posts:
+        if 0 <= x < g.W and 0 <= z < g.D and lamps.place(
+                "steps lamp", lambda s, x=x, z=z, d=d: props.lantern_post(Frame(s, x, z, d), height=3, arm=False),
+                margin=0):
+            placed += 1
+    return placed
+
+
+def _decorate(g, dec, courts, p, X, Z, rng, blocked, stair_cells=()):
     for k, (cx, cz, r, c) in enumerate(courts):
         dy = FLOOR - 1
         want = int(r * 1.15) + 3
@@ -1492,6 +1623,8 @@ def _decorate(g, dec, courts, p, X, Z, rng, blocked):
         for i in range(n_arch):
             t = t0 + (t1 - t0) * (i + 0.5) / n_arch
             x, z = int(round(A[0] + ux * t)), int(round(A[1] + uz * t))
+            if any(abs(x - sx) <= ARCH_CLEAR and abs(z - sz) <= ARCH_CLEAR for sx, sz in stair_cells):
+                continue              # (never over or by a staircase: the user saw one glitch the stairs' top)
             for width in (5, 7, 9):
                 if dec.place("bone arch", lambda s, x=x, z=z, w=width: props.lane_arch(Frame(s, x, z, front), width=w,
                                                                                     height=6), overhead=True):

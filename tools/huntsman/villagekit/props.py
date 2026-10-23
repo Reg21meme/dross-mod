@@ -221,6 +221,30 @@ def banner_pole(f, colour="light_blue", height=4, cloth=None):
             nbt[(x, height + 1 + getattr(f, "dy", 0), z)] = banner(*cloth)
 
 
+# Lamps inside a village (the user, October 22, 2026: "lighting inside the villages, not just the outside ... big poles
+# and stuff"): always there, the village's own, not decorations.
+ARCH_FOOTING = 3            # an arch's feet go this many blocks into the ground (its foot block on the surface included)
+
+
+def court_lamp(f, height=5, kind="lantern"):
+    """A tall pole in a courtyard: a stripped spruce post, a crossbar at its top, a lantern hung from each end."""
+    for y in range(1, height + 1):
+        f.set(0, y, 0, "stripped_spruce_log[axis=y]")
+    for u in (-1, 0, 1):
+        f.set(u, height + 1, 0, "spruce_fence")
+    for u in (-1, 1):
+        f.set(u, height, 0, f"{kind}[hanging=true]")
+
+
+def lane_lamp(f, height=4, kind="lantern"):
+    """A pole on a lane's bank, its arm reaching out over the lane (in front of it), a lantern hung from its end."""
+    for y in range(1, height + 1):
+        f.set(0, y, 0, "stripped_spruce_log[axis=y]")
+    for v in (0, 1, 2):
+        f.set(0, height + 1, v, "spruce_fence")
+    f.set(0, height, 2, f"{kind}[hanging=true]")
+
+
 def lantern_post(f, height=3, kind="lantern", arm=True):
     """A spruce post with a lantern: hanging from an arm (or standing on top)."""
     for y in range(1, height + 1):
@@ -282,7 +306,8 @@ def antler_gate(f, width=3, height=4, wood="birch_fence", skull="moose_skull"):
 
 
 def bone_arch(f, width=5, height=6, mat="bone_block[axis=y]"):
-    """A pair of great curved ribs of bone meeting over a path (v = along the path; the arch spans u)."""
+    """A pair of great curved ribs of bone meeting over a path (v = along the path; the arch spans u). Its feet stand
+    on footings of bone sunk into the ground (October 22, 2026: on uneven ground a foot could float or sink)."""
     half = width / 2.0 + 0.5
     pts = []
     n = 24
@@ -290,6 +315,11 @@ def bone_arch(f, width=5, height=6, mat="bone_block[axis=y]"):
         a = math.pi * i / n
         pts.append((-math.cos(a) * half, 1 + math.sin(a) * (height - 1)))
     curve(f, [(u, y, 0) for u, y in pts], mat)
+    # (as deep as the grid it's drawn in goes: a decoration's own template has only a layer or two of ground)
+    deepest = max(-ARCH_FOOTING + 1, -(f.g.G + getattr(f, "dy", 0)))
+    for side in (-1, 1):
+        for y in range(deepest, 1):
+            f.set(int(round(side * half)), y, 0, mat)
 
 
 def curve(f, pts, mat):

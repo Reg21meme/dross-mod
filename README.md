@@ -255,7 +255,7 @@ Unlimited uses, no restocking, no XP.
 | **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores. Raw Moonsilver smelts into an ingot, and the ingot makes the Moonsilver Spear; Stormite is for gear that comes later. |
 | **Moonsilver Spear** | The Huntsman's spear, for players: two sticks on a diagonal with a Moonsilver Ingot at the top right. It stabs for 8, and held back and let go it's thrown like a trident (8) and flies back to you. Whatever it hits is frozen for 4 seconds (frost, shaking, slowed). 500 uses, repaired with Moonsilver Ingots. |
 | **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
-| **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls with their antlers or the Rimehorn's two ice horns, in 3D. Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
+| **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
 **The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
@@ -542,8 +542,9 @@ lantern posts round the edge) with a chat button to summon him.
   Hunt (a cone of icy wind that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed),
   **arrow rain** (15 arrows falling round you with no warning; each hit frosts you), and the circling hunt (the
   moose gallops round you while he shoots). The moose charges (6.5 hearts) and kicks anyone behind it (4.5).
-- **The split:** at 0 the moose rears and he leaps off and blows his horn; neither can be hurt for 2 seconds. Then
-  each has his own bar of 150: **The Huntsman** and **Alpha Moose**.
+- **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
+  neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he
+  rides, the two are drawn as one model, so he moves exactly with the moose; they become two at the split.)
 - **Stage 2:** on foot he uses spear combos, a leaping strike, a thrown spear (it comes back to his hand), an aimed
   shot after a frost glint (it freezes you for a moment), a backstep and shot, the arrow rain, the bola and the horn.
   The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow that burst into

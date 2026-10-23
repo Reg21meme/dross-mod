@@ -62,6 +62,9 @@ REGULAR = sum(1 for lay in LAYOUTS if not lay[3])
 
 LIGHT_ROUNDS = 6        # rounds of lighting the rooms and softening the lights near ice (build_layout)
 DARK_LIMIT = 5          # a room's floor this dark is a problem (the lanterns aim for lighting.MIN_LIGHT, 7)
+# The courtyards', lanes' and steps' floors under this light are a problem, with or without the decorations (the user,
+# October 22, 2026: lights inside the villages too; their lamp poles are the village's own): nothing can spawn there.
+OPEN_MIN_LIGHT = 1
 
 render.GROUND_STATE = "dross:hoarfrost"
 render.UNDER_STATE = "minecraft:dirt"
@@ -225,6 +228,12 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
         swapped += softened
         if not softened or not lighting.dark_cells(base0, ex["light_cells"]):
             break
+    # the courtyards' and lanes' last dark pockets (a nook of a courtyard's step ring by an igloo's wall, a block or
+    # three where its lamp poles can't see, too narrow for a lantern and nobody's way anywhere): filled with snow
+    for _light, (x, y, z) in lighting.dark_cells(base0, ex["open_floors"], OPEN_MIN_LIGHT):
+        for grid in (g, base0):
+            grid.set(x, y, z, "snow_block", force=True)
+        ex["open_floors"].discard((x, y, z))
     more, given_up = checks.cool_lights(g)
     swapped += more
     problems, light = checks.check(g)
@@ -258,6 +267,21 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
             problems.append(f"{len(bad)} floor cell(s) in the rooms darker than {DARK_LIMIT} {when}, the darkest "
                             f"{bad[0][1]} at light {bad[0][0]}")
         dim.append(len(dark))
+    # every staircase steps onto its landing: solid snow at the ground, nothing over it (the user, October 22, 2026: the
+    # top of the stairs didn't meet the ground)
+    for grid, when in ((base, "without its decorations"), (g, "with them")):
+        bad = [(x, z) for x, z in ex["landings"]
+               if grid.get(x, 0, z) is None or not mc.is_supporting(grid.get(x, 0, z))
+               or (grid.get(x, 1, z) is not None and not mc.is_air(grid.get(x, 1, z)))]
+        if bad:
+            problems.append(f"{len(bad)} cell(s) of the stairs' landings not solid at the ground or not clear over it "
+                            f"{when}, the first at {bad[0]}")
+    # the courtyards, lanes and steps: lit by their lamp poles, decorations or not
+    open_dark = lighting.dark_cells(base, ex["open_floors"], OPEN_MIN_LIGHT)
+    if open_dark:
+        problems.append(f"{len(open_dark)} courtyard, lane or step floor cell(s) under light {OPEN_MIN_LIGHT}, the "
+                        f"darkest {open_dark[0][1]} at light {open_dark[0][0]}")
+    open_dim = len(lighting.dark_cells(base, ex["open_floors"], lighting.MIN_LIGHT))
     if unlit and not any(problems_dark for problems_dark in problems if "darker than" in problems_dark):
         problems = [q for q in problems if "no lantern could light" not in q]
     # for the game's own check: the darkest floor cell of each room (template coordinates)
@@ -318,7 +342,8 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
     print(f"{lid}: {g.W}x{g.D}, {height} tall, {igloos} igloos, {beds} beds, {info['courts']} courtyards, "
           f"{info.get('lanes', 0)} lanes ({info.get('loops', 0)} loops), {info.get('passages', 0)} passages, "
           f"{len(dec.groups)} decorations ({n_deco} blocks), {n_base} blocks, {len(lanterns)} lanterns "
-          f"({max(dim)} floor cells a little under {lighting.MIN_LIGHT}), "
+          f"({max(dim)} floor cells a little under {lighting.MIN_LIGHT}), {info.get('inside_lights', 0)} lamp poles "
+          f"inside ({open_dim} of {len(ex['open_floors'])} courtyard and lane cells under {lighting.MIN_LIGHT}), "
           f"{kinds.count('dross:moose')} moose, {kinds.count('dross:rimehorn')} Rimehorns, {floating} floating removed, "
           f"{swapped} lights softened, {given_up} windows iced over, plan attempt {info['plan_attempt']}, "
           f"{time.time() - t0:.1f}s")
