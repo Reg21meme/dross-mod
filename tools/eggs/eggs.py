@@ -24,9 +24,9 @@ PREVIEWS = {"huntsman": os.path.join(ROOT, "boss-previews", "rimefall", "huntsma
             "cinder_colossus": os.path.join(ROOT, "boss-previews", "cinder_wastes", "cinder_colossus", "spawn_eggs"),
             "rat_king": os.path.join(ROOT, "boss-previews", "blightwood", "rat_king", "spawn_eggs")}
 TITLES = {"huntsman": "The Huntsman", "cinder_colossus": "The Cinder Colossus", "rat_king": "The Rat King"}
-# the user's picks (October 23, 2026: "C1 is good for dormant shell"; R1 with its crown centred). The Huntsman's egg is
-# still tools/huntsman/egg.py's until he's picked.
-PICKS = {"cinder_colossus": "C1", "rat_king": "R1"}
+# the user's picks (October 23, 2026: "C1 is good for dormant shell"; R1 with its crown centred; "h2" for the
+# Huntsman, his hood with its fangs)
+PICKS = {"huntsman": "H2", "cinder_colossus": "C1", "rat_king": "R1"}
 
 # vanilla's spawn egg (textures/item/spawn_egg.png and its overlay together): each row's first and last column
 SHAPE = {2: (7, 8), 3: (5, 10), 4: (4, 11), 5: (4, 11), 6: (3, 12), 7: (3, 12), 8: (2, 13), 9: (2, 13),
