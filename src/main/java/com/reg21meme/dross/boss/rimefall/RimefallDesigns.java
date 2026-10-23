@@ -209,10 +209,37 @@ public final class RimefallDesigns
             new Design(10, "9D", "thawedd", "Thawed Soldier", "spear, 4 tall", false, 2.11F, 5.36F, 1.38F, 0.72F, 1.44F, 1.45F, 5.36F, 0.95F, true, true, true, List.of())
     );
 
-    /** The candidate with this number (the first if there's none). */
+    /**
+     * The hunters of the hunter villages (the user, October 23, 2026: "10-12 villagers that can spawn, 2 blocks tall,
+     * that are similar to the Huntsman"): designs to pick from, worn by the same frozen statues but not in the
+     * gallery ({@code boss} false); numbered after it.
+     */
+    public static final List<Design> HUNTERS = List.of(
+            new Design(11, "10A", "huntera", "Hunter", "young tracker", false, 0.93F, 2.27F, 0.56F, 0.38F, 0.62F, 0.62F, 2.27F, 0.50F, true, true, true, List.of()),
+            new Design(12, "10B", "hunterb", "Hunter", "village elder", false, 0.66F, 2.46F, 0.34F, 0.32F, 0.53F, 0.72F, 2.46F, 0.50F, false, false, false, List.of()),
+            new Design(13, "10C", "hunterc", "Hunter", "trapper", false, 1.04F, 2.28F, 0.57F, 0.47F, 0.65F, 0.58F, 2.28F, 0.50F, true, false, false, List.of()),
+            new Design(14, "10D", "hunterd", "Hunter", "archer", false, 0.86F, 2.40F, 0.49F, 0.38F, 0.71F, 0.64F, 2.40F, 0.50F, true, true, true, List.of()),
+            new Design(15, "10E", "huntere", "Hunter", "javelin thrower", false, 1.32F, 2.12F, 1.17F, 0.67F, 0.73F, 0.59F, 2.12F, 0.59F, true, true, true, List.of()),
+            new Design(16, "10F", "hunterf", "Hunter", "butcher", false, 0.76F, 2.01F, 0.48F, 0.28F, 0.60F, 0.69F, 2.01F, 0.50F, false, false, false, List.of()),
+            new Design(17, "10G", "hunterg", "Hunter", "tanner", false, 0.71F, 2.02F, 0.39F, 0.33F, 0.62F, 0.64F, 2.02F, 0.50F, false, false, false, List.of()),
+            new Design(18, "10H", "hunterh", "Hunter", "ice fisher", false, 0.82F, 2.42F, 0.36F, 0.46F, 0.62F, 0.69F, 2.42F, 0.50F, true, true, true, List.of()),
+            new Design(19, "10I", "hunteri", "Hunter", "snow scout", false, 0.93F, 2.41F, 0.56F, 0.38F, 0.70F, 0.62F, 2.41F, 0.50F, true, true, true, List.of()),
+            new Design(20, "10J", "hunterj", "Hunter", "shield-bearer", false, 1.25F, 2.27F, 0.88F, 0.38F, 0.78F, 0.70F, 2.27F, 0.56F, true, true, true, List.of()),
+            new Design(21, "10K", "hunterk", "Hunter", "horn-blower", false, 1.02F, 2.50F, 0.64F, 0.38F, 0.62F, 0.73F, 2.50F, 0.50F, true, false, false, List.of()),
+            new Design(22, "10L", "hunterl", "Hunter", "herder", false, 0.75F, 2.24F, 0.38F, 0.38F, 0.72F, 0.62F, 2.24F, 0.50F, true, true, true, List.of())
+    );
+
+    /** The candidate (or hunter) with this number (the first candidate if there's none). */
     public static Design byNumber(int number)
     {
         for (Design design : ALL)
+        {
+            if (design.number() == number)
+            {
+                return design;
+            }
+        }
+        for (Design design : HUNTERS)
         {
             if (design.number() == number)
             {

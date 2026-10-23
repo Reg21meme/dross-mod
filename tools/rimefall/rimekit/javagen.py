@@ -43,12 +43,29 @@ public final class RimefallDesigns
     public static final List<Design> ALL = List.of(
 """
 
+HUNTERS = """    );
+
+    /**
+     * The hunters of the hunter villages (the user, October 23, 2026: "10-12 villagers that can spawn, 2 blocks tall,
+     * that are similar to the Huntsman"): designs to pick from, worn by the same frozen statues but not in the
+     * gallery ({@code boss} false); numbered after it.
+     */
+    public static final List<Design> HUNTERS = List.of(
+"""
+
 FOOTER = """    );
 
-    /** The candidate with this number (the first if there's none). */
+    /** The candidate (or hunter) with this number (the first candidate if there's none). */
     public static Design byNumber(int number)
     {
         for (Design design : ALL)
+        {
+            if (design.number() == number)
+            {
+                return design;
+            }
+        }
+        for (Design design : HUNTERS)
         {
             if (design.number() == number)
             {
@@ -87,8 +104,10 @@ def entry(e, size, placed):
             f"{_blocks(placed)})")
 
 
-def write(path, entries):
+def write(path, entries, hunters=()):
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(HEADER)
         f.write(",\n".join(entries) + "\n")
+        f.write(HUNTERS)                     # (always: byNumber reads it)
+        f.write(",\n".join(hunters) + "\n")
         f.write(FOOTER)

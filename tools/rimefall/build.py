@@ -24,6 +24,8 @@ It writes:
   boss-previews/rimefall/<label>_<id>.png one variant: front, side, back, three-quarter, at night and from above
   boss-previews/rimefall/all_designs.png  every variant, three-quarter
   boss-previews/rimefall/lineup.png       every variant at the same scale, next to a player
+  boss-previews/rimefall/hunters/         the same for the hunters (section "hunter": the hunter villages' people,
+                                          October 23, 2026): not in the gallery, but in RimefallDesigns.HUNTERS
 
 Round 1's 22 designs and round 2's 23 are archived in rimedesigns/round1/, round2/ and boss-previews/rimefall/round1/,
 round2/ (not built any more).
@@ -54,6 +56,7 @@ GEO = os.path.join(ASSETS, "geo", "entity", "rimefall")
 TEX = os.path.join(ASSETS, "textures", "entity", "rimefall")
 ANIM = os.path.join(ASSETS, "animations", "entity", "rimefall")
 PREVIEWS = os.path.join(ROOT, "boss-previews", "rimefall")      # every boss has its own folder
+HUNTER_PREVIEWS = os.path.join(PREVIEWS, "hunters")
 JAVA = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "rimefall")
 
 MAX_SIGN_TEXT = 15
@@ -61,7 +64,9 @@ MAX_HEIGHT_BLOCKS = 28.0          # round 2: the Reaching Hand is about 25 block
 MAX_HITBOX_WIDTH = 10.0           # blocks; the hitbox is square, so the very wide ones get the body's width
 LINEUP_PX_PER_BLOCK = 18
 SUFFIXES = (".png", "_glow.png", "_ice.png", "_iceglow.png")
-SECTIONS = ("boss", "mob")
+SECTIONS = ("boss", "mob", "hunter")    # (the hunters aren't in the gallery: their own list, their own previews)
+GALLERY_SECTIONS = (("boss", "Bosses"), ("mob", "Regular mobs"))
+HUNTER_SECTIONS = (("hunter", "Hunters"),)
 
 
 # ---------------------------------------------------------------- designs and their variants
@@ -189,10 +194,11 @@ def sheet(e, built, out_path):
     V.page(f"No. {e.label}  {e.name}  ({e.mood})", f"{e.blurb}   {dims}", rows, out_path)
 
 
-def overview(all_built, out_path):
+def overview(all_built, out_path, sections=GALLERY_SECTIONS, title="Rimefall candidates, round 2",
+             blurb="the user's picks from round 1 and their variants"):
     """all_designs.png: every variant three-quarter, each fitted to its own cell, bosses then regular mobs."""
     parts = []
-    for section, title in (("boss", "Bosses"), ("mob", "Regular mobs")):
+    for section, title_ in sections:
         cells = []
         for e, b in all_built:
             if e.section != section:
@@ -209,18 +215,19 @@ def overview(all_built, out_path):
             dr.text((6, 24), f"{e.mood}  ({size['top']:.1f} tall)", font=font(14, bold=False), fill=V.DIM)
             cells.append(cell)
         if cells:
-            parts.append((title, V.grid(cells, 6)))
-    V.page("Rimefall candidates, round 2", f"{len(all_built)} models: the user's picks from round 1 and their variants. "
-           "Each picture is scaled to fit; lineup.png shows their real sizes.", parts, out_path)
+            parts.append((title_, V.grid(cells, 6)))
+    count = sum(1 for e, _b in all_built if e.section in [x[0] for x in sections])
+    V.page(title, f"{count} models: {blurb}. Each picture is scaled to fit; lineup.png shows their real sizes.", parts,
+           out_path)
 
 
-def lineup(all_built, out_path):
+def lineup(all_built, out_path, sections=GALLERY_SECTIONS, title="Rimefall candidates at their real sizes", ppb=None):
     """lineup.png: every variant at the same scale (three-quarter), on one ground line per row, next to a player."""
-    scale = LINEUP_PX_PER_BLOCK / 16.0
-    groups = [("Bosses", [x for x in all_built if x[0].section == "boss"]),
-              ("Regular mobs", [x for x in all_built if x[0].section == "mob"])]
+    ppb = ppb or LINEUP_PX_PER_BLOCK
+    scale = ppb / 16.0
+    groups = [(t, [x for x in all_built if x[0].section == sec]) for sec, t in sections]
     rows = []
-    for title, items in groups:
+    for gtitle, items in groups:
         ims = []
         for e, b in items:
             m, tex, size, placed, bv = b
@@ -234,12 +241,12 @@ def lineup(all_built, out_path):
             dr.text((4, im.height + 4), f"{e.label}. {e.name}", font=font(14), fill=V.TEXT)
             dr.text((4, im.height + 21), f"{e.mood}, {size['top']:.1f} tall", font=font(12, bold=False), fill=V.DIM)
             ims.append(cap)
-        player = Image.new("RGB", (40, int(2.0 * LINEUP_PX_PER_BLOCK) + 40), V.SHEET_BG)
+        player = Image.new("RGB", (max(40, int(ppb * 1.2)), int(2.0 * ppb) + 40), V.SHEET_BG)
         dr = ImageDraw.Draw(player)
-        ppb = LINEUP_PX_PER_BLOCK
         top = player.height - 40 - int(2.0 * ppb)
-        dr.rectangle((20 - ppb * 0.25, top, 20 + ppb * 0.25, top + ppb * 0.5), fill=(90, 96, 110))
-        dr.rectangle((20 - ppb * 0.25, top + ppb * 0.5, 20 + ppb * 0.25, top + ppb * 2.0 - 1), fill=(90, 96, 110))
+        cx = player.width // 2
+        dr.rectangle((cx - ppb * 0.25, top, cx + ppb * 0.25, top + ppb * 0.5), fill=(90, 96, 110))
+        dr.rectangle((cx - ppb * 0.25, top + ppb * 0.5, cx + ppb * 0.25, top + ppb * 2.0 - 1), fill=(90, 96, 110))
         dr.text((2, player.height - 36), "you", font=font(13), fill=V.DIM)
         ims.insert(0, player)
         # Wrap into rows no wider than about 3,000 pixels.
@@ -262,9 +269,8 @@ def lineup(all_built, out_path):
             for im in chunk:
                 row.paste(im, (x, h - im.height))
                 x += im.width + 14
-            rows.append((title if k == 0 else f"{title} (cont.)", row))
-    V.page("Rimefall candidates at their real sizes", f"All at the same scale ({LINEUP_PX_PER_BLOCK} pixels a block), "
-           "next to a player.", rows, out_path)
+            rows.append((gtitle if k == 0 else f"{gtitle} (cont.)", row))
+    V.page(title, f"All at the same scale ({ppb} pixels a block), next to a player.", rows, out_path)
 
 
 # ---------------------------------------------------------------- writing
@@ -308,8 +314,12 @@ def preview_name(e):
     return f"{e.label}_{e.id}"
 
 
+def preview_folder(e):
+    return HUNTER_PREVIEWS if e.section == "hunter" else PREVIEWS
+
+
 def build_everything(only=None, previews_only=False):
-    for folder in (GEO, TEX, ANIM, PREVIEWS, JAVA):
+    for folder in (GEO, TEX, ANIM, PREVIEWS, HUNTER_PREVIEWS, JAVA):
         os.makedirs(folder, exist_ok=True)
     shapes.check_seg()
     all_built = []
@@ -322,19 +332,28 @@ def build_everything(only=None, previews_only=False):
         m, tex, size, placed, bv = b
         if not previews_only:
             write_model(e, m, tex, placed)
-        sheet(e, b, os.path.join(PREVIEWS, preview_name(e) + ".png"))
+        sheet(e, b, os.path.join(preview_folder(e), preview_name(e) + ".png"))
         all_built.append((e, b))
+    hunters = [x for x in all_built if x[0].section == "hunter"]
+    if hunters:
+        overview(hunters, os.path.join(HUNTER_PREVIEWS, "all_hunters.png"), sections=HUNTER_SECTIONS,
+                 title="The hunters of the hunter villages", blurb="the designs to pick from")
+        lineup(hunters, os.path.join(HUNTER_PREVIEWS, "lineup.png"), sections=HUNTER_SECTIONS,
+               title="The hunters at their real size", ppb=60)
     if not only:
-        overview(all_built, os.path.join(PREVIEWS, "all_designs.png"))
-        lineup(all_built, os.path.join(PREVIEWS, "lineup.png"))
+        gallery = [x for x in all_built if x[0].section != "hunter"]
+        overview(gallery, os.path.join(PREVIEWS, "all_designs.png"))
+        lineup(gallery, os.path.join(PREVIEWS, "lineup.png"))
         if not previews_only:
             javagen.write(os.path.join(JAVA, "RimefallDesigns.java"),
-                          [javagen.entry(e, b[2], b[3]) for e, b in all_built])
+                          [javagen.entry(e, b[2], b[3]) for e, b in gallery],
+                          [javagen.entry(e, b[2], b[3]) for e, b in hunters])
             write_json(os.path.join(ANIM, "candidate.animation.json"), {"format_version": "1.8.0", "animations": {}})
             ids = [e.id for e, _b in all_built]
             remove_stale(GEO, ids, (".geo.json",))
             remove_stale(TEX, ids, SUFFIXES)
-            remove_stale(PREVIEWS, [preview_name(e) for e, _b in all_built] + ["all_designs", "lineup"], (".png",))
+            remove_stale(PREVIEWS, [preview_name(e) for e, _b in gallery] + ["all_designs", "lineup"], (".png",))
+            remove_stale(HUNTER_PREVIEWS, [preview_name(e) for e, _b in hunters] + ["all_hunters", "lineup"], (".png",))
     print("Done.")
 
 
