@@ -83,7 +83,9 @@ import net.minecraftforge.fml.common.Mod;
  *       sign: the Plague Rat, then the Plague Ravager (the enraged breed); {@code /dross showcase rats idle|run}
  *       switches their animation ({@link RatShowcase}; the designs are the boss area's {@code RatDesigns}).</li>
  *   <li>{@code /dross showcase boss_sounds ratking}: lists every Rat King and rat sound in chat, each with a button
- *       that plays it ({@link RatSoundShowcase}; the list is the boss area's {@code RatKingSounds}).</li>
+ *       that plays it ({@link RatSoundShowcase}; the list is the boss area's {@code RatKingSounds}).
+ *       {@code /dross showcase boss_sounds huntsman} lists the Huntsman's and the Alpha Moose's sound options, a
+ *       button for each version ({@link HuntsmanSoundShowcase}; the boss area's {@code HuntsmanSounds}).</li>
  *   <li>{@code /dross showcase rimefall_mobs}: Rimefall's animals in a row in front of you (Rimehorns, moose, a Pond
  *       Skater), frozen, with signs; {@code /dross showcase rimefall_mobs idle|walk|run|charge|eat|attack} plays their
  *       animations ({@link RimefallMobShowcase}). {@code /dross showcase mob_sounds rimefall} lists their sounds with
@@ -211,9 +213,10 @@ public final class DrossCommand
                         .then(rimefallMobShowcase())
                         .then(Commands.literal("mob_sounds")
                                 .then(Commands.literal("rimefall").executes(RimefallMobSoundShowcase::list)))
-                        // Boss area's sounds, one literal per boss (RatSoundShowcase).
+                        // Boss area's sounds, one literal per boss (RatSoundShowcase, HuntsmanSoundShowcase).
                         .then(Commands.literal("boss_sounds")
-                                .then(Commands.literal("ratking").executes(RatSoundShowcase::list)))
+                                .then(Commands.literal("ratking").executes(RatSoundShowcase::list))
+                                .then(Commands.literal("huntsman").executes(HuntsmanSoundShowcase::list)))
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))

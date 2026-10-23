@@ -1,6 +1,10 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.registry.ModSounds;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.damagesource.DamageTypes;
@@ -18,6 +22,7 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -50,6 +55,9 @@ public class Huntsman extends HuntMob
     boolean hornWhenLanded;
     /** His spear is out (thrown, on its way back): {@link HuntSpear}. */
     boolean spearOut;
+    /** After his war cry: the horn he blows when it's over, and how many ticks until then (0: none due). */
+    private String hornAfterCry;
+    private int hornIn;
 
     public Huntsman(EntityType<? extends Huntsman> type, Level level)
     {
@@ -192,10 +200,73 @@ public class Huntsman extends HuntMob
         return out;
     }
 
+    /** He spots a foe: his war cry (the user's pick, a man's wolf howl), then {@code horn} once it's over
+     * ({@link HuntsmanTuning#WAR_CRY_TICKS}); his goals wait meanwhile ({@link #holding}). */
+    void warCry(String horn)
+    {
+        this.level().playSound(null, this.getX(), this.getY(), this.getZ(), ModSounds.HUNTSMAN_CRY.get(), SoundSource.HOSTILE,
+                HuntsmanTuning.WAR_CRY_VOLUME, 1.0F);
+        this.hornAfterCry = horn;
+        this.hornIn = HuntsmanTuning.WAR_CRY_TICKS;
+    }
+
+    /** True from his war cry until his horn starts. */
+    public boolean crying()
+    {
+        return this.hornIn > 0;
+    }
+
+    @Override
+    public boolean holding()
+    {
+        return this.crying();
+    }
+
+    @Override
+    protected int idleSoundInterval()
+    {
+        return HuntsmanTuning.HUNTSMAN_IDLE_SOUND_TICKS;
+    }
+
+    @Override
+    @Nullable
+    protected SoundEvent getAmbientSound()
+    {
+        return ModSounds.HUNTSMAN_AMBIENT.get();
+    }
+
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source)
+    {
+        return ModSounds.HUNTSMAN_HURT.get();
+    }
+
+    /** None here: his death cry comes at its moment of his death animation ({@link HuntSoundCues}). */
+    @Override
+    @Nullable
+    protected SoundEvent getDeathSound()
+    {
+        return null;
+    }
+
+    /** His boots in the snow; in the saddle the moose's hooves do it. */
+    @Override
+    protected void playStepSound(BlockPos pos, BlockState state)
+    {
+        if (!this.isMounted())
+        {
+            this.playSound(ModSounds.HUNTSMAN_STEP.get(), 0.8F, 1.0F);
+        }
+    }
+
     @Override
     public void tick()
     {
         super.tick();
+        if (!this.level().isClientSide && this.hornIn > 0 && --this.hornIn == 0 && this.isAlive())
+        {
+            this.play(this.hornAfterCry);
+        }
         if (!this.level().isClientSide && this.getVehicle() instanceof AlphaMoose moose
                 && this.current().name().equals(HuntAnims.LEAP) && this.playingTicks() >= this.current().ticks())
         {

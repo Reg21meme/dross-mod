@@ -186,9 +186,10 @@ public final class HuntsmanFightGameTest
             {
                 throw new GameTestAssertException("the first hit should start the Wild Hunt, but they're " + h.stage());
             }
-            if (!h.current().name().equals("ride_horn"))
+            if (!h.crying() && !h.current().name().equals("ride_horn"))      // his war cry, then the horn
             {
-                throw new GameTestAssertException("he should blow his horn when the hunt starts, but he plays " + h.current().name());
+                throw new GameTestAssertException("he should cry out and blow his horn when the hunt starts, but he plays "
+                        + h.current().name());
             }
             float afterMoose = m.wildHunt;
             hit(h, byZombie(level, h), HIT);
@@ -242,9 +243,9 @@ public final class HuntsmanFightGameTest
                 {
                     problem = "a player in sight should start the Wild Hunt, but they're " + m.stage();
                 }
-                else if (!h.current().name().equals("ride_horn"))
+                else if (!h.crying() && !h.current().name().equals("ride_horn"))      // his war cry, then the horn
                 {
-                    problem = "he should blow his horn as the hunt starts, but he plays " + h.current().name();
+                    problem = "he should cry out and blow his horn as the hunt starts, but he plays " + h.current().name();
                 }
                 else if (m.getTarget() != hunted || h.getTarget() != hunted)
                 {

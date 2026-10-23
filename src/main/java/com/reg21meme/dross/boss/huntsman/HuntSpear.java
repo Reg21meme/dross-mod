@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.huntsman;
 
 import com.reg21meme.dross.registry.ModEntities;
+import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
@@ -51,7 +52,8 @@ public class HuntSpear extends AbstractArrow
         if (owner.level().addFreshEntity(spear))
         {
             owner.spearOut = true;
-            owner.level().playSound(null, from.x, from.y, from.z, SoundEvents.TRIDENT_THROW, SoundSource.HOSTILE, 1.0F, 0.8F);
+            owner.level().playSound(null, from.x, from.y, from.z, ModSounds.HUNTSMAN_SPEAR_THROW.get(), SoundSource.HOSTILE,
+                    1.5F, 1.0F);
         }
     }
 
@@ -98,7 +100,7 @@ public class HuntSpear extends AbstractArrow
         if (e.hurt(this.damageSources().trident(this, owner == null ? this : owner),
                 HuntsmanTuning.SPEAR_THROW_DAMAGE * scale))
         {
-            this.playSound(SoundEvents.TRIDENT_HIT, 1.0F, 0.9F);
+            this.playSound(ModSounds.HUNTSMAN_SPEAR_HIT.get(), 1.2F, 1.0F);
         }
         this.returning = true;
         this.setDeltaMovement(this.getDeltaMovement().scale(-0.05D));

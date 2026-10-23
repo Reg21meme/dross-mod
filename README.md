@@ -542,7 +542,8 @@ the edge) with a chat button to summon him.
   him (both of them) and his village stays without him for good; on Peaceful he never comes. They only appear in newly
   generated land.
 
-- **He spots you.** The fight starts, and he blows his hunting horn, when he or the moose sees a foe within 30
+- **He spots you.** The fight starts, and he lets out a wolf's howl and then blows his hunting horn, when he or the
+  moose sees a foe within 30
   blocks: a player (not in creative or spectator), a hostile mob (he hunts those too) or, raged with the Rage Wand, a
   mob of another team. A hit starts it too.
 - **Stage 1, The Wild Hunt** (one bar of 250 for both; hitting either of them takes it down). The two attack at the
@@ -569,10 +570,12 @@ the edge) with a chat button to summon him.
 - **The Rage Wand:** raging either of them rages both, on the same team.
 - **Walk away** (no one within 64 blocks for 30 seconds) and the fight is broken off: both are back at full health,
   him in the saddle, calm.
-- His thrown spear is drawn with the Moonsilver Spear's model, made big; the sounds are stand-ins until the real
-  ones are made.
+- His thrown spear is drawn with the Moonsilver Spear's model, made big.
+- **His sounds** are original (made from scratch, like the Rat King's): the user picked which of a few versions each
+  one plays. His horn is a goat horn, and his grunts, hurt and death sounds are being picked.
 - `/dross showcase boss_designs huntsman` shows him riding, on foot and the moose alone, with a button for every
-  animation; `/dross showcase bossbars huntsman` shows his boss bars.
+  animation; `/dross showcase bossbars huntsman` shows his boss bars; `/dross showcase boss_sounds huntsman` lists
+  every version of his and the moose's sounds with a button that plays it.
 
 ---
 
@@ -662,6 +665,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
 | `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
 | `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
+| `/dross showcase boss_sounds huntsman` | Lists every Huntsman and Alpha Moose sound in chat, with a numbered button for each version (hover to see what it is). |
 | `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
 | `/dross showcase rimefall_mobs` | Lines up Rimefall's animals, frozen, on ice pedestals with signs: a male, a female and a calf Rimehorn, a bull, a cow and a calf moose, and a Pond Skater. Right-click one to play its next animation. |
 | `/dross showcase rimefall_mobs idle` / `walk` / `run` / `charge` / `eat` / `attack` | Plays that animation on every showcase animal nearby (attack: the Rimehorn's horn flick, the moose's ram, the Pond Skater's stab). |

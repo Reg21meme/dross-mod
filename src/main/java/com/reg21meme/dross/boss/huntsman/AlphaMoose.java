@@ -3,6 +3,9 @@ package com.reg21meme.dross.boss.huntsman;
 import com.reg21meme.dross.boss.huntsman.skull.SkullDrops;
 import com.reg21meme.dross.boss.rimefall.RimefallBodyPart;
 import com.reg21meme.dross.registry.ModItems;
+import com.reg21meme.dross.registry.ModSounds;
+import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
@@ -15,6 +18,7 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraftforge.entity.PartEntity;
 import software.bernie.geckolib.core.animation.AnimatableManager;
@@ -22,6 +26,7 @@ import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.core.object.PlayState;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -58,6 +63,8 @@ public class AlphaMoose extends HuntMob
     private final RimefallBodyPart<AlphaMoose>[] parts;
     private int riderSeen = -1;
     private int carrySeen = -1;
+    /** The tick its gallop's hooves last sounded (one stride's sound at a time). */
+    private int lastGallop = -1000;
 
     @SuppressWarnings("unchecked")
     public AlphaMoose(EntityType<? extends AlphaMoose> type, Level level)
@@ -108,6 +115,52 @@ public class AlphaMoose extends HuntMob
     {
         super.tick();
         RimefallBodyPart.place(this, this.parts, PART_SPOTS, 1.0F);
+    }
+
+    @Override
+    protected int idleSoundInterval()
+    {
+        return HuntsmanTuning.MOOSE_IDLE_SOUND_TICKS;
+    }
+
+    @Override
+    @Nullable
+    protected SoundEvent getAmbientSound()
+    {
+        return ModSounds.ALPHA_MOOSE_AMBIENT.get();
+    }
+
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source)
+    {
+        return ModSounds.ALPHA_MOOSE_HURT.get();
+    }
+
+    /** None here: its death call comes at its moment of its death animation ({@link HuntSoundCues}). */
+    @Override
+    @Nullable
+    protected SoundEvent getDeathSound()
+    {
+        return null;
+    }
+
+    /** Its hooves: a stride of its gallop while it runs or charges (one at a time), a heavy clop when it walks. */
+    @Override
+    protected void playStepSound(BlockPos pos, BlockState state)
+    {
+        String gait = this.current().name();
+        if (gait.equals("run") || gait.equals("charge"))
+        {
+            if (this.tickCount - this.lastGallop >= HuntsmanTuning.GALLOP_SOUND_TICKS)
+            {
+                this.lastGallop = this.tickCount;
+                this.playSound(ModSounds.ALPHA_MOOSE_GALLOP.get(), 1.4F, 1.0F);
+            }
+        }
+        else
+        {
+            this.playSound(ModSounds.ALPHA_MOOSE_STEP.get(), 1.0F, 1.0F);
+        }
     }
 
     public static AttributeSupplier.Builder createAttributes()

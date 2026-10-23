@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -162,8 +163,8 @@ final class FootGoal extends HuntGoal
             if (HuntFight.strike(this.h, this.h.position(), HuntFight.facing(this.h), HuntsmanTuning.SPEAR_REACH, halfAngle,
                     damage, SPEAR_KNOCK, SPEAR_KNOCK_UP) > 0)
             {
-                this.h.level().playSound(null, this.h.getX(), this.h.getY(), this.h.getZ(), SoundEvents.TRIDENT_HIT,
-                        SoundSource.HOSTILE, 1.0F, 0.9F);
+                this.h.level().playSound(null, this.h.getX(), this.h.getY(), this.h.getZ(),
+                        ModSounds.HUNTSMAN_SPEAR_HIT.get(), SoundSource.HOSTILE, 1.2F, 1.0F);
             }
         };
     }
@@ -283,8 +284,8 @@ final class FootGoal extends HuntGoal
                 {
                     level.sendParticles(ParticleTypes.SNOWFLAKE, h.getX(), h.getY() + 0.2D, h.getZ(), 40, 1.2D, 0.2D, 1.2D, 0.1D);
                     level.sendParticles(ParticleTypes.CLOUD, h.getX(), h.getY() + 0.2D, h.getZ(), 12, 1.0D, 0.1D, 1.0D, 0.05D);
-                    level.playSound(null, h.getX(), h.getY(), h.getZ(), SoundEvents.TRIDENT_HIT_GROUND, SoundSource.HOSTILE,
-                            1.5F, 0.7F);
+                    level.playSound(null, h.getX(), h.getY(), h.getZ(), ModSounds.HUNTSMAN_LAND.get(), SoundSource.HOSTILE,
+                            1.5F, 1.0F);
                 }
             }
             return t >= length("leap_strike");

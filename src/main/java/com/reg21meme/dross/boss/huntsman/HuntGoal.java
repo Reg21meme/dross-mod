@@ -87,10 +87,10 @@ abstract class HuntGoal extends Goal
         return null;
     }
 
-    /** Free to start a move (not in the middle of one of its own animations). */
+    /** Free to start a move (not in the middle of one of its own animations, nor waiting to make one). */
     protected boolean free()
     {
-        return !this.mob.busy();
+        return !this.mob.busy() && !this.mob.holding();
     }
 
     @Override

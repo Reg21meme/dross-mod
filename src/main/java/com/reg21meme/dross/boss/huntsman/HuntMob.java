@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.huntsman;
 
 import com.reg21meme.dross.boss.rage.RageLeader;
+import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -8,7 +9,6 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -44,8 +44,8 @@ import java.util.UUID;
  * <b>On show</b> ({@code /dross showcase boss_designs huntsman}, {@link #setShowcase}): frozen (no AI), they can't be
  * hurt except by {@code /kill}, can't be pushed or leashed and never despawn; a move plays once and then they go back
  * to their first animation (standing) after {@link #HOLD_AFTER} ticks, except a death, which stays down. His shots loose
- * real arrows from his bow ({@link HuntCues}), harmless on show, and a few moments make a placeholder sound
- * ({@link HuntShowSounds}) until the real sounds are picked.
+ * real arrows from his bow ({@link HuntCues}), harmless on show, and their animations' moments make their sounds
+ * ({@link HuntSoundCues}); frozen on show, they make no idle sounds.
  * <p>
  * <b>Fighting</b> (a spawn egg, {@code /dross boss summon huntsman}): {@link HuntFight} runs their fight (the stage,
  * the bars, the split, the anger, the end), their goals pick the moves ({@link SaddleGoal}, {@link FootGoal},
@@ -97,6 +97,8 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     private int playing;
     private String later;
     private int laterTicks;
+    /** The tick its last arrow twanged (a volley's three arrows twang once). */
+    private int lastTwang = -1;
 
     // ---------------------------------------------------------------- its gait (HuntFight.locomote keeps it)
     /** Its speed over the ground (blocks a tick), smoothed over a few ticks. */
@@ -200,6 +202,23 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     {
         return !this.current().loop();
     }
+
+    /** True while it waits to make a move it's already set on (the Huntsman's horn after his war cry): its goals don't
+     * start another meanwhile. */
+    public boolean holding()
+    {
+        return false;
+    }
+
+    /** Frozen on show, no idle sounds (only the moments of the animations played). */
+    @Override
+    public int getAmbientSoundInterval()
+    {
+        return this.showcase ? Integer.MAX_VALUE / 2 : this.idleSoundInterval();
+    }
+
+    /** How often (ticks, on average about this and more) it makes its idle sound while fighting or calm. */
+    protected abstract int idleSoundInterval();
 
     /** Goes up by one every time an animation starts (both sides): the Huntsman's saddle follows the moose's. */
     public int animCount()
@@ -330,7 +349,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
                     }
                 }
                 this.glide(a);
-                HuntShowSounds.play(this, a, this.playing);
+                HuntSoundCues.play(this, a, this.playing);
                 int end = this.showcase ? a.ticks() + HOLD_AFTER : a.ticks();
                 if (!a.stays() && this.playing > end)
                 {
@@ -499,7 +518,11 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             HuntFight.mark(arrow, this.shotFrost);
         }
         this.level().addFreshEntity(arrow);
-        this.playSound(SoundEvents.ARROW_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 1.2F) + 0.5F);
+        if (this.tickCount != this.lastTwang)        // a volley of three looses at once: one twang
+        {
+            this.lastTwang = this.tickCount;
+            this.playSound(ModSounds.HUNTSMAN_BOW_SHOT.get(), 1.5F, 0.95F + this.getRandom().nextFloat() * 0.1F);
+        }
     }
 
     // ---------------------------------------------------------------- being hurt, dying

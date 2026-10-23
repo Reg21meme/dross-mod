@@ -3,10 +3,10 @@ package com.reg21meme.dross.boss.huntsman;
 import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
+import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.particles.ItemParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -50,7 +50,8 @@ public class Bola extends ThrowableItemProjectile
         Vec3 aim = HuntFight.aimAt(from, target, HuntsmanTuning.BOLA_SPEED, GRAVITY / 2.0D);
         bola.shoot(aim.x, aim.y, aim.z, HuntsmanTuning.BOLA_SPEED, 1.0F);
         thrower.level().addFreshEntity(bola);
-        thrower.level().playSound(null, from.x, from.y, from.z, SoundEvents.WITCH_THROW, SoundSource.HOSTILE, 1.0F, 0.7F);
+        thrower.level().playSound(null, from.x, from.y, from.z, ModSounds.HUNTSMAN_BOLA_RELEASE.get(), SoundSource.HOSTILE,
+                1.5F, 1.0F);
     }
 
     @Override
@@ -86,8 +87,8 @@ public class Bola extends ThrowableItemProjectile
                     HuntsmanTuning.BOLA_SNARE_TICKS + HuntsmanTuning.BOLA_SLOW_TICKS, 0));
             victim.setDeltaMovement(0.0D, Math.min(0.0D, victim.getDeltaMovement().y), 0.0D);
             victim.hurtMarked = true;
-            this.level().playSound(null, victim.getX(), victim.getY(), victim.getZ(), SoundEvents.CHAIN_PLACE,
-                    SoundSource.HOSTILE, 1.5F, 0.6F);
+            this.level().playSound(null, victim.getX(), victim.getY(), victim.getZ(), ModSounds.HUNTSMAN_BOLA_SNARE.get(),
+                    SoundSource.HOSTILE, 1.5F, 1.0F);
         }
     }
 

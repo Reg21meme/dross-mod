@@ -115,6 +115,38 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> POND_SKATER_STEP = register("entity.pondskater.step");
     public static final RegistryObject<SoundEvent> POND_SKATER_SKATE = register("entity.pondskater.skate");
     public static final RegistryObject<SoundEvent> POND_SKATER_ATTACK = register("entity.pondskater.attack");
+    // Boss area: the Huntsman and his Alpha Moose (all original, made by tools/huntsman/sounds.py; each event plays the
+    // user's picked versions; his horn is still the goat horn, HuntSoundCues).
+    public static final RegistryObject<SoundEvent> HUNTSMAN_CRY = register("entity.huntsman.cry");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_AMBIENT = register("entity.huntsman.ambient");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_EFFORT = register("entity.huntsman.effort");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_HURT = register("entity.huntsman.hurt");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_DEATH = register("entity.huntsman.death");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_STEP = register("entity.huntsman.step");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_LAND = register("entity.huntsman.land");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_SPEAR_THRUST = register("entity.huntsman.spear_swing.v1");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_SPEAR_SWEEP = register("entity.huntsman.spear_swing.v2");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_SPEAR_HIT = register("entity.huntsman.spear_hit");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_SPEAR_THROW = register("entity.huntsman.spear_throw");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_BOW_DRAW = register("entity.huntsman.bow_draw");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_BOW_SHOT = register("entity.huntsman.bow_shot");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_ARROW_RAIN = register("entity.huntsman.arrow_rain");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_ARROW_HIT = register("entity.huntsman.arrow_hit");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_BOLA_WHIRL = register("entity.huntsman.bola_whirl");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_BOLA_RELEASE = register("entity.huntsman.bola_release");
+    public static final RegistryObject<SoundEvent> HUNTSMAN_BOLA_SNARE = register("entity.huntsman.bola_snare");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_AMBIENT = register("entity.alpha_moose.ambient");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_HURT = register("entity.alpha_moose.hurt");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_DEATH = register("entity.alpha_moose.death");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_STEP = register("entity.alpha_moose.step");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_GALLOP = register("entity.alpha_moose.gallop");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_BELLOW = register("entity.alpha_moose.bellow");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_REAR = register("entity.alpha_moose.rear");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_KICK = register("entity.alpha_moose.kick");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_RAM = register("entity.alpha_moose.ram");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_STOMP = register("entity.alpha_moose.stomp");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_CRACK_STAMP = register("entity.alpha_moose.crack_stamp");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_ICE_SPIKES = register("entity.alpha_moose.ice_spikes");
 
     private static RegistryObject<SoundEvent> register(String name)
     {

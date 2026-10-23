@@ -5,6 +5,7 @@ import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.registry.ModEntities;
+import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -414,7 +415,8 @@ public final class HuntFight
         }
     }
 
-    /** The first hit: the Wild Hunt (or the duel, if he isn't in the saddle), and his horn. */
+    /** The first hit (or a foe in sight): the Wild Hunt (or the duel, if he isn't in the saddle), his war cry, then his
+     * horn. */
     static void startFight(HuntMob mob)
     {
         Huntsman h = huntsmanOf(mob);
@@ -425,7 +427,7 @@ public final class HuntFight
         setStage(m, next);
         if (h != null && h.isAlive())
         {
-            h.play(riding ? "ride_horn" : "horn_blow");
+            h.warCry(riding ? "ride_horn" : "horn_blow");
         }
     }
 
@@ -1018,9 +1020,11 @@ public final class HuntFight
         }
     }
 
-    /** One of his marked arrows hit {@code victim}. */
+    /** One of his marked arrows hit {@code victim}: the frost bursting on it, and what it does. */
     static void arrowHit(LivingEntity victim, String what)
     {
+        victim.level().playSound(null, victim.getX(), victim.getY(), victim.getZ(), ModSounds.HUNTSMAN_ARROW_HIT.get(),
+                SoundSource.HOSTILE, 1.0F, 1.0F);
         if (Frost.FROST.name().equals(what))
         {
             victim.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, HuntsmanTuning.FROST_SLOW_TICKS, 0));
@@ -1056,6 +1060,7 @@ public final class HuntFight
     {
         for (int i = 0; i < arrows; i++)
         {
+            boolean first = i == 0;     // the first arrow down brings the storm's sound with it
             int[] left = {HuntsmanTuning.RAIN_DELAY + (int) (i * (double) HuntsmanTuning.RAIN_SPREAD / arrows)};
             Vec3[] last = {target.position()};
             shooter.pending.add((m, level) ->
@@ -1079,6 +1084,10 @@ public final class HuntFight
                 arrow.shoot(0.0D, -1.0D, 0.0D, (float) HuntsmanTuning.RAIN_SPEED, RAIN_SPREAD_DEGREES);
                 mark(arrow, Frost.FROST);
                 level.addFreshEntity(arrow);
+                if (first)
+                {
+                    level.playSound(null, c.x, c.y, c.z, ModSounds.HUNTSMAN_ARROW_RAIN.get(), SoundSource.HOSTILE, 2.0F, 1.0F);
+                }
                 int[] gone = {RAIN_CLEAR_TICKS};
                 m.pending.add((m2, l2) ->
                 {
@@ -1100,7 +1109,6 @@ public final class HuntFight
     static void crack(AlphaMoose moose, Vec3 from, Vec3 to)
     {
         Vec3[] at = {from};
-        int[] step = {0};
         BlockState crust = Blocks.PACKED_ICE.defaultBlockState();
         moose.pending.add((m, level) ->
         {
@@ -1112,16 +1120,11 @@ public final class HuntFight
                 level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, crust), at[0].x, to.y + 0.1D, at[0].z, 6,
                         0.25D, 0.05D, 0.25D, 0.05D);
                 level.sendParticles(ParticleTypes.SNOWFLAKE, at[0].x, to.y + 0.2D, at[0].z, 2, 0.2D, 0.05D, 0.2D, 0.01D);
-                if (step[0]++ % 4 == 0)
-                {
-                    level.playSound(null, at[0].x, to.y, at[0].z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 0.5F, 0.6F);
-                }
-                return false;
+                return false;      // (the cracks' own sound runs with the stamp: HuntSoundCues)
             }
             spikes(level, to, m.getRandom());
             burst(m, to, HuntsmanTuning.STAMP_RADIUS, HuntsmanTuning.STAMP_DAMAGE, 0.3D, HuntsmanTuning.STAMP_LAUNCH);
-            level.playSound(null, to.x, to.y, to.z, SoundEvents.GLASS_BREAK, SoundSource.HOSTILE, 1.5F, 0.5F);
-            level.playSound(null, to.x, to.y, to.z, SoundEvents.POINTED_DRIPSTONE_LAND, SoundSource.HOSTILE, 1.5F, 0.7F);
+            level.playSound(null, to.x, to.y, to.z, ModSounds.ALPHA_MOOSE_ICE_SPIKES.get(), SoundSource.HOSTILE, 2.5F, 1.0F);
             return true;
         });
     }

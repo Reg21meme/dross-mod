@@ -756,5 +756,584 @@
       {"name": "dross:pondskater/attack_1"},
       {"name": "dross:pondskater/attack_2"}
     ]
+  },
+  "entity.huntsman.cry": {
+    "subtitle": "subtitles.dross.huntsman.cry",
+    "sounds": [
+      {"name": "dross:huntsman/cry_2"}
+    ]
+  },
+  "entity.huntsman.cry.v1": {
+    "subtitle": "subtitles.dross.huntsman.cry",
+    "sounds": [
+      {"name": "dross:huntsman/cry_1"}
+    ]
+  },
+  "entity.huntsman.cry.v2": {
+    "subtitle": "subtitles.dross.huntsman.cry",
+    "sounds": [
+      {"name": "dross:huntsman/cry_2"}
+    ]
+  },
+  "entity.huntsman.cry.v3": {
+    "subtitle": "subtitles.dross.huntsman.cry",
+    "sounds": [
+      {"name": "dross:huntsman/cry_3"}
+    ]
+  },
+  "entity.huntsman.ambient": {
+    "subtitle": "subtitles.dross.huntsman.ambient",
+    "sounds": [
+      {"name": "dross:huntsman/ambient_1"}
+    ]
+  },
+  "entity.huntsman.ambient.v1": {
+    "subtitle": "subtitles.dross.huntsman.ambient",
+    "sounds": [
+      {"name": "dross:huntsman/ambient_1"}
+    ]
+  },
+  "entity.huntsman.ambient.v2": {
+    "subtitle": "subtitles.dross.huntsman.ambient",
+    "sounds": [
+      {"name": "dross:huntsman/ambient_2"}
+    ]
+  },
+  "entity.huntsman.ambient.v3": {
+    "subtitle": "subtitles.dross.huntsman.ambient",
+    "sounds": [
+      {"name": "dross:huntsman/ambient_3"}
+    ]
+  },
+  "entity.huntsman.effort": {
+    "subtitle": "subtitles.dross.huntsman.effort",
+    "sounds": [
+      {"name": "dross:huntsman/effort_1"},
+      {"name": "dross:huntsman/effort_2"},
+      {"name": "dross:huntsman/effort_3"}
+    ]
+  },
+  "entity.huntsman.effort.v1": {
+    "subtitle": "subtitles.dross.huntsman.effort",
+    "sounds": [
+      {"name": "dross:huntsman/effort_1"}
+    ]
+  },
+  "entity.huntsman.effort.v2": {
+    "subtitle": "subtitles.dross.huntsman.effort",
+    "sounds": [
+      {"name": "dross:huntsman/effort_2"}
+    ]
+  },
+  "entity.huntsman.effort.v3": {
+    "subtitle": "subtitles.dross.huntsman.effort",
+    "sounds": [
+      {"name": "dross:huntsman/effort_3"}
+    ]
+  },
+  "entity.huntsman.hurt": {
+    "subtitle": "subtitles.dross.huntsman.hurt",
+    "sounds": [
+      {"name": "dross:huntsman/hurt_1"},
+      {"name": "dross:huntsman/hurt_2"},
+      {"name": "dross:huntsman/hurt_3"}
+    ]
+  },
+  "entity.huntsman.hurt.v1": {
+    "subtitle": "subtitles.dross.huntsman.hurt",
+    "sounds": [
+      {"name": "dross:huntsman/hurt_1"}
+    ]
+  },
+  "entity.huntsman.hurt.v2": {
+    "subtitle": "subtitles.dross.huntsman.hurt",
+    "sounds": [
+      {"name": "dross:huntsman/hurt_2"}
+    ]
+  },
+  "entity.huntsman.hurt.v3": {
+    "subtitle": "subtitles.dross.huntsman.hurt",
+    "sounds": [
+      {"name": "dross:huntsman/hurt_3"}
+    ]
+  },
+  "entity.huntsman.death": {
+    "subtitle": "subtitles.dross.huntsman.death",
+    "sounds": [
+      {"name": "dross:huntsman/death_1"},
+      {"name": "dross:huntsman/death_2"},
+      {"name": "dross:huntsman/death_3"}
+    ]
+  },
+  "entity.huntsman.death.v1": {
+    "subtitle": "subtitles.dross.huntsman.death",
+    "sounds": [
+      {"name": "dross:huntsman/death_1"}
+    ]
+  },
+  "entity.huntsman.death.v2": {
+    "subtitle": "subtitles.dross.huntsman.death",
+    "sounds": [
+      {"name": "dross:huntsman/death_2"}
+    ]
+  },
+  "entity.huntsman.death.v3": {
+    "subtitle": "subtitles.dross.huntsman.death",
+    "sounds": [
+      {"name": "dross:huntsman/death_3"}
+    ]
+  },
+  "entity.huntsman.step": {
+    "subtitle": "subtitles.dross.huntsman.step",
+    "sounds": [
+      {"name": "dross:huntsman/step_1", "volume": 0.6}
+    ]
+  },
+  "entity.huntsman.step.v1": {
+    "subtitle": "subtitles.dross.huntsman.step",
+    "sounds": [
+      {"name": "dross:huntsman/step_1", "volume": 0.6}
+    ]
+  },
+  "entity.huntsman.step.v2": {
+    "subtitle": "subtitles.dross.huntsman.step",
+    "sounds": [
+      {"name": "dross:huntsman/step_2", "volume": 0.6}
+    ]
+  },
+  "entity.huntsman.land": {
+    "subtitle": "subtitles.dross.huntsman.land",
+    "sounds": [
+      {"name": "dross:huntsman/land_1"}
+    ]
+  },
+  "entity.huntsman.land.v1": {
+    "subtitle": "subtitles.dross.huntsman.land",
+    "sounds": [
+      {"name": "dross:huntsman/land_1"}
+    ]
+  },
+  "entity.huntsman.land.v2": {
+    "subtitle": "subtitles.dross.huntsman.land",
+    "sounds": [
+      {"name": "dross:huntsman/land_2"}
+    ]
+  },
+  "entity.huntsman.spear_swing": {
+    "subtitle": "subtitles.dross.huntsman.spear_swing",
+    "sounds": [
+      {"name": "dross:huntsman/spear_swing_1"},
+      {"name": "dross:huntsman/spear_swing_2"}
+    ]
+  },
+  "entity.huntsman.spear_swing.v1": {
+    "subtitle": "subtitles.dross.huntsman.spear_swing",
+    "sounds": [
+      {"name": "dross:huntsman/spear_swing_1"}
+    ]
+  },
+  "entity.huntsman.spear_swing.v2": {
+    "subtitle": "subtitles.dross.huntsman.spear_swing",
+    "sounds": [
+      {"name": "dross:huntsman/spear_swing_2"}
+    ]
+  },
+  "entity.huntsman.spear_hit": {
+    "subtitle": "subtitles.dross.huntsman.spear_hit",
+    "sounds": [
+      {"name": "dross:huntsman/spear_hit_1"}
+    ]
+  },
+  "entity.huntsman.spear_hit.v1": {
+    "subtitle": "subtitles.dross.huntsman.spear_hit",
+    "sounds": [
+      {"name": "dross:huntsman/spear_hit_1"}
+    ]
+  },
+  "entity.huntsman.spear_hit.v2": {
+    "subtitle": "subtitles.dross.huntsman.spear_hit",
+    "sounds": [
+      {"name": "dross:huntsman/spear_hit_2"}
+    ]
+  },
+  "entity.huntsman.spear_throw": {
+    "subtitle": "subtitles.dross.huntsman.spear_throw",
+    "sounds": [
+      {"name": "dross:huntsman/spear_throw_1"}
+    ]
+  },
+  "entity.huntsman.spear_throw.v1": {
+    "subtitle": "subtitles.dross.huntsman.spear_throw",
+    "sounds": [
+      {"name": "dross:huntsman/spear_throw_1"}
+    ]
+  },
+  "entity.huntsman.spear_throw.v2": {
+    "subtitle": "subtitles.dross.huntsman.spear_throw",
+    "sounds": [
+      {"name": "dross:huntsman/spear_throw_2"}
+    ]
+  },
+  "entity.huntsman.bow_draw": {
+    "subtitle": "subtitles.dross.huntsman.bow_draw",
+    "sounds": [
+      {"name": "dross:huntsman/bow_draw_1"}
+    ]
+  },
+  "entity.huntsman.bow_draw.v1": {
+    "subtitle": "subtitles.dross.huntsman.bow_draw",
+    "sounds": [
+      {"name": "dross:huntsman/bow_draw_1"}
+    ]
+  },
+  "entity.huntsman.bow_draw.v2": {
+    "subtitle": "subtitles.dross.huntsman.bow_draw",
+    "sounds": [
+      {"name": "dross:huntsman/bow_draw_2"}
+    ]
+  },
+  "entity.huntsman.bow_shot": {
+    "subtitle": "subtitles.dross.huntsman.bow_shot",
+    "sounds": [
+      {"name": "dross:huntsman/bow_shot_3"}
+    ]
+  },
+  "entity.huntsman.bow_shot.v1": {
+    "subtitle": "subtitles.dross.huntsman.bow_shot",
+    "sounds": [
+      {"name": "dross:huntsman/bow_shot_1"}
+    ]
+  },
+  "entity.huntsman.bow_shot.v2": {
+    "subtitle": "subtitles.dross.huntsman.bow_shot",
+    "sounds": [
+      {"name": "dross:huntsman/bow_shot_2"}
+    ]
+  },
+  "entity.huntsman.bow_shot.v3": {
+    "subtitle": "subtitles.dross.huntsman.bow_shot",
+    "sounds": [
+      {"name": "dross:huntsman/bow_shot_3"}
+    ]
+  },
+  "entity.huntsman.arrow_rain": {
+    "subtitle": "subtitles.dross.huntsman.arrow_rain",
+    "sounds": [
+      {"name": "dross:huntsman/arrow_rain_2"}
+    ]
+  },
+  "entity.huntsman.arrow_rain.v1": {
+    "subtitle": "subtitles.dross.huntsman.arrow_rain",
+    "sounds": [
+      {"name": "dross:huntsman/arrow_rain_1"}
+    ]
+  },
+  "entity.huntsman.arrow_rain.v2": {
+    "subtitle": "subtitles.dross.huntsman.arrow_rain",
+    "sounds": [
+      {"name": "dross:huntsman/arrow_rain_2"}
+    ]
+  },
+  "entity.huntsman.arrow_hit": {
+    "subtitle": "subtitles.dross.huntsman.arrow_hit",
+    "sounds": [
+      {"name": "dross:huntsman/arrow_hit_1"}
+    ]
+  },
+  "entity.huntsman.arrow_hit.v1": {
+    "subtitle": "subtitles.dross.huntsman.arrow_hit",
+    "sounds": [
+      {"name": "dross:huntsman/arrow_hit_1"}
+    ]
+  },
+  "entity.huntsman.arrow_hit.v2": {
+    "subtitle": "subtitles.dross.huntsman.arrow_hit",
+    "sounds": [
+      {"name": "dross:huntsman/arrow_hit_2"}
+    ]
+  },
+  "entity.huntsman.bola_whirl": {
+    "subtitle": "subtitles.dross.huntsman.bola_whirl",
+    "sounds": [
+      {"name": "dross:huntsman/bola_whirl_1"}
+    ]
+  },
+  "entity.huntsman.bola_whirl.v1": {
+    "subtitle": "subtitles.dross.huntsman.bola_whirl",
+    "sounds": [
+      {"name": "dross:huntsman/bola_whirl_1"}
+    ]
+  },
+  "entity.huntsman.bola_whirl.v2": {
+    "subtitle": "subtitles.dross.huntsman.bola_whirl",
+    "sounds": [
+      {"name": "dross:huntsman/bola_whirl_2"}
+    ]
+  },
+  "entity.huntsman.bola_throw": {
+    "subtitle": "subtitles.dross.huntsman.bola_throw",
+    "sounds": [
+      {"name": "dross:huntsman/bola_throw_2"}
+    ]
+  },
+  "entity.huntsman.bola_throw.v1": {
+    "subtitle": "subtitles.dross.huntsman.bola_throw",
+    "sounds": [
+      {"name": "dross:huntsman/bola_throw_1"}
+    ]
+  },
+  "entity.huntsman.bola_throw.v2": {
+    "subtitle": "subtitles.dross.huntsman.bola_throw",
+    "sounds": [
+      {"name": "dross:huntsman/bola_throw_2"}
+    ]
+  },
+  "entity.alpha_moose.bellow": {
+    "subtitle": "subtitles.dross.alpha_moose.bellow",
+    "sounds": [
+      {"name": "dross:alpha_moose/bellow_3"},
+      {"name": "dross:alpha_moose/bellow_1"}
+    ]
+  },
+  "entity.alpha_moose.bellow.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.bellow",
+    "sounds": [
+      {"name": "dross:alpha_moose/bellow_1"}
+    ]
+  },
+  "entity.alpha_moose.bellow.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.bellow",
+    "sounds": [
+      {"name": "dross:alpha_moose/bellow_2"}
+    ]
+  },
+  "entity.alpha_moose.bellow.v3": {
+    "subtitle": "subtitles.dross.alpha_moose.bellow",
+    "sounds": [
+      {"name": "dross:alpha_moose/bellow_3"}
+    ]
+  },
+  "entity.alpha_moose.rear": {
+    "subtitle": "subtitles.dross.alpha_moose.rear",
+    "sounds": [
+      {"name": "dross:alpha_moose/rear_1"}
+    ]
+  },
+  "entity.alpha_moose.rear.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.rear",
+    "sounds": [
+      {"name": "dross:alpha_moose/rear_1"}
+    ]
+  },
+  "entity.alpha_moose.rear.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.rear",
+    "sounds": [
+      {"name": "dross:alpha_moose/rear_2"}
+    ]
+  },
+  "entity.alpha_moose.rear.v3": {
+    "subtitle": "subtitles.dross.alpha_moose.rear",
+    "sounds": [
+      {"name": "dross:alpha_moose/rear_3"}
+    ]
+  },
+  "entity.alpha_moose.ambient": {
+    "subtitle": "subtitles.dross.alpha_moose.ambient",
+    "sounds": [
+      {"name": "dross:alpha_moose/ambient_1"},
+      {"name": "dross:alpha_moose/ambient_2"}
+    ]
+  },
+  "entity.alpha_moose.ambient.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.ambient",
+    "sounds": [
+      {"name": "dross:alpha_moose/ambient_1"}
+    ]
+  },
+  "entity.alpha_moose.ambient.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.ambient",
+    "sounds": [
+      {"name": "dross:alpha_moose/ambient_2"}
+    ]
+  },
+  "entity.alpha_moose.ambient.v3": {
+    "subtitle": "subtitles.dross.alpha_moose.ambient",
+    "sounds": [
+      {"name": "dross:alpha_moose/ambient_3"}
+    ]
+  },
+  "entity.alpha_moose.hurt": {
+    "subtitle": "subtitles.dross.alpha_moose.hurt",
+    "sounds": [
+      {"name": "dross:alpha_moose/hurt_1"}
+    ]
+  },
+  "entity.alpha_moose.hurt.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.hurt",
+    "sounds": [
+      {"name": "dross:alpha_moose/hurt_1"}
+    ]
+  },
+  "entity.alpha_moose.hurt.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.hurt",
+    "sounds": [
+      {"name": "dross:alpha_moose/hurt_2"}
+    ]
+  },
+  "entity.alpha_moose.death": {
+    "subtitle": "subtitles.dross.alpha_moose.death",
+    "sounds": [
+      {"name": "dross:alpha_moose/death_2"}
+    ]
+  },
+  "entity.alpha_moose.death.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.death",
+    "sounds": [
+      {"name": "dross:alpha_moose/death_1"}
+    ]
+  },
+  "entity.alpha_moose.death.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.death",
+    "sounds": [
+      {"name": "dross:alpha_moose/death_2"}
+    ]
+  },
+  "entity.alpha_moose.gallop": {
+    "subtitle": "subtitles.dross.alpha_moose.gallop",
+    "sounds": [
+      {"name": "dross:alpha_moose/gallop_2"}
+    ]
+  },
+  "entity.alpha_moose.gallop.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.gallop",
+    "sounds": [
+      {"name": "dross:alpha_moose/gallop_1"}
+    ]
+  },
+  "entity.alpha_moose.gallop.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.gallop",
+    "sounds": [
+      {"name": "dross:alpha_moose/gallop_2"}
+    ]
+  },
+  "entity.alpha_moose.step": {
+    "subtitle": "subtitles.dross.alpha_moose.step",
+    "sounds": [
+      {"name": "dross:alpha_moose/step_1", "volume": 0.6}
+    ]
+  },
+  "entity.alpha_moose.step.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.step",
+    "sounds": [
+      {"name": "dross:alpha_moose/step_1", "volume": 0.6}
+    ]
+  },
+  "entity.alpha_moose.step.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.step",
+    "sounds": [
+      {"name": "dross:alpha_moose/step_2", "volume": 0.6}
+    ]
+  },
+  "entity.alpha_moose.kick": {
+    "subtitle": "subtitles.dross.alpha_moose.kick",
+    "sounds": [
+      {"name": "dross:alpha_moose/kick_2"}
+    ]
+  },
+  "entity.alpha_moose.kick.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.kick",
+    "sounds": [
+      {"name": "dross:alpha_moose/kick_1"}
+    ]
+  },
+  "entity.alpha_moose.kick.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.kick",
+    "sounds": [
+      {"name": "dross:alpha_moose/kick_2"}
+    ]
+  },
+  "entity.alpha_moose.ram": {
+    "subtitle": "subtitles.dross.alpha_moose.ram",
+    "sounds": [
+      {"name": "dross:alpha_moose/ram_2"}
+    ]
+  },
+  "entity.alpha_moose.ram.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.ram",
+    "sounds": [
+      {"name": "dross:alpha_moose/ram_1"}
+    ]
+  },
+  "entity.alpha_moose.ram.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.ram",
+    "sounds": [
+      {"name": "dross:alpha_moose/ram_2"}
+    ]
+  },
+  "entity.alpha_moose.stomp": {
+    "subtitle": "subtitles.dross.alpha_moose.stomp",
+    "sounds": [
+      {"name": "dross:alpha_moose/stomp_2"}
+    ]
+  },
+  "entity.alpha_moose.stomp.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.stomp",
+    "sounds": [
+      {"name": "dross:alpha_moose/stomp_1"}
+    ]
+  },
+  "entity.alpha_moose.stomp.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.stomp",
+    "sounds": [
+      {"name": "dross:alpha_moose/stomp_2"}
+    ]
+  },
+  "entity.alpha_moose.crack_stamp": {
+    "subtitle": "subtitles.dross.alpha_moose.crack_stamp",
+    "sounds": [
+      {"name": "dross:alpha_moose/crack_stamp_1"}
+    ]
+  },
+  "entity.alpha_moose.crack_stamp.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.crack_stamp",
+    "sounds": [
+      {"name": "dross:alpha_moose/crack_stamp_1"}
+    ]
+  },
+  "entity.alpha_moose.crack_stamp.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.crack_stamp",
+    "sounds": [
+      {"name": "dross:alpha_moose/crack_stamp_2"}
+    ]
+  },
+  "entity.alpha_moose.ice_spikes": {
+    "subtitle": "subtitles.dross.alpha_moose.ice_spikes",
+    "sounds": [
+      {"name": "dross:alpha_moose/ice_spikes_1"}
+    ]
+  },
+  "entity.alpha_moose.ice_spikes.v1": {
+    "subtitle": "subtitles.dross.alpha_moose.ice_spikes",
+    "sounds": [
+      {"name": "dross:alpha_moose/ice_spikes_1"}
+    ]
+  },
+  "entity.alpha_moose.ice_spikes.v2": {
+    "subtitle": "subtitles.dross.alpha_moose.ice_spikes",
+    "sounds": [
+      {"name": "dross:alpha_moose/ice_spikes_2"}
+    ]
+  },
+  "entity.huntsman.bola_release": {
+    "subtitle": "subtitles.dross.huntsman.bola_release",
+    "sounds": [
+      {"name": "dross:huntsman/bola_release"}
+    ]
+  },
+  "entity.huntsman.bola_snare": {
+    "subtitle": "subtitles.dross.huntsman.bola_snare",
+    "sounds": [
+      {"name": "dross:huntsman/bola_snare"}
+    ]
   }
 }

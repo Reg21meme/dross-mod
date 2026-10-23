@@ -27,6 +27,16 @@ public final class HuntsmanTuning
     public static final int SPLIT_INVULNERABLE_TICKS = 40;
     /** The Huntsman's horn at the split, this long after he lands. */
     public static final int SPLIT_HORN_DELAY = 6;
+    /** When he spots a foe: his war cry (a man's wolf howl, the user's pick of October 23, 2026), and his horn this long
+     * after it starts (its howl is held about 1.8 s; its echo dies under the horn's first moments), and how loud it is
+     * (over 1 carries further: 16 blocks times this). */
+    public static final int WAR_CRY_TICKS = 38;
+    public static final float WAR_CRY_VOLUME = 4.0F;
+    /** How often they make their idle sounds (ticks: Minecraft's chance of one each tick grows from this). */
+    public static final int HUNTSMAN_IDLE_SOUND_TICKS = 240;
+    public static final int MOOSE_IDLE_SOUND_TICKS = 200;
+    /** At a gallop the Alpha Moose's hooves play one stride of its gallop this often (ticks: the sound's length). */
+    public static final int GALLOP_SOUND_TICKS = 15;
     /** Their bars show to players this close. */
     public static final double BOSS_BAR_RANGE = 40.0D;
     /** They go for players this close (once the fight has started). */
