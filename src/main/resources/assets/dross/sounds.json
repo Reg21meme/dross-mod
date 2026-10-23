@@ -760,7 +760,7 @@
   "entity.huntsman.cry": {
     "subtitle": "subtitles.dross.huntsman.cry",
     "sounds": [
-      {"name": "dross:huntsman/cry_2"}
+      {"name": "dross:huntsman/cry_4"}
     ]
   },
   "entity.huntsman.cry.v1": {
@@ -781,10 +781,18 @@
       {"name": "dross:huntsman/cry_3"}
     ]
   },
+  "entity.huntsman.cry.v4": {
+    "subtitle": "subtitles.dross.huntsman.cry",
+    "sounds": [
+      {"name": "dross:huntsman/cry_4"}
+    ]
+  },
   "entity.huntsman.ambient": {
     "subtitle": "subtitles.dross.huntsman.ambient",
     "sounds": [
-      {"name": "dross:huntsman/ambient_1"}
+      {"name": "dross:huntsman/ambient_1"},
+      {"name": "dross:huntsman/ambient_2"},
+      {"name": "dross:huntsman/ambient_3"}
     ]
   },
   "entity.huntsman.ambient.v1": {

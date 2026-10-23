@@ -36,6 +36,8 @@ import soundfile  # noqa: E402
 
 from ratkit import synth as S  # noqa: E402
 
+import voicekit as V  # noqa: E402  (tools/huntsman/voicekit.py: a living voice and a howl)
+
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
 SOUND_DIR = os.path.join(ASSETS, "sounds")
 SOUNDS_JSON = os.path.join(ASSETS, "sounds.json")
@@ -147,102 +149,127 @@ def hu_ambient(rng, kind):
     return S.reverb(S.place(1.5, (0.0, a * 0.7), (0.55, b * 0.7)), 0.15)
 
 
+def hu_man_howl(rng):
+    """A man's wolf howl: low, sliding up, held, falling off (the user's first pick for his war cry)."""
+    howl = man(rng, 1.8, [(0.0, 140.0), (0.35, 290.0), (1.2, 275.0), (1.8, 170.0)],
+               [(0.0, "oo"), (0.4, "ah"), (1.3, "aw"), (1.8, "oo")], rough=0.25, breath=0.3, vib=(5.5, 0.03),
+               amp_pts=[(0.0, 0.0), (0.2, 0.8), (0.5, 1.0), (1.3, 0.85), (1.8, 0.0)])
+    return valley(howl, 0.25)
+
+
 def hu_cry(rng, kind):
-    """His war cry when he spots you (before the horn)."""
-    if kind == 1:        # "hah-HAAAH!": a bark, then a big rising shout
-        bark = man(rng, 0.2, [(0.0, 120.0), (0.2, 135.0)], [(0.0, "ah")], rough=0.6, breath=0.4,
-                   amp_pts=[(0.0, 0.0), (0.01, 1.0), (0.12, 0.7), (0.2, 0.0)])
-        shout = man(rng, 0.95, [(0.0, 125.0), (0.25, 170.0), (0.75, 160.0), (0.95, 120.0)], [(0.0, "ah"), (0.95, "aw")],
-                    rough=0.7, breath=0.35)
-        return valley(S.place(1.4, (0.0, bark), (0.28, shout)), 0.22)
-    if kind == 2:        # a man's wolf howl: low, sliding up, held, falling off
-        howl = man(rng, 1.8, [(0.0, 140.0), (0.35, 290.0), (1.2, 275.0), (1.8, 170.0)],
-                   [(0.0, "oo"), (0.4, "ah"), (1.3, "aw"), (1.8, "oo")], rough=0.25, breath=0.3, vib=(5.5, 0.03),
-                   amp_pts=[(0.0, 0.0), (0.2, 0.8), (0.5, 1.0), (1.3, 0.85), (1.8, 0.0)])
-        return valley(howl, 0.25)
-    # a growl rising into a roar
-    growl = man(rng, 0.5, [(0.0, 78.0), (0.5, 92.0)], [(0.0, "uh")], rough=1.0, breath=0.4, rough_hz=22.0)
-    roar = man(rng, 0.8, [(0.0, 105.0), (0.3, 150.0), (0.8, 118.0)], [(0.0, "aw"), (0.8, "ah")], rough=0.9, breath=0.45)
-    return valley(S.place(1.4, (0.0, growl * 0.7), (0.4, roar)), 0.2)
+    """His war cry when he spots you (then his horn): a wolf's howl (the user, October 23, 2026: "for the war cry I was
+    wishing more wolfiness"). Each is about 2.3 s, its howl over before his horn sounds (HuntsmanTuning.WAR_CRY_TICKS
+    plus the horn's lead-in)."""
+    if kind == 1:        # long and pure: up, held with a slow vibrato, the mouth opening and closing
+        d = 2.3
+        h = V.howl(d, [(0.0, 300.0), (0.35, 430.0), (1.5, 445.0), (1.95, 380.0), (d, 300.0)],
+                   [(0.0, "oo"), (0.35, "oh"), (0.7, "ah"), (1.5, "ah"), (1.9, "oh"), (d, "oo")], rng,
+                   amp=[(0.0, 0.0), (0.25, 0.75), (0.5, 1.0), (1.7, 0.9), (d, 0.0)], vib=(4.5, 0.008))
+        return valley(h, 0.3)
+    if kind == 2:        # low, then breaking up an octave, then down again with a quaver
+        d = 2.3
+        h = V.howl(d, [(0.0, 250.0), (0.38, 270.0), (0.43, 520.0), (1.35, 500.0), (1.43, 330.0), (d, 290.0)],
+                   [(0.0, "oo"), (0.38, "oo"), (0.46, "ah"), (1.35, "oh"), (1.45, "oo"), (d, "oo")], rng,
+                   amp=[(0.0, 0.0), (0.15, 0.6), (0.38, 0.7), (0.46, 1.0), (1.3, 0.9), (1.45, 0.75), (d, 0.0)],
+                   vib=(5.5, [(0.0, 0.004), (1.4, 0.008), (d, 0.03)]))
+        return valley(h, 0.3)
+    if kind == 3:        # his howl, and the pack answering from far off
+        main = V.howl(2.1, [(0.0, 290.0), (0.3, 410.0), (1.4, 425.0), (2.1, 320.0)],
+                      [(0.0, "oo"), (0.35, "ah"), (1.5, "oh"), (2.1, "oo")], rng,
+                      amp=[(0.0, 0.0), (0.25, 0.8), (0.5, 1.0), (1.6, 0.85), (2.1, 0.0)])
+        one = V.howl(1.9, [(0.0, 380.0), (0.3, 515.0), (1.3, 505.0), (1.9, 420.0)],
+                     [(0.0, "oo"), (0.35, "ah"), (1.4, "oh"), (1.9, "oo")], rng,
+                     amp=[(0.0, 0.0), (0.3, 0.8), (1.2, 0.9), (1.9, 0.0)], vib=(5.2, 0.01))
+        two = V.howl(1.7, [(0.0, 460.0), (0.3, 640.0), (1.2, 620.0), (1.7, 520.0)],
+                     [(0.0, "oo"), (0.3, "oh"), (1.2, "ah"), (1.7, "oo")], rng,
+                     amp=[(0.0, 0.0), (0.3, 0.8), (1.1, 0.9), (1.7, 0.0)], vib=(5.8, 0.012))
+        far = lambda x: S.lowpass(x, 2400.0)  # noqa: E731
+        return valley(S.place(3.0, (0.0, main), (0.55, far(one) * 0.4), (0.85, far(two) * 0.3)), 0.35)
+    return hu_man_howl(rng)
 
 
-# The user (October 23, 2026): his voice "just sounds like a moose ... maybe look into sounding more human". His grunts,
-# hurt sounds and death cries are now a man's: a person's own mouth (formants unscaled), a man's shouting pitch (about
-# 130-200 Hz), hardly any growl, an "h" breathed before a vowel, and the hard stop of a grunt. (His picked war cry and
-# idle, the howl and the frosty breath, stay as they were.)
+# The user (October 23, 2026): his voice "just sounds like a moose", then, of the first human round, "I was hoping more
+# human-ish": his grunts, hurt and death are made with voicekit (the folds' own puffs, wobbling like a real voice's,
+# through a mouth that glides between a man's vowels), with a glottal stop, rasp, creak and breath where a person's
+# have them.
 
 
-def human(rng, dur, f0_pts, vowel_pts, breath=0.22, rough=0.1, scale=1.0, amp_pts=None, vib=None, tilt=0.95):
-    """A man's voice: unscaled formants, a little jitter, almost no growl."""
-    amp = amp_pts or [(0.0, 0.0), (min(0.03, dur * 0.2), 1.0), (dur * 0.7, 0.85), (dur, 0.0)]
-    kw = {}
-    if vib:
-        kw = dict(vib_rate=vib[0], vib_pts=[(0.0, 0.0), (dur, vib[1])])
-    return S.voice(dur, f0_pts, vowel_pts, rng, scale=scale, breath=breath, rough=rough, rough_hz=60.0, jitter=0.02,
-                   tilt=tilt, amp_pts=amp, **kw)
-
-
-def aspirate(rng, vowel, dur=0.06, level=0.5, scale=1.0):
-    """An "h": breath shaped by the mouth of the vowel that follows."""
+def teeth_hiss(rng, dur=0.22, level=1.0):
+    """A sharp breath in through clenched teeth."""
     n = S.n_of(dur)
-    air = S.formant_filter(S.highpass(S.noise(n, rng), 300.0), vowel, scale)
-    air /= np.max(np.abs(air)) + 1e-9
-    return air * env([(0.0, 0.0), (dur * 0.6, 1.0), (dur, 0.6)], dur) * level
-
-
-def stop(dur, at=0.85):
-    """A grunt's envelope: in fast, held, then cut off hard (the throat closing)."""
-    return [(0.0, 0.0), (0.012, 1.0), (dur * at, 0.8), (dur * at + 0.015, 0.0), (dur, 0.0)]
-
-
-def gasp(rng, dur=0.18, level=0.35):
-    """A sharp breath in through the teeth."""
-    n = S.n_of(dur)
-    return S.bandpass(S.noise(n, rng), 1500.0, 7000.0) * env([(0.0, 0.0), (dur * 0.7, 1.0), (dur, 0.0)], dur) * level
+    x = S.bandpass(S.noise(n, rng), 2800.0, 8000.0)
+    return x * env([(0.0, 0.0), (dur * 0.8, 1.0), (dur, 0.0)], dur) * level
 
 
 def hu_effort(rng, kind):
     """The grunt of a blow (the spear's thrusts, the leap): "hup!", "hah!", "hyah!"."""
-    if kind == 1:        # "hup!"
-        v = human(rng, 0.14, [(0.0, 150.0), (0.14, 170.0)], [(0.0, "uh")], amp_pts=stop(0.14))
-        return S.place(0.25, (0.0, aspirate(rng, "uh", 0.05)), (0.04, v))
-    if kind == 2:        # "hah!"
-        v = human(rng, 0.2, [(0.0, 165.0), (0.2, 140.0)], [(0.0, "ah")], breath=0.3, amp_pts=stop(0.2, 0.8))
-        return S.place(0.35, (0.0, aspirate(rng, "ah", 0.06)), (0.05, v))
-    # "hyah!": a battle shout
-    v = human(rng, 0.3, [(0.0, 170.0), (0.08, 205.0), (0.3, 160.0)], [(0.0, "ee"), (0.09, "ah"), (0.3, "ah")],
-              breath=0.25, amp_pts=stop(0.3, 0.8))
-    return S.place(0.45, (0.0, aspirate(rng, "ee", 0.05, 0.4)), (0.04, v))
+    if kind == 1:        # "hup!": an h, a tight rising "uh", stopped dead
+        v = V.voice(0.13, [(0.0, 145.0), (0.13, 165.0)], "uh", rng, oq=0.45, rasp=0.05,
+                    amp=[(0.0, 0.0), (0.01, 1.0), (0.1, 0.85), (0.115, 0.0), (0.13, 0.0)])
+        return V.place(0.3, (0.0, V.aspirate(0.05, "uh", rng) * 0.35), (0.04, v))
+    if kind == 2:        # "hah!": a glottal stop, a falling "ah", the breath out after it
+        v = V.voice(0.2, [(0.0, 172.0), (0.2, 132.0)], [(0.0, "ah"), (0.2, "uh")], rng, oq=0.48,
+                    rasp=[(0.0, 0.2), (0.06, 0.0)], amp=[(0.0, 0.0), (0.006, 1.0), (0.14, 0.8), (0.2, 0.0)])
+        out = V.aspirate(0.12, "uh", rng, amp=[(0.0, 0.0), (0.02, 1.0), (0.12, 0.0)])
+        return V.place(0.4, (0.0, V.aspirate(0.03, "ah", rng) * 0.3), (0.025, v), (0.2, out * 0.3))
+    # "hyah!": a battle yell, ee sliding open to ah
+    v = V.voice(0.34, [(0.0, 165.0), (0.08, 210.0), (0.34, 150.0)], [(0.0, "ee"), (0.08, "ae"), (0.16, "ah"), (0.34, "ah")],
+                rng, oq=0.42, rasp=0.12, jitter=0.015, amp=[(0.0, 0.0), (0.02, 0.8), (0.08, 1.0), (0.26, 0.8), (0.34, 0.0)])
+    return V.place(0.45, (0.0, V.aspirate(0.04, "ee", rng) * 0.3), (0.035, v))
 
 
 def hu_hurt(rng, kind):
-    if kind == 1:        # "ugh!", cut off, and the breath knocked out of him
-        v = human(rng, 0.22, [(0.0, 150.0), (0.22, 118.0)], [(0.0, "uh")], breath=0.3, amp_pts=stop(0.22))
-        return S.place(0.5, (0.0, v), (0.22, breath_out(rng, 0.22, 0.25, 600.0, 3500.0)))
-    if kind == 2:        # "agh!", then a hiss of breath through his teeth
-        v = human(rng, 0.3, [(0.0, 180.0), (0.06, 205.0), (0.3, 150.0)], [(0.0, "ah"), (0.3, "eh")], breath=0.3)
-        return S.place(0.65, (0.0, aspirate(rng, "ah", 0.05)), (0.04, v), (0.38, gasp(rng)))
-    # "oof": winded
-    v = human(rng, 0.2, [(0.0, 130.0), (0.2, 108.0)], [(0.0, "oo"), (0.2, "uh")], breath=0.45, amp_pts=stop(0.2, 0.8))
-    return S.place(0.4, (0.0, aspirate(rng, "oo", 0.04, 0.35)), (0.03, v))
+    if kind == 1:        # "ugh!": a creak, a tight "uh" stopped dead, a breath out of his nose
+        cr = V.creak(0.05, "uh", rng, amp=[(0.0, 0.0), (0.01, 0.6), (0.05, 0.6)], f0=(60.0, 90.0))
+        v = V.voice(0.19, [(0.0, 165.0), (0.19, 118.0)], "uh", rng, oq=0.4, rasp=0.08,
+                    amp=[(0.0, 0.6), (0.02, 1.0), (0.15, 0.85), (0.165, 0.0), (0.19, 0.0)])
+        nose = V.aspirate(0.18, "mm", rng, amp=[(0.0, 0.0), (0.04, 1.0), (0.18, 0.0)])
+        return V.place(0.55, (0.0, cr * 0.5), (0.045, v), (0.3, nose * 0.25))
+    if kind == 2:        # "agh!", then a hiss of breath in through his teeth
+        v = V.voice(0.3, [(0.0, 225.0), (0.05, 252.0), (0.3, 168.0)], [(0.0, "ae"), (0.1, "ah"), (0.3, "ah")], rng,
+                    oq=0.38, rasp=0.22, jitter=0.018, amp=[(0.0, 0.0), (0.01, 1.0), (0.2, 0.8), (0.3, 0.0)])
+        return V.place(0.75, (0.0, v), (0.42, teeth_hiss(rng) * 0.35))
+    # "oof": the wind knocked out of him
+    v = V.voice(0.17, [(0.0, 138.0), (0.17, 108.0)], [(0.0, "oo"), (0.17, "uh")], rng, oq=0.72, breath=0.35,
+                puff_breath=0.6, amp=[(0.0, 0.0), (0.01, 1.0), (0.12, 0.6), (0.17, 0.0)])
+    return V.place(0.4, (0.0, V.aspirate(0.05, "oo", rng) * 0.6), (0.03, v), (0.2, V.aspirate(0.15, "uh", rng) * 0.25))
 
 
 def hu_death(rng, kind):
-    if kind == 1:        # "aaagh...": a long cry falling away, then his last breath
-        cry = human(rng, 1.3, [(0.0, 185.0), (0.15, 200.0), (0.8, 150.0), (1.3, 95.0)], [(0.0, "ah"), (0.7, "aw"), (1.3, "uh")],
-                    breath=0.3, vib=(5.0, 0.03), amp_pts=[(0.0, 0.0), (0.03, 1.0), (0.6, 0.85), (1.3, 0.0)])
-        return valley(S.place(2.4, (0.0, aspirate(rng, "ah", 0.06)), (0.05, cry), (1.45, breath_out(rng, 0.8, 0.4))), 0.15)
+    if kind == 1:        # "aaaagh...": a cry falling away, breaking into a croak, his last breath
+        d = 1.45
+        v = V.voice(d, [(0.0, 205.0), (0.12, 228.0), (0.6, 180.0), (1.15, 110.0), (d, 85.0)],
+                    [(0.0, "ae"), (0.15, "ah"), (0.9, "aw"), (d, "uh")], rng,
+                    oq=[(0.0, 0.42), (d, 0.7)], rasp=[(0.0, 0.18), (0.5, 0.05), (d, 0.1)], breath=[(0.0, 0.05), (d, 0.4)],
+                    vib=(5.0, [(0.0, 0.0), (0.5, 0.01), (d, 0.04)]),
+                    amp=[(0.0, 0.0), (0.02, 1.0), (0.7, 0.85), (1.2, 0.5), (d, 0.0)])
+        fry = V.creak(0.35, "uh", rng, amp=[(0.0, 0.5), (0.35, 0.0)])
+        out = V.aspirate(0.9, [(0.0, "uh"), (0.9, "oo")], rng, amp=[(0.0, 0.0), (0.15, 1.0), (0.9, 0.0)])
+        return S.reverb(V.place(2.8, (0.0, v), (d - 0.05, fry * 0.6), (1.6, out * 0.3)), 0.12)
     if kind == 2:        # "nngh... aaah": straining against it, then letting go
-        strain = human(rng, 0.4, [(0.0, 125.0), (0.4, 138.0)], [(0.0, "mm")], breath=0.15, rough=0.25,
-                       amp_pts=[(0.0, 0.0), (0.03, 0.8), (0.35, 1.0), (0.4, 0.0)])
-        fall = human(rng, 1.0, [(0.0, 165.0), (1.0, 85.0)], [(0.0, "ah"), (1.0, "uh")], breath=0.35, vib=(4.5, 0.04))
-        return valley(S.place(2.3, (0.0, strain), (0.45, fall), (1.5, breath_out(rng, 0.7, 0.35))), 0.15)
-    # a short cry, a gasp, and a long sigh with a last weak "uh"
-    cry = human(rng, 0.35, [(0.0, 190.0), (0.35, 150.0)], [(0.0, "ah")], breath=0.3)
-    last = human(rng, 0.5, [(0.0, 105.0), (0.5, 88.0)], [(0.0, "uh")], breath=0.6,
-                 amp_pts=[(0.0, 0.0), (0.1, 0.6), (0.5, 0.0)])
-    return valley(S.place(2.4, (0.0, aspirate(rng, "ah", 0.05)), (0.04, cry), (0.5, gasp(rng, 0.25, 0.4)),
-                          (0.85, breath_out(rng, 1.1, 0.4)), (1.1, last * 0.6)), 0.15)
+        strain = V.voice(0.45, [(0.0, 128.0), (0.45, 150.0)], "ng", rng, oq=0.34, rasp=0.12, hum=True,
+                         amp=[(0.0, 0.0), (0.04, 0.8), (0.4, 1.0), (0.45, 0.0)])
+        let = V.voice(1.1, [(0.0, 175.0), (0.4, 150.0), (1.1, 88.0)], [(0.0, "ah"), (0.6, "aw"), (1.1, "uh")], rng,
+                      oq=[(0.0, 0.5), (1.1, 0.75)], breath=[(0.0, 0.08), (1.1, 0.45)], vib=(4.5, [(0.0, 0.0), (1.1, 0.03)]),
+                      amp=[(0.0, 0.0), (0.03, 1.0), (0.7, 0.7), (1.1, 0.0)])
+        fry = V.creak(0.3, "uh", rng, amp=[(0.0, 0.4), (0.3, 0.0)])
+        out = V.aspirate(0.8, "uh", rng, amp=[(0.0, 0.0), (0.1, 1.0), (0.8, 0.0)])
+        return S.reverb(V.place(2.8, (0.0, strain), (0.5, let), (1.55, fry * 0.5), (1.75, out * 0.3)), 0.12)
+    # two gasps, each with a weak "ah", then a long sigh running into a croak
+    parts, t = [], 0.0
+    for i in range(2):
+        parts.append((t, V.gasp(0.28, rng, 0.35)))
+        ah = V.voice(0.3, [(0.0, 140.0 - 15 * i), (0.3, 108.0 - 10 * i)], [(0.0, "ah"), (0.3, "uh")], rng, oq=0.65,
+                     breath=0.3, amp=[(0.0, 0.0), (0.02, 1.0), (0.3, 0.0)])
+        parts.append((t + 0.3, ah * (0.8 - 0.2 * i)))
+        t += 0.75
+    sigh = V.voice(1.0, [(0.0, 100.0), (1.0, 72.0)], [(0.0, "ah"), (1.0, "uh")], rng, oq=0.75, breath=0.6, puff_breath=0.6,
+                   amp=[(0.0, 0.0), (0.1, 0.5), (0.7, 0.3), (1.0, 0.0)])
+    air = V.aspirate(1.1, [(0.0, "ah"), (1.1, "uh")], rng, amp=[(0.0, 0.0), (0.1, 1.0), (1.1, 0.0)])
+    fry = V.creak(0.3, "uh", rng, amp=[(0.0, 0.35), (0.3, 0.0)])
+    parts += [(t, sigh * 0.5), (t, air * 0.35), (t + 0.95, fry * 0.4)]
+    return S.reverb(V.place(t + 1.5, *parts), 0.12)
 
 
 def boot(rng, level=1.0):
@@ -556,10 +583,11 @@ class Event:
     picked yet (all of them play). Every version also gets its own event, `<event>.v<n>`, for the showcase's buttons.
     """
 
-    def __init__(self, event, folder, files, subtitle, group, label, volume=1.0, picks=None):
+    def __init__(self, event, folder, files, subtitle, group, label, volume=1.0, picks=None, pending=False):
         self.event, self.folder, self.files = event, folder, files
         self.subtitle, self.group, self.label, self.volume = subtitle, group, label, volume
         self.picks = tuple(picks) if picks else None
+        self.pending = pending      # new versions made for the user to pick from (the old pick plays meanwhile)
 
     @property
     def subtitle_key(self):
@@ -596,22 +624,24 @@ HUNTSMAN, MOOSE, GEAR = "The Huntsman: his voice", "The Alpha Moose", "The Hunts
 # draw), which play version 1 until they say otherwise. The spear's swing plays version 1 for a thrust and 2 for a
 # sweep (HuntSoundCues).
 EVENTS = [
-    Event("entity.huntsman.cry", HU, versions("cry", hu_cry, ("a bark and a big shout: hah-HAAAH!",
-                                                               "a man's wolf howl",
-                                                               "a growl rising into a roar")),
-          "Huntsman howls", HUNTSMAN, "War cry, when he spots you", picks=(2,)),
+    Event("entity.huntsman.cry", HU, versions("cry", hu_cry, ("a wolf's howl, long and pure",
+                                                               "a wolf's howl breaking up an octave",
+                                                               "his howl, the pack answering far off",
+                                                               "the man's wolf howl (your pick before)")),
+          "Huntsman howls", HUNTSMAN, "War cry, when he spots you", picks=(4,), pending=True),
     Event("entity.huntsman.ambient", HU, versions("ambient", hu_ambient, ("a slow frosty breath and a low hm",
                                                                            "sniffing out your trail, then a growl",
                                                                            "a low hunting hum")),
-          "Huntsman breathes", HUNTSMAN, "Idle", picks=(1,)),
-    Event("entity.huntsman.effort", HU, versions("effort", hu_effort, ("hup!", "hah!", "hyah!")),
+          "Huntsman breathes", HUNTSMAN, "Idle", picks=(1, 2, 3)),
+    Event("entity.huntsman.effort", HU, versions("effort", hu_effort, ("hup!", "hah!", "hyah! (a battle yell)")),
           "Huntsman grunts", HUNTSMAN, "The grunt of a blow (spear thrusts, the leap)"),
-    Event("entity.huntsman.hurt", HU, versions("hurt", hu_hurt, ("ugh!", "agh! and a hiss through his teeth",
+    Event("entity.huntsman.hurt", HU, versions("hurt", hu_hurt, ("ugh! (a croak, cut off)",
+                                                                  "agh! and a hiss through his teeth",
                                                                   "oof, winded")),
           "Huntsman hurts", HUNTSMAN, "Hurt"),
-    Event("entity.huntsman.death", HU, versions("death", hu_death, ("aaagh... falling away, his last breath",
+    Event("entity.huntsman.death", HU, versions("death", hu_death, ("aaaagh... falling into a croak, his last breath",
                                                                      "nngh... aaah, letting go",
-                                                                     "a cry, a gasp, a long sigh")),
+                                                                     "two gasps, then a long sigh")),
           "Huntsman dies", HUNTSMAN, "Death"),
     Event("entity.huntsman.step", HU, versions("step", hu_step, ("a boot in the snow", "a softer one")),
           "Footsteps", HUNTSMAN, "Footsteps", volume=0.6, picks=(1,)),
@@ -689,8 +719,12 @@ CLIPS = [
 # ---------------------------------------------------------------- writing it all
 
 
+# A version that moved keeps the randomness it was made with (the user's old pick of a war cry, once cry_2).
+SEED_AS = {"cry_4": "cry_2"}
+
+
 def render(event, name, maker):
-    rng = np.random.default_rng(zlib.crc32(f"{event.folder}/{name}".encode()))
+    rng = np.random.default_rng(zlib.crc32(f"{event.folder}/{SEED_AS.get(name, name)}".encode()))
     x = S.finish(maker(rng))
     write(event.folder, name, x)
     return x
@@ -854,7 +888,7 @@ def write_page():
                               f'<audio controls preload="none" '
                               f'src="../../../../src/main/resources/assets/dross/sounds/{ev.folder}/{name}.ogg"></audio></span>'
                               for i, (name, _m, lab) in enumerate(ev.files, start=1))
-            note = "" if ev.picks else ' <span class="new">pick one</span>'
+            note = ' <span class="new">pick one</span>' if not ev.picks or ev.pending else ""
             html.append(f'<div class="row"><div class="label">{ev.label}{note}</div><div class="id">dross:{ev.event}</div>'
                         f'{players}</div>')
     with open(os.path.join(PREVIEWS, "index.html"), "w", encoding="utf-8", newline="\n") as f:
