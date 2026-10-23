@@ -13,8 +13,9 @@ public final class HuntsmanTuning
 
     // ---------------------------------------------------------------- health and the stages
 
-    /** Stage 1, the Wild Hunt: one bar for both of them. */
-    public static final float WILD_HUNT_HEALTH = 200.0F;
+    /** Stage 1, the Wild Hunt: one bar for both of them (the user, October 23, 2026: "increase the Wild Hunt's health
+     * by 50"; 200 before). */
+    public static final float WILD_HUNT_HEALTH = 250.0F;
     /** Stage 2: each of them on his own bar. */
     public static final float HUNTSMAN_HEALTH = 150.0F;
     public static final float MOOSE_HEALTH = 150.0F;
@@ -49,6 +50,8 @@ public final class HuntsmanTuning
     public static final double HUNTSMAN_RUN = 1.2D;
     /** Between two moves. */
     public static final int PAUSE_WILD_HUNT = 16;
+    /** Between his own moves from the saddle (stage 1: his timer runs beside the moose's). */
+    public static final int PAUSE_SADDLE = 12;
     public static final int PAUSE_HUNTSMAN = 12;
     public static final int PAUSE_MOOSE = 14;
     public static final int PAUSE_ANGRY = 8;
@@ -62,19 +65,22 @@ public final class HuntsmanTuning
      * its model 6.8 long). */
     public static final double MOOSE_FRONT = 2.6D;
     public static final double MOOSE_BACK = 2.4D;
-    /** His hand, to throw from: this far up in the saddle and on foot, this far ahead of him. */
-    public static final double RIDER_HAND_UP = 5.6D;
-    public static final double FOOT_HAND_UP = 3.4D;
-    public static final double HAND_AHEAD = 0.8D;
+    /** His hand, to throw from: this far up in the saddle and on foot, this far ahead of him. (Since October 23, 2026
+     * he's a tenth smaller, round his seat in the saddle (4.5 over the moose's feet) and his feet on foot: tools/rimefall
+     * rimemobs/hunter_rig.SHRINK; until then 5.6, 3.4 and 0.8.) */
+    public static final double RIDER_HAND_UP = 5.5D;
+    public static final double FOOT_HAND_UP = 3.06D;
+    public static final double HAND_AHEAD = 0.72D;
     /** In the saddle his hitbox sits this far above the moose's feet (his model is drawn as far lower), over the moose's
      * back round his legs, body and head, a little wider than the moose's (so a swing at his legs and the saddle hits
      * him, one at the moose's body below them the moose): until October 22, 2026 it stood inside the moose's, and every
      * swing and arrow at him hit the moose (the user: "I need to be able to damage both the moose and the hunter"). */
-    public static final double RIDER_SEAT = 3.8D;
-    public static final float RIDER_WIDTH = 3.2F;
-    public static final float RIDER_HEIGHT = 4.0F;
-    /** His eyes, that high above his seat (under the wolf's hood). */
-    public static final float RIDER_EYES = 3.0F;
+    public static final double RIDER_SEAT = 3.87D;
+    public static final float RIDER_WIDTH = 2.9F;
+    public static final float RIDER_HEIGHT = 3.6F;
+    /** His eyes, that high above his seat (under the wolf's hood). (3.8, 3.2, 4.0 and 3.0 before he was a tenth
+     * smaller.) */
+    public static final float RIDER_EYES = 2.7F;
 
     // ---------------------------------------------------------------- spotting, turning, moving (October 22, 2026)
 
@@ -165,12 +171,19 @@ public final class HuntsmanTuning
     public static final double BACK_KICK_KNOCK = 2.2D;
     public static final double BACK_KICK_KNOCK_UP = 0.45D;
 
-    public static final int RAIN_ARROWS = 15;
-    public static final int RAIN_ARROWS_STAGE2 = 10;
+    /** How many come down in both stages: four for each of the 12 he shoots up (the user's pick, October 23, 2026: "48:
+     * 4 per arrow"; 15 in the Wild Hunt and 10 on foot before, which a player standing still was hit by about once in
+     * six rains). */
+    public static final int RAIN_ARROWS = 48;
+    public static final int RAIN_ARROWS_STAGE2 = 48;
     public static final double RAIN_RADIUS = 6.0D;
+    /** How the arrows spread over the circle: a spot's distance from the middle is the radius times a random 0-1
+     * raised to this (0.5 would spread them evenly over it; 0.75 crowds them towards where you are, so standing still
+     * in it you take about two of the 48, and you run out of it). */
+    public static final double RAIN_SPREAD_POWER = 0.75D;
     /** The arrows come down this long after the last loosing, spread over {@link #RAIN_SPREAD} ticks. */
     public static final int RAIN_DELAY = 16;
-    public static final int RAIN_SPREAD = 20;
+    public static final int RAIN_SPREAD = 30;
     public static final double RAIN_HEIGHT = 18.0D;
     /** Their speed coming down, and the base damage that makes a hit 3 (1.5 hearts) at it. */
     public static final double RAIN_SPEED = 1.5D;
@@ -190,6 +203,15 @@ public final class HuntsmanTuning
     /** His arrows: speed 3 (a fully drawn bow) and the base damage that makes a hit 5 (2.5 hearts). */
     public static final double SHOT_BASE_DAMAGE = 1.67D;
     public static final int CIRCLE_COOLDOWN = 240;
+    /** The circling hunt: the moose gallops round its target this long (he shoots from its back meanwhile, on his own
+     * timer: it keeps the target on his left). */
+    public static final int CIRCLE_TICKS = 120;
+    /** His bow from the saddle: two arrows a time ({@code ride_shoot}), at a target this far round his left (degrees
+     * from straight out to his left: the moose's antlers are in front of him), between these distances. */
+    public static final double SADDLE_SHOT_HALF_ANGLE = 60.0D;
+    public static final double SADDLE_SHOT_MIN = 4.0D;
+    public static final double SADDLE_SHOT_MAX = 28.0D;
+    public static final int SADDLE_SHOT_COOLDOWN = 30;
 
     public static final float HORN_DAMAGE = 2.0F;                // 1 heart
     public static final double HORN_LENGTH = 10.0D;
@@ -215,12 +237,28 @@ public final class HuntsmanTuning
     /** Ride In / Run In: closing in, for at most this long before choosing again. */
     public static final int RUN_IN_TICKS = 40;
 
-    /** The Wild Hunt's table: close / mid / far / very far, each {move: weight} (the user's). */
-    public static final Object[][] WILD_CHANCES = {
-            {"thrust", 50, "horn", 20, "ride_off", 20, "bola", 10},
-            {"circle", 30, "charge", 30, "bola", 20, "rain", 20},
-            {"charge", 40, "rain", 40, "circle", 20},
-            {"rain", 60, "ride_in", 40}};
+    /**
+     * The Wild Hunt runs on two timers at once (the user, October 23, 2026: "the hunter needs to be shooting or hitting
+     * me with a spear while the moose attacks"): the moose's moves and his. Until then one table ran both, the user's of
+     * October 20 (close: thrust 50, horn 20, ride off 20, bola 10; mid: circle 30, charge 30, bola 20, rain 20; far:
+     * charge 40, rain 40, circle 20; very far: rain 60, ride in 40), and he sat still while it charged.
+     * <p>
+     * The moose in the Wild Hunt, with all its attacks (the user's answer: "yes, all its attacks"): close / mid / far /
+     * very far ({@link #WILD_CLOSE}...), each {move: weight}; the back kick is made at once whenever a foe is behind it.
+     */
+    public static final Object[][] WILD_MOOSE_CHANCES = {
+            {"ram", 30, "toss", 20, "stomp", 20, "bellow", 10, "ride_off", 20},
+            {"charge", 30, "circle", 35, "stamp", 15, "bellow", 10, "ride_off", 10},
+            {"charge", 40, "circle", 40, "stamp", 20},
+            {"charge", 40, "ride_in", 60}};
+    /** His own moves from the saddle, using what fits where his target is (the user's answer): the spear in reach ahead or
+     * on his right, the bow on his left, the bola and the horn ahead, the rain anywhere (a move that doesn't fit drops
+     * out and the others share its weight). */
+    public static final Object[][] SADDLE_CHANCES = {
+            {"thrust", 50, "horn", 25, "shoot", 15, "rain", 10},
+            {"shoot", 40, "bola", 25, "rain", 20, "horn", 15},
+            {"shoot", 50, "rain", 30, "bola", 20},
+            {"rain", 70, "shoot", 30}};
 
     // ---------------------------------------------------------------- stage 2: the Huntsman on foot
 
@@ -255,6 +293,12 @@ public final class HuntsmanTuning
     public static final int AIMED_FREEZE_TICKS = 30;             // frozen 1.5 s
     public static final int AIMED_COOLDOWN = 240;
     public static final double BACKSTEP_BASE_DAMAGE = 2.0D;      // 6 at speed 3 (3 hearts)
+    /** The quick shot (the user, October 23, 2026: on foot at range "he keeps shooting"): what he shoots whenever his
+     * bigger moves are cooling down, at a foe in sight between these distances; one plain arrow. */
+    public static final double QUICK_SHOT_BASE_DAMAGE = 1.34D;   // 4 at speed 3 (2 hearts)
+    public static final double QUICK_SHOT_MIN = 6.0D;
+    public static final double QUICK_SHOT_MAX = 32.0D;
+    public static final int QUICK_SHOT_COOLDOWN = 20;
     public static final int BACKSTEP_COOLDOWN = 120;
 
     /** The Huntsman on foot's table (the user's, with the Horn of the Hunt fitted in: "he should blow the horn ...

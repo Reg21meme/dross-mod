@@ -7,13 +7,16 @@ import net.minecraft.world.phys.Vec3;
 import javax.annotation.Nullable;
 
 /**
- * Stage 2, the Alpha Moose on its own (the user's table, {@link HuntsmanTuning#MOOSE_CHANCES}): the ram, the antler
- * toss and the stomp up close, the bellow, the Cracking Stamp and its charge (more often than in stage 1) further out,
- * and the back kick whenever a foe is behind it.
+ * The Alpha Moose's moves in both stages. Stage 2, on its own (the user's table, {@link HuntsmanTuning#MOOSE_CHANCES}):
+ * the ram, the antler toss and the stomp up close, the bellow, the Cracking Stamp and its charge further out, and the
+ * back kick whenever a foe is behind it. Stage 1, the Wild Hunt ({@link HuntsmanTuning#WILD_MOOSE_CHANCES}): the same
+ * attacks with the Huntsman on its back (he rides along with each: his {@code carry_} animations), and the circling hunt
+ * and riding off and in to set up his shots; he makes his own moves meanwhile ({@link SaddleGoal}).
  */
 final class MooseGoal extends HuntGoal
 {
     private static final double[] BANDS = {HuntsmanTuning.MOOSE_CLOSE, HuntsmanTuning.MOOSE_MID, HuntsmanTuning.MOOSE_FAR};
+    private static final double[] WILD_BANDS = {HuntsmanTuning.WILD_CLOSE, HuntsmanTuning.WILD_MID, HuntsmanTuning.WILD_FAR};
     /** Its blows land this far round from its front (degrees). */
     private static final double RAM_HALF_ANGLE = 45.0D;
     private static final double STOMP_HALF_ANGLE = 50.0D;
@@ -34,34 +37,40 @@ final class MooseGoal extends HuntGoal
         this.moose = moose;
     }
 
+    /** In the Wild Hunt (with him on its back) rather than on its own. */
+    private boolean wild()
+    {
+        return this.moose.stage() == HuntStage.WILD_HUNT && this.moose.rider() != null;
+    }
+
     @Override
     protected boolean stageOk()
     {
-        return this.moose.stage() == HuntStage.DUEL;
+        return this.moose.stage() == HuntStage.DUEL || this.wild();
     }
 
     @Override
     protected Object[][] table()
     {
-        return HuntsmanTuning.MOOSE_CHANCES;
+        return this.wild() ? HuntsmanTuning.WILD_MOOSE_CHANCES : HuntsmanTuning.MOOSE_CHANCES;
     }
 
     @Override
     protected double[] bands()
     {
-        return BANDS;
+        return this.wild() ? WILD_BANDS : BANDS;
     }
 
     @Override
     protected int basePause()
     {
-        return HuntsmanTuning.PAUSE_MOOSE;
+        return this.wild() ? HuntsmanTuning.PAUSE_WILD_HUNT : HuntsmanTuning.PAUSE_MOOSE;
     }
 
     @Override
     protected String fallback(double distance)
     {
-        return "run_in";
+        return this.wild() ? "ride_in" : "run_in";
     }
 
     @Override
@@ -77,7 +86,8 @@ final class MooseGoal extends HuntGoal
             case "charge" -> d >= HuntsmanTuning.CHARGE_MIN && d <= HuntsmanTuning.CHARGE_MAX && this.sees(target)
                     && BossChase.straightWay(this.moose, target);
             case "stamp" -> d >= HuntsmanTuning.STAMP_MIN && d <= HuntsmanTuning.STAMP_MAX && this.sees(target);
-            case "run_in" -> true;
+            case "circle" -> d >= HuntsmanTuning.WILD_CLOSE && d <= HuntsmanTuning.WILD_FAR && this.sees(target);
+            case "run_in", "ride_in", "ride_off" -> true;
             default -> false;
         };
     }
@@ -91,7 +101,8 @@ final class MooseGoal extends HuntGoal
             case "toss" -> HuntsmanTuning.TOSS_COOLDOWN;
             case "stomp" -> HuntsmanTuning.STOMP_COOLDOWN;
             case "bellow" -> HuntsmanTuning.BELLOW_COOLDOWN;
-            case "charge" -> HuntsmanTuning.CHARGE_COOLDOWN_STAGE2;
+            case "charge" -> this.wild() ? HuntsmanTuning.CHARGE_COOLDOWN : HuntsmanTuning.CHARGE_COOLDOWN_STAGE2;
+            case "circle" -> HuntsmanTuning.CIRCLE_COOLDOWN;
             case "stamp" -> HuntsmanTuning.STAMP_COOLDOWN;
             case "back_kick" -> HuntsmanTuning.BACK_KICK_COOLDOWN;
             default -> 0;
@@ -156,7 +167,103 @@ final class MooseGoal extends HuntGoal
                     });
             case "charge" -> new Charge(this.moose);
             case "run_in" -> new Chase("run_in", HuntsmanTuning.MOOSE_RUN, HuntsmanTuning.MOOSE_CLOSE);
+            case "ride_in" -> new Chase("ride_in", HuntsmanTuning.MOOSE_RUN, HuntsmanTuning.WILD_CLOSE);
+            case "circle" -> new Circle();
+            case "ride_off" -> new RideOff();
             default -> null;
         };
+    }
+
+    /** The circling hunt: the moose gallops a ring round its target for a while, keeping it on his left, so he can
+     * shoot from its back (his own moves: {@link SaddleGoal}). */
+    private final class Circle implements Move
+    {
+        @Override
+        public String name()
+        {
+            return "circle";
+        }
+
+        @Override
+        public void start()
+        {
+        }
+
+        @Override
+        public boolean tick(int t)
+        {
+            LivingEntity target = MooseGoal.this.target;
+            if (target == null || !target.isAlive())
+            {
+                return true;
+            }
+            AlphaMoose moose = MooseGoal.this.moose;
+            double angle = Math.atan2(moose.getZ() - target.getZ(), moose.getX() - target.getX()) - HuntsmanTuning.CIRCLE_LEAD;
+            double r = HuntsmanTuning.CIRCLE_RADIUS;
+            moose.getMoveControl().setWantedPosition(target.getX() + Math.cos(angle) * r, target.getY(),
+                    target.getZ() + Math.sin(angle) * r, HuntsmanTuning.CIRCLE_SPEED);
+            return t >= HuntsmanTuning.CIRCLE_TICKS;
+        }
+
+        @Override
+        public void stop()
+        {
+            MooseGoal.this.moose.getNavigation().stop();
+        }
+    }
+
+    /** Riding off: the moose gallops out away from its target, to set up a charge or his shots. */
+    private final class RideOff implements Move
+    {
+        private Vec3 to = Vec3.ZERO;
+
+        @Override
+        public String name()
+        {
+            return "ride_off";
+        }
+
+        @Override
+        public void start()
+        {
+            LivingEntity target = MooseGoal.this.target;
+            AlphaMoose moose = MooseGoal.this.moose;
+            if (target == null)
+            {
+                this.to = moose.position();
+                return;
+            }
+            Vec3 away = moose.position().subtract(target.position());
+            double d = Math.sqrt(away.x * away.x + away.z * away.z);
+            if (d < 1.0D)
+            {
+                double a = moose.getRandom().nextDouble() * Math.PI * 2.0D;
+                away = new Vec3(Math.cos(a), 0.0D, Math.sin(a));
+                d = 1.0D;
+            }
+            double out = HuntsmanTuning.RIDE_OFF_MIN
+                    + moose.getRandom().nextDouble() * (HuntsmanTuning.RIDE_OFF_MAX - HuntsmanTuning.RIDE_OFF_MIN);
+            this.to = target.position().add(away.x / d * out, 0.0D, away.z / d * out);
+            moose.getNavigation().moveTo(this.to.x, this.to.y, this.to.z, HuntsmanTuning.MOOSE_RUN);
+        }
+
+        @Override
+        public boolean tick(int t)
+        {
+            AlphaMoose moose = MooseGoal.this.moose;
+            if (t % 20 == 0)
+            {
+                moose.getNavigation().moveTo(this.to.x, this.to.y, this.to.z, HuntsmanTuning.MOOSE_RUN);
+            }
+            double dx = this.to.x - moose.getX();
+            double dz = this.to.z - moose.getZ();
+            return dx * dx + dz * dz < 6.25D || t >= HuntsmanTuning.RIDE_OFF_TICKS;
+        }
+
+        @Override
+        public void stop()
+        {
+            MooseGoal.this.moose.getNavigation().stop();
+        }
     }
 }

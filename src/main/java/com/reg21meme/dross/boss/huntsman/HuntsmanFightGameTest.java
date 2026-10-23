@@ -610,8 +610,8 @@ public final class HuntsmanFightGameTest
     public static void movesFollowTheUsersShares(GameTestHelper helper)
     {
         RandomSource random = RandomSource.create(20261020L);
-        for (Object[][] table : new Object[][][] {HuntsmanTuning.WILD_CHANCES, HuntsmanTuning.FOOT_CHANCES,
-                HuntsmanTuning.MOOSE_CHANCES})
+        for (Object[][] table : new Object[][][] {HuntsmanTuning.WILD_MOOSE_CHANCES, HuntsmanTuning.SADDLE_CHANCES,
+                HuntsmanTuning.FOOT_CHANCES, HuntsmanTuning.MOOSE_CHANCES})
         {
             for (Object[] row : table)
             {
@@ -726,6 +726,68 @@ public final class HuntsmanFightGameTest
                     }
                 })
                 .thenSucceed();
+    }
+
+    /** In the Wild Hunt they fight at once (the user, October 23, 2026: "the hunter needs to be shooting or hitting me
+     * with a spear while the moose attacks"): the moose's moves and his own from the saddle on two timers, so some
+     * moment has both in the middle of a move. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_together", timeoutTicks = WAIT + 600)
+    public static void theyAttackAtOnce(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::theyAttackAtOnce))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE, 0.0F);
+        AlphaMoose m = moose(h);
+        // a zombie that can't be killed or move, 9 blocks off: their foe (a hostile mob), and it starts the fight (it keeps
+        // its AI: a mob without one is a showcase statue to them, never a foe, so they'd only go for it while its hit is
+        // fresh, 5 s)
+        Zombie zombie = EntityType.ZOMBIE.create(level);
+        if (zombie == null)
+        {
+            clear(h, m);
+            throw new GameTestAssertException("couldn't make a zombie");
+        }
+        zombie.setInvulnerable(true);
+        java.util.Objects.requireNonNull(zombie.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED))
+                .setBaseValue(0.0D);
+        Vec3 at = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(9, 0, 0)));
+        zombie.moveTo(at.x, at.y, at.z, 90.0F, 0.0F);
+        level.addFreshEntity(zombie);
+        hit(m, level.damageSources().mobAttack(zombie), 1.0F);
+        String[] seen = {null};
+        helper.startSequence()
+                .thenWaitUntil(() ->
+                {
+                    clearFoesNearBut(level, m, zombie);
+                    if (m.stage() == HuntStage.WILD_HUNT && h.isMounted() && m.busy() && h.busy())
+                    {
+                        seen[0] = "the moose " + m.current().name() + ", him " + h.current().name();
+                        return;
+                    }
+                    throw new GameTestAssertException("waiting for both of them to be in a move at once (the moose plays "
+                            + m.current().name() + ", he plays " + h.current().name() + ", stage " + m.stage() + ")");
+                })
+                .thenExecute(() ->
+                {
+                    zombie.discard();
+                    clear(h, m);
+                    com.mojang.logging.LogUtils.getLogger().info("[huntsman test] both in a move at once: {}", seen[0]);
+                })
+                .thenSucceed();
+    }
+
+    /** Removes the hostile mobs (but theirs and {@code keep}) near {@code near}. */
+    private static void clearFoesNearBut(ServerLevel level, HuntMob near, Mob keep)
+    {
+        double r = HuntsmanTuning.BREAK_OFF_RANGE + 16.0D;
+        for (Mob mob : level.getEntitiesOfClass(Mob.class, near.getBoundingBox().inflate(r),
+                e -> e instanceof Enemy && !(e instanceof HuntMob) && e != keep))
+        {
+            mob.discard();
+        }
     }
 
     @GameTest(template = ARENA, batch = "dross_huntsman_kick", timeoutTicks = WAIT + 80)

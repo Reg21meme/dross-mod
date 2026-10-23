@@ -160,14 +160,14 @@ public final class ModEntities
                     .build("pond_skater"));
 
     /**
-     * Boss area: the Huntsman ({@code dross:huntsman}, about 4.5 blocks to his hood on foot) and his Alpha Moose
+     * Boss area: the Huntsman ({@code dross:huntsman}, about 4 blocks to his hood on foot) and his Alpha Moose
      * ({@code dross:alpha_moose}, about 5.3 to its antler tips), who rides it in stage 1 of his fight (CLAUDE.md step
      * 14): his fight (a spawn egg, {@code /dross boss summon huntsman}) and on show
      * ({@code /dross showcase boss_designs huntsman}).
      */
     public static final RegistryObject<EntityType<Huntsman>> HUNTSMAN = ENTITY_TYPES.register("huntsman",
             () -> EntityType.Builder.<Huntsman>of(Huntsman::new, MobCategory.MONSTER)
-                    .sized(1.2F, 4.4F)
+                    .sized(1.1F, 4.0F)          // (1.2 x 4.4 until October 23, 2026: he's a tenth smaller)
                     .fireImmune()
                     .clientTrackingRange(12)
                     .updateInterval(1)

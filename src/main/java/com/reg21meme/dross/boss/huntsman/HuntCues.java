@@ -21,11 +21,12 @@ public final class HuntCues
 
     /** "model.animation" to its arrows. */
     private static final Map<String, List<Shot>> SHOTS = Map.ofEntries(
-            Map.entry("huntsman.aimed_shot", List.of(new Shot(34, 0.358D, 3.765D, 1.877D, 0.0122D, 0.0537D, 0.9985D))),
-            Map.entry("huntsman.arrow_rain", List.of(new Shot(20, 0.114D, 4.846D, 0.979D, -0.0046D, 0.858D, 0.5137D), new Shot(20, 0.166D, 4.949D, 0.79D, 0.0077D, 0.883D, 0.4693D), new Shot(20, 0.218D, 5.047D, 0.598D, 0.0199D, 0.9056D, 0.4237D), new Shot(35, 0.126D, 4.838D, 0.988D, -0.0057D, 0.8583D, 0.5131D), new Shot(35, 0.178D, 4.941D, 0.798D, 0.0066D, 0.8833D, 0.4687D), new Shot(35, 0.231D, 5.039D, 0.606D, 0.0189D, 0.9059D, 0.4231D), new Shot(50, 0.154D, 4.819D, 1.005D, -0.0041D, 0.858D, 0.5136D), new Shot(50, 0.206D, 4.922D, 0.815D, 0.0082D, 0.883D, 0.4692D), new Shot(50, 0.258D, 5.02D, 0.623D, 0.0204D, 0.9056D, 0.4236D), new Shot(65, 0.161D, 4.813D, 1.01D, -0.0052D, 0.8581D, 0.5135D), new Shot(65, 0.213D, 4.917D, 0.821D, 0.0071D, 0.8831D, 0.4692D), new Shot(65, 0.265D, 5.015D, 0.629D, 0.0194D, 0.9056D, 0.4236D))),
-            Map.entry("huntsman.backstep_shoot", List.of(new Shot(26, 0.352D, 5.341D, 0.697D, 0.017D, 0.0347D, 0.9993D))),
-            Map.entry("huntsman_rider.ride_rain", List.of(new Shot(20, -0.194D, 6.817D, 0.851D, -0.2266D, 0.8584D, 0.4602D), new Shot(20, -0.066D, 6.921D, 0.702D, -0.1967D, 0.8834D, 0.4253D), new Shot(20, 0.062D, 7.019D, 0.55D, -0.1662D, 0.906D, 0.3893D), new Shot(35, -0.19D, 6.811D, 0.861D, -0.2264D, 0.8572D, 0.4627D), new Shot(35, -0.063D, 6.915D, 0.711D, -0.1965D, 0.8823D, 0.4277D), new Shot(35, 0.065D, 7.014D, 0.56D, -0.1662D, 0.905D, 0.3916D), new Shot(50, -0.182D, 6.797D, 0.884D, -0.2263D, 0.8571D, 0.4627D), new Shot(50, -0.055D, 6.901D, 0.735D, -0.1964D, 0.8823D, 0.4278D), new Shot(50, 0.073D, 7.0D, 0.583D, -0.1661D, 0.905D, 0.3917D), new Shot(65, -0.178D, 6.788D, 0.895D, -0.2262D, 0.8571D, 0.4628D), new Shot(65, -0.051D, 6.892D, 0.746D, -0.1964D, 0.8823D, 0.4278D), new Shot(65, 0.077D, 6.991D, 0.594D, -0.166D, 0.905D, 0.3917D))),
-            Map.entry("huntsman_rider.ride_shoot", List.of(new Shot(23, -1.493D, 5.866D, 0.917D, -0.9496D, 0.0537D, 0.3089D), new Shot(41, -1.504D, 5.832D, 0.944D, -0.9496D, 0.0533D, 0.3089D))));
+            Map.entry("huntsman.aimed_shot", List.of(new Shot(34, 0.322D, 3.39D, 1.689D, 0.0123D, 0.0537D, 0.9985D))),
+            Map.entry("huntsman.arrow_rain", List.of(new Shot(20, 0.103D, 4.362D, 0.881D, -0.0045D, 0.858D, 0.5137D), new Shot(20, 0.149D, 4.455D, 0.711D, 0.0078D, 0.883D, 0.4693D), new Shot(20, 0.196D, 4.544D, 0.538D, 0.02D, 0.9056D, 0.4237D), new Shot(35, 0.113D, 4.355D, 0.889D, -0.0057D, 0.8583D, 0.5131D), new Shot(35, 0.16D, 4.447D, 0.719D, 0.0067D, 0.8833D, 0.4688D), new Shot(35, 0.207D, 4.536D, 0.546D, 0.019D, 0.9059D, 0.4231D), new Shot(50, 0.139D, 4.336D, 0.904D, -0.004D, 0.858D, 0.5136D), new Shot(50, 0.186D, 4.429D, 0.734D, 0.0083D, 0.883D, 0.4692D), new Shot(50, 0.232D, 4.517D, 0.561D, 0.0205D, 0.9056D, 0.4236D), new Shot(65, 0.145D, 4.33D, 0.909D, -0.0052D, 0.858D, 0.5135D), new Shot(65, 0.192D, 4.423D, 0.739D, 0.0071D, 0.883D, 0.4692D), new Shot(65, 0.239D, 4.512D, 0.566D, 0.0194D, 0.9056D, 0.4236D))),
+            Map.entry("huntsman.backstep_shoot", List.of(new Shot(26, 0.268D, 4.976D, 1.711D, -0.2645D, 0.0715D, 0.9617D))),
+            Map.entry("huntsman.quick_shot", List.of(new Shot(23, 0.32D, 3.395D, 1.678D, 0.0217D, 0.0508D, 0.9985D))),
+            Map.entry("huntsman_rider.ride_rain", List.of(new Shot(20, -0.176D, 6.583D, 0.765D, -0.2263D, 0.8584D, 0.4604D), new Shot(20, -0.061D, 6.676D, 0.63D, -0.1963D, 0.8834D, 0.4255D), new Shot(20, 0.054D, 6.765D, 0.494D, -0.1658D, 0.906D, 0.3894D), new Shot(35, -0.173D, 6.577D, 0.773D, -0.226D, 0.8571D, 0.4629D), new Shot(35, -0.058D, 6.67D, 0.639D, -0.1962D, 0.8823D, 0.4279D), new Shot(35, 0.057D, 6.759D, 0.502D, -0.1658D, 0.905D, 0.3918D), new Shot(50, -0.165D, 6.563D, 0.794D, -0.2259D, 0.8571D, 0.4629D), new Shot(50, -0.051D, 6.657D, 0.66D, -0.1961D, 0.8823D, 0.428D), new Shot(50, 0.064D, 6.746D, 0.523D, -0.1657D, 0.905D, 0.3919D), new Shot(65, -0.162D, 6.555D, 0.804D, -0.2258D, 0.8571D, 0.463D), new Shot(65, -0.048D, 6.648D, 0.67D, -0.196D, 0.8822D, 0.428D), new Shot(65, 0.068D, 6.737D, 0.533D, -0.1657D, 0.905D, 0.3919D))),
+            Map.entry("huntsman_rider.ride_shoot", List.of(new Shot(23, -1.341D, 5.729D, 0.822D, -0.9494D, 0.0537D, 0.3093D), new Shot(41, -1.351D, 5.696D, 0.846D, -0.9495D, 0.0533D, 0.3093D))));
 
     /** "model.animation.moment" to its tick (a list's moments are numbered from 0: "hits.1"). */
     private static final Map<String, Integer> MOMENTS = Map.ofEntries(
@@ -39,7 +40,7 @@ public final class HuntCues
             Map.entry("huntsman.backstep_shoot.jump", 20),
             Map.entry("huntsman.backstep_shoot.shots.0", 26),
             Map.entry("huntsman.backstep_shoot.lands", 32),
-            Map.entry("huntsman.backstep_shoot.catch", 48),
+            Map.entry("huntsman.backstep_shoot.catch", 45),
             Map.entry("huntsman.bola_throw.release", 19),
             Map.entry("huntsman.catch_spear.catch", 5),
             Map.entry("huntsman.death.slip", 1),
@@ -49,6 +50,8 @@ public final class HuntCues
             Map.entry("huntsman.horn_blow.blow", 17),
             Map.entry("huntsman.horn_blow.end", 58),
             Map.entry("huntsman.leap_strike.hits.0", 20),
+            Map.entry("huntsman.quick_shot.release", 23),
+            Map.entry("huntsman.quick_shot.shots.0", 23),
             Map.entry("huntsman.spear_combo.hits.0", 8),
             Map.entry("huntsman.spear_combo.hits.1", 16),
             Map.entry("huntsman.spear_combo.hits.2", 26),
@@ -80,7 +83,8 @@ public final class HuntCues
 
     /**
      * "model.animation" to where the animation leaves him (blocks to his right, up and ahead of where he stood): the
-     * backstep shot's leap. The model's root carries him there; when the animation is over the game moves him there.
+     * backstep shot's leap. The game moves him there along with the leap, between the animation's "jump" and "lands"
+     * moments (the model only rises and falls); an animation without them moves him when it's over.
      */
     private static final Map<String, double[]> SHIFTS = Map.ofEntries(
             Map.entry("huntsman.backstep_shoot", new double[] {0.0D, 0.0D, -3.0D}));

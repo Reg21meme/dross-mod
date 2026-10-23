@@ -36,7 +36,7 @@ import java.util.List;
  * blocks to its left), playing {@code land} in his own model again; at the split he then blows his horn.
  * <p>
  * Fighting ({@link HuntFight}): a spawn egg or {@code /summon} brings him in his Alpha Moose's saddle; in stage 1 the
- * moose's {@link WildHuntGoal} picks his moves too, in stage 2 his own {@link FootGoal}.
+ * moves are his own from the saddle ({@link SaddleGoal}, beside the moose's), in stage 2 his {@link FootGoal}.
  */
 public class Huntsman extends HuntMob
 {
@@ -70,6 +70,7 @@ public class Huntsman extends HuntMob
     {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.goalSelector.addGoal(1, new FootGoal(this));
+        this.goalSelector.addGoal(1, new SaddleGoal(this));
         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 12.0F));
     }
 

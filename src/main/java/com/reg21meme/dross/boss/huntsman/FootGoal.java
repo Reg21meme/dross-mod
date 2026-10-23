@@ -78,6 +78,12 @@ final class FootGoal extends HuntGoal
     @Override
     protected String fallback(double distance)
     {
+        // with every bigger move cooling down, at range he keeps shooting (the user, October 23, 2026)
+        LivingEntity target = this.target;
+        if (target != null && this.ready("quick") && this.can("quick", target, distance))
+        {
+            return "quick";
+        }
         return distance <= HuntsmanTuning.FOOT_MID ? "fall_back" : distance <= HuntsmanTuning.FOOT_FAR ? "keep_range" : "close_in";
     }
 
@@ -97,6 +103,7 @@ final class FootGoal extends HuntGoal
                     && this.sees(target);
             case "bola" -> d >= HuntsmanTuning.BOLA_MIN && d <= HuntsmanTuning.BOLA_MAX && this.sees(target);
             case "aimed" -> d >= HuntsmanTuning.AIMED_MIN && d <= HuntsmanTuning.AIMED_MAX && this.sees(target);
+            case "quick" -> d >= HuntsmanTuning.QUICK_SHOT_MIN && d <= HuntsmanTuning.QUICK_SHOT_MAX && this.sees(target);
             case "rain", "fall_back", "keep_range", "close_in" -> true;
             default -> false;
         };
@@ -123,6 +130,7 @@ final class FootGoal extends HuntGoal
             case "throw_spear" -> HuntsmanTuning.SPEAR_THROW_COOLDOWN;
             case "bola" -> HuntsmanTuning.BOLA_COOLDOWN;
             case "aimed" -> HuntsmanTuning.AIMED_COOLDOWN;
+            case "quick" -> HuntsmanTuning.QUICK_SHOT_COOLDOWN;
             case "rain" -> HuntsmanTuning.RAIN_COOLDOWN_STAGE2;
             default -> 0;
         };
@@ -178,6 +186,8 @@ final class FootGoal extends HuntGoal
             case "backstep" -> new Timed("backstep", this.h, "backstep_shoot", length("backstep_shoot"),
                     moment("backstep_shoot", "shots.0"))
                     .first(() -> this.aim(target, HuntsmanTuning.BACKSTEP_BASE_DAMAGE, HuntFight.Frost.NONE));
+            case "quick" -> new Timed("quick", this.h, "quick_shot", length("quick_shot"), moment("quick_shot", "release"))
+                    .first(() -> this.aim(target, HuntsmanTuning.QUICK_SHOT_BASE_DAMAGE, HuntFight.Frost.NONE));
             case "aimed" -> new Timed("aimed", this.h, "aimed_shot", length("aimed_shot"), moment("aimed_shot", "release"))
                     .first(() -> this.aim(target, HuntsmanTuning.AIMED_BASE_DAMAGE, HuntFight.Frost.FREEZE))
                     .at(moment("aimed_shot", "glint"), this::glint);

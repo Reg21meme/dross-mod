@@ -21,9 +21,18 @@ import math
 import numpy as np
 
 from rimedesigns import d06_huntsman as H
-from rimekit.shapes import Scaled
+from rimekit.shapes import Moved, Scaled
 
-K = H.K
+# He's a tenth smaller than the gallery's 6A (the user, October 23, 2026: "decrease the hunter's height and size", their
+# pick "10% smaller": about 5 blocks to his antler tips on foot); the Alpha Moose stays as it is (rimemobs/alpha_moose:
+# H.K). In the saddle he's shrunk round his seat, so he still sits on it: his design is lifted SEAT_LIFT (design units)
+# before the smaller scale, which keeps his hips where they were (K * HIP_Y). On foot he's shrunk round his feet.
+SHRINK = 0.9
+K = H.K * SHRINK
+SEAT_LIFT = H.HIP_Y * (1.0 / SHRINK - 1.0)
+MOOSE_K = H.K                # the moose's scale: for the points of its tack his hands reach for (the saddle's quiver)
+# the moose's spear cup in his own design frame (his model at K, lifted SEAT_LIFT: K * (p + lift) = MOOSE_K * CUP)
+RIDE_CUP = H.CUP / SHRINK - np.array([0.0, SEAT_LIFT, 0.0])
 PROPS = ("bow_held", "horn_held", "arrow_nock", "arrow_hand", "arrow_nock3", "arrow_hand3", "spear_free", "bola_held")   # hidden unless an animation shows them
 # what each prop stands in for (hidden while it's shown)
 STANDS_FOR = {"bow_held": "bow_back", "horn_held": "horn_belt", "spear_free": "spear"}
@@ -34,7 +43,7 @@ class Design:
 
     @staticmethod
     def build(s, v):
-        H.rider(Scaled(s, K), v)
+        H.rider(Moved(Scaled(s, K), (0.0, SEAT_LIFT if v["pose"] == "ride" else 0.0, 0.0)), v)
 
     @staticmethod
     def materials(v):
@@ -43,12 +52,13 @@ class Design:
 
 def variant(pose):
     return dict(letter="A" if pose == "ride" else "A1", mood="the Wild Hunt" if pose == "ride" else "on foot",
-                mount="moose", parts=("rider",), pose=pose, props=True)
+                mount="moose", parts=("rider",), pose=pose, props=True, cup=RIDE_CUP, shrink=(SHRINK, SEAT_LIFT))
 
 
 def joints(pose):
-    """Every joint's position (design units, the model's own frame: standing, everything is STAND_DROP lower)."""
-    drop = np.array([0.0, 0.0 if pose == "ride" else H.STAND_DROP, 0.0])
+    """Every joint's position (design units, the model's own frame: standing, everything is STAND_DROP lower; in the
+    saddle SEAT_LIFT higher, so his seat stays on the saddle at his smaller scale)."""
+    drop = np.array([0.0, SEAT_LIFT if pose == "ride" else H.STAND_DROP, 0.0])
     fists = H.RIDE_FISTS if pose == "ride" else H.STAND_FISTS
     poles = ((-1.0, -0.2, 0.7), (1.0, -0.2, 0.7)) if pose == "ride" else ((-0.5, 0.0, 0.85), (0.3, 0.0, 1.0))
     j = {"hips": np.array([0.0, H.HIP_Y, 0.0]), "chest": np.array([0.0, 120.0, 0.0]),

@@ -339,10 +339,10 @@ def rider(s, v):
     legs_rider(r, pose)
     torso(r.part("chest"), r)
     mantle(r.part("chest"))
-    cloak(r.part("cape"), pose)
+    cloak(r.part("cape"), pose, v.get("shrink"))
     fists = RIDE_FISTS if pose == "ride" else STAND_FISTS
     arms(r, fists, pose)
-    spear(r.part("spear"), fists[0], pose)
+    spear(r.part("spear"), fists[0], pose, cup=v.get("cup"))
     bow(r.part("bow_back"))
     if v.get("props"):
         props_in_hand(r, fists, pose)
@@ -426,17 +426,32 @@ PLEAT = 9.0                  # its middle two panels meeting in a soft ridge (de
 CLOAK_STAND = (((0, 148, 9.0), 30), ((0, 124, 10.0), 34), ((0, 100, 12.5), 39), ((0, 86, 14.0), 42),
                ((0, 71, 15.5), 46), ((0, 57, 17.0), 48))
 CLOAK_STAND_FOLD = (25, 30, 30, 30, 30)
+# When he's built smaller than the moose (rimemobs/hunter_rig: shrunk round his seat), the cloak from the saddle back
+# keeps the moose's own size, so it still lies where it was fitted (shrunk with him, its sides came 1.7 units into the
+# rump: October 23, 2026); on his back it shrinks with him; between these two points along its line (z) it blends.
+CLOAK_MOOSE_FROM = 9.0
+CLOAK_MOOSE_AT = 10.0
 
 
-def cloak(s, pose):
+def cloak(s, pose, shrink=None):
     """
     A wide bearskin cloak (round 4: the three narrow strips "kinda suck"; the user wanted it wider, with a worn-off
     end): from under his mantle down his back, then over the saddle's rolled fur and down the moose's rump in the
     saddle, or hanging to his calves standing (the same length either way). Each stretch is a flat middle with its
     sides folded in towards him, so it wraps round his back and drapes over the rump and down behind it; fur
     outside, hide inside; its last two stretches worn: holed and faded, and the last one ragged and torn.
+    `shrink`: (his scale against the moose's, the lift his design gets before it) when he's built smaller than the
+    moose: in the saddle the cloak's part on the moose is then built at the moose's size (CLOAK_MOOSE_FROM, _AT).
     """
     line = CLOAK_RIDE if pose == "ride" else CLOAK_STAND
+    if pose == "ride" and shrink is not None:
+        k, lift = shrink
+        def moose_frame(point, width):
+            q = np.array(point, dtype=float)
+            w = min(1.0, max(0.0, (q[2] - CLOAK_MOOSE_FROM) / (CLOAK_MOOSE_AT - CLOAK_MOOSE_FROM)))
+            # (built into his frame, K * (q + lift), it lands where the moose's frame puts the fitted point)
+            return tuple(q + w * (q / k - q - np.array([0.0, lift, 0.0]))), width * (1.0 + w * (1.0 / k - 1.0))
+        line = tuple(moose_frame(q, wd) for q, wd in line)
     folds = CLOAK_RIDE_FOLD if pose == "ride" else CLOAK_STAND_FOLD
     middles = CLOAK_RIDE_MIDDLE if pose == "ride" else (0.5,) * len(folds)
     across = np.array([1.0, 0.0, 0.0])
@@ -478,15 +493,16 @@ def arms(s, fists, pose):
         s.part(f"forearm_{side}").ring(el, unit(fist - sh), 4.0, 2, 3, "plate", n=6)
 
 
-def spear(s, fist, pose):
+def spear(s, fist, pose, cup=None):
     """
     A spear of ice in his right fist: a plain pole, a small collar, the spike (the user, October 20, 2026: "no grip
     or hilt or butt piece, a plain pole with a small collar and the spike"; it had a boar spear's iron lugs and
     leather bindings under his fist). In the saddle its butt rests in the leather cup on the saddle's front corner (the
-    user: "make a spot for him to put his spear"); standing, it stands upright on the ground beside him.
+    user: "make a spot for him to put his spear"); standing, it stands upright on the ground beside him. `cup`: where
+    the moose's cup is in his own design frame when he's built at another size than the moose (rimemobs/hunter_rig).
     """
     if pose == "ride":
-        butt = CUP + np.array([0.0, 1.0, 0.0])
+        butt = (CUP if cup is None else np.asarray(cup, dtype=float)) + np.array([0.0, 1.0, 0.0])
     else:
         butt = np.array([fist[0], -STAND_DROP + 1.0, fist[2]])
     d = unit(fist - butt)

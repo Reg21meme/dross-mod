@@ -32,7 +32,8 @@ import java.util.List;
  * saddle's motion under him all play on it, on its own clock, so the two are one on the screen (the user, October 23,
  * 2026: "make them one model, then separate the models after the split"; drawn apart they wobbled against each other as
  * he aimed and it moved). Fighting ({@link HuntFight}), it keeps the Wild Hunt's bar for both and its
- * {@link WildHuntGoal} picks their moves in stage 1; in stage 2 its own {@link MooseGoal}. Calm, it walks about slowly.
+ * {@link MooseGoal} picks its moves in both stages (in stage 1 he makes his own from its back: {@link SaddleGoal}).
+ * Calm, it walks about slowly.
  */
 public class AlphaMoose extends HuntMob
 {
@@ -122,7 +123,6 @@ public class AlphaMoose extends HuntMob
     protected void registerGoals()
     {
         this.goalSelector.addGoal(0, new FloatGoal(this));
-        this.goalSelector.addGoal(1, new WildHuntGoal(this));
         this.goalSelector.addGoal(1, new MooseGoal(this));
         this.goalSelector.addGoal(4, new WaterAvoidingRandomStrollGoal(this, CALM_WALK)
         {

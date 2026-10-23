@@ -202,7 +202,8 @@ public final class HuntCues
 
     /**
      * "model.animation" to where the animation leaves him (blocks to his right, up and ahead of where he stood): the
-     * backstep shot's leap. The model's root carries him there; when the animation is over the game moves him there.
+     * backstep shot's leap. The game moves him there along with the leap, between the animation's "jump" and "lands"
+     * moments (the model only rises and falls); an animation without them moves him when it's over.
      */
     private static final Map<String, double[]> SHIFTS = Map.ofEntries(
 {(",\n").join(shifts)});

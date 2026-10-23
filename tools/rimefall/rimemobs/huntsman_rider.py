@@ -65,7 +65,7 @@ HITS = {"ride_thrust": (0.62,), "ride_shoot": (1.15, 2.05), "ride_rain": (1.0, 1
         "ride_bola": (0.95,), "ride_leap": (0.85,)}   # (the leap: LEAP_SPRING)
 # What the spear mustn't touch on the moose (the user: the thrust went through its antlers), checked by mobs.py.
 MOOSE_KEEP_CLEAR = ("antlers", "head", "neck", "ear_l", "ear_r", "body")
-SPEAR_AXIS = (H.RIDE_FISTS[0] - (H.CUP + np.array([0.0, 1.0, 0.0])))
+SPEAR_AXIS = (H.RIDE_FISTS[0] - (R.RIDE_CUP + np.array([0.0, 1.0, 0.0])))
 SPEAR_AXIS = SPEAR_AXIS / np.linalg.norm(SPEAR_AXIS)          # (the spear in the saddle, butt to tip: in its rest)
 
 clip_group = R.clip_group
@@ -208,7 +208,7 @@ def _rider_shots(rig, name, T, shots, aim, chest, head, lean=0.0, lift=0.0, hold
     """A shooting animation in the saddle: his body turned (chest, head: degrees, positive his right), the bow out
     of the archery code (his spear stays in its cup meanwhile; his arrows from the saddle's quiver)."""
     hands = hunt_ik.Hands(rig, R.joints(POSE))
-    quiver = H.SADDLE_QUIVER * hands.k
+    quiver = H.SADDLE_QUIVER * R.MOOSE_K            # (the saddle's: the moose's scale, not his)
     archer = archery.Archer(rig, hands, shots, aim, start=0.05, end=T - 0.05, hold=hold, quick=quick, drop=0.0,
                             face=face, volley=volley, quiver=lambda p, mats: quiver, reach_turn=25.0,
                             nock_down=nock_down)

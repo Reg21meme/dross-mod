@@ -2,13 +2,21 @@
 Mounted skulls (the user, October 22, 2026: "make a 3D model like the Ice and Fire dragons for the Alpha Moose head and
 also for regular male mooses, and instead of the skeleton [skulls] with the fences put those instead ... and for the
 rhino horns as well with the 2 ice horns"; their answers: bare skulls, and players can get them): three blocks, each
-a bare bone skull with the animal's own antlers or horns, built with the Rimefall kit from the same shapes as the
-animals (tools/rimefall/rimedesigns/d06_huntsman.antlers, the Rimehorn's horns) and exported as baked 3D block models
-(Forge's OBJ loader: no block entity, so a village full of them costs nothing to draw):
+exported as a baked 3D block model (Forge's OBJ loader: no block entity, so a village full of them costs nothing to
+draw).
 
-  alpha_moose_skull   the Alpha Moose's: old frosted bone, its great palm antlers hung with icicles, 3.3 blocks across
-  moose_skull         a bull moose's: clean bone, its antlers, 2.4 blocks across
-  rimehorn_skull      a Rimehorn's: a long low rhino skull, its two horns of clear ice
+Each is a bone copy of the live animal's own head (the user, October 23, 2026: "the skull should be the exact size of
+the head with the horns ... the Alpha Moose has a way bigger head than its skull, which should not be the case"; their
+pick: "a bone copy of the real head"): the animal is built exactly as its in-game model is (tools/rimefall/rimemobs:
+its bones, its design, its scale and variant), and its head's boxes (the head, its ears and antlers; the Rimehorn's
+head with its two horns) are taken off it as they are, the same size and shape to the unit, and painted as bare bone:
+its fur, face and muzzle bone, its eyes, nostrils and mouth dark holes, the antlers antler bone, the Rimehorn's horns
+still clear ice. What wouldn't be a skull is left off: its ears, and the Alpha Moose's tack on its head (the bridle,
+the bone plate on its face).
+
+  alpha_moose_skull   the Alpha Moose's: old frosted, cracked bone, its great palm antlers hung with icicles
+  moose_skull         a bull moose's (the wild moose's): clean bone, its antlers
+  rimehorn_skull      a Rimehorn's (a male's): its long low head, its two horns of clear ice
 
 Each stands on the floor (on top of a post) or hangs on a wall, facing one of four ways (HuntSkullBlock).
 
@@ -34,7 +42,6 @@ from PIL import Image, ImageDraw  # noqa: E402
 from kit import geo  # noqa: E402
 from rimekit import mats as M, shapes, texture, uvpack, zfight  # noqa: E402
 from rimekit import view as V  # noqa: E402
-from rimedesigns import d06_huntsman as H  # noqa: E402
 from rimemobs import alpha_moose as ALPHA, moose as MOOSE, rimehorn as RIMEHORN  # noqa: E402
 
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
@@ -42,30 +49,39 @@ PREVIEW = os.path.join(ROOT, "boss-previews", "rimefall", "huntsman", "skulls.pn
 BONE = "skull"                 # the one bone every skull is built on
 
 
-# ---------------------------------------------------------------- the moose skulls (in the moose's own head frame:
-# d06_huntsman.moose_body builds its head there, its forehead at y 112 by z -70, the muzzle at z -100)
+# ---------------------------------------------------------------- the heads, off the animals' own models
+
+# the bones a skull's head is on, in each animal's model (rimemobs/moose.py and rimehorn.py BONES): the head and its
+# antlers (its horns are on its head); not its ears, which a bare skull hasn't got (the Rimehorn's grow from its neck,
+# so off it they'd float)
+MOOSE_HEAD = ("head", "antlers")
+RIMEHORN_HEAD = ("head",)
+EARS = ("ear_l", "ear_r")
+# what each of the head's materials becomes on the skull (anything else is left off: the tack, the fur tufts)
+MOOSE_BONE = {"fur": "bone", "muzzle": "bone", "eye": "socket", "mouth": "socket", "antler": "antler",
+              "icicle": "icicle"}
+RIMEHORN_BONE = {"fur": "bone", "skin": "bone", "eye": "socket", "mouth": "socket", "horn": "horn"}
 
 
-def moose_skull(s, old):
-    """A bare moose skull, no lower jaw: the braincase, the broad forehead the antlers grow from, deep eye sockets, the
-    long face with a moose's great nasal opening on top, and its antlers (the animal's own). `old`: the Alpha
-    Moose's, a thicker brow and battle-cracked. (No teeth: its cheek teeth hung under its face as a row of loose
-    stubs, which the user found "very bad", October 23, 2026.)"""
-    s.rbox((0, 106, -66), (18, 14, 14), "bone", c=2)                                 # the braincase
-    s.rbox((0, 110, -73), (17, 8, 12), "bone", c=2)                                  # the forehead
-    s.plate((0, 104, -59.5), (0, 0.15, 1), (0, 1, 0), 15, 12, 2, "bone")             # the back of the skull
-    s.rbox((0, 99, -62), (8, 6, 6), "bone", c=1)                                     # where the neck was
-    for x in (-1, 1):
-        s.seg((5 * x, 112, -70), (9 * x, 113.5, -70), 5, 5, "bone")                   # the antlers' roots
-        s.box((8.6 * x, 104, -79), (2, 6, 6), "socket")                              # an eye socket
-        s.box((8.0 * x, 108, -79), (3, 2 if not old else 3, 8), "bone")              # its brow
-        s.seg((8.5 * x, 100, -73), (8.0 * x, 98, -87), 3, 3, "bone")                  # the cheek bone under it
-    s.taper([(0, 104, -80), (0, 97, -92), (0, 91, -102)], [15, 12, 9], "bone", depths=[14, 11, 9])   # the long face
-    s.box((0, 100.2, -95), (6, 2, 11), "socket")                                     # the nasal opening on top
-    s.rbox((0, 89, -104), (8, 5, 6), "bone", c=1)                                    # the tip of the upper jaw
-    for x in (-1, 1):
-        s.box((2.5 * x, 88, -107), (2, 3, 1), "socket")                              # the nostrils' gap
-    H.antlers(s, 114, -70, "moose")
+def head_of(mob, bones, bone_mats):
+    """The animal built exactly as its in-game model is (rimekit/mobkit.build_model: its bones at its scale, its design
+    with its build variant), and the boxes on its head's bones, their materials turned to bone. Returns (the boxes,
+    {material left off: how many})."""
+    m = geo.Model(f"dross_{mob.ID}")
+    k = float(mob.K)
+    for name, pivot, parent in mob.BONES:
+        m.bone(name, tuple(float(v) * k for v in pivot), parent=parent)
+    parts = shapes.Parts(m, getattr(mob, "ROUTES", {}), default="body")
+    mob.DESIGN.build(parts, mob.BUILD_VARIANT)
+    boxes, left = [], {}
+    for b in bones:
+        for c in m[b].cubes:
+            if c.mat in bone_mats:
+                c.mat = bone_mats[c.mat]
+                boxes.append(c)
+            else:
+                left[c.mat] = left.get(c.mat, 0) + 1
+    return boxes, left
 
 
 def moose_materials(old):
@@ -77,30 +93,6 @@ def moose_materials(old):
     }
 
 
-# ---------------------------------------------------------------- the Rimehorn's skull (in the Rimehorn's head frame:
-# rimedesigns/d07_rimehorn.head, before its K)
-
-
-def rimehorn_skull(s):
-    """A bare woolly-rhino skull: long and low, a high crest swept back at its top, small eye sockets (no teeth, like
-    the moose's), a boss of bone on its nose; the great horn of clear ice off the top of its nose and the short one on its brow,
-    where the Rimehorn's own grow."""
-    s.seg((0, 42, -52), (0, 37, -66), 16, 15, "bone", side=(1, 0, 0))                # the braincase
-    s.plate((0, 47, -51), (0, 0.5, 1), (0, 1, -0.5), 13, 9, 2, "bone")               # the crest, swept back
-    s.seg((0, 37.5, -64), (0, 32.5, -74), 13, 12, "bone", side=(1, 0, 0))            # the face
-    s.seg((0, 32.5, -72), (0, 29.5, -80), 11, 10, "bone", side=(1, 0, 0))            # the nose
-    s.rbox((0, 34, -76), (9, 4, 7), "bone", c=1)                                     # the boss the great horn grows from
-    s.rbox((0, 42.5, -65), (8, 3, 6), "bone", c=1)                                   # and the short one's
-    for x in (-1, 1):
-        s.box((7.6 * x, 38, -62), (2, 4, 4), "socket")                               # an eye socket
-        s.seg((7.4 * x, 35, -58), (6.8 * x, 33, -68), 3, 3, "bone")                   # the cheek bone
-        s.box((3.2 * x, 29, -80.5), (2, 3, 1), "socket")                             # the nostrils
-    # (the Rimehorn's own horns: d07_rimehorn.head)
-    s.curve([(0, 44, -65), (0, 50.5, -67), (0, 56.5, -66)], 6, [7, 5, 2], "horn", depths=[9, 6, 2])
-    s.curve([(0, 34.5, -76), (0, 46, -83), (0, 60, -87), (0, 73, -86)], 12, [9, 7, 4, 2], "horn",
-            depths=[11, 9, 6, 2])
-
-
 def rimehorn_materials():
     return {
         "bone": M.bone(seed=2201, frost_amount=0.15, cracks=0.18),
@@ -109,36 +101,66 @@ def rimehorn_materials():
     }
 
 
-# id, name, scale (design units -> sixteenths of a block: the animal's own, so each skull is life size; the user,
-# October 23, 2026: "the size of their actual skull, not a downgrade"), build, materials, has clear ice (drawn
-# translucent), how big its icon is in the inventory, and the materials left off it (a bull's antlers have no icicles: only the old
-# Alpha Moose's are hung with them)
+# id, name, the animal (its in-game model's module), its head's bones, what its materials become, the skull's
+# materials, has clear ice (drawn translucent), and the materials left off it (a bull's antlers have no icicles: only
+# the old Alpha Moose's are hung with them)
 SKULLS = (
-    ("alpha_moose_skull", "Alpha Moose Skull", ALPHA.K, lambda s: moose_skull(s, True), lambda: moose_materials(True),
-     False, 0.17, ()),
-    ("moose_skull", "Moose Skull", MOOSE.K, lambda s: moose_skull(s, False), lambda: moose_materials(False), False,
-     0.23, ("icicle",)),
-    ("rimehorn_skull", "Rimehorn Skull", RIMEHORN.K, rimehorn_skull, rimehorn_materials, True, 0.27, ()),
+    ("alpha_moose_skull", "Alpha Moose Skull", ALPHA, MOOSE_HEAD, MOOSE_BONE, lambda: moose_materials(True), False,
+     ()),
+    ("moose_skull", "Moose Skull", MOOSE, MOOSE_HEAD, MOOSE_BONE, lambda: moose_materials(False), False, ("icicle",)),
+    ("rimehorn_skull", "Rimehorn Skull", RIMEHORN, RIMEHORN_HEAD, RIMEHORN_BONE, rimehorn_materials, True, ()),
 )
+ICON_FIT = 0.9                # the inventory icon: its biggest side this share of a slot
 WALL_GAP = 0.01               # blocks between a wall skull's back and the wall
 WALL_HEIGHT = 0.22            # blocks: a wall skull's lowest point above its block's floor
 VIEWS = ((25, 15), (90, 5), (155, 25))     # the preview's angles (yaw 0: its front at the camera)
 FACINGS = (("north", 0), ("east", 90), ("south", 180), ("west", 270))
 
 
-def build(scale, design, materials, drop=()):
+def build(mob, bones, bone_mats, materials, drop=()):
+    """The skull: the animal's head boxes (head_of) on one bone, as they sit on the animal (its model's units)."""
+    boxes, left = head_of(mob, bones, bone_mats)
     m = geo.Model("dross_skull")
     m.bone(BONE, (0.0, 0.0, 0.0))
-    parts = shapes.Parts(m, {}, default=BONE)
-    design(shapes.Scaled(parts.part(BONE), scale))
-    for c in list(m[BONE].cubes):
-        if c.mat in drop:
-            m[BONE].cubes.remove(c)
+    for c in boxes:
+        if c.mat not in drop:
+            m[BONE]._add(c)
+    if left:
+        print(f"    (left off {mob.ID}'s head: {', '.join(f'{n} {k}' for k, n in sorted(left.items()))})")
     zfight.fix(m)
     mats = materials()
     uvpack.optimize(m, lambda c: getattr(mats[c.mat], "opaque", False))
     tex = texture.bake(m, mats)
     return m, tex
+
+
+def live_head(mob_id, bones):
+    """The live animal's head in its in-game model (geo/entity/<id>/<id>.geo.json: its head's bones' boxes, turned as
+    they are, at rest): wide, tall, long (blocks)."""
+    path = os.path.join(ASSETS, "geo", "entity", mob_id, f"{mob_id}.geo.json")
+    with open(path, encoding="utf-8") as f:
+        g = json.load(f)["minecraft:geometry"][0]
+    m = geo.Model("live_head")
+    m.bone(BONE, (0.0, 0.0, 0.0))
+    for b in g["bones"]:
+        if b["name"] in bones:
+            for c in b.get("cubes", []):
+                m[BONE].add_abs(c["origin"], [max(1, round(v)) for v in c["size"]], "x", rotation=c.get("rotation"),
+                                pivot=c.get("pivot"), inflate=c.get("inflate", 0.0))
+    mats = m.pose_matrices({})
+    pts = np.array([(mats[BONE] @ c.cube_matrix() @ np.append(p, 1.0))[:3]
+                    for c in m.cubes() for p in _corners(c)])
+    return pts.max(axis=0) - pts.min(axis=0)
+
+
+def _corners(c):
+    """A box's eight corners in GeckoLib space (blocks), unturned (cube_matrix turns them)."""
+    if c.uv is None:
+        c.uv = (0, 0)                 # (only its corners are wanted)
+    out = []
+    for _face, verts, _uvs, _n in c.quads(16, 16):
+        out.extend(verts)
+    return out
 
 
 def faces(m):
@@ -202,8 +224,10 @@ def composite(tex):
 
 def main():
     shots = []
-    for sid, name, scale, design, materials, clear, icon, drop in SKULLS:
-        m, tex = build(scale, design, materials, drop)
+    for sid, name, mob, bones, bone_mats, materials, clear, drop in SKULLS:
+        m, tex = build(mob, bones, bone_mats, materials, drop)
+        pts = np.array([p for f in faces(m) for p in f[0]])
+        icon = round(ICON_FIT / float((pts.max(axis=0) - pts.min(axis=0)).max()), 3)
         folder = os.path.join(ASSETS, "models", "block", "hunt_skull")
         os.makedirs(folder, exist_ok=True)
         fs = faces(m)
@@ -246,8 +270,10 @@ def main():
         })
         pts = np.array([p for f in fs for p in f[0]])
         size = pts.max(axis=0) - pts.min(axis=0)
+        live = live_head(mob.ID, bones + EARS)
         print(f"  {sid}: {len(m.cubes())} boxes, {len(fs)} faces, texture {m.tex_w}x{m.tex_h}, "
-              f"{size[0]:.2f} wide x {size[1]:.2f} tall x {size[2]:.2f} long (blocks)")
+              f"{size[0]:.2f} wide x {size[1]:.2f} tall x {size[2]:.2f} long (blocks); the live head with its ears "
+              f"{live[0]:.2f} x {live[1]:.2f} x {live[2]:.2f}")
         row = [V.draw(m, tex, yaw=yaw, elevation=el, scale=6.0, figure=False,
                       bounds=V.window(m, yaw, el, figure=False, ground=False))
                for yaw, el in VIEWS]

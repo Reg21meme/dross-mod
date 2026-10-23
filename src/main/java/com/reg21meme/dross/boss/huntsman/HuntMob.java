@@ -13,6 +13,7 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -47,7 +48,7 @@ import java.util.UUID;
  * ({@link HuntShowSounds}) until the real sounds are picked.
  * <p>
  * <b>Fighting</b> (a spawn egg, {@code /dross boss summon huntsman}): {@link HuntFight} runs their fight (the stage,
- * the bars, the split, the anger, the end), their goals pick the moves ({@link WildHuntGoal}, {@link FootGoal},
+ * the bars, the split, the anger, the end), their goals pick the moves ({@link SaddleGoal}, {@link FootGoal},
  * {@link MooseGoal}), a move goes straight back to walking or standing when it ends, and his arrows fly at his target
  * and hurt. Their bodies always face the way they're turned ({@link #tickHeadTurn}) and they turn as they move at a big
  * animal's or a man's pace ({@link HuntMoveControl}). Raging one with the Rage Wand rages its partner onto the same team
@@ -321,11 +322,15 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
                         this.loose(shot);
                     }
                 }
+                this.glide(a);
                 HuntShowSounds.play(this, a, this.playing);
                 int end = this.showcase ? a.ticks() + HOLD_AFTER : a.ticks();
                 if (!a.stays() && this.playing > end)
                 {
-                    this.moveBy(HuntCues.shift(a.model(), a.name()));
+                    if (!this.glides(a))
+                    {
+                        this.moveBy(HuntCues.shift(a.model(), a.name()));
+                    }
                     this.entityData.set(DATA_ANIM, "");
                     this.entityData.set(DATA_COUNT, this.entityData.get(DATA_COUNT) + 1);
                     this.restartClock();
@@ -345,9 +350,55 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     {
     }
 
-    /** Moves it where an animation that carries it (the backstep shot's leap) left it: blocks to its right, up and
-     * ahead (its body's facing), in the same tick as it goes back to standing, so it's never seen jump back. Fighting,
-     * not into a wall: it goes as far back as there's room. */
+    /** True if {@code a} carries it along with the animation (the backstep shot's leap: a shift, and the moments it
+     * leaves the ground and lands). */
+    private boolean glides(HuntAnims.Anim a)
+    {
+        return HuntCues.shift(a.model(), a.name()) != null && HuntCues.moment(a.model(), a.name(), "jump") >= 0
+                && HuntCues.moment(a.model(), a.name(), "lands") > HuntCues.moment(a.model(), a.name(), "jump");
+    }
+
+    /**
+     * The backstep shot's leap carries it back as it goes (the user, October 23, 2026: at its end "he teleports
+     * forward"; until then the model's root carried him back and the game moved him there when it was over, and the
+     * model jumped back again and slid forward to him as it went back to standing): this tick's share of its shift,
+     * eased in and out between the moment it leaves the ground and the moment it lands, the way it faces now; fighting,
+     * never into a wall (it stops short).
+     */
+    private void glide(HuntAnims.Anim a)
+    {
+        if (!this.glides(a))
+        {
+            return;
+        }
+        int jump = HuntCues.moment(a.model(), a.name(), "jump");
+        int lands = HuntCues.moment(a.model(), a.name(), "lands");
+        double f0 = smooth((this.playing - 1 - jump) / (double) (lands - jump));
+        double f1 = smooth((this.playing - jump) / (double) (lands - jump));
+        if (f1 <= f0)
+        {
+            return;
+        }
+        Vec3 by = this.shifted(HuntCues.shift(a.model(), a.name()), f1 - f0).subtract(this.position());
+        if (this.showcase)
+        {
+            this.setPos(this.getX() + by.x, this.getY(), this.getZ() + by.z);
+        }
+        else
+        {
+            this.move(MoverType.SELF, new Vec3(by.x, 0.0D, by.z));
+        }
+    }
+
+    private static double smooth(double x)
+    {
+        double c = Math.max(0.0D, Math.min(1.0D, x));
+        return c * c * (3.0D - 2.0D * c);
+    }
+
+    /** Moves it where an animation that carries it left it (blocks to its right, up and ahead, its body's facing), in
+     * the same tick as it goes back to standing: for one with no leap to carry it along ({@link #glide}). Fighting, not
+     * into a wall: it goes as far back as there's room. */
     private void moveBy(double[] shift)
     {
         if (shift == null)

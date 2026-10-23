@@ -12,9 +12,12 @@ Animations (animation.huntsman.*; hits and releases at the seconds in their meta
   leap_strike     (once)  a crouch, a leap high, the spear driven down as he lands
   throw_spear     (once)  he hurls the spear (it leaves his hand at the release); catch_spear: it comes back
   aimed_shot      (once)  the bow out (his bow arm straight), a long draw with the frost glint, the release
+  quick_shot      (once)  the bow out, one arrow drawn quickly and loosed, the bow away: what he shoots whenever his
+                          bigger moves are cooling down (the user, October 23: "he keeps shooting")
   backstep_shoot  (once)  his spear planted in the snow, the bow out, a leap back out of reach with a shot at the top of
-                          it, the landing (three blocks back: in the game he's moved there when it's over, its meta
-                          "shift"), and the spear yanked back to his hand on its rope
+                          it, the landing, and the spear yanked back to his hand on its rope (three blocks back: the
+                          game moves him along with the leap, between its "jump" and "lands", by its meta "shift";
+                          the model only rises and falls)
   bola_throw      (once)  his spear left in the snow, the bola whirled over his head and thrown (the snare throw
                           was removed: the user, October 20)
   arrow_rain      (once)  the bow raised to the sky, four volleys of three arrows
@@ -52,7 +55,8 @@ LEGS = [Leg(side, f"thigh_{side}", f"shin_{side}", (_J[f"boot_{side}"][0], 0.0, 
 GIF_VIEW = (55.0, 8.0, 3.4)
 
 HITS = {"spear_combo": (0.38, 0.78, 1.28), "thrust_sweep": (0.4, 0.88), "leap_strike": (1.02,),
-        "throw_spear": (0.55,), "aimed_shot": (1.7,), "backstep_shoot": (1.32,), "bola_throw": (0.95,),
+        "throw_spear": (0.55,), "aimed_shot": (1.7,), "quick_shot": (1.15,), "backstep_shoot": (1.32,),
+        "bola_throw": (0.95,),
         "arrow_rain": (1.0, 1.75, 2.5, 3.25), "horn_blow": (0.85,)}
 HORN_CALL = (0.85, 2.9)          # the horn at his lips: the call (the game's sound about as long)
 BACKSTEP = 48.0                  # how far back the backstep shot's leap takes him (units: 3 blocks), and how high
@@ -358,20 +362,35 @@ def aimed_shot(rig):
     return a
 
 
+def quick_shot(rig):
+    """The quick shot (the user, October 23, 2026: on foot at range "he keeps shooting"): the bow off his back fast, one
+    arrow drawn to his chin and loosed at once, no glint, and the bow back; under two seconds. (Its hands at 0.8 of the
+    aimed shot's time: faster, his drawing hand cut across his chest on its way from the quiver.)"""
+    T = 1.9
+    rel, = HITS["quick_shot"]
+    a = _shooting(rig, "quick_shot", T, [rel], lambda t: hunt_ik.elevate(0.0, 3.0), start=0.03, hold=0.06, quick=0.8)
+    a.meta.update(release=rel)
+    return a
+
+
 def backstep_shoot(rig):
     """
     The backstep shot (the user: "I want him to leap backwards in the air, while in the air shoot at you, then
     land"): he lets go of his spear, planted in the snow, and the bow comes off his back and an arrow onto the string;
     he crouches and leaps back out of reach, drawing as he rises, looses at the top of the leap and lands three blocks
-    back in a crouch; the bow goes back over his shoulder and he yanks his spear back to his hand on its rope. The
-    model's root carries him back (in the game he's moved there when it's over: its meta "shift", blocks to his right,
-    up and ahead) and the planted spear stays where it was until it flies back.
+    back in a crouch; the bow goes back over his shoulder and he yanks his spear back to his hand on its rope. The model
+    only rises and falls: in the game he's moved back along with the leap, between its "jump" and "lands" (its meta
+    "shift": blocks to his right, up and ahead), so the planted spear is kept where it stood in the snow by moving it
+    the other way in the model. (Until October 23, 2026 the model's root carried him back and the game moved him there
+    when it was over: the model jumped back a second time and slid forward to him as it went back to standing, the
+    user's "he teleports forward"; and he was ready again sooner: the bow away while he's still in the air, the spear
+    back as he lands, 0.35 s shorter.)
     """
-    T = 2.75
+    T = 2.4
     rel, = HITS["backstep_shoot"]
     start = 0.18
     crouch0, jump, apex, land = 0.78, 0.98, 1.3, 1.62
-    yank0, catch, end = 2.2, 2.42, 2.2
+    yank0, catch, end = 2.05, 2.23, 2.05
     hands = hunt_ik.Hands(rig, R.joints(POSE))
     archer = archery.Archer(rig, hands, [rel], lambda t: hunt_ik.elevate(0.0, 2.0), start=start, end=end, hold=0.06,
                             quick=0.6, drop=H.STAND_DROP, face=-60.0)
@@ -390,11 +409,17 @@ def backstep_shoot(rig):
             up = BACKSTEP_UP * max(0.0, 1.0 - u * u)
         return back, up
 
+    def planted_at(t):
+        """Where the planted spear is in the model while the game moves him back past it (blocks)."""
+        mat = planted.copy()
+        mat[2, 3] -= leap(t)[0] / 16.0
+        return mat
+
     def frame(t):
         p = Pose()
         _base(p, t)
         back, up = leap(t)
-        p.pos("root", 0.0, up, back)
+        p.pos("root", 0.0, up, 0.0)
         crouch = (bump(t, crouch0, jump - 0.05, jump - 0.02, jump + 0.08)
                   + bump(t, land - 0.02, land + 0.06, land + 0.12, land + 0.35))
         p.pos("hips", 0.0, -10.0 * crouch, 0.0)
@@ -420,13 +445,13 @@ def backstep_shoot(rig):
             if t < catch:
                 mats = m.pose_matrices(p.as_geo())
                 u = smooth((t - yank0) / (catch - yank0)) if t > yank0 else 0.0
-                world = _fly(planted, mats["spear"], u, lift=6.0 / 16.0)
+                world = _fly(planted_at(t), mats["spear"], u, lift=6.0 / 16.0)
                 _set_free(p, world, m, state)
                 props = ["spear_free"]
             else:
                 props = []
         elif "spear_free" in props:
-            _set_free(p, planted, m, state)                # it stays in the snow while he leaps away
+            _set_free(p, planted_at(t), m, state)          # it stays in the snow while he leaps away
         R.show(p, tuple(props))
         return p
 
@@ -584,7 +609,7 @@ def land(rig):
     def frame(t):
         p = Pose()
         c = 1.0 - ramp(t, 0.12, 0.6)
-        p.pos("hips", 0.0, -14.0 * c, 0.0)
+        p.pos("hips", 0.0, -14.0 * R.SHRINK * c, 0.0)      # (his leap's crouch, at his size: R.SHRINK)
         p.rot("chest", 22.0 * c, 0.0, 0.0)
         R.arm(p, "l", sh=(-30.0 * c, 0.0, -24.0 * c))          # (out to his left for balance, not across him)
         R.arm(p, "r", **grip((-45.0 * c, 0.0, 8.0 * c), (-10.0 * c, 0.0, 0.0), 20.0 * c))   # (the spear up off the snow)
@@ -811,6 +836,7 @@ def animations(rig):
         "throw_spear": throw_spear(rig),
         "catch_spear": catch_spear(rig),
         "aimed_shot": aimed_shot(rig),
+        "quick_shot": quick_shot(rig),
         "backstep_shoot": backstep_shoot(rig),
         "arrow_rain": arrow_rain(rig),
         "bola_throw": bola_throw(rig),

@@ -60,7 +60,7 @@ import java.util.function.Predicate;
  *       or a raged mob of another team), he blows his horn and the fight is on (the user, October 22, 2026: "it should
  *       blow its horn when there is a hostile nearby, not when you first attack it"); a hit starts it too.</li>
  *   <li><b>Stage 1, the Wild Hunt</b>: he rides it, and whatever either of them takes comes off one bar of
- *       {@link HuntsmanTuning#WILD_HUNT_HEALTH} (the moose keeps it); the moose's {@link WildHuntGoal} picks their
+ *       {@link HuntsmanTuning#WILD_HUNT_HEALTH} (the moose keeps it); the moose's {@link MooseGoal} and his {@link SaddleGoal} pick their
  *       moves.</li>
  *   <li><b>The split</b> when it runs out: the moose rears, he leaps off and blows his horn, and neither can be hurt for
  *       {@link HuntsmanTuning#SPLIT_INVULNERABLE_TICKS} ticks; then <b>stage 2</b>: each on his own full bar ({@link FootGoal},
@@ -1053,7 +1053,7 @@ public final class HuntFight
                 }
                 RandomSource r = m.getRandom();
                 double a = r.nextDouble() * Math.PI * 2.0D;
-                double d = Math.sqrt(r.nextDouble()) * HuntsmanTuning.RAIN_RADIUS;
+                double d = Math.pow(r.nextDouble(), HuntsmanTuning.RAIN_SPREAD_POWER) * HuntsmanTuning.RAIN_RADIUS;
                 Vec3 c = last[0];
                 Arrow arrow = new Arrow(level, c.x + Math.cos(a) * d, c.y + HuntsmanTuning.RAIN_HEIGHT, c.z + Math.sin(a) * d);
                 arrow.setOwner(m);
