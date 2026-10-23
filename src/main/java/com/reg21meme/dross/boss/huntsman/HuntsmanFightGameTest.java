@@ -2,6 +2,8 @@ package com.reg21meme.dross.boss.huntsman;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.ColossusGameTest;
+import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.boss.rage.RageTeam;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.registry.ModEntities;
@@ -18,10 +20,13 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.projectile.Arrow;
+import net.minecraft.world.level.GameType;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -33,8 +38,10 @@ import java.util.Map;
 
 /**
  * Headless checks of the Huntsman's fight ({@link HuntFight}, the user's table {@link HuntsmanTuning}): a spawn egg
- * brings him in his Alpha Moose's saddle, calm; the first hit starts the Wild Hunt with his horn, and their hits come off
- * one bar while their own health stays full; at 0 the split (he leaps off, neither can be hurt), then two full bars;
+ * brings him in his Alpha Moose's saddle, calm; a player in survival in sight starts the Wild Hunt with his horn (one in
+ * creative doesn't), so does the first hit, and their hits come off one bar while their own health stays full; an arrow
+ * at him in the saddle hits him, not the moose; raging one rages both, and a raged enemy is whom they go for; a loop
+ * played faster or slower keeps its beat; at 0 the split (he leaps off, neither can be hurt), then two full bars;
  * one dead makes the other angry (its bar, its speed); both dead, "The Hunter Hunted" for the killer and the players near,
  * not one far off; the move tables give the user's shares; they never hurt each other; the bola snares; the moose kicks
  * what's behind it; with nobody near the fight is broken off and both come back, full and calm, him in the saddle.
@@ -53,6 +60,8 @@ public final class HuntsmanFightGameTest
     private static final double SHARE_SIGMAS = 4.0D;
     private static final double SHARE_TOLERANCE_MIN = 0.01D;
     private static final int ROLLS = 20_000;
+    /** Ticks for a new pair to settle: the moose seats him (his hitbox over its back) when it next moves him. */
+    private static final int RIDER_SETTLE_TICKS = 3;
 
     private HuntsmanFightGameTest() {}
 
@@ -104,6 +113,17 @@ public final class HuntsmanFightGameTest
             {
                 m.discard();
             }
+        }
+    }
+
+    /** Removes the hostile mobs (but theirs) within the break-off range of {@code near} and a little more. */
+    private static void clearFoesNear(ServerLevel level, HuntMob near)
+    {
+        double r = HuntsmanTuning.BREAK_OFF_RANGE + 16.0D;
+        for (Mob mob : level.getEntitiesOfClass(Mob.class, near.getBoundingBox().inflate(r),
+                e -> e instanceof Enemy && !(e instanceof HuntMob)))
+        {
+            mob.discard();
         }
     }
 
@@ -190,6 +210,211 @@ public final class HuntsmanFightGameTest
             clear(h, m);
         }
         helper.succeed();
+    }
+
+    /** Calm, a player in creative mode in sight isn't a foe; a player in survival is: the horn, and the Wild Hunt. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_spot", timeoutTicks = WAIT + 200)
+    public static void aFoeInSightStartsTheHunt(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::aFoeInSightStartsTheHunt))
+        {
+            return;
+        }
+        Huntsman h = pair(helper, MIDDLE, 0.0F);
+        AlphaMoose m = moose(h);
+        ServerPlayer watcher = ColossusGameTest.joinPlayer(helper, "hunt-watcher", MIDDLE.offset(6, 0, 0), 90.0F);
+        watcher.setGameMode(GameType.CREATIVE);
+        int look = HuntsmanTuning.SPOT_INTERVAL * 3;
+        helper.runAfterDelay(look, () ->
+        {
+            if (h.stage() != HuntStage.CALM || m.stage() != HuntStage.CALM)
+            {
+                ColossusGameTest.leaveAll(List.of(watcher));
+                clear(h, m);
+                throw new GameTestAssertException("a player in creative mode isn't a foe: they should stay calm, but they're "
+                        + m.stage());
+            }
+            ServerPlayer hunted = ColossusGameTest.joinPlayer(helper, "hunt-spotted", MIDDLE.offset(-6, 0, 5), 0.0F);
+            helper.runAfterDelay(look, () ->
+            {
+                String problem = null;
+                if (h.stage() != HuntStage.WILD_HUNT || m.stage() != HuntStage.WILD_HUNT)
+                {
+                    problem = "a player in sight should start the Wild Hunt, but they're " + m.stage();
+                }
+                else if (!h.current().name().equals("ride_horn"))
+                {
+                    problem = "he should blow his horn as the hunt starts, but he plays " + h.current().name();
+                }
+                else if (m.getTarget() != hunted || h.getTarget() != hunted)
+                {
+                    problem = "both should go for the player in survival, not " + m.getTarget() + " and " + h.getTarget();
+                }
+                ColossusGameTest.leaveAll(List.of(watcher, hunted));
+                clear(h, m);
+                if (problem != null)
+                {
+                    throw new GameTestAssertException(problem);
+                }
+                helper.succeed();
+            });
+        });
+    }
+
+    /** The Rage Wand on one of the pair rages both onto its team; a raged enemy of another team near starts the hunt,
+     * and it's whom both of them go for. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_rage", timeoutTicks = WAIT + 200)
+    public static void ragedTheyFightAsAPair(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::ragedTheyFightAsAPair))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE.offset(-3, 0, 0), 0.0F);
+        AlphaMoose m = moose(h);
+        Zombie zombie = EntityType.ZOMBIE.create(level);
+        if (zombie == null)
+        {
+            clear(h, m);
+            throw new GameTestAssertException("couldn't make a zombie");
+        }
+        Vec3 at = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(5, 0, 6)));
+        zombie.moveTo(at.x, at.y, at.z, 0.0F, 0.0F);
+        zombie.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 100_000, 4)); // it stays for the check
+        level.addFreshEntity(zombie);
+        boolean raged = Rage.enrage(h, RageTeam.RED) && Rage.enrage(zombie, RageTeam.BLUE);
+        if (!raged || !Rage.isRaged(m) || Rage.teamOf(m) != RageTeam.RED)
+        {
+            clear(h, m);
+            zombie.discard();
+            throw new GameTestAssertException("raging the Huntsman should rage his moose onto his team too, but it's "
+                    + (Rage.isRaged(m) ? Rage.teamOf(m) : "not raged"));
+        }
+        helper.runAfterDelay(HuntsmanTuning.SPOT_INTERVAL * 3, () ->
+        {
+            String problem = null;
+            if (!m.stage().fighting())
+            {
+                problem = "a raged enemy near should start the hunt, but they're " + m.stage();
+            }
+            else if (m.getTarget() != zombie || h.getTarget() != zombie)
+            {
+                problem = "both should go for the raged enemy, not " + m.getTarget() + " and " + h.getTarget();
+            }
+            clear(h, m);
+            zombie.discard();
+            if (problem != null)
+            {
+                throw new GameTestAssertException(problem);
+            }
+            helper.succeed();
+        });
+    }
+
+    /** In the saddle his hitbox is over the moose's back, a little wider than the moose's: an arrow at his body hits
+     * him, not the moose under him. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_rider_hit", timeoutTicks = WAIT + 200)
+    public static void theRiderCanBeHit(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::theRiderCanBeHit))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE.offset(-3, 0, 0), 0.0F);
+        AlphaMoose m = moose(h);
+        h.setNoAi(true);
+        m.setNoAi(true);
+        Arrow[] arrow = new Arrow[1];
+        float[] bar = new float[1];
+        helper.startSequence()
+                // the moose seats him on its next tick
+                .thenIdle(RIDER_SETTLE_TICKS)
+                .thenExecute(() ->
+                {
+                    if (Math.abs(h.getBoundingBox().minY - m.getY() - HuntsmanTuning.RIDER_SEAT) > 0.01D
+                            || h.getBbWidth() <= m.getBbWidth())
+                    {
+                        clear(h, m);
+                        throw new GameTestAssertException("in the saddle his hitbox should start " + HuntsmanTuning.RIDER_SEAT
+                                + " over the moose's feet, wider than the moose's; it's at "
+                                + (h.getBoundingBox().minY - m.getY()) + ", " + h.getBbWidth() + " wide (the moose "
+                                + m.getBbWidth() + "; mounted " + h.isMounted() + ", his dimensions "
+                                + h.getDimensions(h.getPose()) + ")");
+                    }
+                    // an arrow from across the arena, level with his chest
+                    Arrow a = new Arrow(level, h.getX() + 9.0D, h.getY() + 1.5D, h.getZ());
+                    a.setBaseDamage(2.0D);
+                    a.shoot(-1.0D, 0.0D, 0.0D, 3.0F, 0.0F);
+                    level.addFreshEntity(a);
+                    arrow[0] = a;
+                    bar[0] = m.wildHunt;
+                })
+                .thenWaitUntil(() ->
+                {
+                    if (h.hurtTime <= 0 && m.hurtTime <= 0)
+                    {
+                        throw new GameTestAssertException("waiting for the arrow to hit");
+                    }
+                })
+                .thenExecute(() ->
+                {
+                    boolean him = h.hurtTime > 0;
+                    boolean moose = m.hurtTime > 0;
+                    float after = m.wildHunt;
+                    clear(h, m);
+                    arrow[0].discard();
+                    if (!him || moose)
+                    {
+                        throw new GameTestAssertException("an arrow at his chest should hit him, not the moose (him " + him
+                                + ", the moose " + moose + ")");
+                    }
+                    if (after >= bar[0])
+                    {
+                        throw new GameTestAssertException("his hit should come off the Wild Hunt's bar");
+                    }
+                })
+                .thenSucceed();
+    }
+
+    /** A loop played faster or slower goes on from the moment it was at (its beat moves with it); a move plays as
+     * made. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_clock", timeoutTicks = WAIT + 100)
+    public static void theClockKeepsTheBeat(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::theClockKeepsTheBeat))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE, 0.0F);
+        AlphaMoose m = moose(h);
+        m.setShowcase(true);
+        h.setShowcase(true);
+        m.play("run");
+        long started = level.getGameTime();
+        if (Math.abs(m.anchor() - (started + 4.0D)) > 1.0E-3D || m.pace() != 1.0F)
+        {
+            clear(h, m);
+            throw new GameTestAssertException("a new animation's beat should fall after its blend, played as made: "
+                    + m.anchor() + " at " + m.pace());
+        }
+        helper.runAfterDelay(30, () ->
+        {
+            double now = level.getGameTime();
+            double length = HuntAnims.named(HuntAnims.ALPHA_MOOSE, "run").length();
+            double before = ((now - m.anchor()) * m.pace()) % length;
+            m.setPace(0.8F);
+            double after = ((now - m.anchor()) * m.pace()) % length;
+            clear(h, m);
+            if (Math.abs(before - after) > 0.01D && Math.abs(Math.abs(before - after) - length) > 0.01D)
+            {
+                throw new GameTestAssertException("slowed down, the gallop should go on from where it was (" + before
+                        + " ticks into it), but it's at " + after);
+            }
+            helper.succeed();
+        });
     }
 
     // ---------------------------------------------------------------- the split and stage 2
@@ -505,6 +730,8 @@ public final class HuntsmanFightGameTest
         ServerLevel level = helper.getLevel();
         Huntsman h = pair(helper, MIDDLE, 0.0F);
         AlphaMoose m = moose(h);
+        // (he hunts any hostile mob near: one left over from an earlier test would rightly keep the fight going)
+        helper.onEachTick(() -> clearFoesNear(level, h));
         hit(m, byZombie(level, m), HIT);
         m.wildHunt = 1.0F;
         hit(m, byZombie(level, m), HIT);
@@ -523,7 +750,8 @@ public final class HuntsmanFightGameTest
                 AlphaMoose back = HuntFight.mooseOf(h);
                 if (back == null || back == m || !back.isAlive() || h.getVehicle() != back)
                 {
-                    problem = "with nobody near, the fight should be broken off: a new Alpha Moose under him";
+                    problem = "with nobody near, the fight should be broken off: a new Alpha Moose under him (his target "
+                            + h.getTarget() + ", stage " + h.stage() + ", lonely for " + h.lonelyTicks + " ticks)";
                 }
                 else if (h.stage() != HuntStage.CALM || back.stage() != HuntStage.CALM || h.isAngry())
                 {

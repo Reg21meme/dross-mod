@@ -14,7 +14,10 @@ import javax.annotation.Nullable;
  * Stage 2, the Huntsman on foot (the user's table, {@link HuntsmanTuning#FOOT_CHANCES}): his spear up close (the
  * combo, the thrust and sweep), the leaping strike and the thrown spear at middle range, his bow far off (the aimed
  * shot, the arrow rain), the backstep shot when you crowd him, the bola and the Horn of the Hunt. His spear-work waits
- * while his spear is thrown.
+ * while his spear is thrown. He's the long-range one of the pair (the user, October 22, 2026: "the moose is the close
+ * range attacker, the hunter long range"; "the hunter wants to keep the battle ranged"): he never runs in at you; with
+ * nothing to make he falls back (closer than {@link HuntsmanTuning#FOOT_MID}), keeps his range walking round you (up to
+ * {@link HuntsmanTuning#FOOT_FAR}) or closes in only to bow range (further). His leaps never land in his moose.
  */
 final class FootGoal extends HuntGoal
 {
@@ -27,6 +30,18 @@ final class FootGoal extends HuntGoal
     private static final double LUNGE = 0.35D;
     /** His leap lands this far short of where his target stood. */
     private static final double LEAP_SHORT = 1.2D;
+    /** Falling back, he bears away from his moose this much too (when it's within {@link #MOOSE_NEAR} blocks). */
+    private static final double AWAY_FROM_MOOSE = 0.6D;
+    private static final double MOOSE_NEAR = 10.0D;
+    /** How often (ticks) his way back or round is worked out again. */
+    private static final int REPATH = 10;
+    /** Keeping his range he walks round at this far (blocks), his target's distance kept within it. */
+    private static final double RANGE_LEAST = HuntsmanTuning.FOOT_MID + 2.0D;
+    private static final double RANGE_MOST = HuntsmanTuning.FOOT_FAR - 4.0D;
+    /** ... aiming this far round ahead of him (radians), so he keeps going round. */
+    private static final double RANGE_LEAD = 0.35D;
+    /** A fall back is over this close to where he was going. */
+    private static final double ARRIVED = 2.5D;
 
     private final Huntsman h;
 
@@ -61,9 +76,9 @@ final class FootGoal extends HuntGoal
     }
 
     @Override
-    protected String fallback()
+    protected String fallback(double distance)
     {
-        return "run_in";
+        return distance <= HuntsmanTuning.FOOT_MID ? "fall_back" : distance <= HuntsmanTuning.FOOT_FAR ? "keep_range" : "close_in";
     }
 
     @Override
@@ -73,16 +88,26 @@ final class FootGoal extends HuntGoal
         return switch (name)
         {
             case "combo", "thrust_sweep" -> spear && d <= HuntsmanTuning.SPEAR_REACH + 1.0D;
-            case "backstep" -> d <= HuntsmanTuning.FOOT_CLOSE && this.sees(target);
+            case "backstep" -> d <= HuntsmanTuning.FOOT_CLOSE && this.sees(target) && HuntFight.clearOfMoose(this.h,
+                    this.h.shifted(HuntCues.shift(HuntAnims.FOOT, "backstep_shoot"), 1.0D));
             case "horn" -> d <= HuntsmanTuning.HORN_LENGTH;
-            case "leap" -> spear && d >= HuntsmanTuning.LEAP_MIN && d <= HuntsmanTuning.LEAP_MAX && this.sees(target);
+            case "leap" -> spear && d >= HuntsmanTuning.LEAP_MIN && d <= HuntsmanTuning.LEAP_MAX && this.sees(target)
+                    && HuntFight.clearOfMoose(this.h, landing(this.h.position(), target));
             case "throw_spear" -> spear && d >= HuntsmanTuning.SPEAR_THROW_MIN && d <= HuntsmanTuning.SPEAR_THROW_MAX
                     && this.sees(target);
             case "bola" -> d >= HuntsmanTuning.BOLA_MIN && d <= HuntsmanTuning.BOLA_MAX && this.sees(target);
             case "aimed" -> d >= HuntsmanTuning.AIMED_MIN && d <= HuntsmanTuning.AIMED_MAX && this.sees(target);
-            case "rain", "run_in" -> true;
+            case "rain", "fall_back", "keep_range", "close_in" -> true;
             default -> false;
         };
+    }
+
+    /** Where his leap from {@code from} at {@code target} lands: a little short of where it stands. */
+    private static Vec3 landing(Vec3 from, LivingEntity target)
+    {
+        Vec3 d = target.position().subtract(from);
+        double len = Math.sqrt(d.x * d.x + d.z * d.z);
+        return len > LEAP_SHORT ? from.add(d.x / len * (len - LEAP_SHORT), d.y, d.z / len * (len - LEAP_SHORT)) : from;
     }
 
     @Override
@@ -170,7 +195,9 @@ final class FootGoal extends HuntGoal
                             HuntsmanTuning.HORN_SLOW_LEVEL));
             case "leap" -> new Leap();
             case "throw_spear" -> new ThrowSpear();
-            case "run_in" -> new Chase("run_in", HuntsmanTuning.HUNTSMAN_RUN, HuntsmanTuning.FOOT_CLOSE);
+            case "fall_back" -> new FallBack();
+            case "keep_range" -> new KeepRange();
+            case "close_in" -> new Chase("close_in", HuntsmanTuning.HUNTSMAN_RUN, HuntsmanTuning.CLOSE_IN_TO);
             default -> null;
         };
     }
@@ -226,11 +253,11 @@ final class FootGoal extends HuntGoal
             if (t == HuntsmanTuning.LEAP_TAKEOFF)
             {
                 this.from = h.position();
-                Vec3 to = target != null ? target.position() : h.position();
-                Vec3 d = to.subtract(this.from);
-                double len = Math.sqrt(d.x * d.x + d.z * d.z);
-                this.landing = len > LEAP_SHORT ? this.from.add(d.x / len * (len - LEAP_SHORT), d.y, d.z / len * (len - LEAP_SHORT))
-                        : this.from;
+                this.landing = target != null ? landing(this.from, target) : this.from;
+                if (!HuntFight.clearOfMoose(h, this.landing))
+                {
+                    this.landing = this.from;              // his moose came between: he strikes where he stands
+                }
             }
             if (t > HuntsmanTuning.LEAP_TAKEOFF && t <= lands)
             {
@@ -298,5 +325,124 @@ final class FootGoal extends HuntGoal
             }
             return this.caughtAt >= 0 && t >= this.caughtAt + length("catch_spear");
         }
+    }
+
+    /** Falling back: he runs out away from his target (and from his moose, when it's near) to
+     * {@link HuntsmanTuning#FALL_BACK_TO}, to shoot from there. */
+    private final class FallBack implements Move
+    {
+        private Vec3 to = Vec3.ZERO;
+
+        @Override
+        public String name()
+        {
+            return "fall_back";
+        }
+
+        @Override
+        public void start()
+        {
+            Huntsman h = FootGoal.this.h;
+            LivingEntity target = FootGoal.this.target;
+            if (target == null)
+            {
+                this.to = h.position();
+                return;
+            }
+            Vec3 away = flatUnit(h.position().subtract(target.position()), h);
+            if (HuntFight.partner(h) instanceof AlphaMoose moose && moose.isAlive() && moose.distanceTo(h) < MOOSE_NEAR)
+            {
+                away = flatUnit(away.add(flatUnit(h.position().subtract(moose.position()), h).scale(AWAY_FROM_MOOSE)), h);
+            }
+            this.to = target.position().add(away.scale(HuntsmanTuning.FALL_BACK_TO));
+            h.getNavigation().moveTo(this.to.x, this.to.y, this.to.z, HuntsmanTuning.HUNTSMAN_RUN);
+        }
+
+        @Override
+        public boolean tick(int t)
+        {
+            Huntsman h = FootGoal.this.h;
+            LivingEntity target = FootGoal.this.target;
+            if (t % REPATH == 0)
+            {
+                h.getNavigation().moveTo(this.to.x, this.to.y, this.to.z, HuntsmanTuning.HUNTSMAN_RUN);
+            }
+            double dx = this.to.x - h.getX();
+            double dz = this.to.z - h.getZ();
+            return dx * dx + dz * dz < ARRIVED * ARRIVED || target == null
+                    || HuntFight.flat(h, target) >= HuntsmanTuning.FALL_BACK_TO - 1.0D || t >= HuntsmanTuning.FALL_BACK_TICKS;
+        }
+
+        @Override
+        public void stop()
+        {
+            FootGoal.this.h.getNavigation().stop();
+        }
+    }
+
+    /** Keeping his range: he walks round his target, {@link #RANGE_LEAST} to {@link #RANGE_MOST} blocks off, one way or
+     * the other, while his moves come back. */
+    private final class KeepRange implements Move
+    {
+        private double way;
+
+        @Override
+        public String name()
+        {
+            return "keep_range";
+        }
+
+        @Override
+        public void start()
+        {
+            this.way = FootGoal.this.h.getRandom().nextBoolean() ? 1.0D : -1.0D;
+            this.walk();
+        }
+
+        @Override
+        public boolean tick(int t)
+        {
+            if (FootGoal.this.target == null)
+            {
+                return true;
+            }
+            if (t % REPATH == 0)
+            {
+                this.walk();
+            }
+            return t >= HuntsmanTuning.CIRCLE_ON_FOOT_TICKS;
+        }
+
+        private void walk()
+        {
+            Huntsman h = FootGoal.this.h;
+            LivingEntity target = FootGoal.this.target;
+            if (target == null)
+            {
+                return;
+            }
+            double r = Math.max(RANGE_LEAST, Math.min(RANGE_MOST, HuntFight.flat(h, target)));
+            double a = Math.atan2(h.getZ() - target.getZ(), h.getX() - target.getX()) + this.way * RANGE_LEAD;
+            h.getNavigation().moveTo(target.getX() + Math.cos(a) * r, target.getY(), target.getZ() + Math.sin(a) * r,
+                    HuntsmanTuning.HUNTSMAN_WALK);
+        }
+
+        @Override
+        public void stop()
+        {
+            FootGoal.this.h.getNavigation().stop();
+        }
+    }
+
+    /** A flat direction of length 1 ({@code v} across the ground; any way at random if it's nothing). */
+    private static Vec3 flatUnit(Vec3 v, Huntsman h)
+    {
+        double d = Math.sqrt(v.x * v.x + v.z * v.z);
+        if (d < 1.0E-3D)
+        {
+            double a = h.getRandom().nextDouble() * Math.PI * 2.0D;
+            return new Vec3(Math.cos(a), 0.0D, Math.sin(a));
+        }
+        return new Vec3(v.x / d, 0.0D, v.z / d);
     }
 }

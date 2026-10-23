@@ -59,7 +59,7 @@ final class MooseGoal extends HuntGoal
     }
 
     @Override
-    protected String fallback()
+    protected String fallback(double distance)
     {
         return "run_in";
     }

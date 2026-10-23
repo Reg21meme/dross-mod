@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.boss.rage.RageLeader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -11,6 +12,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
@@ -21,7 +23,6 @@ import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.AnimationController;
 import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
@@ -33,7 +34,10 @@ import java.util.UUID;
 
 /**
  * What the Huntsman and the Alpha Moose share (CLAUDE.md step 14, his fight): their GeckoLib animations, picked by
- * name on the server and synced (with a counter, so the same one asked for again starts over).
+ * name on the server and synced (with a counter, so the same one asked for again starts over), and when each one's
+ * first beat falls and how fast it plays ({@link #anchor}, {@link #pace}), so the clients play them in step with the
+ * world ({@link HuntController}): the moose and the saddle he rides in at the same moment, a gallop at the pace they
+ * really run.
  * <p>
  * <b>On show</b> ({@code /dross showcase boss_designs huntsman}, {@link #setShowcase}): frozen (no AI), they can't be
  * hurt except by {@code /kill}, can't be pushed or leashed and never despawn; a move plays once and then they go back
@@ -44,9 +48,11 @@ import java.util.UUID;
  * <b>Fighting</b> (a spawn egg, {@code /dross boss summon huntsman}): {@link HuntFight} runs their fight (the stage,
  * the bars, the split, the anger, the end), their goals pick the moves ({@link WildHuntGoal}, {@link FootGoal},
  * {@link MooseGoal}), a move goes straight back to walking or standing when it ends, and his arrows fly at his target
- * and hurt.
+ * and hurt. Their bodies always face the way they're turned ({@link #tickHeadTurn}) and they turn as they move at a big
+ * animal's or a man's pace ({@link HuntMoveControl}). Raging one with the Rage Wand rages its partner onto the same team
+ * ({@link RageLeader}).
  */
-public abstract class HuntMob extends PathfinderMob implements GeoEntity
+public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLeader
 {
     /** A move's last frame is held this many ticks before it goes back to standing (on show). */
     public static final int HOLD_AFTER = 20;
@@ -68,16 +74,31 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
     private static final String TAG_WILD_HUNT = "WildHunt";
     private static final String TAG_ANGRY = "Angry";
 
+    /** The anchor is synced in thousandths of a tick. */
+    private static final double ANCHOR_UNITS = 1000.0D;
+
     private static final EntityDataAccessor<String> DATA_ANIM = SynchedEntityData.defineId(HuntMob.class,
             EntityDataSerializers.STRING);
     private static final EntityDataAccessor<Integer> DATA_COUNT = SynchedEntityData.defineId(HuntMob.class,
             EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Long> DATA_ANCHOR = SynchedEntityData.defineId(HuntMob.class,
+            EntityDataSerializers.LONG);
+    private static final EntityDataAccessor<Float> DATA_PACE = SynchedEntityData.defineId(HuntMob.class,
+            EntityDataSerializers.FLOAT);
 
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
     private int seenCount = -1;
     private int playing;
     private String later;
     private int laterTicks;
+
+    // ---------------------------------------------------------------- its gait (HuntFight.locomote keeps it)
+    /** Its speed over the ground (blocks a tick), smoothed over a few ticks. */
+    double gaitSpeed;
+    /** The gait it would change to, and for how many ticks it has wanted it. */
+    @Nullable
+    String gaitNext;
+    int gaitNextTicks;
 
     // ---------------------------------------------------------------- the fight's state (HuntFight keeps it)
     private boolean showcase;
@@ -105,11 +126,12 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
     @Nullable
     String forcedLoop;
 
-    protected HuntMob(EntityType<? extends HuntMob> type, Level level)
+    protected HuntMob(EntityType<? extends HuntMob> type, Level level, float moveTurn)
     {
         super(type, level);
         this.setPersistenceRequired();
         this.setMaxUpStep(1.0F);
+        this.moveControl = new HuntMoveControl(this, moveTurn);
     }
 
     @Override
@@ -118,6 +140,8 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         super.defineSynchedData();
         this.entityData.define(DATA_ANIM, "");
         this.entityData.define(DATA_COUNT, 0);
+        this.entityData.define(DATA_ANCHOR, 0L);
+        this.entityData.define(DATA_PACE, 1.0F);
     }
 
     /** On show: frozen and unhurtable (the showcase sets it before it adds them). */
@@ -152,6 +176,13 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         return a != null ? a : this.animations().get(0);
     }
 
+    /** The name of the animation asked for, as synced (it may not be one of the animations it has right now: the
+     * Huntsman's last riding one just after he's off the moose). */
+    String animName()
+    {
+        return this.entityData.get(DATA_ANIM);
+    }
+
     /** True while it's playing a move (not a loop: standing, walking, running). */
     public boolean busy()
     {
@@ -170,6 +201,60 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         return this.playing;
     }
 
+    /** The game time (ticks) the current animation's first beat falls on: the tick it started plus the blend into it. A
+     * loop goes round on whole lengths from it, at {@link #pace}. Both sides. */
+    public double anchor()
+    {
+        return this.entityData.get(DATA_ANCHOR) / ANCHOR_UNITS;
+    }
+
+    /** How fast the current animation plays (1: as made). A move always plays as made (its moments are timed on the
+     * server); a walk or a run plays at the speed it really goes over the ground ({@link HuntFight#locomote}). */
+    public float pace()
+    {
+        return this.entityData.get(DATA_PACE);
+    }
+
+    private void setAnchor(double anchor)
+    {
+        this.entityData.set(DATA_ANCHOR, Math.round(anchor * ANCHOR_UNITS));
+    }
+
+    /** A new animation's clock: its first beat after the blend into it, played as made. */
+    private void restartClock()
+    {
+        this.setAnchor(this.level().getGameTime() + BLEND_TICKS);
+        this.entityData.set(DATA_PACE, 1.0F);
+    }
+
+    /** Plays the current loop at {@code pace}, going on from the moment of it it's at (its anchor moves with it). */
+    void setPace(float pace)
+    {
+        float old = this.pace();
+        if (Math.abs(pace - old) < 1.0E-3F)
+        {
+            return;
+        }
+        HuntAnims.Anim a = this.current();
+        double now = this.level().getGameTime();
+        double anchor = this.anchor();
+        if (a.loop() && a.length() > 0.0D && now > anchor)
+        {
+            double moment = ((now - anchor) * old) % a.length();
+            this.setAnchor(now - moment / pace);
+        }
+        this.entityData.set(DATA_PACE, pace);
+    }
+
+    /** Where its model stands (its feet; the Huntsman's saddle model stands on the moose's ground). */
+    public Vec3 modelOrigin()
+    {
+        return this.position();
+    }
+
+    /** Blocks a second its walk or run ({@code loop}) is made to cover (0 for one that isn't paced: standing, a move). */
+    protected abstract double gaitPace(String loop);
+
     /** Plays one of its animations (server side). Returns false if it has none of that name. */
     public boolean play(String name)
     {
@@ -180,6 +265,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         this.later = null;
         this.entityData.set(DATA_ANIM, name);
         this.entityData.set(DATA_COUNT, this.entityData.get(DATA_COUNT) + 1);
+        this.restartClock();
         this.playing = 0;
         return true;
     }
@@ -238,6 +324,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
                     this.moveBy(HuntCues.shift(a.model(), a.name()));
                     this.entityData.set(DATA_ANIM, "");
                     this.entityData.set(DATA_COUNT, this.entityData.get(DATA_COUNT) + 1);
+                    this.restartClock();
                     this.playing = 0;
                     this.onMoveEnded(a);
                 }
@@ -263,12 +350,12 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         {
             return;
         }
-        double yaw = Math.toRadians(this.yBodyRot);
         for (double part = 1.0D; part > 0.0D; part -= 1.0D / 3.0D)
         {
-            double x = this.getX() - (Math.cos(yaw) * shift[0] + Math.sin(yaw) * shift[2]) * part;
-            double z = this.getZ() - (Math.sin(yaw) * shift[0] - Math.cos(yaw) * shift[2]) * part;
-            double y = this.getY() + shift[1] * part;
+            Vec3 to = this.shifted(shift, part);
+            double x = to.x;
+            double y = to.y;
+            double z = to.z;
             if (this.showcase || this.level().noCollision(this, this.getBoundingBox().move(x - this.getX(), y - this.getY(),
                     z - this.getZ())))
             {
@@ -276,6 +363,15 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
                 return;
             }
         }
+    }
+
+    /** Where {@code part} of an animation's shift (blocks to its right, up and ahead, its body's facing) would leave it. */
+    Vec3 shifted(double[] shift, double part)
+    {
+        double yaw = Math.toRadians(this.yBodyRot);
+        double x = this.getX() - (Math.cos(yaw) * shift[0] + Math.sin(yaw) * shift[2]) * part;
+        double z = this.getZ() - (Math.sin(yaw) * shift[0] - Math.cos(yaw) * shift[2]) * part;
+        return new Vec3(x, this.getY() + shift[1] * part, z);
     }
 
     /**
@@ -295,6 +391,19 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         super.lerpTo(x, y, z, yRot, xRot, steps, teleport);
     }
 
+    /**
+     * Its body always faces the way it's turned, on both sides. Vanilla's body only follows a mob as it walks, and never
+     * turns on its own while a mob rides it, so on the players' screens a moose standing still with the Huntsman on its
+     * back kept facing the way it had last walked however it turned (the user saw it face north, then move off
+     * diagonally), and his saddle model, turned with it, was drawn facing another way than the server's.
+     */
+    @Override
+    protected float tickHeadTurn(float yRot, float amount)
+    {
+        this.yBodyRot = this.getYRot();
+        return amount;
+    }
+
     /** A real arrow off his bow, where the animation's arrow leaves it. On show (and a volley into the sky) it can't
      * hurt: it has no damage, so it glances off a player. Fighting, it flies at his target and hurts. */
     private void loose(HuntCues.Shot shot)
@@ -302,7 +411,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         double yaw = Math.toRadians(this.yBodyRot);
         Vec3 ahead = new Vec3(-Math.sin(yaw), 0.0D, Math.cos(yaw));
         Vec3 right = new Vec3(-Math.cos(yaw), 0.0D, -Math.sin(yaw));
-        Vec3 from = this.position().add(right.scale(shot.right())).add(0.0D, shot.up(), 0.0D)
+        Vec3 from = this.modelOrigin().add(right.scale(shot.right())).add(0.0D, shot.up(), 0.0D)
                 .add(ahead.scale(shot.ahead()));
         Vec3 dir = right.scale(shot.dirRight()).add(0.0D, shot.dirUp(), 0.0D).add(ahead.scale(shot.dirAhead()))
                 .normalize();
@@ -520,6 +629,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         }
         this.wildHunt = tag.contains(TAG_WILD_HUNT) ? tag.getFloat(TAG_WILD_HUNT) : HuntsmanTuning.WILD_HUNT_HEALTH;
         this.angry = tag.getBoolean(TAG_ANGRY);
+        this.restartClock();                          // (a move left half played plays again from its start)
     }
 
     /** Where it stands (its feet's block). */
@@ -528,12 +638,36 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity
         return this.blockPosition();
     }
 
+    // ---------------------------------------------------------------- the Rage Wand
+
+    /** Raged, its partner (alive) is raged onto the same team: they fight as a pair (the user had to rage them one by
+     * one). */
+    @Override
+    public List<? extends Mob> rageFollowers()
+    {
+        HuntMob partner = HuntFight.partner(this);
+        return partner != null && partner.isAlive() ? List.of(partner) : List.of();
+    }
+
     // ---------------------------------------------------------------- GeckoLib
 
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        controllers.add(new AnimationController<>(this, "main", BLEND_TICKS, this::animate));
+        controllers.add(new HuntController<>(this, "main", BLEND_TICKS, this::animate, HuntMob::clockAnchor,
+                HuntMob::clockSpeed));
+    }
+
+    /** Its main animation's first beat ({@link HuntController}): its own, if that's what's playing. */
+    protected double clockAnchor(String animation)
+    {
+        return animation.equals(this.current().name()) ? this.anchor() : Double.NaN;
+    }
+
+    /** How fast its main animation plays: its own pace, if that's what's playing. */
+    protected double clockSpeed(String animation)
+    {
+        return animation.equals(this.current().name()) ? this.pace() : 1.0D;
     }
 
     private PlayState animate(AnimationState<HuntMob> state)

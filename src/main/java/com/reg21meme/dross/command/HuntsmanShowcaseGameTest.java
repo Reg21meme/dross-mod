@@ -8,6 +8,7 @@ import com.reg21meme.dross.boss.huntsman.HuntAnims;
 import com.reg21meme.dross.boss.huntsman.HuntCues;
 import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
+import com.reg21meme.dross.boss.huntsman.HuntsmanTuning;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -97,9 +98,11 @@ public final class HuntsmanShowcaseGameTest
         }
         Huntsman rider = (Huntsman) row.stream().filter(m -> m instanceof Huntsman h && h.isMounted()).findFirst().orElseThrow();
         if (rider.animations() != HuntAnims.RIDING || rider.getVehicle() == null
-                || rider.position().distanceTo(rider.getVehicle().position()) > 0.01D)
+                || rider.modelOrigin().distanceTo(rider.getVehicle().position()) > 0.01D
+                || Math.abs(rider.getY() - rider.getVehicle().getY() - HuntsmanTuning.RIDER_SEAT) > 0.01D)
         {
-            throw new GameTestAssertException("the riding Huntsman should sit at the moose's own position with his riding animations");
+            throw new GameTestAssertException("the riding Huntsman's model should stand at the moose's own position, his hitbox"
+                    + " over its back, with his riding animations");
         }
         // (played on the row itself: the test world can take a while to list newly spawned mobs in fresh land)
         Vec3 near = Vec3.atCenterOf(AT);
@@ -297,10 +300,10 @@ public final class HuntsmanShowcaseGameTest
                 }
                 double length = all.getAsJsonObject(id).has("animation_length")
                         ? all.getAsJsonObject(id).get("animation_length").getAsDouble() : 0.0D;
-                if (!a.loop() && Math.abs(length * 20.0D - a.ticks()) > 1.5D)
+                if (!a.loop() && Math.abs(length * 20.0D - a.ticks()) > 1.5D || Math.abs(length * 20.0D - a.length()) > 0.01D)
                 {
                     throw new GameTestAssertException(id + " lasts " + length + " s in its file, but the mod thinks "
-                            + a.ticks() + " ticks");
+                            + a.length() + " ticks");
                 }
             }
         }

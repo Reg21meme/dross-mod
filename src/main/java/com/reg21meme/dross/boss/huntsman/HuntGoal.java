@@ -77,8 +77,8 @@ abstract class HuntGoal extends Goal
 
     protected abstract int cooldown(String name);
 
-    /** When nothing in the row can be made: close in. */
-    protected abstract String fallback();
+    /** When nothing in the row for {@code distance} can be made: the moose closes in, he keeps his range. */
+    protected abstract String fallback(double distance);
 
     /** A move made at once, without a roll (the Back Kick), or null. */
     @Nullable
@@ -170,7 +170,7 @@ abstract class HuntGoal extends Goal
         }
         Object[] row = HuntFight.row(this.table(), this.bands(), d);
         String name = HuntFight.pick(row, n -> this.ready(n) && this.can(n, target, d), this.mob.getRandom());
-        Move m = this.make(name != null ? name : this.fallback(), target);
+        Move m = this.make(name != null ? name : this.fallback(d), target);
         if (m != null)
         {
             this.begin(m);
@@ -204,11 +204,12 @@ abstract class HuntGoal extends Goal
         return this.mob.getSensing().hasLineOfSight(target);
     }
 
-    /** Where his hand is (to throw from): up and a little ahead of where he stands. */
+    /** Where his hand is (to throw from): up and a little ahead of where his model stands (the moose's ground, in the
+     * saddle). */
     static Vec3 hand(HuntMob who, double up)
     {
         double yaw = Math.toRadians(HuntFight.facing(who));
-        return who.position().add(-Math.sin(yaw) * HuntsmanTuning.HAND_AHEAD, up, Math.cos(yaw) * HuntsmanTuning.HAND_AHEAD);
+        return who.modelOrigin().add(-Math.sin(yaw) * HuntsmanTuning.HAND_AHEAD, up, Math.cos(yaw) * HuntsmanTuning.HAND_AHEAD);
     }
 
     // ---------------------------------------------------------------- moves both of them make

@@ -11,23 +11,29 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.AABB;
 
 import java.util.List;
 
 /**
  * The Huntsman's Alpha Moose ({@code dross:alpha_moose}; the gallery's 6A2, about 5.3 blocks to its antler tips, in
- * its tack). The Huntsman rides it in stage 1 of his fight: he sits at its own position (his saddle model's floor is
- * the moose's ground) and turns with it. Fighting ({@link HuntFight}), it keeps the Wild Hunt's bar for both and its
- * {@link WildHuntGoal} picks their moves in stage 1; in stage 2 its own {@link MooseGoal}. Calm, it walks about slowly.
+ * its tack). The Huntsman rides it in stage 1 of his fight: his hitbox sits over its back
+ * ({@link HuntsmanTuning#RIDER_SEAT}), his model on its ground (his saddle model's floor is the moose's ground), and he
+ * turns with it. Fighting ({@link HuntFight}), it keeps the Wild Hunt's bar for both and its {@link WildHuntGoal} picks
+ * their moves in stage 1; in stage 2 its own {@link MooseGoal}. Calm, it walks about slowly.
  */
 public class AlphaMoose extends HuntMob
 {
     /** Calm, it walks at this much of its speed. */
     private static final double CALM_WALK = 0.6D;
+    /** Its model reaches this far past its hitbox (its head and antlers ahead, its rump behind; its antler tips over
+     * it), so it's drawn whenever any of that is on screen. */
+    private static final double DRAWN_BEYOND = 2.4D;
+    private static final double DRAWN_ABOVE = 1.0D;
 
     public AlphaMoose(EntityType<? extends AlphaMoose> type, Level level)
     {
-        super(type, level);
+        super(type, level, HuntsmanTuning.MOOSE_MOVE_TURN);
     }
 
     public static AttributeSupplier.Builder createAttributes()
@@ -68,6 +74,18 @@ public class AlphaMoose extends HuntMob
         return HuntAnims.ALPHA_MOOSE;
     }
 
+    @Override
+    protected double gaitPace(String loop)
+    {
+        return switch (loop)
+        {
+            case "walk" -> HuntsmanTuning.MOOSE_WALK_PACE;
+            case "run" -> HuntsmanTuning.MOOSE_GALLOP_PACE;
+            case "charge" -> HuntsmanTuning.MOOSE_CHARGE_PACE;
+            default -> 0.0D;
+        };
+    }
+
     /** The Huntsman in its saddle, or null. */
     Huntsman rider()
     {
@@ -81,26 +99,34 @@ public class AlphaMoose extends HuntMob
         return null;
     }
 
-    /** The rider sits at its feet' height: the rider's model is built standing on the moose's ground. */
+    /** The rider's hitbox sits over its back ({@link HuntsmanTuning#RIDER_SEAT}); his model is drawn on its ground. */
     @Override
     public double getPassengersRidingOffset()
     {
-        return 0.0D;
+        return HuntsmanTuning.RIDER_SEAT;
     }
 
+    /** The rider sits over its back, facing exactly the way it faces (his body, his head). */
     @Override
     protected void positionRider(Entity passenger, Entity.MoveFunction move)
     {
         if (this.hasPassenger(passenger))
         {
-            move.accept(passenger, this.getX(), this.getY(), this.getZ());
+            move.accept(passenger, this.getX(), this.getY() + HuntsmanTuning.RIDER_SEAT, this.getZ());
             passenger.setYRot(this.getYRot());
             if (passenger instanceof LivingEntity rider)
             {
                 rider.yBodyRot = this.yBodyRot;
                 rider.yBodyRotO = this.yBodyRotO;
-                rider.setYHeadRot(this.getYHeadRot());
+                rider.setYHeadRot(this.yBodyRot);
+                rider.yHeadRotO = this.yBodyRotO;
             }
         }
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling()
+    {
+        return this.getBoundingBox().inflate(DRAWN_BEYOND, 0.0D, DRAWN_BEYOND).expandTowards(0.0D, DRAWN_ABOVE, 0.0D);
     }
 }

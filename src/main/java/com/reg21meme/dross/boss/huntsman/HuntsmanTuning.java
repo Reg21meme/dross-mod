@@ -66,6 +66,63 @@ public final class HuntsmanTuning
     public static final double RIDER_HAND_UP = 5.6D;
     public static final double FOOT_HAND_UP = 3.4D;
     public static final double HAND_AHEAD = 0.8D;
+    /** In the saddle his hitbox sits this far above the moose's feet (his model is drawn as far lower), over the moose's
+     * back round his legs, body and head, a little wider than the moose's (so a swing at his legs and the saddle hits
+     * him, one at the moose's body below them the moose): until October 22, 2026 it stood inside the moose's, and every
+     * swing and arrow at him hit the moose (the user: "I need to be able to damage both the moose and the hunter"). */
+    public static final double RIDER_SEAT = 3.8D;
+    public static final float RIDER_WIDTH = 3.2F;
+    public static final float RIDER_HEIGHT = 4.0F;
+    /** His eyes, that high above his seat (under the wolf's hood). */
+    public static final float RIDER_EYES = 3.0F;
+
+    // ---------------------------------------------------------------- spotting, turning, moving (October 22, 2026)
+
+    /** Calm, he blows his horn and the hunt is on as soon as one of them sees a foe this close: a player (not in
+     * creative or spectating), a hostile mob, or (raged) a mob of another team (the user: "it should blow its horn
+     * when there is a hostile nearby, not when you first attack it"). Hitting them still starts it too. */
+    public static final double SPOT_RANGE = 30.0D;
+    /** How often (ticks) they look about for one, calm. */
+    public static final int SPOT_INTERVAL = 10;
+    /** How fast they turn (degrees a tick) as they move: the moose a big animal's slow, steady turn, him a man's. */
+    public static final float MOOSE_MOVE_TURN = 9.0F;
+    public static final float HUNTSMAN_MOVE_TURN = 20.0F;
+    /** Turning further than the first from where it's going (degrees), it slows down to turn rather than swing wide;
+     * from the second on, to the last share of its speed. */
+    public static final float TURN_SLOW_ANGLE = 50.0F;
+    public static final float TURN_SLOWEST_ANGLE = 90.0F;
+    public static final float TURN_SLOW_LEAST = 0.3F;
+    /** Their gait (blocks a tick, its speed smoothed over a few ticks, {@link #GAIT_SMOOTHING} of each tick's): over the
+     * first they run, under the second they stop running; over the third they walk, under the last they stop. The gap
+     * keeps them from flickering between two gaits (the user saw the walk "awkward and jittery"). */
+    public static final double RUN_ON = 0.18D;
+    public static final double RUN_OFF = 0.12D;
+    public static final double WALK_ON = 0.03D;
+    public static final double WALK_OFF = 0.015D;
+    public static final double GAIT_SMOOTHING = 0.35D;
+    /** A new gait has to last this many ticks before they change to it (straight away out of a move). */
+    public static final int GAIT_HOLD = 4;
+    /** How far their gaits go as made (blocks a second: tools/rimefall/rimemobs/alpha_moose.py WALK, GALLOP and CHARGE,
+     * huntsman.py WALK and RUN). A walk or run is played at the speed they really go over this, so hooves and boots keep
+     * pace with the ground: the moose's gallop at about 0.8 (6.5 blocks a second in a chase), its dash at about 1.1 (11),
+     * his run at about 0.8 (5.6). */
+    public static final double MOOSE_WALK_PACE = 1.38D;
+    public static final double MOOSE_GALLOP_PACE = 8.42D;
+    public static final double MOOSE_CHARGE_PACE = 10.26D;
+    public static final double HUNTSMAN_WALK_PACE = 2.02D;
+    public static final double HUNTSMAN_RUN_PACE = 7.2D;
+    /** ... never slower or faster than these, and changed only when it's off by more than the last (each change moves
+     * the loop's beat, {@link HuntMob#setPace}). */
+    public static final float PACE_LEAST = 0.5F;
+    public static final float PACE_MOST = 1.6F;
+    public static final float PACE_STEP = 0.08F;
+    /** In stage 2 he keeps clear of the moose (the user saw them walk into each other): out of an oval round it this far
+     * past its body's middle ahead (its head and antlers) and to the sides (its antlers' spread), plus his own half
+     * width; inside it he's pushed out this hard (blocks a tick at its middle), the moose a little the other way. */
+    public static final double APART_AHEAD = 3.6D;
+    public static final double APART_SIDE = 2.2D;
+    public static final double APART_PUSH_HIM = 0.18D;
+    public static final double APART_PUSH_MOOSE = 0.04D;
 
     // ---------------------------------------------------------------- the distance bands of the move tables
 
@@ -201,12 +258,22 @@ public final class HuntsmanTuning
     public static final int BACKSTEP_COOLDOWN = 120;
 
     /** The Huntsman on foot's table (the user's, with the Horn of the Hunt fitted in: "he should blow the horn ...
-     * then on stage 2"). */
+     * then on stage 2"). Since October 22, 2026 he never runs in himself (the user: "the moose is the close range
+     * attacker, the hunter long range"): the middle row's Run In is a Fall Back, and with nothing to make he falls back
+     * (close), keeps his range moving round his target (middle, far) or closes in only to bow range (very far). */
     public static final Object[][] FOOT_CHANCES = {
             {"combo", 35, "thrust_sweep", 30, "backstep", 20, "horn", 15},
-            {"leap", 30, "throw_spear", 25, "bola", 20, "horn", 10, "run_in", 15},
+            {"leap", 30, "throw_spear", 25, "bola", 20, "horn", 10, "fall_back", 15},
             {"aimed", 35, "rain", 30, "throw_spear", 20, "bola", 15},
             {"aimed", 50, "rain", 50}};
+    /** Falling back: he runs out to this far from his target (or for at most {@link #FALL_BACK_TICKS}). */
+    public static final double FALL_BACK_TO = 18.0D;
+    public static final int FALL_BACK_TICKS = 50;
+    /** Keeping his range: he walks round his target this long (a speed modifier: his walk's own pace). */
+    public static final int CIRCLE_ON_FOOT_TICKS = 30;
+    public static final double HUNTSMAN_WALK = 0.72D;
+    /** Very far off he closes in, but only to this far (bow range). */
+    public static final double CLOSE_IN_TO = 22.0D;
 
     // ---------------------------------------------------------------- stage 2: the Alpha Moose
 

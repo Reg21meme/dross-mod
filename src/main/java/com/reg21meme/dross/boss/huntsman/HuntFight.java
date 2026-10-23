@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.registry.ModEntities;
@@ -26,9 +27,11 @@ import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Arrow;
@@ -51,8 +54,10 @@ import java.util.function.Predicate;
  * The Huntsman's fight (CLAUDE.md step 14; the user's attack table, {@link HuntsmanTuning}): what he and his Alpha
  * Moose share and the rules round their moves.
  * <ul>
- *   <li><b>Calm</b> they wait, the moose walking about with him in the saddle; the first hit starts the fight, and he
- *       blows his horn (the user: "he should blow the horn when you first attack the duo").</li>
+ *   <li><b>Calm</b> they wait, the moose walking about with him in the saddle; as soon as one of them sees a foe
+ *       within {@link HuntsmanTuning#SPOT_RANGE} (a player in survival or adventure, a hostile mob: he hunts those too,
+ *       or a raged mob of another team), he blows his horn and the fight is on (the user, October 22, 2026: "it should
+ *       blow its horn when there is a hostile nearby, not when you first attack it"); a hit starts it too.</li>
  *   <li><b>Stage 1, the Wild Hunt</b>: he rides it, and whatever either of them takes comes off one bar of
  *       {@link HuntsmanTuning#WILD_HUNT_HEALTH} (the moose keeps it); the moose's {@link WildHuntGoal} picks their
  *       moves.</li>
@@ -61,10 +66,12 @@ import java.util.function.Predicate;
  *       {@link MooseGoal}).</li>
  *   <li>When one dies the other is <b>angry</b> (faster, harder hits, moves back sooner; its bar blood red), and when
  *       both are dead every player who helped gets "The Hunter Hunted" (not for {@code /kill}).</li>
- *   <li>With no player near for {@link HuntsmanTuning#BREAK_OFF_TICKS} ticks the fight is broken off: both are back at
- *       full health, the dead one too, and he's back in the saddle.</li>
+ *   <li>With no player or foe near for {@link HuntsmanTuning#BREAK_OFF_TICKS} ticks the fight is broken off: both are
+ *       back at full health, the dead one too, and he's back in the saddle.</li>
  * </ul>
- * They never hurt each other (their blows, arrows, bolas, spears, spikes).
+ * They never hurt each other (their blows, arrows, bolas, spears, spikes). The moose goes for the closest foe, he for
+ * the furthest player (the user: "the moose is the close range attacker, the hunter long range"); raged, with a raged
+ * enemy near, they go for it alone (the Rage's rule).
  */
 public final class HuntFight
 {
@@ -87,9 +94,6 @@ public final class HuntFight
     static final String SPIKE_TAG = "dross_hunt_spike";
     /** The angry one's extra speed (its id fixed so it's never added twice). */
     private static final UUID ANGRY_SPEED_ID = UUID.fromString("6c1a8a0e-3f9b-4d6e-9a51-2b7f3c8d4e11");
-    /** Faster than this (blocks a tick) it runs, slower it walks, under the last it stands. */
-    private static final double RUN_SPEED = 0.16D;
-    private static final double WALK_SPEED = 0.02D;
     /** A volley arrow (into the sky, harmless) is cleared away this long after it's loosed. */
     private static final int VOLLEY_CLEAR_TICKS = 60;
     /** A rain arrow is cleared away this long after it comes down. */
@@ -201,6 +205,10 @@ public final class HuntFight
         {
             toDuel(mob);
         }
+        if (mob.stage == HuntStage.CALM && leads(mob) && mob.tickCount % HuntsmanTuning.SPOT_INTERVAL == 0 && spots(mob))
+        {
+            startFight(mob);                         // a foe in sight: his horn, and the hunt is on
+        }
         if (mob.stage.fighting())
         {
             mob.setTarget(chooseTarget(mob));
@@ -213,6 +221,14 @@ public final class HuntFight
         {
             mob.setTarget(null);
         }
+        if (mob.stage == HuntStage.SPLIT)
+        {
+            holdStill(mob);                          // the moose rears and he leaps off from one spot
+        }
+        else if (mob.stage == HuntStage.DUEL && mob instanceof Huntsman h && partner instanceof AlphaMoose moose)
+        {
+            keepApart(h, moose);
+        }
         updateBar(mob, level);
         locomote(mob);
         if (partner == null && mob.partnerId == null && mob.stage == HuntStage.CALM && mob instanceof Huntsman h
@@ -222,25 +238,135 @@ public final class HuntFight
         }
     }
 
-    /** Walking, running or standing when it isn't making a move: what its feet are doing (the saddle's for him). */
+    /**
+     * Walking, running or standing when it isn't making a move: what its feet are doing (the saddle's for him: his own
+     * part of the gallop while the moose gallops or charges). Its speed is smoothed over a few ticks and a gait changes
+     * only past a margin ({@link HuntsmanTuning#RUN_ON}...) and once it has held a few ticks, so it never flickers
+     * between two (the user saw the walk "awkward and jittery"); a walk or run plays at the speed it really goes
+     * ({@link HuntMob#setPace}), so hooves and boots don't slide.
+     */
     static void locomote(HuntMob mob)
     {
+        mob.gaitSpeed += (speed(mob) - mob.gaitSpeed) * HuntsmanTuning.GAIT_SMOOTHING;
         if (mob.busy())
         {
+            mob.gaitNext = null;
             return;
         }
         if (mob instanceof Huntsman h && h.getVehicle() instanceof AlphaMoose moose)
         {
-            mob.loop(speed(moose) > RUN_SPEED || "charge".equals(moose.forcedLoop) ? "ride_gallop" : "ride_idle");
+            String gait = moose.current().name();
+            mob.loop(gait.equals("run") || gait.equals("charge") ? HuntAnims.GALLOP : "ride_idle");
             return;
         }
+        String now = mob.current().name();
+        String want;
         if (mob.forcedLoop != null)
         {
-            mob.loop(mob.forcedLoop);
+            want = mob.forcedLoop;
+            mob.gaitNext = null;
+        }
+        else
+        {
+            double s = mob.gaitSpeed;
+            boolean running = now.equals("run");
+            boolean walking = running || now.equals("walk");
+            want = s > HuntsmanTuning.RUN_ON || running && s > HuntsmanTuning.RUN_OFF ? "run"
+                    : s > HuntsmanTuning.WALK_ON || walking && s > HuntsmanTuning.WALK_OFF ? "walk" : "idle";
+            boolean inGait = walking || now.equals("idle");
+            if (inGait && !want.equals(now))
+            {
+                mob.gaitNextTicks = want.equals(mob.gaitNext) ? mob.gaitNextTicks + 1 : 1;
+                mob.gaitNext = want;
+                if (mob.gaitNextTicks < HuntsmanTuning.GAIT_HOLD)
+                {
+                    want = now;                      // not for long enough yet
+                }
+            }
+            else
+            {
+                mob.gaitNext = null;
+            }
+        }
+        mob.loop(want);
+        double made = mob.gaitPace(mob.current().name());
+        if (made > 0.0D)
+        {
+            float pace = Mth.clamp((float) (mob.gaitSpeed * 20.0D / made), HuntsmanTuning.PACE_LEAST, HuntsmanTuning.PACE_MOST);
+            if (Math.abs(pace - mob.pace()) >= HuntsmanTuning.PACE_STEP)
+            {
+                mob.setPace(pace);
+            }
+        }
+    }
+
+    /** At the split they stand where they are: the moose rears, he leaps off and lands, his horn. */
+    private static void holdStill(HuntMob mob)
+    {
+        if (mob.isPassenger())
+        {
             return;
         }
-        double v = speed(mob);
-        mob.loop(v > RUN_SPEED ? "run" : v > WALK_SPEED ? "walk" : "idle");
+        mob.getNavigation().stop();
+        Vec3 v = mob.getDeltaMovement();
+        mob.setDeltaMovement(0.0D, v.y, 0.0D);
+    }
+
+    /**
+     * In stage 2 he keeps clear of the moose (the user saw them walk into each other): inside an oval round its body
+     * ({@link HuntsmanTuning#APART_AHEAD} along it, its head and antlers, {@link HuntsmanTuning#APART_SIDE} across it, its
+     * antlers' spread, plus his own half width) he's pushed out, the moose a little the other way.
+     */
+    static void keepApart(Huntsman h, AlphaMoose moose)
+    {
+        double r = insideMoose(moose, h.position(), h.getBbWidth() / 2.0D);
+        if (r >= 1.0D || !h.isAlive() || !moose.isAlive() || h.isPassenger())
+        {
+            return;
+        }
+        double yaw = Math.toRadians(moose.yBodyRot);
+        double fx = -Math.sin(yaw);
+        double fz = Math.cos(yaw);
+        double dx = h.getX() - moose.getX();
+        double dz = h.getZ() - moose.getZ();
+        double a = HuntsmanTuning.APART_AHEAD + h.getBbWidth() / 2.0D;
+        double b = HuntsmanTuning.APART_SIDE + h.getBbWidth() / 2.0D;
+        double na = (dx * fx + dz * fz) / (a * a);
+        double ns = (dx * fz - dz * fx) / (b * b);
+        double len = Math.sqrt(na * na + ns * ns);
+        if (len < 1.0E-6D)
+        {
+            na = 0.0D;
+            ns = 1.0D;                               // right on its middle: out to its side
+            len = 1.0D;
+        }
+        double wx = (na * fx + ns * fz) / len;
+        double wz = (na * fz - ns * fx) / len;
+        double push = 1.0D - r;
+        h.setDeltaMovement(h.getDeltaMovement().add(wx * HuntsmanTuning.APART_PUSH_HIM * push, 0.0D,
+                wz * HuntsmanTuning.APART_PUSH_HIM * push));
+        moose.setDeltaMovement(moose.getDeltaMovement().add(-wx * HuntsmanTuning.APART_PUSH_MOOSE * push, 0.0D,
+                -wz * HuntsmanTuning.APART_PUSH_MOOSE * push));
+    }
+
+    /** How far {@code at} is inside the oval round the moose's body grown by {@code margin}: under 1 inside it. */
+    static double insideMoose(AlphaMoose moose, Vec3 at, double margin)
+    {
+        double yaw = Math.toRadians(moose.yBodyRot);
+        double fx = -Math.sin(yaw);
+        double fz = Math.cos(yaw);
+        double dx = at.x - moose.getX();
+        double dz = at.z - moose.getZ();
+        double ahead = (dx * fx + dz * fz) / (HuntsmanTuning.APART_AHEAD + margin);
+        double side = (dx * fz - dz * fx) / (HuntsmanTuning.APART_SIDE + margin);
+        return Math.sqrt(ahead * ahead + side * side);
+    }
+
+    /** True if {@code spot} is clear of his moose (alive, on its own feet): for where his leaps land. */
+    static boolean clearOfMoose(Huntsman h, Vec3 spot)
+    {
+        return !(partner(h) instanceof AlphaMoose moose) || !moose.isAlive()
+                || insideMoose(moose, spot, h.getBbWidth() / 2.0D) >= 1.0D;
     }
 
     /** How far it moved this tick, across the ground. */
@@ -492,6 +618,10 @@ public final class HuntFight
                 break;
             }
         }
+        // a foe they're fighting keeps it going too (a raged Rat King of another team, a Pond Skater)
+        LivingEntity target = leader.getTarget();
+        near |= target != null && isFoe(leader, target) && level.getEntity(target.getUUID()) == target
+                && target.distanceToSqr(leader) <= range * range;
         leader.lonelyTicks = near ? 0 : leader.lonelyTicks + 1;
         if (leader.lonelyTicks >= HuntsmanTuning.BREAK_OFF_TICKS)
         {
@@ -516,6 +646,7 @@ public final class HuntFight
                 return;
             }
             link(leader, partner);
+            Rage.recruit(partner, leader);              // raged, the new one is on its team too
         }
         for (HuntMob m : new HuntMob[] {leader, partner})
         {
@@ -551,35 +682,102 @@ public final class HuntFight
 
     // ---------------------------------------------------------------- whom they go for, which way they face
 
-    /** The moose goes for the closest player, the Huntsman for the furthest (the same one when there's only one);
-     * with no player near, whatever hurt it. */
+    /**
+     * A foe of theirs: a player in survival or adventure, a hostile mob (they hunt those too: the user's answer, October
+     * 22, 2026), or a raged mob of another team; never each other, a raged teammate, another Huntsman or Alpha Moose, or a
+     * mob on show (no AI).
+     */
+    static boolean isFoe(HuntMob mob, @Nullable Entity e)
+    {
+        if (!(e instanceof LivingEntity living) || !living.isAlive() || isPartner(mob, e))
+        {
+            return false;
+        }
+        if (Rage.areEnemies(mob, e))
+        {
+            return true;
+        }
+        if (Rage.areTeammates(mob, e))
+        {
+            return false;
+        }
+        if (e instanceof Player p)
+        {
+            return !p.isSpectator() && !p.isCreative();
+        }
+        return e instanceof Enemy && !(e instanceof HuntMob) && !(e instanceof Mob m && m.isNoAi());
+    }
+
+    /** Calm, true if either of them sees a foe within {@link HuntsmanTuning#SPOT_RANGE} (raged, any raged enemy near). */
+    static boolean spots(HuntMob mob)
+    {
+        if (Rage.hasEnemyNear(mob))
+        {
+            return true;
+        }
+        HuntMob partner = partner(mob);
+        double r = HuntsmanTuning.SPOT_RANGE;
+        for (LivingEntity e : mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(r),
+                e -> isFoe(mob, e) && e.distanceToSqr(mob) <= r * r))
+        {
+            if (mob.hasLineOfSight(e) || partner != null && partner.isAlive() && partner.hasLineOfSight(e))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whom it goes for. Raged with a raged enemy near: that enemy, nothing else (the Rage's rule: the Rat King of another
+     * team, say). Otherwise the moose the closest player, the Huntsman the furthest (the same one when there's only
+     * one: the moose is the close-range fighter, he the long-range one); with no player near, a hostile mob (the moose
+     * the closest, he the furthest); with none, whatever last hurt either of them.
+     */
     @Nullable
     static LivingEntity chooseTarget(HuntMob mob)
     {
-        List<Player> players = mob.level().getEntitiesOfClass(Player.class,
-                mob.getBoundingBox().inflate(HuntsmanTuning.FOLLOW_RANGE),
-                p -> p.isAlive() && !p.isSpectator() && !p.isCreative());
-        Player best = null;
-        double bestD = 0.0D;
-        boolean furthest = mob instanceof Huntsman;
-        for (Player p : players)
+        if (Rage.hasEnemyNear(mob))
         {
-            double d = p.distanceToSqr(mob);
-            if (best == null || (furthest ? d > bestD : d < bestD))
-            {
-                best = p;
-                bestD = d;
-            }
-        }
-        if (best != null)
-        {
-            return best;
+            return Rage.nearestEnemy(mob);
         }
         double range = HuntsmanTuning.FOLLOW_RANGE;
+        boolean furthest = mob instanceof Huntsman;
+        LivingEntity player = null;
+        LivingEntity other = null;
+        double playerD = 0.0D;
+        double otherD = 0.0D;
+        for (LivingEntity e : mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(range),
+                e -> isFoe(mob, e)))
+        {
+            double d = e.distanceToSqr(mob);
+            if (d > range * range)
+            {
+                continue;
+            }
+            if (e instanceof Player)
+            {
+                if (player == null || (furthest ? d > playerD : d < playerD))
+                {
+                    player = e;
+                    playerD = d;
+                }
+            }
+            else if (other == null || (furthest ? d > otherD : d < otherD))
+            {
+                other = e;
+                otherD = d;
+            }
+        }
+        if (player != null || other != null)
+        {
+            return player != null ? player : other;
+        }
         for (HuntMob m : new HuntMob[] {mob, partner(mob)})
         {
             LivingEntity last = m != null ? m.getLastHurtByMob() : null;
-            if (last != null && last.isAlive() && !isPartner(mob, last) && last.distanceToSqr(mob) <= range * range)
+            if (last != null && last.isAlive() && !last.isSpectator() && !isPartner(mob, last)
+                    && !Rage.areTeammates(mob, last) && last.distanceToSqr(mob) <= range * range)
             {
                 return last;
             }
@@ -735,7 +933,7 @@ public final class HuntFight
     static void blast(HuntMob source, float yaw, double length, double halfAngle, float damage, double push,
                       double pushUp, int slowTicks, int slowLevel)
     {
-        Vec3 from = source.position();
+        Vec3 from = source.modelOrigin();
         for (LivingEntity e : within(source, from, yaw, length, halfAngle))
         {
             e.hurt(source.damageSources().mobAttack(source), damage * damageScale(source));

@@ -2,10 +2,14 @@ package com.reg21meme.dross.boss.huntsman;
 
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.DifficultyInstance;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -14,8 +18,9 @@ import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.AnimationController;
 import software.bernie.geckolib.core.animation.AnimationState;
 import software.bernie.geckolib.core.object.PlayState;
 
@@ -27,16 +32,25 @@ import java.util.List;
  * bearskin cloak, a boar spear of ice, a bow on his back). He has two models: in the Alpha Moose's saddle (while he
  * rides it, stage 1 of his fight, {@link HuntAnims#RIDING}) and on foot (stage 2, {@link HuntAnims#HUNTSMAN}).
  * <p>
- * In the saddle a second animation controller moves him with the saddle: it plays his {@code carry_<name>} for the
- * moose's animation (started with it), so he rides along when the moose rears, kicks or kneels; not while he leaps off.
- * At the end of his leap ({@link HuntAnims#LEAP}) he gets off and lands on foot beside the moose ({@link HuntCues#LEAP_OUT}
- * blocks to its left), playing {@code land}; at the split he then blows his horn.
+ * In the saddle his hitbox sits over the moose's back ({@link HuntsmanTuning#RIDER_SEAT}: his body can be hit, not only
+ * the moose under him) while his model is drawn on the moose's ground ({@link #modelOrigin}), and a second animation
+ * controller moves him with the saddle: it plays his {@code carry_<name>} for the moose's animation, on the moose's own
+ * beat ({@link HuntController}), so he rides along when the moose rears, kicks or kneels; not while he leaps off. His own
+ * part of the gallop goes on the moose's beat too. At the end of his leap ({@link HuntAnims#LEAP}) he gets off and lands
+ * on foot beside the moose ({@link HuntCues#LEAP_OUT} blocks to its left), playing {@code land}; at the split he then
+ * blows his horn.
  * <p>
  * Fighting ({@link HuntFight}): a spawn egg or {@code /summon} brings him in his Alpha Moose's saddle; in stage 1 the
  * moose's {@link WildHuntGoal} picks his moves too, in stage 2 his own {@link FootGoal}.
  */
 public class Huntsman extends HuntMob
 {
+    /** On foot his model reaches this far past his hitbox (his spear and bow to the sides, his antlers above it). */
+    private static final double DRAWN_BESIDE = 1.2D;
+    private static final double DRAWN_ABOVE = 1.4D;
+    /** In the saddle, round the moose's back (his cloak, his spear, his legs down its sides). */
+    private static final double DRAWN_BESIDE_RIDING = 1.6D;
+
     private int carrySeen = -1;
     /** At the split: once he has landed, his horn. */
     boolean hornWhenLanded;
@@ -45,7 +59,7 @@ public class Huntsman extends HuntMob
 
     public Huntsman(EntityType<? extends Huntsman> type, Level level)
     {
-        super(type, level);
+        super(type, level, HuntsmanTuning.HUNTSMAN_MOVE_TURN);
     }
 
     public static AttributeSupplier.Builder createAttributes()
@@ -77,11 +91,91 @@ public class Huntsman extends HuntMob
         return this.isMounted() ? HuntAnims.RIDING : HuntAnims.HUNTSMAN;
     }
 
-    /** He sits at the moose's own position (his saddle model is built standing on the moose's ground). */
     @Override
-    public double getMyRidingOffset()
+    protected double gaitPace(String loop)
     {
-        return 0.0D;
+        return switch (loop)
+        {
+            case "walk" -> HuntsmanTuning.HUNTSMAN_WALK_PACE;
+            case "run" -> HuntsmanTuning.HUNTSMAN_RUN_PACE;
+            default -> 0.0D;
+        };
+    }
+
+    /** In the saddle his model stands on the moose's ground (his hitbox is over its back). */
+    @Override
+    public Vec3 modelOrigin()
+    {
+        Entity vehicle = this.getVehicle();
+        return vehicle instanceof AlphaMoose ? vehicle.position() : this.position();
+    }
+
+    /** His hitbox: in the saddle over the moose's back, a little wider than the moose's; on foot his own. */
+    @Override
+    public EntityDimensions getDimensions(Pose pose)
+    {
+        return this.isMounted() ? EntityDimensions.scalable(HuntsmanTuning.RIDER_WIDTH, HuntsmanTuning.RIDER_HEIGHT)
+                : super.getDimensions(pose);
+    }
+
+    @Override
+    protected float getStandingEyeHeight(Pose pose, EntityDimensions dimensions)
+    {
+        return this.isMounted() ? HuntsmanTuning.RIDER_EYES : super.getStandingEyeHeight(pose, dimensions);
+    }
+
+    /** In the saddle his head is up among branches the moose walks under: they don't smother him. */
+    @Override
+    public boolean isInvulnerableTo(DamageSource source)
+    {
+        return this.isMounted() && source.is(DamageTypes.IN_WALL) || super.isInvulnerableTo(source);
+    }
+
+    @Override
+    public boolean startRiding(Entity vehicle, boolean force)
+    {
+        boolean on = super.startRiding(vehicle, force);
+        if (on)
+        {
+            this.refreshDimensions();
+        }
+        return on;
+    }
+
+    /** Off the moose: his own hitbox again. On a player's screen he lands where his leap put him at once (the server
+     * moves him there in the same tick), so he's never seen jump from the moose's middle. */
+    @Override
+    public void stopRiding()
+    {
+        Entity vehicle = this.getVehicle();
+        super.stopRiding();
+        if (vehicle == null || this.getVehicle() != null)
+        {
+            return;
+        }
+        this.refreshDimensions();
+        String anim = this.animName();
+        if (this.level().isClientSide && vehicle instanceof AlphaMoose moose && (HuntAnims.LEAP.equals(anim) || "land".equals(anim)))
+        {
+            Vec3 spot = landing(moose);
+            this.setPos(spot.x, spot.y, spot.z);
+            this.setOldPosAndRot();
+        }
+    }
+
+    /** Where his leap off {@code moose} lands him: {@link HuntCues#LEAP_OUT} blocks to its left, on its ground. */
+    static Vec3 landing(AlphaMoose moose)
+    {
+        double rad = Math.toRadians(moose.yBodyRot);
+        return new Vec3(moose.getX() + Math.cos(rad) * HuntCues.LEAP_OUT, moose.getY(), moose.getZ() + Math.sin(rad) * HuntCues.LEAP_OUT);
+    }
+
+    @Override
+    public AABB getBoundingBoxForCulling()
+    {
+        AABB box = this.getBoundingBox();
+        return this.isMounted() ? box.expandTowards(0.0D, -HuntsmanTuning.RIDER_SEAT, 0.0D).inflate(DRAWN_BESIDE_RIDING, 0.0D, DRAWN_BESIDE_RIDING)
+                : box.inflate(DRAWN_BESIDE, 0.0D, DRAWN_BESIDE).expandTowards(0.0D, DRAWN_ABOVE, 0.0D);
     }
 
     /** A fighting Huntsman (a spawn egg, {@code /summon}) comes in his Alpha Moose's saddle. */
@@ -118,15 +212,15 @@ public class Huntsman extends HuntMob
     public void leapOff(AlphaMoose moose)
     {
         float yaw = moose.yBodyRot;
-        double rad = Math.toRadians(yaw);
-        double x = moose.getX() + Math.cos(rad) * HuntCues.LEAP_OUT;
-        double z = moose.getZ() + Math.sin(rad) * HuntCues.LEAP_OUT;
+        Vec3 spot = landing(moose);
         this.stopRiding();
-        this.moveTo(x, moose.getY(), z, yaw, 0.0F);
+        this.moveTo(spot.x, spot.y, spot.z, yaw, 0.0F);
         this.setYBodyRot(yaw);
         this.setYHeadRot(yaw);
         this.yBodyRotO = yaw;
         this.yHeadRotO = yaw;
+        this.getNavigation().stop();
+        this.setDeltaMovement(Vec3.ZERO);
         this.play("land");
     }
 
@@ -153,7 +247,8 @@ public class Huntsman extends HuntMob
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
         super.registerControllers(controllers);
-        controllers.add(new AnimationController<>(this, "carry", BLEND_TICKS, this::carry));
+        controllers.add(new HuntController<>(this, "carry", BLEND_TICKS, this::carry, Huntsman::carryAnchor,
+                Huntsman::carrySpeed));
     }
 
     private PlayState carry(AnimationState<Huntsman> state)
@@ -171,5 +266,58 @@ public class Huntsman extends HuntMob
             state.getController().forceAnimationReset();
         }
         return state.setAndContinue(HuntAnims.carry(moose.current()));
+    }
+
+    /** The moose carrying him, if it's playing what {@code carry} rides along with. */
+    @Nullable
+    private AlphaMoose carrying(String carry)
+    {
+        return this.getVehicle() instanceof AlphaMoose moose && carry.equals("carry_" + moose.current().name()) ? moose : null;
+    }
+
+    /** The saddle's motion goes on the moose's beat. */
+    private double carryAnchor(String carry)
+    {
+        AlphaMoose moose = this.carrying(carry);
+        return moose != null ? moose.anchor() : Double.NaN;
+    }
+
+    private double carrySpeed(String carry)
+    {
+        AlphaMoose moose = this.carrying(carry);
+        return moose != null ? moose.pace() : 1.0D;
+    }
+
+    /** The moose under him, if it's galloping or charging while he rides its gallop. */
+    @Nullable
+    private AlphaMoose galloping(String animation)
+    {
+        if (!HuntAnims.GALLOP.equals(animation) || !animation.equals(this.current().name())
+                || !(this.getVehicle() instanceof AlphaMoose moose))
+        {
+            return null;
+        }
+        String gait = moose.current().name();
+        return gait.equals("run") || gait.equals("charge") ? moose : null;
+    }
+
+    /** His own part of the gallop goes on the moose's strides: its beat, and as long a loop as its gallop's or dash's. */
+    @Override
+    protected double clockAnchor(String animation)
+    {
+        AlphaMoose moose = this.galloping(animation);
+        return moose != null ? moose.anchor() : super.clockAnchor(animation);
+    }
+
+    @Override
+    protected double clockSpeed(String animation)
+    {
+        AlphaMoose moose = this.galloping(animation);
+        if (moose == null)
+        {
+            return super.clockSpeed(animation);
+        }
+        HuntAnims.Anim gallop = HuntAnims.named(HuntAnims.RIDING, HuntAnims.GALLOP);
+        return moose.pace() * gallop.length() / moose.current().length();
     }
 }

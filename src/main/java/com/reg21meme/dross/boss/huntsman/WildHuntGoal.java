@@ -53,7 +53,7 @@ final class WildHuntGoal extends HuntGoal
     }
 
     @Override
-    protected String fallback()
+    protected String fallback(double distance)
     {
         return "ride_in";
     }

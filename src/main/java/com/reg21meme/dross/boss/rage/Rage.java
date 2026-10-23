@@ -321,6 +321,14 @@ public final class Rage
         return isLiveEnemy(mob, target) && inRange(mob, target) && ((LivingEntity) target).canBeSeenAsEnemy();
     }
 
+    /** The nearest raged enemy a raged mob can go for now (another team, in range, not under the ground), or null: for
+     * a boss that picks its own target (the Huntsman and his Alpha Moose). Server side. */
+    @Nullable
+    public static Mob nearestEnemy(Mob mob)
+    {
+        return isRaged(mob) && teamOf(mob) != null ? nearestTarget(mob, null) : null;
+    }
+
     /** The nearest enemy it can go for now (never {@code skip}), or null. */
     @Nullable
     static Mob nearestTarget(Mob mob, @Nullable Entity skip)
