@@ -20,6 +20,7 @@ It writes:
 
 Needs numpy, scipy and soundfile (`pip install soundfile`).
 """
+import hashlib
 import json
 import math
 import os
@@ -105,8 +106,10 @@ def ice_crack(rng, level=1.0, size=1.0):
 
 
 # ---------------------------------------------------------------- the Huntsman's voice
-# A big man (he stands 4 blocks to the top of his hood) speaking through a wolf's hood: a low voice (f0 about 85-110 Hz),
-# a mouth a little bigger than a person's (formants scaled 0.86), breathy and rough; never words, only cries and grunts.
+# A big man (he stands 4 blocks to the top of his hood) behind a wolf's hood: never words, only cries, grunts, hums.
+# Everything he voices is made with voicekit (the user, October 23, 2026: the first voice "just sounds like a moose";
+# of voicekit's grunts, hurt and death: "great, change the rest of his voice to match"). The old synthesizer's voice,
+# `man`, is only left for the howl the user first picked.
 
 
 def man(rng, dur, f0_pts, vowel_pts, rough=0.35, breath=0.3, scale=0.86, rough_hz=30.0, amp_pts=None, vib=None):
@@ -116,11 +119,6 @@ def man(rng, dur, f0_pts, vowel_pts, rough=0.35, breath=0.3, scale=0.86, rough_h
         kw = dict(vib_rate=vib[0], vib_pts=[(0.0, 0.0), (dur, vib[1])])
     return S.voice(dur, f0_pts, vowel_pts, rng, scale=scale, breath=breath, rough=rough, rough_hz=rough_hz,
                    amp_pts=amp, **kw)
-
-
-def grunt(rng, dur, f0a, f0b, vowel="uh", rough=0.5, breath=0.45):
-    return man(rng, dur, [(0.0, f0a), (dur, f0b)], [(0.0, vowel), (dur, "uh")], rough=rough, breath=breath,
-               amp_pts=[(0.0, 0.0), (0.012, 1.0), (dur * 0.45, 0.7), (dur, 0.0)])
 
 
 def breath_out(rng, dur=0.5, level=0.5, lo=500.0, hi=3000.0):
@@ -137,15 +135,19 @@ def sniff(rng, dur=0.09, level=0.6):
 
 def hu_ambient(rng, kind):
     if kind == 1:        # a slow breath through the hood, frost on it, and a low "hm"
-        hm = man(rng, 0.4, [(0.0, 96.0), (0.4, 88.0)], [(0.0, "mm")], rough=0.15, breath=0.2)
+        hm = V.voice(0.42, [(0.0, 104.0), (0.42, 94.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.35, breath=0.05,
+                     amp=[(0.0, 0.0), (0.05, 1.0), (0.32, 0.8), (0.42, 0.0)])
         return S.place(1.5, (0.0, breath_out(rng, 0.7, 0.5)), (0.85, hm * 0.7))
-    if kind == 2:        # tracking: sniff, sniff, sniff... like the wolf he wears, then a pleased growl
+    if kind == 2:        # tracking: sniff, sniff, sniff... like the wolf he wears, then a pleased growl in his throat
         parts = [(i * 0.17, sniff(rng, 0.08 + 0.02 * (i % 2))) for i in range(4)]
-        growl = man(rng, 0.55, [(0.0, 82.0), (0.55, 76.0)], [(0.0, "uh"), (0.55, "oo")], rough=0.9, breath=0.35, rough_hz=24.0)
+        growl = V.voice(0.6, [(0.0, 90.0), (0.6, 80.0)], [(0.0, "uh"), (0.6, "oo")], rng, oq=0.4, rasp=0.5, jitter=0.03,
+                        shimmer=0.12, breath=0.15, amp=[(0.0, 0.0), (0.06, 1.0), (0.45, 0.8), (0.6, 0.0)])
         return S.place(1.5, *parts, (0.82, growl * 0.6))
     # a low hunting hum, two notes
-    a = man(rng, 0.5, [(0.0, 98.0), (0.5, 100.0)], [(0.0, "mm")], rough=0.1, breath=0.15, vib=(5.0, 0.015))
-    b = man(rng, 0.7, [(0.0, 110.0), (0.7, 92.0)], [(0.0, "mm"), (0.7, "oo")], rough=0.1, breath=0.15, vib=(5.0, 0.02))
+    a = V.voice(0.5, [(0.0, 100.0), (0.5, 102.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.35, vib=(5.0, 0.012),
+                amp=[(0.0, 0.0), (0.06, 1.0), (0.42, 0.85), (0.5, 0.0)])
+    b = V.voice(0.7, [(0.0, 112.0), (0.7, 94.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.35, vib=(5.0, 0.018),
+                amp=[(0.0, 0.0), (0.06, 1.0), (0.55, 0.8), (0.7, 0.0)])
     return S.reverb(S.place(1.5, (0.0, a * 0.7), (0.55, b * 0.7)), 0.15)
 
 
@@ -157,27 +159,40 @@ def hu_man_howl(rng):
     return valley(howl, 0.25)
 
 
+def half_howl(rng, dur, f0, vowels, amp, vib=(5.0, 0.012), wolf=0.3):
+    """A man howling like a wolf: his own voice (voicekit), from his chest up into a softer head voice, with a wolf's
+    smooth tone under it (`wolf` of voicekit.howl)."""
+    oq = [(0.0, 0.5), (dur * 0.3, 0.7), (dur, 0.74)]
+    voice = V.voice(dur, f0, vowels, rng, oq=oq, rise=0.65, jitter=0.008, shimmer=0.04, breath=0.06, puff_breath=0.3,
+                    drift=0.004, vib=vib)
+    wolfy = V.howl(dur, f0, vowels, rng, vib=vib)
+    out = (1.0 - wolf) * voice + wolf * wolfy
+    return out * V.envelope(amp, len(out), ms=12.0)
+
+
 def hu_cry(rng, kind):
-    """His war cry when he spots you (then his horn): a wolf's howl (the user, October 23, 2026: "for the war cry I was
-    wishing more wolfiness"). Each is about 2.3 s, its howl over before his horn sounds (HuntsmanTuning.WAR_CRY_TICKS
-    plus the horn's lead-in)."""
-    if kind == 1:        # long and pure: up, held with a slow vibrato, the mouth opening and closing
+    """His war cry when he spots you (then his horn): a howl, a man's with a wolf in it (the user, October 23, 2026:
+    "more wolfiness", then of three wolves' howls: "more human as well, not entirely wolf"). Each is about 2.3 s, over
+    before his horn sounds (HuntsmanTuning.WAR_CRY_TICKS plus the horn's lead-in)."""
+    if kind == 1:        # "aw-ooooo": from his chest up into a long held howl, falling away
         d = 2.3
-        h = V.howl(d, [(0.0, 300.0), (0.35, 430.0), (1.5, 445.0), (1.95, 380.0), (d, 300.0)],
-                   [(0.0, "oo"), (0.35, "oh"), (0.7, "ah"), (1.5, "ah"), (1.9, "oh"), (d, "oo")], rng,
-                   amp=[(0.0, 0.0), (0.25, 0.75), (0.5, 1.0), (1.7, 0.9), (d, 0.0)], vib=(4.5, 0.008))
+        h = half_howl(rng, d, [(0.0, 165.0), (0.3, 190.0), (0.6, 350.0), (1.5, 365.0), (1.95, 300.0), (d, 190.0)],
+                      [(0.0, "aw"), (0.45, "oh"), (0.75, "oo"), (1.9, "oo"), (d, "uh")],
+                      [(0.0, 0.0), (0.08, 0.8), (0.6, 1.0), (1.7, 0.85), (d, 0.0)])
         return valley(h, 0.3)
-    if kind == 2:        # low, then breaking up an octave, then down again with a quaver
-        d = 2.3
-        h = V.howl(d, [(0.0, 250.0), (0.38, 270.0), (0.43, 520.0), (1.35, 500.0), (1.43, 330.0), (d, 290.0)],
-                   [(0.0, "oo"), (0.38, "oo"), (0.46, "ah"), (1.35, "oh"), (1.45, "oo"), (d, "oo")], rng,
-                   amp=[(0.0, 0.0), (0.15, 0.6), (0.38, 0.7), (0.46, 1.0), (1.3, 0.9), (1.45, 0.75), (d, 0.0)],
-                   vib=(5.5, [(0.0, 0.004), (1.4, 0.008), (d, 0.03)]))
-        return valley(h, 0.3)
+    if kind == 2:        # "ow, ow, ooooo": two yips, then the long howl
+        yip1 = half_howl(rng, 0.2, [(0.0, 260.0), (0.06, 300.0), (0.2, 220.0)], [(0.0, "ah"), (0.2, "oo")],
+                         [(0.0, 0.0), (0.02, 1.0), (0.14, 0.8), (0.2, 0.0)], wolf=0.25)
+        yip2 = half_howl(rng, 0.2, [(0.0, 270.0), (0.06, 310.0), (0.2, 225.0)], [(0.0, "ah"), (0.2, "oo")],
+                         [(0.0, 0.0), (0.02, 1.0), (0.14, 0.8), (0.2, 0.0)], wolf=0.25)
+        long = half_howl(rng, 1.6, [(0.0, 200.0), (0.35, 360.0), (1.2, 370.0), (1.6, 250.0)],
+                         [(0.0, "ah"), (0.3, "oh"), (0.55, "oo"), (1.6, "oo")],
+                         [(0.0, 0.0), (0.1, 0.8), (0.45, 1.0), (1.25, 0.85), (1.6, 0.0)])
+        return valley(S.place(2.3, (0.0, yip1 * 0.8), (0.32, yip2 * 0.85), (0.68, long)), 0.3)
     if kind == 3:        # his howl, and the pack answering from far off
-        main = V.howl(2.1, [(0.0, 290.0), (0.3, 410.0), (1.4, 425.0), (2.1, 320.0)],
-                      [(0.0, "oo"), (0.35, "ah"), (1.5, "oh"), (2.1, "oo")], rng,
-                      amp=[(0.0, 0.0), (0.25, 0.8), (0.5, 1.0), (1.6, 0.85), (2.1, 0.0)])
+        main = half_howl(rng, 2.1, [(0.0, 170.0), (0.55, 345.0), (1.4, 360.0), (2.1, 220.0)],
+                         [(0.0, "aw"), (0.45, "oh"), (0.75, "oo"), (2.1, "uh")],
+                         [(0.0, 0.0), (0.08, 0.8), (0.55, 1.0), (1.6, 0.85), (2.1, 0.0)])
         one = V.howl(1.9, [(0.0, 380.0), (0.3, 515.0), (1.3, 505.0), (1.9, 420.0)],
                      [(0.0, "oo"), (0.35, "ah"), (1.4, "oh"), (1.9, "oo")], rng,
                      amp=[(0.0, 0.0), (0.3, 0.8), (1.2, 0.9), (1.9, 0.0)], vib=(5.2, 0.01))
@@ -185,7 +200,7 @@ def hu_cry(rng, kind):
                      [(0.0, "oo"), (0.3, "oh"), (1.2, "ah"), (1.7, "oo")], rng,
                      amp=[(0.0, 0.0), (0.3, 0.8), (1.1, 0.9), (1.7, 0.0)], vib=(5.8, 0.012))
         far = lambda x: S.lowpass(x, 2400.0)  # noqa: E731
-        return valley(S.place(3.0, (0.0, main), (0.55, far(one) * 0.4), (0.85, far(two) * 0.3)), 0.35)
+        return valley(S.place(3.0, (0.0, main), (0.6, far(one) * 0.35), (0.9, far(two) * 0.25)), 0.35)
     return hu_man_howl(rng)
 
 
@@ -285,7 +300,9 @@ def hu_step(rng, kind):
 def hu_land(rng, kind):
     """Landing after his leap (off the moose, the leaping strike, the backstep): a grunt and a heavy crunch."""
     thump = S.thud(rng, 70.0, 42.0, 0.35, 0.3)
-    return S.place(0.7, (0.0, grunt(rng, 0.14, 120.0, 105.0, "uh") * 0.6), (0.08, thump * 0.5), (0.08, crunch(rng, 0.3, 520.0, 0.8, 500.0, 5000.0)),
+    hmph = V.voice(0.12, [(0.0, 140.0), (0.12, 118.0)], "uh", rng, oq=0.42,
+                   amp=[(0.0, 0.0), (0.008, 1.0), (0.09, 0.8), (0.1, 0.0), (0.12, 0.0)])
+    return S.place(0.7, (0.0, hmph * 0.6), (0.08, thump * 0.5), (0.08, crunch(rng, 0.3, 520.0, 0.8, 500.0, 5000.0)),
                    (0.12, frost(rng, 0.3, 0.2 if kind == 1 else 0.35)))
 
 
@@ -298,10 +315,11 @@ def pole_whoosh(rng, dur, lo, hi, level=1.0):
 
 
 def hu_spear_swing(rng, kind):
+    """The spear's rush of air (his grunt with it is the effort sound, played at the blow: HuntSoundCues)."""
     if kind == 1:        # a thrust: a short, rising rush
-        return S.place(0.45, (0.0, pole_whoosh(rng, 0.3, 300.0, 1600.0)), (0.0, grunt(rng, 0.14, 120.0, 130.0) * 0.5))
+        return S.place(0.45, (0.0, pole_whoosh(rng, 0.3, 300.0, 1600.0)))
     # a wide sweep: a long, deep rush
-    return S.place(0.7, (0.0, pole_whoosh(rng, 0.55, 220.0, 900.0)), (0.05, grunt(rng, 0.2, 125.0, 110.0, "ah") * 0.45))
+    return S.place(0.7, (0.0, pole_whoosh(rng, 0.55, 220.0, 900.0)))
 
 
 def hu_spear_hit(rng, kind):
@@ -312,10 +330,10 @@ def hu_spear_hit(rng, kind):
 
 
 def hu_spear_throw(rng, kind):
-    """The spear hurled: a heave and a long whistle of air as it flies; then the rope paying out."""
-    heave = grunt(rng, 0.3, 105.0, 135.0, "ah", rough=0.8)
+    """The spear hurled: a long whistle of air as it flies; then the rope paying out (his heave is the effort sound,
+    played as he lets go: HuntSoundCues)."""
     fly = S.whoosh(rng, 0.9, 1800.0, 700.0, amp_pts=[(0.0, 0.0), (0.08, 1.0), (0.9, 0.0)], color="white", width=0.35)
-    parts = [(0.0, heave * 0.6), (0.18, fly * 0.8)]
+    parts = [(0.18, fly * 0.8)]
     if kind == 2:        # with the rope hissing out behind it
         parts.append((0.22, S.grains(rng, 0.7, 260.0, grain=(0.003, 0.01), lo=600.0, hi=3000.0, level=0.35)))
     return S.place(1.2, *parts)
@@ -624,8 +642,8 @@ HUNTSMAN, MOOSE, GEAR = "The Huntsman: his voice", "The Alpha Moose", "The Hunts
 # draw), which play version 1 until they say otherwise. The spear's swing plays version 1 for a thrust and 2 for a
 # sweep (HuntSoundCues).
 EVENTS = [
-    Event("entity.huntsman.cry", HU, versions("cry", hu_cry, ("a wolf's howl, long and pure",
-                                                               "a wolf's howl breaking up an octave",
+    Event("entity.huntsman.cry", HU, versions("cry", hu_cry, ("a man howling: aw-ooooo",
+                                                               "ow, ow, ooooo",
                                                                "his howl, the pack answering far off",
                                                                "the man's wolf howl (your pick before)")),
           "Huntsman howls", HUNTSMAN, "War cry, when he spots you", picks=(4,), pending=True),
@@ -730,9 +748,20 @@ def render(event, name, maker):
     return x
 
 
+# Each sound's fingerprint (of its samples before encoding): a sound that hasn't changed isn't written again (the Ogg
+# encoder makes different bytes every time, so every run would otherwise change every file in git).
+HASHES = os.path.join(HERE, "sound_hashes.json")
+_hashes = {}
+
+
 def write(folder, name, x):
     path = os.path.join(SOUND_DIR, folder, name + ".ogg")
+    key = f"{folder}/{name}"
+    digest = hashlib.sha1(x.astype(np.float32).tobytes()).hexdigest()
+    if os.path.exists(path) and _hashes.get(key) == digest:
+        return
     soundfile.write(path, x.astype(np.float32), S.SR, format="OGG", subtype="VORBIS")
+    _hashes[key] = digest
 
 
 def cut(x, start, end):
@@ -898,6 +927,9 @@ def write_page():
 def main():
     count = 0
     rendered = {}
+    if os.path.exists(HASHES):
+        with open(HASHES, encoding="utf-8") as f:
+            _hashes.update(json.load(f))
     for ev in EVENTS:
         os.makedirs(os.path.join(SOUND_DIR, ev.folder), exist_ok=True)
         for name, maker, _lab in ev.files:
@@ -916,6 +948,10 @@ def main():
             if fn.endswith(".ogg") and fn[:-4] not in names:
                 os.remove(os.path.join(SOUND_DIR, folder, fn))
                 print(f"  removed stale {folder}/{fn}")
+    names = {f"{ev.folder}/{n}" for ev in EVENTS for n, _m, _l in ev.files} | {f"{c.folder}/{c.name}" for c in CLIPS}
+    with open(HASHES, "w", encoding="utf-8", newline="\n") as f:
+        json.dump({k: v for k, v in sorted(_hashes.items()) if k in names}, f, indent=1)
+        f.write("\n")
     write_sounds_json()
     write_lang()
     write_java()

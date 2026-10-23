@@ -155,11 +155,11 @@ def mouth(x, vowels, scale=BIG_MAN, block=64, wobble=0.0, rng=None):
 
 
 def voice(dur, f0, vowels, rng, amp=None, oq=0.6, rise=0.7, jitter=0.012, shimmer=0.05, rasp=0.0, breath=0.08,
-          puff_breath=0.25, drift=0.015, vib=(0.0, 0.0), scale=BIG_MAN, wobble=0.03, hum=False):
+          puff_breath=0.25, drift=0.015, vib=(0.0, 0.0), scale=BIG_MAN, wobble=0.03, hum=False, hum_open=0.0):
     """
     A voiced sound: the folds' puffs (see folds) through the mouth (see mouth). breath: steady breath noise; puff_breath:
     breath in each puff (a voice's natural airiness); amp: the loudness over time ((s, level) points). hum: the mouth
-    closed (most of the sound out through the nose: darker).
+    closed (most of the sound out through the nose: darker); hum_open: how much of the brighter sound is kept in a hum.
     """
     n = n_of(dur)
     flow, lips = folds(dur, f0, rng, oq, rise, jitter, shimmer, rasp, drift, vib)
@@ -171,7 +171,7 @@ def voice(dur, f0, vowels, rng, amp=None, oq=0.6, rise=0.7, jitter=0.012, shimme
     out = mouth(src, vowels, scale, wobble=wobble, rng=rng)
     if hum:
         b, a = signal.butter(2, 900.0 / (SR / 2))
-        out = signal.lfilter(b, a, out) * 2.0
+        out = signal.lfilter(b, a, out) * 2.0 * (1.0 - hum_open) + out * hum_open
     out = out / (np.sqrt(np.mean(out ** 2)) + 1e-9)
     if amp is not None:
         out = out * envelope(amp, n)

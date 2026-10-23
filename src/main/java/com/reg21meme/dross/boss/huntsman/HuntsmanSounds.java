@@ -29,7 +29,7 @@ public final class HuntsmanSounds
     public static final List<Sound> ALL = List.of(
             new Sound("The Huntsman: his voice", "entity.huntsman.cry", "War cry, when he spots you",
                     List.of("entity.huntsman.cry.v1", "entity.huntsman.cry.v2", "entity.huntsman.cry.v3", "entity.huntsman.cry.v4"),
-                    List.of("a wolf's howl, long and pure", "a wolf's howl breaking up an octave", "his howl, the pack answering far off", "the man's wolf howl (your pick before)"),
+                    List.of("a man howling: aw-ooooo", "ow, ow, ooooo", "his howl, the pack answering far off", "the man's wolf howl (your pick before)"),
                     List.of(4)),
             new Sound("The Huntsman: his voice", "entity.huntsman.ambient", "Idle",
                     List.of("entity.huntsman.ambient.v1", "entity.huntsman.ambient.v2", "entity.huntsman.ambient.v3"),
