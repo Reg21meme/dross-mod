@@ -184,9 +184,14 @@ public final class HuntsmanShowcase
             if (mob instanceof AlphaMoose moose && moose.getFirstPassenger() instanceof Huntsman h
                     && SPLITS.contains(name))
             {
-                // the split: he springs off, and the moose rears (or dies) as he does
+                // the split: the moose rears and he rides it up, springing off at its top (his leap has the rear's
+                // saddle in it); dying, it throws him off so first and dies once he's down
                 h.play(HuntAnims.LEAP);
-                moose.playLater(name, HuntCues.moment(HuntAnims.RIDER, HuntAnims.LEAP, "jump"));
+                moose.play("rear");
+                if (!name.equals("rear"))
+                {
+                    moose.playLater(name, HuntAnims.named(HuntAnims.RIDING, HuntAnims.LEAP).ticks());
+                }
                 played++;
                 continue;
             }

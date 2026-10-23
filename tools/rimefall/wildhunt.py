@@ -31,7 +31,7 @@ PAIRS = (("ride_gallop", "ride_gallop", "run", 0.0), ("ride_idle", "ride_idle", 
          ("ride_thrust", "ride_thrust", "idle", 0.0), ("ride_shoot", "ride_shoot", "run", 0.0),
          ("ride_rain", "ride_rain", "idle", 0.0), ("ride_horn", "ride_horn", "idle", 0.0),
          ("ride_bola", "ride_bola", "walk", 0.0),
-         ("split", "ride_leap", "rear", huntsman_rider.HITS["ride_leap"][0]),
+         ("split", "ride_leap", "rear", 0.0),     # (together, as in the game: his leap has the rear's saddle in it)
          ("moose_walk", "ride_idle", "walk", 0.0), ("moose_ram", "ride_idle", "ram", 0.0),
          ("moose_back_kick", "ride_idle", "back_kick", 0.0), ("moose_antler_toss", "ride_idle", "antler_toss", 0.0),
          ("moose_stomp", "ride_idle", "stomp", 0.0), ("moose_bellow", "ride_idle", "bellow", 0.0),
@@ -45,8 +45,10 @@ def build():
     fm, ft = mobkit.build_model(huntsman, verbose=False)
     ma = alpha_moose.animations(mobkit.MobRig(mm, alpha_moose))
     rrig = mobkit.MobRig(rm, huntsman_rider)
-    ra = {name: getattr(huntsman_rider, name)(rrig) for name in {p[1] for p in PAIRS}}
-    ra.update(huntsman_rider.carries(rrig, (mm, ma)))
+    carry = huntsman_rider.carries(rrig, (mm, ma))
+    ra = {name: (huntsman_rider.ride_leap(rrig, carry["carry_rear"]) if name == "ride_leap"
+                 else getattr(huntsman_rider, name)(rrig)) for name in {p[1] for p in PAIRS}}
+    ra.update(carry)
     frig = mobkit.MobRig(fm, huntsman)
     fa = {"land": huntsman.land(frig), "idle": huntsman.idle(frig)}
     return (mm, mt["alpha_moose"]), (rm, rt["huntsman_rider"]), (fm, ft["huntsman"]), ma, ra, fa
@@ -113,7 +115,7 @@ def main(argv):
         gif, rname, mname, delay = pair
         ts, ims = frames(moose, rider, foot, ma, ra, fa, pair, length(ra, ma, pair) / 8.0)
         strip = [V.label(im.resize((im.width // 2, im.height // 2)), f"{t:.2f} s", 13) for t, im in zip(ts, ims)]
-        title = (f"the split: {rname}, the moose's {mname} from {delay:.2f} s" if delay
+        title = (f"the split: {rname} with the moose's {mname}" if gif == "split"
                  else f"{rname} (the moose: {mname})")
         parts.append((title, V.grid(strip[:8], 8)))
         if not quick:

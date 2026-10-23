@@ -5,14 +5,12 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
-import com.reg21meme.dross.boss.huntsman.HuntsmanTuning;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.Mth;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
 import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
@@ -44,21 +42,16 @@ public class HuntRenderer<T extends HuntMob> extends GeoEntityRenderer<T>
         return RenderType.entityCutoutNoCull(texture);
     }
 
-    /**
-     * In the saddle the Huntsman is drawn turned exactly as the moose under him is (GeckoLib turns a sitting rider's body
-     * up to 85 degrees after where its head looks, which swung his cloak into the moose's rump), and down on the moose's
-     * ground: his hitbox sits over its back ({@link HuntsmanTuning#RIDER_SEAT}), his saddle model is built standing on its
-     * ground.
-     */
+    /** In the saddle the Huntsman isn't drawn: the moose wears the Wild Hunt's model then, him in its saddle
+     * ({@link AlphaMoose}). */
     @Override
-    protected void applyRotations(T mob, PoseStack poseStack, float ageInTicks, float rotationYaw, float partialTick)
+    public void render(T mob, float yaw, float partialTick, PoseStack poseStack, MultiBufferSource buffers, int light)
     {
-        if (mob instanceof Huntsman && mob.getVehicle() instanceof AlphaMoose moose)
+        if (mob instanceof Huntsman h && h.isMounted())
         {
-            poseStack.translate(0.0D, -HuntsmanTuning.RIDER_SEAT, 0.0D);
-            rotationYaw = Mth.rotLerp(partialTick, moose.yBodyRotO, moose.yBodyRot);
+            return;
         }
-        super.applyRotations(mob, poseStack, ageInTicks, rotationYaw, partialTick);
+        super.render(mob, yaw, partialTick, poseStack, buffers, light);
     }
 
     /** Fighting, they die in their own death animations only: no tipping over onto their side as well (the user saw the

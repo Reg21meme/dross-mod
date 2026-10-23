@@ -20,9 +20,6 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import software.bernie.geckolib.core.animation.AnimatableManager;
-import software.bernie.geckolib.core.animation.AnimationState;
-import software.bernie.geckolib.core.object.PlayState;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -33,12 +30,10 @@ import java.util.List;
  * rides it, stage 1 of his fight, {@link HuntAnims#RIDING}) and on foot (stage 2, {@link HuntAnims#HUNTSMAN}).
  * <p>
  * In the saddle his hitbox sits over the moose's back ({@link HuntsmanTuning#RIDER_SEAT}: his body can be hit, not only
- * the moose under him) while his model is drawn on the moose's ground ({@link #modelOrigin}), and a second animation
- * controller moves him with the saddle: it plays his {@code carry_<name>} for the moose's animation, on the moose's own
- * beat ({@link HuntController}), so he rides along when the moose rears, kicks or kneels; not while he leaps off. His own
- * part of the gallop goes on the moose's beat too. At the end of his leap ({@link HuntAnims#LEAP}) he gets off and lands
- * on foot beside the moose ({@link HuntCues#LEAP_OUT} blocks to its left), playing {@code land}; at the split he then
- * blows his horn.
+ * the moose under him) and his model isn't drawn: the moose wears the Wild Hunt's model then, him in its saddle
+ * ({@link AlphaMoose}), playing his animation (the one he plays here, on his clock) and the saddle's motion under him. At
+ * the end of his leap ({@link HuntAnims#LEAP}) he gets off and lands on foot beside the moose ({@link HuntCues#LEAP_OUT}
+ * blocks to its left), playing {@code land} in his own model again; at the split he then blows his horn.
  * <p>
  * Fighting ({@link HuntFight}): a spawn egg or {@code /summon} brings him in his Alpha Moose's saddle; in stage 1 the
  * moose's {@link WildHuntGoal} picks his moves too, in stage 2 his own {@link FootGoal}.
@@ -51,7 +46,6 @@ public class Huntsman extends HuntMob
     /** In the saddle, round the moose's back (his cloak, his spear, his legs down its sides). */
     private static final double DRAWN_BESIDE_RIDING = 1.6D;
 
-    private int carrySeen = -1;
     /** At the split: once he has landed, his horn. */
     boolean hornWhenLanded;
     /** His spear is out (thrown, on its way back): {@link HuntSpear}. */
@@ -239,85 +233,5 @@ public class Huntsman extends HuntMob
     void spearBack()
     {
         this.spearOut = false;
-    }
-
-    // ---------------------------------------------------------------- GeckoLib
-
-    @Override
-    public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
-    {
-        super.registerControllers(controllers);
-        controllers.add(new HuntController<>(this, "carry", BLEND_TICKS, this::carry, Huntsman::carryAnchor,
-                Huntsman::carrySpeed));
-    }
-
-    private PlayState carry(AnimationState<Huntsman> state)
-    {
-        Entity vehicle = this.getVehicle();
-        if (!(vehicle instanceof AlphaMoose moose) || this.current().name().equals(HuntAnims.LEAP))
-        {
-            this.carrySeen = -1;
-            return PlayState.STOP;
-        }
-        int count = moose.animCount();
-        if (count != this.carrySeen)
-        {
-            this.carrySeen = count;
-            state.getController().forceAnimationReset();
-        }
-        return state.setAndContinue(HuntAnims.carry(moose.current()));
-    }
-
-    /** The moose carrying him, if it's playing what {@code carry} rides along with. */
-    @Nullable
-    private AlphaMoose carrying(String carry)
-    {
-        return this.getVehicle() instanceof AlphaMoose moose && carry.equals("carry_" + moose.current().name()) ? moose : null;
-    }
-
-    /** The saddle's motion goes on the moose's beat. */
-    private double carryAnchor(String carry)
-    {
-        AlphaMoose moose = this.carrying(carry);
-        return moose != null ? moose.anchor() : Double.NaN;
-    }
-
-    private double carrySpeed(String carry)
-    {
-        AlphaMoose moose = this.carrying(carry);
-        return moose != null ? moose.pace() : 1.0D;
-    }
-
-    /** The moose under him, if it's galloping or charging while he rides its gallop. */
-    @Nullable
-    private AlphaMoose galloping(String animation)
-    {
-        if (!HuntAnims.GALLOP.equals(animation) || !animation.equals(this.current().name())
-                || !(this.getVehicle() instanceof AlphaMoose moose))
-        {
-            return null;
-        }
-        String gait = moose.current().name();
-        return gait.equals("run") || gait.equals("charge") ? moose : null;
-    }
-
-    /** His own part of the gallop goes on the moose's strides: its beat, and as long a loop as its gallop's or dash's. */
-    @Override
-    protected double clockAnchor(String animation)
-    {
-        AlphaMoose moose = this.galloping(animation);
-        return moose != null ? moose.anchor() : super.clockAnchor(animation);
-    }
-
-    @Override
-    protected double clockSpeed(String animation)
-    {
-        AlphaMoose moose = this.galloping(animation);
-        if (moose == null)
-        {
-            return super.clockSpeed(animation);
-        }
-        HuntAnims.Anim gallop = HuntAnims.named(HuntAnims.RIDING, HuntAnims.GALLOP);
-        return moose.pace() * gallop.length() / moose.current().length();
     }
 }

@@ -58,8 +58,8 @@ public final class HuntCues
             Map.entry("huntsman_rider.ride_bola.release", 19),
             Map.entry("huntsman_rider.ride_horn.blow", 17),
             Map.entry("huntsman_rider.ride_horn.end", 58),
-            Map.entry("huntsman_rider.ride_leap.jump", 9),
-            Map.entry("huntsman_rider.ride_leap.down", 17),
+            Map.entry("huntsman_rider.ride_leap.jump", 17),
+            Map.entry("huntsman_rider.ride_leap.down", 25),
             Map.entry("huntsman_rider.ride_rain.shots.0", 20),
             Map.entry("huntsman_rider.ride_rain.shots.1", 35),
             Map.entry("huntsman_rider.ride_rain.shots.2", 50),
@@ -75,6 +75,7 @@ public final class HuntCues
             Map.entry("alpha_moose.death.cry", 10),
             Map.entry("alpha_moose.death.down", 57),
             Map.entry("alpha_moose.ram.hit", 9),
+            Map.entry("alpha_moose.rear.neigh", 14),
             Map.entry("alpha_moose.stomp.hit", 12));
 
     /**

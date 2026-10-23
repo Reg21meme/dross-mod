@@ -52,7 +52,9 @@
   },
   "rear": {
    "arrows": [],
-   "moments": {}
+   "moments": {
+    "neigh": 0.7
+   }
   },
   "run": {
    "arrows": [],
@@ -383,8 +385,8 @@
   "ride_leap": {
    "arrows": [],
    "moments": {
-    "down": 0.86,
-    "jump": 0.45
+    "down": 1.26,
+    "jump": 0.85
    }
   },
   "ride_rain": {

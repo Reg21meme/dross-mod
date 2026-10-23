@@ -30,6 +30,8 @@ public final class HuntShowSounds
             new Cue(HuntAnims.MOOSE, "death", "cry", ModSounds.MOOSE_CHARGE, 5.0F, 0.55F),
             new Cue(HuntAnims.MOOSE, "death", "down", () -> SoundEvents.GENERIC_BIG_FALL, 2.5F, 0.5F),
             new Cue(HuntAnims.MOOSE, "bellow", "start", ModSounds.MOOSE_CHARGE, 4.0F, 0.65F),
+            // the split: its neigh at the top of its rear, just before he springs off
+            new Cue(HuntAnims.MOOSE, "rear", "neigh", ModSounds.MOOSE_CHARGE, 4.5F, 0.75F),
             // his death: the spear hitting the snow, then him
             new Cue(HuntAnims.FOOT, "death", "lands", () -> SoundEvents.TRIDENT_HIT_GROUND, 1.0F, 0.8F),
             new Cue(HuntAnims.FOOT, "death", "falls", () -> SoundEvents.GENERIC_BIG_FALL, 1.5F, 0.8F),

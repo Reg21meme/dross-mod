@@ -258,6 +258,9 @@ def _rearing(rig, t, pitch, paw, p):
         rig.plant(p, which=("fl", "fr"))
 
 
+REAR_NEIGH = 0.7            # (the split) its neigh at the top of its rear: the Huntsman springs off just after it
+
+
 def rear(rig):
     """The split: it rears up high on its hind legs, neck up, front hooves pawing the air, then comes down."""
     T = 2.4
@@ -274,6 +277,7 @@ def rear(rig):
         return p
 
     a = mobkit.record(rig, "rear", T, frame, loop=False)
+    a.meta["neigh"] = REAR_NEIGH
     return a
 
 

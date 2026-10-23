@@ -52,6 +52,11 @@ public final class HuntsmanShowcaseGameTest
         checkFiles(HuntAnims.HUNTSMAN);
         checkFiles(HuntAnims.RIDING);
         checkFiles(HuntAnims.ALPHA_MOOSE);
+        // the Wild Hunt's model (the moose with him in its saddle, which it wears while he rides it): all of both, and
+        // the saddle's motion for each of the moose's
+        List<HuntAnims.Anim> both = new ArrayList<>(HuntAnims.ALPHA_MOOSE);
+        both.addAll(HuntAnims.RIDING);
+        checkFiles(HuntAnims.WILD, both, true);
         ServerLevel level = helper.getLevel().getServer().overworld();
         // The land round the spot loaded and kept loaded while the test runs (so the exhibits are in the world and
         // tick: a move only goes back to standing in their tick), then a moment for it to settle.
@@ -265,7 +270,13 @@ public final class HuntsmanShowcaseGameTest
 
     private static void checkFiles(List<HuntAnims.Anim> anims)
     {
-        String model = anims.get(0).model();
+        checkFiles(anims.get(0).model(), anims, false);
+    }
+
+    /** {@code model}'s files are in the mod and its animation file has each of {@code anims} at the length the mod
+     * thinks (and, {@code carries}, a carry_ for each of the moose's). */
+    private static void checkFiles(String model, List<HuntAnims.Anim> anims, boolean carries)
+    {
         String base = "/assets/" + Dross.MODID + "/";
         for (String path : List.of("geo/entity/" + model + "/" + model + ".geo.json", "textures/entity/" + model + "/" + model + ".png",
                 "textures/entity/" + model + "/" + model + "_glow.png", "textures/entity/" + model + "/" + model + "_ice.png"))
@@ -304,6 +315,14 @@ public final class HuntsmanShowcaseGameTest
                 {
                     throw new GameTestAssertException(id + " lasts " + length + " s in its file, but the mod thinks "
                             + a.length() + " ticks");
+                }
+            }
+            for (HuntAnims.Anim a : carries ? HuntAnims.ALPHA_MOOSE : List.<HuntAnims.Anim>of())
+            {
+                String id = "animation." + model + ".carry_" + a.name();
+                if (!all.has(id))
+                {
+                    throw new GameTestAssertException(file + " has no " + id);
                 }
             }
         }

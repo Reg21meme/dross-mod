@@ -17,9 +17,11 @@ Animations (animation.huntsman_rider.*):
   ride_horn     (once)  the Horn of the Hunt held to his lips for a long call, the bell up and out
   (in every one his cloak keeps lying over the moose's rump, whatever his hips and chest do: _keep_cape)
   ride_bola     (once)  a bola whirled over his head and thrown (his spear left standing in its cup)
-  ride_leap     (once)  the split: he rises in the stirrups, springs up and off to the moose's left and drops to the
-                        snow beside it, LEAP_OUT units out, landing in a crouch with his boots on the snow (in the game
-                        he then gets off there and plays `land` on foot, which starts in that crouch)
+  ride_leap     (once)  the split, played with the moose's rear: he rides the moose up as it rears (its carry_rear
+                        is in this animation), rises in the stirrups as it neighs at the top of its rear, springs up
+                        and off to its left and drops to the snow beside it, LEAP_OUT units out, landing in a crouch
+                        with his boots on the snow (in the game he then gets off there and plays `land` on foot, which
+                        starts in that crouch)
   carry_<name>  (each of the Alpha Moose's animations)  the saddle's motion: its body bone's (root and all), on the bone
                         "carry" above everything he has. In the game a second animation controller plays the one
                         matching the moose's animation, so he rides along with whatever it does (rears, kicks, kneels,
@@ -60,7 +62,7 @@ LEGS = []
 GIF_VIEW = (55.0, 8.0, 2.6)
 LEAP_OUT = 46.0                 # he lands this far to the moose's left of its middle (units: about 2.9 blocks)
 HITS = {"ride_thrust": (0.62,), "ride_shoot": (1.15, 2.05), "ride_rain": (1.0, 1.75, 2.5, 3.25), "ride_horn": (0.85,),
-        "ride_bola": (0.95,), "ride_leap": (0.45,)}
+        "ride_bola": (0.95,), "ride_leap": (0.85,)}   # (the leap: LEAP_SPRING)
 # What the spear mustn't touch on the moose (the user: the thrust went through its antlers), checked by mobs.py.
 MOOSE_KEEP_CLEAR = ("antlers", "head", "neck", "ear_l", "ear_r", "body")
 SPEAR_AXIS = (H.RIDE_FISTS[0] - (H.CUP + np.array([0.0, 1.0, 0.0])))
@@ -314,12 +316,25 @@ def ride_bola(rig):
     return a
 
 
-def ride_leap(rig):
-    """The split: he rises in the stirrups, springs up and off to the moose's left side and drops to the snow beside
-    it; his riding pose is a crouch already, so he lands in it, his boots on the snow, LEAP_OUT units out."""
-    T = 1.0
-    jump, = HITS["ride_leap"]
-    down = 0.86                                    # his boots touch the snow
+# The split's timing (the user, October 23, 2026: "the jump is too early, when the moose would neigh"): the moose's
+# rear (alpha_moose.rear) is up by 0.65 s, its head tossing as it neighs from 0.6 to 1.6 s; he springs off at
+# LEAP_SPRING, is in the air LEAP_AIR, and crouches on the snow LEAP_HOLD before he's on his own feet (the game swaps his
+# model there). Until October 23 he sprang at 0.45 s, as the moose only began to rear.
+LEAP_SPRING = 0.85
+LEAP_AIR = 0.41
+LEAP_HOLD = 0.14
+OLD_JUMP, OLD_DOWN, OLD_T = 0.45, 0.86, 1.0      # (the leap's own timeline: its rise before the spring, its air time)
+
+
+def ride_leap(rig, carry_rear=None):
+    """The split: he rides the moose up as it rears, holding on (the saddle's motion, carry_rear, is in this animation:
+    the game's carry controller stops while he plays it), rises in the stirrups as it neighs at the top, springs up and
+    off to its left side and drops to the snow beside it, the saddle's motion fading out of him while he's in the air;
+    his riding pose is a crouch already, so he lands in it, his boots on the snow, LEAP_OUT units out."""
+    jump = LEAP_SPRING
+    down = jump + LEAP_AIR                         # his boots touch the snow
+    T = down + LEAP_HOLD
+    late = jump - OLD_JUMP                         # (the leap's timeline starts this late)
 
     crouch = _landing_legs()
 
@@ -336,18 +351,26 @@ def ride_leap(rig):
 
     def frame(t):
         p = Pose()
-        rise = bump(t, 0.0, 0.25, 0.3, jump)
-        up = float(keyed(t, [(0.0, 0.0), (jump, 0.0), (0.64, 16.0, "out"), (down, -feet, "in"), (T, -feet)]))
-        squash = bump(t, down - 0.02, down + 0.05, down + 0.08, T)
-        out = LEAP_OUT * smooth((t - jump) / (down - 0.05 - jump))
+        if carry_rear is not None:
+            # riding the rear up; in the air the saddle's motion fades out (he's on his own once he lands)
+            rot, pos, _scale = carry_rear.sample(min(t, jump))[CARRY]
+            k = 1.0 - smooth((t - jump) / (down - 0.05 - jump)) if t > jump else 1.0
+            p.rot(CARRY, *(v * k for v in rot))
+            p.pos(CARRY, *(v * k for v in pos))
+        t = max(0.0, t - late)                     # (the leap's own timeline from here)
+        jump0, down0 = OLD_JUMP, OLD_DOWN
+        rise = bump(t, 0.0, 0.25, 0.3, jump0)
+        up = float(keyed(t, [(0.0, 0.0), (jump0, 0.0), (0.64, 16.0, "out"), (down0, -feet, "in"), (OLD_T, -feet)]))
+        squash = bump(t, down0 - 0.02, down0 + 0.05, down0 + 0.08, OLD_T)
+        out = LEAP_OUT * smooth((t - jump0) / (down0 - 0.05 - jump0))
         p.pos("root", out, up + 6.0 * rise, 0.0)
-        p.rot("root", 0.0, 0.0, -16.0 * bump(t, jump, 0.6, 0.66, down))
-        air = bump(t, jump, 0.6, 0.7, down)
-        legs(p, ramp(t, 0.6, down))
+        p.rot("root", 0.0, 0.0, -16.0 * bump(t, jump0, 0.6, 0.66, down0))
+        air = bump(t, jump0, 0.6, 0.7, down0)
+        legs(p, ramp(t, 0.6, down0))
         for side in ("l", "r"):
             p.rot(f"thigh_{side}", 22.0 * air, 0.0, 0.0)
         p.rot("chest", 10.0 * squash, 0.0, 0.0)
-        p.rot("cape", 14.0 * bump(t, jump, 0.62, 0.75, T), 0.0, 0.0)
+        p.rot("cape", 14.0 * bump(t, jump0, 0.62, 0.75, OLD_T), 0.0, 0.0)
         R.arm(p, "l", sh=(-55.0 * air - 20.0 * squash, 0.0, 30.0 * air + 22.0 * squash))
         _show(p)
         return p
@@ -439,6 +462,7 @@ def with_carry(a, carry):
 def animations(rig):
     global _RIG
     _RIG = rig
+    carry = carries(rig)
     return {
         "ride_idle": ride_idle(rig),
         "ride_gallop": ride_gallop(rig),
@@ -447,6 +471,6 @@ def animations(rig):
         "ride_rain": ride_rain(rig),
         "ride_horn": ride_horn(rig),
         "ride_bola": ride_bola(rig),
-        "ride_leap": ride_leap(rig),
-        **carries(rig),
+        "ride_leap": ride_leap(rig, carry["carry_rear"]),
+        **carry,
     }

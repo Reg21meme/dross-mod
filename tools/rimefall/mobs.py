@@ -124,7 +124,7 @@ HUNT_MODELS = ("huntsman", "huntsman_rider", "alpha_moose")
 CUES = os.path.join(HERE, "rimemobs", "hunt_cues.json")
 CUES_JAVA = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "huntsman", "HuntCues.java")
 TIME_KEYS = ("hit", "hits", "release", "catch", "shots", "glint", "throws", "blow", "end", "slip", "lands", "cry",
-             "falls", "start", "jump", "down")
+             "falls", "start", "jump", "down", "neigh")
 
 
 def save_cues(mob_id, anims):
@@ -412,6 +412,9 @@ def main(argv):
         ok &= not found
     if any(mob_id in built for mob_id in RIDER) and "--no-check" not in argv:
         ok &= not check_rider(built)
+    if any(mob_id in ids for mob_id in RIDER):
+        import wildhunt_model                     # (the two as one model, which the moose wears while he rides it)
+        wildhunt_model.main()
     write_index()
     print("Done." if ok else "Done, with clipping to look at.")
 

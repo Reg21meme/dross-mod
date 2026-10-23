@@ -26,7 +26,7 @@ public final class HuntsmanClientEvents
         event.registerEntityRenderer(ModEntities.HUNTSMAN.get(), context -> new HuntRenderer<>(context,
                 new HuntModel<Huntsman>(h -> h.isMounted() ? HuntAnims.RIDER : HuntAnims.FOOT), 0.8F));
         event.registerEntityRenderer(ModEntities.ALPHA_MOOSE.get(), context -> new HuntRenderer<>(context,
-                new HuntModel<AlphaMoose>(m -> HuntAnims.MOOSE), 2.0F));
+                new HuntModel<AlphaMoose>(m -> m.isRidden() ? HuntAnims.WILD : HuntAnims.MOOSE), 2.0F));
         // his bola flies as its item; his spear, and a player's Moonsilver Spear, with the Moonsilver Spear's model
         event.registerEntityRenderer(ModEntities.BOLA.get(), ThrownItemRenderer::new);
         event.registerEntityRenderer(ModEntities.HUNT_SPEAR.get(),

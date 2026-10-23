@@ -24,6 +24,7 @@ import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.core.animatable.instance.AnimatableInstanceCache;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.core.animation.AnimationState;
+import software.bernie.geckolib.core.animation.RawAnimation;
 import software.bernie.geckolib.core.object.PlayState;
 import software.bernie.geckolib.util.GeckoLibUtil;
 
@@ -678,7 +679,13 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             this.seenCount = count;
             state.getController().forceAnimationReset();
         }
-        return state.setAndContinue(this.current().raw());
+        return state.setAndContinue(this.raw(this.current()));
+    }
+
+    /** Its animation {@code a} as its model's file names it (the moose ridden wears the Wild Hunt's). */
+    protected RawAnimation raw(HuntAnims.Anim a)
+    {
+        return a.raw();
     }
 
     @Override

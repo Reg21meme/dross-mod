@@ -8,9 +8,11 @@ import java.util.List;
  * The Huntsman's and the Alpha Moose's animations (made by {@code tools/rimefall/mobs.py}: the modules
  * {@code rimemobs/huntsman.py}, {@code huntsman_rider.py} and {@code alpha_moose.py}), as their files name them
  * ({@code animation.<model>.<name>}), with how long each lasts. The Huntsman has two models: on foot ({@code huntsman})
- * and in the saddle ({@code huntsman_rider}), whose animations all start with {@code ride_}. In the saddle he also has
- * a {@code carry_<name>} animation for each of the Alpha Moose's (the saddle's motion, {@link #carry}), played on a
- * second controller so he rides along with whatever the moose does.
+ * and in the saddle ({@code huntsman_rider}), whose animations all start with {@code ride_}. While he rides it the Alpha
+ * Moose wears the Wild Hunt's model ({@link #WILD}: itself with him in its saddle, made by
+ * {@code tools/rimefall/wildhunt_model.py}; the user, October 23, 2026: "make them one model, then separate the models
+ * after the split"), which has every animation of both: the moose's own, his {@code ride_*} and a {@code carry_<name>}
+ * for each of the moose's (the saddle's motion under him, {@link #carry}); the moose plays all three at once.
  */
 public final class HuntAnims
 {
@@ -57,6 +59,8 @@ public final class HuntAnims
     public static final String FOOT = "huntsman";
     public static final String RIDER = "huntsman_rider";
     public static final String MOOSE = "alpha_moose";
+    /** The Alpha Moose with the Huntsman in its saddle, as one model. */
+    public static final String WILD = "wild_hunt";
 
     /** The Huntsman on foot (stage 2 of his fight). The first is the one he plays when nothing else is. */
     public static final List<Anim> HUNTSMAN = List.of(
@@ -70,9 +74,10 @@ public final class HuntAnims
     public static final List<Anim> RIDING = List.of(
             loop(RIDER, "ride_idle", 4.0), loop(RIDER, "ride_gallop", 0.6),
             once(RIDER, "ride_thrust", 1.3), once(RIDER, "ride_shoot", 2.9), once(RIDER, "ride_rain", 4.2),
-            once(RIDER, "ride_horn", 3.7), once(RIDER, "ride_bola", 1.5), once(RIDER, "ride_leap", 1.0));
+            once(RIDER, "ride_horn", 3.7), once(RIDER, "ride_bola", 1.5), once(RIDER, "ride_leap", 1.4));
 
-    /** His leap off the moose (the split): at its end he gets off and lands on foot ({@code land}). */
+    /** His leap off the moose (the split, played with the moose's rear: the saddle's motion is in it, he springs at the
+     * top of the rear): at its end he gets off and lands on foot ({@code land}). */
     public static final String LEAP = "ride_leap";
     /** His own part of riding the moose's gallop (and its charge). */
     public static final String GALLOP = "ride_gallop";
@@ -85,13 +90,20 @@ public final class HuntAnims
             once(MOOSE, "rear", 2.4), once(MOOSE, "eat", 6.0), last(MOOSE, "death", 4.6));
 
     /**
-     * The saddle's motion while the moose plays {@code moose} ({@code carry_<name>} in the riding model's file), looped
+     * The saddle's motion while the moose plays {@code moose} ({@code carry_<name>} in the Wild Hunt's file), looped
      * or held like the moose's own.
      */
     public static RawAnimation carry(Anim moose)
     {
-        String id = "animation." + RIDER + ".carry_" + moose.name();
+        String id = "animation." + WILD + ".carry_" + moose.name();
         return moose.loop() ? RawAnimation.begin().thenLoop(id) : RawAnimation.begin().thenPlayAndHold(id);
+    }
+
+    /** {@code anim} as it's named in {@code model}'s file (the moose's and his in the Wild Hunt's). */
+    public static RawAnimation raw(String model, Anim anim)
+    {
+        String id = "animation." + model + "." + anim.name();
+        return anim.loop() ? RawAnimation.begin().thenLoop(id) : RawAnimation.begin().thenPlayAndHold(id);
     }
 
     /** The one called {@code name} in {@code anims}, or null. */
