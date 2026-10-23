@@ -470,8 +470,9 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         sides still fold down round it (55, 55 and 40 degrees). `tools/rimefall/mobs.py` checks the rule on every
         build of the riding Huntsman or the Alpha Moose (`check_cape`): each of his riding animations over each of the
         moose's (but its rear and death: he leaps off first; he gallops in the saddle while it runs or charges), the
-        saddle at the moose's own moment, and no box of the cloak may come nearer its back, tail or hind legs than 0.1
-        units (no allowance for what touched at rest, as there was before). The gallery's 6A was rebuilt with it.
+        saddle at the moose's own moment, and no box of the cloak may come nearer its back, tail or hind legs than 0.05
+        units (no allowance for what touched at rest, as there was before); as built it keeps at least 0.09 units
+        off (in the thrust over the moose's gallop). The gallery's 6A was rebuilt with it.
       - **The Moonsilver Spear, the planted spear, the mounted skulls and the egg** (stage 3 of the plan of October 22)
         [built, not yet tested in-game] (Boss area: `boss/huntsman/spear/`, `boss/huntsman/skull/`; the user's
         answers: it stabs and is thrown like a trident and comes back, both freeze; bare skulls; players can get

@@ -407,11 +407,20 @@ def mantle(s):
 
 # The cloak's line down the middle of his back (riding frame) and its width there; then how far its sides fold in
 # towards him on each stretch (degrees): round his back, flat over the saddle's rolled fur, draped over the rump.
-CLOAK_RIDE = (((0, 148, 9.0), 30), ((0, 124, 10.0), 34), ((0, 121.5, 13.0), 36), ((0, 114.5, 21.5), 38),
-              ((0, 112.5, 28.0), 39), ((0, 109, 42.0), 42), ((0, 107.2, 50.0), 44), ((0, 102, 57.5), 46),
-              ((0, 91, 66.0), 48))
-CLOAK_RIDE_FOLD = (25, 25, 35, 35, 50, 55, 55, 40)    # (over the saddle 15 until October 20: wide and flat, the quiver
-                                                      # went through it)
+# The user's rule (October 22, 2026: it still clipped the rump): "the cape can never go through the moose's back". So
+# from the saddle back the line, the middles and the folds were fitted to the moose as it's built (its z-fighting fix
+# grows some boxes): a search over each stretch, front to back, for the least lift, the middle's width and the fold that
+# keep all of it 0.55 units off the moose's back, its tack, tail and hind legs (tools/rimefall/mobs.py checks it in every
+# riding animation over every one of the moose's). It lies flat over the saddle, its cantle and rolled fur, and over the
+# rump its wider middle lies on top while its sides fold down round it.
+# Until then (round 4): heights 121.5, 114.5, 112.5, 109, 107.2, 102 and 91 from the third point on, folds
+# (25, 25, 35, 35, 50, 55, 55, 40) and every middle half the width.
+CLOAK_RIDE = (((0, 148, 9.0), 30), ((0, 124, 10.0), 34), ((0, 123, 13.0), 36), ((0, 117.5, 21.5), 38),
+              ((0, 114.5, 28.0), 39), ((0, 111.5, 42.0), 42), ((0, 111.2, 50.0), 44), ((0, 110.5, 57.5), 46),
+              ((0, 96.5, 66.0), 48))
+CLOAK_RIDE_FOLD = (25, 5, 0, 0, 0, 55, 55, 40)       # (flat over the saddle, its cantle and rolled fur: the quiver that
+                                                     # went through it there on October 20 has since moved out past it)
+CLOAK_RIDE_MIDDLE = (0.5, 0.5, 0.5, 0.5, 0.5, 0.7, 0.7, 0.7)   # each stretch's flat middle, a share of its width
 PLEAT = 9.0                  # its middle two panels meeting in a soft ridge (degrees): a fold down it (the user, October
                              # 20: "the cape needs more shape")
 CLOAK_STAND = (((0, 148, 9.0), 30), ((0, 124, 10.0), 34), ((0, 100, 12.5), 39), ((0, 86, 14.0), 42),
@@ -429,6 +438,7 @@ def cloak(s, pose):
     """
     line = CLOAK_RIDE if pose == "ride" else CLOAK_STAND
     folds = CLOAK_RIDE_FOLD if pose == "ride" else CLOAK_STAND_FOLD
+    middles = CLOAK_RIDE_MIDDLE if pose == "ride" else (0.5,) * len(folds)
     across = np.array([1.0, 0.0, 0.0])
     for i in range(len(line) - 1):
         (p0, w0), (p1, w1) = line[i], line[i + 1]
@@ -439,7 +449,7 @@ def cloak(s, pose):
         W = (w0 + w1) / 2.0
         mid = (p0 + p1) / 2.0
         mat = ("capeend", "capeworn")[min(1, len(line) - 2 - i)] if i >= len(line) - 3 else "cape"
-        cw = W * 0.5
+        cw = W * middles[i]                           # the middle's width; the sides share the rest (W + 3 in all)
         pl = math.radians(PLEAT)
         drop = (cw / 2.0) * math.sin(pl)              # how far in the middle panels' outer edges sit
         for x in (-1, 1):
@@ -448,7 +458,7 @@ def cloak(s, pose):
             c = mid + across * x * (cw / 4.0) - n * (drop / 2.0)
             s.plate(c, normal, -d, cw / 2.0 + 1, L - 0.3 * (i % 2), 2, mat)
         th = math.radians(folds[i])
-        sw = W * 0.25 + 1.5
+        sw = (W - cw) / 2.0 + 1.5
         for x in (-1, 1):
             out = across * x * math.cos(th) - n * math.sin(th)
             normal = n * math.cos(th) + across * x * math.sin(th)

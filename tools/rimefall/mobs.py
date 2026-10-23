@@ -21,7 +21,9 @@ moments like hits and falls; kept per model in rimemobs/hunt_cues.json so buildi
 
 Building the Huntsman's riding model or the Alpha Moose also checks the two together (he sits in its saddle): his
 spear, bow and arrows mustn't go into the moose's head, antlers, ears, neck or body in any riding animation, over the
-moose's idle, gallop or charge (check_rider).
+moose's idle, gallop or charge (check_rider); and his cloak must keep off the moose's back, tail and hind legs in
+every riding animation over every one of the moose's (check_cape: the user's rule, "the cape can never go through the
+moose's back").
 
 The modules are in rimemobs/, the shared code in rimekit/mobkit.py. Needs Python 3 with numpy, scipy and Pillow.
 """
@@ -247,9 +249,15 @@ RIDER_PHASES = 6                                 # moments of each of the moose'
 RIDER_BODY = ("head", "chest", "hips", "arm_l", "forearm_l", "hand_l", "arm_r", "forearm_r", "hand_r", "thigh_l",
               "thigh_r", "shin_l", "shin_r", "boot_l", "boot_r", "spear", "cape")
 MOOSE_FRONT = ("antlers", "head", "ear_l", "ear_r")
-# His cloak lies over the moose's rump: it mustn't go into its back, tail or hind legs while it gallops or charges (the
-# user, October 20: the cape "clips the moose" in the gallop), whatever he does up there.
+# His cloak lies over the moose's rump. The user's rule (October 22, 2026, after it still clipped through the rump):
+# "the cape can never go through the moose's back". Checked in every riding animation over every one of the moose's
+# own (but its rear and death: he leaps off first), the saddle's motion at the moose's own moment: no box of the cloak
+# may come nearer its back, tail or hind legs than CAPE_GAP (check_cape). There's no allowance for what touches at rest.
 MOOSE_BACK = ("body", "tail", "leg_hl", "leg_hr", "shin_hl", "shin_hr")
+CAPE_GAP = 0.05                                  # units the cloak keeps off the moose's back, everywhere, always
+                                                 # (October 22, 2026: it keeps at least 0.09 off)
+CAPE_SKIP = ("rear", "death")                    # (he's off the moose for these)
+CAPE_STEP = 0.05                                 # seconds between the moments checked
 
 
 def _shifted(a, phase):
@@ -309,19 +317,58 @@ def check_rider(built):
         if d > body_rest + RIDER_SLACK:
             found.append(("ride_idle", under, d, t, what))
             print(f"  ! sitting still while the moose plays {under}: {what} {d:.1f} units deep at {t:.2f} s")
-    cape_rest = mobkit.cross_clip(rm, riding("ride_idle", "idle"), ("cape",), mm, ma["idle"], MOOSE_BACK)[0]
-    for name in ra:
-        if name.startswith(CARRY_PREFIX) or name == "ride_leap":
-            continue
-        for under in ("run", "charge", "idle"):
-            mine = "ride_gallop" if name == "ride_idle" and under != "idle" else name
-            d, t, what = mobkit.cross_clip(rm, riding(mine, under), ("cape",), mm, ma[under], MOOSE_BACK)
-            if d > cape_rest + RIDER_SLACK:
-                found.append((mine, under, d, t, what))
-                print(f"  ! his cloak in {mine} over the moose's {under}: into its {what}, {d:.1f} units deep at {t:.2f} s "
-                      f"(at rest {cape_rest:.1f})")
+    found += check_cape(rm, ra, mm, ma)
     if not found:
         print("  nothing of his goes into the moose")
+    return found
+
+
+def check_cape(rm, ra, mm, ma):
+    """
+    The cloak rule (MOOSE_BACK): each of his riding animations played over each of the moose's (he gallops in the
+    saddle while it runs or charges, as in the game), the shorter one looping or holding its end; the saddle moves at
+    the moose's moment. Returns what came nearer than CAPE_GAP (a negative gap: how deep it went in).
+    """
+    from kit.clipping import _box_frame, _inside_depth
+    back = [(name, c) for name in MOOSE_BACK for c in mm[name].cubes]
+    capes = rm["cape"].cubes
+    found = []
+    closest = (float("inf"), "")
+
+    def at(a, t):
+        return float(t % a.length) if a.loop is True and a.length > 0 else float(min(t, a.length))
+
+    for under, b in ma.items():
+        if under in CAPE_SKIP or under.startswith(CARRY_PREFIX):
+            continue
+        carry = ra[CARRY_PREFIX + under]
+        moose_at = {}
+        for name, a in ra.items():
+            if name.startswith(CARRY_PREFIX) or name == "ride_leap":
+                continue
+            mine = ra["ride_gallop"] if name == "ride_idle" and under in ("run", "charge") else a
+            worst = (-float("inf"), 0.0, "")
+            for t in np.arange(0.0, max(mine.length, b.length) + 1e-6, CAPE_STEP):
+                tb = at(b, t)
+                pose = dict(mine.sample(at(mine, t)))
+                pose["carry"] = carry.sample(tb)["carry"]
+                mats_a = rm.pose_matrices(pose)
+                if tb not in moose_at:
+                    mats_b = mm.pose_matrices(b.sample(tb))
+                    moose_at[tb] = [(n, _box_frame(mats_b, c)) for n, c in back]
+                pts = np.vstack([mobkit._grid(_box_frame(mats_a, c)) for c in capes])
+                for n, frame in moose_at[tb]:
+                    d = float(_inside_depth(pts, frame, CAPE_GAP).max())
+                    if d > worst[0]:
+                        worst = (d, float(t), n)
+            gap = CAPE_GAP - worst[0]
+            if gap < closest[0]:
+                closest = (gap, f"{mine.name} over the moose's {under}, near its {worst[2]} at {worst[1]:.2f} s")
+            if worst[0] > 0.0:
+                found.append((mine.name, under, -gap, worst[1], f"cape/{worst[2]}"))
+                print(f"  ! his cloak in {mine.name} over the moose's {under}: {gap:.2f} units off its {worst[2]} "
+                      f"(under {CAPE_GAP}) at {worst[1]:.2f} s")
+    print(f"  his cloak keeps at least {closest[0]:.2f} units off the moose's back ({closest[1]})")
     return found
 
 
