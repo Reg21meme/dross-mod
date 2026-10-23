@@ -388,7 +388,8 @@ def holds_up(below, above):
     if a in ("lantern", "soul_lantern") and mc.props_of(above).get("hanging") == "true":
         return True
     needs = (mc.kind(above) in ("carpet", "cross") or a.endswith("_pressure_plate") or a.endswith("candle")
-             or a.endswith("_skull") or a in ("lantern", "soul_lantern", "dross:frostbloom", "frostbloom")
+             or (a.endswith("_skull") and "wall=true" not in above)       # (a mounted skull on a wall hangs there)
+             or a in ("lantern", "soul_lantern", "dross:frostbloom", "frostbloom")
              or a.endswith("_bed"))
     if not needs:
         return True                 # a block of the shell or of the furniture holds itself up

@@ -31,9 +31,10 @@ BLOCKS = {
 mc.MOD_BLOCKS.update(BLOCKS)
 
 # How far past their own block the mounted skulls' antlers and horns reach (blocks: out to each side, and up), from
-# their models (tools/huntsman/skulls.py): the Alpha Moose's 3.8 across, a bull's 2.8, a Rimehorn's 0.8 across, 1.8 long
-# and 2.1 tall. A decoration with one keeps that much room round it (villagekit/decor.py).
-REACH = {"alpha_moose_skull": (2, 1), "moose_skull": (1, 1), "rimehorn_skull": (1, 2)}
+# their models (tools/huntsman/skulls.py, life size since October 23, 2026): the Alpha Moose's 5.3 across and 2 tall,
+# a bull's 3.8 across, a Rimehorn's 1 across, 2.4 long and 2.8 tall. A decoration with one keeps that much room round it
+# (villagekit/decor.py).
+REACH = {"alpha_moose_skull": (3, 2), "moose_skull": (2, 1), "rimehorn_skull": (1, 3)}
 mc.CROSS_PLANTS.update({"frostbloom", "icicle", "frostroots", "snow_lichen", "rimeberry_bush"})
 # (a thin pole like the lightning rods it replaced; the skulls are thin already, by their name)
 mc.THIN_EXACT.update({"planted_spear"})

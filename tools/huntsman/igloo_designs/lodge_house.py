@@ -27,13 +27,77 @@ from .plan import Custom, Igloo, L, sym
 LODGE_STYLE = old_lodge.LODGE_STYLE
 
 
+# His trophy corridor (the user, October 23, 2026: "the Alpha Moose on the front of his door, then like a wall of
+# Rimehorn and moose skulls inside his home"; life-size skulls found no room on his domed hall's curving walls, so their
+# pick: "a trophy corridor"): his way in is a straight corridor CORRIDOR_LONG long, its inside CORRIDOR_HALF * 2 + 1
+# wide and CORRIDOR_TALL tall, behind a snow front with his 3-wide, 4-tall doorway (the Alpha Moose's skull over it);
+# down both its walls life-size skulls hang facing in, a bull moose's (1.4 tall, its antlers 3.7 across) at BULL_Y and a
+# Rimehorn's (2.8 tall with its horn, 2.4 long) at RIMEHORN_Y, each across from the other kind, with lanterns hung down
+# its middle. Outside, its roof steps up to a ridge, ribbed with packed ice every RIB_EVERY blocks.
+CORRIDOR_LONG = 12
+CORRIDOR_HALF = 3
+CORRIDOR_TALL = 6
+DOOR_HALF = 1                    # his doorway: 3 wide ...
+DOOR_TALL = 4                    # ... and 4 tall
+BULL_Y = 3                       # (over a player's head: they walk under the antlers)
+RIMEHORN_Y = 2
+# the trophies' rows, blocks in from where the corridor meets the hall: a bull on the right wall and a Rimehorn across
+# from it, then the other way round (a bull's antlers reach 1.9 along the wall, so a row is 3 from the next, and
+# the first and last are clear of the hall's wall and the front)
+TROPHY_ROWS = (4, 7, 10)
+LAMP_EVERY = 4
+RIB_EVERY = 3
+
+
+def _trophy_corridor(g, hall):
+    """The corridor's front, its roof, its trophies and its lanterns (the corridor itself is the hall's tunnel).
+    Returns how many skulls."""
+    t = hall.tunnel_shape
+    f = t.f
+    front = t.v1                                      # its last row: the snow front with the doorway
+    roof = t.ybase + t.height - 1
+    wall = CORRIDOR_HALF + 1
+    for u in range(-CORRIDOR_HALF, CORRIDOR_HALF + 1):
+        for y in range(1, CORRIDOR_TALL + 1):
+            if abs(u) <= DOOR_HALF and y <= DOOR_TALL:
+                continue
+            f.set(u, y, front, "packed_ice" if y == DOOR_TALL + 1 and abs(u) <= DOOR_HALF + 1 else "snow_block",
+                  force=True)
+    # its roof: steps up to a ridge; packed ice ribs over it (walls, roof and ridge) from the front back
+    for v in range(t.v0, front + 1):
+        rib = (front - v) % RIB_EVERY == 0
+        for u, y in [(u, roof + 1) for u in range(-wall + 2, wall - 1)] + [(u, roof + 2) for u in (-1, 0, 1)]:
+            f.set(u, y, v, "packed_ice" if rib else "snow_block", force=True)
+        # (snow lies on the steps between the ribs, never on the ribs' packed ice)
+        for u, y in [(u, roof + 1) for u in (-wall + 1, wall - 1)] + [(u, roof + 2) for u in (-2, 2)] +                 [(u, roof + 3) for u in (-1, 0, 1)]:
+            f.set(u, y, v, AIR if rib else "snow[layers=1]", force=True)
+        if rib:
+            for u in range(-wall, wall + 1):
+                for y in range(1, roof + 1):
+                    if (abs(u) == wall or y == roof) and f.get(u, y, v) not in (None, AIR):
+                        f.set(u, y, v, "packed_ice", force=True)
+    n = 0
+    for k, row in enumerate(TROPHY_ROWS):
+        v = t.v0 + row
+        for side, face in ((CORRIDOR_HALF, "{left}"), (-CORRIDOR_HALF, "{right}")):
+            bull = (k + (side < 0)) % 2 == 0
+            skull, y = ("moose_skull", BULL_Y) if bull else ("rimehorn_skull", RIMEHORN_Y)
+            f.set(side, y, v, f"dross:{skull}[facing={face},wall=true]", force=True)
+            n += 1
+    for v in range(t.v0 + 1, front, LAMP_EVERY):
+        f.set(0, CORRIDOR_TALL, v, "chain[axis=y]", force=True)
+        f.set(0, CORRIDOR_TALL - 1, v, "lantern[hanging=true]", force=True)
+    return n
+
+
 def _outside(g, cx, cz, hall):
-    """The Alpha Moose's skull hung over the way in (until October 22, 2026 a moose head built of blocks), his
-    banners either side of it on poles, facing out."""
+    """His trophy corridor; the Alpha Moose's skull hung over his doorway (until October 22, 2026 a moose head built of
+    blocks), his banners either side of it on poles, facing out."""
+    _trophy_corridor(g, hall)
     t = hall.tunnel_shape
     hx, hz = t.f.xz(0, t.v1 - 1)
-    Frame(g, hx, hz, "south").set(0, t.ybase + t.height, 1, props.skull_on_wall("alpha_moose_skull"))
-    for side in (-4, 4):
+    Frame(g, hx, hz, "south").set(0, DOOR_TALL + 1, 2, props.skull_on_wall("alpha_moose_skull"))
+    for side in (-CORRIDOR_HALF - 2, CORRIDOR_HALF + 2):
         x, z = t.f.xz(side, t.v1 + 1)
         for y in range(1, 6):
             g.set(x, y, z, "spruce_fence", force=True)
@@ -47,7 +111,8 @@ def _rug(cols, a="g", b="n"):
 
 LODGE = Igloo(
     "huntsman_lodge", "The Huntsman's Lodge", "lodge",
-    "His great lodge: his seat at the back facing the door under his antlers, the fire and its benches, his table of "
+    "His great lodge: the Alpha Moose's skull over his door, a corridor of bull moose and Rimehorn skulls into his "
+    "hall, his seat at the back facing the door under his antlers, the fire and its benches, his table of "
     "roasted meat, his bedroom on the west with its triple bed, the armoury on the east, his banners outside.",
     [(0, 0, 9, 9.5, [(-60, 2), (130, 3), (-130, 3)], False),
      (-12, -2, 5, 5.6, [], False), (12, -2, 5, 5.6, [], False)],
@@ -88,7 +153,8 @@ LODGE = Igloo(
            (-3, 4, 4, "dross:meat_block[axis=y]")],
     style=LODGE_STYLE,
     outside=_outside,
-    tunnel=3, tunnel_half=2, tunnel_height=5,
+    # (his trophy corridor: the hall's tunnel, made long, wide and tall; its front and doorway, _trophy_corridor)
+    tunnel=CORRIDOR_LONG, tunnel_half=CORRIDOR_HALF + 1, tunnel_height=CORRIDOR_TALL + 1,
 )
 
 # ---------------------------------------------------------------- the barn

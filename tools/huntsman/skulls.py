@@ -35,6 +35,7 @@ from kit import geo  # noqa: E402
 from rimekit import mats as M, shapes, texture, uvpack, zfight  # noqa: E402
 from rimekit import view as V  # noqa: E402
 from rimedesigns import d06_huntsman as H  # noqa: E402
+from rimemobs import alpha_moose as ALPHA, moose as MOOSE, rimehorn as RIMEHORN  # noqa: E402
 
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
 PREVIEW = os.path.join(ROOT, "boss-previews", "rimefall", "huntsman", "skulls.png")
@@ -113,15 +114,16 @@ def rimehorn_materials():
     }
 
 
-# id, name, scale (design units -> sixteenths of a block), build, materials, has clear ice (drawn translucent),
-# how big its icon is in the inventory, and the materials left off it (a bull's antlers have no icicles: only the old
+# id, name, scale (design units -> sixteenths of a block: the animal's own, so each skull is life size; the user,
+# October 23, 2026: "the size of their actual skull, not a downgrade"), build, materials, has clear ice (drawn
+# translucent), how big its icon is in the inventory, and the materials left off it (a bull's antlers have no icicles: only the old
 # Alpha Moose's are hung with them)
 SKULLS = (
-    ("alpha_moose_skull", "Alpha Moose Skull", 0.45, lambda s: moose_skull(s, True), lambda: moose_materials(True),
-     False, 0.24, ()),
-    ("moose_skull", "Moose Skull", 0.33, lambda s: moose_skull(s, False), lambda: moose_materials(False), False, 0.3,
-     ("icicle",)),
-    ("rimehorn_skull", "Rimehorn Skull", 0.68, rimehorn_skull, rimehorn_materials, True, 0.36, ()),
+    ("alpha_moose_skull", "Alpha Moose Skull", ALPHA.K, lambda s: moose_skull(s, True), lambda: moose_materials(True),
+     False, 0.17, ()),
+    ("moose_skull", "Moose Skull", MOOSE.K, lambda s: moose_skull(s, False), lambda: moose_materials(False), False,
+     0.23, ("icicle",)),
+    ("rimehorn_skull", "Rimehorn Skull", RIMEHORN.K, rimehorn_skull, rimehorn_materials, True, 0.27, ()),
 )
 WALL_GAP = 0.01               # blocks between a wall skull's back and the wall
 WALL_HEIGHT = 0.22            # blocks: a wall skull's lowest point above its block's floor
