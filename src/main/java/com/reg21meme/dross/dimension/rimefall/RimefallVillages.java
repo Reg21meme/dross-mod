@@ -1,6 +1,7 @@
 package com.reg21meme.dross.dimension.rimefall;
 
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageDesigns;
+import com.reg21meme.dross.boss.huntsman.village.HunterVillageZones;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillages;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.sites.BossSites;
@@ -19,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
 import java.util.function.IntBinaryOperator;
@@ -40,10 +42,12 @@ public final class RimefallVillages
 
     /**
      * A village's plan: which design ({@link HunterVillageDesigns.Design#number}), where its middle is ({@code ground}: the
-     * ground block its ground layer goes on, at the level its ground is cut and filled to), which way its way in faces,
-     * and its own seed (which of its decorations it keeps).
+     * ground block its ground layer goes on, at its middle height; each of its zones stands at its own level,
+     * {@code levels}: see {@link HunterVillageZones}), which way its way in faces, and its own seed (which of its
+     * decorations it keeps). {@code levels} is null for a spot only looked at, not planned ({@link #candidates}).
      */
-    public record VillagePlan(int designNumber, Direction front, BlockPos ground, long seed, boolean relaxed)
+    public record VillagePlan(int designNumber, Direction front, BlockPos ground, long seed, boolean relaxed,
+                              @Nullable int[] levels)
     {
         public HunterVillageDesigns.Design design()
         {
@@ -70,26 +74,31 @@ public final class RimefallVillages
             return Math.sqrt((double) ex * ex + (double) ez * ez);
         }
 
-        /** True if (x, z) is in the village, the ring its ground is blended back over, or {@code margin} past that. */
+        /** True if (x, z) is in the village, the soft edge its land is eased over round it, or {@code margin} past that. */
         public boolean covers(int x, int z, int margin)
         {
-            return this.outside(x, z) <= RimefallTuning.VILLAGE_BLEND + margin;
+            return this.outside(x, z) <= RimefallTuning.VILLAGE_SOFT_EDGE + margin;
         }
 
         /** The box of {@link #covers} with {@code margin}. */
         public BoundingBox coverBox(int margin)
         {
-            int m = RimefallTuning.VILLAGE_BLEND + margin;
+            int m = RimefallTuning.VILLAGE_SOFT_EDGE + margin;
             BoundingBox b = this.footprint();
             return new BoundingBox(b.minX() - m, b.minY(), b.minZ() - m, b.maxX() + m, b.maxY(), b.maxZ() + m);
         }
 
-        /** Where to stand at its way in: on the ground just outside its edge there, facing in. */
+        /** Where to stand at its way in: on the ground just outside its edge there, facing in (at its first courtyard's
+         * level: the way in's land is eased to it). */
         public BlockPos wayIn()
         {
             HunterVillageDesigns.Design d = this.design();
             BlockPos local = new BlockPos(d.wayInX(), d.groundLayer() + 1, Math.min(d.depth() - 1, d.wayInZ() + 4));
-            return HunterVillages.toWorld(local, this.ground, this.front, d);
+            BlockPos at = HunterVillages.toWorld(local, this.ground, this.front, d);
+            HunterVillageZones.Layout zones = this.zones();
+            int level = zones != null && this.levels != null && zones.wayIn >= 0
+                    ? zones.level(this.levels, zones.wayIn, d.wayInX(), d.wayInZ()) : HunterVillageZones.NONE;
+            return level == HunterVillageZones.NONE ? at : at.atY(level + 1);
         }
 
         /** Where the Huntsman and his Alpha Moose wait at home: his yard in front of his lodge (or the way in). */
@@ -100,7 +109,78 @@ public final class RimefallVillages
             {
                 return this.wayIn();
             }
-            return HunterVillages.toWorld(new BlockPos(d.homeX(), d.groundLayer() + 1, d.homeZ()), this.ground, this.front, d);
+            BlockPos at = HunterVillages.toWorld(new BlockPos(d.homeX(), d.groundLayer() + 1, d.homeZ()), this.ground,
+                    this.front, d);
+            int level = this.levelAt(true, d.homeX(), d.homeZ());
+            return level == HunterVillageZones.NONE ? at : at.atY(level + 1);
+        }
+
+        /** The village's zones ({@link HunterVillageZones}), or null if its file is missing. */
+        @Nullable
+        public HunterVillageZones.Layout zones()
+        {
+            return HunterVillageZones.of(this.design());
+        }
+
+        /** The level a template column's blocks stand at in this world (its zone's), or {@link HunterVillageZones#NONE}
+         * (on the world's own land, or not planned). */
+        public int levelAt(boolean upper, int localX, int localZ)
+        {
+            HunterVillageZones.Layout zones = this.zones();
+            return zones == null || this.levels == null ? HunterVillageZones.NONE
+                    : zones.level(this.levels, upper, localX, localZ);
+        }
+
+        /** True if the world's trees and boulders stay off (x, z): a part of the village (a zone, a decoration's box)
+         * is this near ({@code reach}, blocks); everywhere in the village if its zones are missing. */
+        public boolean keepsClear(int x, int z, int reach)
+        {
+            HunterVillageZones.Layout zones = this.zones();
+            if (zones == null)
+            {
+                return true;
+            }
+            BlockPos local = this.toLocal(x, z);
+            return zones.keptClear(local.getX(), local.getZ(), reach);
+        }
+
+        /** A world column in the village's templates (their own coordinates; y is 0). */
+        public BlockPos toLocal(int x, int z)
+        {
+            return HunterVillages.toLocal(new BlockPos(x, this.ground.getY(), z), this.ground, this.front, this.design())
+                    .atY(0);
+        }
+
+        /** This spot planned: each zone's level from the land ({@link HunterVillageZones#solve}), or null if it doesn't
+         * fit (the ground under a zone too far from its level, a lane that can't climb between its courtyards). */
+        @Nullable
+        VillagePlan terraced(IntBinaryOperator top)
+        {
+            HunterVillageZones.Layout zones = this.zones();
+            if (zones == null)
+            {
+                return null;
+            }
+            int[] solved = HunterVillageZones.solve(zones, this.design(), this.ground, this.front, top,
+                    this.relaxed ? RimefallTuning.VILLAGE_ZONE_MAX_STEP_RELAXED : RimefallTuning.VILLAGE_ZONE_MAX_STEP);
+            return solved == null ? null : new VillagePlan(this.designNumber, this.front, this.ground, this.seed,
+                    this.relaxed, solved);
+        }
+
+        /** Two plans are the same if everything in them is (their levels too, not just the same array). */
+        @Override
+        public boolean equals(Object other)
+        {
+            return other instanceof VillagePlan v && v.designNumber == this.designNumber && v.front == this.front
+                    && v.ground.equals(this.ground) && v.seed == this.seed && v.relaxed == this.relaxed
+                    && Arrays.equals(v.levels, this.levels);
+        }
+
+        @Override
+        public int hashCode()
+        {
+            return Objects.hash(this.designNumber, this.front, this.ground, this.seed, this.relaxed) * 31
+                    + Arrays.hashCode(this.levels);
         }
 
         /** An id for the village, fixed by where it is. */
@@ -117,6 +197,10 @@ public final class RimefallVillages
             tag.putLong("Ground", this.ground.asLong());
             tag.putLong("Seed", this.seed);
             tag.putBoolean("Relaxed", this.relaxed);
+            if (this.levels != null)
+            {
+                tag.putIntArray("Levels", this.levels);
+            }
             return tag;
         }
 
@@ -124,7 +208,8 @@ public final class RimefallVillages
         {
             Direction front = Direction.byName(tag.getString("Front"));
             return new VillagePlan(tag.getInt("Design"), front != null ? front : Direction.SOUTH,
-                    BlockPos.of(tag.getLong("Ground")), tag.getLong("Seed"), tag.getBoolean("Relaxed"));
+                    BlockPos.of(tag.getLong("Ground")), tag.getLong("Seed"), tag.getBoolean("Relaxed"),
+                    tag.contains("Levels") ? tag.getIntArray("Levels") : null);
         }
     }
 
@@ -143,8 +228,16 @@ public final class RimefallVillages
     static Optional<VillagePlan> plan(IntBinaryOperator top, Patch patch, @Nullable RimefallLake lake, long seed,
                                       boolean huntsman, boolean relaxed)
     {
-        List<VillagePlan> all = candidates(top, patch, lake, seed, huntsman, relaxed);
-        return all.isEmpty() ? Optional.empty() : Optional.of(all.get(0));
+        // (its spots from the best by the first sift; the first whose zones all fit on their own ground)
+        for (VillagePlan spot : candidates(top, patch, lake, seed, huntsman, relaxed))
+        {
+            VillagePlan planned = spot.terraced(top);
+            if (planned != null)
+            {
+                return Optional.of(planned);
+            }
+        }
+        return Optional.empty();
     }
 
     /**
@@ -184,7 +277,7 @@ public final class RimefallVillages
                     {
                         int level = level(top, spot.getX(), spot.getZ(), w, d);
                         fitting.add(Map.entry(cost, new VillagePlan(design.number(), front,
-                                new BlockPos(spot.getX(), level, spot.getZ()), seed ^ spot.asLong(), relaxed)));
+                                new BlockPos(spot.getX(), level, spot.getZ()), seed ^ spot.asLong(), relaxed, null)));
                     }
                 }
             }
@@ -199,8 +292,8 @@ public final class RimefallVillages
     private static double fits(IntBinaryOperator top, Patch patch, @Nullable RimefallLake lake, int cx, int cz, int w, int d,
                                int maxStep, boolean relaxed)
     {
-        // (relaxed, only the village itself must be in the patch: its blend ring may run out over the border)
-        int reach = relaxed ? 0 : RimefallTuning.VILLAGE_BLEND + (int) RimefallTuning.VILLAGE_EDGE_MARGIN;
+        // (relaxed, only the village itself must be in the patch: its soft edge may run out over the border)
+        int reach = relaxed ? 0 : RimefallTuning.VILLAGE_SOFT_EDGE + (int) RimefallTuning.VILLAGE_EDGE_MARGIN;
         int x0 = cx - w / 2 - reach;
         int x1 = cx + (w - w / 2) + reach;
         int z0 = cz - d / 2 - reach;
@@ -224,7 +317,7 @@ public final class RimefallVillages
         int step = RimefallTuning.VILLAGE_EDGE_STEP;
         if (lake != null)
         {
-            int ring = RimefallTuning.VILLAGE_BLEND;
+            int ring = RimefallTuning.VILLAGE_SOFT_EDGE;
             double far = Math.hypot(w / 2.0D + ring, d / 2.0D + ring);
             double gap = Math.hypot(lake.centre().getX() - cx, lake.centre().getZ() - cz) - lake.reach() - far;
             if (gap < RimefallTuning.VILLAGE_LAKE_CLEARANCE)

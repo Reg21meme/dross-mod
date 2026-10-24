@@ -5,6 +5,8 @@ import com.reg21meme.dross.boss.golem.ColossusGameTest;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.FloatTag;
+import net.minecraft.nbt.ListTag;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -713,6 +715,66 @@ public final class RimefallAnimalsGameTest
                 skater.discard();
             }
             helper.succeed();
+        });
+    }
+
+    /**
+     * A hunter village's pen animal is tame only inside its pen (the user, October 23, 2026: only "the Rimehorns that
+     * spawn within the villages' fences or the ones you bred" are; a herd that had got out was still passive): a
+     * Rimehorn with its pen's fence line in its own frame (as the village's template saves it, here for one facing west)
+     * stays penned in its pen, and once it's out it's a wild animal.
+     */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void penAnimalsTameOnlyInTheirPen(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, RimefallAnimalsGameTest::penAnimalsTameOnlyInTheirPen))
+        {
+            return;
+        }
+        Rimehorn r = spawn(helper, ModEntities.RIMEHORN.get(), MIDDLE, 90.0F);
+        r.setNoAi(true);
+        // (its fence line from 2 west to 4 east of it and 3 north to 3 south, in its frame: facing west, "ahead" is
+        // west and its side is south)
+        CompoundTag tag = r.saveWithoutId(new CompoundTag());
+        tag.putBoolean(Rimehorn.TAG_PENNED, true);
+        ListTag frame = new ListTag();
+        for (float v : new float[] {2.0F, -3.0F, -4.0F, 3.0F})
+        {
+            frame.add(FloatTag.valueOf(v));
+        }
+        tag.put(Pen.TAG_FRAME, frame);
+        r.load(tag);
+        double x = r.getX();
+        double z = r.getZ();
+        helper.runAfterDelay(30, () ->
+        {
+            if (!r.isPenned())
+            {
+                r.discard();
+                helper.fail("a pen animal inside its pen should stay penned");
+                return;
+            }
+            r.moveTo(x + 3.5D, r.getY(), z + 2.5D, r.getYRot(), 0.0F);      // (still inside: 4 east, 3 south)
+            helper.runAfterDelay(30, () ->
+            {
+                if (!r.isPenned())
+                {
+                    r.discard();
+                    helper.fail("a pen animal by its pen's south-east corner (still inside) should stay penned");
+                    return;
+                }
+                r.moveTo(x - 3.5D, r.getY(), z, r.getYRot(), 0.0F);          // (out: 2 west is its fence)
+                helper.runAfterDelay(30, () ->
+                {
+                    boolean penned = r.isPenned();
+                    r.discard();
+                    if (penned)
+                    {
+                        helper.fail("out of its pen, a pen animal should be wild again");
+                    }
+                    helper.succeed();
+                });
+            });
         });
     }
 

@@ -227,6 +227,24 @@ public final class HunterVillages
         return StructureTemplate.transform(local, Mirror.NONE, rotationFor(front), pivot(design)).offset(origin(ground, design));
     }
 
+    /** Where a world block of a village placed like {@link #place} is in its templates (their own coordinates): the
+     * other way round from {@link #toWorld}. */
+    public static BlockPos toLocal(BlockPos world, BlockPos ground, Direction front, HunterVillageDesigns.Design design)
+    {
+        return StructureTemplate.transform(world.subtract(origin(ground, design)), Mirror.NONE, inverse(rotationFor(front)),
+                pivot(design));
+    }
+
+    private static Rotation inverse(Rotation rotation)
+    {
+        return switch (rotation)
+        {
+            case CLOCKWISE_90 -> Rotation.COUNTERCLOCKWISE_90;
+            case COUNTERCLOCKWISE_90 -> Rotation.CLOCKWISE_90;
+            default -> rotation;
+        };
+    }
+
     /** The templates' corner (their first block) for a village whose middle is on {@code ground}. */
     public static BlockPos origin(BlockPos ground, HunterVillageDesigns.Design design)
     {

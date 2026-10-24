@@ -5,6 +5,8 @@ import com.reg21meme.dross.dimension.DrossHubSafeZone;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.rimefall.RimefallAreas;
 import com.reg21meme.dross.dimension.rimefall.RimefallTuning;
+import com.reg21meme.dross.dimension.rimefall.RimefallVillages;
+import com.reg21meme.dross.dimension.sites.BossSites;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.ResourceLocation;
@@ -72,16 +74,35 @@ public final class RimefallAnimals
                 RimefallAnimals::checkSkaterSpawn, SpawnPlacementRegisterEvent.Operation.REPLACE);
     }
 
-    /** A Rimehorn or a moose: on Rimefall's ground, not in water. */
+    /** A Rimehorn or a moose: on Rimefall's ground, not in water, never in a hunter village ({@link #inHunterVillage}). */
     public static <T extends Mob> boolean checkAnimalSpawn(EntityType<T> type, ServerLevelAccessor level, MobSpawnType reason,
                                                            BlockPos pos, RandomSource random)
     {
-        return level.getBlockState(pos.below()).is(ANIMALS_SPAWN_ON) && level.getFluidState(pos).isEmpty();
+        return level.getBlockState(pos.below()).is(ANIMALS_SPAWN_ON) && level.getFluidState(pos).isEmpty()
+                && !inHunterVillage(level, reason, pos);
+    }
+
+    /**
+     * Whether a natural spawn at {@code pos} would be in a hunter village (its footprint, which holds its ring of lights,
+     * and round it): none of Rimefall's animals spawn there (the user, October 23, 2026: "within the light perimeter no
+     * Rimehorns or skaters or mooses should spawn besides the ones within the fences"; those come with the village).
+     * Spawn eggs, commands and spawners aren't stopped.
+     */
+    public static boolean inHunterVillage(ServerLevelAccessor level, MobSpawnType reason, BlockPos pos)
+    {
+        if (reason != MobSpawnType.NATURAL && reason != MobSpawnType.CHUNK_GENERATION)
+        {
+            return false;
+        }
+        ServerLevel server = level.getLevel();
+        return server.dimension().equals(ModDimensions.DROSS_LEVEL)
+                && RimefallVillages.villageAt(BossSites.forLevel(server), pos.getX(), pos.getZ(), 0).isPresent();
     }
 
     /**
      * A moose: on Rimefall's or Silverwood Forest's ground, not in water, and never round the hub (a mother there would
-     * go for players arriving: the hub's safe zone, {@link DrossHubSafeZone}).
+     * go for players arriving: the hub's safe zone, {@link DrossHubSafeZone}) or in a hunter village
+     * ({@link #inHunterVillage}).
      */
     public static boolean checkMooseSpawn(EntityType<Moose> type, ServerLevelAccessor level, MobSpawnType reason, BlockPos pos,
                                           RandomSource random)
@@ -90,14 +111,15 @@ public final class RimefallAnimals
         {
             return false;
         }
-        return level.getBlockState(pos.below()).is(MOOSE_SPAWN_ON) && level.getFluidState(pos).isEmpty();
+        return level.getBlockState(pos.below()).is(MOOSE_SPAWN_ON) && level.getFluidState(pos).isEmpty()
+                && !inHunterVillage(level, reason, pos);
     }
 
     /**
      * A Pond Skater: on ice, in the dark, never on Peaceful (a spawner skips the ground and the light); only now and then
      * ({@link #skaterRolls}); and only where there's room: never more than 3 in an area, a big frozen lake 2 at most, a
      * patch of ice at least 20 blocks across 1 at most (the Dimension area's {@link RimefallAreas#skaterMayAppear}; the
-     * user saw 10 on one small pond, then 7).
+     * user saw 10 on one small pond, then 7); never in a hunter village ({@link #inHunterVillage}).
      */
     public static boolean checkSkaterSpawn(EntityType<PondSkater> type, ServerLevelAccessor level, MobSpawnType reason,
                                            BlockPos pos, RandomSource random)
@@ -112,7 +134,7 @@ public final class RimefallAnimals
         }
         return level.getBlockState(pos.below()).is(BlockTags.ICE) && level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()
                 && level.getFluidState(pos).isEmpty() && Monster.isDarkEnoughToSpawn(level, pos, random)
-                && skaterRolls(random) && RimefallAreas.skaterMayAppear(level.getLevel(), pos);
+                && skaterRolls(random) && !inHunterVillage(level, reason, pos) && RimefallAreas.skaterMayAppear(level.getLevel(), pos);
     }
 
     /** A Pond Skater's natural spawn happens only now and then ({@link RimefallTuning#SKATER_SPAWN_CHANCE}; the user:

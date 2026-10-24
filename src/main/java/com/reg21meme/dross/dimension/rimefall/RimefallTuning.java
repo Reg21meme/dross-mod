@@ -121,17 +121,24 @@ public final class RimefallTuning
 
     // ---------------------------------------------------------------- the hunter villages (RimefallVillages; October 23, 2026)
 
-    /** Round a village its ground is blended back to the land's own over this many blocks: a column this far out is never
-     * more than this many above or below the village's level (a staircase, at most a block a step). */
-    public static final int VILLAGE_BLEND = 16;
-    /** The village and its blend ring stay this far inside its patch (deep in Rimefall: a chase stays in it). */
+    /** Round each part of a village (its zones: boss/huntsman/village/HunterVillageZones) the land is eased back to its
+     * own over at most this many blocks, and only where it has to be: a column d blocks out is never more than d above
+     * or below the zone's level (a staircase, at most a block a step). Until October 23, 2026 the whole village stood on
+     * one level with a 16-block ring blended round it (the user: "I don't like the way you just destroy the biome
+     * around it to make it flattened out"). */
+    public static final int VILLAGE_SOFT_EDGE = 8;
+    /** The village and its soft edge stay this far inside its patch (deep in Rimefall: a chase stays in it). */
     public static final double VILLAGE_EDGE_MARGIN = 6.0D;
     /** ... and this far off its lake's edge (the user: "not on the ice lake"; the shore is 16 wide). */
     public static final double VILLAGE_LAKE_CLEARANCE = SHORE_WIDTH + 12.0D;
-    /** The ground under a village may step this far from its level (the median of its tops) at most, or this far for the
-     * Huntsman's in a group where his fits nowhere by the normal rule. */
+    /** The first sift of a village's spots: the ground under it may step this far from its middle height (the median
+     * of its tops) at most, or this far for the Huntsman's in a group where his fits nowhere by the normal rule. */
     public static final int VILLAGE_MAX_STEP = 10;
     public static final int VILLAGE_MAX_STEP_RELAXED = 24;
+    /** Then each part of it on its own ground: the ground under a zone may step this far from its zone's level at most
+     * (cut or filled to it), or this far for the Huntsman's in a group where his fits nowhere by the normal rule. */
+    public static final int VILLAGE_ZONE_MAX_STEP = 6;
+    public static final int VILLAGE_ZONE_MAX_STEP_RELAXED = 12;
     /** The fit test: this many of the patch's deepest spots tried, this far apart; this many of the kind's designs. */
     public static final int VILLAGE_TRIES = 16;
     public static final int VILLAGE_SPOT_SPACING = 24;
@@ -147,7 +154,7 @@ public final class RimefallTuning
      * (whether it's in its patch is checked cell by cell). */
     public static final int VILLAGE_SAMPLE_STEP = 12;
     public static final int VILLAGE_EDGE_STEP = 16;
-    /** A herd's spot keeps this far off a planned village (past its blend ring). */
+    /** A herd's spot keeps this far off a planned village (past its soft edge). */
     public static final int HERD_VILLAGE_CLEARANCE = 24;
     /** Looking for the planned villages near a place: this far round it (a village's middle is at most about 150 from
      * any of its columns). */

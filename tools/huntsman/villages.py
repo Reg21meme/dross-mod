@@ -38,6 +38,9 @@ PREVIEWS = os.path.join(PROJECT, "boss-previews", "rimefall", "huntsman", "villa
 JAVA = os.path.join(PROJECT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "huntsman", "village",
                     "HunterVillageDesigns.java")
 MANIFEST = os.path.join(HERE, "out", "villages.json")
+# each village's zones (warren._zones: which part of it stands at which level on the world's land), read by the mod
+# (boss/huntsman/village/HunterVillageZones)
+ZONES_DIR = os.path.join(PROJECT, "src", "main", "resources", "data", "dross", "hunter_village_zones")
 
 # (number, seed, igloos, the Huntsman's village)
 # (number, seed, igloos, the Huntsman's): the user, October 19: "I want the villages to be massive: put the minimum
@@ -287,11 +290,22 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
     # for the game's own check: the darkest floor cell of each room (template coordinates)
     probes = [(x, y + g.G, z) for x, y, z in lighting.darkest(base, ex["rooms"])]
     kinds = [e["nbt"]["id"] for e in base.entities]
+    # every block of the village in a zone of its own layer (the game leaves out a block in no zone)
+    zl = ex["zones"]
+    lost = [(x, yi - base.G, z, mc.base(st)) for x, yi, z, st in base.blocks()
+            if zl["lower" if yi <= base.G else "upper"][x, z] == 0]
+    if lost:
+        problems.append(f"{len(lost)} block(s) of the village in no zone (the game would leave them out), the first "
+                        f"{lost[0]}")
+    for e in base.entities:
+        if zl["upper"][int(e["x"]), int(e["z"])] == 0:
+            problems.append(f"its {e['nbt']['id']} at {e['x']:.1f}, {e['z']:.1f} stands in no zone")
     os.makedirs(NBT_DIR, exist_ok=True)
     os.makedirs(PREVIEWS, exist_ok=True)
     if write_nbt:
         n_base, _ = writer.write(base, os.path.join(NBT_DIR, f"{lid}.nbt"))
         n_deco, _ = writer.write(deco, os.path.join(NBT_DIR, f"{lid}_decor.nbt"))
+        write_zones(lid, base, zl)
     else:
         n_base = sum(1 for _ in base.blocks())
         n_deco = sum(1 for _ in deco.blocks())
@@ -351,6 +365,42 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
     for p in problems:
         print("  PROBLEM:", p)
     return entry, problems
+
+
+def _rle(a):
+    """A map as one string a row (a row for each x, along z): "zone*count" runs."""
+    rows = []
+    for x in range(a.shape[0]):
+        runs = []
+        v, n = int(a[x, 0]), 0
+        for z in range(a.shape[1]):
+            w = int(a[x, z])
+            if w == v:
+                n += 1
+            else:
+                runs.append(f"{v}*{n}")
+                v, n = w, 1
+        runs.append(f"{v}*{n}")
+        rows.append(" ".join(runs))
+    return rows
+
+
+def write_zones(lid, g, zl):
+    """The village's zones for the mod: data/dross/hunter_village_zones/<id>.json (zone ids from 1; 0 is none)."""
+    def clean(z):
+        out = {}
+        for k, v in z.items():
+            if v is None:
+                continue
+            out[k] = [float(c) for c in v] if isinstance(v, (list, tuple)) else (
+                v if isinstance(v, (bool, str)) else (float(v) if isinstance(v, float) else int(v)))
+        return out
+    data = {"id": lid, "width": g.W, "depth": g.D, "ground_layer": g.G,
+            "zones": [clean(z) for z in zl["zones"]], "lower": _rle(zl["lower"]), "upper": _rle(zl["upper"]),
+            "decor": [int(v) for v in zl["decor"]], "way_in": int(zl["way_in"]), "home": int(zl["home"])}
+    os.makedirs(ZONES_DIR, exist_ok=True)
+    with open(os.path.join(ZONES_DIR, f"{lid}.json"), "w", encoding="utf-8", newline="\n") as f:
+        json.dump(data, f, separators=(",", ":"))
 
 
 def overview(entries):

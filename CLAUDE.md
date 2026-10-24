@@ -692,12 +692,13 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           no villages).
         - **Built with the land** (structures `dross:huntsman_village` and `dross:hunter_village`, Boss's
           `boss/huntsman/village/HunterVillageStructure` and `HunterVillagePiece`, placed by the planner's
-          `dross:boss_site` placement, in the surface structures step): a chunk at a time, the ground under the village
-          cut and filled to its level and blended back to the land over 16 blocks as a staircase (at most a block a
-          step), each column keeping its own top blocks; then the village's template (its pens' animals with it) and its
-          decorations, each kept with the village's own 1 in 2 roll (the same in every chunk). Rimefall's trees, ice
-          spikes, boulders, ponds, Frostblooms and snow drifts keep 6 blocks off a village and its ring
-          (`NotOnRimefallLakeFilter`), and the world's tidy-up leaves it alone (`TidyUpFeature`).
+          `dross:boss_site` placement, in the surface structures step): a chunk at a time, each part of it on its own
+          ground since October 23, 2026 (the fourth look's part 3, above: its zones; until then the ground under the
+          whole village was cut and filled to one level and blended back to the land over 16 blocks), each column
+          keeping its own top blocks; then the village's template (its pens' animals with it) and its decorations, each
+          kept with the village's own 1 in 2 roll (the same in every chunk). Rimefall's trees, ice spikes, boulders,
+          ponds, Frostblooms and snow drifts keep 6 blocks off its zones and decorations (`NotOnRimefallLakeFilter`), and
+          the world's tidy-up leaves it alone (`TidyUpFeature`).
         - **The Huntsman at home** (Boss's `boss/huntsman/village/HuntsmanVillages`, `HuntsmanVillageData`): when a
           player (not a spectator) comes within 160 blocks of his yard (`HunterVillageDesigns.Design.homeX`/`homeZ`:
           in front of his lodge) and its land is loaded with its entities, he and his Alpha Moose come there, him in
@@ -820,6 +821,47 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         (`command/TrophyShowcase`) places the five in a row on pedestals with signs. Headless tests
         (`boss/huntsman/HuntsmanTrophyGameTest`): the cycle, the break drop and pick-block, a trophy for the killer and
         a player near but not one 60 blocks off, none for `/kill`, the showcase row.
+      - **The user's fourth look of October 23, part 3: the villages on the land** [built, not yet tested in-game] (the
+        user: "I don't like the way you just destroy the biome around it to make it flattened out ... it should be like
+        an actual village, the same way the houses spawn in the village; if there are hills or trees that don't
+        interfere with the spawning of the village then that's fine"; their pick: each courtyard on its own ground):
+        - **Each part on its own ground** (`boss/huntsman/village/HunterVillageZones`, `HunterTerrace`,
+          `HunterVillagePiece`; the zones made with the templates by `tools/huntsman/village_designs/warren.py`
+          `_zones`, written by `villages.py` as `data/dross/hunter_village_zones/<id>.json`): every column of a village
+          belongs to a zone or to none (the world's own land, left as it is: its trees and hills between the parts
+          stay). A zone is flat at its own level, the median of the land under it (from the noise, when the village is
+          planned: `RimefallVillages`, so every chunk agrees): a courtyard with its ring of igloos, the warren igloos
+          behind them and their passages; the lodge with its yard and barn; each pen; the shrine; each Rimeberry Patch;
+          each light of the ring; each decoration on the open ground (its box). A lane slopes between the two zones it
+          joins, a block at a time, with a spruce stair at each step (its two courtyards are pulled together until it
+          can climb a block every 3 blocks, `HunterVillageZones.LANE_RUN`); a passage between two courtyards' igloos
+          slopes the same way, a block a block. A lane igloo, a lamp on a lane's bank and a decoration in a lane take
+          the lane's level where they stand; a path over the snow and the shrine's lantern posts follow the land column
+          by column. Two maps, the blocks at the ground and under it and those over it, so a lamp's arm over a lane
+          rides with its lamp. The ground under a zone is cut and filled to its level (a spot whose ground is more than
+          6 blocks off a zone's level doesn't fit: `VILLAGE_ZONE_MAX_STEP`, 12 relaxed); round it the land is eased back
+          a block a step, out to 8 blocks and only where it's that far off (`VILLAGE_SOFT_EDGE`; it was a 16-block ring
+          blended round the whole flattened village). Rimefall's trees and boulders keep 6 blocks off the zones and the
+          decorations' boxes, not off the whole village (`VillagePlan.keepsClear`). No drifts of snow over the open
+          ground any more (it's the world's own). The Huntsman's home and the way in stand at their zones' levels.
+        - **No packed ice in the floors** (the user: "weird ice squares on the bottom of the villages ... I don't like
+          the ice squares"): the courtyards', lanes' and walls' linings (`sunken_warren.py` `LINING`, `LANE_FLOOR`,
+          `COURT_FLOOR`) and the paths and plazas (`villagekit/props.py` `PATH`, `PLAZA`) are snow, Hoarfrost and gravel
+          only (the troughs' rims and the doorways' frames, built of it on purpose, keep it).
+        - **The barn's corral** (the user: "replace them with regular skulls, no need to put moose skulls on the bone
+          fence"): vanilla skeleton skulls on its bone posts, facing out (`igloo_designs/lodge_house.py`).
+        - **None of Rimefall's animals spawn by themselves in a village** (the user: "within the light perimeter no
+          Rimehorns or skaters or mooses should spawn besides the ones within the fences"): moose and Pond Skaters
+          never spawn naturally on a village's footprint or its soft edge (`RimefallAnimals.inHunterVillage`; spawn
+          eggs and commands still work); the herds' spots keep off villages as before.
+        - **Only the penned are tame** (the user: "a herd of Rimehorns that spawned in the village were passive; that is
+          only for the Rimehorns that spawn within the villages' fences or the ones you bred"): each pen animal carries
+          its pen's fence line in its own frame (`PenFrame`, written by `warren._pen_frame`); turned with the village,
+          its facing turns with it, so on its first tick it finds the fence line again (`PenBox`; `boss/rimefall/Pen`),
+          and once it's outside it, it's a wild animal for good; a calf born in the pen has its mother's.
+        - Headless tests: `RimefallAnimalsGameTest.penAnimalsTameOnlyInTheirPen`; the planning test checks every
+          village has its zones' levels and that no animal spawns by itself in it; the built village's test checks its
+          packed ice and snow blocks at their zones' levels.
       - **Where he is** (the user's answers): he spawns outside his village riding the Alpha Moose and **patrols a loop about 80 blocks out** round it; the fight starts wherever he finds you. **Running away**: he chases about 60 blocks past his loop, then stops and rains arrows on you while you're in range (about 40 blocks); once you're out of range or out of Rimefall, the fight is broken off: he (and the moose, whichever are alive) ride off and vanish, and **7 minutes later they come back together at full health**, the dead one too (the user: "you can't kill one of them, come back all healed up and kill the other"; 5-10 minutes, the pick left to me). Beaten (both dead), he never comes back, like the other bosses.
       - The end: XP and the advancement **"The Hunter Hunted"** (the user's pick; Quest's JSON) for the player with the last kill and everyone within 40 blocks.
     - **His boss bars** [built: the user's picks, October 20, 2026] (`tools/huntsman/`: `bossbars.py` (the looks from their picks, the texture, the preview, the Java), `bardesigns.py` (designs 9 and 1), `hunterbars.py` (design 11), `barkit.py` (pixel tools; previews use Minecraft's own font, read from the game jar in the Gradle cache)): **The Wild Hunt** (stage 1, one bar for both, frost white): **design 9, Skull Trophy** (a stag skull on the bar, his spear and bow crossed behind it); **The Huntsman** (stage 2, glacier blue): **design 11, Wolf & Antlers** (a wolf's head worn as a hood, a stag's antlers out of it); **Alpha Moose** (stage 2, antler amber): **design 1, Antler Frame** (his stag antler and the moose's palm at the ends); the last two each with its **blood-red angry look** (the survivor's bar once the other has died; the user: "I like the blood version for the rage mode"). Each keeps the spacing it had in the showcase the user picked from. One texture, `textures/gui/huntsman_bar.png`, and the generated `boss/client/HuntsmanBarArt` (each look's parts, its name's height and the room it takes); drawn by `boss/client/DrossBossBars` for bars named `boss.dross.huntsman.bar.<look>` (`wild_hunt`, `huntsman`, `huntsman_angry`, `alpha_moose`, `alpha_moose_angry`; his fight will name its bars the same way). **`/dross showcase bossbars huntsman`** (`boss/huntsman/HuntsmanBarShowcase`) shows the fight's three bars stacked to compare (in the fight stage 1 shows only the Wild Hunt, stage 2 the other two) for a minute, draining and filling; **`... angry`** the two angry looks. Preview: `boss-previews/rimefall/huntsman/bossbars/bars.png` (`index.html`). Headless test: `HuntsmanBarShowcaseGameTest`. Colours: `DrossColors.HUNTSMAN_BAR_*`. **How they were picked** (October 19-20): ten designs, 1 Antler Frame, 2 Hunting Horn, 3 Leather & Bone, 4 Cracked Ice, 5 Arrow, 6 Spear, 7 Fur Pelt, 8 Tracks in the Snow, 9 Skull Trophy, 10 Aurora Ice, each in all five looks; the user picked 9 for the Wild Hunt, liked 1 and 3 for the Alpha Moose and none for the Huntsman, so ten more for him alone in design 9's style (11 Wolf & Antlers, 12 Bone Pauldrons, 13 Bearskin Cloak, 14 Spear & Bow, 15 Quiver of Ice, 16 Horn & Antlers, 17 Claw Marks, 18 Trophy Belt, 19 Frost Hunter, 20 The Mask), of which they picked 11 ("these are the best"), then 1 for the Alpha Moose; the other eighteen, their textures, previews and showcase buttons were removed on October 20, 2026. Confirmed with the user: stage 1 shows one bar, The Wild Hunt (both of them together); at the split two bars, The Huntsman and Alpha Moose.
@@ -1039,6 +1081,13 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   copies of the live heads (the Alpha Moose's as big as its head).
 - **The fight fixes and the skulls of October 23** (step 14): in the Wild Hunt his arrows hit you even while you sprint across his line, and every arrow of his frosts and slows you; he shoots ahead past the moose's head, to his right, to his left and back over his shoulder, so the moose needn't turn side-on; right next to the moose he mostly spears you; run away and the bola comes; the moose's stamp ends in a clump of small see-through ice spikes, then a big one 1.5 blocks tall bursts up under you, throwing you up, slowing and frosting you; he goes for grown Rimehorns, moose and Pond Skaters, never calves or penned animals; at his village he's already riding his patrol round it when you arrive; skulls on posts and blocks lie level on their jaw, and their hitbox fits the skull.
 - **The Huntsman's trophies** (step 14, October 23): `/dross showcase trophies huntsman` places the five in a row facing you (Riding Down, Rain of Arrows, The Rearing, The Rearing Shot, The Parting Shot), each matching `boss-previews/rimefall/huntsman/trophies/trophies.png` (its first view is what you see standing in front of it), fitting its block with nothing poking out; the ice see-through, their eyes glowing at night, the moose's breath now and then, snowflakes off No. 5's spikes; right-click turns one through the five; in the creative tab and in the hand they're the 3D figures; beat the pair (a friend within 40 blocks too): each gets a No. 1 straight into their inventory.
+- **The villages on the land** (step 14, October 23; a new world, cheats on): `/dross locate villages` and [go]: each
+  courtyard and its igloos sit on their own ground, the land between the parts left as it was (its trees and hills),
+  the lanes climbing between courtyards at different heights with a stair at each step (and the passages between
+  them too), the decorations each standing on solid ground (nothing floating, nothing buried), no flattened ring round
+  the village; no packed-ice squares in the floors; the barn's corral posts topped with skeleton skulls; no moose or
+  Pond Skaters turning up inside the village (only the penned ones); a penned moose or Rimehorn that gets out of its
+  pen fights back like a wild one.
 - **Hunter villages in Rimefall** (step 14, October 23; a new world, cheats on): `/dross locate villages` lists the 5 nearest with [go] buttons (the Huntsman's in amber); each [go] (and `/dross goto village`) lands at a village's way in, on levelled snowy ground that steps gently back to the land (no cliffs or dirt walls), no trees, boulders or ice spikes in it, never on or by a big lake; `/dross goto lair huntsman`: within a few seconds he and his Alpha Moose come, him in the saddle, calm, already riding his patrol round the village (a loop just outside its lights); walk up in survival: he spots you and the fight starts; beat both: going back, he never comes again; on Peaceful he never comes.
 - **The hunters and the trophy candidates** (October 23): `/dross showcase hunters` lines up twelve hunters about 2-2.5 blocks tall in two rows with signs (No. 10A-10L), matching `boss-previews/rimefall/hunters/`; pick the ones for the villages; the trophy candidates are pictures only: `boss-previews/rimefall/huntsman/trophies/candidates/` (`index.html`): pick the poses.
 - **The Huntsman's sounds** (step 14, October 23): in a fight he howls when he spots you, then blows his goat horn; his arrows twang deep, the rain whistles down round you, a frost arrow hit crackles, the bola whirls, whooshes and wraps round you as it hits; his grunts, hurt and death sound like a man; the Alpha Moose clops when it walks and thunders at a gallop, bellows, rears with a scream, kicks, rams, stomps, its stamp cracks the ice and the spikes burst up glassy; neither chatters while frozen in the showcase. `/dross showcase boss_sounds huntsman` plays every version.

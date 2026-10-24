@@ -32,6 +32,7 @@ import random
 from itertools import combinations
 
 import mc
+import nbt
 from voxel import AIR, Mix
 
 import sunken_warren as sw
@@ -978,6 +979,8 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
     owned_cols = {(x, z) for (x, y, z) in owner}
     # -- each sunken doorway's way out to its courtyard or lane, dug where it isn't already
     approach_cells = []
+    approach_of = {}                  # (for the zones: each doorway's dug way, and where on its lane it arrives)
+    lane_at = {}
     for it in p.items:
         if it.role not in ("ring", "lane"):
             continue
@@ -988,22 +991,30 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
             (a, b) = it.lane
             A, B = (X(a[0]), Z(a[1])), (X(b[0]), Z(b[1]))
             tx, tz = _nearest_on(ex, ez, A, B)
+        n0 = len(approach_cells)
         if not _approach(m, dug_floor, owned_cols, (ex, ez), (tx, tz), W, D, approach_cells):
             raise SystemExit(f"{it.id}'s doorway at {ex},{ez} has no way out to its "
                              f"{'courtyard' if it.role == 'ring' else 'lane'}")
+        approach_of[id(it)] = approach_cells[n0:]
+        if it.role == "lane":
+            lane_at[id(it)] = (tx, tz)
     # -- the covered passages
     passage_floor = []
     cut_cells = []
+    link_cells = []                   # (for the zones: each passage, its ends, its floor and its cuts)
     for frm, a, to, b in p.links:
         A = (a[0] - ox, a[1] - oz)
         B = (b[0] - ox, b[1] - oz)
-        passage_floor += _carve_passage(g, m, A, B, owner)
+        floor_cells = _carve_passage(g, m, A, B, owner)
+        passage_floor += floor_cells
         spot = p.link_spots[(id(to), b)]
-        cut_cells += _cut(g, spot, ox, oz, owner)
+        cuts = _cut(g, spot, ox, oz, owner)
         if frm.role != "warren" or a != frm.placed.entrance:
             fspot = p.link_spots.get((id(frm), a))
             if fspot is not None:
-                cut_cells += _cut(g, fspot, ox, oz, owner)
+                cuts += _cut(g, fspot, ox, oz, owner)
+        cut_cells += cuts
+        link_cells.append((frm, to, A, B, floor_cells, cuts))
     # the dug spaces lined with snow (the world's ground never shows), then the floors
     sw._line(g)
     for (x, z), fy in dug_floor.items():
@@ -1027,6 +1038,8 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
         a = (ex - ox, ez - oz)
         b = (top[0] - ox, top[1] - oz)
         path_cells += _surface_path(g, a, b)
+    # (the zones: the lamps and lights the village itself puts down, each with its cells)
+    fixtures = []
     # -- decorations (each a 1 in 2 chance) and the ring of lights (always there)
     dec = Decor(g)
     blocked = _occupied_mask(g, owned_cols, passage_floor)
@@ -1066,18 +1079,17 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
         lodge_info = _lodge_yard(g, dec, lodge_box, lodge_items, rng)
     for (x, z) in stair_cells:
         dec.keep_out(x, z, 0)
-    ring_lights = _light_ring(g, dec, p, X, Z, blocked, rng)
-    inside_lights = _light_inside(g, dec, p, X, Z, courts, blocked,
+    ring_lights = _light_ring(g, dec, p, X, Z, blocked, rng, fixtures)
+    inside_lights = _light_inside(g, dec, p, X, Z, courts, blocked, fixtures,
                                   (lane_x, ze) if lodge_box is not None else None)
-    _shrine_lanterns(g, dec, p, X, Z, ox, oz)
+    _shrine_lanterns(g, dec, p, X, Z, ox, oz, fixtures)
     sw._entrance_pair(g, dec, p, X, Z, rng)
     _decorate(g, dec, courts, p, X, Z, rng, blocked, stair_cells)
     sw._line(g)
     blocked2 = dec.taken | dec.keepout
 
-    def open_ground(x, z):
-        return not blocked2[x, z] and not blocked[x, z] and (x, z) not in dug_floor
-    props.drifts(g, 0, area=open_ground, salt=seed % 97)
+    # (no drifts of snow over the open ground since October 23, 2026: it's the world's own land now, each courtyard
+    # on its own ground, not a flattened village: see _zones)
     # -- what the checks need
     c0, d0, _a, _b = p.steps[0]
     f = Frame(g, X(c0.x), Z(c0.z), d0)
@@ -1131,6 +1143,11 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
               "open_floors": open_floors, "landings": landings,
               "lodge": lodge_info, "light_cells": light_cells, "floors": floors, "rooms": rooms,
               "keep_clear": keep_clear, "pens": pens, "massing": None, "placed": placed + lodge_items}
+    extras["zones"] = _zones(g, p, X, Z, courts, dec, dict(
+        stair_cells=stair_cells, approach_of=approach_of, lane_at=lane_at, link_cells=link_cells, pens=pens,
+        path_cells=path_cells, fixtures=fixtures, lodge_box=lodge_box,
+        lodge_stairs=(lane_x, ze) if lodge_box is not None else None, entrance=(sx, sz),
+        home=tuple(lodge_info["home"]) if lodge_info is not None else None))
     return g, info, extras
 
 
@@ -1346,10 +1363,27 @@ def _build_pen(g, pen, X, Z, rng):
         raise SystemExit(f"no room for {len(herd)} animals in a {pen.kind} of {x2 - x1} x {z2 - z1}")
     animals = []
     for (kind, flags), (px, pz) in zip(herd, spots):
-        e = animal(kind, px, 1.0, pz, yaw=round(rng.uniform(-180, 180), 1), Penned=True, **flags)
+        yaw = round(rng.uniform(-180, 180), 1)
+        e = animal(kind, px, 1.0, pz, yaw=yaw, Penned=True, PenFrame=_pen_frame(px, pz, yaw, x1, z1, x2, z2), **flags)
         g.entities.append(e)
         animals.append(e)
     return {"box": (x1, z1, x2, z2), "kind": pen.kind, "gate": pen.gate, "animals": animals, "trough": trough}
+
+
+def _pen_frame(px, pz, yaw, x1, z1, x2, z2):
+    """A pen animal's pen in its own frame (its saved PenFrame): two opposite corners of the fence line (its posts'
+    middles), each as (ahead, to the side) of the animal, which faces `yaw`. Turned with the village, the animal's
+    facing turns with it, so the mod finds the fence line again from where it stands and the way it faces (the
+    animal's Pen, boss/rimefall/Pen.java): once it's outside its fence it's no longer tame (the user, October 23, 2026:
+    only the ones "within the villages' fences or the ones you bred" are)."""
+    t = math.radians(yaw)
+    ahead = (-math.sin(t), math.cos(t))
+    side = (math.cos(t), math.sin(t))
+    out = []
+    for qx, qz in ((x1 + 0.5, z1 + 0.5), (x2 + 0.5, z2 + 0.5)):
+        dx, dz = qx - px, qz - pz
+        out += [dx * ahead[0] + dz * ahead[1], dx * side[0] + dz * side[1]]
+    return nbt.List(nbt.FLOAT, [nbt.Float(round(v, 4)) for v in out])
 
 
 # ---------------------------------------------------------------- the Huntsman's yard
@@ -1412,7 +1446,7 @@ def _lodge_yard(g, dec, box, lodge_items, rng):
 RING_LIGHTS = ("antler_lamp", "stone_brazier", "snow_lantern", "bone_lamp", "lantern_arch", "ice_pillar", "skull_lamp")
 
 
-def _light_ring(g, dec, p, X, Z, blocked, rng):
+def _light_ring(g, dec, p, X, Z, blocked, rng, fixtures=None):
     """A ring of lights round the whole village, RING_OUT outside everything, one every RING_EVERY blocks (always
     there: they're the village's own, not decorations): one of the seven light designs (the user's "a perimeter of
     lights around the base, but you give different light designs"), two taking turns, picked for the village."""
@@ -1458,6 +1492,8 @@ def _light_ring(g, dec, p, X, Z, blocked, rng):
             if ring.place("ring light", lambda s, x=x, z=z, front=front, draw=draw: draw(Frame(s, x, z, front)), margin=1):
                 placed += 1
                 per += 1
+    if fixtures is not None:
+        fixtures.extend(ring.groups)
     return placed
 
 
@@ -1480,7 +1516,7 @@ def _hull(pts):
     return lower[:-1] + upper[:-1]
 
 
-def _shrine_lanterns(g, dec, p, X, Z, ox, oz):
+def _shrine_lanterns(g, dec, p, X, Z, ox, oz, fixtures=None):
     """Lantern posts either side of the path to the shrine, every 6 blocks (the village's own: always there)."""
     ring = Decor(g)
     ring.keepout = dec.keepout
@@ -1503,6 +1539,8 @@ def _shrine_lanterns(g, dec, p, X, Z, ox, oz):
                                                                                            height=3, arm=False),
                            margin=0)
             t += 6.0
+    if fixtures is not None:
+        fixtures.extend(ring.groups)
 
 
 # ---------------------------------------------------------------- decorations
@@ -1533,7 +1571,7 @@ def _clear_over(g, x, z):
             g.set(x, y, z, AIR, force=True)
 
 
-def _light_inside(g, dec, p, X, Z, courts, blocked, lodge_stairs=None):
+def _light_inside(g, dec, p, X, Z, courts, blocked, fixtures=None, lodge_stairs=None):
     """The lamps inside the village (always there: the village's own, not decorations): tall poles round each
     courtyard near its rim, facing its middle, and poles along each lane on its banks by turns, their arms over it.
     Returns how many."""
@@ -1590,6 +1628,8 @@ def _light_inside(g, dec, p, X, Z, courts, blocked, lodge_stairs=None):
                 "steps lamp", lambda s, x=x, z=z, d=d: props.lantern_post(Frame(s, x, z, d), height=3, arm=False),
                 margin=0):
             placed += 1
+    if fixtures is not None:
+        fixtures.extend(lamps.groups)
     return placed
 
 
@@ -1670,3 +1710,240 @@ def _decorate(g, dec, courts, p, X, Z, rng, blocked, stair_cells=()):
         front = rng.choice(sw.DIRS)
         if dec.place(name, lambda s, x=x, z=z, front=front, fn=fn: fn(Frame(s, x, z, front))):
             placed += 1
+
+
+# ---------------------------------------------------------------- the zones: each part of the village on its own ground
+
+# (the user, October 23, 2026: "I don't like the way you just destroy the biome around it to make it flattened out ...
+# it should be like an actual village, the same way the houses spawn in a village; if there are hills or trees that don't
+# interfere with the spawning of the village then that's fine"; their pick: each courtyard on its own ground)
+#
+# Every column of the village belongs to a zone, or to none (the world's own land, left as it is). The game gives each
+# zone its own level from the land under it (boss/huntsman/village/HunterVillageZones, the planner's RimefallVillages):
+#   flat    one level: a courtyard with its ring of igloos, the warren igloos behind them and their passages (the
+#           ground between them its too); the lodge and its yard; a pen; the shrine; a Rimeberry Patch; a light of the
+#           ring; a decoration on the open ground (its box). A lane igloo, a lamp on a lane's bank and a decoration in a
+#           lane take the lane's level where they stand ("follow").
+#   lane    a lane (or a passage between two zones): its floor slopes from the level of the zone at one end to the
+#           other's, a block at a time, a stair at each step (the game's). From `start` to `end` along it from `from`.
+#   column  each column on its own ground: the paths over the snow, the shrine's lantern posts.
+# Two maps, one for the blocks at the ground and under it (`lower`) and one for those over it (`upper`): a lamp's arm
+# over a lane rides with its lamp, the lane under it slopes on its own.
+ZONE_DILATE = 2                  # the ground this far round a courtyard's igloos (and between them) is the courtyard's
+COURT_PAINT = 3.0                # a courtyard's zone reaches this far past its edge (its rim and the snow lining it)
+STRAY_REACH = 3                  # a block the zones missed (a lining's corner) joins the nearest zone this near
+LANE_PAINT = LANE_HALF + 3.5     # a lane's zone: its trench, its banks and its arches' feet
+PASSAGE_PAINT = PASSAGE_R + 0.5  # a passage's: its room, its walls and its roof
+PASSAGE_EASE = 1.0               # a passage between two zones is level this far in from each end
+
+
+def _zones(g, p, X, Z, courts, dec, rec):
+    import numpy as np
+    W, D = g.W, g.D
+    zones = []
+    maps = (np.zeros((W, D), np.int32), np.zeros((W, D), np.int32))       # (lower, upper): zone id, 0 none
+    strong = (np.zeros((W, D), np.int8), np.zeros((W, D), np.int8))       # how firmly each column was given (3 > 1)
+
+    def new(**kw):
+        zones.append(kw)
+        return len(zones)
+
+    def put(x, z, zid, s, layers=(0, 1)):
+        if not (0 <= x < W and 0 <= z < D):
+            return
+        for k in layers:
+            if s > strong[k][x, z]:
+                maps[k][x, z] = zid
+                strong[k][x, z] = s
+
+    def disc(cx, cz, r, zid, s):
+        for x in range(int(cx - r) - 1, int(cx + r) + 2):
+            for z in range(int(cz - r) - 1, int(cz + r) + 2):
+                if math.hypot(x - cx, z - cz) <= r:
+                    put(x, z, zid, s)
+
+    def band(A, B, r, zid, s):
+        for x in range(int(min(A[0], B[0]) - r) - 1, int(max(A[0], B[0]) + r) + 2):
+            for z in range(int(min(A[1], B[1]) - r) - 1, int(max(A[1], B[1]) + r) + 2):
+                if sw.seg_dist(x, z, A, B) <= r:
+                    put(x, z, zid, s)
+
+    # -- the courtyards (their floors and rims) and the lodge
+    court_zone = {}
+    for k, (cx, cz, r, c) in enumerate(courts):
+        court_zone[id(c)] = new(kind="flat", court=k)
+        disc(cx, cz, r + COURT_PAINT, court_zone[id(c)], 3)
+    lodge_zone = None
+    if rec["lodge_box"] is not None:
+        lodge_zone = new(kind="flat", lodge=True)
+        x1, z1, x2, z2 = rec["lodge_box"]
+        lane_x, ze = rec["lodge_stairs"]
+        for x in range(x1 - 1, x2 + 2):
+            for z in range(z1 - 1, z2 + 2):
+                put(x, z, lodge_zone, 3)
+        for x in range(lane_x - LANDING_HALF - 2, lane_x + LANDING_HALF + 3):
+            for z in range(z2 + 1, ze + 3):
+                put(x, z, lodge_zone, 3)
+
+    def zone_at_end(pt):
+        for cx, cz, r, c in courts:
+            if math.hypot(pt[0] - cx, pt[1] - cz) < 0.75:
+                return court_zone[id(c)], r + COURT_PAINT
+        return None, 0.0
+
+    # -- the lanes (between two courtyards, or a courtyard and the lodge)
+    lane_zone = {}
+    for a, b in p.lanes:
+        A, B = (X(a[0]), Z(a[1])), (X(b[0]), Z(b[1]))
+        L = math.hypot(B[0] - A[0], B[1] - A[1])
+        za, ra = zone_at_end(A)
+        zb, rb = zone_at_end(B)
+        end = L - rb
+        if zb is None:                                  # (the lodge's lane: up its stairs onto its yard)
+            zb = lodge_zone
+            lane_x, ze = rec["lodge_stairs"]
+            end = math.hypot(lane_x - A[0], ze + 2.5 - A[1])
+        if za is None or zb is None:
+            raise SystemExit(f"a lane from {A} to {B} doesn't join two zones")
+        zid = new(kind="lane", a=za, b=zb, frm=[float(A[0]), float(A[1])], to=[float(B[0]), float(B[1])],
+                  start=round(ra, 3), end=round(end, 3), floor=g.G + FLOOR, passage=False)
+        lane_zone[(a, b)] = zid
+        band(A, B, LANE_PAINT, zid, 2)
+
+    # -- the igloos, each in its courtyard's zone (a warren igloo in its host's, a lane igloo following its lane)
+    root = {}
+
+    def root_of(it):
+        if id(it) in root:
+            return root[id(it)]
+        if it.role == "ring":
+            z_ = court_zone[id(it.court)]
+        elif it.role == "lane":
+            tx, tz = rec["lane_at"][id(it)]
+            z_ = new(kind="flat", follow=lane_zone[it.lane], at=[float(tx), float(tz)])
+        elif it.role == "warren":
+            z_ = root_of(it.parent)
+        else:
+            z_ = new(kind="flat")
+        root[id(it)] = z_
+        return z_
+
+    item_cols = {}
+    for it in p.items:
+        zid = root_of(it)
+        cols = [(it.placed.ax + a, it.placed.az + b) for a, b in turned_columns(it.piece, it.k)]
+        item_cols[id(it)] = (zid, cols)
+        for x, z in cols:
+            put(x, z, zid, 3)
+        for x, z in rec["approach_of"].get(id(it), ()):
+            put(x, z, zid, 2)
+    # -- the passages: in their igloos' zone, or between two zones (a short lane)
+    for frm, to, A, B, floor_cells, cuts in rec["link_cells"]:
+        za, zb = root_of(frm), root_of(to)
+        zid = za
+        if za != zb:
+            L = math.hypot(B[0] - A[0], B[1] - A[1])
+            zid = new(kind="lane", a=za, b=zb, frm=[float(A[0]), float(A[1])], to=[float(B[0]), float(B[1])],
+                      start=PASSAGE_EASE, end=round(max(PASSAGE_EASE, L - PASSAGE_EASE), 3), floor=g.G + FLOOR,
+                      passage=True)
+        band(A, B, PASSAGE_PAINT, zid, 2)
+        for x, _y, z in floor_cells:
+            put(x, z, zid, 2)
+    # -- the steps out of each courtyard and their landings, in its zone
+    for x, z in rec["stair_cells"]:
+        best = min(courts, key=lambda c: math.hypot(x - c[0], z - c[1]) - c[2])
+        if lodge_zone is not None and maps[0][x, z] == lodge_zone:
+            continue
+        put(x, z, court_zone[id(best[3])], 3)
+    # -- the pens, the shrine and the Rimeberry Patches: each on its own ground
+    for pen in rec["pens"]:
+        zid = new(kind="flat")
+        x1, z1, x2, z2 = pen["box"]
+        for x in range(x1 - 1, x2 + 2):
+            for z in range(z1 - 1, z2 + 2):
+                put(x, z, zid, 3)
+    for it in p.items:
+        if it.role != "surface":
+            continue
+        zid, cols = item_cols[id(it)]
+        for x, z in cols:
+            for dx in (-1, 0, 1):
+                for dz in (-1, 0, 1):
+                    put(x + dx, z + dz, zid, 3)
+    column = new(kind="column")
+    for x, z in rec["path_cells"]:
+        put(x, z, column, 2)
+    # -- the village's own lamps and lights
+    for grp in rec["fixtures"]:
+        cells = grp.cells
+        cols = {(x, z) for x, _y, z, _s in cells}
+        low = {(x, z) for x, yi, z, _s in cells if yi <= g.G + 1}
+        x1, _y1, z1, x2, _y2, z2 = grp.box
+        mid = ((x1 + x2) / 2.0, (z1 + z2) / 2.0)
+        if grp.name in ("court lamp", "steps lamp"):
+            best = min(courts, key=lambda c: math.hypot(mid[0] - c[0], mid[1] - c[1]) - c[2])
+            zid = court_zone[id(best[3])]
+        elif grp.name == "lane lamp":
+            foot = min(cells, key=lambda c: c[1])              # (its pole's foot, on the lane's bank)
+            under = int(maps[0][foot[0], foot[2]])
+            if under and zones[under - 1]["kind"] == "lane":
+                zid = new(kind="flat", follow=under, at=[float(foot[0]), float(foot[2])])
+            else:
+                zid = under or new(kind="flat")
+        elif grp.name == "shrine lantern":
+            zid = column
+        else:
+            zid = new(kind="flat")
+        for x, z in cols:
+            put(x, z, zid, 3, layers=(0, 1) if (x, z) in low else (1,))
+    # -- the ground between and round each courtyard's igloos: its own
+    for zid, cols in item_cols.values():
+        if zones[zid - 1].get("court") is None:
+            continue
+        for x, z in cols:
+            for dx in range(-ZONE_DILATE, ZONE_DILATE + 1):
+                for dz in range(-ZONE_DILATE, ZONE_DILATE + 1):
+                    put(x + dx, z + dz, zid, 1)
+    # -- a block the zones missed (the snow lining a dug space's corner) joins the nearest zone of its layer
+    for x, yi, z, _st in g.blocks():
+        k = 0 if yi <= g.G else 1
+        if maps[k][x, z]:
+            continue
+        best = None
+        for dx in range(-STRAY_REACH, STRAY_REACH + 1):
+            for dz in range(-STRAY_REACH, STRAY_REACH + 1):
+                xx, zz = x + dx, z + dz
+                if 0 <= xx < W and 0 <= zz < D and maps[k][xx, zz]:
+                    d = dx * dx + dz * dz
+                    if best is None or d < best[0]:
+                        best = (d, int(maps[k][xx, zz]))
+        if best is not None:
+            put(x, z, best[1], 1, layers=(k,))
+    # -- every block of the village in a zone of its own layer (else the game would leave it out)
+    lost = []
+    for x, yi, z, st in g.blocks():
+        if maps[0 if yi <= g.G else 1][x, z] == 0:
+            lost.append((x, yi - g.G, z, mc.base(st)))
+    # -- the decorations: in the zone they stand in, following a lane, or on their own ground
+    decor = []
+    for i, grp in enumerate(dec.groups):
+        votes = {}
+        for x, yi, z, _s in grp.cells:
+            v = int(maps[0 if yi <= g.G else 1][x, z])
+            votes[v] = votes.get(v, 0) + 1
+        best = max(votes, key=lambda k: (votes[k], k))
+        kind = zones[best - 1]["kind"] if best else None
+        x1, _y1, z1, x2, _y2, z2 = grp.box
+        if kind == "flat":
+            decor.append(best)
+        elif kind == "lane":
+            decor.append(new(kind="flat", follow=best, at=[(x1 + x2) / 2.0, (z1 + z2) / 2.0]))
+        else:
+            decor.append(new(kind="flat", decor=i))
+    for z_ in zones:
+        z_.setdefault("follow", None)
+    ex, ez = rec["entrance"]
+    home = rec["home"]
+    return {"zones": zones, "lower": maps[0], "upper": maps[1], "decor": decor, "lost": lost,
+            "way_in": int(maps[1][int(ex), int(ez)] or maps[0][int(ex), int(ez)]),
+            "home": int(maps[1][home[0], home[1]]) if home is not None else 0}

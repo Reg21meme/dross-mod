@@ -16,7 +16,7 @@ import mc
 from voxel import AIR, Mix
 
 from villagekit import props
-from villagekit.local import Frame
+from villagekit.local import Frame, SKULL_ROT16
 from villagekit.writer import banner
 
 import lodge as old_lodge
@@ -293,7 +293,9 @@ def _barn(g):
                 g.set(x, 2, z, "bone_block[axis=y]", force=True)
                 if (x - cx0) % 6 == 0 and z in (cz0, cz1) or (z - cz0) % 6 == 0 and x in (cx0, cx1):
                     out = "north" if z == cz0 else "south" if z == cz1 else "west" if x == cx0 else "east"
-                    g.set(x, 3, z, f"dross:moose_skull[facing={out},wall=false]", force=True)
+                    # (vanilla skeleton skulls since October 23, 2026, the user: "replace them with regular skulls,
+                    # no need to put moose skulls on the bone fence"; until then a bull moose's on every other post)
+                    g.set(x, 3, z, f"skeleton_skull[rotation={SKULL_ROT16[out]}]", force=True)
             else:
                 g.set(x, 1, z, "spruce_fence", force=True)
     for x in range(cx0 + 2, cx0 + 5):

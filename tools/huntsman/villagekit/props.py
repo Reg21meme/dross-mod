@@ -16,8 +16,9 @@ CAIRN = Mix(("cobblestone", 3), ("stone", 2), ("andesite", 2), ("cobbled_deepsla
 # the ground of the camp: snow, gravel, Hoarfrost, packed ice and cobbles (the user, October 19: "I see dirt stuff that
 # shouldn't be there, it looks lame": no dirt, coarse dirt or mud anywhere)
 FIRE_GROUND = Mix(("gravel", 2), ("cobblestone", 1), ("stone", 1), patch=0.0)
-PATH = Mix(("snow_block", 3), ("gravel", 2), ("dross:hoarfrost", 2), ("packed_ice", 1), patch=0.3)
-PLAZA = Mix(("snow_block", 5), ("gravel", 2), ("dross:hoarfrost", 2), ("packed_ice", 1), patch=0.5)
+# (no packed ice in the paths and plazas since October 23, 2026: the user saw its patches as "weird ice squares")
+PATH = Mix(("snow_block", 3), ("gravel", 2), ("dross:hoarfrost", 2), patch=0.3)
+PLAZA = Mix(("snow_block", 5), ("gravel", 2), ("dross:hoarfrost", 2), patch=0.5)
 FROSTBITTEN = "dross:frostbitten_log[axis=y]"
 ROAST = "dross:roasted_meat_block[axis={lr}]"    # a roasted joint on its spit, the bone across (MeatBlocks)
 # open water that never freezes over: a light block of level 0, waterlogged (Minecraft only freezes plain water)

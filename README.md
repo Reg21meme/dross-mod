@@ -539,7 +539,10 @@ the edge) with a chat button to summon him.
 - **His villages.** Rimefall's areas come in groups of three, nearest the hub first and on out forever: in every group
   one area has the Huntsman's village (his lodge, the Alpha Moose's barn, 26 or 29 igloos), and each of the other two
   has a regular hunter village half the time (15-20 igloos round sunken courtyards). A village sits on the flattest
-  ground of its area, its ground levelled and stepped gently back to the land, never on or next to the big lake. Beat
+  ground of its area, never on or next to the big lake, and each part of it on its own ground: each courtyard with its
+  igloos at its own height, the lanes between them climbing with a stair at each step, every decoration on solid
+  ground, and the land between the parts left as it was (its trees and hills). Only the animals in its pens are tame
+  (one that gets out is wild), and no moose or Pond Skaters spawn by themselves inside a village. Beat
   him (both of them) and his village stays without him for good; on Peaceful he never comes. They only appear in newly
   generated land.
 

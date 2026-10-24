@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
+import com.reg21meme.dross.boss.rimefall.RimefallAnimals;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.rimefall.RimefallAreas;
@@ -22,9 +23,11 @@ import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
@@ -159,6 +162,17 @@ public final class HunterVillageWorldGameTest
                     regular++;
                 }
                 checkVillage(sites, plan, site.get(), name, problems);
+                // each of its parts on its own ground (its zones' levels), and none of Rimefall's animals spawning in it
+                if (plan.levels() == null || plan.zones() == null || plan.levels().length != plan.zones().zones())
+                {
+                    problems.add(name + "'s village has no levels for its zones");
+                }
+                if (!RimefallAnimals.inHunterVillage(dross, MobSpawnType.NATURAL, plan.ground())
+                        || RimefallAnimals.inHunterVillage(dross, MobSpawnType.SPAWN_EGG, plan.ground()))
+                {
+                    problems.add(name + ": Rimefall's animals should never spawn by themselves in its village (a spawn egg "
+                            + "still works)");
+                }
                 // the same a second time, from a fresh plan of the seed
                 Optional<Site> again = fresh.group(DrossBiomes.RIMEFALL, g).flatMap(gr -> {
                     for (int j = 0; j < gr.patches().size(); j++)
@@ -307,7 +321,8 @@ public final class HunterVillageWorldGameTest
                 .thenSucceed();
     }
 
-    /** The template's packed ice and snow blocks where the plan puts them; ground at the way in and in his yard. */
+    /** The template's packed ice and snow blocks where the plan puts them (each part on its zone's level: the zones'
+     * own levels, HunterVillageZones); ground at the way in and in his yard. */
     private static String checkBuilt(ServerLevel dross, RimefallVillages.VillagePlan plan, List<String> problems)
     {
         HunterVillageDesigns.Design design = plan.design();
@@ -325,15 +340,21 @@ public final class HunterVillageWorldGameTest
         {
             for (StructureTemplate.StructureBlockInfo info : template.get().filterBlocks(origin, settings, block))
             {
+                BlockPos local = HunterVillages.toLocal(info.pos(), plan.ground(), plan.front(), design);
+                int level = plan.levelAt(local.getY() > design.groundLayer(), local.getX(), local.getZ());
+                if (level == HunterVillageZones.NONE)
+                {
+                    continue;                   // (on its own ground: a path, a lantern post)
+                }
+                BlockPos at = info.pos().above(level - plan.ground().getY());
                 sampled++;
-                if (dross.getBlockState(info.pos()).is(block))
+                if (dross.getBlockState(at).is(block))
                 {
                     matched++;
                 }
                 else if (sampled - matched <= 3)
                 {
-                    LOGGER.info("[huntsman village] {} is {} ({} planned)", info.pos().toShortString(),
-                            dross.getBlockState(info.pos()), block);
+                    LOGGER.info("[huntsman village] {} is {} ({} planned)", at.toShortString(), dross.getBlockState(at), block);
                 }
             }
         }
@@ -343,7 +364,10 @@ public final class HunterVillageWorldGameTest
             problems.add(String.format(Locale.ROOT, "only %d of its %d packed ice and snow blocks are in place (%.1f%%)", matched,
                     sampled, 100.0D * share));
         }
-        for (BlockPos at : new BlockPos[] {plan.wayIn(), plan.home()})
+        // (its way in on the land as it is there: the heightmap's; his yard at its zone's level)
+        BlockPos way = plan.wayIn();
+        way = way.atY(dross.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, way.getX(), way.getZ()));
+        for (BlockPos at : new BlockPos[] {way, plan.home()})
         {
             if (!dross.getBlockState(at.below()).isFaceSturdy(dross, at.below(), Direction.UP)
                     || !dross.getBlockState(at).getCollisionShape(dross, at).isEmpty()

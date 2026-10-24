@@ -41,10 +41,12 @@ from villagekit.writer import animal, banner
 
 FLOOR = -2                     # where you stand in a courtyard, a lane or a sunken igloo (3 below the ground)
 FLOOR_BLOCK = "snow_block"
-LINING = Mix(("snow_block", 6), ("packed_ice", 1), patch=0.5, scale=3.0)
-# the floors: trodden snow, Hoarfrost, gravel and packed ice (the user: no dirt, it "looks lame")
-LANE_FLOOR = Mix(("snow_block", 4), ("gravel", 2), ("dross:hoarfrost", 2), ("packed_ice", 1), patch=0.4)
-COURT_FLOOR = Mix(("snow_block", 6), ("dross:hoarfrost", 2), ("packed_ice", 1), ("gravel", 1), patch=0.5)
+# the dug spaces' walls: snow (until October 23, 2026 with patches of packed ice, which the user saw as "weird ice
+# squares": "I don't like the ice squares")
+LINING = Mix(("snow_block", 1))
+# the floors: trodden snow, Hoarfrost and gravel (the user: no dirt, it "looks lame"; and no packed ice, as above)
+LANE_FLOOR = Mix(("snow_block", 4), ("gravel", 2), ("dross:hoarfrost", 2), patch=0.4)
+COURT_FLOOR = Mix(("snow_block", 6), ("dross:hoarfrost", 2), ("gravel", 1), patch=0.5)
 PEN_FLOOR = Mix(("snow_block", 4), ("dross:hoarfrost", 3), ("gravel", 1), patch=0.5)
 
 MAIN_R = 12.0                  # the first courtyard's radius

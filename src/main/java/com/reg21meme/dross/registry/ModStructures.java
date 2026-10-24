@@ -2,6 +2,7 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.huntsman.village.HunterDecorFilter;
+import com.reg21meme.dross.boss.huntsman.village.HunterTerrace;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillagePiece;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageStructure;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakePiece;
@@ -71,6 +72,10 @@ public final class ModStructures
     // Boss area: dross:hunter_decor, leaves out the decorations a hunter village didn't roll (boss/huntsman/village)
     public static final RegistryObject<StructureProcessorType<HunterDecorFilter>> HUNTER_DECOR = STRUCTURE_PROCESSORS.register("hunter_decor",
             () -> () -> HunterDecorFilter.CODEC);
+
+    // Boss area: dross:hunter_terrace, puts each part of a hunter village on its own ground (boss/huntsman/village)
+    public static final RegistryObject<StructureProcessorType<HunterTerrace>> HUNTER_TERRACE = STRUCTURE_PROCESSORS.register("hunter_terrace",
+            () -> () -> HunterTerrace.CODEC);
 
     private ModStructures() {}
 }
