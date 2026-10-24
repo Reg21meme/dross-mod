@@ -1,8 +1,7 @@
 package com.reg21meme.dross.boss.rimefall.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.blaze3d.vertex.VertexConsumer;
-import net.minecraft.client.renderer.LightTexture;
+import com.reg21meme.dross.boss.client.PartLayer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
@@ -11,7 +10,6 @@ import net.minecraft.world.entity.LivingEntity;
 import software.bernie.geckolib.animatable.GeoEntity;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
-import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
 import javax.annotation.Nullable;
 
@@ -45,8 +43,12 @@ public class RimefallMobRenderer<T extends LivingEntity & GeoEntity> extends Geo
         this.shadowRadius = this.shadow;
         if (ice)
         {
-            this.addRenderLayer(new IceLayer<>(this, false));
-            this.addRenderLayer(new IceLayer<>(this, true));
+            // the see-through ice (blended, lit by the world) and its glow (full-bright): only the parts made of ice
+            // drawn again for them (the Rimehorn's horns: {@link PartLayer})
+            this.addRenderLayer(new PartLayer<>(this, animal -> model.texture(animal, "_ice"), RenderType::entityTranslucent,
+                    false));
+            this.addRenderLayer(new PartLayer<>(this, animal -> model.texture(animal, "_iceglow"),
+                    RenderType::entityTranslucentEmissive, true));
         }
     }
 
@@ -72,29 +74,5 @@ public class RimefallMobRenderer<T extends LivingEntity & GeoEntity> extends Geo
     public RenderType getRenderType(T animal, ResourceLocation texture, @Nullable MultiBufferSource bufferSource, float partialTick)
     {
         return RenderType.entityCutoutNoCull(texture);
-    }
-
-    /** The see-through ice (blended, lit by the world), or its glow (full-bright). */
-    private static class IceLayer<T extends LivingEntity & GeoEntity> extends GeoRenderLayer<T>
-    {
-        private final boolean glow;
-
-        IceLayer(RimefallMobRenderer<T> renderer, boolean glow)
-        {
-            super(renderer);
-            this.glow = glow;
-        }
-
-        @Override
-        public void render(PoseStack poseStack, T animal, BakedGeoModel bakedModel, RenderType renderType,
-                           MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight,
-                           int packedOverlay)
-        {
-            RimefallMobRenderer<T> renderer = (RimefallMobRenderer<T>) this.getRenderer();
-            ResourceLocation texture = renderer.mobModel.texture(animal, this.glow ? "_iceglow" : "_ice");
-            RenderType type = this.glow ? RenderType.entityTranslucentEmissive(texture) : RenderType.entityTranslucent(texture);
-            renderer.reRender(bakedModel, poseStack, bufferSource, animal, type, bufferSource.getBuffer(type), partialTick,
-                    this.glow ? LightTexture.FULL_BRIGHT : packedLight, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
-        }
     }
 }

@@ -20,7 +20,7 @@ the others (FolkRole.shows): its hood's style, its cape, its tools.
   workers      farmer       a hood with a Rimehorn's horn on its brow; a hoe, a basket of Frostroots
                butcher      a close cap-hood; a cleaver, a leather apron
                herder       a hood with fur ear flaps and a bobble; a shepherd's crook
-               fisher       an oilskin hood with a wide brim; a rod and line, a fish
+               fisher       an oilskin hood with a wide brim; a rod and line, a fish on its hook
                tanner       a hood with a fringed capelet; a scraper, a rolled hide on his back
   the elder                 a long hood with its tail down his back, a long blue cape; a white scar across his right
                             eye, a long white beard (the user: "kind of like the Huntsman's face"); a sword of ice
@@ -84,7 +84,6 @@ GEAR = (
     ("scraper", "hand_r", (-6.0, FIST_Y, 0.0)),
     ("bow", "hand_l", (6.0, FIST_Y, 0.0)),
     ("basket", "hand_l", (6.0, FIST_Y, 0.0)),
-    ("fish", "hand_l", (6.0, FIST_Y, 0.0)),
     ("horn_held", "hand_l", (6.0, FIST_Y, 0.0)),
     ("shield", "arm_l", (8.0, 16.0, 0.0)),
 )
@@ -239,24 +238,27 @@ def gear(r):
     ho = r.part("hoe")
     shaft(ho, 2, 27)
     box(ho, xr - 1, xr + 1, 25, 26, -5, 1, "iron")
-    # the butcher's cleaver
+    # the butcher's cleaver: a broad bright blade over its handle
     cl = r.part("cleaver")
-    shaft(cl, 10, 15)
-    box(cl, xr - 0.5, xr + 0.5, 15, 19, -3, 1, "iron")
+    shaft(cl, 9, 17)
+    box(cl, xr - 0.5, xr + 0.5, 16, 23, -4, 1, "blade")
     # the herder's crook
     cr = r.part("crook")
     shaft(cr, 2, 33)
     box(cr, xr - 0.5, xr + 0.5, 33, 34, -3, 0.5, "shaft")
     box(cr, xr - 0.5, xr + 0.5, 30, 33, -4, -3, "shaft")
-    # the fisher's rod and line
+    # the fisher's rod and line, a fish on its hook (the user, October 24, 2026: "make a fish at the end of his fishing
+    # pole"; he held it in his other hand)
     ro = r.part("rod")
     ro.seg((xr, 9.5, 1.0), (xr, 24.5, -12.0), 1.0, 1.0, "shaft")
-    ro.seg((xr, 24.5, -12.0), (xr, 13.5, -12.0), 1.0, 1.0, "string")
-    box(ro, xr - 0.5, xr + 0.5, 12.5, 13.5, -13, -12, "iron")
-    # the tanner's scraper
+    ro.seg((xr, 24.5, -12.0), (xr, 14.5, -12.0), 1.0, 1.0, "string")
+    box(ro, xr - 0.5, xr + 0.5, 13.5, 14.5, -13, -12, "iron")
+    box(ro, xr - 0.5, xr + 0.5, 9, 14, -13.5, -11.5, "fishscale")             # the fish, hanging by its mouth
+    box(ro, xr - 0.5, xr + 0.5, 7, 9, -13, -12, "fishscale")                  # its tail
+    # the tanner's scraper: a wide bright blade across its handle
     sc = r.part("scraper")
-    shaft(sc, 10, 14)
-    box(sc, xr - 2, xr + 2, 14, 15, -1.5, 0.5, "iron")
+    shaft(sc, 9, 16)
+    box(sc, xr - 2.5, xr + 2.5, 16, 18, -1.5, 0.5, "blade")
     # the archer's bow in his left fist, its string towards him
     bw = r.part("bow")
     box(bw, xl - 0.5, xl + 0.5, 10, 13, -0.5, 0.5, "leather")
@@ -265,15 +267,11 @@ def gear(r):
     bw.seg((xl, 10.0, 0.0), (xl, 4.0, 1.4), 1.0, 1.0, "bowwood")
     bw.seg((xl, 4.0, 1.4), (xl, 1.5, 3.0), 1.0, 1.0, "bowwood")
     box(bw, xl - 0.5, xl + 0.5, 2, 21, 3, 4, "string")
-    # the farmer's basket, the fisher's fish
+    # the farmer's basket
     ba = r.part("basket")
     box(ba, xl - 0.5, xl + 0.5, 9, 10, -0.5, 0.5, "wicker")
     box(ba, xl - 2.5, xl + 2.5, 4, 9, -2.5, 2.5, "wicker")
     box(ba, xl - 2, xl + 2, 9, 10, -2, 2, "frostroot")
-    fi = r.part("fish")
-    box(fi, xl - 0.5, xl + 0.5, 10, 11, -0.5, 0.5, "string")
-    box(fi, xl - 0.5, xl + 0.5, 2, 9, -1.5, 1.5, "fishscale")
-    box(fi, xl - 0.5, xl + 0.5, 9, 10, -2, 2, "fishscale")
     # the horn-blower's horn, held up to his mouth in horn_blow
     hh = r.part("horn_held")
     hh.cone((xl, 12.6, 0.0), (xl, 18.6, -1.6), 1.0, "horn", w1=2.4, steps=3)
@@ -376,11 +374,14 @@ BEARD = P("#a9adb1", "#c3c6c9", "#d8dadc", "#e9eaeb", "#f7f7f7")      # white, l
 SNOWFLAKE = P("#c3d3e2", "#d8e4ee", "#ebf2f8", "#ffffff")
 ICE_SOLID = P("#5f97c4", "#78add6", "#97c5e6", "#bad9f1", "#d9ebf8", "#f2f9fd")
 HORN = P("#6d6a63", "#8a867e", "#a6a299", "#c1bdb3", "#d9d6cd", "#efede7")
+BLADE = P("#7d868e", "#98a1a9", "#b4bcc3", "#cfd6dc", "#e6ebef")      # a bright steel edge, readable against a sleeve
 
 
 def face(lk, seed):
     """The head: darkness all over (the hood's shadow), two blue eyes glowing out of it on its front (DENSITY texels
-    a pixel, so half-pixel eyes); the elder's white scar running down over his right eye."""
+    a pixel, so half-pixel eyes); the elder's short white scar down across his right eye, which is gone: no eye behind
+    it (the user, October 24, 2026: "the scar of the elder is too big, make it smaller, and it shouldn't have a blue eye
+    behind the scar")."""
     base = M.skin(SHADOW, seed=seed, mottle=0.35, frost_amount=0.0, outline=0.0)
     scarred = lk.get("scar", False)
 
@@ -392,19 +393,21 @@ def face(lk, seed):
         front = (tx.N[:, 2] < -0.9) & (z < -3.9)
         ax = np.abs(x)
         eye = front & (ax >= 1.0) & (ax <= 2.5) & (y >= 28.5) & (y <= 29.5)
+        if scarred:
+            eye &= x > 0                                        # (his right eye, -x, gone under the scar)
         core = eye & (ax >= 1.5) & (ax <= 2.0) & (y >= 29.0)
         for mask, c in ((eye, EYE[1]), (core, EYE[3])):
             col[mask] = c
             glow[mask] = np.concatenate([np.asarray(c, dtype=float), [255.0]])
         glow[eye & ~core & (ax > 2.0)] = np.concatenate([np.asarray(EYE[0], dtype=float), [255.0]])
         if scarred:                                             # (his right: -x) from his brow down past his eye
-            a0, a1 = np.array([-3.6, 32.0]), np.array([-0.6, 26.4])
+            a0, a1 = np.array([-2.6, 30.8]), np.array([-1.0, 27.4])
             d = a1 - a0
             t = np.clip(((x - a0[0]) * d[0] + (y - a0[1]) * d[1]) / float(d @ d), 0.0, 1.0)
             dist = np.hypot(x - (a0[0] + t * d[0]), y - (a0[1] + t * d[1]))
-            scar = front & (dist < 0.36)
+            scar = front & (dist < 0.3)
             col[scar] = SCAR[1]
-            col[scar & (dist < 0.16)] = SCAR[2]
+            col[scar & (dist < 0.12)] = SCAR[2]
             glow[scar] = 0.0
         out["color"] = col
         out["glow"] = glow
@@ -450,6 +453,7 @@ def materials(calling):
         "bowwood": M.wood(M.WOOD, seed=seed + 26, plank=2.0, axis=1, frost_amount=0.1),
         "ice": M.solid(ICE_SOLID, idx=3.2, seed=seed + 27, outline=0.08),
         "iron": M.metal(M.IRON, seed=seed + 28, shine=1.2, frost_amount=0.15),
+        "blade": M.metal(BLADE, seed=seed + 41, shine=1.4, frost_amount=0.05),
         "leather": M.skin(M.LEATHER, seed=seed + 29, mottle=0.8, frost_amount=0.08),
         "string": M.solid(P("#bdb5a3", "#d1c9b7", "#e5ddcb"), idx=1.5, seed=seed + 30, outline=0.0),
         "bone": M.bone(M.BONE, seed=seed + 31, frost_amount=0.1),
@@ -480,7 +484,7 @@ CALLINGS = (
     ("farmer", "Farmer", "worker", ("hood_horn", "hoe", "basket"), ("chop",)),
     ("butcher", "Butcher", "worker", ("cleaver", "apron"), ("chop",)),
     ("herder", "Herder", "worker", ("hood_flaps", "crook"), ("chop",)),
-    ("fisher", "Fisher", "worker", ("hood_brim", "rod", "fish"), ("chop",)),
+    ("fisher", "Fisher", "worker", ("hood_brim", "rod"), ("chop",)),
     ("tanner", "Tanner", "worker", ("fringe", "scraper", "hide_roll"), ("chop",)),
     ("elder", "Elder", "elder", ("hood_tail", "beard", "cape_long", "sword"), ("chop",)),
 )
@@ -558,10 +562,22 @@ def legs(p, swing, lift=True):
     return (HIP_Y * (1.0 - math.cos(a)) + 2.4 * math.sin(a)) if lift else 0.0
 
 
-REST_R = 8.0           # its right arm a little forward and out, holding its tool upright at its side
-REST_R_OUT = 4.0
-REST_L = 4.0
-CARRY_ROLL = REST_R_OUT + 6.0     # its tool's top leant out at rest, clear of its hood (its arm out tips it in)
+# At rest each hand holds its tool upright in front of its arm, the way a man carries a spear: the arm brought forward,
+# the fist turned back by as much, so the tool stands straight up from the fist, clear of the sleeve (the user, October
+# 24, 2026: the tools "are not properly held"; hanging straight down along the arm, a cleaver's or a sword's blade was
+# inside the arm and an axe's behind it). The left hand the same (the archer's bow upright, a basket or a fish hanging).
+REST_R = 34.0
+REST_R_OUT = 6.0
+REST_L = 22.0
+REST_L_OUT = 3.0
+CARRY_ROLL = 8.0       # its tool's top leant a little out to its side, clear of its hood
+
+
+def carry(p, side, fwd, out, roll=None):
+    """Its arm swung `fwd` forward and `out` to its side, its fist turned back by as much, so what it holds stays
+    upright."""
+    arm(p, side, fwd, out=out)
+    hand(p, side, -fwd, CARRY_ROLL if roll is None else roll)
 
 
 def _breath(p, t, period=3.2):
@@ -578,9 +594,8 @@ def idle(rig):
         b = _breath(p, t, T / 2.0)
         look = math.sin(2.0 * math.pi * t / T)
         p.rot("head", 2.0 * b, 14.0 * look, 0.0)
-        arm(p, "r", REST_R + 1.5 * b, out=REST_R_OUT)
-        hand(p, "r", 0.0, CARRY_ROLL)
-        arm(p, "l", REST_L - 1.5 * b, out=2.0)
+        carry(p, "r", REST_R + 1.5 * b, REST_R_OUT)
+        carry(p, "l", REST_L - 1.5 * b, REST_L_OUT, 0.0)
         show(p)
         return p
 
@@ -593,9 +608,8 @@ def _gait(rig, name, T, leg, arm_amp, lean, bob, stride_px):
         w = 2.0 * math.pi * t / T
         sw = math.sin(w)
         rise = legs(p, leg * sw)
-        arm(p, "r", REST_R - arm_amp * 0.5 * sw, out=REST_R_OUT)          # (its tool hand swings less)
-        hand(p, "r", 0.0, CARRY_ROLL)
-        arm(p, "l", REST_L + arm_amp * sw, out=2.0)
+        carry(p, "r", REST_R - arm_amp * 0.35 * sw, REST_R_OUT)            # (its tool hand swings less)
+        carry(p, "l", REST_L + arm_amp * 0.6 * sw, REST_L_OUT, 0.0)
         p.rot("body", lean, 0.0, 0.0)
         p.pos("waist", 0.0, rise + bob * abs(math.cos(w)), 0.0)
         p.rot("head", -lean * 0.6, 0.0, 0.0)
@@ -617,11 +631,9 @@ def talk(rig):
         _breath(p, t, 2.0)
         up = ramp(t, 0.15, 0.5) * (1.0 - ramp(t, 1.5, 1.9))
         p.rot("head", 7.0 * math.sin(2.0 * math.pi * t / 0.8) * up, 0.0, 0.0)
-        arm(p, "r", REST_R, out=REST_R_OUT)
-        hand(p, "r", 0.0, CARRY_ROLL)
+        carry(p, "r", REST_R, REST_R_OUT)
         wave = 8.0 * math.sin(2.0 * math.pi * t / 0.8)                  # his hand out to his side as he speaks
-        arm(p, "l", REST_L + (38.0 + wave) * up, out=30.0 * up)
-        hand(p, "l", 0.0, 0.0)
+        carry(p, "l", REST_L + (38.0 + wave) * up, REST_L_OUT + 27.0 * up, 0.0)
         p.rot("body", 0.0, 8.0 * up, 0.0)
         show(p)
         return p
@@ -638,10 +650,12 @@ def chop(rig):
     def frame(t):
         p = Pose()
         fwd = float(keyed(t, [(0.0, REST_R), (0.38, 165.0), (CHOP_HIT, 55.0, "in"), (0.75, 50.0), (T, REST_R)]))
-        tilt = float(keyed(t, [(0.0, 0.0), (0.38, -40.0), (CHOP_HIT, -95.0, "in"), (0.75, -95.0), (T, 0.0)]))
-        arm(p, "r", fwd)
-        hand(p, "r", tilt)
-        arm(p, "l", REST_L + float(keyed(t, [(0.0, 0.0), (0.38, 20.0), (CHOP_HIT, -10.0), (T, 0.0)])), out=6.0)
+        tilt = float(keyed(t, [(0.0, -REST_R), (0.38, -40.0), (CHOP_HIT, -95.0, "in"), (0.75, -95.0), (T, -REST_R)]))
+        out = float(keyed(t, [(0.0, REST_R_OUT), (0.38, 0.0), (0.75, 0.0), (T, REST_R_OUT)]))
+        arm(p, "r", fwd, out=out)
+        hand(p, "r", tilt, CARRY_ROLL * float(keyed(t, [(0.0, 1.0), (0.3, 0.0), (0.8, 0.0), (T, 1.0)])))
+        carry(p, "l", REST_L + float(keyed(t, [(0.0, 0.0), (0.38, 20.0), (CHOP_HIT, -10.0), (T, 0.0)])), REST_L_OUT + 3.0,
+              0.0)
         p.rot("body", float(keyed(t, [(0.0, 0.0), (0.38, -6.0), (CHOP_HIT, 10.0, "in"), (T, 0.0)])),
               float(keyed(t, [(0.0, 0.0), (0.38, 15.0), (CHOP_HIT, -12.0, "in"), (T, 0.0)])), 0.0)
         show(p)
@@ -655,8 +669,8 @@ def chop(rig):
 def _thrust_keys(hits, T, sweep_last):
     """Keys for its right arm (fwd, out, tilt) for thrusts at `hits` (the last one a sweep if `sweep_last`)."""
     fwd = [(0.0, REST_R)]
-    out = [(0.0, 0.0)]
-    tilt = [(0.0, 0.0)]
+    out = [(0.0, REST_R_OUT)]
+    tilt = [(0.0, -REST_R)]
     for i, h in enumerate(hits):
         last = sweep_last and i == len(hits) - 1
         fwd += [(h - 0.18, 75.0), (h, 95.0, "in"), (h + 0.14, 82.0)]
@@ -666,8 +680,8 @@ def _thrust_keys(hits, T, sweep_last):
         else:
             out += [(h - 0.18, 0.0), (h, 0.0), (h + 0.14, 0.0)]
     fwd += [(T, REST_R)]
-    tilt += [(T, 0.0)]
-    out += [(T, 0.0)]
+    tilt += [(T, -REST_R)]
+    out += [(T, REST_R_OUT)]
     return fwd, out, tilt
 
 
@@ -681,7 +695,8 @@ def _thrusts(rig, name, T, hits, sweep_last):
         lunge = min(1.0, sum(max(0.0, 1.0 - abs(t - h) / 0.2) for h in hits))
         p.rot("body", 8.0 * lunge, -10.0 * lunge, 0.0)
         p.pos("waist", 0.0, legs(p, 10.0 * lunge), 0.0)
-        arm(p, "l", REST_L + 25.0 * min(1.0, lunge + ramp(t, 0.0, 0.2) * (1.0 - ramp(t, T - 0.3, T))), out=8.0)
+        carry(p, "l", REST_L + 25.0 * min(1.0, lunge + ramp(t, 0.0, 0.2) * (1.0 - ramp(t, T - 0.3, T))), REST_L_OUT + 5.0,
+              0.0)
         show(p)
         return p
 
@@ -703,9 +718,10 @@ def _shot(rig, name, T, release):
         p = Pose()
         up = ramp(t, 0.1, 0.45) * (1.0 - ramp(t, T - 0.35, T))
         draw = ramp(t, release - 0.55, release - 0.05) * (1.0 - ramp(t, release, release + 0.05))
-        arm(p, "l", REST_L + 82.0 * up, out=-6.0 * up)                  # the bow held out ahead
-        hand(p, "l", -82.0 * up, 0.0)                                   # (kept upright)
-        arm(p, "r", REST_R + 85.0 * up * (1.0 - 0.35 * draw), out=-26.0 * up * (1.0 - draw * 0.3))
+        carry(p, "l", REST_L + (86.0 - REST_L) * up, REST_L_OUT - 9.0 * up, 0.0)   # the bow held out ahead, upright
+        rf = REST_R + ((93.0 - REST_R) - 29.75 * draw) * up
+        arm(p, "r", rf, out=REST_R_OUT * (1.0 - up) - 26.0 * up * (1.0 - draw * 0.3))
+        hand(p, "r", -REST_R * (1.0 - up), CARRY_ROLL * (1.0 - up))
         p.rot("body", 0.0, 22.0 * up, 0.0)
         p.rot("head", 0.0, -20.0 * up, 0.0)
         show(p)
@@ -733,9 +749,9 @@ def horn_blow(rig):
     def frame(t):
         p = Pose()
         up = ramp(t, 0.15, HORN_CALL) * (1.0 - ramp(t, 2.9, 3.4))
-        arm(p, "l", REST_L + 135.0 * up, out=-28.0 * up)
-        hand(p, "l", -40.0 * up, 0.0)
-        arm(p, "r", REST_R)
+        arm(p, "l", REST_L + (139.0 - REST_L) * up, out=REST_L_OUT - 31.0 * up)
+        hand(p, "l", -REST_L * (1.0 - up) - 40.0 * up, 0.0)
+        carry(p, "r", REST_R, REST_R_OUT)
         p.rot("head", -14.0 * up, 0.0, 0.0)
         p.rot("body", -4.0 * up, 0.0, 0.0)
         show(p, ("horn_held",) if t > 0.15 and t < 3.4 else ())

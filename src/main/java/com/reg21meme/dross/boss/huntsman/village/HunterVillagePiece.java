@@ -70,6 +70,9 @@ public final class HunterVillagePiece extends StructurePiece
     private static final Set<Block> BARE = Set.of(Blocks.DIRT, Blocks.COARSE_DIRT, Blocks.ROOTED_DIRT, Blocks.GRASS_BLOCK,
             Blocks.PODZOL, Blocks.MUD);
     private static final Direction[] SIDES = {Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST};
+    /** A path steps up onto a zone's ground with a stair only if it's a courtyard's or this big (columns): the shrine's,
+     * a pen's, a Rimeberry Patch's; not a lamp's or a decoration's little patch. */
+    private static final int STEP_ONTO_AREA = 36;
 
     /** Where a column's ground goes (the template's own column, the world's own ground there): its zone's level, or
      * eased from the world's towards the zones near it. Shared with {@link HunterTerrace} for the paths. */
@@ -173,14 +176,16 @@ public final class HunterVillagePiece extends StructurePiece
             return zones.get(zone).kind == HunterVillageZones.Kind.COLUMN ? HunterVillageZones.NONE
                     : zones.level(this.plan.levels(), zone, lx, lz);
         }
+        // under a kept decoration, the level it's put at, all over its box (one half on a courtyard's level and the
+        // other on the land round it once left a windbreak floating: the user, October 24, 2026)
         int decoration = zones.decorationAt(lx, lz);
         boolean[] keep = this.keep();
         if (decoration >= 0 && decoration < keep.length && keep[decoration])
         {
             int dz = zones.decorZone(decoration);
-            if (dz >= 0 && zones.get(dz).decor == decoration)
+            if (dz >= 0 && zones.get(dz).kind != HunterVillageZones.Kind.COLUMN)
             {
-                return this.plan.levels()[dz];
+                return zones.level(this.plan.levels(), dz, lx, lz);
             }
         }
         return HunterVillageZones.NONE;
@@ -463,8 +468,8 @@ public final class HunterVillagePiece extends StructurePiece
         {
             return this.finalGround(level, zones, x, z);
         }
-        return !path && zn.kind == HunterVillageZones.Kind.FLAT ? zones.level(this.plan.levels(), zone, local.getX(), local.getZ())
-                : HunterVillageZones.NONE;
+        return !path && zn.kind == HunterVillageZones.Kind.FLAT && (zn.court >= 0 || zn.area >= STEP_ONTO_AREA)
+                ? zones.level(this.plan.levels(), zone, local.getX(), local.getZ()) : HunterVillageZones.NONE;
     }
 
     /** A stair wherever a path over the snow steps up a block: along it, or between it and the ground of the zone it
@@ -495,13 +500,24 @@ public final class HunterVillagePiece extends StructurePiece
                 Direction up = null;
                 for (Direction side : SIDES)
                 {
-                    // (a path's column steps up onto a path or a zone's ground; a zone's column only onto a path)
-                    int n = this.pathGround(level, zones, x + side.getStepX(), z + side.getStepZ(), !onPath);
-                    if (n == here + 1)
+                    // (a path's column steps up onto a path or a big zone's ground; a zone's column only onto a path;
+                    // only onto ground that goes on, not a one-block bump, and not out of a one-block pit: once a ring
+                    // of stairs went round a single block on a path)
+                    int dx = side.getStepX();
+                    int dz = side.getStepZ();
+                    int n = this.pathGround(level, zones, x + dx, z + dz, !onPath);
+                    if (n != here + 1)
                     {
-                        up = side;
-                        break;
+                        continue;
                     }
+                    int beyond = this.pathGround(level, zones, x + 2 * dx, z + 2 * dz, false);
+                    int behind = this.pathGround(level, zones, x - dx, z - dz, false);
+                    if (beyond != HunterVillageZones.NONE && beyond < n || behind != HunterVillageZones.NONE && behind > here)
+                    {
+                        continue;
+                    }
+                    up = side;
+                    break;
                 }
                 if (up == null)
                 {

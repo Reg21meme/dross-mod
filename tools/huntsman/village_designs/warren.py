@@ -76,9 +76,12 @@ CORRAL = (27, 25)
 PEN_CLEAR = 3.0
 PEN_KEEP = 2                     # nothing an animal could stand on within this many blocks inside the fence
 RIMEHORN_CALF_AGE = sw.RIMEHORN_CALF_AGE
-# the hunter villagers (boss/huntsman/folk; the user, October 23, 2026: "if there are 10 beds then around 1.5 multiplier is
-# fair ... 15-20 should spawn"): each village has its beds times a number rolled between these (by its own seed)
-FOLK_PER_BED = (1.5, 2.0)
+# the Frostfolk (boss/frostfolk): each village has its beds times a number rolled between these (by its own seed); 1.5 to
+# 2 until the user's play test of October 24, 2026 ("there might be a little too many villagers")
+FOLK_PER_BED = (1.0, 1.2)
+# at most this many in each Barracks; its other warriors stand guard outside, in the courtyards (the user: "the armory is
+# really crowded ... make sure the armory count is not over 2 ... the rest of them should be outside")
+FOLK_BARRACKS_INSIDE = 2
 FOLK_APART = 1.6                 # no two stand closer than this (blocks)
 FOLK_FIRE_CLEAR = 4.0            # in a courtyard they stand at least this far from its fire (its benches are at 3)
 FOLK_RIM_CLEAR = 1.6             # ... and this far in from its rim (its lamp poles)
@@ -1170,11 +1173,12 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
 
 
 def _folk(g, dec, p, courts, lodge_items, seed, huntsman):
-    """The hunter villagers, put in the template with the village (each stands on its own floor wherever the village's
-    parts end up: the game moves them with their zone like the pens' animals): its beds times FOLK_PER_BED of them.
-    The elder in the meeting hall; a worker in each workplace (FOLK_WORKPLACES); a horn-blower (two in the Huntsman's
-    village); a warrior for each bed of a Barracks and a villager (FOLK_MIX) for each bed of a home, inside it; the
-    rest round the courtyards' fires. Each faces any way. Returns {calling: how many}."""
+    """The Frostfolk, put in the template with the village (each stands on its own floor wherever the village's parts
+    end up: the game moves them with their zone like the pens' animals): its beds times FOLK_PER_BED of them. The elder
+    in the meeting hall; a worker in each workplace (FOLK_WORKPLACES); a horn-blower (two in the Huntsman's village); a
+    warrior for each bed of a Barracks, FOLK_BARRACKS_INSIDE of them inside it and the rest on guard in the courtyards;
+    a villager (FOLK_MIX) for each bed of a home, inside it; the rest round the courtyards' fires. Each faces any way.
+    Returns {calling: how many}."""
     rng = random.Random(seed * 97 + 13)
     items = list(p.items)
     beds = sum(beds_of(it.piece) for it in items) + sum(beds_of(pl.piece) for pl in lodge_items)
@@ -1202,7 +1206,7 @@ def _folk(g, dec, p, courts, lodge_items, seed, huntsman):
     for it in items:
         n = beds_of(it.piece)
         if n and it.id == "barracks_igloo":
-            homes += [(pick(FOLK_WARRIORS), it.placed) for _ in range(n)]
+            homes += [(pick(FOLK_WARRIORS), it.placed if i < FOLK_BARRACKS_INSIDE else None) for i in range(n)]
         elif n:
             homes += [(pick(FOLK_MIX), it.placed) for _ in range(n)]
     rng.shuffle(homes)

@@ -17,6 +17,11 @@ public final class FolkTuning
     /** A village's Frostfolk wanders within this many blocks of where the village put it (its home), and walks back
      * there after a fight; angry, it chases you anywhere. (Spawn-egg ones have no home.) */
     public static final int HOME_RADIUS = 24;
+    /** A Pond Skater hurts one: the others this near who aren't fighting go for it too. */
+    public static final double HELP_RANGE = 16.0D;
+    /** They're drawn only this near (blocks; times the video settings' entity distance): a village holds dozens of
+     * them, and drawing every one in sight was what most of its frames went on (measured October 24, 2026). */
+    public static final double RENDER_DISTANCE = 40.0D;
     /** It walks back home at this share of its speed. */
     public static final double HOME_SPEED = 0.8D;
 

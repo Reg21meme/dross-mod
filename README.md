@@ -258,7 +258,7 @@ Unlimited uses, no restocking, no XP.
 | **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
 | **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the eleven Frostfolk), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -598,11 +598,12 @@ the edge) with a chat button to summon him.
 ### The Frostfolk
 
 Rimefall's villagers: eleven callings, about 2 blocks tall, built like a pillager, each in a blue hood of its own style
-with no face under it, only darkness and two glowing blue eyes, gloved, in simple clothes, with its own tools, spawn
-egg and voice. They live in Rimefall's villages, 1.5 to 2 for every bed (a regular village 19 to 48, the Huntsman's 82
-and 88): the elder in the meeting hall, a worker at each workplace (the butcher in the Cookhouse, the tanner in the
+with no face under it, only darkness and two glowing blue eyes, gloved, in simple clothes, carrying its own tools
+upright in front of it, with its own voice. Three spawn eggs (Frostfolk Warrior, Worker and Elder) each bring a calling
+of that kind at random. They live in Rimefall's villages, 1 to 1.2 for every bed (a regular village 13 to 30, the
+Huntsman's 54 and 55): the elder in the meeting hall, a worker at each workplace (the butcher in the Cookhouse, the tanner in the
 Tannery, the fisher in the Ice-Fishing Hut, a farmer in each farm, a herder in the Storehouse and the barn, the archer
-in the Workshop), warriors in the Barracks, one or two horn-blowers, the rest in their homes and round the courtyards'
+in the Workshop), at most 2 warriors in each Barracks and the rest on guard in the courtyards, one or two horn-blowers, the rest in their homes and round the courtyards'
 fires. Each wanders within 24 blocks of where it started and walks back there after a fight (angry, it chases you
 anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
 
@@ -612,12 +613,16 @@ anywhere). The Huntsman's blows never hurt them. They also come from their spawn
   a fight starts he blows his horn and everyone near gets Speed and Strength for 30 seconds).
 - **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
   Frostroot), the butcher (a cleaver and an apron), the herder (fur ear flaps, a crook), the fisher (a wide-brimmed
-  oilskin hood, a rod and a fish) and the tanner (a fringed capelet, a scraper and a roll of hide).
-- **The elder** (50 health): a white scar down over one eye, a long white beard, a sword of ice. He's the one to talk to.
+  oilskin hood, a rod with a fish on its hook) and the tanner (a fringed capelet, a scraper and a roll of hide).
+- **The elder** (50 health): a small white scar over one eye (that eye gone), a long white beard, a sword of ice. He's
+  the one to talk to.
 - **Calm** they wander and hum. Right-click one and it talks to you in chat (the elder has the most to say).
 - **Hit one** and it fights back. **Kill one** (it tips over like any mob) and every one of them within 64 blocks turns
   on you for 10 minutes. Hit the elder and he stays angry until you've been away (48 blocks off) for 10 minutes.
-- They hunt Pond Skaters, and Pond Skaters hunt them.
+- They hunt Pond Skaters, and Pond Skaters hunt them; hurt by one, a villager fights back and the others near come to
+  help.
+- To keep a village smooth, they're drawn only within 40 blocks, and the villages' fires (Village Fire, a campfire to
+  look at) give only a wisp of smoke now and then.
 - `/dross showcase frostfolk` lines up one of each (the warriors in front, the workers and the elder behind) with signs;
   right-click one to hear it talk, and the chat's buttons play their animations. Previews:
   `boss-previews/rimefall/frostfolk/` (made by `tools/rimefall/mobs.py frostfolk` and `tools/huntsman/folk_preview.py`).

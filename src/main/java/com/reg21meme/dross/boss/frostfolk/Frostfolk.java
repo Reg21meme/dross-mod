@@ -30,6 +30,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.entity.ai.targeting.TargetingConditions;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -163,8 +164,17 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, FolkTuning.STROLL_SPEED));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-        // (the Huntsman and his moose are theirs: their blows never hurt them, so never turn them)
-        this.targetSelector.addGoal(1, new HurtByTargetGoal(this, Frostfolk.class, HuntMob.class));
+        // (the Huntsman and his moose are theirs: their blows never hurt them, so never turn them; a village's Frostfolk
+        // keeps near its home, but fights back whatever hurts it wherever that stands: Minecraft's own rule would have it
+        // ignore a Pond Skater outside its home's reach)
+        this.targetSelector.addGoal(1, new HurtByTargetGoal(this, Frostfolk.class, HuntMob.class)
+        {
+            @Override
+            protected boolean canAttack(@Nullable LivingEntity target, TargetingConditions conditions)
+            {
+                return target != null && conditions.test(this.mob, target);
+            }
+        });
         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, PondSkater.class, true));
     }
@@ -437,6 +447,10 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
             return false;                            // their Huntsman's blows, arrows and ice (and his moose's)
         }
         boolean hurt = super.hurt(source, amount);
+        if (hurt && !this.level().isClientSide && source.getEntity() instanceof PondSkater skater && skater.isAlive())
+        {
+            this.callHelp(skater);
+        }
         if (hurt && !this.level().isClientSide && source.getEntity() instanceof Player player)
         {
             if (this.role == FolkRole.ELDER)
@@ -464,6 +478,29 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         {
             turnVillage(this, killer);
         }
+    }
+
+    /** A Pond Skater has hurt it: the others near who aren't fighting already go for it too (the user, October 24,
+     * 2026: they "should attack Pond Skaters"). */
+    private void callHelp(PondSkater skater)
+    {
+        for (Frostfolk h : this.level().getEntitiesOfClass(Frostfolk.class,
+                this.getBoundingBox().inflate(FolkTuning.HELP_RANGE), h -> h != this && h.isAlive() && !h.isShowcase()))
+        {
+            LivingEntity t = h.getTarget();
+            if (t == null || !t.isAlive())
+            {
+                h.setTarget(skater);
+            }
+        }
+    }
+
+    /** Drawn only this near (times the video settings' entity distance): a village holds dozens of them. */
+    @Override
+    public boolean shouldRenderAtSqrDistance(double distance)
+    {
+        double d = FolkTuning.RENDER_DISTANCE * getViewScale();
+        return distance < d * d;
     }
 
     /** Every villager near {@code dead} turns on {@code killer} for {@link FolkTuning#VILLAGE_ANGER_TICKS}; a few shout. */

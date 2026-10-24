@@ -119,15 +119,34 @@ public final class FrostfolkGameTest
             {
                 throw new GameTestAssertException("the " + role.key + " hits for " + folk.getAttributeValue(Attributes.ATTACK_DAMAGE));
             }
-            if (!ModItems.FROSTFOLK_SPAWN_EGGS.containsKey(role))
+            if (!(ModItems.FROSTFOLK_SPAWN_EGGS.get(role.kind).get() instanceof FrostfolkSpawnEggItem egg)
+                    || !egg.roles().contains(role))
             {
-                throw new GameTestAssertException("the " + role.key + " has no spawn egg");
+                throw new GameTestAssertException("the " + role.key + "'s kind's spawn egg doesn't bring it");
             }
             if (role.shows.stream().anyMatch(gear -> !FolkRole.GEAR.contains(gear)))
             {
                 throw new GameTestAssertException("the " + role.key + " shows gear the model hasn't got: " + role.shows);
             }
             folk.discard();
+        }
+        // three eggs, one for each kind, each bringing only callings of its kind
+        if (ModItems.FROSTFOLK_SPAWN_EGGS.size() != FolkRole.Kind.values().length)
+        {
+            throw new GameTestAssertException("there should be one spawn egg for each kind, not " + ModItems.FROSTFOLK_SPAWN_EGGS.size());
+        }
+        for (FolkRole.Kind kind : FolkRole.Kind.values())
+        {
+            FrostfolkSpawnEggItem egg = (FrostfolkSpawnEggItem) ModItems.FROSTFOLK_SPAWN_EGGS.get(kind).get();
+            for (int i = 0; i < 40; i++)
+            {
+                EntityType<?> type = egg.getType(null);
+                boolean ok = egg.roles().stream().anyMatch(r -> ModEntities.FROSTFOLK.get(r).get() == type);
+                if (!ok)
+                {
+                    throw new GameTestAssertException("the " + kind + " egg brought " + type);
+                }
+            }
         }
         helper.succeed();
     }
@@ -253,6 +272,41 @@ public final class FrostfolkGameTest
                 helper.fail("the spearman goes for " + hunter.getTarget() + ", the skater for " + skater.getTarget());
             }
             both.forEach(Mob::discard);
+        });
+    }
+
+    /** A village's Frostfolk, its home 24 blocks off, fights back a Pond Skater that hurts it there (Minecraft's own rule
+     * would have it ignore anything outside its home's reach), and calls a friend near it who isn't fighting. */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void theyFightBackSkatersAwayFromHome(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, FrostfolkGameTest::theyFightBackSkatersAwayFromHome))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Frostfolk farmer = spawn(helper, FolkRole.FARMER, MIDDLE.offset(-3, 0, 0));
+        Frostfolk friend = spawn(helper, FolkRole.AXEMAN, MIDDLE.offset(-6, 0, 3));
+        farmer.setHome(farmer.blockPosition().offset(-40, 0, 0));
+        friend.setHome(friend.blockPosition().offset(-40, 0, 0));
+        PondSkater skater = ModEntities.POND_SKATER.get().create(level);
+        if (skater == null)
+        {
+            throw new GameTestAssertException("couldn't make a Pond Skater");
+        }
+        Vec3 at = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(3, 0, 0)));
+        skater.moveTo(at.x, at.y, at.z, 90.0F, 0.0F);
+        level.addFreshEntity(skater);
+        farmer.hurt(level.damageSources().mobAttack(skater), 1.0F);
+        List<Mob> all = List.of(farmer, friend, skater);
+        helper.succeedWhen(() ->
+        {
+            if (farmer.getTarget() != skater || friend.getTarget() != skater)
+            {
+                helper.fail("hurt by a Pond Skater away from home, the farmer goes for " + farmer.getTarget()
+                        + " and his friend for " + friend.getTarget());
+            }
+            all.forEach(Mob::discard);
         });
     }
 

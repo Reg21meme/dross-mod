@@ -6,6 +6,7 @@ import com.reg21meme.dross.boss.golem.CinderLavaBlock;
 import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyBlock;
 import com.reg21meme.dross.boss.huntsman.village.HunterCrops;
 import com.reg21meme.dross.boss.huntsman.village.MeatBlocks;
+import com.reg21meme.dross.boss.huntsman.village.VillageFireBlock;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyBlock;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyBlock;
 import com.reg21meme.dross.dimension.block.TerrainBlocks;
@@ -147,6 +148,19 @@ public final class ModBlocks
     public static final RegistryObject<Block> HUNT_ICE_SPIKE = BLOCKS.register("hunt_ice_spike",
             () -> new Block(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().noOcclusion().noCollission()
                     .noLootTable().strength(-1.0F, 3600000.0F)));
+
+    // Boss area: the villages' fires (a campfire to look at, light and crackle, but no block entity and only a wisp of
+    // smoke now and then: 40-odd real campfires' smoke cost a village its frames), and their soft soul kind
+    public static final RegistryObject<Block> VILLAGE_FIRE = BLOCKS.register("village_fire",
+            () -> new VillageFireBlock(false, net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                    .mapColor(net.minecraft.world.level.material.MapColor.PODZOL).strength(2.0F)
+                    .sound(net.minecraft.world.level.block.SoundType.WOOD).noOcclusion().noLootTable()
+                    .lightLevel(s -> s.getValue(VillageFireBlock.LIT) ? 15 : 0)));
+    public static final RegistryObject<Block> VILLAGE_SOUL_FIRE = BLOCKS.register("village_soul_fire",
+            () -> new VillageFireBlock(true, net.minecraft.world.level.block.state.BlockBehaviour.Properties.of()
+                    .mapColor(net.minecraft.world.level.material.MapColor.PODZOL).strength(2.0F)
+                    .sound(net.minecraft.world.level.block.SoundType.WOOD).noOcclusion().noLootTable()
+                    .lightLevel(s -> s.getValue(VillageFireBlock.LIT) ? 10 : 0)));
 
     private ModBlocks() {}
 }

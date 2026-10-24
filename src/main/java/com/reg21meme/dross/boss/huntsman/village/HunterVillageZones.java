@@ -90,6 +90,8 @@ public final class HunterVillageZones
         public final boolean passage;
         /** The template's columns its level is the median of ({x, z, x, z ...}), and its deviations are checked at. */
         int[] samples = new int[0];
+        /** How many of the template's columns are its ground (a lamp's few, a courtyard's hundreds). */
+        int area;
 
         private Zone(int index, JsonObject o)
         {
@@ -167,6 +169,13 @@ public final class HunterVillageZones
                 this.zones[i] = new Zone(i, zs.get(i).getAsJsonObject());
             }
             this.lower = map(o.getAsJsonArray("lower"), this.width, this.depth);
+            for (short z : this.lower)
+            {
+                if (z > 0 && z <= this.zones.length)
+                {
+                    this.zones[z - 1].area++;
+                }
+            }
             this.upper = map(o.getAsJsonArray("upper"), this.width, this.depth);
             JsonArray dec = o.getAsJsonArray("decor");
             this.decor = new int[dec.size()];

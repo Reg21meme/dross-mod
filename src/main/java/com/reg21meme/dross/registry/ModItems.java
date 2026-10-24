@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.frostfolk.FolkRole;
+import com.reg21meme.dross.boss.frostfolk.FrostfolkSpawnEggItem;
 import com.reg21meme.dross.boss.huntsman.spear.MoonsilverSpearItem;
 import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyItem;
 import com.reg21meme.dross.boss.rage.RageWandItem;
@@ -89,17 +90,16 @@ public final class ModItems
     public static final RegistryObject<Item> HUNTSMAN_SPAWN_EGG = ITEMS.register("huntsman_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.HUNTSMAN, DrossColors.HUNTSMAN_EGG_BASE, DrossColors.HUNTSMAN_EGG_SPOTS,
                     new Item.Properties()));
-    // Boss area: the Frostfolk, one egg for each calling (their hoods' blue, its calling's spots)
-    public static final Map<FolkRole, RegistryObject<Item>> FROSTFOLK_SPAWN_EGGS = frostfolkEggs();
+    // Boss area: the Frostfolk, one egg for each kind (warriors, workers, the elder), each bringing a calling of it at random
+    public static final Map<FolkRole.Kind, RegistryObject<Item>> FROSTFOLK_SPAWN_EGGS = frostfolkEggs();
 
-    private static Map<FolkRole, RegistryObject<Item>> frostfolkEggs()
+    private static Map<FolkRole.Kind, RegistryObject<Item>> frostfolkEggs()
     {
-        Map<FolkRole, RegistryObject<Item>> eggs = new EnumMap<>(FolkRole.class);
-        for (FolkRole role : FolkRole.values())
+        Map<FolkRole.Kind, RegistryObject<Item>> eggs = new EnumMap<>(FolkRole.Kind.class);
+        for (FolkRole.Kind kind : FolkRole.Kind.values())
         {
-            eggs.put(role, ITEMS.register(role.typeName() + "_spawn_egg",
-                    () -> new ForgeSpawnEggItem(ModEntities.FROSTFOLK.get(role), DrossColors.FROSTFOLK_EGG_BASE, role.eggSpots,
-                            new Item.Properties())));
+            eggs.put(kind, ITEMS.register("frostfolk_" + kind.name().toLowerCase(java.util.Locale.ROOT) + "_spawn_egg",
+                    () -> new FrostfolkSpawnEggItem(kind, new Item.Properties())));
         }
         return Collections.unmodifiableMap(eggs);
     }

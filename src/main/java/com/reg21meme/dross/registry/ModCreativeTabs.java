@@ -142,7 +142,7 @@ public final class ModCreativeTabs
                         output.accept(ModItems.MOOSE_SPAWN_EGG.get());
                         output.accept(ModItems.POND_SKATER_SPAWN_EGG.get());
                         output.accept(ModItems.HUNTSMAN_SPAWN_EGG.get());
-                        // Boss area: the Frostfolk, the warriors, then the workers, then the elder
+                        // Boss area: the Frostfolk's eggs, warriors, then workers, then the elder
                         ModItems.FROSTFOLK_SPAWN_EGGS.values().forEach(egg -> output.accept(egg.get()));
 
                         // 5. Weapons and tools

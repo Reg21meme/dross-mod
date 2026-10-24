@@ -373,23 +373,12 @@ public final class DrossColors {
      * user's pick, H2, October 23, 2026; tools/eggs/eggs.py), so it's tinted white: it shows as drawn. */
     public static final int HUNTSMAN_EGG_BASE = 0xFFFFFF;
     public static final int HUNTSMAN_EGG_SPOTS = 0xFFFFFF;
-    /** The Frostfolk's spawn eggs (boss/frostfolk/FolkRole): all their hoods' blue (the user, October 24, 2026: "blue
-     * hoods"), each its calling's spots. Used in registry/ModItems. */
+    /** The Frostfolk's three spawn eggs (boss/frostfolk/FolkRole.Kind: warriors, workers, the elder; the user, October 24,
+     * 2026): all their hoods' blue, each kind's own spots. */
     public static final int FROSTFOLK_EGG_BASE = 0x22406E;
-    /** Warriors: the spearman glacier blue, the axeman iron grey, the pikeman bone, the archer fletching ice, the
-     * horn-blower his flag's red. */
-    public static final int FROSTFOLK_SPEARMAN_EGG_SPOTS = 0x6FA8D6;
-    public static final int FROSTFOLK_AXEMAN_EGG_SPOTS = 0x9AA1A8;
-    public static final int FROSTFOLK_PIKEMAN_EGG_SPOTS = 0xE2D9C2;
-    public static final int FROSTFOLK_ARCHER_EGG_SPOTS = 0xA9DCF2;
-    public static final int FROSTFOLK_HORNBLOWER_EGG_SPOTS = 0xA8322D;
-    /** Workers: the farmer frostroot pale, the butcher raw meat, the herder straw, the fisher fish silver, the tanner
-     * leather. */
-    public static final int FROSTFOLK_FARMER_EGG_SPOTS = 0xBFE3E8;
-    public static final int FROSTFOLK_BUTCHER_EGG_SPOTS = 0xB5524A;
-    public static final int FROSTFOLK_HERDER_EGG_SPOTS = 0xD9B866;
-    public static final int FROSTFOLK_FISHER_EGG_SPOTS = 0x9FB7C4;
-    public static final int FROSTFOLK_TANNER_EGG_SPOTS = 0x8A5A36;
+    /** Warriors' egg: glacier blue spots; workers': straw. */
+    public static final int FROSTFOLK_WARRIOR_EGG_SPOTS = 0x6FA8D6;
+    public static final int FROSTFOLK_WORKER_EGG_SPOTS = 0xD9B866;
     /** The elder: antler gold. */
     public static final int FROSTFOLK_ELDER_EGG_SPOTS = 0xE0B95A;
     /** Snared (his bola, his aimed shot): the effect's swirl. */

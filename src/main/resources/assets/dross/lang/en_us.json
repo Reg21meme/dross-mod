@@ -426,17 +426,9 @@
   "entity.dross.frostfolk_fisher": "Frostfolk Fisher",
   "entity.dross.frostfolk_tanner": "Frostfolk Tanner",
   "entity.dross.frostfolk_elder": "Frostfolk Elder",
-  "item.dross.frostfolk_spearman_spawn_egg": "Frostfolk Spearman Spawn Egg",
-  "item.dross.frostfolk_axeman_spawn_egg": "Frostfolk Axeman Spawn Egg",
-  "item.dross.frostfolk_pikeman_spawn_egg": "Frostfolk Pikeman Spawn Egg",
-  "item.dross.frostfolk_archer_spawn_egg": "Frostfolk Archer Spawn Egg",
-  "item.dross.frostfolk_hornblower_spawn_egg": "Frostfolk Horn-Blower Spawn Egg",
-  "item.dross.frostfolk_farmer_spawn_egg": "Frostfolk Farmer Spawn Egg",
-  "item.dross.frostfolk_butcher_spawn_egg": "Frostfolk Butcher Spawn Egg",
-  "item.dross.frostfolk_herder_spawn_egg": "Frostfolk Herder Spawn Egg",
-  "item.dross.frostfolk_fisher_spawn_egg": "Frostfolk Fisher Spawn Egg",
-  "item.dross.frostfolk_tanner_spawn_egg": "Frostfolk Tanner Spawn Egg",
   "item.dross.frostfolk_elder_spawn_egg": "Frostfolk Elder Spawn Egg",
+  "item.dross.frostfolk_warrior_spawn_egg": "Frostfolk Warrior Spawn Egg",
+  "item.dross.frostfolk_worker_spawn_egg": "Frostfolk Worker Spawn Egg",
   "dross.frostfolk.spearman.line.1": "Keep your blade low out here. The ice hears everything.",
   "dross.frostfolk.spearman.line.2": "My mother taught me the spear before I could walk the drifts.",
   "dross.frostfolk.spearman.line.3": "Rimehorns charge if you stand downwind of them. Ask me how I know.",
@@ -512,5 +504,7 @@
   "subtitles.dross.frostfolk_elder.hurt": "Frostfolk elder hurts",
   "subtitles.dross.frostfolk_elder.death": "Frostfolk elder dies",
   "subtitles.dross.huntsman.bola_release": "Bola flies",
-  "subtitles.dross.huntsman.bola_snare": "Bola snares"
+  "subtitles.dross.huntsman.bola_snare": "Bola snares",
+  "block.dross.village_fire": "Village Fire",
+  "block.dross.village_soul_fire": "Village Soul Fire"
 }

@@ -2,23 +2,22 @@ package com.reg21meme.dross.boss.frostfolk.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.reg21meme.dross.boss.client.PartLayer;
 import com.reg21meme.dross.boss.frostfolk.FolkRole;
 import com.reg21meme.dross.boss.frostfolk.Frostfolk;
-import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
 import software.bernie.geckolib.renderer.GeoEntityRenderer;
-import software.bernie.geckolib.renderer.layer.GeoRenderLayer;
 
 import javax.annotation.Nullable;
 
 /**
  * Draws one of the Frostfolk: its calling's texture, cut out, then its eyes glowing full-bright out of the dark under
- * its hood (one more pass; no ice layers: a village holds a lot of them, the user saw it lag), showing only its own
- * calling's hood style, cape and tools ({@link FolkRole#shows}).
+ * its hood (its head drawn once more: {@link PartLayer}; a village holds a lot of them, the user saw it lag), showing
+ * only its own calling's hood style, cape and tools ({@link FolkRole#shows}).
  * They die the vanilla way: tipping over, flashing red (the user, October 24, 2026: "just the regular death
  * animation").
  */
@@ -28,7 +27,9 @@ public class FolkRenderer extends GeoEntityRenderer<Frostfolk>
     {
         super(context, new FolkModel());
         this.shadowRadius = 0.45F;
-        this.addRenderLayer(new Eyes(this));
+        // its blue eyes, full-bright (they shine in the dark): only its head is drawn again for them
+        this.addRenderLayer(new PartLayer<>(this, folk -> FolkModel.glow(folk.role()), RenderType::entityTranslucentEmissive,
+                true));
     }
 
     @Override
@@ -55,24 +56,5 @@ public class FolkRenderer extends GeoEntityRenderer<Frostfolk>
         }
         super.preRender(poseStack, folk, model, bufferSource, buffer, isReRender, partialTick, packedLight, packedOverlay,
                 red, green, blue, alpha);
-    }
-
-    /** Its blue eyes, full-bright (they shine in the dark). */
-    private static class Eyes extends GeoRenderLayer<Frostfolk>
-    {
-        Eyes(FolkRenderer renderer)
-        {
-            super(renderer);
-        }
-
-        @Override
-        public void render(PoseStack poseStack, Frostfolk folk, BakedGeoModel bakedModel, RenderType renderType,
-                           MultiBufferSource bufferSource, VertexConsumer buffer, float partialTick, int packedLight,
-                           int packedOverlay)
-        {
-            RenderType type = RenderType.entityTranslucentEmissive(FolkModel.glow(folk.role()));
-            this.getRenderer().reRender(bakedModel, poseStack, bufferSource, folk, type, bufferSource.getBuffer(type),
-                    partialTick, LightTexture.FULL_BRIGHT, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
-        }
     }
 }

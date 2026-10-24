@@ -56,6 +56,13 @@ def armor_stand(x, y, z, yaw=0.0, head=None, chest=None, legs=None, feet=None, m
     return {"x": float(x), "y": float(y), "z": float(z), "nbt": data}
 
 
+# The villages' fires are the mod's own village fire, a campfire to look at with only a wisp of smoke now and then
+# (boss/huntsman/village/VillageFireBlock; the user, October 24, 2026: the villages' frame rate, a good share of it
+# 40-odd campfires' smoke). The tools build and check with campfires; only the written files have the village fire.
+VILLAGE_FIRES = {"minecraft:campfire": "dross:village_fire", "minecraft:soul_campfire": "dross:village_soul_fire",
+                 "campfire": "dross:village_fire", "soul_campfire": "dross:village_soul_fire"}
+
+
 def write(grid, path):
     used = {}
     palette = nbt.List(nbt.COMPOUND)
@@ -68,6 +75,9 @@ def write(grid, path):
             idx = len(palette)
             used[s] = idx
             name, props = mc.parse(s)
+            if name in VILLAGE_FIRES:                # (a campfire to look at, without a campfire's column of smoke)
+                name = VILLAGE_FIRES[name]
+                props = {k: v for k, v in props.items() if k in ("facing", "lit")}
             entry = {"Name": name}
             if props:
                 entry["Properties"] = {k: str(v) for k, v in props.items()}
