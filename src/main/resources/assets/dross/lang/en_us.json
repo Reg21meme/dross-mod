@@ -363,6 +363,7 @@
   "commands.dross.goto.lair.huntsman.success": "Teleported to the way into the Huntsman's village at %s, %s, %s. %s",
   "commands.dross.goto.lair.huntsman.ready": "He and his Alpha Moose wait in his yard in front of his lodge (they come when you're near).",
   "commands.dross.goto.lair.huntsman.beaten": "He has been beaten: this village stays without him for good.",
+  "commands.dross.goto.lair.huntsman.away": "He and his Alpha Moose rode off after someone got away from them: they're back at full health in about %s minute(s).",
   "commands.dross.goto.lair.huntsman.peaceful": "He never appears on Peaceful.",
   "commands.dross.locate.villages.header": "The %s nearest hunter villages to %s:",
   "commands.dross.locate.villages.line": "%s. %s at %s, %s, %s, %s blocks away (%s igloos)",

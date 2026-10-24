@@ -2,6 +2,9 @@ package com.reg21meme.dross.command;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.huntsman.folk.FolkRole;
+import com.reg21meme.dross.boss.huntsman.folk.FolkTuning;
+import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageDesigns;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillages;
 import com.reg21meme.dross.boss.huntsman.village.VillageAnimals;
@@ -28,6 +31,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
@@ -507,8 +511,22 @@ public final class HunterVillageShowcaseGameTest
                         + m.blockPosition().toShortString() + " is out of its pen");
             }
         }
+        // its villagers (1.5 to 2 for each bed: the user's, October 23, 2026), every one with its home in the village
+        // (wherever it has wandered since)
+        List<HunterFolk> folk = level.getEntitiesOfClass(HunterFolk.class, area.inflate(FolkTuning.HOME_RADIUS + 8),
+                h -> !h.isShowcase() && (h.home() != null ? area.contains(Vec3.atBottomCenterOf(h.home())) : area.contains(h.position())));
+        if (folk.size() != design.folk())
+        {
+            throw new GameTestAssertException(design.id() + " should have " + design.folk() + " villagers, but has "
+                    + folk.size() + " (still waiting for their land: " + VillageAnimals.waiting(level) + ")");
+        }
+        long elders = folk.stream().filter(h -> h.role() == FolkRole.ELDER).count();
+        if (elders != 1)
+        {
+            throw new GameTestAssertException(design.id() + " has " + elders + " elders (one a village)");
+        }
         LOGGER.info("[hunter village test] {} (facing {}): {} of {} checked blocks in place, {} clear ice and {} snow layers "
-                + "dim enough, {} whole beds, its rooms' floors at block light {} or more, {} moose, {} Rimehorns",
-                design.id(), front.getName(), matched, total, ice, snowLayers, beds, darkest, moose, rimehorns);
+                + "dim enough, {} whole beds, its rooms' floors at block light {} or more, {} moose, {} Rimehorns, {} villagers",
+                design.id(), front.getName(), matched, total, ice, snowLayers, beds, darkest, moose, rimehorns, folk.size());
     }
 }

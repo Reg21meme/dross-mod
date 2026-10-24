@@ -76,6 +76,21 @@ CORRAL = (27, 25)
 PEN_CLEAR = 3.0
 PEN_KEEP = 2                     # nothing an animal could stand on within this many blocks inside the fence
 RIMEHORN_CALF_AGE = sw.RIMEHORN_CALF_AGE
+# the hunter villagers (boss/huntsman/folk; the user, October 23, 2026: "if there are 10 beds then around 1.5 multiplier is
+# fair ... 15-20 should spawn"): each village has its beds times a number rolled between these (by its own seed)
+FOLK_PER_BED = (1.5, 2.0)
+FOLK_APART = 1.6                 # no two stand closer than this (blocks)
+FOLK_FIRE_CLEAR = 4.0            # in a courtyard they stand at least this far from its fire (its benches are at 3)
+FOLK_RIM_CLEAR = 1.6             # ... and this far in from its rim (its lamp poles)
+# who works where: one of this calling in each of these (its own building, or the courtyard nearest it)
+FOLK_WORKPLACES = {"cook_igloo": "butcher", "tannery_igloo": "tanner", "fishing_hut": "fisher", "root_house": "farmer",
+                   "lichen_house": "farmer", "rimeberry_patch": "farmer", "workshop_igloo": "archer",
+                   "storage_igloo": "herder", "alpha_moose_barn": "herder"}
+FOLK_HALLS = ("round_hall", "long_hall")       # the elder stands in the meeting hall (one elder a village)
+FOLK_WARRIORS = (("spearman", 30), ("axeman", 25), ("pikeman", 20), ("archer", 25))
+# the homes' folk and the courtyards': warriors and workers about half and half
+FOLK_MIX = FOLK_WARRIORS + (("farmer", 20), ("butcher", 20), ("herder", 20), ("fisher", 20), ("tanner", 20))
+FOLK_HORNBLOWERS = (1, 2)        # a regular village's, the Huntsman's
 
 SURFACE_CLEAR = 4.0              # the shrine and the patches: this much open snow round them
 SHRINE_APART = 14.0              # the shrine stands about this far from the rest of the village (alone)
@@ -1088,6 +1103,9 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
     sw._line(g)
     blocked2 = dec.taken | dec.keepout
 
+    # -- the villagers (with the village, like the pens' animals)
+    folk = _folk(g, dec, p, courts, lodge_items, seed, huntsman)
+
     # (no drifts of snow over the open ground since October 23, 2026: it's the world's own land now, each courtyard
     # on its own ground, not a flattened village: see _zones)
     # -- what the checks need
@@ -1136,7 +1154,7 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
             "igloos": igloos, "courts": len(p.courts), "huntsman": huntsman, "plan_attempt": attempt,
             "lanes": len(p.lanes), "loops": p.loops, "passages": len(p.links), "kinds": kinds,
             "roles": {r: sum(1 for i in p.items if i.role == r) for r in ("ring", "lane", "warren", "surface")},
-            "buried_windows": buried, "ring_lights": ring_lights, "inside_lights": inside_lights}
+            "buried_windows": buried, "ring_lights": ring_lights, "inside_lights": inside_lights, "folk": folk}
     # (the courtyards', lanes' and steps' floors, where one stands in them: their lamps light them, the checks look)
     open_floors = lighting.floors(g, None, {(x, y, z) for (x, z), y in dug_floor.items()})
     extras = {"decor": dec, "plan": p, "entrance": (sx, 1, sz), "targets": targets, "courts": courts,
@@ -1149,6 +1167,88 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
         lodge_stairs=(lane_x, ze) if lodge_box is not None else None, entrance=(sx, sz),
         home=tuple(lodge_info["home"]) if lodge_info is not None else None))
     return g, info, extras
+
+
+def _folk(g, dec, p, courts, lodge_items, seed, huntsman):
+    """The hunter villagers, put in the template with the village (each stands on its own floor wherever the village's
+    parts end up: the game moves them with their zone like the pens' animals): its beds times FOLK_PER_BED of them.
+    The elder in the meeting hall; a worker in each workplace (FOLK_WORKPLACES); a horn-blower (two in the Huntsman's
+    village); a warrior for each bed of a Barracks and a villager (FOLK_MIX) for each bed of a home, inside it; the
+    rest round the courtyards' fires. Each faces any way. Returns {calling: how many}."""
+    rng = random.Random(seed * 97 + 13)
+    items = list(p.items)
+    beds = sum(beds_of(it.piece) for it in items) + sum(beds_of(pl.piece) for pl in lodge_items)
+    total = int(round(beds * rng.uniform(*FOLK_PER_BED)))
+
+    def pick(table):
+        r = rng.uniform(0, sum(w for _k, w in table))
+        for k, w in table:
+            r -= w
+            if r <= 0:
+                return k
+        return table[-1][0]
+
+    halls = sorted((it for it in items if it.id in FOLK_HALLS),
+                   key=lambda it: math.hypot(it.x - p.courts[0].x, it.z - p.courts[0].z))
+    wants = [("elder", halls[0].placed if halls else None)]
+    for it in items:
+        if it.id in FOLK_WORKPLACES:
+            wants.append((FOLK_WORKPLACES[it.id], it.placed))
+    for pl in lodge_items:
+        if pl.id in FOLK_WORKPLACES:
+            wants.append((FOLK_WORKPLACES[pl.id], pl))
+    wants += [("hornblower", None)] * FOLK_HORNBLOWERS[1 if huntsman else 0]
+    homes = []                        # (the beds' folk: trimmed first if the roll came up short)
+    for it in items:
+        n = beds_of(it.piece)
+        if n and it.id == "barracks_igloo":
+            homes += [(pick(FOLK_WARRIORS), it.placed) for _ in range(n)]
+        elif n:
+            homes += [(pick(FOLK_MIX), it.placed) for _ in range(n)]
+    rng.shuffle(homes)
+    room = max(0, total - len(wants))
+    wants += homes[:room]
+    wants += [(pick(FOLK_MIX), None) for _ in range(total - len(wants))]
+
+    court_cells = []
+    for cx, cz, r, _c in courts:
+        cells = [(x, FLOOR, z) for x in range(int(cx - r), int(cx + r) + 1) for z in range(int(cz - r), int(cz + r) + 1)
+                 if FOLK_FIRE_CLEAR <= math.hypot(x - cx, z - cz) <= r - FOLK_RIM_CLEAR
+                 and 0 <= x < g.W and 0 <= z < g.D and not dec.taken[x, z] and walk.standable(g, x, FLOOR, z)]
+        rng.shuffle(cells)
+        court_cells.append(cells)
+    taken = []
+
+    def free(c):
+        return all(math.hypot(c[0] - t[0], c[2] - t[2]) >= FOLK_APART or abs(c[1] - t[1]) > 2 for t in taken)
+
+    def in_room(pl):
+        ex, ez = pl.entrance
+        cells = [c for c in pl.rooms if c[1] == 1 + pl.dy and walk.standable(g, *c)
+                 and math.hypot(c[0] - ex, c[2] - ez) > 2.0]
+        rng.shuffle(cells)
+        return next((c for c in cells if free(c)), None)
+
+    def in_court(k):
+        for j in range(len(court_cells)):
+            for c in court_cells[(k + j) % len(court_cells)]:
+                if free(c):
+                    return c
+        return None
+
+    counts = {}
+    for k, (calling, where) in enumerate(wants):
+        spot = in_room(where) if where is not None else None
+        if spot is None:
+            spot = in_court(k)
+        if spot is None:
+            raise SystemExit(f"no room for the village's {calling} (villager {k + 1} of {len(wants)})")
+        taken.append(spot)
+        x, y, z = spot
+        g.entities.append(animal(f"dross:hunter_{calling}", x + 0.5, float(y), z + 0.5,
+                                 yaw=round(rng.uniform(-180, 180), 1), VillageFolk=True))
+        counts[calling] = counts.get(calling, 0) + 1
+    return counts
 
 
 def _approach(m, dug_floor, owned_cols, start, target, W, D, out):

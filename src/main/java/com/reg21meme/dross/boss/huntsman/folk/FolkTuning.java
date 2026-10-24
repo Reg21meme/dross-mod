@@ -16,6 +16,11 @@ public final class FolkTuning
     public static final double STROLL_SPEED = 0.6D;
     /** Above this ground speed (blocks a second) they run, below it they walk. */
     public static final double RUN_ABOVE = 2.6D;
+    /** A village's villager wanders within this many blocks of where the village put him (his home), and walks back
+     * there after a fight; angry, he chases you anywhere. (Spawn-egg villagers have no home.) */
+    public static final int HOME_RADIUS = 24;
+    /** It walks back home at this share of its speed. */
+    public static final double HOME_SPEED = 0.8D;
 
     // ---------------------------------------------------------------- fighting
 

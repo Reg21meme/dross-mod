@@ -29,6 +29,20 @@ public final class HuntsmanTuning
     public static final double PATROL_ROUNDNESS = 6.0D;
     public static final double PATROL_SPEED = 0.7D;
     public static final double PATROL_REJOIN = 40.0D;
+    /** The chase (the user, October 19, 2026: "he chases about 60 blocks past his loop, then stops and rains arrows on
+     * you while you're in range, about 40 blocks; once you're out of range or out of Rimefall, the fight is broken off:
+     * he and the moose, whichever are alive, ride off and vanish, and come back together at full health"): a village
+     * pair goes no further than this past its patrol loop (its moves that travel stop there: {@code HuntGoal}); its foe
+     * outside the loop and further than {@link #HOLD_RANGE} off, or out of Rimefall, for {@link #ESCAPE_TICKS} has got
+     * away; they ride off for {@link #LEAVE_TICKS} (about {@link #LEAVE_DISTANCE} blocks away from it) and vanish,
+     * and the village has its pair back {@link #COMEBACK_TICKS} later (7 minutes: the user's 5-10, "you can't kill one
+     * of them, come back all healed up and kill the other"). */
+    public static final double CHASE_PAST_LOOP = 60.0D;
+    public static final double HOLD_RANGE = 40.0D;
+    public static final int ESCAPE_TICKS = 60;
+    public static final int LEAVE_TICKS = 60;
+    public static final double LEAVE_DISTANCE = 24.0D;
+    public static final int COMEBACK_TICKS = 8_400;
     /** Stage 2: each of them on his own bar. */
     public static final float HUNTSMAN_HEALTH = 150.0F;
     public static final float MOOSE_HEALTH = 150.0F;
@@ -52,7 +66,8 @@ public final class HuntsmanTuning
     public static final double FOLLOW_RANGE = 48.0D;
     /** With no player this close for {@link #BREAK_OFF_TICKS} the fight is broken off: both come back at full health,
      * the Huntsman back in the saddle (the user: "you can't kill one of them, come back all healed up and kill the
-     * other"). In a village they'll ride off and come back later; for now (a spawn egg, the arena) they stay. */
+     * other"); a village's pair goes back home. (A village pair whose foe got away rides off instead: the chase,
+     * {@link #CHASE_PAST_LOOP}.) */
     public static final double BREAK_OFF_RANGE = 64.0D;
     public static final int BREAK_OFF_TICKS = 600;
     /** A kill is the player's if they hurt one of them this recently. */

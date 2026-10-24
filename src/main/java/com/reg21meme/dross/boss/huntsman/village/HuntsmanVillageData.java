@@ -13,8 +13,9 @@ import java.util.UUID;
 
 /**
  * What became of the Huntsman of each of his villages (saved with the Dross: {@code data/dross_huntsman_villages.dat}):
- * the pair now there (the Huntsman's UUID) and which of the village's pairs it is, and whether he's been beaten there
- * (then the village stays empty for good, like the other bosses' lairs).
+ * the pair now there (the Huntsman's UUID) and which of the village's pairs it is, whether he's been beaten there
+ * (then the village stays empty for good, like the other bosses' lairs), and, when a foe got away from them and they
+ * rode off, when they're back.
  */
 public final class HuntsmanVillageData extends SavedData
 {
@@ -27,10 +28,24 @@ public final class HuntsmanVillageData extends SavedData
         UUID huntsman;
         int generation;
         boolean beaten;
+        /** Its pair rode off after a foe got away (game time it's back, 0 if it never has), and which pair that was. */
+        long awayUntil;
+        int left;
 
         public boolean beaten()
         {
             return this.beaten;
+        }
+
+        public long awayUntil()
+        {
+            return this.awayUntil;
+        }
+
+        /** The last of the village's pairs that rode off (it doesn't come back as it loads). */
+        public int left()
+        {
+            return this.left;
         }
 
         @Nullable
@@ -90,6 +105,27 @@ public final class HuntsmanVillageData extends SavedData
         this.setDirty();
     }
 
+    /** Pair No. {@code generation} rode off (a foe got away): the village has none until {@code until} (game time). */
+    public void away(long village, long until, int generation)
+    {
+        Entry e = this.entry(village);
+        e.huntsman = null;
+        e.awayUntil = until;
+        e.left = Math.max(e.left, generation);
+        this.setDirty();
+    }
+
+    /** (For the tests) Its pair is back now, if it rode off. */
+    void backNow(long village, long now)
+    {
+        Entry e = this.find(village);
+        if (e != null && e.awayUntil > now)
+        {
+            e.awayUntil = now;
+            this.setDirty();
+        }
+    }
+
     /** Both of them died: he's beaten there, for good. */
     public void beaten(long village)
     {
@@ -117,6 +153,8 @@ public final class HuntsmanVillageData extends SavedData
             e.huntsman = v.hasUUID("Huntsman") ? v.getUUID("Huntsman") : null;
             e.generation = v.getInt("Generation");
             e.beaten = v.getBoolean("Beaten");
+            e.awayUntil = v.getLong("AwayUntil");
+            e.left = v.getInt("Left");
         }
         return data;
     }
@@ -135,6 +173,8 @@ public final class HuntsmanVillageData extends SavedData
             }
             v.putInt("Generation", en.getValue().generation);
             v.putBoolean("Beaten", en.getValue().beaten);
+            v.putLong("AwayUntil", en.getValue().awayUntil);
+            v.putInt("Left", en.getValue().left);
             list.add(v);
         }
         tag.put("Villages", list);

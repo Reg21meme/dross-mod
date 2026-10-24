@@ -17,6 +17,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * How the Huntsman and the Alpha Moose fight ({@link HuntFight}): between moves a pause (facing their target), then a
@@ -43,6 +44,12 @@ abstract class HuntGoal extends Goal
 
     /** How long a path holds before it's worked out again, while it runs in. */
     private static final int REPATH = 10;
+    /** The moves that carry it across the ground towards (or round) its target: none of them while it's held at its
+     * leash ({@link HuntFight#held}: a village pair chases only so far past its loop). Falling back, the backstep and
+     * riding off take it back the other way, and stay. */
+    static final Set<String> TRAVELS = Set.of("charge", "run_in", "ride_in", "circle", "leap", "close_in", "keep_range");
+    /** Held with nothing it may make: it stands facing its target this long, then looks again. */
+    private static final int HOLD_TICKS = 10;
 
     protected final HuntMob mob;
     @Nullable
@@ -137,7 +144,8 @@ abstract class HuntGoal extends Goal
         this.target = this.mob.getTarget();
         if (this.move != null)
         {
-            boolean done = this.move.tick(++this.t) || !this.stageOk() || !this.mob.isAlive();
+            boolean done = this.move.tick(++this.t) || !this.stageOk() || !this.mob.isAlive()
+                    || this.mob.held && TRAVELS.contains(this.move.name());          // (at its leash: no further)
             if (done)
             {
                 this.move.stop();
@@ -169,8 +177,20 @@ abstract class HuntGoal extends Goal
             return;
         }
         Object[] row = HuntFight.row(this.table(), this.bands(), d);
-        String name = HuntFight.pick(row, n -> this.ready(n) && this.can(n, target, d), this.mob.getRandom());
-        Move m = this.make(name != null ? name : this.fallback(d), target);
+        boolean held = this.mob.held;
+        String name = HuntFight.pick(row, n -> this.ready(n) && this.can(n, target, d) && !(held && TRAVELS.contains(n)),
+                this.mob.getRandom());
+        if (name == null)
+        {
+            name = this.fallback(d);
+            if (held && TRAVELS.contains(name))
+            {
+                this.mob.getNavigation().stop();
+                this.pause = HOLD_TICKS;                 // at its leash: it stands its ground, facing its target
+                return;
+            }
+        }
+        Move m = this.make(name, target);
         if (m != null)
         {
             this.begin(m);

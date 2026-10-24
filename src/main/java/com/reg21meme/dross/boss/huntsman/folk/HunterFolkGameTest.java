@@ -2,6 +2,8 @@ package com.reg21meme.dross.boss.huntsman.folk;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.ColossusGameTest;
+import com.reg21meme.dross.boss.huntsman.Huntsman;
+import com.reg21meme.dross.boss.huntsman.HuntsmanPair;
 import com.reg21meme.dross.boss.rimefall.PondSkater;
 import com.reg21meme.dross.boss.rimefall.RimefallAnims;
 import com.reg21meme.dross.registry.ModEntities;
@@ -10,6 +12,7 @@ import com.reg21meme.dross.world.PortalSiteGameTest;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.server.MinecraftServer;
@@ -43,6 +46,8 @@ import java.util.Set;
  *   <li>killing one turns every villager near on the killer (for {@link FolkTuning#VILLAGE_ANGER_TICKS});</li>
  *   <li>hit the elder and he stays angry while you're near, and forgives you once you've been away 10 minutes;</li>
  *   <li>a Pond Skater and a villager go for each other;</li>
+ *   <li>a village's villager takes its home, keeps it through a save, walks back to it, and the Huntsman's blows never
+ *       hurt it;</li>
  *   <li>right-click one and it talks (a line and its talk animation), but not while it's angry at you;</li>
  *   <li>{@code /dross showcase hunters} lines up one of each calling, frozen, and its controls play their animations;
  *       running it again replaces them.</li>
@@ -248,6 +253,72 @@ public final class HunterFolkGameTest
                 helper.fail("the spearman goes for " + hunter.getTarget() + ", the skater for " + skater.getTarget());
             }
             both.forEach(Mob::discard);
+        });
+    }
+
+    /** A village's villager (its template's {@code VillageFolk} flag) takes the spot it's put on as its home, keeps it
+     * through a save, walks back to it, and its Huntsman's and his moose's blows never hurt it. */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void villageFolkKeepToTheirHome(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HunterFolkGameTest::villageFolkKeepToTheirHome))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        CompoundTag written = new CompoundTag();
+        written.putString("id", Dross.MODID + ":" + FolkRole.FARMER.typeName());
+        written.putBoolean("VillageFolk", true);
+        HunterFolk folk = EntityType.create(written, level).filter(e -> e instanceof HunterFolk).map(e -> (HunterFolk) e)
+                .orElseThrow(() -> new GameTestAssertException("couldn't make a village's farmer from its saved data"));
+        Vec3 at = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(5, 0, 5)));
+        folk.moveTo(at.x, at.y, at.z, 0.0F, 0.0F);
+        level.addFreshEntity(folk);
+        Huntsman huntsman = HuntsmanPair.spawn(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(-5, 0, -5))), 0.0F);
+        helper.runAfterDelay(2, () ->
+        {
+            BlockPos home = folk.home();
+            if (home == null || !home.equals(BlockPos.containing(at)) || !folk.hasRestriction()
+                    || folk.getRestrictRadius() != FolkTuning.HOME_RADIUS)
+            {
+                helper.fail("the village's farmer should take where it stands as its home (home " + home + ", should be "
+                        + BlockPos.containing(at) + "; held within " + folk.getRestrictRadius() + ")");
+            }
+            HunterFolk reloaded = ModEntities.HUNTER_FOLK.get(FolkRole.FARMER).get().create(level);
+            if (reloaded == null)
+            {
+                throw new GameTestAssertException("couldn't make a farmer");
+            }
+            reloaded.load(folk.saveWithoutId(new CompoundTag()));
+            if (!home.equals(reloaded.home()) || !reloaded.hasRestriction())
+            {
+                helper.fail("saved and loaded, the farmer's home is " + reloaded.home() + " (it was " + home + ")");
+            }
+            float health = folk.getHealth();
+            boolean byHim = folk.hurt(level.damageSources().mobAttack(huntsman), 5.0F);
+            boolean byMoose = huntsman.getVehicle() instanceof Mob moose && folk.hurt(level.damageSources().mobAttack(moose), 5.0F);
+            if (byHim || byMoose || folk.getHealth() < health)
+            {
+                helper.fail("the Huntsman's (or his moose's) blow shouldn't hurt a hunter villager");
+            }
+            // (the arena is too small for its real reach: held close to home, it walks back from the far side)
+            folk.restrictTo(home, 2);
+            Vec3 far = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(-5, 0, 5)));
+            folk.teleportTo(far.x, far.y, far.z);
+            helper.succeedWhen(() ->
+            {
+                double d = Math.sqrt(folk.distanceToSqr(Vec3.atBottomCenterOf(home)));
+                if (d > 3.5D)
+                {
+                    helper.fail("the farmer should walk back home (" + String.format("%.1f", d) + " blocks off)");
+                }
+                folk.discard();
+                if (huntsman.getVehicle() != null)
+                {
+                    huntsman.getVehicle().discard();
+                }
+                huntsman.discard();
+            });
         });
     }
 

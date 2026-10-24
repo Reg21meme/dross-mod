@@ -67,10 +67,6 @@ public class AlphaMoose extends HuntMob
     private int carrySeen = -1;
     /** The tick its gallop's hooves last sounded (one stride's sound at a time). */
     private int lastGallop = -1000;
-    /** A Huntsman's village's moose: its patrol round the village (empty: it has none) and the point it's riding to
-     * ({@link PatrolGoal}). */
-    private final List<BlockPos> patrol = new ArrayList<>();
-    private int patrolNext;
 
     @SuppressWarnings("unchecked")
     public AlphaMoose(EntityType<? extends AlphaMoose> type, Level level)
@@ -127,53 +123,6 @@ public class AlphaMoose extends HuntMob
     protected int idleSoundInterval()
     {
         return HuntsmanTuning.MOOSE_IDLE_SOUND_TICKS;
-    }
-
-    /** Its patrol round its village (its points' heights are the ground's, found as it goes). */
-    public List<BlockPos> patrol()
-    {
-        return this.patrol;
-    }
-
-    public int patrolNext()
-    {
-        return this.patrolNext;
-    }
-
-    void setPatrolNext(int next)
-    {
-        this.patrolNext = next;
-    }
-
-    /** Gives it its patrol, riding to point {@code next} first. */
-    public void setPatrol(List<BlockPos> loop, int next)
-    {
-        this.patrol.clear();
-        this.patrol.addAll(loop);
-        this.patrolNext = loop.isEmpty() ? 0 : Math.floorMod(next, loop.size());
-    }
-
-    @Override
-    public void addAdditionalSaveData(CompoundTag tag)
-    {
-        super.addAdditionalSaveData(tag);
-        if (!this.patrol.isEmpty())
-        {
-            tag.putLongArray("Patrol", this.patrol.stream().mapToLong(BlockPos::asLong).toArray());
-            tag.putInt("PatrolNext", this.patrolNext);
-        }
-    }
-
-    @Override
-    public void readAdditionalSaveData(CompoundTag tag)
-    {
-        super.readAdditionalSaveData(tag);
-        List<BlockPos> loop = new ArrayList<>();
-        for (long p : tag.getLongArray("Patrol"))
-        {
-            loop.add(BlockPos.of(p));
-        }
-        this.setPatrol(loop, tag.getInt("PatrolNext"));
     }
 
     @Override
@@ -236,7 +185,7 @@ public class AlphaMoose extends HuntMob
             @Override
             public boolean canUse()
             {
-                return AlphaMoose.this.stage() == HuntStage.CALM && AlphaMoose.this.patrol.isEmpty() && super.canUse();
+                return AlphaMoose.this.stage() == HuntStage.CALM && AlphaMoose.this.patrol().isEmpty() && super.canUse();
             }
 
             @Override

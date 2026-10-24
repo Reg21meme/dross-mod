@@ -581,8 +581,13 @@ the edge) with a chat button to summon him.
   `boss-previews/rimefall/huntsman/trophies/`); `/dross showcase trophies huntsman` places all five in a row.
   The Alpha Moose drops its skull (a block you can mount: see the items below) every time it dies.
 - **The Rage Wand:** raging either of them rages both, on the same team.
+- **Running away** from his village's pair: they chase you up to about 60 blocks past their patrol loop, and no further:
+  there they stand and shoot (the arrow rain too) while you're within about 40 blocks. Get further than that out there,
+  or leave Rimefall, and they ride off and vanish (they can't be hurt while they go); 7 minutes later the village has
+  them back, both at full health, even one you'd killed. They don't start a fight with a player standing outside
+  Rimefall.
 - **Walk away** (no one within 64 blocks for 30 seconds) and the fight is broken off: both are back at full health,
-  him in the saddle, calm.
+  him in the saddle, calm (a village's pair back home on their patrol).
 - His thrown spear is drawn with the Moonsilver Spear's model, made big.
 - **His sounds** are original (made from scratch, like the Rat King's): the user picked which of a few versions each
   one plays. His horn is a goat horn, and his grunts, hurt and death sounds are being picked.
@@ -593,7 +598,12 @@ the edge) with a chat button to summon him.
 ### The hunter villagers
 
 The Huntsman's people: eleven callings in his own look, half his size (about 2 blocks tall), each with its own gear,
-spawn egg and voice. For now they're on show and come from their spawn eggs; they'll live in the hunter villages later.
+spawn egg and voice. They live in the hunter villages, 1.5 to 2 for every bed (a regular village 19 to 48, the
+Huntsman's 82 and 88): the elder in the meeting hall, a worker at each workplace (the butcher in the Cookhouse, the
+tanner in the Tannery, the fisher in the Ice-Fishing Hut, a farmer in each farm, a herder in the Storehouse and the
+barn, the archer in the Workshop), warriors in the Barracks, one or two horn-blowers, the rest in their homes and round
+the courtyards' fires. Each wanders within 24 blocks of where it started and walks back there after a fight (angry, it
+chases you anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
 
 - **Warriors:** the spearman (spear and round shield, 30 health), the axeman (28), the pikeman (a long spear, 28), the
   archer (a bow, 25; he keeps his distance and shoots) and the horn-blower (a spear and the village's flag, 26; when a

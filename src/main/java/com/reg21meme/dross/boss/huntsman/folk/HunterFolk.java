@@ -1,10 +1,12 @@
 package com.reg21meme.dross.boss.huntsman.folk;
 
+import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.boss.rimefall.PondSkater;
 import com.reg21meme.dross.boss.rimefall.RimefallAnims;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
@@ -31,6 +33,7 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
+import net.minecraft.world.entity.ai.goal.MoveTowardsRestrictionGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
@@ -59,7 +62,10 @@ import java.util.UUID;
  * A hunter villager (the user, October 23, 2026: "10-12 classes, 2 blocks tall, the same design as the Huntsman ...
  * interactable, a unique voice that is nice, each its own spawn egg"): one of eleven callings ({@link FolkRole}: five
  * warriors, five workers and the elder), each its own entity type, all one model (the Huntsman's, at half his size).
- * For now on show ({@code /dross showcase hunters}) and from their spawn eggs, not yet in the villages.
+ * They live in Rimefall's hunter villages (put in each village's template with it, 1.5 to 2 for each bed: the elder in
+ * the meeting hall, the workers at their work, the rest in their homes and round the fires; each keeps within
+ * {@link FolkTuning#HOME_RADIUS} blocks of where it started), and come on show ({@code /dross showcase hunters}) and
+ * from their spawn eggs.
  * <ul>
  *   <li><b>Calm</b> they wander about, look at you, hum at their work; right-click one and it talks to you (a line in
  *       chat; the elder has the most to say).</li>
@@ -82,6 +88,10 @@ public class HunterFolk extends PathfinderMob implements GeoEntity
     private static final String TAG_SHOWCASE = "Showcase";
     private static final String TAG_ANGER = "Anger";
     private static final String TAG_ELDER = "ElderAnger";
+    /** Written on a village's villagers by its template (tools/huntsman/village_designs/warren.py): on its first tick it
+     * takes the spot it stands on as its home. */
+    private static final String TAG_VILLAGE = "VillageFolk";
+    private static final String TAG_HOME = "Home";
     private static final int BLEND_TICKS = 4;
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
@@ -96,6 +106,10 @@ public class HunterFolk extends PathfinderMob implements GeoEntity
     private int talks;
     private int talkedAt = -1000;
     private int hornAt = -100_000;
+    /** A village's villager: true until it has taken its home (its first tick in the world). */
+    private boolean villageFolk;
+    @Nullable
+    private BlockPos home;
 
     public HunterFolk(EntityType<? extends HunterFolk> type, Level level, FolkRole role)
     {
@@ -143,10 +157,12 @@ public class HunterFolk extends PathfinderMob implements GeoEntity
         this.goalSelector.addGoal(1, new HornGoal());
         this.goalSelector.addGoal(2, new BowGoal());
         this.goalSelector.addGoal(3, new FightGoal());
+        this.goalSelector.addGoal(5, new MoveTowardsRestrictionGoal(this, FolkTuning.HOME_SPEED));    // (a village's: home)
         this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, FolkTuning.STROLL_SPEED));
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
-        this.targetSelector.addGoal(1, new HurtByTargetGoal(this, HunterFolk.class));
+        // (the Huntsman and his moose are theirs: their blows never hurt them, so never turn them)
+        this.targetSelector.addGoal(1, new HurtByTargetGoal(this, HunterFolk.class, HuntMob.class));
         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, PondSkater.class, true));
     }
@@ -308,10 +324,29 @@ public class HunterFolk extends PathfinderMob implements GeoEntity
         {
             this.startAction(null);
         }
+        if (this.villageFolk && this.home == null)
+        {
+            this.setHome(this.blockPosition());
+        }
         if (this.tickCount % FolkTuning.ANGER_CHECK_TICKS == 0)
         {
             this.tickAnger(FolkTuning.ANGER_CHECK_TICKS);
         }
+    }
+
+    /** It lives at {@code pos}: it wanders within {@link FolkTuning#HOME_RADIUS} blocks of it. */
+    void setHome(BlockPos pos)
+    {
+        this.home = pos.immutable();
+        this.villageFolk = false;
+        this.restrictTo(this.home, FolkTuning.HOME_RADIUS);
+    }
+
+    /** Where it lives (a village's villager), or null (a spawn egg's, or on show). */
+    @Nullable
+    public BlockPos home()
+    {
+        return this.home;
     }
 
     // ---------------------------------------------------------------- its anger
@@ -395,6 +430,10 @@ public class HunterFolk extends PathfinderMob implements GeoEntity
         if (source.getEntity() instanceof HunterFolk && source.getEntity() != this)
         {
             return false;                            // a stray arrow of a friend's
+        }
+        if (source.getEntity() instanceof HuntMob)
+        {
+            return false;                            // their Huntsman's blows, arrows and ice (and his moose's)
         }
         boolean hurt = super.hurt(source, amount);
         if (hurt && !this.level().isClientSide && source.getEntity() instanceof Player player)
@@ -563,6 +602,14 @@ public class HunterFolk extends PathfinderMob implements GeoEntity
             elder.add(e);
         });
         tag.put(TAG_ELDER, elder);
+        if (this.villageFolk)
+        {
+            tag.putBoolean(TAG_VILLAGE, true);
+        }
+        if (this.home != null)
+        {
+            tag.putLong(TAG_HOME, this.home.asLong());
+        }
     }
 
     @Override
@@ -581,6 +628,11 @@ public class HunterFolk extends PathfinderMob implements GeoEntity
         {
             CompoundTag e = (CompoundTag) t;
             this.elderAngry.put(e.getUUID("Player"), e.getInt("Away"));
+        }
+        this.villageFolk = tag.getBoolean(TAG_VILLAGE);
+        if (tag.contains(TAG_HOME, Tag.TAG_LONG))
+        {
+            this.setHome(BlockPos.of(tag.getLong(TAG_HOME)));
         }
     }
 

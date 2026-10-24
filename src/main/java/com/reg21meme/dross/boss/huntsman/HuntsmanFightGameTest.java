@@ -46,7 +46,8 @@ import java.util.Map;
  * played faster or slower keeps its beat; at 0 the split (he leaps off, neither can be hurt), then two full bars;
  * one dead makes the other angry (its bar, its speed); both dead, "The Hunter Hunted" for the killer and the players near,
  * not one far off; the move tables give the user's shares; they never hurt each other; the bola snares; the moose kicks
- * what's behind it; with nobody near the fight is broken off and both come back, full and calm, him in the saddle.
+ * what's behind it; with nobody near the fight is broken off and both come back, full and calm, him in the saddle; a
+ * village pair's chase has its leash, and a foe who gets away makes them ride off and vanish.
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -931,6 +932,152 @@ public final class HuntsmanFightGameTest
                     }
                 })
                 .thenExecute(() -> clear(h, m))
+                .thenSucceed();
+    }
+
+    // ---------------------------------------------------------------- a village pair's chase
+
+    /** A square loop round a spot {@code out} blocks west of the arena's middle, as a village's patrol. */
+    private static List<BlockPos> loopWestOf(GameTestHelper helper, int out)
+    {
+        BlockPos c = helper.absolutePos(MIDDLE).offset(-out, 0, 0);
+        return List.of(c.offset(-4, 0, -4), c.offset(4, 0, -4), c.offset(4, 0, 4), c.offset(-4, 0, 4));
+    }
+
+    /** The chase's leash: how far past its loop a spot is (0 inside it); a pair far past its loop with its foe further
+     * out is held there and goes no further; its foe back nearer the loop, it isn't held. */
+    @GameTest(template = ARENA, timeoutTicks = WAIT + 400)
+    public static void theChaseHasALeash(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::theChaseHasALeash))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE.offset(2, 0, 0), -90.0F);
+        AlphaMoose m = moose(h);
+        List<BlockPos> loop = loopWestOf(helper, 90);
+        h.setPatrol(loop, 0);
+        m.setPatrol(loop, 0);
+        BlockPos c = helper.absolutePos(MIDDLE).offset(-90, 0, 0);
+        double inside = HuntFight.pastLoop(m, Vec3.atBottomCenterOf(c));
+        double ten = HuntFight.pastLoop(m, Vec3.atBottomCenterOf(c.offset(14, 0, 0)));
+        if (inside != 0.0D || Math.abs(ten - 10.0D) > 0.01D)
+        {
+            clear(h, m);
+            throw new GameTestAssertException("the leash's distance: inside the loop " + inside + " (should be 0), 10 past it "
+                    + ten);
+        }
+        ServerPlayer player = ColossusGameTest.joinPlayer(helper, "hunt-leashed", MIDDLE.offset(7, 0, 0), 90.0F);
+        player.setGameMode(GameType.SURVIVAL);
+        hit(m, level.damageSources().playerAttack(player), 1.0F);       // the hunt is on
+        double startX = m.getX();
+        double[] furthest = {startX};
+        boolean[] everHeld = {false};
+        helper.startSequence()
+                .thenExecuteFor(100, () ->
+                {
+                    furthest[0] = Math.max(furthest[0], m.getX());
+                    everHeld[0] |= m.held;
+                })
+                .thenExecute(() ->
+                {
+                    String problem = null;
+                    if (!everHeld[0] || !m.held)
+                    {
+                        problem = "far past its loop with its foe further out, the moose should be held there";
+                    }
+                    else if (furthest[0] - startX > 2.0D)
+                    {
+                        problem = String.format("held at its leash, the moose went %.1f blocks further out", furthest[0] - startX);
+                    }
+                    if (problem != null)
+                    {
+                        clear(h, m);
+                        ColossusGameTest.leaveAll(List.of(player));
+                        throw new GameTestAssertException(problem);
+                    }
+                    Vec3 back = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(-6, 0, 0)));
+                    player.teleportTo(back.x, back.y, back.z);
+                })
+                .thenIdle(5)
+                .thenExecute(() ->
+                {
+                    boolean held = m.held;
+                    clear(h, m);
+                    ColossusGameTest.leaveAll(List.of(player));
+                    if (held)
+                    {
+                        throw new GameTestAssertException("its foe nearer the loop than it, the moose shouldn't be held");
+                    }
+                })
+                .thenSucceed();
+    }
+
+    /** A village pair whose foe gets away (out of Rimefall here: the test's world isn't the Dross) rides off: neither
+     * can be hurt, and both are gone soon after. */
+    @GameTest(template = ARENA, timeoutTicks = WAIT + 600)
+    public static void aFoeWhoGetsAwayMakesThemRideOff(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::aFoeWhoGetsAwayMakesThemRideOff))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE, -90.0F);
+        AlphaMoose m = moose(h);
+        List<BlockPos> loop = loopWestOf(helper, 90);
+        for (HuntMob mob : new HuntMob[] {h, m})
+        {
+            mob.setPatrol(loop, 0);
+            mob.setHome(4_242L, helper.absolutePos(MIDDLE), 1);
+        }
+        ServerPlayer player = ColossusGameTest.joinPlayer(helper, "hunt-escaper", MIDDLE.offset(6, 0, 0), 90.0F);
+        player.setGameMode(GameType.SURVIVAL);
+        hit(m, level.damageSources().playerAttack(player), 1.0F);
+        long[] started = {level.getGameTime()};
+        long[] left = {0L};
+        helper.startSequence()
+                .thenWaitUntil(() ->
+                {
+                    if (m.stage() != HuntStage.LEAVING)
+                    {
+                        throw new GameTestAssertException("waiting for them to ride off (stage " + m.stage() + ")");
+                    }
+                })
+                .thenExecute(() ->
+                {
+                    left[0] = level.getGameTime();
+                    String problem = null;
+                    if (left[0] - started[0] < HuntsmanTuning.ESCAPE_TICKS)
+                    {
+                        problem = "they rode off after " + (left[0] - started[0]) + " ticks (not before "
+                                + HuntsmanTuning.ESCAPE_TICKS + ")";
+                    }
+                    else if (h.stage() != HuntStage.LEAVING || h.getVehicle() != m)
+                    {
+                        problem = "he should ride off in the saddle (stage " + h.stage() + ")";
+                    }
+                    else if (hit(m, level.damageSources().playerAttack(player), HIT)
+                            || hit(h, level.damageSources().playerAttack(player), HIT))
+                    {
+                        problem = "riding off, they can't be hurt";
+                    }
+                    if (problem != null)
+                    {
+                        clear(h, m);
+                        ColossusGameTest.leaveAll(List.of(player));
+                        throw new GameTestAssertException(problem);
+                    }
+                })
+                .thenWaitUntil(() ->
+                {
+                    if (!m.isRemoved() || !h.isRemoved())
+                    {
+                        throw new GameTestAssertException("waiting for them to vanish");
+                    }
+                })
+                .thenExecute(() -> ColossusGameTest.leaveAll(List.of(player)))
                 .thenSucceed();
     }
 

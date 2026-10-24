@@ -126,6 +126,16 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     @Nullable
     BlockPos home;
     int homeGeneration;
+    /** A Huntsman's village pair: its patrol round the village (empty: it has none), the point it's riding to
+     * ({@link PatrolGoal}, the moose's), and the chase's leash ({@link HuntFight#pastLoop}: both of them keep it, so the
+     * one left alive still has it). */
+    private final List<BlockPos> patrol = new ArrayList<>();
+    private int patrolNext;
+    /** Out past its leash with its target further out still: it makes no move that carries it further
+     * ({@link HuntGoal}; the user: he "chases about 60 blocks past his loop, then stops and rains arrows on you"). */
+    boolean held;
+    /** How long its target has been getting away (the leader's: {@link HuntFight}). */
+    int escapeTicks;
     HuntStage stage = HuntStage.CALM;
     /** The Wild Hunt's bar (the moose keeps it for both). */
     float wildHunt = HuntsmanTuning.WILD_HUNT_HEALTH;
@@ -581,7 +591,8 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         {
             return super.isInvulnerableTo(source);
         }
-        return this.showcase || this.stage == HuntStage.SPLIT || this.stage == HuntStage.WON || super.isInvulnerableTo(source);
+        return this.showcase || this.stage == HuntStage.SPLIT || this.stage == HuntStage.WON || this.stage == HuntStage.LEAVING
+                || super.isInvulnerableTo(source);
     }
 
     @Override
@@ -749,6 +760,35 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             home.putInt("Generation", this.homeGeneration);
             tag.put(TAG_HOME, home);
         }
+        if (!this.patrol.isEmpty())
+        {
+            tag.putLongArray("Patrol", this.patrol.stream().mapToLong(BlockPos::asLong).toArray());
+            tag.putInt("PatrolNext", this.patrolNext);
+        }
+    }
+
+    /** Its patrol round its village (its points' heights are the ground's, found as it goes). */
+    public List<BlockPos> patrol()
+    {
+        return this.patrol;
+    }
+
+    public int patrolNext()
+    {
+        return this.patrolNext;
+    }
+
+    void setPatrolNext(int next)
+    {
+        this.patrolNext = next;
+    }
+
+    /** Gives it its patrol, riding to point {@code next} first (the moose rides it; it's both of theirs' leash). */
+    public void setPatrol(List<BlockPos> loop, int next)
+    {
+        this.patrol.clear();
+        this.patrol.addAll(loop);
+        this.patrolNext = loop.isEmpty() ? 0 : Math.floorMod(next, loop.size());
     }
 
     /** Gives it a home: its village, where in it they wait, which of the village's pairs it is. Calm, it wanders near
@@ -807,7 +847,13 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             CompoundTag home = tag.getCompound(TAG_HOME);
             this.setHome(home.getLong("Village"), BlockPos.of(home.getLong("Pos")), home.getInt("Generation"));
         }
-        this.restartClock();                          // (a move left half played plays again from its start)
+        List<BlockPos> loop = new ArrayList<>();
+        for (long p : tag.getLongArray("Patrol"))
+        {
+            loop.add(BlockPos.of(p));
+        }
+        this.setPatrol(loop, tag.getInt("PatrolNext"));
+        this.restartClock();                         // (a move left half played plays again from its start)
     }
 
     /** Where it stands (its feet's block). */

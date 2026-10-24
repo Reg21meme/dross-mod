@@ -4,6 +4,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.huntsman.folk.FolkTuning;
+import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageDesigns;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillages;
 import com.reg21meme.dross.boss.huntsman.village.VillageAnimals;
@@ -233,6 +235,10 @@ public final class HunterVillageShowcase
         AABB area = new AABB(box.minX() - FLOOR_MARGIN, plan.floorY() - MAX_FILL, box.minZ() - FLOOR_MARGIN,
                 box.maxX() + FLOOR_MARGIN + 1, top + 1, box.maxZ() + FLOOR_MARGIN + 1);
         level.getEntitiesOfClass(Mob.class, area, m -> m instanceof Moose || m instanceof Rimehorn).forEach(Mob::discard);
+        // its villagers, wherever they've wandered (within their home's reach)
+        level.getEntitiesOfClass(HunterFolk.class, area.inflate(FolkTuning.HOME_RADIUS), h -> !h.isShowcase()
+                && (area.contains(h.position()) || h.home() != null && area.contains(Vec3.atBottomCenterOf(h.home()))))
+                .forEach(Entity::discard);
         VillageAnimals.cancelIn(level, area);
         level.getEntitiesOfClass(ArmorStand.class, area).forEach(Entity::discard);   // the guards too
         level.getEntitiesOfClass(ItemEntity.class, area).forEach(Entity::discard);

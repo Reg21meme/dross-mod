@@ -300,6 +300,13 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
     for e in base.entities:
         if zl["upper"][int(e["x"]), int(e["z"])] == 0:
             problems.append(f"its {e['nbt']['id']} at {e['x']:.1f}, {e['z']:.1f} stands in no zone")
+    # every villager on a floor with room to stand, decorations or not
+    for e in base.entities:
+        if e["nbt"]["id"].startswith("dross:hunter_"):
+            c = (int(e["x"]), int(round(e["y"])), int(e["z"]))
+            for grid, when in ((base, "without its decorations"), (g, "with them")):
+                if not walk.standable(grid, *c):
+                    problems.append(f"its {e['nbt']['id']} at {c} has no room to stand {when}")
     os.makedirs(NBT_DIR, exist_ok=True)
     os.makedirs(PREVIEWS, exist_ok=True)
     if write_nbt:
@@ -351,6 +358,7 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
              "way_in": [int(ex["entrance"][0]), int(ex["entrance"][2])],
              "home": ([int(v) for v in ex["lodge"]["home"]] if huntsman and ex["lodge"] is not None else [-1, -1]),
              "moose": kinds.count("dross:moose"), "rimehorns": kinds.count("dross:rimehorn"),
+             "folk": sum(1 for k in kinds if k.startswith("dross:hunter_")),
              "probes": [list(c) for c in probes], "lanterns": len(lanterns), "shrine": bool(shrine or huntsman),
              "pens": [list(pen["box"]) for pen in ex.get("pens", ())],
              "kinds": info.get("kinds", {}), "roles": info.get("roles", {})}
@@ -359,7 +367,9 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
           f"{len(dec.groups)} decorations ({n_deco} blocks), {n_base} blocks, {len(lanterns)} lanterns "
           f"({max(dim)} floor cells a little under {lighting.MIN_LIGHT}), {info.get('inside_lights', 0)} lamp poles "
           f"inside ({open_dim} of {len(ex['open_floors'])} courtyard and lane cells under {lighting.MIN_LIGHT}), "
-          f"{kinds.count('dross:moose')} moose, {kinds.count('dross:rimehorn')} Rimehorns, {floating} floating removed, "
+          f"{kinds.count('dross:moose')} moose, {kinds.count('dross:rimehorn')} Rimehorns, "
+          f"{sum(1 for k in kinds if k.startswith('dross:hunter_'))} villagers {info.get('folk', {})}, "
+          f"{floating} floating removed, "
           f"{swapped} lights softened, {given_up} windows iced over, plan attempt {info['plan_attempt']}, "
           f"{time.time() - t0:.1f}s")
     for p in problems:
@@ -457,7 +467,7 @@ def write_java(entries):
                      f'{e["depth"]}, {e["layers"]}, {e["ground_layer"]}, {e["height"]}, {e["igloos"]}, {e["courts"]}, '
                      f'{"true" if e["huntsman"] else "false"}, {e["way_in"][0]}, {e["way_in"][1]}, '
                      f'{e.get("home", [-1, -1])[0]}, {e.get("home", [-1, -1])[1]}, '
-                     f'{e.get("moose", 0)}, {e.get("rimehorns", 0)},\n'
+                     f'{e.get("moose", 0)}, {e.get("rimehorns", 0)}, {e.get("folk", 0)},\n'
                      f'                    "{boxes}",\n                    "{probes}",\n                    "{pens}")')
     body = ",\n".join(lines)
     java = f"""package com.reg21meme.dross.boss.huntsman.village;
@@ -483,7 +493,8 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  * in the template's own coordinates; {{@code homeX}}, {{@code homeZ}}: where the Huntsman and his Alpha Moose wait at
  * home, his yard (his villages only; -1 elsewhere). {{@link #decorBoxes}} holds each decoration's box in the template's own coordinates ("x1,y1,z1,x2,y2,z2;..."): the
  * game keeps each decoration with a 1 in 2 chance ({{@link HunterVillages#DECOR_CHANCE}}). The template holds the
- * animals of its pens too ({{@code moose}} moose, {{@code rimehorns}} Rimehorns), and {{@link #lightProbes}} the darkest
+ * animals of its pens too ({{@code moose}} moose, {{@code rimehorns}} Rimehorns) and its villagers ({{@code folk}}
+ * of them: boss/huntsman/folk/HunterFolk), and {{@link #lightProbes}} the darkest
  * floor cell of each of its rooms (template coordinates): lit enough that nothing spawns there; {{@link #pens}} its
  * pens' fence lines (its animals are penned: they stay in them and never go for anyone).
  */
@@ -493,7 +504,7 @@ public final class HunterVillageDesigns
 
     public record Design(int number, String id, String name, String mood, int width, int depth, int layers,
                          int groundLayer, int height, int igloos, int courts, boolean huntsman, int wayInX, int wayInZ,
-                         int homeX, int homeZ, int moose, int rimehorns, String decorBoxes, String lightProbes,
+                         int homeX, int homeZ, int moose, int rimehorns, int folk, String decorBoxes, String lightProbes,
                          String penBoxes)
     {{
         public ResourceLocation template()
