@@ -610,15 +610,17 @@ anywhere). The Huntsman's blows never hurt them. They also come from their spawn
 - **Warriors:** the spearman (a peaked hood, a wolf pelt, spear and round shield, 30 health), the axeman (a fur-trimmed
   hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, a bow, 25; he
   keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
-  a fight starts he blows his horn and everyone near gets Speed and Strength for 30 seconds).
+  his village turns on someone he blows his horn and everyone near gets Speed and Strength for 30 seconds).
 - **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
   Frostroot), the butcher (a cleaver and an apron), the herder (fur ear flaps, a crook), the fisher (a wide-brimmed
   oilskin hood, a rod with a fish on its hook) and the tanner (a fringed capelet, a scraper and a roll of hide).
 - **The elder** (50 health): a small white scar over one eye (that eye gone), a long white beard, a sword of ice. He's
   the one to talk to.
 - **Calm** they wander and hum. Right-click one and it talks to you in chat (the elder has the most to say).
-- **Hit one** and it fights back. **Kill one** (it tips over like any mob) and every one of them within 64 blocks turns
-  on you for 10 minutes. Hit the elder and he stays angry until you've been away (48 blocks off) for 10 minutes.
+- **Hit one** and it fights you back until you're about 16 blocks from it. **Kill one** (it tips over like any mob):
+  every horn-blower blows his horn and every one of them within 96 blocks rushes you, until you've left their village
+  (80 blocks from where each lives). Hit the elder and he stays angry until you've been away (48 blocks off) for 10
+  minutes.
 - They hunt Pond Skaters, and Pond Skaters hunt them; hurt by one, a villager fights back and the others near come to
   help.
 - To keep a village smooth, they're drawn only within 40 blocks, and the villages' fires (Village Fire, a campfire to

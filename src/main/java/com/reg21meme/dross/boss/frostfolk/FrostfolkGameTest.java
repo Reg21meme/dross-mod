@@ -43,7 +43,8 @@ import java.util.Set;
  * <ul>
  *   <li>every calling is its own entity type with its spawn egg, its health (warriors 25-30, workers 20, the elder 50)
  *       and its damage;</li>
- *   <li>killing one turns every villager near on the killer (for {@link FolkTuning#VILLAGE_ANGER_TICKS});</li>
+ *   <li>killing one turns every villager near on the killer and sounds the horn-blowers' alarm;</li>
+ *   <li>a hit one's grudge ends once you're out of its reach, the village's once you've left the village;</li>
  *   <li>hit the elder and he stays angry while you're near, and forgives you once you've been away 10 minutes;</li>
  *   <li>a Pond Skater and a villager go for each other;</li>
  *   <li>a village's villager takes its home, keeps it through a save, walks back to it, and the Huntsman's blows never
@@ -167,6 +168,8 @@ public final class FrostfolkGameTest
         near.add(spawn(helper, FolkRole.SPEARMAN, MIDDLE.offset(4, 0, 4)));
         near.add(spawn(helper, FolkRole.ARCHER, MIDDLE.offset(-4, 0, 5)));
         near.add(spawn(helper, FolkRole.ELDER, MIDDLE.offset(5, 0, -2)));
+        Frostfolk horn = spawn(helper, FolkRole.HORNBLOWER, MIDDLE.offset(-5, 0, -3));
+        near.add(horn);
         try
         {
             for (Frostfolk h : near)
@@ -193,12 +196,68 @@ public final class FrostfolkGameTest
                     throw new GameTestAssertException("the " + h.role().key + " is angry at a player who did nothing");
                 }
             }
+            if (!horn.alarmed())
+            {
+                throw new GameTestAssertException("a villager killed, the horn-blower should sound the alarm");
+            }
         }
         finally
         {
             near.forEach(Frostfolk::discard);
             dead.discard();
             ColossusGameTest.leaveAll(players);
+        }
+        helper.succeed();
+    }
+
+    /** Hit, a villager fights you back until you're out of its reach; turned by a killing, until you've left its
+     * village (the user, October 24, 2026). */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void angerEndsWhenYouLeave(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, FrostfolkGameTest::angerEndsWhenYouLeave))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        ServerPlayer player = survivalPlayer(helper, "folk_leaver", MIDDLE.offset(0, 0, -3));
+        Frostfolk hit = spawn(helper, FolkRole.SPEARMAN, MIDDLE);
+        Frostfolk village = spawn(helper, FolkRole.FARMER, MIDDLE.offset(3, 0, 0));
+        village.setHome(village.blockPosition());
+        try
+        {
+            hit.hurt(level.damageSources().playerAttack(player), 1.0F);
+            village.angerVillage(player);
+            Vec3 at = player.position();
+            hit.tickAnger(FolkTuning.ANGER_CHECK_TICKS);
+            village.tickAnger(FolkTuning.ANGER_CHECK_TICKS);
+            if (!hit.isAngryAt(player) || !village.isAngryAt(player))
+            {
+                throw new GameTestAssertException("near them, the hit spearman and the turned farmer should both be angry");
+            }
+            player.teleportTo(at.x, at.y, at.z - (FolkTuning.HIT_LEAVE_RANGE + 4.0D));
+            hit.tickAnger(FolkTuning.ANGER_CHECK_TICKS);
+            village.tickAnger(FolkTuning.ANGER_CHECK_TICKS);
+            if (hit.isAngryAt(player))
+            {
+                throw new GameTestAssertException("out of its reach, the hit spearman should let you go");
+            }
+            if (!village.isAngryAt(player))
+            {
+                throw new GameTestAssertException("still in its village, the turned farmer should still be angry");
+            }
+            player.teleportTo(at.x, at.y, at.z - (FolkTuning.VILLAGE_LEAVE_RANGE + 8.0D));
+            village.tickAnger(FolkTuning.ANGER_CHECK_TICKS);
+            if (village.isAngryAt(player))
+            {
+                throw new GameTestAssertException("out of its village, the turned farmer should let you go");
+            }
+        }
+        finally
+        {
+            hit.discard();
+            village.discard();
+            ColossusGameTest.leaveAll(List.of(player));
         }
         helper.succeed();
     }

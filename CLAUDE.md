@@ -912,16 +912,22 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           / damage / armour: warriors **spearman** 30 / 4 / 4 (thrust, thrust, sweep, the Huntsman's combo), **axeman**
           28 / 6 / 3 (a chop), **pikeman** 28 / 5 / 3 (the thrust and sweep, reaching 3.6), **archer** 25 / 3 / 2 (real
           arrows of 2.5 from 7-22 blocks, keeping off; a punch up close), **horn-blower** 26 / 4 / 3 (the thrust and
-          sweep; as a fight with a player starts, his horn: Speed I and Strength I for 30 s to every villager within 24,
-          once a minute); workers **farmer**, **butcher**, **herder**, **fisher**, **tanner** 20 health, no armour, a
+          sweep; when his village turns on a player, his horn: Speed I and Strength I for 30 s to every villager within
+          24); workers **farmer**, **butcher**, **herder**, **fisher**, **tanner** 20 health, no armour, a
           chop with their tool for 2-4; **the elder** 50 / 7 / 4 (his sword). Speeds 0.28 / 0.25 / 0.22; they walk and
           run at their real pace. Every number in `FolkTuning`.
         - **How they act** (`Frostfolk`): calm, they wander, look at you and hum now and then; right-click one and it
-          talks (a line in chat, `<Frostfolk Elder> ...`, its talk animation and voice; three lines each, the elder six:
-          `dross.frostfolk.<calling>.line.<n>`), but not while it's angry at you. Hit one and it fights you back for 30
-          s (`HIT_ANGER_TICKS`); **kill one and every villager within 64 blocks turns on you for 10 minutes**
-          (`VILLAGE_ANGER_TICKS`, saved), three of them shouting. **The elder** stays angry at whoever hit him until
-          they've been 48 blocks off for 10 minutes (`ELDER_NEAR`, `ELDER_FORGIVE_TICKS`; saved). They never hurt each
+          talks (a line in chat, `<Frostfolk Elder> ...`, its talk animation and voice; `dross.frostfolk.<calling>.line.<n>`,
+          how many each has in `FolkTuning`: the spearman and pikeman 2, the axeman and fisher 4, the elder 7, the
+          rest 3 (the archer's last two the user's picks of eight); the user's edits of October 24, 2026: the elder's cabin that moves round the lake every winter, the
+          fisher's lit house on the lake), but not while it's angry at you. **Hit one** and it fights you back until
+          you're 16 blocks from it (`HIT_LEAVE_RANGE`); **kill one and every villager within 96 blocks rushes you**, three
+          of them shouting and **every horn-blower sounding his horn**, until you've left their village (80 blocks from
+          where each one lives: `VILLAGE_LEAVE_RANGE`; saved) (the user, October 24, 2026: "if you hurt a villager, that
+          villager will hit you back, but if you leave the area, a 10-20 block radius, then he'll stop; if you kill a
+          villager, all the horns will blow and all the villagers will start rushing you; you'll have to leave the
+          village"; until then 30 s for a hit and 10 minutes for a killing). **The elder** stays angry at whoever hit
+          him until they've been 48 blocks off for 10 minutes (`ELDER_NEAR`, `ELDER_FORGIVE_TICKS`; saved). They never hurt each
           other (no friendly fire), **hunt Pond Skaters, and Pond Skaters hunt them** (`PondSkater`'s targets); hurt by
           one, it fights back wherever the skater stands (Minecraft's own rule had a village's Frostfolk ignore anything
           outside its 24-block home) and calls the others within 16 blocks who aren't fighting (`HELP_RANGE`). They're
@@ -1250,10 +1256,10 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   holds its tool upright in front of its arm (spears, the pike, the crook, the axe, the sword, the cleaver and the
   scraper all clear of the sleeve), the fisher's fish hanging from his hook; each button plays its animation on all of
   them (the archer shoots, the horn-blower blows his horn); right-click one: a line in chat and its voice (the elder
-  sounds older and has six lines). The Dross tab has three Frostfolk eggs (Warrior, Worker, Elder): the warrior and
+  sounds older and has seven lines). The Dross tab has three Frostfolk eggs (Warrior, Worker, Elder): the warrior and
   worker eggs bring a different calling of their kind each time. From the eggs (survival): they wander and hum; hit one
-  and it fights back; kill one: it tips over and flashes red like a vanilla mob, and the others near turn on you with a
-  shout (the horn-blower's horn speeds them up) for 10 minutes; hit the elder, walk well away and come back after 10
+  and it fights back until you walk about 16 blocks away; kill one: it tips over and flashes red like a vanilla mob,
+  every horn-blower blows his horn and the others rush you with a shout until you leave their village; hit the elder, walk well away and come back after 10
   minutes: he's calm; a Pond Skater spawned beside them fights them, and when one hurts a villager the others near come
   to help.
 - **The villages' frame rate** (step 14, October 24): in the Huntsman's village it stays smooth (measured about 180-280

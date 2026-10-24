@@ -72,12 +72,12 @@ import java.util.UUID;
  * <ul>
  *   <li><b>Calm</b> they wander about, look at you, hum at their work; right-click one and it talks to you (a line in
  *       chat; the elder has the most to say).</li>
- *   <li><b>Hit one</b> and it fights back ({@link FolkTuning#HIT_ANGER_TICKS}); the elder stays angry until you've been
- *       {@link FolkTuning#ELDER_NEAR} blocks off for {@link FolkTuning#ELDER_FORGIVE_TICKS} (10 minutes).</li>
- *   <li><b>Kill one</b> and every villager within {@link FolkTuning#VILLAGE_RANGE} blocks turns on you for
- *       {@link FolkTuning#VILLAGE_ANGER_TICKS} (10 minutes), with a rallying shout (the user: "as soon as you kill one of
- *       them, the entire village turns on you and tries to kill you"); the horn-blower blows his horn, the others get
- *       Speed and Strength from it.</li>
+ *   <li><b>Hit one</b> and it fights you back until you're {@link FolkTuning#HIT_LEAVE_RANGE} blocks from it; the elder
+ *       stays angry until you've been {@link FolkTuning#ELDER_NEAR} blocks off for {@link FolkTuning#ELDER_FORGIVE_TICKS}
+ *       (10 minutes).</li>
+ *   <li><b>Kill one</b> and every villager within {@link FolkTuning#VILLAGE_RANGE} blocks rushes you, with a rallying
+ *       shout and every horn-blower's horn (the others get Speed and Strength from it), until you've left their village
+ *       ({@link FolkTuning#VILLAGE_LEAVE_RANGE} blocks from where each one lives).</li>
  *   <li>Warriors fight with their own moves (the spear's thrust and sweep, the axe's chop, the pike's longer thrust,
  *       the archer's bow); workers with their tools; the elder with his sword. They hunt Pond Skaters, and Pond Skaters
  *       hunt them (the user: "these guys are all hostile to spiders and spiders will attack these guys").</li>
@@ -102,13 +102,15 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
     private int seenActionCount = -1;
     private int actionEnd = -1;
     private int actionStart = -1;
-    /** Players it's angry at, and until when (game time). */
-    private final Map<UUID, Long> angry = new HashMap<>();
+    /** Players it's angry at: true for the whole village's grudge (one of them killed), false for its own (hit). */
+    private final Map<UUID, Boolean> angry = new HashMap<>();
     /** The elder: players he's angry at, and how long each has been away. */
     private final Map<UUID, Integer> elderAngry = new HashMap<>();
     private int talks;
     private int talkedAt = -1000;
     private int hornAt = -100_000;
+    /** The horn-blower: the village has turned, he's to sound the alarm. */
+    private boolean alarm;
     /** A village's villager: true until it has taken its home (its first tick in the world). */
     private boolean villageFolk;
     @Nullable
@@ -369,23 +371,49 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         {
             return false;
         }
-        Long until = this.angry.get(player.getUUID());
-        return (until != null && until > this.level().getGameTime()) || this.elderAngry.containsKey(player.getUUID());
+        return this.angry.containsKey(player.getUUID()) || this.elderAngry.containsKey(player.getUUID());
     }
 
-    /** Turns it on {@code player} for {@code ticks}. */
-    public void angerAt(Player player, int ticks)
+    /** It fights {@code player} back (they hit it) until they're {@link FolkTuning#HIT_LEAVE_RANGE} from it. */
+    public void angerHit(Player player)
     {
-        long until = this.level().getGameTime() + ticks;
-        this.angry.merge(player.getUUID(), until, Math::max);
+        this.angry.putIfAbsent(player.getUUID(), false);
+    }
+
+    /** It turns on {@code player} with its village (they killed one of them) until they've left it. */
+    public void angerVillage(Player player)
+    {
+        this.angry.put(player.getUUID(), true);
+    }
+
+    /** (For the tests) The horn-blower has his alarm to sound, or is sounding it. */
+    boolean alarmed()
+    {
+        return this.alarm || this.action() == FolkAnims.HORN_BLOW;
+    }
+
+    /** Where its village's grudge is measured from: its home, or (a spawn egg's) where it is. */
+    private Vec3 village()
+    {
+        return this.home != null ? Vec3.atBottomCenterOf(this.home) : this.position();
     }
 
     /** Lets time pass for its anger ({@code ticks}): grudges run out; the elder forgives a player away long enough
      * (near him, the time away starts again). */
     void tickAnger(int ticks)
     {
-        long now = this.level().getGameTime();
-        this.angry.values().removeIf(until -> until <= now);
+        // its own grudge ends once they're out of reach, the village's once they've left it (or the world)
+        Vec3 village = this.village();
+        this.angry.entrySet().removeIf(e ->
+        {
+            Player player = this.level().getPlayerByUUID(e.getKey());
+            if (player == null)
+            {
+                return true;
+            }
+            return e.getValue() ? player.position().distanceTo(village) > FolkTuning.VILLAGE_LEAVE_RANGE
+                    : player.distanceTo(this) > FolkTuning.HIT_LEAVE_RANGE;
+        });
         this.elderAngry.replaceAll((uuid, away) ->
         {
             Player player = this.level().getPlayerByUUID(uuid);
@@ -459,7 +487,7 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
             }
             else
             {
-                this.angerAt(player, FolkTuning.HIT_ANGER_TICKS);
+                this.angerHit(player);
             }
         }
         return hurt;
@@ -503,7 +531,8 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         return distance < d * d;
     }
 
-    /** Every villager near {@code dead} turns on {@code killer} for {@link FolkTuning#VILLAGE_ANGER_TICKS}; a few shout. */
+    /** Every villager near {@code dead} turns on {@code killer} (until they've left the village); a few shout, and every
+     * horn-blower sounds the alarm. */
     static void turnVillage(Frostfolk dead, Player killer)
     {
         AABB area = dead.getBoundingBox().inflate(FolkTuning.VILLAGE_RANGE);
@@ -512,7 +541,11 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         int shouted = 0;
         for (Frostfolk h : near)
         {
-            h.angerAt(killer, FolkTuning.VILLAGE_ANGER_TICKS);
+            h.angerVillage(killer);
+            if (h.role.blowsHorn())
+            {
+                h.alarm = true;
+            }
             h.setTarget(killer);
             if (shouted < FolkTuning.CRIERS)
             {
@@ -611,11 +644,11 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
             tag.putBoolean(TAG_SHOWCASE, true);
         }
         ListTag anger = new ListTag();
-        this.angry.forEach((uuid, until) ->
+        this.angry.forEach((uuid, village) ->
         {
             CompoundTag e = new CompoundTag();
             e.putUUID("Player", uuid);
-            e.putLong("Until", until);
+            e.putBoolean("Village", village);
             anger.add(e);
         });
         tag.put(TAG_ANGER, anger);
@@ -647,7 +680,7 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         for (Tag t : tag.getList(TAG_ANGER, Tag.TAG_COMPOUND))
         {
             CompoundTag e = (CompoundTag) t;
-            this.angry.put(e.getUUID("Player"), e.getLong("Until"));
+            this.angry.put(e.getUUID("Player"), e.getBoolean("Village"));
         }
         this.elderAngry.clear();
         for (Tag t : tag.getList(TAG_ELDER, Tag.TAG_COMPOUND))
@@ -853,7 +886,8 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         this.playSound(ModSounds.HUNTSMAN_BOW_SHOT.get(), 0.8F, 1.15F);
     }
 
-    /** The horn-blower: as a fight starts, his horn; everyone near gets Speed and Strength. */
+    /** The horn-blower: when his village turns on a player (one of them killed), his horn; everyone near gets Speed and
+     * Strength. */
     private final class HornGoal extends Goal
     {
         private boolean called;
@@ -868,7 +902,7 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         {
             LivingEntity t = Frostfolk.this.getTarget();
             return Frostfolk.this.role.blowsHorn() && t instanceof Player
-                    && Frostfolk.this.tickCount - Frostfolk.this.hornAt >= FolkTuning.HORN_PAUSE
+                    && Frostfolk.this.alarm
                     && !Frostfolk.this.busy();
         }
 
@@ -883,6 +917,7 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         {
             Frostfolk me = Frostfolk.this;
             me.hornAt = me.tickCount;
+            me.alarm = false;
             me.getNavigation().stop();
             me.startAction(FolkAnims.HORN_BLOW);
             this.called = false;

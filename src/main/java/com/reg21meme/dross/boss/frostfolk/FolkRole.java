@@ -126,6 +126,15 @@ public enum FolkRole
     /** How many lines it says when you talk to it (lang keys {@code dross.frostfolk.<key>.line.<n>}). */
     public int lines()
     {
-        return this == ELDER ? FolkTuning.ELDER_LINES : FolkTuning.FOLK_LINES;
+        return switch (this)
+        {
+            case ELDER -> FolkTuning.ELDER_LINES;
+            case SPEARMAN -> FolkTuning.SPEARMAN_LINES;
+            case AXEMAN -> FolkTuning.AXEMAN_LINES;
+            case PIKEMAN -> FolkTuning.PIKEMAN_LINES;
+            case ARCHER -> FolkTuning.ARCHER_LINES;
+            case FISHER -> FolkTuning.FISHER_LINES;
+            default -> FolkTuning.FOLK_LINES;
+        };
     }
 }
