@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * {@code /dross showcase hunter_igloos} (test tool, cheats only): builds every hunter igloo and every decoration ahead of
+ * {@code /dross showcase frostfolk_igloos} (test tool, cheats only): builds every hunter igloo and every decoration ahead of
  * you on a snowy floor, each on its own plot facing you, for the user to pick from before they're joined into villages
  * (the plan of October 20, 2026: "do an igloo showcase, and I'll decide which one"; "a decoration showcase ... I'll
  * note the ones I don't like"). The boss area's {@link HunterIglooDesigns} (made by tools/huntsman/igloos.py).
@@ -58,7 +58,7 @@ public final class HunterIglooShowcase
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final String COMMAND = "/dross showcase hunter_igloos";
+    public static final String COMMAND = "/dross showcase frostfolk_igloos";
     /** Blocks between neighbouring plots, and between rows (more between the igloos' rows and the decorations'). */
     static final int GAP = 6;
     static final int ROW_GAP = 9;
@@ -172,7 +172,7 @@ public final class HunterIglooShowcase
         return new Plan(origin, look, floorY, plots);
     }
 
-    /** Runs {@code /dross showcase hunter_igloos}: plans it and starts building, one plot a tick. */
+    /** Runs {@code /dross showcase frostfolk_igloos}: plans it and starts building, one plot a tick. */
     public static int run(CommandContext<CommandSourceStack> context)
     {
         CommandSourceStack source = context.getSource();

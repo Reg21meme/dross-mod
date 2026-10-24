@@ -10,7 +10,8 @@ five, in this order:
      1      2  Riding Down       his spear driven down past the antlers at a gallop    ride_thrust 0.62 s over run 0.2 s
      2      4  Rain of Arrows    his bow drawn high, three arrows on the string       ride_rain 0.95 s over idle 0.5 s
      3      7  The Rearing       the Alpha Moose up on its hind legs, him in the saddle  ride_idle over rear 1.0 s
-     4      -  The Rearing Shot  the same, him loosing his bow into the sky          ride_rain 0.95 s over rear 1.0 s
+     4      -  The Rearing Shot  the moose rearing, him turned in the saddle, his bow   his own draw, aimed back
+                                 drawn level back over its rump                      (`shot`), over rear 0.42 s
      5      -  The Parting Shot  the moose's cracking stamp, the ice bursting up in front of it, while he leaps off its
                                  back shooting                                       crack_stamp 1.55 s; him on foot
                                                                                      (backstep_shoot 1.2 s) beside it
@@ -67,7 +68,7 @@ from kit.anims import Animation, Pose, to_json  # noqa: E402
 from kit.clipping import _box_frame, _inside_depth  # noqa: E402
 from rimekit import mats as M, mobkit, texture, uvpack, zfight  # noqa: E402
 from rimekit import view as V  # noqa: E402
-from rimemobs import alpha_moose, huntsman, huntsman_rider  # noqa: E402
+from rimemobs import alpha_moose, huntsman, huntsman_rider, hunt_ik  # noqa: E402
 
 NAME = "huntsman_trophy"
 PREFIX = "animation.huntsman_trophy."
@@ -126,14 +127,23 @@ DESIGNS = (
          rider=("ride_idle", 0.0), moose=("rear", 1.0), turn=75.0,
          blurb="The Alpha Moose up on its hind legs, him still in the saddle"),
     dict(number=4, candidate=0, key="rearing_shot", look="Rearing shot", name="The Rearing Shot",
-         rider=("ride_rain", 0.95), moose=("rear", 1.0), turn=-75.0,
-         blurb="The Alpha Moose rearing, him loosing his bow into the sky"),
+         rider=("rearing_shot", 1.38), moose=("rear", 0.42), turn=90.0, hide=("horn_belt",),
+         moose_turns={"neck": (35.0, -12.0, 0.0), "head": (-10.0, -8.0, 0.0)},
+         shot=dict(aim=(135.0, 28.0), chest=-40.0, head=-70.0, face=-15.0, nock_down=-20.0, reach_turn=0.0),
+         blurb="The Alpha Moose rearing, its head thrown out, him turned in the saddle, his bow drawn level back over "
+               "its rump"),
     dict(number=5, candidate=0, key="parting_shot", look="Parting shot", name="The Parting Shot",
          foot=("backstep_shoot", 1.2), moose=("crack_stamp", 1.55), spikes=True, turn=-45.0,
          blurb="The moose's ice slam, the spikes bursting up, as he leaps off its back shooting"),
 )
-# (The Rearing Shot's level shot out to his left was tried first: once the moose is up on its hind legs its neck and
-# antlers hide his bow from every side, so he looses it upwards, which shows above them.)
+# (The Rearing Shot: the user, October 24, 2026: "the moose should neigh, but he should aim his bow parallel to the
+# ground", with three pictures of riders on rearing horses, two of them shooting back over the horse's rump. Its own
+# draw (`shot`): his bow aimed back past his left shoulder and tipped up in the saddle by as much as the rearing tips
+# him back, so in the world the arrow is level; the moose not yet at the top of its rear, its neck stretched out
+# forward (`moose_turns`), its front hooves pawing. A level shot ahead ran into the moose's neck and palm antlers
+# however it was turned; before, he loosed upwards, turned round to face the viewer. His belt horn is left off: leant
+# round, it sank into the saddle.)
+SHOT_T = 2.9                # a trophy's own draw (`shot`): the saddle shots' length; the pose is taken at full draw
 TURNS = tuple(float(a) for a in range(-90, 91, 15))
 MAX_LOOK = 15
 VIEWS = ((0.0, 20.0), (145.0, 14.0))     # the previews: as a player in front of the placed trophy sees it, then behind
@@ -200,8 +210,15 @@ def build():
     fm, ft = mobkit.build_model(huntsman, verbose=False)
     ma = alpha_moose.animations(mobkit.MobRig(mm, alpha_moose))
     rrig = mobkit.MobRig(rm, huntsman_rider)
-    wanted = {d["rider"][0] for d in DESIGNS if "rider" in d}
+    wanted = {d["rider"][0] for d in DESIGNS if "rider" in d and "shot" not in d}
     ra = {name: getattr(huntsman_rider, name)(rrig) for name in wanted}
+    for d in DESIGNS:
+        if "shot" in d:             # a draw of the trophy's own (the saddle shots' archery, aimed as it says)
+            s = d["shot"]
+            ra[d["rider"][0]] = huntsman_rider._rider_shots(
+                rrig, d["rider"][0], SHOT_T, [SHOT_T / 2.0], lambda t, a=s["aim"]: hunt_ik.elevate(*a), chest=s["chest"],
+                head=s["head"], lean=s.get("lean", 0.0), lift=s.get("lift", 0.0), hold=0.1, quick=0.85, face=s["face"],
+                nock_down=s.get("nock_down", -30.0), reach_turn=s.get("reach_turn", 25.0))
     ra.update(huntsman_rider.carries(rrig, (mm, ma)))
     fa = huntsman.animations(mobkit.MobRig(fm, huntsman))
     sm, st = spike_model()
@@ -224,7 +241,17 @@ def raw_poses(design, models, anims):
         rname, rtm = design["rider"]
         rp = dict(ra[rname].sample(_at(ra[rname], rtm)))
         rp[huntsman_rider.CARRY] = ra[f"carry_{mname}"].sample(_at(ma[mname], mt))[huntsman_rider.CARRY]
+        if design.get("twist") or design.get("lean"):
+            # his upper body turned round in the saddle and leant forward against the rearing (degrees, Bedrock y and x)
+            rot, pos, scl = rp.get("chest", ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)))
+            rp["chest"] = ((rot[0] + design.get("lean", 0.0), rot[1] + design.get("twist", 0.0), rot[2]), pos, scl)
+        for name in design.get("hide", ()):
+            rp[name] = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
         poses[RIDER] = rp
+    for bone, add in design.get("moose_turns", {}).items():
+        # the moose's own bones turned a little more on top of its animation (degrees, Bedrock x, y, z)
+        rot, pos, scl = poses[MOOSE].get(bone, ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)))
+        poses[MOOSE][bone] = (tuple(r + a for r, a in zip(rot, add)), pos, scl)
     if "foot" in design:
         fname, ftm = design["foot"]
         fp = dict(fa[fname].sample(_at(fa[fname], ftm)))

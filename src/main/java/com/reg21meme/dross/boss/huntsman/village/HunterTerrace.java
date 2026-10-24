@@ -18,23 +18,28 @@ import javax.annotation.Nullable;
  * Puts each part of a hunter village on its own ground as its templates are placed in the world: every block (and
  * every animal) goes up or down to its zone's level ({@link HunterVillageZones}: a courtyard's, a lane's where it is,
  * a decoration's), and a block in no zone isn't placed at all (the world's own land stays there). A column on its own
- * ground (a path, a lantern post) goes onto the world's ground there. {@link HunterVillagePiece} uses it for the
+ * ground (a path, a lantern post) goes onto the ground there as the piece levels it ({@link HunterVillagePiece.Ground}:
+ * the world's own, or eased towards a zone near it; the world's ground-height map isn't updated while the village is
+ * built, so it can't be read for it). {@link HunterVillagePiece} uses it for the
  * village's template ({@code decor} false) and its decorations' ({@code decor} true: each decoration whole, at its
  * zone's level).
  */
 public final class HunterTerrace extends StructureProcessor
 {
     /** (Only made by the village's piece: a saved processor list has none to read.) */
-    public static final Codec<HunterTerrace> CODEC = Codec.unit(() -> new HunterTerrace(null, false));
+    public static final Codec<HunterTerrace> CODEC = Codec.unit(() -> new HunterTerrace(null, false, null));
 
     @Nullable
     private final RimefallVillages.VillagePlan plan;
     private final boolean decor;
+    @Nullable
+    private final HunterVillagePiece.Ground ground;
 
-    public HunterTerrace(@Nullable RimefallVillages.VillagePlan plan, boolean decor)
+    public HunterTerrace(@Nullable RimefallVillages.VillagePlan plan, boolean decor, @Nullable HunterVillagePiece.Ground ground)
     {
         this.plan = plan;
         this.decor = decor;
+        this.ground = ground;
     }
 
     @Nullable
@@ -85,7 +90,7 @@ public final class HunterTerrace extends StructureProcessor
         {
             return 0;
         }
-        int ground = this.plan.ground().getY();
+        int base = this.plan.ground().getY();
         int zone;
         if (this.decor)
         {
@@ -101,10 +106,11 @@ public final class HunterTerrace extends StructureProcessor
         }
         if (zones.get(zone).kind == HunterVillageZones.Kind.COLUMN)
         {
-            return level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, world.getX(), world.getZ()) - 1 - ground;
+            int natural = level.getHeight(Heightmap.Types.WORLD_SURFACE_WG, world.getX(), world.getZ()) - 1;
+            return (this.ground != null ? this.ground.target(local.getX(), local.getZ(), natural) : natural) - base;
         }
         int l = zones.level(this.plan.levels(), zone, local.getX(), local.getZ());
-        return l == HunterVillageZones.NONE ? HunterVillageZones.NONE : l - ground;
+        return l == HunterVillageZones.NONE ? HunterVillageZones.NONE : l - base;
     }
 
     @Override

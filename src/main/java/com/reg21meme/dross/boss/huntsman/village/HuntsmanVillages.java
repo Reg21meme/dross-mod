@@ -46,12 +46,12 @@ import java.util.Set;
  *       already be moving around"); in his yard if no point of it is loaded. Never on Peaceful. Calm, they ride the
  *       loop ({@code PatrolGoal}); the fight starts when he spots a foe in Rimefall, as anywhere. They chase up to
  *       {@link HuntsmanTuning#CHASE_PAST_LOOP} blocks past the loop; a foe that gets away (out of range out there, or
- *       out of Rimefall) makes them ride off and vanish, and the village has a new pair, both at full health,
- *       {@link HuntsmanTuning#COMEBACK_TICKS} later ({@link #rodeOff}). With nobody near at all they go back home at
- *       full health ({@code HuntFight}) and take the loop up again.</li>
+ *       out of Rimefall) is let go and they head home, still hurt; with nobody near for
+ *       {@link HuntsmanTuning#BREAK_OFF_TICKS} they're back at full health ({@code HuntFight}) and take the loop up
+ *       again.</li>
  *   <li><b>One pair per village</b>: his UUID is kept for the village ({@link HuntsmanVillageData}) and his village on
- *       both of them, with the pair's number; an older pair that loads after a newer one came (or one that rode off) is
- *       removed as it loads.</li>
+ *       both of them, with the pair's number; an older pair that loads after a newer one came is removed as it
+ *       loads.</li>
  *   <li><b>Beaten</b>: both of them dead, any way ({@code /kill} too): the village stays empty for good (no respawn,
  *       like the other bosses). Removed without dying (Peaceful) isn't beaten: the next player near finds a new pair.</li>
  * </ul>
@@ -124,9 +124,9 @@ public final class HuntsmanVillages
     {
         HuntsmanVillageData data = HuntsmanVillageData.get(dross);
         HuntsmanVillageData.Entry entry = data.find(plan.id());
-        if (entry != null && (entry.beaten() || entry.awayUntil() > dross.getGameTime()))
+        if (entry != null && entry.beaten())
         {
-            return;                                       // (beaten for good, or out riding: back later)
+            return;
         }
         BlockPos home = plan.home();
         if (!dross.isPositionEntityTicking(home))
@@ -309,25 +309,6 @@ public final class HuntsmanVillages
         }
     }
 
-    /** A foe got away and they rode off ({@code HuntFight.leave}): the village has no pair for
-     * {@link HuntsmanTuning#COMEBACK_TICKS}, then a new one, both at full health. */
-    public static void rodeOff(HuntMob mob)
-    {
-        if (mob.homeVillage() != 0 && mob.level() instanceof ServerLevel level && level.dimension().equals(ModDimensions.DROSS_LEVEL))
-        {
-            HuntsmanVillageData.get(level).away(mob.homeVillage(), level.getGameTime() + HuntsmanTuning.COMEBACK_TICKS,
-                    mob.homeGeneration());
-            LOGGER.info("Hunter villages: the Huntsman rode off from his village; back in {} s", HuntsmanTuning.COMEBACK_TICKS / 20);
-        }
-    }
-
-    /** How many ticks until the village's pair is back from riding off (0 if it isn't away). For the commands. */
-    public static long awayFor(ServerLevel dross, RimefallVillages.VillagePlan plan)
-    {
-        HuntsmanVillageData.Entry e = HuntsmanVillageData.get(dross).find(plan.id());
-        return e == null || e.beaten() ? 0L : Math.max(0L, e.awayUntil() - dross.getGameTime());
-    }
-
     /** A broken-off fight brought back a Huntsman who had died: he's the village's Huntsman now. */
     public static void replaced(Huntsman h)
     {
@@ -361,8 +342,7 @@ public final class HuntsmanVillages
             return;
         }
         HuntsmanVillageData.Entry e = HuntsmanVillageData.get(level).find(mob.homeVillage());
-        if (e != null && (e.beaten() && mob.isAlive() && event.loadedFromDisk() || mob.homeGeneration() < e.generation()
-                || mob.homeGeneration() <= e.left()))
+        if (e != null && (e.beaten() && mob.isAlive() && event.loadedFromDisk() || mob.homeGeneration() < e.generation()))
         {
             event.setCanceled(true);
         }

@@ -81,8 +81,8 @@ import java.util.function.Predicate;
  *       back at full health, the dead one too, and he's back in the saddle.</li>
  *   <li>A village's pair chases at most {@link HuntsmanTuning#CHASE_PAST_LOOP} blocks past its patrol loop (there it
  *       stands and shoots: {@link #held}); a player who gets away out there (further than
- *       {@link HuntsmanTuning#HOLD_RANGE}, or out of Rimefall) makes them ride off and vanish ({@link #leave}), and the
- *       village has a new pair, both at full health, {@link HuntsmanTuning#COMEBACK_TICKS} later.</li>
+ *       {@link HuntsmanTuning#HOLD_RANGE}, or out of Rimefall) is let go ({@link #gotAway}), and with nobody else to
+ *       fight they head home, still hurt ({@link #headHome}), until the break-off heals them.</li>
  * </ul>
  * They never hurt each other (their blows, arrows, bolas, spears, spikes). The moose goes for the closest foe, he for
  * the furthest player (the user: "the moose is the close range attacker, the hunter long range"); raged, with a raged
@@ -210,12 +210,6 @@ public final class HuntFight
         {
             return;
         }
-        if (mob.stage == HuntStage.LEAVING)
-        {
-            leaving(mob, level);                     // riding off, then gone
-            locomote(mob);
-            return;
-        }
         HuntMob partner = partner(mob);
         if (mob instanceof AlphaMoose moose && mob.stage == HuntStage.WILD_HUNT)
         {
@@ -241,7 +235,11 @@ public final class HuntFight
         {
             mob.setTarget(chooseTarget(mob));
             mob.held = held(mob, mob.getTarget());
-            if (leads(mob) && !escapeCheck(mob, level))
+            if (mob.getTarget() == null && mob.stage != HuntStage.SPLIT)
+            {
+                headHome(mob);                       // nobody to fight (or they got away): back home, still hurt
+            }
+            if (leads(mob))
             {
                 breakOffCheck(mob, level);
             }
@@ -669,7 +667,9 @@ public final class HuntFight
     //
     // (the user, October 19, 2026: "he chases about 60 blocks past his loop, then stops and rains arrows on you while
     // you're in range, about 40 blocks; once you're out of range or out of Rimefall, the fight is broken off: he and the
-    // moose, whichever are alive, ride off and vanish, and come back together at full health")
+    // moose, whichever are alive, ride off and vanish, and come back together at full health"; then, October 24, after
+    // playing it: "make it so he is still there, just that if you are gone for 3+ minutes then he goes back to full
+    // health": a player who got away is let go, and they head home, still hurt)
 
     /** How far {@code at} is outside {@code mob}'s patrol loop (0 inside it, or if it has none: no leash). */
     static double pastLoop(HuntMob mob, Vec3 at)
@@ -723,94 +723,32 @@ public final class HuntFight
     }
 
     /**
-     * A village pair (the leader looks): has its foe got away? A player it goes for, outside the loop, and further than
-     * {@link HuntsmanTuning#HOLD_RANGE} off or out of Rimefall, for {@link HuntsmanTuning#ESCAPE_TICKS}: then they ride
-     * off ({@link #leave}). True if they did.
+     * A village pair's player who has got away: outside the patrol loop, and further than
+     * {@link HuntsmanTuning#HOLD_RANGE} from {@code mob} or out of Rimefall. They let them go ({@link #chooseTarget}) and
+     * head home, still hurt; they're healed only after {@link HuntsmanTuning#BREAK_OFF_TICKS} with nobody near.
      */
-    private static boolean escapeCheck(HuntMob leader, ServerLevel level)
+    static boolean gotAway(HuntMob mob, Player p)
     {
-        if (leader.homeVillage() == 0 || leader.patrol().size() < 3)
-        {
-            return false;
-        }
-        LivingEntity t = leader.getTarget();
-        boolean away = t instanceof Player p && pastLoop(leader, p.position()) > 0.0D
-                && (p.distanceTo(leader) > HuntsmanTuning.HOLD_RANGE || !inRimefall(p));
-        leader.escapeTicks = away ? leader.escapeTicks + 1 : 0;
-        if (leader.escapeTicks < HuntsmanTuning.ESCAPE_TICKS)
-        {
-            return false;
-        }
-        leave(leader, level);
-        return true;
+        return mob.homeVillage() != 0 && mob.patrol().size() >= 3 && pastLoop(mob, p.position()) > 0.0D
+                && (p.distanceTo(mob) > HuntsmanTuning.HOLD_RANGE || !inRimefall(p));
     }
 
-    /** The fight broken off with its foe got away: whichever of them are alive ride off (they can't be hurt), and are
-     * gone {@link HuntsmanTuning#LEAVE_TICKS} later; a body goes at once; their village gets its pair back later. */
-    public static void leave(HuntMob leader, ServerLevel level)
+    /** With nobody to fight (or they got away), a village's pair heads back home, walking, still hurt; a spawn egg's
+     * pair stays where it is. The Huntsman in the saddle rides along. */
+    static void headHome(HuntMob mob)
     {
-        HuntsmanVillages.rodeOff(leader);
-        for (HuntMob m : new HuntMob[] {leader, partner(leader)})
-        {
-            if (m == null)
-            {
-                continue;
-            }
-            if (!m.isAlive())
-            {
-                vanish(m);
-                continue;
-            }
-            setStage(m, HuntStage.LEAVING);
-            m.lonelyTicks = 0;
-            m.escapeTicks = 0;
-            m.held = false;
-            m.forcedLoop = null;
-            m.pending.clear();
-            m.setTarget(null);
-            m.getNavigation().stop();
-            calmDown(m);
-            m.play(m.animations().get(0).name());
-            if (m.bar != null)
-            {
-                m.bar.removeAllPlayers();
-            }
-        }
-    }
-
-    /** Riding off: away from the nearest player at a gallop (him in the saddle rides along; on foot he runs), then gone
-     * in a puff of snow (the leader takes its partner with it). */
-    private static void leaving(HuntMob mob, ServerLevel level)
-    {
-        if (mob.stageTicks >= HuntsmanTuning.LEAVE_TICKS)
-        {
-            if (leads(mob))
-            {
-                HuntMob partner = partner(mob);
-                if (partner != null)
-                {
-                    vanish(partner);
-                }
-                vanish(mob);
-            }
-            return;
-        }
-        if (mob.isPassenger() || (mob.stageTicks % 20 != 1 && !mob.getNavigation().isDone()))
+        BlockPos home = mob.home();
+        if (home == null || mob.isPassenger() || mob.busy() || mob.tickCount % 20 != 0)
         {
             return;
         }
-        Player near = level.getNearestPlayer(mob, -1.0D);
-        Vec3 from = near != null ? near.position() : mob.home() != null ? Vec3.atBottomCenterOf(mob.home()) : mob.position();
-        Vec3 away = mob.position().subtract(from);
-        away = new Vec3(away.x, 0.0D, away.z);
-        if (away.lengthSqr() < 1.0E-4D)
+        Vec3 at = Vec3.atBottomCenterOf(home);
+        double dx = at.x - mob.getX();
+        double dz = at.z - mob.getZ();
+        if (dx * dx + dz * dz > HuntsmanTuning.HOME_RETURN * HuntsmanTuning.HOME_RETURN)
         {
-            float yaw = mob.getYRot() * Mth.DEG_TO_RAD;
-            away = new Vec3(-Mth.sin(yaw), 0.0D, Mth.cos(yaw));
+            mob.getNavigation().moveTo(at.x, at.y, at.z, 1.0D);
         }
-        Vec3 to = mob.position().add(away.normalize().scale(HuntsmanTuning.LEAVE_DISTANCE));
-        double speed = mob instanceof AlphaMoose ? HuntsmanTuning.MOOSE_RUN : HuntsmanTuning.HUNTSMAN_RUN;
-        mob.getNavigation().moveTo(to.x, to.y, to.z, speed);
     }
 
     /** The fight broken off: both back at full health (a dead one back too), him back in the saddle, calm. */
@@ -846,7 +784,6 @@ public final class HuntFight
             m.stage = HuntStage.CALM;
             m.stageTicks = 0;
             m.lonelyTicks = 0;
-            m.escapeTicks = 0;
             m.held = false;
             m.forcedLoop = null;
             m.pending.clear();
@@ -973,8 +910,12 @@ public final class HuntFight
             {
                 continue;
             }
-            if (e instanceof Player)
+            if (e instanceof Player p)
             {
+                if (gotAway(mob, p))
+                {
+                    continue;                        // (out past their loop and away: let go)
+                }
                 if (player == null || (furthest ? d > playerD : d < playerD))
                 {
                     player = e;
@@ -995,7 +936,8 @@ public final class HuntFight
         {
             LivingEntity last = m != null ? m.getLastHurtByMob() : null;
             if (last != null && last.isAlive() && !last.isSpectator() && !isPartner(mob, last)
-                    && !Rage.areTeammates(mob, last) && last.distanceToSqr(mob) <= range * range)
+                    && !Rage.areTeammates(mob, last) && last.distanceToSqr(mob) <= range * range
+                    && !(last instanceof Player p && gotAway(mob, p)))
             {
                 return last;
             }

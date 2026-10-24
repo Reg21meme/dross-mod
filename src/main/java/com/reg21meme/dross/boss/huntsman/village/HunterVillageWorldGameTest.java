@@ -3,10 +3,7 @@ package com.reg21meme.dross.boss.huntsman.village;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
-import com.reg21meme.dross.boss.huntsman.HuntFight;
-import com.reg21meme.dross.boss.huntsman.HuntStage;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
-import com.reg21meme.dross.boss.huntsman.HuntsmanTuning;
 import com.reg21meme.dross.boss.rimefall.RimefallAnimals;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
@@ -383,8 +380,7 @@ public final class HunterVillageWorldGameTest
         return String.format(Locale.ROOT, "%d of %d packed ice and snow blocks in place", matched, sampled);
     }
 
-    /** The keeper: he comes home, once; removed without dying a new pair comes; rode off, none until they're back, then a
-     * new pair; beaten, never again. */
+    /** The keeper: he comes home, once; removed without dying a new pair comes; beaten, never again. */
     private static String checkKeeper(ServerLevel dross, RimefallVillages.VillagePlan plan)
     {
         HuntsmanVillageData data = HuntsmanVillageData.get(dross);
@@ -439,50 +435,22 @@ public final class HunterVillageWorldGameTest
         {
             return "he should have the patrol too (the chase's leash): " + h2.patrol().size() + " points";
         }
-        // a foe got away: they ride off (can't be hurt), and the village has none until they're back, 7 minutes later
-        HuntFight.leave(h2, dross);
-        Entity mount = h2.getVehicle();
-        if (h2.stage() != HuntStage.LEAVING || !(mount instanceof AlphaMoose m2) || m2.stage() != HuntStage.LEAVING
-                || !h2.isInvulnerableTo(dross.damageSources().generic()))
-        {
-            return "a foe got away: they should ride off, him in the saddle, and not be hurt meanwhile (stage " + h2.stage() + ")";
-        }
-        long away = HuntsmanVillages.awayFor(dross, plan);
-        if (away < HuntsmanTuning.COMEBACK_TICKS - 5)
-        {
-            return "rode off, they should be away for " + HuntsmanTuning.COMEBACK_TICKS + " ticks, not " + away;
-        }
-        h2.discard();                                         // (as if gone in their puff of snow)
-        m2.discard();
-        HuntsmanVillages.keep(dross, plan);
-        if (data.find(plan.id()).generation() != generation + 1 || data.find(plan.id()).huntsman() != null)
-        {
-            return "while they're away, no new pair should come";
-        }
-        data.backNow(plan.id(), dross.getGameTime());
-        HuntsmanVillages.keep(dross, plan);
-        HuntsmanVillageData.Entry back = data.find(plan.id());
-        Entity third = back.huntsman() == null ? null : dross.getEntity(back.huntsman());
-        if (!(third instanceof Huntsman h3) || back.generation() != generation + 2 || h3.getHealth() < h3.getMaxHealth())
-        {
-            return "back from riding off, a new pair at full health should come (generation " + back.generation() + ")";
-        }
         // beaten: never again
-        HuntsmanVillages.beaten(h3);
-        Entity vehicle = h3.getVehicle();
-        h3.discard();
+        HuntsmanVillages.beaten(h2);
+        Entity vehicle = h2.getVehicle();
+        h2.discard();
         if (vehicle != null)
         {
             vehicle.discard();
         }
         HuntsmanVillages.keep(dross, plan);
         HuntsmanVillageData.Entry last = data.find(plan.id());
-        if (!last.beaten() || last.huntsman() != null || last.generation() != generation + 2)
+        if (!last.beaten() || last.huntsman() != null || last.generation() != generation + 1)
         {
             return "beaten, he should never come back (beaten " + last.beaten() + ", generation " + last.generation() + ")";
         }
         LOGGER.info("[huntsman village] the keeper: he came home ({} blocks from his patrol or yard), once; a new pair after he was removed; "
-                + "none while away after riding off, then a new pair; none once beaten", Math.round(off));
+                + "none once beaten", Math.round(off));
         return null;
     }
 }

@@ -1326,203 +1326,199 @@
       {"name": "dross:alpha_moose/ice_spikes_2"}
     ]
   },
-  "entity.hunter_folk.ambient": {
-    "subtitle": "subtitles.dross.hunter_folk.ambient",
+  "entity.frostfolk.ambient": {
+    "subtitle": "subtitles.dross.frostfolk.ambient",
     "sounds": [
-      {"name": "dross:hunter_folk/ambient_1"},
-      {"name": "dross:hunter_folk/ambient_2"},
-      {"name": "dross:hunter_folk/ambient_3"}
+      {"name": "dross:frostfolk/ambient_1"},
+      {"name": "dross:frostfolk/ambient_2"}
     ]
   },
-  "entity.hunter_folk.ambient.v1": {
-    "subtitle": "subtitles.dross.hunter_folk.ambient",
+  "entity.frostfolk.ambient.v1": {
+    "subtitle": "subtitles.dross.frostfolk.ambient",
     "sounds": [
-      {"name": "dross:hunter_folk/ambient_1"}
+      {"name": "dross:frostfolk/ambient_1"}
     ]
   },
-  "entity.hunter_folk.ambient.v2": {
-    "subtitle": "subtitles.dross.hunter_folk.ambient",
+  "entity.frostfolk.ambient.v2": {
+    "subtitle": "subtitles.dross.frostfolk.ambient",
     "sounds": [
-      {"name": "dross:hunter_folk/ambient_2"}
+      {"name": "dross:frostfolk/ambient_2"}
     ]
   },
-  "entity.hunter_folk.ambient.v3": {
-    "subtitle": "subtitles.dross.hunter_folk.ambient",
+  "entity.frostfolk.ambient.v3": {
+    "subtitle": "subtitles.dross.frostfolk.ambient",
     "sounds": [
-      {"name": "dross:hunter_folk/ambient_3"}
+      {"name": "dross:frostfolk/ambient_3"}
     ]
   },
-  "entity.hunter_folk.talk": {
-    "subtitle": "subtitles.dross.hunter_folk.talk",
+  "entity.frostfolk.talk": {
+    "subtitle": "subtitles.dross.frostfolk.talk",
     "sounds": [
-      {"name": "dross:hunter_folk/talk_1"},
-      {"name": "dross:hunter_folk/talk_2"},
-      {"name": "dross:hunter_folk/talk_3"}
+      {"name": "dross:frostfolk/talk_1"},
+      {"name": "dross:frostfolk/talk_2"},
+      {"name": "dross:frostfolk/talk_3"}
     ]
   },
-  "entity.hunter_folk.talk.v1": {
-    "subtitle": "subtitles.dross.hunter_folk.talk",
+  "entity.frostfolk.talk.v1": {
+    "subtitle": "subtitles.dross.frostfolk.talk",
     "sounds": [
-      {"name": "dross:hunter_folk/talk_1"}
+      {"name": "dross:frostfolk/talk_1"}
     ]
   },
-  "entity.hunter_folk.talk.v2": {
-    "subtitle": "subtitles.dross.hunter_folk.talk",
+  "entity.frostfolk.talk.v2": {
+    "subtitle": "subtitles.dross.frostfolk.talk",
     "sounds": [
-      {"name": "dross:hunter_folk/talk_2"}
+      {"name": "dross:frostfolk/talk_2"}
     ]
   },
-  "entity.hunter_folk.talk.v3": {
-    "subtitle": "subtitles.dross.hunter_folk.talk",
+  "entity.frostfolk.talk.v3": {
+    "subtitle": "subtitles.dross.frostfolk.talk",
     "sounds": [
-      {"name": "dross:hunter_folk/talk_3"}
+      {"name": "dross:frostfolk/talk_3"}
     ]
   },
-  "entity.hunter_folk.hurt": {
-    "subtitle": "subtitles.dross.hunter_folk.hurt",
+  "entity.frostfolk.hurt": {
+    "subtitle": "subtitles.dross.frostfolk.hurt",
     "sounds": [
-      {"name": "dross:hunter_folk/hurt_1"},
-      {"name": "dross:hunter_folk/hurt_2"},
-      {"name": "dross:hunter_folk/hurt_3"}
+      {"name": "dross:frostfolk/hurt_1"},
+      {"name": "dross:frostfolk/hurt_2"},
+      {"name": "dross:frostfolk/hurt_3"}
     ]
   },
-  "entity.hunter_folk.hurt.v1": {
-    "subtitle": "subtitles.dross.hunter_folk.hurt",
+  "entity.frostfolk.hurt.v1": {
+    "subtitle": "subtitles.dross.frostfolk.hurt",
     "sounds": [
-      {"name": "dross:hunter_folk/hurt_1"}
+      {"name": "dross:frostfolk/hurt_1"}
     ]
   },
-  "entity.hunter_folk.hurt.v2": {
-    "subtitle": "subtitles.dross.hunter_folk.hurt",
+  "entity.frostfolk.hurt.v2": {
+    "subtitle": "subtitles.dross.frostfolk.hurt",
     "sounds": [
-      {"name": "dross:hunter_folk/hurt_2"}
+      {"name": "dross:frostfolk/hurt_2"}
     ]
   },
-  "entity.hunter_folk.hurt.v3": {
-    "subtitle": "subtitles.dross.hunter_folk.hurt",
+  "entity.frostfolk.hurt.v3": {
+    "subtitle": "subtitles.dross.frostfolk.hurt",
     "sounds": [
-      {"name": "dross:hunter_folk/hurt_3"}
+      {"name": "dross:frostfolk/hurt_3"}
     ]
   },
-  "entity.hunter_folk.death": {
-    "subtitle": "subtitles.dross.hunter_folk.death",
+  "entity.frostfolk.death": {
+    "subtitle": "subtitles.dross.frostfolk.death",
     "sounds": [
-      {"name": "dross:hunter_folk/death_1"},
-      {"name": "dross:hunter_folk/death_2"}
+      {"name": "dross:frostfolk/death_1"}
     ]
   },
-  "entity.hunter_folk.death.v1": {
-    "subtitle": "subtitles.dross.hunter_folk.death",
+  "entity.frostfolk.death.v1": {
+    "subtitle": "subtitles.dross.frostfolk.death",
     "sounds": [
-      {"name": "dross:hunter_folk/death_1"}
+      {"name": "dross:frostfolk/death_1"}
     ]
   },
-  "entity.hunter_folk.death.v2": {
-    "subtitle": "subtitles.dross.hunter_folk.death",
+  "entity.frostfolk.death.v2": {
+    "subtitle": "subtitles.dross.frostfolk.death",
     "sounds": [
-      {"name": "dross:hunter_folk/death_2"}
+      {"name": "dross:frostfolk/death_2"}
     ]
   },
-  "entity.hunter_folk.cry": {
-    "subtitle": "subtitles.dross.hunter_folk.cry",
+  "entity.frostfolk.cry": {
+    "subtitle": "subtitles.dross.frostfolk.cry",
     "sounds": [
-      {"name": "dross:hunter_folk/cry_1"},
-      {"name": "dross:hunter_folk/cry_2"}
+      {"name": "dross:frostfolk/cry_1"}
     ]
   },
-  "entity.hunter_folk.cry.v1": {
-    "subtitle": "subtitles.dross.hunter_folk.cry",
+  "entity.frostfolk.cry.v1": {
+    "subtitle": "subtitles.dross.frostfolk.cry",
     "sounds": [
-      {"name": "dross:hunter_folk/cry_1"}
+      {"name": "dross:frostfolk/cry_1"}
     ]
   },
-  "entity.hunter_folk.cry.v2": {
-    "subtitle": "subtitles.dross.hunter_folk.cry",
+  "entity.frostfolk.cry.v2": {
+    "subtitle": "subtitles.dross.frostfolk.cry",
     "sounds": [
-      {"name": "dross:hunter_folk/cry_2"}
+      {"name": "dross:frostfolk/cry_2"}
     ]
   },
-  "entity.hunter_elder.ambient": {
-    "subtitle": "subtitles.dross.hunter_elder.ambient",
+  "entity.frostfolk_elder.ambient": {
+    "subtitle": "subtitles.dross.frostfolk_elder.ambient",
     "sounds": [
-      {"name": "dross:hunter_elder/ambient_1"},
-      {"name": "dross:hunter_elder/ambient_2"}
+      {"name": "dross:frostfolk_elder/ambient_1"},
+      {"name": "dross:frostfolk_elder/ambient_2"}
     ]
   },
-  "entity.hunter_elder.ambient.v1": {
-    "subtitle": "subtitles.dross.hunter_elder.ambient",
+  "entity.frostfolk_elder.ambient.v1": {
+    "subtitle": "subtitles.dross.frostfolk_elder.ambient",
     "sounds": [
-      {"name": "dross:hunter_elder/ambient_1"}
+      {"name": "dross:frostfolk_elder/ambient_1"}
     ]
   },
-  "entity.hunter_elder.ambient.v2": {
-    "subtitle": "subtitles.dross.hunter_elder.ambient",
+  "entity.frostfolk_elder.ambient.v2": {
+    "subtitle": "subtitles.dross.frostfolk_elder.ambient",
     "sounds": [
-      {"name": "dross:hunter_elder/ambient_2"}
+      {"name": "dross:frostfolk_elder/ambient_2"}
     ]
   },
-  "entity.hunter_elder.talk": {
-    "subtitle": "subtitles.dross.hunter_elder.talk",
+  "entity.frostfolk_elder.talk": {
+    "subtitle": "subtitles.dross.frostfolk_elder.talk",
     "sounds": [
-      {"name": "dross:hunter_elder/talk_1"},
-      {"name": "dross:hunter_elder/talk_2"},
-      {"name": "dross:hunter_elder/talk_3"}
+      {"name": "dross:frostfolk_elder/talk_1"},
+      {"name": "dross:frostfolk_elder/talk_2"},
+      {"name": "dross:frostfolk_elder/talk_3"}
     ]
   },
-  "entity.hunter_elder.talk.v1": {
-    "subtitle": "subtitles.dross.hunter_elder.talk",
+  "entity.frostfolk_elder.talk.v1": {
+    "subtitle": "subtitles.dross.frostfolk_elder.talk",
     "sounds": [
-      {"name": "dross:hunter_elder/talk_1"}
+      {"name": "dross:frostfolk_elder/talk_1"}
     ]
   },
-  "entity.hunter_elder.talk.v2": {
-    "subtitle": "subtitles.dross.hunter_elder.talk",
+  "entity.frostfolk_elder.talk.v2": {
+    "subtitle": "subtitles.dross.frostfolk_elder.talk",
     "sounds": [
-      {"name": "dross:hunter_elder/talk_2"}
+      {"name": "dross:frostfolk_elder/talk_2"}
     ]
   },
-  "entity.hunter_elder.talk.v3": {
-    "subtitle": "subtitles.dross.hunter_elder.talk",
+  "entity.frostfolk_elder.talk.v3": {
+    "subtitle": "subtitles.dross.frostfolk_elder.talk",
     "sounds": [
-      {"name": "dross:hunter_elder/talk_3"}
+      {"name": "dross:frostfolk_elder/talk_3"}
     ]
   },
-  "entity.hunter_elder.hurt": {
-    "subtitle": "subtitles.dross.hunter_elder.hurt",
+  "entity.frostfolk_elder.hurt": {
+    "subtitle": "subtitles.dross.frostfolk_elder.hurt",
     "sounds": [
-      {"name": "dross:hunter_elder/hurt_1"},
-      {"name": "dross:hunter_elder/hurt_2"}
+      {"name": "dross:frostfolk_elder/hurt_1"},
+      {"name": "dross:frostfolk_elder/hurt_2"}
     ]
   },
-  "entity.hunter_elder.hurt.v1": {
-    "subtitle": "subtitles.dross.hunter_elder.hurt",
+  "entity.frostfolk_elder.hurt.v1": {
+    "subtitle": "subtitles.dross.frostfolk_elder.hurt",
     "sounds": [
-      {"name": "dross:hunter_elder/hurt_1"}
+      {"name": "dross:frostfolk_elder/hurt_1"}
     ]
   },
-  "entity.hunter_elder.hurt.v2": {
-    "subtitle": "subtitles.dross.hunter_elder.hurt",
+  "entity.frostfolk_elder.hurt.v2": {
+    "subtitle": "subtitles.dross.frostfolk_elder.hurt",
     "sounds": [
-      {"name": "dross:hunter_elder/hurt_2"}
+      {"name": "dross:frostfolk_elder/hurt_2"}
     ]
   },
-  "entity.hunter_elder.death": {
-    "subtitle": "subtitles.dross.hunter_elder.death",
+  "entity.frostfolk_elder.death": {
+    "subtitle": "subtitles.dross.frostfolk_elder.death",
     "sounds": [
-      {"name": "dross:hunter_elder/death_1"},
-      {"name": "dross:hunter_elder/death_2"}
+      {"name": "dross:frostfolk_elder/death_1"}
     ]
   },
-  "entity.hunter_elder.death.v1": {
-    "subtitle": "subtitles.dross.hunter_elder.death",
+  "entity.frostfolk_elder.death.v1": {
+    "subtitle": "subtitles.dross.frostfolk_elder.death",
     "sounds": [
-      {"name": "dross:hunter_elder/death_1"}
+      {"name": "dross:frostfolk_elder/death_1"}
     ]
   },
-  "entity.hunter_elder.death.v2": {
-    "subtitle": "subtitles.dross.hunter_elder.death",
+  "entity.frostfolk_elder.death.v2": {
+    "subtitle": "subtitles.dross.frostfolk_elder.death",
     "sounds": [
-      {"name": "dross:hunter_elder/death_2"}
+      {"name": "dross:frostfolk_elder/death_2"}
     ]
   },
   "entity.huntsman.bola_release": {

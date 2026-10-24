@@ -15,10 +15,7 @@ public enum HuntStage
     /** Stage 2: each on his own bar; when one dies the other is angry. */
     DUEL,
     /** Both beaten. */
-    WON,
-    /** A village pair's fight broken off (its foe got away, {@link HuntFight#leave}): whichever are alive ride off and
-     * vanish, and come back later at full health; neither can be hurt. */
-    LEAVING;
+    WON;
 
     /** In these stages damage to either goes on the one bar they share. */
     public boolean sharesBar()

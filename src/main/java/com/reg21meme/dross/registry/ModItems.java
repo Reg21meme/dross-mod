@@ -2,7 +2,7 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
-import com.reg21meme.dross.boss.huntsman.folk.FolkRole;
+import com.reg21meme.dross.boss.frostfolk.FolkRole;
 import com.reg21meme.dross.boss.huntsman.spear.MoonsilverSpearItem;
 import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyItem;
 import com.reg21meme.dross.boss.rage.RageWandItem;
@@ -89,16 +89,16 @@ public final class ModItems
     public static final RegistryObject<Item> HUNTSMAN_SPAWN_EGG = ITEMS.register("huntsman_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.HUNTSMAN, DrossColors.HUNTSMAN_EGG_BASE, DrossColors.HUNTSMAN_EGG_SPOTS,
                     new Item.Properties()));
-    // Boss area: the hunter villagers, one egg for each calling (the Huntsman's slate fur, its calling's spots)
-    public static final Map<FolkRole, RegistryObject<Item>> HUNTER_FOLK_SPAWN_EGGS = hunterFolkEggs();
+    // Boss area: the Frostfolk, one egg for each calling (their hoods' blue, its calling's spots)
+    public static final Map<FolkRole, RegistryObject<Item>> FROSTFOLK_SPAWN_EGGS = frostfolkEggs();
 
-    private static Map<FolkRole, RegistryObject<Item>> hunterFolkEggs()
+    private static Map<FolkRole, RegistryObject<Item>> frostfolkEggs()
     {
         Map<FolkRole, RegistryObject<Item>> eggs = new EnumMap<>(FolkRole.class);
         for (FolkRole role : FolkRole.values())
         {
             eggs.put(role, ITEMS.register(role.typeName() + "_spawn_egg",
-                    () -> new ForgeSpawnEggItem(ModEntities.HUNTER_FOLK.get(role), DrossColors.HUNTER_FOLK_EGG_BASE, role.eggSpots,
+                    () -> new ForgeSpawnEggItem(ModEntities.FROSTFOLK.get(role), DrossColors.FROSTFOLK_EGG_BASE, role.eggSpots,
                             new Item.Properties())));
         }
         return Collections.unmodifiableMap(eggs);

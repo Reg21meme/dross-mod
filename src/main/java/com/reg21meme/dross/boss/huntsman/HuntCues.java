@@ -29,9 +29,7 @@ public final class HuntCues
             Map.entry("huntsman_rider.ride_shoot", List.of(new Shot(23, -1.341D, 5.729D, 0.822D, -0.9494D, 0.0537D, 0.3093D), new Shot(41, -1.351D, 5.696D, 0.846D, -0.9495D, 0.0533D, 0.3093D))),
             Map.entry("huntsman_rider.ride_shoot_back", List.of(new Shot(23, -1.644D, 5.92D, -0.692D, -0.8028D, 0.1759D, -0.5697D), new Shot(41, -1.665D, 5.889D, -0.674D, -0.8031D, 0.1761D, -0.5693D))),
             Map.entry("huntsman_rider.ride_shoot_front", List.of(new Shot(23, -0.311D, 5.876D, 1.534D, -0.4006D, 0.1748D, 0.8994D), new Shot(41, -0.298D, 5.846D, 1.558D, -0.3986D, 0.1775D, 0.8998D))),
-            Map.entry("huntsman_rider.ride_shoot_right", List.of(new Shot(23, 1.179D, 5.843D, 0.314D, 0.8492D, 0.2075D, 0.4856D), new Shot(41, 1.205D, 5.812D, 0.32D, 0.8492D, 0.2078D, 0.4855D))),
-            Map.entry("hunter_folk.aimed_shot", List.of(new Shot(34, 0.322D, 3.39D, 1.689D, 0.0123D, 0.0537D, 0.9985D))),
-            Map.entry("hunter_folk.quick_shot", List.of(new Shot(23, 0.32D, 3.395D, 1.678D, 0.0217D, 0.0508D, 0.9985D))));
+            Map.entry("huntsman_rider.ride_shoot_right", List.of(new Shot(23, 1.179D, 5.843D, 0.314D, 0.8492D, 0.2075D, 0.4856D), new Shot(41, 1.205D, 5.812D, 0.32D, 0.8492D, 0.2078D, 0.4855D))));
 
     /** "model.animation.moment" to its tick (a list's moments are numbered from 0: "hits.1"). */
     private static final Map<String, Integer> MOMENTS = Map.ofEntries(
@@ -90,24 +88,7 @@ public final class HuntCues
             Map.entry("alpha_moose.death.down", 57),
             Map.entry("alpha_moose.ram.hit", 9),
             Map.entry("alpha_moose.rear.neigh", 14),
-            Map.entry("alpha_moose.stomp.hit", 12),
-            Map.entry("hunter_folk.aimed_shot.glint", 24),
-            Map.entry("hunter_folk.aimed_shot.shots.0", 34),
-            Map.entry("hunter_folk.aimed_shot.release", 34),
-            Map.entry("hunter_folk.chop.hits.0", 10),
-            Map.entry("hunter_folk.death.slip", 1),
-            Map.entry("hunter_folk.death.lands", 17),
-            Map.entry("hunter_folk.death.cry", 43),
-            Map.entry("hunter_folk.death.falls", 64),
-            Map.entry("hunter_folk.horn_blow.blow", 17),
-            Map.entry("hunter_folk.horn_blow.end", 58),
-            Map.entry("hunter_folk.quick_shot.shots.0", 23),
-            Map.entry("hunter_folk.quick_shot.release", 23),
-            Map.entry("hunter_folk.spear_combo.hits.0", 8),
-            Map.entry("hunter_folk.spear_combo.hits.1", 16),
-            Map.entry("hunter_folk.spear_combo.hits.2", 26),
-            Map.entry("hunter_folk.thrust_sweep.hits.0", 8),
-            Map.entry("hunter_folk.thrust_sweep.hits.1", 18));
+            Map.entry("alpha_moose.stomp.hit", 12));
 
     /**
      * "model.animation" to where the animation leaves him (blocks to his right, up and ahead of where he stood): the

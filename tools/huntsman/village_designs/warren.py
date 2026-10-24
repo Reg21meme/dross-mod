@@ -1245,7 +1245,7 @@ def _folk(g, dec, p, courts, lodge_items, seed, huntsman):
             raise SystemExit(f"no room for the village's {calling} (villager {k + 1} of {len(wants)})")
         taken.append(spot)
         x, y, z = spot
-        g.entities.append(animal(f"dross:hunter_{calling}", x + 0.5, float(y), z + 0.5,
+        g.entities.append(animal(f"dross:frostfolk_{calling}", x + 0.5, float(y), z + 0.5,
                                  yaw=round(rng.uniform(-180, 180), 1), VillageFolk=True))
         counts[calling] = counts.get(calling, 0) + 1
     return counts

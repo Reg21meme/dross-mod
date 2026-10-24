@@ -9,8 +9,8 @@ import com.reg21meme.dross.boss.golem.StoneGolem;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.Bola;
 import com.reg21meme.dross.boss.huntsman.HuntSpear;
-import com.reg21meme.dross.boss.huntsman.folk.FolkRole;
-import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
+import com.reg21meme.dross.boss.frostfolk.FolkRole;
+import com.reg21meme.dross.boss.frostfolk.Frostfolk;
 import com.reg21meme.dross.boss.huntsman.spear.ThrownMoonsilverSpear;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.ratking.PlagueBall;
@@ -186,19 +186,19 @@ public final class ModEntities
                     .updateInterval(1)
                     .build("alpha_moose"));
     /**
-     * Boss area: the hunter villagers ({@code dross:hunter_<calling>}, eleven callings, {@link FolkRole}: five warriors,
-     * five workers and the elder), about 2 blocks tall (the Huntsman's model at half his size). On show
-     * ({@code /dross showcase hunters}) and from their spawn eggs for now; later in the hunter villages.
+     * Boss area: the Frostfolk, Rimefall's villagers ({@code dross:frostfolk_<calling>}, eleven callings,
+     * {@link FolkRole}: five warriors, five workers and the elder), about 2 blocks tall (a pillager's build, blue
+     * hoods). In Rimefall's villages, on show ({@code /dross showcase frostfolk}) and from their spawn eggs.
      */
-    public static final Map<FolkRole, RegistryObject<EntityType<HunterFolk>>> HUNTER_FOLK = hunterFolk();
+    public static final Map<FolkRole, RegistryObject<EntityType<Frostfolk>>> FROSTFOLK = frostfolk();
 
-    private static Map<FolkRole, RegistryObject<EntityType<HunterFolk>>> hunterFolk()
+    private static Map<FolkRole, RegistryObject<EntityType<Frostfolk>>> frostfolk()
     {
-        Map<FolkRole, RegistryObject<EntityType<HunterFolk>>> types = new EnumMap<>(FolkRole.class);
+        Map<FolkRole, RegistryObject<EntityType<Frostfolk>>> types = new EnumMap<>(FolkRole.class);
         for (FolkRole role : FolkRole.values())
         {
             types.put(role, ENTITY_TYPES.register(role.typeName(),
-                    () -> EntityType.Builder.<HunterFolk>of((type, level) -> new HunterFolk(type, level, role), MobCategory.MISC)
+                    () -> EntityType.Builder.<Frostfolk>of((type, level) -> new Frostfolk(type, level, role), MobCategory.MISC)
                             .sized(0.6F, 2.0F)
                             .clientTrackingRange(10)
                             .build(role.typeName())));

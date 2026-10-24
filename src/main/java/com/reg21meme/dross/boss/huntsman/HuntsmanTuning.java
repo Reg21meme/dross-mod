@@ -30,19 +30,14 @@ public final class HuntsmanTuning
     public static final double PATROL_SPEED = 0.7D;
     public static final double PATROL_REJOIN = 40.0D;
     /** The chase (the user, October 19, 2026: "he chases about 60 blocks past his loop, then stops and rains arrows on
-     * you while you're in range, about 40 blocks; once you're out of range or out of Rimefall, the fight is broken off:
-     * he and the moose, whichever are alive, ride off and vanish, and come back together at full health"): a village
-     * pair goes no further than this past its patrol loop (its moves that travel stop there: {@code HuntGoal}); its foe
-     * outside the loop and further than {@link #HOLD_RANGE} off, or out of Rimefall, for {@link #ESCAPE_TICKS} has got
-     * away; they ride off for {@link #LEAVE_TICKS} (about {@link #LEAVE_DISTANCE} blocks away from it) and vanish,
-     * and the village has its pair back {@link #COMEBACK_TICKS} later (7 minutes: the user's 5-10, "you can't kill one
-     * of them, come back all healed up and kill the other"). */
+     * you while you're in range, about 40 blocks; once you're out of range or out of Rimefall, the fight is broken off"):
+     * a village pair goes no further than this past its patrol loop (its moves that travel stop there:
+     * {@code HuntGoal}); a player outside the loop and further than {@link #HOLD_RANGE} off, or out of Rimefall, has got
+     * away: they let them go and head home, still hurt, until {@link #BREAK_OFF_TICKS} with nobody near heals them.
+     * (Until October 24, 2026 they rode off and vanished for 7 minutes; the user: "I don't want him to disappear for 7
+     * minutes if I happen to leave, then can't fight him again".) */
     public static final double CHASE_PAST_LOOP = 60.0D;
     public static final double HOLD_RANGE = 40.0D;
-    public static final int ESCAPE_TICKS = 60;
-    public static final int LEAVE_TICKS = 60;
-    public static final double LEAVE_DISTANCE = 24.0D;
-    public static final int COMEBACK_TICKS = 8_400;
     /** Stage 2: each of them on his own bar. */
     public static final float HUNTSMAN_HEALTH = 150.0F;
     public static final float MOOSE_HEALTH = 150.0F;
@@ -64,12 +59,13 @@ public final class HuntsmanTuning
     public static final double BOSS_BAR_RANGE = 40.0D;
     /** They go for players this close (once the fight has started). */
     public static final double FOLLOW_RANGE = 48.0D;
-    /** With no player this close for {@link #BREAK_OFF_TICKS} the fight is broken off: both come back at full health,
-     * the Huntsman back in the saddle (the user: "you can't kill one of them, come back all healed up and kill the
-     * other"); a village's pair goes back home. (A village pair whose foe got away rides off instead: the chase,
-     * {@link #CHASE_PAST_LOOP}.) */
+    /** With no player this close for {@link #BREAK_OFF_TICKS} (3 minutes: the user, October 24, 2026, "if you are gone
+     * for 3+ minutes then he goes back to full health"; 30 s before) the fight is broken off: both come back at full
+     * health, the dead one too, the Huntsman back in the saddle (the user: "you can't kill one of them, come back all
+     * healed up and kill the other"); a village's pair goes back home. Until then they stay as they are, hurt (a
+     * village's pair heads home meanwhile: the chase, {@link #CHASE_PAST_LOOP}). */
     public static final double BREAK_OFF_RANGE = 64.0D;
-    public static final int BREAK_OFF_TICKS = 600;
+    public static final int BREAK_OFF_TICKS = 3_600;
     /** A kill is the player's if they hurt one of them this recently. */
     public static final int CREDIT_TICKS = 600;
     /** Experience for each of them. */
@@ -416,10 +412,11 @@ public final class HuntsmanTuning
     public static final int STAMP_SPIKE_TICKS = 30;
     public static final int STAMP_COOLDOWN = 240;
 
-    /** The Alpha Moose's table (the user's). */
+    /** The Alpha Moose's table (the user's; its bellow 10 points less since October 24, 2026, the user: it "does his
+     * moose knock back attack too often ... maybe 10% less"; it was 15 close and 25 mid). */
     public static final Object[][] MOOSE_CHANCES = {
-            {"ram", 35, "toss", 25, "stomp", 25, "bellow", 15},
-            {"charge", 45, "stamp", 30, "bellow", 25},
+            {"ram", 40, "toss", 30, "stomp", 25, "bellow", 5},
+            {"charge", 50, "stamp", 35, "bellow", 15},
             {"charge", 60, "stamp", 40},
             {"charge", 70, "run_in", 30}};
 }

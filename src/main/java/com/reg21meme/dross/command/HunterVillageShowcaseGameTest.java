@@ -2,9 +2,9 @@ package com.reg21meme.dross.command;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
-import com.reg21meme.dross.boss.huntsman.folk.FolkRole;
-import com.reg21meme.dross.boss.huntsman.folk.FolkTuning;
-import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
+import com.reg21meme.dross.boss.frostfolk.FolkRole;
+import com.reg21meme.dross.boss.frostfolk.FolkTuning;
+import com.reg21meme.dross.boss.frostfolk.Frostfolk;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageDesigns;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillages;
 import com.reg21meme.dross.boss.huntsman.village.VillageAnimals;
@@ -44,7 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Headless checks of the hunter villages ({@code /dross showcase hunter_villages}, the boss area's
+ * Headless checks of the hunter villages ({@code /dross showcase frostfolk_villages}, the boss area's
  * {@link HunterVillageDesigns}): the Sunken Warren's eight layouts (15 to 20 igloos) and the Huntsman's two villages
  * (25 to 30: the user's "massive" villages).
  * <ul>
@@ -513,7 +513,7 @@ public final class HunterVillageShowcaseGameTest
         }
         // its villagers (1.5 to 2 for each bed: the user's, October 23, 2026), every one with its home in the village
         // (wherever it has wandered since)
-        List<HunterFolk> folk = level.getEntitiesOfClass(HunterFolk.class, area.inflate(FolkTuning.HOME_RADIUS + 8),
+        List<Frostfolk> folk = level.getEntitiesOfClass(Frostfolk.class, area.inflate(FolkTuning.HOME_RADIUS + 8),
                 h -> !h.isShowcase() && (h.home() != null ? area.contains(Vec3.atBottomCenterOf(h.home())) : area.contains(h.position())));
         if (folk.size() != design.folk())
         {

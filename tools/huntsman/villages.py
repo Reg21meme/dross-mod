@@ -302,7 +302,7 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
             problems.append(f"its {e['nbt']['id']} at {e['x']:.1f}, {e['z']:.1f} stands in no zone")
     # every villager on a floor with room to stand, decorations or not
     for e in base.entities:
-        if e["nbt"]["id"].startswith("dross:hunter_"):
+        if e["nbt"]["id"].startswith("dross:frostfolk_"):
             c = (int(e["x"]), int(round(e["y"])), int(e["z"]))
             for grid, when in ((base, "without its decorations"), (g, "with them")):
                 if not walk.standable(grid, *c):
@@ -358,7 +358,7 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
              "way_in": [int(ex["entrance"][0]), int(ex["entrance"][2])],
              "home": ([int(v) for v in ex["lodge"]["home"]] if huntsman and ex["lodge"] is not None else [-1, -1]),
              "moose": kinds.count("dross:moose"), "rimehorns": kinds.count("dross:rimehorn"),
-             "folk": sum(1 for k in kinds if k.startswith("dross:hunter_")),
+             "folk": sum(1 for k in kinds if k.startswith("dross:frostfolk_")),
              "probes": [list(c) for c in probes], "lanterns": len(lanterns), "shrine": bool(shrine or huntsman),
              "pens": [list(pen["box"]) for pen in ex.get("pens", ())],
              "kinds": info.get("kinds", {}), "roles": info.get("roles", {})}
@@ -368,7 +368,7 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
           f"({max(dim)} floor cells a little under {lighting.MIN_LIGHT}), {info.get('inside_lights', 0)} lamp poles "
           f"inside ({open_dim} of {len(ex['open_floors'])} courtyard and lane cells under {lighting.MIN_LIGHT}), "
           f"{kinds.count('dross:moose')} moose, {kinds.count('dross:rimehorn')} Rimehorns, "
-          f"{sum(1 for k in kinds if k.startswith('dross:hunter_'))} villagers {info.get('folk', {})}, "
+          f"{sum(1 for k in kinds if k.startswith('dross:frostfolk_'))} villagers {info.get('folk', {})}, "
           f"{floating} floating removed, "
           f"{swapped} lights softened, {given_up} windows iced over, plan attempt {info['plan_attempt']}, "
           f"{time.time() - t0:.1f}s")

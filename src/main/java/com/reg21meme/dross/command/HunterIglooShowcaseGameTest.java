@@ -44,7 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Headless checks of the hunter igloo showcase ({@code /dross showcase hunter_igloos}, the boss area's
+ * Headless checks of the hunter igloo showcase ({@code /dross showcase frostfolk_igloos}, the boss area's
  * {@link HunterIglooDesigns}): every igloo's and decoration's template is in the mod at its table's size; the whole
  * showcase, built in the world, stands with every bed whole, every chest able to open (nothing solid over its lid),
  * nothing standing on a bottom slab (the user: "anything over a slab ... floats"), no clear ice or snow layer lit

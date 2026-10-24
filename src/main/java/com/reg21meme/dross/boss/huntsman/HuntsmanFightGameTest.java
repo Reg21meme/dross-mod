@@ -47,7 +47,7 @@ import java.util.Map;
  * one dead makes the other angry (its bar, its speed); both dead, "The Hunter Hunted" for the killer and the players near,
  * not one far off; the move tables give the user's shares; they never hurt each other; the bola snares; the moose kicks
  * what's behind it; with nobody near the fight is broken off and both come back, full and calm, him in the saddle; a
- * village pair's chase has its leash, and a foe who gets away makes them ride off and vanish.
+ * village pair's chase has its leash, and a foe who gets away is let go (they don't vanish).
  */
 @GameTestHolder(Dross.MODID)
 @PrefixGameTestTemplate(false)
@@ -900,8 +900,9 @@ public final class HuntsmanFightGameTest
         });
     }
 
-    /** Calm, the moose of a village rides its patrol round, point after point (a small square loop here). */
-    @GameTest(template = ARENA, timeoutTicks = WAIT + 2400)
+    /** Calm, the moose of a village rides its patrol round, point after point (a small square loop here). In a batch
+     * of its own: a foe from another test near it starts a fight, and a fighting pair doesn't patrol. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_patrol", timeoutTicks = WAIT + 2400)
     public static void thePatrolGoesRound(GameTestHelper helper)
     {
         if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::thePatrolGoesRound))
@@ -1014,12 +1015,13 @@ public final class HuntsmanFightGameTest
                 .thenSucceed();
     }
 
-    /** A village pair whose foe gets away (out of Rimefall here: the test's world isn't the Dross) rides off: neither
-     * can be hurt, and both are gone soon after. */
-    @GameTest(template = ARENA, timeoutTicks = WAIT + 600)
-    public static void aFoeWhoGetsAwayMakesThemRideOff(GameTestHelper helper)
+    /** A village pair whose foe gets away (out of Rimefall and outside the loop here: the test's world isn't the Dross)
+     * lets them go: they don't go for that player, and they stay where they are, still fighting and still hurt (until the
+     * break-off heals them; the user, October 24, 2026: no vanishing). */
+    @GameTest(template = ARENA, timeoutTicks = WAIT + 400)
+    public static void aFoeWhoGetsAwayIsLetGo(GameTestHelper helper)
     {
-        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::aFoeWhoGetsAwayMakesThemRideOff))
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::aFoeWhoGetsAwayIsLetGo))
         {
             return;
         }
@@ -1034,50 +1036,37 @@ public final class HuntsmanFightGameTest
         }
         ServerPlayer player = ColossusGameTest.joinPlayer(helper, "hunt-escaper", MIDDLE.offset(6, 0, 0), 90.0F);
         player.setGameMode(GameType.SURVIVAL);
-        hit(m, level.damageSources().playerAttack(player), 1.0F);
-        long[] started = {level.getGameTime()};
-        long[] left = {0L};
+        hit(m, level.damageSources().playerAttack(player), HIT);
+        boolean[] targeted = {false};
         helper.startSequence()
-                .thenWaitUntil(() ->
-                {
-                    if (m.stage() != HuntStage.LEAVING)
-                    {
-                        throw new GameTestAssertException("waiting for them to ride off (stage " + m.stage() + ")");
-                    }
-                })
+                .thenExecuteFor(80, () -> targeted[0] |= m.getTarget() == player || h.getTarget() == player)
                 .thenExecute(() ->
                 {
-                    left[0] = level.getGameTime();
                     String problem = null;
-                    if (left[0] - started[0] < HuntsmanTuning.ESCAPE_TICKS)
+                    if (!HuntFight.gotAway(m, player))
                     {
-                        problem = "they rode off after " + (left[0] - started[0]) + " ticks (not before "
-                                + HuntsmanTuning.ESCAPE_TICKS + ")";
+                        problem = "out of Rimefall and outside the loop, the player should count as got away";
                     }
-                    else if (h.stage() != HuntStage.LEAVING || h.getVehicle() != m)
+                    else if (targeted[0])
                     {
-                        problem = "he should ride off in the saddle (stage " + h.stage() + ")";
+                        problem = "a player who got away should be let go, not chased";
                     }
-                    else if (hit(m, level.damageSources().playerAttack(player), HIT)
-                            || hit(h, level.damageSources().playerAttack(player), HIT))
+                    else if (m.isRemoved() || h.isRemoved() || m.stage() != HuntStage.WILD_HUNT)
                     {
-                        problem = "riding off, they can't be hurt";
+                        problem = "they should stay there, still in the fight (stage " + m.stage() + ", removed "
+                                + m.isRemoved() + ")";
                     }
+                    else if (m.wildHunt >= HuntsmanTuning.WILD_HUNT_HEALTH)
+                    {
+                        problem = "they shouldn't heal before the break-off";
+                    }
+                    clear(h, m);
+                    ColossusGameTest.leaveAll(List.of(player));
                     if (problem != null)
                     {
-                        clear(h, m);
-                        ColossusGameTest.leaveAll(List.of(player));
                         throw new GameTestAssertException(problem);
                     }
                 })
-                .thenWaitUntil(() ->
-                {
-                    if (!m.isRemoved() || !h.isRemoved())
-                    {
-                        throw new GameTestAssertException("waiting for them to vanish");
-                    }
-                })
-                .thenExecute(() -> ColossusGameTest.leaveAll(List.of(player)))
                 .thenSucceed();
     }
 

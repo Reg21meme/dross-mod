@@ -8,7 +8,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.BossCommands;
 import com.reg21meme.dross.boss.huntsman.HuntsmanBarShowcase;
-import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
+import com.reg21meme.dross.boss.frostfolk.Frostfolk;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
@@ -93,9 +93,9 @@ import net.minecraftforge.fml.common.Mod;
  *       play buttons ({@link RimefallMobSoundShowcase}; the boss area's {@code RimefallMobSounds}).</li>
  *   <li>{@code /dross showcase boss_designs huntsman [<animation>]}: the Huntsman riding his Alpha Moose, on foot,
  *       and the moose alone, frozen, playing the animation clicked ({@link HuntsmanShowcase}).</li>
- *   <li>{@code /dross showcase hunter_villages}: builds the ten hunter village designs and the Huntsman's lodge ahead
+ *   <li>{@code /dross showcase frostfolk_villages}: builds the village designs and the Huntsman's two ahead
  *       of you, one a tick, with [go] buttons ({@link HunterVillageShowcase}).</li>
- *   <li>{@code /dross showcase hunter_igloos}: builds every hunter igloo template (homes, work igloos, halls, extras,
+ *   <li>{@code /dross showcase frostfolk_igloos}: builds every igloo template (homes, work igloos, halls, extras,
  *       the Huntsman's lodge and barn) and every decoration ahead of you, one a tick, with numbered signs and [go]
  *       buttons, for the user to pick from ({@link HunterIglooShowcase}).</li>
  *   <li>{@code /dross showcase bossbars huntsman [angry]}: shows the Huntsman's boss bars (the user's picks) on your
@@ -229,11 +229,11 @@ public final class DrossCommand
                         .then(Commands.literal("bossbars")
                                 .then(huntsmanBarShowcase()))
                         // Boss area's hunter villages (ten designs and the Huntsman's lodge; HunterVillageShowcase).
-                        .then(Commands.literal("hunter_villages").executes(HunterVillageShowcase::run))
-                        // Boss area's hunter igloos and decorations, one template each (HunterIglooShowcase).
-                        .then(Commands.literal("hunter_igloos").executes(HunterIglooShowcase::run))
-                        // Boss area's hunter villagers, the Huntsman's people, one of each calling (HunterShowcase).
-                        .then(hunterShowcase()))
+                        .then(Commands.literal("frostfolk_villages").executes(HunterVillageShowcase::run))
+                        // Boss area's Frostfolk igloos and decorations, one template each (HunterIglooShowcase).
+                        .then(Commands.literal("frostfolk_igloos").executes(HunterIglooShowcase::run))
+                        // Boss area's Frostfolk, Rimefall's villagers, one of each calling (FrostfolkShowcase).
+                        .then(frostfolkShowcase()))
                 // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
                 // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).
                 .then(Commands.literal("locate")
@@ -344,16 +344,16 @@ public final class DrossCommand
         return mobs;
     }
 
-    /** {@code /dross showcase hunters} and its controls ({@code idle}, {@code walk}, {@code run}, {@code attack},
-     * {@code horn}, {@code talk}, {@code die}: {@code HunterFolk.SHOW}). */
-    private static LiteralArgumentBuilder<CommandSourceStack> hunterShowcase()
+    /** {@code /dross showcase frostfolk} and its controls ({@code idle}, {@code walk}, {@code run}, {@code attack},
+     * {@code horn}, {@code talk}: {@code Frostfolk.SHOW}). */
+    private static LiteralArgumentBuilder<CommandSourceStack> frostfolkShowcase()
     {
-        LiteralArgumentBuilder<CommandSourceStack> hunters = Commands.literal("hunters").executes(HunterShowcase::run);
-        for (String control : HunterFolk.SHOW)
+        LiteralArgumentBuilder<CommandSourceStack> folk = Commands.literal("frostfolk").executes(FrostfolkShowcase::run);
+        for (String control : Frostfolk.SHOW)
         {
-            hunters.then(Commands.literal(control).executes(context -> HunterShowcase.control(context, control)));
+            folk.then(Commands.literal(control).executes(context -> FrostfolkShowcase.control(context, control)));
         }
-        return hunters;
+        return folk;
     }
 
     /** {@code /dross showcase rats} and its controls ({@code idle}, {@code run}), one per {@link RatShowcase.Control}. */

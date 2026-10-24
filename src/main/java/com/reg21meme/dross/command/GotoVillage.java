@@ -62,7 +62,6 @@ public final class GotoVillage
     static final String HUNTSMAN_READY = "commands.dross.goto.lair.huntsman.ready";
     static final String HUNTSMAN_BEATEN = "commands.dross.goto.lair.huntsman.beaten";
     static final String HUNTSMAN_PEACEFUL = "commands.dross.goto.lair.huntsman.peaceful";
-    static final String HUNTSMAN_AWAY = "commands.dross.goto.lair.huntsman.away";
     static final String LIST_HEADER = "commands.dross.locate.villages.header";
     static final String LIST_LINE = "commands.dross.locate.villages.line";
     static final String LIST_NONE = "commands.dross.locate.villages.none";
@@ -102,9 +101,7 @@ public final class GotoVillage
         {
             return 0;
         }
-        long away = HuntsmanVillages.awayFor(dross, plan);
-        Component note = away > 0 ? Component.translatable(HUNTSMAN_AWAY, (away + 1199) / 1200)
-                : Component.translatable(HuntsmanVillages.isBeaten(dross, plan) ? HUNTSMAN_BEATEN
+        Component note = Component.translatable(HuntsmanVillages.isBeaten(dross, plan) ? HUNTSMAN_BEATEN
                 : dross.getDifficulty() == Difficulty.PEACEFUL ? HUNTSMAN_PEACEFUL : HUNTSMAN_READY);
         BlockPos at = feet.get();
         source.sendSuccess(() -> Component.translatable(HUNTSMAN_SUCCESS, at.getX(), at.getY(), at.getZ(), note), true);

@@ -62,8 +62,9 @@ def _overlap(a, b, n):
     return True
 
 
-def clashes(model):
-    """Every pair of boxes with a shared, overlapping face plane facing the same way."""
+def clashes(model, together=None):
+    """Every pair of boxes with a shared, overlapping face plane facing the same way (only boxes on bones that are ever
+    shown together, `together(bone a, bone b)`, if given: one model wearing many callings' gear, each its own)."""
     cubes = model.cubes()
     mats = model.pose_matrices()
     keyed = {}
@@ -82,17 +83,19 @@ def clashes(model):
                     break
                 if ci is cj:
                     continue
+                if together is not None and not together(ci.bone.name, cj.bone.name):
+                    continue
                 if _overlap(pi, pj, ni):
                     pairs.append((ci, cj))
     return pairs
 
 
-def fix(model, rounds=20):
+def fix(model, rounds=20, together=None):
     """Grows one box of every clashing pair until none clash. Returns (boxes grown, clashes left)."""
     grown = set()
     pairs = []
     for _ in range(rounds):
-        pairs = clashes(model)
+        pairs = clashes(model, together)
         if not pairs:
             break
         done = set()

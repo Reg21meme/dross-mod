@@ -8,6 +8,8 @@ A mob module (rimemobs/<mob>.py) gives:
   K                       the scale the design builds at (its pivots are given in design units, like its shapes)
   BONES                   [(bone, pivot (design units), parent)], parents first; boxes go on the bone of their part
   ROUTES                  {part name: bone} for parts whose bone isn't called the same (usually empty)
+  DENSITY                 (optional) texels a unit of its texture (default 1; the Frostfolk's 2: finer at their size)
+  shown_together(a, b)    (optional) True if bones a and b are ever drawn at once (the z-fighting fix skips others)
   BUILD_VARIANT           the design variant the model is built from (it must hold every part any variant shows)
   VARIANTS                [dict(name=..., design=design variant (its materials), hidden=(bones), texture=name of
                           its texture (default: its name; two variants may share one, a bull and a cow moose))]
@@ -75,10 +77,11 @@ def build_model(mob, verbose=True):
     empty = [b.name for b in m.bones if not b.cubes and not any(c.cubes for c in _descendants(b))]
     if empty:
         print(f"  note {mob.ID}: bones with nothing on them: {', '.join(empty)}")
-    grown, left = zfight.fix(m)
+    grown, left = zfight.fix(m, together=getattr(mob, "shown_together", None))
     first = mob.DESIGN.materials(mob.VARIANTS[0]["design"])
     boxes = len(m.cubes())
-    dropped, removed = uvpack.optimize(m, lambda c: getattr(first[c.mat], "opaque", False), animated=True)
+    dropped, removed = uvpack.optimize(m, lambda c: getattr(first[c.mat], "opaque", False), animated=True,
+                                       density=float(getattr(mob, "DENSITY", 1.0)))
     texs = {}
     for v in mob.VARIANTS:
         name = v.get("texture", v["name"])

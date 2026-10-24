@@ -134,8 +134,6 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     /** Out past its leash with its target further out still: it makes no move that carries it further
      * ({@link HuntGoal}; the user: he "chases about 60 blocks past his loop, then stops and rains arrows on you"). */
     boolean held;
-    /** How long its target has been getting away (the leader's: {@link HuntFight}). */
-    int escapeTicks;
     HuntStage stage = HuntStage.CALM;
     /** The Wild Hunt's bar (the moose keeps it for both). */
     float wildHunt = HuntsmanTuning.WILD_HUNT_HEALTH;
@@ -591,8 +589,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         {
             return super.isInvulnerableTo(source);
         }
-        return this.showcase || this.stage == HuntStage.SPLIT || this.stage == HuntStage.WON || this.stage == HuntStage.LEAVING
-                || super.isInvulnerableTo(source);
+        return this.showcase || this.stage == HuntStage.SPLIT || this.stage == HuntStage.WON || super.isInvulnerableTo(source);
     }
 
     @Override

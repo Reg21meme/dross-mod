@@ -1,7 +1,7 @@
 """
 Makes the Huntsman's and the Alpha Moose's sounds (CLAUDE.md step 14, "Sounds"): his war cry, voice, spear, bow and
 bola; the Alpha Moose's bellows, its call as it rears, its hooves, kick, ram, stomp, the cracking stamp and its ice
-spikes; and the hunter villagers' and their elder's voices. Every one is synthesized from scratch with the Rat King's synthesizer (tools/ratking/ratkit/synth.py): nothing
+spikes; and the Frostfolk's and their elder's voices. Every one is synthesized from scratch with the Rat King's synthesizer (tools/ratking/ratkit/synth.py): nothing
 is recorded and nothing comes from Minecraft. Each event was made in two or three versions for the user to pick from
 (the page below plays each version on its own); an event's `picks` are the versions the game plays (the user's picks
 of October 23, 2026), the rest stay in the showcase. His horn isn't here: the user kept the goat horn
@@ -12,7 +12,7 @@ Run from the project folder:
     python tools/huntsman/sounds.py
 
 It writes:
-  src/main/resources/assets/dross/sounds/huntsman/*.ogg, alpha_moose/*.ogg, hunter_folk/*.ogg, hunter_elder/*.ogg
+  src/main/resources/assets/dross/sounds/huntsman/*.ogg, alpha_moose/*.ogg, frostfolk/*.ogg, frostfolk_elder/*.ogg
                                                      the sounds (mono Ogg Vorbis)
   src/main/resources/assets/dross/sounds.json        adds (or replaces) its own events; every other entry stays as it was
   src/main/resources/assets/dross/lang/en_us.json    adds the subtitles it needs (never changes other keys)
@@ -595,7 +595,7 @@ def am_death(rng, kind):
 # ---------------------------------------------------------------- the list
 
 
-# ---------------------------------------------------------------- the hunter villagers (rimemobs/hunter_folk.py)
+# ---------------------------------------------------------------- the Frostfolk (rimemobs/frostfolk.py)
 # Lighter than the Huntsman's (a man's own size of voice, FOLK_SCALE, not his big one, and higher), friendly when calm;
 # the elder older: lower, slower, his voice breaking into a creak at the ends.
 
@@ -663,14 +663,13 @@ def folk_hurt(rng, kind):
 
 
 def folk_death(rng, kind):
-    if kind == 1:        # "aaah...": falling away into a croak
+    if kind == 1:        # "aaah...": falling away (the user's pick, October 24, 2026, without the croak it ended in)
         d = 1.1
         v = V.voice(d, [(0.0, 220.0), (0.1, 238.0), (0.5, 185.0), (d, 100.0)], [(0.0, "ae"), (0.15, "ah"), (d, "uh")],
                     rng, oq=[(0.0, 0.44), (d, 0.7)], rasp=[(0.0, 0.15), (d, 0.08)], breath=[(0.0, 0.05), (d, 0.4)],
                     vib=(5.0, [(0.0, 0.0), (d, 0.04)]), scale=FOLK_SCALE,
                     amp=[(0.0, 0.0), (0.02, 1.0), (0.6, 0.8), (d, 0.0)])
-        fry = V.creak(0.3, "uh", rng, amp=[(0.0, 0.5), (0.3, 0.0)])
-        return S.reverb(V.place(2.0, (0.0, v), (d - 0.05, fry * 0.5)), 0.12)
+        return S.reverb(V.place(2.0, (0.0, v)), 0.12)
     # "nngh... ah": straining, then letting go
     strain = V.voice(0.35, [(0.0, 145.0), (0.35, 165.0)], "ng", rng, oq=0.34, rasp=0.12, hum=True, scale=FOLK_SCALE,
                      amp=[(0.0, 0.0), (0.04, 0.8), (0.3, 1.0), (0.35, 0.0)])
@@ -737,16 +736,15 @@ def elder_hurt(rng, kind):
 
 
 def elder_death(rng, kind):
-    if kind == 1:        # a long falling cry, breaking, his last breath
-        d = 1.6
+    if kind == 1:        # a long falling cry, his last breath (the user's pick, October 24, 2026, without the croak it
+        d = 1.6          # broke into at the end)
         v = V.voice(d, [(0.0, 175.0), (0.15, 188.0), (0.8, 140.0), (d, 72.0)], [(0.0, "ae"), (0.2, "ah"), (1.0, "aw"),
                                                                                 (d, "uh")],
                     rng, oq=[(0.0, 0.44), (d, 0.72)], rasp=[(0.0, 0.25), (d, 0.15)], breath=[(0.0, 0.06), (d, 0.45)],
                     jitter=0.03, vib=(4.5, [(0.0, 0.0), (d, 0.05)]), scale=ELDER_SCALE,
                     amp=[(0.0, 0.0), (0.02, 1.0), (0.9, 0.8), (d, 0.0)])
-        fry = V.creak(0.4, "uh", rng, amp=[(0.0, 0.5), (0.4, 0.0)])
         out = V.aspirate(0.9, "uh", rng, amp=[(0.0, 0.0), (0.15, 1.0), (0.9, 0.0)])
-        return S.reverb(V.place(3.0, (0.0, v), (d - 0.05, fry * 0.6), (1.75, out * 0.3)), 0.14)
+        return S.reverb(V.place(3.0, (0.0, v), (1.75, out * 0.3)), 0.14)
     # two gasps and a sigh
     parts, t = [], 0.0
     for i in range(2):
@@ -799,9 +797,9 @@ def versions(prefix, fn, labels):
     return [(f"{prefix}_{i}", (lambda r, f=fn, k=i: f(r, k)), lab) for i, lab in enumerate(labels, start=1)]
 
 
-HU, AM, FO, EL = "huntsman", "alpha_moose", "hunter_folk", "hunter_elder"
+HU, AM, FO, EL = "huntsman", "alpha_moose", "frostfolk", "frostfolk_elder"
 HUNTSMAN, MOOSE, GEAR = "The Huntsman: his voice", "The Alpha Moose", "The Huntsman: his weapons"
-FOLK, ELDER = "The hunter villagers", "The hunter elder"
+FOLK, ELDER = "The Frostfolk", "The Frostfolk elder"
 # The user's picks (October 23, 2026) are each event's `picks` (his grunt, hurt, death and war cry picked after his voice
 # was remade with voicekit). Not picked: the sounds they skipped (footsteps, landing, the spear's hit and throw, the bow's
 # draw), which play version 1 until they say otherwise. The spear's swing plays version 1 for a thrust and 2 for a
@@ -889,34 +887,34 @@ EVENTS = [
     Event("entity.alpha_moose.ice_spikes", AM, versions("ice_spikes", am_ice_spikes, ("small spikes, then the big one",
                                                                                        "more small spikes")),
           "Ice spikes burst up", MOOSE, "The clear ice spikes bursting up", picks=(1,)),
-    # the hunter villagers (October 23, 2026: "make them have a unique voice that is nice"; all play until the user
-    # picks)
-    Event("entity.hunter_folk.ambient", FO, versions("ambient", folk_ambient, ("humming at their work",
+    # the Frostfolk (October 23, 2026: "make them have a unique voice that is nice"); the user's picks of
+    # October 24, 2026 (both deaths without the croak they ended in)
+    Event("entity.frostfolk.ambient", FO, versions("ambient", folk_ambient, ("humming at their work",
                                                                                 "mm-hm, to themselves",
                                                                                 "a sniff and a tired sigh")),
-          "Hunter hums", FOLK, "Idle"),
-    Event("entity.hunter_folk.talk", FO, versions("talk", folk_talk, ("ho? (a greeting)", "hah, ha (a short laugh)",
+          "Frostfolk hums", FOLK, "Idle", picks=(1, 2)),
+    Event("entity.frostfolk.talk", FO, versions("talk", folk_talk, ("ho? (a greeting)", "hah, ha (a short laugh)",
                                                                        "hm? (asking)")),
-          "Hunter speaks", FOLK, "Talking to you (right-click)"),
-    Event("entity.hunter_folk.hurt", FO, versions("hurt", folk_hurt, ("uh!", "ah!", "oof")),
-          "Hunter hurts", FOLK, "Hurt"),
-    Event("entity.hunter_folk.death", FO, versions("death", folk_death, ("aaah... into a croak", "nngh... ah")),
-          "Hunter dies", FOLK, "Death"),
-    Event("entity.hunter_folk.cry", FO, versions("cry", folk_cry, ("hoo-AH! (a rallying shout)", "a whoop, rising")),
-          "Hunters shout", FOLK, "The village turning on you"),
-    Event("entity.hunter_elder.ambient", EL, versions("ambient", elder_ambient, ("an old man's hum",
+          "Frostfolk speaks", FOLK, "Talking to you (right-click)", picks=(1, 2, 3)),
+    Event("entity.frostfolk.hurt", FO, versions("hurt", folk_hurt, ("uh!", "ah!", "oof")),
+          "Frostfolk hurts", FOLK, "Hurt", picks=(1, 2, 3)),
+    Event("entity.frostfolk.death", FO, versions("death", folk_death, ("aaah..., falling away", "nngh... ah")),
+          "Frostfolk dies", FOLK, "Death", picks=(1,)),
+    Event("entity.frostfolk.cry", FO, versions("cry", folk_cry, ("hoo-AH! (a rallying shout)", "a whoop, rising")),
+          "Frostfolk shout", FOLK, "The village turning on you", picks=(1,)),
+    Event("entity.frostfolk_elder.ambient", EL, versions("ambient", elder_ambient, ("an old man's hum",
                                                                                   "a breath and a grumble")),
-          "Elder hums", ELDER, "Idle"),
-    Event("entity.hunter_elder.talk", EL, versions("talk", elder_talk, ("hmmm... (thinking it over)",
+          "Frostfolk elder hums", ELDER, "Idle", picks=(1, 2)),
+    Event("entity.frostfolk_elder.talk", EL, versions("talk", elder_talk, ("hmmm... (thinking it over)",
                                                                          "heh, heh, heh (an old laugh)",
                                                                          "ahh, so... (welcoming)")),
-          "Elder speaks", ELDER, "Talking to you (right-click)"),
-    Event("entity.hunter_elder.hurt", EL, versions("hurt", elder_hurt, ("ugh!, old and rough",
+          "Frostfolk elder speaks", ELDER, "Talking to you (right-click)", picks=(1, 2, 3)),
+    Event("entity.frostfolk_elder.hurt", EL, versions("hurt", elder_hurt, ("ugh!, old and rough",
                                                                          "agh! and a hiss through his teeth")),
-          "Elder hurts", ELDER, "Hurt"),
-    Event("entity.hunter_elder.death", EL, versions("death", elder_death, ("a long falling cry, his last breath",
+          "Frostfolk elder hurts", ELDER, "Hurt", picks=(1, 2)),
+    Event("entity.frostfolk_elder.death", EL, versions("death", elder_death, ("a long falling cry, his last breath",
                                                                             "two gasps and a sigh")),
-          "Elder dies", ELDER, "Death"),
+          "Frostfolk elder dies", ELDER, "Death", picks=(1,)),
 ]
 
 # The picked bola sound (version 2) cut in two: its whoosh as he lets go, and the cords wrapping round you and their
@@ -963,8 +961,21 @@ def cut(x, start, end):
     return S.finish(piece, fade_in=0.004, fade_out=0.03)
 
 
-OURS = ("entity.huntsman.", "entity.alpha_moose.")
-OUR_SUBTITLES = ("subtitles.dross.huntsman.", "subtitles.dross.alpha_moose.")
+OURS = ("entity.huntsman.", "entity.alpha_moose.", "entity.frostfolk.", "entity.frostfolk_elder.",
+        "entity.hunter_folk.", "entity.hunter_elder.")     # (the last two: the Frostfolk's old names, cleared out)
+OUR_SUBTITLES = ("subtitles.dross.huntsman.", "subtitles.dross.alpha_moose.", "subtitles.dross.frostfolk.",
+                 "subtitles.dross.frostfolk_elder.", "subtitles.dross.hunter_folk.", "subtitles.dross.hunter_elder.")
+
+
+def _no_duplicates(pairs):
+    """For json.loads: a key twice is an error (Minecraft refuses a sounds.json with one, and every sound of the mod
+    goes silent: a second run once appended the villagers' events again, October 24, 2026)."""
+    seen = {}
+    for k, v in pairs:
+        if k in seen:
+            raise ValueError(f"duplicate key {k}")
+        seen[k] = v
+    return seen
 
 
 def sound_line(folder, name, volume):
@@ -1004,7 +1015,7 @@ def write_sounds_json():
     for clip in CLIPS:
         entries.append(entry(clip.event, clip.subtitle_key, [sound_line(clip.folder, clip.name, 1.0)]))
     out = body + ",\n" + ",\n".join(entries) + "\n}\n"
-    json.loads(out)
+    json.loads(out, object_pairs_hook=_no_duplicates)
     old = {k for k in data if not k.startswith(OURS)}
     assert old <= set(json.loads(out)), "lost an entry"
     with open(SOUNDS_JSON, "w", encoding="utf-8", newline="\n") as f:
@@ -1030,7 +1041,7 @@ def write_lang():
         kept.append(line.rstrip().rstrip(","))
     kept += [f"  {json.dumps(k)}: {json.dumps(v)}" for k, v in want.items()]
     out = lines[0] + "\n" + ",\n".join(kept) + "\n}\n"
-    parsed = json.loads(out)
+    parsed = json.loads(out, object_pairs_hook=_no_duplicates)
     assert {k: v for k, v in data.items() if not k.startswith(OUR_SUBTITLES)}.items() <= parsed.items(), "lost a key"
     with open(LANG, "w", encoding="utf-8", newline="\n") as f:
         f.write(out)

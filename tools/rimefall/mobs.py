@@ -8,7 +8,7 @@ unchanged), its textures, its animations, a clipping check, and previews.
   python tools/rimefall/mobs.py huntsman_rider --no-gif --no-check   also without the rider-and-moose check (slow)
 
 Writes, for each animal <id> (rimehorn, moose, pondskater; the Huntsman's alpha_moose, huntsman (on foot) and
-huntsman_rider (in the saddle); and hunter_folk, the hunter villages' people: his model on foot with their gear):
+huntsman_rider (in the saddle); and frostfolk, the people of Rimefall's villages, one model for every calling):
   src/main/resources/assets/dross/geo/entity/<id>/<id>.geo.json
   src/main/resources/assets/dross/animations/entity/<id>/<id>.animation.json     (animation.<id>.<name>)
   src/main/resources/assets/dross/textures/entity/<id>/<variant>.png (+ _glow, _ice, _iceglow when it has them)
@@ -47,7 +47,7 @@ from rimekit import mobkit, uvpack, view as V  # noqa: E402
 CARRY_PREFIX = "carry_"         # the riding Huntsman's saddle motions (no previews of their own: see wildhunt.py)
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
 PREVIEWS = os.path.join(ROOT, "boss-previews", "rimefall", "mobs")
-MOBS = ("rimehorn", "moose", "pondskater", "alpha_moose", "huntsman", "huntsman_rider", "hunter_folk")
+MOBS = ("rimehorn", "moose", "pondskater", "alpha_moose", "huntsman", "huntsman_rider", "frostfolk")
 
 
 def write_json(path, data):
@@ -75,7 +75,7 @@ def build(mob_id, gifs=True):
     shown = {n: a for n, a in anims.items() if not n.startswith(CARRY_PREFIX)}
     callings = getattr(mob, "CALLINGS", None)
     if callings:
-        # one model, many callings (hunter_folk): each checked in its own gear and its own moves
+        # one model, many callings (frostfolk): each checked in its own gear and its own moves
         found = {}
         for key, _name, _kind, shows, plays in callings:
             own = {n: shown[n] for n in tuple(mob.IDLE_ETC) + tuple(plays) if n in shown}
@@ -130,7 +130,7 @@ def build(mob_id, gifs=True):
 
 # The moments the game acts on in the Huntsman's and the Alpha Moose's animations (seconds in their meta; these keys only:
 # the others are speeds, poses and the IK's report).
-HUNT_MODELS = ("huntsman", "huntsman_rider", "alpha_moose", "hunter_folk")
+HUNT_MODELS = ("huntsman", "huntsman_rider", "alpha_moose")
 CUES = os.path.join(HERE, "rimemobs", "hunt_cues.json")
 CUES_JAVA = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "huntsman", "HuntCues.java")
 TIME_KEYS = ("hit", "hits", "release", "catch", "shots", "glint", "throws", "blow", "end", "slip", "lands", "cry",

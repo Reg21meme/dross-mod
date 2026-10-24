@@ -76,10 +76,10 @@ public final class HuntsmanTrophyModels
             new Model(3, 7, "the_rearing", "Rearing", 0.1094F, 1.0000F, 0,
                     new Spot(0.1494F, 0.0000F, 0.2232F), new Spot(0.8506F, 0.9600F, 0.7768F),
                     List.of(new Mark(Effect.BREATH, new Spot(0.6742F, 0.9498F, 0.4460F), new Spot(0.6765F, 0.9839F, 0.4454F)))),
-            // 4. The Rearing Shot (new: ride_rain at 0.95 s over rear at 1.0 s)
-            new Model(4, 0, "rearing_shot", "Rearing shot", 0.1072F, 1.0000F, 0,
-                    new Spot(0.1373F, 0.0000F, 0.2286F), new Spot(0.8627F, 0.9600F, 0.7714F),
-                    List.of(new Mark(Effect.BREATH, new Spot(0.3382F, 0.9312F, 0.4471F), new Spot(0.3359F, 0.9647F, 0.4465F)))),
+            // 4. The Rearing Shot (new: rearing_shot at 1.38 s over rear at 0.42 s)
+            new Model(4, 0, "rearing_shot", "Rearing shot", 0.1039F, 1.0000F, 0,
+                    new Spot(0.1561F, 0.0000F, 0.2393F), new Spot(0.8439F, 0.9600F, 0.7607F),
+                    List.of(new Mark(Effect.BREATH, new Spot(0.8120F, 0.6887F, 0.4350F), new Spot(0.8360F, 0.7077F, 0.4241F)))),
             // 5. The Parting Shot (new: crack_stamp at 1.55 s; him on foot, backstep_shoot at 1.2 s)
             new Model(5, 0, "parting_shot", "Parting shot", 0.1069F, 1.0000F, 0,
                     new Spot(0.1160F, 0.0000F, 0.0586F), new Spot(0.8840F, 0.9600F, 0.9414F),

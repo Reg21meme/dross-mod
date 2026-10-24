@@ -4,8 +4,8 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
-import com.reg21meme.dross.boss.huntsman.folk.FolkTuning;
-import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
+import com.reg21meme.dross.boss.frostfolk.FolkTuning;
+import com.reg21meme.dross.boss.frostfolk.Frostfolk;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageDesigns;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillages;
 import com.reg21meme.dross.boss.huntsman.village.VillageAnimals;
@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * {@code /dross showcase hunter_villages} (test tool, cheats only): builds the hunter villages ahead of you on a snowy
+ * {@code /dross showcase frostfolk_villages} (test tool, cheats only): builds the hunter villages ahead of you on a snowy
  * floor, so they can be looked at and compared (the boss area's {@link HunterVillageDesigns}, made by
  * tools/huntsman/villages.py): the Sunken Warren's nine layouts (15 to 20 of the hand-designed igloos, the shrine in
  * every third) and the Huntsman's two villages.
@@ -64,7 +64,7 @@ public final class HunterVillageShowcase
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    public static final String COMMAND = "/dross showcase hunter_villages";
+    public static final String COMMAND = "/dross showcase frostfolk_villages";
     /** Blocks between neighbouring plots (and rows). */
     static final int GAP = 14;
     /** The rows: Sunken Warrens 1-3, 4-6, 7-9, then the Huntsman's villages. */
@@ -162,7 +162,7 @@ public final class HunterVillageShowcase
                 plan.front(), d);
     }
 
-    /** Runs {@code /dross showcase hunter_villages}: plans it and starts building, one plot a tick. */
+    /** Runs {@code /dross showcase frostfolk_villages}: plans it and starts building, one plot a tick. */
     public static int run(CommandContext<CommandSourceStack> context)
     {
         CommandSourceStack source = context.getSource();
@@ -236,7 +236,7 @@ public final class HunterVillageShowcase
                 box.maxX() + FLOOR_MARGIN + 1, top + 1, box.maxZ() + FLOOR_MARGIN + 1);
         level.getEntitiesOfClass(Mob.class, area, m -> m instanceof Moose || m instanceof Rimehorn).forEach(Mob::discard);
         // its villagers, wherever they've wandered (within their home's reach)
-        level.getEntitiesOfClass(HunterFolk.class, area.inflate(FolkTuning.HOME_RADIUS), h -> !h.isShowcase()
+        level.getEntitiesOfClass(Frostfolk.class, area.inflate(FolkTuning.HOME_RADIUS), h -> !h.isShowcase()
                 && (area.contains(h.position()) || h.home() != null && area.contains(Vec3.atBottomCenterOf(h.home()))))
                 .forEach(Entity::discard);
         VillageAnimals.cancelIn(level, area);
