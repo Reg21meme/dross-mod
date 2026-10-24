@@ -13,6 +13,9 @@ Animations (animation.huntsman_rider.*):
   ride_shoot    (once)  the circling hunt's shots: the bow off his back, his bow arm straight, two arrows from the
                         saddle's quiver drawn to his chin and loosed at a target out to his left (rimemobs/archery.py;
                         his spear stays in its cup)
+  ride_shoot_front, ride_shoot_right, ride_shoot_back   (once)  the same two shots ahead of him (past the moose's
+                        head, on its left), on his right (twisted round in the saddle) and behind him (over his left
+                        shoulder): so the moose needn't turn side-on to him to let him shoot (SHOT_DIRECTIONS)
   ride_rain     (once)  the arrow rain: the bow raised to the sky, four loosings of three arrows each
   ride_horn     (once)  the Horn of the Hunt held to his lips for a long call, the bell up and out
   (in every one his cloak keeps lying over the moose's rump, whatever his hips and chest do: _keep_cape)
@@ -62,7 +65,20 @@ LEGS = []
 GIF_VIEW = (55.0, 8.0, 2.6)
 LEAP_OUT = 46.0                 # he lands this far to the moose's left of its middle (units: about 2.9 blocks)
 HITS = {"ride_thrust": (0.62,), "ride_shoot": (1.15, 2.05), "ride_rain": (1.0, 1.75, 2.5, 3.25), "ride_horn": (0.85,),
-        "ride_bola": (0.95,), "ride_leap": (0.85,)}   # (the leap: LEAP_SPRING)
+        "ride_bola": (0.95,), "ride_leap": (0.85,),   # (the leap: LEAP_SPRING)
+        "ride_shoot_front": (1.15, 2.05), "ride_shoot_right": (1.15, 2.05), "ride_shoot_back": (1.15, 2.05)}
+# The shots in the four directions (the user, October 23, 2026: "make a shot animation for each major cardinal direction
+# that way the moose doesn't have to move in the direction perpendicular to you to be able to shoot you"): where the bow
+# aims ((degrees to his left, degrees up): his left is ride_shoot's), how far his chest turns (positive: to his right)
+# and his head (on his chest), and how far his chest turns towards the target to nock (archery's face).
+SHOT_DIRECTIONS = {
+    # past the moose's head on its left, the bow held high while he nocks (its lower end clear of the moose's neck)
+    "ride_shoot_front": dict(aim=(24.0, 10.0), chest=40.0, head=-55.0, face=-35.0, nock_down=-30.0),
+    # twisted round to his right in the saddle (the bow's in his left hand: as far round as his arms reach)
+    "ride_shoot_right": dict(aim=(-60.0, 12.0), chest=80.0, head=-15.0, face=-10.0, nock_down=-25.0),
+    # over his left shoulder, a Parthian shot (his chest doesn't turn back to the quiver between: its reach crossed him)
+    "ride_shoot_back": dict(aim=(125.0, 10.0), chest=-40.0, head=-70.0, face=-15.0, nock_down=-20.0, reach_turn=0.0),
+}
 # What the spear mustn't touch on the moose (the user: the thrust went through its antlers), checked by mobs.py.
 MOOSE_KEEP_CLEAR = ("antlers", "head", "neck", "ear_l", "ear_r", "body")
 SPEAR_AXIS = (H.RIDE_FISTS[0] - (R.RIDE_CUP + np.array([0.0, 1.0, 0.0])))
@@ -204,13 +220,13 @@ def ride_thrust(rig):
 
 
 def _rider_shots(rig, name, T, shots, aim, chest, head, lean=0.0, lift=0.0, hold=0.12, quick=1.0, face=-65.0,
-                 volley=1, nock_down=archery.NOCK_DOWN):
+                 volley=1, nock_down=archery.NOCK_DOWN, reach_turn=25.0):
     """A shooting animation in the saddle: his body turned (chest, head: degrees, positive his right), the bow out
     of the archery code (his spear stays in its cup meanwhile; his arrows from the saddle's quiver)."""
     hands = hunt_ik.Hands(rig, R.joints(POSE))
     quiver = H.SADDLE_QUIVER * R.MOOSE_K            # (the saddle's: the moose's scale, not his)
     archer = archery.Archer(rig, hands, shots, aim, start=0.05, end=T - 0.05, hold=hold, quick=quick, drop=0.0,
-                            face=face, volley=volley, quiver=lambda p, mats: quiver, reach_turn=25.0,
+                            face=face, volley=volley, quiver=lambda p, mats: quiver, reach_turn=reach_turn,
                             nock_down=nock_down)
 
     def frame(t):
@@ -234,6 +250,18 @@ def ride_shoot(rig):
     T = 2.9
     return _rider_shots(rig, "ride_shoot", T, list(HITS["ride_shoot"]), lambda t: hunt_ik.elevate(72.0, 3.0),
                         chest=4.0, head=-62.0, hold=0.1, quick=0.85)
+
+
+def ride_shoot_dir(rig, name):
+    """His two shots from the saddle at a target ahead of him (past the moose's head on its left), on his right
+    (twisted round in the saddle) or behind him (over his left shoulder, a Parthian shot), like ride_shoot's to his
+    left: so the moose needn't turn side-on to him (SHOT_DIRECTIONS)."""
+    T = 2.9
+    d = SHOT_DIRECTIONS[name]
+    return _rider_shots(rig, name, T, list(HITS[name]), lambda t, a=d["aim"]: hunt_ik.elevate(*a), chest=d["chest"],
+                        head=d["head"], hold=0.1, quick=0.85, face=d["face"],
+                        nock_down=d.get("nock_down", archery.NOCK_DOWN), lean=d.get("lean", 0.0), lift=d.get("lift", 0.0),
+                        reach_turn=d.get("reach_turn", 25.0))
 
 
 def ride_rain(rig):
@@ -468,6 +496,9 @@ def animations(rig):
         "ride_gallop": ride_gallop(rig),
         "ride_thrust": ride_thrust(rig),
         "ride_shoot": ride_shoot(rig),
+        "ride_shoot_front": ride_shoot_dir(rig, "ride_shoot_front"),
+        "ride_shoot_right": ride_shoot_dir(rig, "ride_shoot_right"),
+        "ride_shoot_back": ride_shoot_dir(rig, "ride_shoot_back"),
         "ride_rain": ride_rain(rig),
         "ride_horn": ride_horn(rig),
         "ride_bola": ride_bola(rig),

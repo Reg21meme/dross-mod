@@ -92,6 +92,12 @@ public final class HuntSoundCues
             new Cue(R, "ride_thrust", "hits.0", -1, ModSounds.HUNTSMAN_EFFORT, 1.2F),
             new Cue(R, "ride_shoot", "shots.0", DRAW_LEAD, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
             new Cue(R, "ride_shoot", "shots.1", -17, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),   // just after the first shot
+            new Cue(R, "ride_shoot_front", "shots.0", DRAW_LEAD, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
+            new Cue(R, "ride_shoot_front", "shots.1", -17, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
+            new Cue(R, "ride_shoot_right", "shots.0", DRAW_LEAD, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
+            new Cue(R, "ride_shoot_right", "shots.1", -17, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
+            new Cue(R, "ride_shoot_back", "shots.0", DRAW_LEAD, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
+            new Cue(R, "ride_shoot_back", "shots.1", -17, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
             new Cue(R, "ride_rain", null, 1, ModSounds.HUNTSMAN_BOW_DRAW, 1.0F),
             new Cue(R, "ride_bola", null, 1, ModSounds.HUNTSMAN_BOLA_WHIRL, 1.2F),
             new Cue(R, "ride_leap", "jump", -1, ModSounds.HUNTSMAN_EFFORT, 1.2F));

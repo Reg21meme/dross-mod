@@ -186,9 +186,9 @@ final class FootGoal extends HuntGoal
                             HuntsmanTuning.THRUST_SWEEP_DAMAGE_2));
             case "backstep" -> new Timed("backstep", this.h, "backstep_shoot", length("backstep_shoot"),
                     moment("backstep_shoot", "shots.0"))
-                    .first(() -> this.aim(target, HuntsmanTuning.BACKSTEP_BASE_DAMAGE, HuntFight.Frost.NONE));
+                    .first(() -> this.aim(target, HuntsmanTuning.BACKSTEP_BASE_DAMAGE, HuntFight.Frost.FROST));
             case "quick" -> new Timed("quick", this.h, "quick_shot", length("quick_shot"), moment("quick_shot", "release"))
-                    .first(() -> this.aim(target, HuntsmanTuning.QUICK_SHOT_BASE_DAMAGE, HuntFight.Frost.NONE));
+                    .first(() -> this.aim(target, HuntsmanTuning.QUICK_SHOT_BASE_DAMAGE, HuntFight.Frost.FROST));
             case "aimed" -> new Timed("aimed", this.h, "aimed_shot", length("aimed_shot"), moment("aimed_shot", "release"))
                     .first(() -> this.aim(target, HuntsmanTuning.AIMED_BASE_DAMAGE, HuntFight.Frost.FREEZE))
                     .at(moment("aimed_shot", "glint"), this::glint);

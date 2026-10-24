@@ -73,7 +73,8 @@ public final class HuntAnims
     /** The Huntsman in the saddle (stage 1, the Wild Hunt). */
     public static final List<Anim> RIDING = List.of(
             loop(RIDER, "ride_idle", 4.0), loop(RIDER, "ride_gallop", 0.6),
-            once(RIDER, "ride_thrust", 1.3), once(RIDER, "ride_shoot", 2.9), once(RIDER, "ride_rain", 4.2),
+            once(RIDER, "ride_thrust", 1.3), once(RIDER, "ride_shoot", 2.9), once(RIDER, "ride_shoot_front", 2.9),
+            once(RIDER, "ride_shoot_right", 2.9), once(RIDER, "ride_shoot_back", 2.9), once(RIDER, "ride_rain", 4.2),
             once(RIDER, "ride_horn", 3.7), once(RIDER, "ride_bola", 1.5), once(RIDER, "ride_leap", 1.4));
 
     /** His leap off the moose (the split, played with the moose's rear: the saddle's motion is in it, he springs at the

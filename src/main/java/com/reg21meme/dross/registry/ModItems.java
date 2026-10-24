@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.huntsman.spear.MoonsilverSpearItem;
+import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyItem;
 import com.reg21meme.dross.boss.rage.RageWandItem;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyItem;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyItem;
@@ -93,6 +94,9 @@ public final class ModItems
     // Boss area: the Rat King trophy (its design is in the item; fireproof, never despawns)
     public static final RegistryObject<Item> RAT_KING_TROPHY = ITEMS.register("rat_king_trophy",
             () -> new RatKingTrophyItem(ModBlocks.RAT_KING_TROPHY.get()));
+    // Boss area: the Huntsman trophy (its design is in the item; the 3D figure in the hand)
+    public static final RegistryObject<Item> HUNTSMAN_TROPHY = ITEMS.register("huntsman_trophy",
+            () -> new HuntsmanTrophyItem(ModBlocks.HUNTSMAN_TROPHY.get()));
 
     // Boss area: the Rage Wand, a creative-only test tool (no recipe): hit mobs and they fight each other
     public static final RegistryObject<Item> RAGE_WAND = ITEMS.register("rage_wand", RageWandItem::new);

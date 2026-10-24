@@ -2,6 +2,7 @@ package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophies;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophies;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
 import com.reg21meme.dross.boss.trophy.TrophyStyle;
@@ -114,6 +115,17 @@ public final class TrophyShowcase
             trophies.add(new Trophy(design.number(), design.displayName(), design.look(), design::blockState));
         }
         return placeRow(context.getSource(), "Rat King", trophies, state -> state.is(ModBlocks.RAT_KING_TROPHY.get()));
+    }
+
+    /** Runs {@code /dross showcase trophies huntsman}: the 5 Huntsman trophy designs. */
+    public static int placeHuntsmanTrophies(CommandContext<CommandSourceStack> context)
+    {
+        List<Trophy> trophies = new ArrayList<>();
+        for (HuntsmanTrophies.Design design : HuntsmanTrophies.DESIGNS)
+        {
+            trophies.add(new Trophy(design.number(), design.displayName(), design.look(), design::blockState));
+        }
+        return placeRow(context.getSource(), "Huntsman", trophies, state -> state.is(ModBlocks.HUNTSMAN_TROPHY.get()));
     }
 
     /** The sign's word for a Colossus trophy's look. */

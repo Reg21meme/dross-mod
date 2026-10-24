@@ -20,6 +20,15 @@ public final class HuntsmanTuning
     public static final int HOME_WANDER = 24;
     /** A fight broken off this far or more from home: they go back home (the user: "walk away: they're back home"). */
     public static final double HOME_RETURN = 16.0D;
+    /** His patrol round his village (the user, October 23, 2026: "the Huntsman should be patrolling the village"): a
+     * loop this far outside the village (outside its ring of lights), with this many points, as round as this (a
+     * superellipse's power: 2 an ellipse, more nearer the village's own rectangle), ridden at this much of the moose's
+     * speed; after a fight, a point further than {@link #PATROL_REJOIN} from it isn't taken up again: its nearest is. */
+    public static final int PATROL_OUT = 20;
+    public static final int PATROL_POINTS = 24;
+    public static final double PATROL_ROUNDNESS = 6.0D;
+    public static final double PATROL_SPEED = 0.7D;
+    public static final double PATROL_REJOIN = 40.0D;
     /** Stage 2: each of them on his own bar. */
     public static final float HUNTSMAN_HEALTH = 150.0F;
     public static final float MOOSE_HEALTH = 150.0F;
@@ -50,6 +59,9 @@ public final class HuntsmanTuning
     public static final int CREDIT_TICKS = 600;
     /** Experience for each of them. */
     public static final int XP_EACH = 25;
+    /** The trophy design every player who helped beat them gets (1 to 5, see boss/huntsman/trophy/HuntsmanTrophies):
+     * No. 1, Riding Down; right-clicking a placed trophy turns it to any of the others. */
+    public static final int TROPHY_DROP_DESIGN = 1;
     /** A body lies there this long after its death animation, then it's gone in a puff of snow. */
     public static final int CORPSE_TICKS = 200;
 
@@ -222,7 +234,16 @@ public final class HuntsmanTuning
     public static final int CIRCLE_TICKS = 120;
     /** His bow from the saddle: two arrows a time ({@code ride_shoot}), at a target this far round his left (degrees
      * from straight out to his left: the moose's antlers are in front of him), between these distances. */
-    public static final double SADDLE_SHOT_HALF_ANGLE = 60.0D;
+    /** Which of his four shots from the saddle (degrees round from the way the moose faces): ahead within this, behind
+     * past {@link #SADDLE_SHOT_BACK}, else to his left or right (the user, October 23, 2026: a shot for each direction,
+     * so the moose needn't turn side-on to him; he used to shoot only to his left, within 60 degrees of it). */
+    public static final double SADDLE_SHOT_FRONT = 45.0D;
+    public static final double SADDLE_SHOT_BACK = 135.0D;
+    /** Running away from him at this many blocks a tick or more, a target gets his bola as soon as it's ready (the user:
+     * "if I am running away he should use his bola to slow me down"); a walk is about 0.22, a sprint 0.28. */
+    public static final double BOLA_FLEEING_SPEED = 0.12D;
+    /** The bola can be thrown this far round from the moose's front (degrees). */
+    public static final double BOLA_HALF_ANGLE = 120.0D;
     public static final double SADDLE_SHOT_MIN = 4.0D;
     public static final double SADDLE_SHOT_MAX = 28.0D;
     public static final int SADDLE_SHOT_COOLDOWN = 30;
@@ -265,11 +286,13 @@ public final class HuntsmanTuning
             {"charge", 30, "circle", 35, "stamp", 15, "bellow", 10, "ride_off", 10},
             {"charge", 40, "circle", 40, "stamp", 20},
             {"charge", 40, "ride_in", 60}};
-    /** His own moves from the saddle, using what fits where his target is (the user's answer): the spear in reach ahead or
-     * on his right, the bow on his left, the bola and the horn ahead, the rain anywhere (a move that doesn't fit drops
-     * out and the others share its weight). */
+    /** His own moves from the saddle, using what fits where his target is (the user's answer): the spear in reach (not
+     * behind him), the bow anywhere (a shot for each side: ahead, left, right, behind), the bola and the horn ahead, the
+     * rain anywhere (a move that doesn't fit drops out and the others share its weight). Close up mostly the spear (the
+     * user, October 23, 2026: "when I am right next to his moose he should use his spear more often"; it was thrust 50,
+     * horn 25, shoot 15, rain 10). */
     public static final Object[][] SADDLE_CHANCES = {
-            {"thrust", 50, "horn", 25, "shoot", 15, "rain", 10},
+            {"thrust", 70, "horn", 15, "shoot", 15},
             {"shoot", 40, "bola", 25, "rain", 20, "horn", 15},
             {"shoot", 50, "rain", 30, "bola", 20},
             {"rain", 70, "shoot", 30}};
@@ -355,7 +378,25 @@ public final class HuntsmanTuning
     /** The cracks run out from its hooves at this many blocks a tick, then the spikes burst up round the end. */
     public static final double STAMP_CRACK_SPEED = 0.6D;
     public static final double STAMP_RADIUS = 1.5D;
-    public static final double STAMP_LAUNCH = 0.6D;
+    /** The big spike throws what it hits up this hard (the user, October 23, 2026: it "knocks you into the air"; 0.6
+     * before), and slows it (Slowness II) this long, frosting it as his arrows do. */
+    public static final double STAMP_LAUNCH = 0.95D;
+    public static final int STAMP_SLOW_TICKS = 60;
+    public static final int STAMP_SLOW_LEVEL = 1;
+    /** The spikes of clear ice (the user: "smaller spikes on the ground clumped up, then ... a giant [spike] around 1.5
+     * blocks tall"): this many small ones, this far round where the cracks end, this big (of the model's block), each
+     * growing up over this many ticks; then, this many ticks later, the big one, this tall and this wide for its
+     * height, growing up over this many ticks (it's the one that hurts). */
+    public static final int STAMP_SMALL_SPIKES = 7;
+    public static final double STAMP_SMALL_NEAR = 0.6D;
+    public static final double STAMP_SMALL_FAR = 1.9D;
+    public static final float STAMP_SMALL_MIN = 0.35F;
+    public static final float STAMP_SMALL_MAX = 0.75F;
+    public static final int STAMP_SMALL_GROW = 3;
+    public static final int STAMP_BIG_DELAY = 7;
+    public static final float STAMP_BIG_HEIGHT = 1.5F;
+    public static final float STAMP_BIG_WIDTH = 0.9F;
+    public static final int STAMP_BIG_GROW = 4;
     /** The spikes stand this long. */
     public static final int STAMP_SPIKE_TICKS = 30;
     public static final int STAMP_COOLDOWN = 240;

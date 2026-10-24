@@ -375,10 +375,21 @@ public final class HunterVillageWorldGameTest
         {
             return "he and the moose should both have his village as their home";
         }
+        // on his patrol round the village (at a loaded point of it), or in his yard if none of it is loaded
+        java.util.List<BlockPos> loop = HuntsmanVillages.patrolLoop(plan);
+        if (moose.patrol().size() != loop.size())
+        {
+            return "the moose should have his patrol round the village (" + moose.patrol().size() + " points of "
+                    + loop.size() + ")";
+        }
         double off = moose.position().distanceTo(net.minecraft.world.phys.Vec3.atBottomCenterOf(plan.home()));
+        for (BlockPos p : loop)
+        {
+            off = Math.min(off, Math.hypot(moose.getX() - (p.getX() + 0.5D), moose.getZ() - (p.getZ() + 0.5D)));
+        }
         if (off > 14.0D)
         {
-            return String.format(Locale.ROOT, "they came %.1f blocks from his yard", off);
+            return String.format(Locale.ROOT, "they came %.1f blocks from his patrol and his yard", off);
         }
         int generation = entry.generation();
         HuntsmanVillages.keep(dross, plan);
@@ -410,7 +421,7 @@ public final class HunterVillageWorldGameTest
         {
             return "beaten, he should never come back (beaten " + last.beaten() + ", generation " + last.generation() + ")";
         }
-        LOGGER.info("[huntsman village] the keeper: he came home ({} blocks from his yard), once; a new pair after he was removed; "
+        LOGGER.info("[huntsman village] the keeper: he came home ({} blocks from his patrol or yard), once; a new pair after he was removed; "
                 + "none once beaten", Math.round(off));
         return null;
     }

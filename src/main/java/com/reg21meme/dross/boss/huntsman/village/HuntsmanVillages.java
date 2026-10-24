@@ -6,6 +6,7 @@ import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.huntsman.HuntsmanPair;
+import com.reg21meme.dross.boss.huntsman.HuntsmanTuning;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.rimefall.RimefallVillages;
@@ -18,6 +19,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.EntityJoinLevelEvent;
@@ -26,7 +28,9 @@ import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -34,11 +38,14 @@ import java.util.Set;
  * The Huntsman at home in his villages (the user, October 23, 2026: "make sure the hunter spawns in his village"; their
  * pick, "home, simple"):
  * <ul>
- *   <li><b>He comes</b> with his Alpha Moose, him in the saddle, calm, to his yard in front of his lodge
- *       ({@link RimefallVillages.VillagePlan#home}) when a player (not a spectator; creative counts, so testers see him)
- *       comes within {@link #APPEAR_RANGE} blocks of it and its ground is loaded and ticking. Never on Peaceful. Calm,
- *       they wander round the village ({@code HuntsmanTuning.HOME_WANDER}); the fight starts when he spots a foe, as
- *       anywhere. Walked away from, they go back home at full health ({@code HuntFight}).</li>
+ *   <li><b>He comes</b> with his Alpha Moose, him in the saddle, calm, when a player (not a spectator; creative
+ *       counts, so testers see him) comes within {@link #APPEAR_RANGE} blocks of his yard in front of his lodge
+ *       ({@link RimefallVillages.VillagePlan#home}) and its ground is loaded and ticking: on his patrol round the
+ *       village ({@link #patrolLoop}), at its loaded point furthest from the nearest player, riding on to the next (the
+ *       user, October 23, 2026: "the Huntsman should be patrolling the village ... when he comes into view he should
+ *       already be moving around"); in his yard if no point of it is loaded. Never on Peaceful. Calm, they ride the
+ *       loop ({@code PatrolGoal}); the fight starts when he spots a foe, as anywhere. Walked away from, they go back
+ *       home at full health ({@code HuntFight}) and take the loop up again.</li>
  *   <li><b>One pair per village</b>: his UUID is kept for the village ({@link HuntsmanVillageData}) and his village on
  *       both of them, with the pair's number; an older pair that loads after a newer one came is removed as it loads.</li>
  *   <li><b>Beaten</b>: both of them dead, any way ({@code /kill} too): the village stays empty for good (no respawn,
@@ -151,18 +158,85 @@ public final class HuntsmanVillages
         return true;
     }
 
-    /** Brings the village a new pair, calm, him in the saddle, at a spot round its yard the moose fits. */
+    /** His patrol round {@code plan}'s village: {@code HuntsmanTuning.PATROL_POINTS} points on a rounded ring
+     * {@code PATROL_OUT} blocks outside its footprint (a superellipse: nearly its rectangle, its corners rounded), in
+     * order round it (their heights left at 0: the ground's is found as he rides). */
+    public static List<BlockPos> patrolLoop(RimefallVillages.VillagePlan plan)
+    {
+        BoundingBox b = plan.footprint();
+        double cx = (b.minX() + b.maxX()) / 2.0D;
+        double cz = (b.minZ() + b.maxZ()) / 2.0D;
+        double rx = (b.maxX() - b.minX()) / 2.0D + HuntsmanTuning.PATROL_OUT;
+        double rz = (b.maxZ() - b.minZ()) / 2.0D + HuntsmanTuning.PATROL_OUT;
+        double power = 2.0D / HuntsmanTuning.PATROL_ROUNDNESS;
+        List<BlockPos> out = new ArrayList<>();
+        for (int i = 0; i < HuntsmanTuning.PATROL_POINTS; i++)
+        {
+            double a = 2.0D * Math.PI * i / HuntsmanTuning.PATROL_POINTS;
+            double c = Math.cos(a);
+            double s = Math.sin(a);
+            double x = cx + rx * Math.signum(c) * Math.pow(Math.abs(c), power);
+            double z = cz + rz * Math.signum(s) * Math.pow(Math.abs(s), power);
+            out.add(new BlockPos((int) Math.floor(x), 0, (int) Math.floor(z)));
+        }
+        return out;
+    }
+
+    /** Brings the village a new pair, calm, him in the saddle: on his patrol, at its loaded point furthest from the
+     * nearest player (a spot there the moose fits), riding on to the next; else round his yard. */
     @Nullable
     static Huntsman bring(ServerLevel dross, RimefallVillages.VillagePlan plan, HuntsmanVillageData data)
     {
-        Optional<BlockPos> spot = spot(dross, plan.home());
+        List<BlockPos> loop = patrolLoop(plan);
+        Vec3 homeAt = Vec3.atBottomCenterOf(plan.home());
+        ServerPlayer near = null;
+        for (ServerPlayer p : dross.players())
+        {
+            if (!p.isSpectator() && (near == null || p.distanceToSqr(homeAt) < near.distanceToSqr(homeAt)))
+            {
+                near = p;
+            }
+        }
+        List<Integer> order = new ArrayList<>();
+        for (int i = 0; i < loop.size(); i++)
+        {
+            order.add(i);
+        }
+        ServerPlayer watcher = near;
+        if (watcher != null)
+        {
+            order.sort((a, b) -> Double.compare(watcher.distanceToSqr(Vec3.atCenterOf(loop.get(b))),
+                    watcher.distanceToSqr(Vec3.atCenterOf(loop.get(a)))));
+        }
+        Optional<BlockPos> spot = Optional.empty();
+        int startIndex = -1;
+        for (int i : order)
+        {
+            BlockPos p = loop.get(i);
+            BlockPos ground = new BlockPos(p.getX(), dross.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, p.getX(), p.getZ()),
+                    p.getZ());
+            if (!dross.isPositionEntityTicking(ground))
+            {
+                continue;
+            }
+            spot = spot(dross, ground);
+            if (spot.isPresent())
+            {
+                startIndex = i;
+                break;
+            }
+        }
+        if (spot.isEmpty())
+        {
+            spot = spot(dross, plan.home());
+        }
         if (spot.isEmpty())
         {
             return null;
         }
         Vec3 at = Vec3.atBottomCenterOf(spot.get());
-        BlockPos way = plan.wayIn();
-        float yaw = (float) (Math.atan2(way.getZ() - at.z, way.getX() - at.x) * 180.0D / Math.PI) - 90.0F;
+        BlockPos toward = startIndex >= 0 ? loop.get((startIndex + 1) % loop.size()) : plan.wayIn();
+        float yaw = (float) (Math.atan2(toward.getZ() - at.z, toward.getX() - at.x) * 180.0D / Math.PI) - 90.0F;
         Huntsman h = HuntsmanPair.spawn(dross, at, yaw);
         if (h == null)
         {
@@ -173,6 +247,7 @@ public final class HuntsmanVillages
         if (h.getVehicle() instanceof AlphaMoose moose)
         {
             moose.setHome(plan.id(), plan.home(), generation);
+            moose.setPatrol(loop, startIndex + 1);
         }
         LOGGER.info("Hunter villages: the Huntsman came home to his village at {}", plan.ground().toShortString());
         return h;

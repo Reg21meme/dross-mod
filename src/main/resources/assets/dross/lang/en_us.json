@@ -435,5 +435,14 @@
   "subtitles.dross.alpha_moose.crack_stamp": "Ice cracks",
   "subtitles.dross.alpha_moose.ice_spikes": "Ice spikes burst up",
   "subtitles.dross.huntsman.bola_release": "Bola flies",
-  "subtitles.dross.huntsman.bola_snare": "Bola snares"
+  "subtitles.dross.huntsman.bola_snare": "Bola snares",
+  "block.dross.hunt_ice_spike": "Ice Spike",
+  "block.dross.huntsman_trophy": "Huntsman Trophy",
+  "block.dross.huntsman_trophy.tooltip": "No. %1$s: %2$s",
+  "block.dross.huntsman_trophy.hint": "Right-click to change its pose",
+  "block.dross.huntsman_trophy.design_1": "Riding Down",
+  "block.dross.huntsman_trophy.design_2": "Rain of Arrows",
+  "block.dross.huntsman_trophy.design_3": "The Rearing",
+  "block.dross.huntsman_trophy.design_4": "The Rearing Shot",
+  "block.dross.huntsman_trophy.design_5": "The Parting Shot"
 }

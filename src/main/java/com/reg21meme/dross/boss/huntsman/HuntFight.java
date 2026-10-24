@@ -1,8 +1,12 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophies;
 import com.reg21meme.dross.boss.huntsman.village.HuntsmanVillages;
 import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.boss.rimefall.Moose;
+import com.reg21meme.dross.boss.rimefall.Rimehorn;
 import com.reg21meme.dross.quest.DrossAdvancements;
+import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
@@ -44,6 +48,8 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.entity.PartEntity;
 
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -102,16 +108,18 @@ public final class HuntFight
     /** A rain arrow is cleared away this long after it comes down. */
     private static final int RAIN_CLEAR_TICKS = 80;
     /** An aimed arrow's drop per tick squared (an arrow's gravity, 0.05, halved: it falls that far in t ticks). */
-    private static final double ARROW_DROP = 0.025D;
+    static final double ARROW_DROP = 0.025D;
     /** The arrow rain's few degrees of spread as it comes down. */
     private static final float RAIN_SPREAD_DEGREES = 2.0F;
     /** The frosted screen and freeze of the aimed shot (never long enough for powder snow's damage, 140). */
     private static final int FREEZE_FROST_TICKS = 130;
-    /** The spikes' blocks: the middle one blue ice, the rest packed ice. */
-    private static final int SPIKES = 5;
-
     /** Every spike standing and when it goes (game time). */
     private static final Map<Entity, Long> SPIKES_UP = new LinkedHashMap<>();
+    /** Spikes growing: each one's full shape and when it's given it (game time; it grows into it). */
+    private static final Map<Entity, CompoundTag> SPIKES_GROWING = new LinkedHashMap<>();
+    private static final Map<Entity, Long> SPIKES_GROW_AT = new LinkedHashMap<>();
+    /** A spike starts at this much of its size and grows to it over its growing ticks. */
+    private static final float SPIKE_SEED = 0.05F;
 
     private HuntFight() {}
 
@@ -557,6 +565,7 @@ public final class HuntFight
             for (ServerPlayer player : victors(mob, source))
             {
                 DrossAdvancements.grant(player, DrossAdvancements.THE_HUNTER_HUNTED);
+                HuntsmanTrophies.giveTo(player, HuntsmanTuning.TROPHY_DROP_DESIGN);    // (each their own trophy)
             }
         }
     }
@@ -730,7 +739,21 @@ public final class HuntFight
         {
             return !p.isSpectator() && !p.isCreative();
         }
-        return e instanceof Enemy && !(e instanceof HuntMob) && !(e instanceof Mob m && m.isNoAi());
+        if (e instanceof Mob m && m.isNoAi())
+        {
+            return false;
+        }
+        // he hunts Rimefall's grown animals too (the user, October 23, 2026: "the Huntsman should hunt the skaters, the
+        // Rimehorns and the moose, not the children"), never a hunter village's penned ones
+        if (e instanceof Rimehorn r)
+        {
+            return !r.isBaby() && !r.isPenned();
+        }
+        if (e instanceof Moose moose)
+        {
+            return !moose.isBaby() && !moose.isPenned();
+        }
+        return e instanceof Enemy && !(e instanceof HuntMob);
     }
 
     /** Calm, true if either of them sees a foe within {@link HuntsmanTuning#SPOT_RANGE} (raged, any raged enemy near). */
@@ -998,15 +1021,33 @@ public final class HuntFight
      * for the drop). */
     public static Vec3 aimAt(Vec3 from, LivingEntity target, double speed)
     {
-        return aimAt(from, target, speed, ARROW_DROP);
+        return aimAt(null, from, target, speed, ARROW_DROP);
     }
 
     public static Vec3 aimAt(Vec3 from, LivingEntity target, double speed, double drop)
     {
-        Vec3 to = target.position().add(0.0D, target.getBbHeight() * 0.6D, 0.0D);
-        double t = from.distanceTo(to) / speed;
-        Vec3 move = target.getDeltaMovement();
-        to = to.add(move.x * t, 0.0D, move.z * t);
+        return aimAt(null, from, target, speed, drop);
+    }
+
+    /**
+     * Which way to send something flying {@code speed} blocks a tick from {@code from} so it meets {@code target}: at
+     * its chest, where it will be by then, raised for the fall ({@code drop} blocks a tick squared). Where it will be
+     * comes from how it has been moving: {@code shooter}'s memory of its last few spots ({@link HuntMob#motionOf}; a
+     * player's own speed is never known on the server, so his arrows went where a running player had been: 0 of 6 hit a
+     * target running across 12 or 20 blocks away, October 23, 2026), else its own motion.
+     */
+    public static Vec3 aimAt(@Nullable HuntMob shooter, Vec3 from, LivingEntity target, double speed, double drop)
+    {
+        Vec3 chest = target.position().add(0.0D, target.getBbHeight() * 0.6D, 0.0D);
+        Vec3 move = shooter != null ? shooter.motionOf(target)
+                : new Vec3(target.getDeltaMovement().x, 0.0D, target.getDeltaMovement().z);
+        Vec3 to = chest;
+        double t = 0.0D;
+        for (int i = 0; i < 2; i++)        // (the time to the spot it will be at, worked out again from there)
+        {
+            t = from.distanceTo(to) / speed;
+            to = chest.add(move.x * t, 0.0D, move.z * t);
+        }
         Vec3 d = to.subtract(from);
         return new Vec3(d.x, d.y + drop * t * t, d.z);
     }
@@ -1122,51 +1163,111 @@ public final class HuntFight
                 level.sendParticles(ParticleTypes.SNOWFLAKE, at[0].x, to.y + 0.2D, at[0].z, 2, 0.2D, 0.05D, 0.2D, 0.01D);
                 return false;      // (the cracks' own sound runs with the stamp: HuntSoundCues)
             }
+            // the clump of small spikes first (a moment to get out of the way), then the big one (its sound has both)
             spikes(level, to, m.getRandom());
-            burst(m, to, HuntsmanTuning.STAMP_RADIUS, HuntsmanTuning.STAMP_DAMAGE, 0.3D, HuntsmanTuning.STAMP_LAUNCH);
             level.playSound(null, to.x, to.y, to.z, ModSounds.ALPHA_MOOSE_ICE_SPIKES.get(), SoundSource.HOSTILE, 2.5F, 1.0F);
+            int[] wait = {HuntsmanTuning.STAMP_BIG_DELAY};
+            m.pending.add((m2, l2) ->
+            {
+                if (--wait[0] > 0)
+                {
+                    return false;
+                }
+                bigSpike(l2, to, m2.getRandom());
+                for (LivingEntity e : within(m2, to, 0.0F, HuntsmanTuning.STAMP_RADIUS, 180.0D))
+                {
+                    if (e.hurt(m2.damageSources().mobAttack(m2), HuntsmanTuning.STAMP_DAMAGE * damageScale(m2)))
+                    {
+                        throwFrom(e, to, 0.3D, HuntsmanTuning.STAMP_LAUNCH);
+                        e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, HuntsmanTuning.STAMP_SLOW_TICKS,
+                                HuntsmanTuning.STAMP_SLOW_LEVEL));
+                        e.setTicksFrozen(Math.max(e.getTicksFrozen(), HuntsmanTuning.FROST_FREEZE_TICKS));
+                    }
+                }
+                return true;
+            });
             return true;
         });
     }
 
-    /** Spikes of ice standing for {@link HuntsmanTuning#STAMP_SPIKE_TICKS}: block displays, so nothing in the world is
-     * changed. */
+    /** The clump of small spikes round where the cracks end ({@link HuntsmanTuning#STAMP_SMALL_SPIKES}), each a block
+     * display of the models' clear ice ({@code dross:hunt_ice_spike}, made by tools/huntsman/ice_spike.py), scaled down
+     * and leaning out, bursting up; nothing in the world is changed. */
     static void spikes(ServerLevel level, Vec3 at, RandomSource random)
     {
-        for (int i = 0; i < SPIKES; i++)
+        int n = HuntsmanTuning.STAMP_SMALL_SPIKES;
+        for (int i = 0; i < n; i++)
         {
-            double a = i == 0 ? 0.0D : (i - 1) * Math.PI / 2.0D + random.nextDouble() * 0.6D;
-            double d = i == 0 ? 0.0D : 0.7D + random.nextDouble() * 0.5D;
-            float width = i == 0 ? 0.5F : 0.3F + random.nextFloat() * 0.15F;
-            float height = i == 0 ? 2.2F : 1.1F + random.nextFloat() * 0.8F;
-            BlockState block = (i == 0 ? Blocks.BLUE_ICE : Blocks.PACKED_ICE).defaultBlockState();
-            CompoundTag tag = new CompoundTag();
-            tag.putString("id", "minecraft:block_display");
-            tag.put("block_state", NbtUtils.writeBlockState(block));
-            CompoundTag transform = new CompoundTag();
-            transform.put("translation", floats(-width / 2.0F, -0.3F, -width / 2.0F));
-            transform.put("scale", floats(width, height, width));
-            transform.put("left_rotation", floats(0.0F, 0.0F, 0.0F, 1.0F));
-            transform.put("right_rotation", floats(0.0F, 0.0F, 0.0F, 1.0F));
-            tag.put("transformation", transform);
-            ListTag tags = new ListTag();
-            tags.add(StringTag.valueOf(SPIKE_TAG));
-            tag.put("Tags", tags);
-            double x = at.x + Math.cos(a) * d;
-            double z = at.z + Math.sin(a) * d;
-            float yaw = random.nextFloat() * 90.0F;
-            Entity spike = EntityType.loadEntityRecursive(tag, level, e ->
-            {
-                e.moveTo(x, at.y, z, yaw, 0.0F);
-                return e;
-            });
-            if (spike != null && level.addFreshEntity(spike))
-            {
-                SPIKES_UP.put(spike, level.getGameTime() + HuntsmanTuning.STAMP_SPIKE_TICKS);
-            }
+            double a = 2.0D * Math.PI * (i + random.nextDouble() * 0.6D) / n;
+            double d = HuntsmanTuning.STAMP_SMALL_NEAR + random.nextDouble() * (HuntsmanTuning.STAMP_SMALL_FAR - HuntsmanTuning.STAMP_SMALL_NEAR);
+            float size = HuntsmanTuning.STAMP_SMALL_MIN + random.nextFloat() * (HuntsmanTuning.STAMP_SMALL_MAX - HuntsmanTuning.STAMP_SMALL_MIN);
+            float lean = (float) Math.toRadians(8.0D + random.nextDouble() * 18.0D);
+            // leaning away from the middle: turned about the horizontal line across the way out
+            Quaternionf tilt = new Quaternionf().rotationAxis(lean, (float) -Math.sin(a), 0.0F, (float) Math.cos(a));
+            spike(level, at.add(Math.cos(a) * d, 0.0D, Math.sin(a) * d), size * 0.9F, size, size * 0.9F, tilt,
+                    random.nextFloat() * 360.0F, HuntsmanTuning.STAMP_SMALL_GROW, HuntsmanTuning.STAMP_SPIKE_TICKS);
         }
         level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.PACKED_ICE.defaultBlockState()), at.x,
-                at.y + 0.5D, at.z, 40, 0.6D, 0.6D, 0.6D, 0.2D);
+                at.y + 0.3D, at.z, 30, 0.9D, 0.3D, 0.9D, 0.15D);
+    }
+
+    /** The big spike, {@link HuntsmanTuning#STAMP_BIG_HEIGHT} tall, growing up under where the cracks end. */
+    static void bigSpike(ServerLevel level, Vec3 at, RandomSource random)
+    {
+        float h = HuntsmanTuning.STAMP_BIG_HEIGHT;
+        float w = h * HuntsmanTuning.STAMP_BIG_WIDTH;
+        Quaternionf tilt = new Quaternionf().rotationAxis((float) Math.toRadians(random.nextDouble() * 5.0D),
+                random.nextFloat() - 0.5F, 0.0F, random.nextFloat() - 0.5F);
+        spike(level, at, w, h, w, tilt, random.nextFloat() * 360.0F, HuntsmanTuning.STAMP_BIG_GROW,
+                HuntsmanTuning.STAMP_SPIKE_TICKS);
+        level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.PACKED_ICE.defaultBlockState()), at.x,
+                at.y + 0.8D, at.z, 50, 0.5D, 0.8D, 0.5D, 0.25D);
+        level.sendParticles(ParticleTypes.SNOWFLAKE, at.x, at.y + 1.0D, at.z, 30, 0.6D, 0.8D, 0.6D, 0.05D);
+    }
+
+    /**
+     * One spike (a block display of {@code dross:hunt_ice_spike}, its model a block tall with its foot's middle on the
+     * block's floor middle) at {@code at}: {@code sx} x {@code sy} x {@code sz} of that, leaning by {@code tilt}, turned
+     * {@code yaw}; it starts tiny and grows to its size over {@code grow} ticks, and goes {@code life} ticks later.
+     */
+    private static void spike(ServerLevel level, Vec3 at, float sx, float sy, float sz, Quaternionf tilt, float yaw,
+                              int grow, int life)
+    {
+        CompoundTag tag = new CompoundTag();
+        tag.putString("id", "minecraft:block_display");
+        tag.put("block_state", NbtUtils.writeBlockState(ModBlocks.HUNT_ICE_SPIKE.get().defaultBlockState()));
+        tag.put("transformation", spikeShape(sx * SPIKE_SEED, sy * SPIKE_SEED, sz * SPIKE_SEED, tilt));
+        ListTag tags = new ListTag();
+        tags.add(StringTag.valueOf(SPIKE_TAG));
+        tag.put("Tags", tags);
+        Entity spike = EntityType.loadEntityRecursive(tag, level, e ->
+        {
+            e.moveTo(at.x, at.y, at.z, yaw, 0.0F);
+            return e;
+        });
+        if (spike != null && level.addFreshEntity(spike))
+        {
+            long now = level.getGameTime();
+            SPIKES_UP.put(spike, now + life);
+            CompoundTag full = new CompoundTag();
+            full.put("transformation", spikeShape(sx, sy, sz, tilt));
+            full.putInt("start_interpolation", 0);
+            full.putInt("interpolation_duration", grow);
+            SPIKES_GROWING.put(spike, full);
+            SPIKES_GROW_AT.put(spike, now + 1);
+        }
+    }
+
+    /** A display's shape: the model scaled, leaning about its foot's middle (which stays on the display's spot). */
+    private static CompoundTag spikeShape(float sx, float sy, float sz, Quaternionf tilt)
+    {
+        Vector3f foot = tilt.transform(new Vector3f(0.5F * sx, 0.0F, 0.5F * sz));
+        CompoundTag transform = new CompoundTag();
+        transform.put("translation", floats(-foot.x, -foot.y, -foot.z));
+        transform.put("scale", floats(sx, sy, sz));
+        transform.put("left_rotation", floats(tilt.x, tilt.y, tilt.z, tilt.w));
+        transform.put("right_rotation", floats(0.0F, 0.0F, 0.0F, 1.0F));
+        return transform;
     }
 
     private static ListTag floats(float... values)
@@ -1182,6 +1283,27 @@ public final class HuntFight
     /** Clears away the spikes whose time is up (every server tick). */
     static void tickSpikes(long now)
     {
+        SPIKES_GROW_AT.entrySet().removeIf(e ->
+        {
+            if (e.getKey().isRemoved())
+            {
+                SPIKES_GROWING.remove(e.getKey());
+                return true;
+            }
+            if (now < e.getValue())
+            {
+                return false;
+            }
+            // grow into its full shape (the clients ease it there over its interpolation)
+            CompoundTag full = SPIKES_GROWING.remove(e.getKey());
+            if (full != null)
+            {
+                CompoundTag tag = e.getKey().saveWithoutId(new CompoundTag());
+                tag.merge(full);
+                e.getKey().load(tag);
+            }
+            return true;
+        });
         SPIKES_UP.entrySet().removeIf(e ->
         {
             if (e.getKey().isRemoved())
@@ -1207,6 +1329,8 @@ public final class HuntFight
     {
         SPIKES_UP.keySet().forEach(Entity::discard);
         SPIKES_UP.clear();
+        SPIKES_GROWING.clear();
+        SPIKES_GROW_AT.clear();
     }
 
     // ---------------------------------------------------------------- the bars

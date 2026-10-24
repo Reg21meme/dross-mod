@@ -451,6 +451,21 @@ public final class DrossColors {
     /** Rat King trophy (Ground Pound): the green dust where his staff's foot strikes. Used in boss/ratking/trophy/client/RatKingTrophyParticles. */
     public static final int RAT_KING_TROPHY_SLAM_DUST = 0x79C93A;
 
+    /** Huntsman trophy: the item's name, glacier blue (like his boss bar). Used in boss/huntsman/trophy/HuntsmanTrophyItem. */
+    public static final int HUNTSMAN_TROPHY_NAME = 0x9ED2F0;
+
+    /** Huntsman trophy: the tooltip line naming its design. Used in boss/huntsman/trophy/HuntsmanTrophyItem. */
+    public static final ChatFormatting HUNTSMAN_TROPHY_TOOLTIP = ChatFormatting.GRAY;
+
+    /** Huntsman trophy: the tooltip hint "Right-click to change its pose". Used in boss/huntsman/trophy/HuntsmanTrophyItem. */
+    public static final ChatFormatting HUNTSMAN_TROPHY_HINT = ChatFormatting.GRAY;
+
+    /** Huntsman trophy: the frost puffed out when it's right-clicked to a new pose. Used in boss/huntsman/trophy/HuntsmanTrophyBlock. */
+    public static final int HUNTSMAN_TROPHY_CYCLE_DUST = 0xDCEFFA;
+
+    /** Huntsman trophy: the Alpha Moose's frosty breath now and then. Used in boss/huntsman/trophy/client/HuntsmanTrophyParticles. */
+    public static final int HUNTSMAN_TROPHY_BREATH = 0xE8F3FA;
+
     /**
      * Rage Wand teams (the user's request, October 16): each team's colour, for the dust over its raged mobs, the burst
      * when one is raged or switches team, and the team's name on the action bar and in the wand's tooltip. Used in

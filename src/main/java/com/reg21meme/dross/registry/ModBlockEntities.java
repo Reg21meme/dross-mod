@@ -1,6 +1,7 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyBlockEntity;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyBlockEntity;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
@@ -21,6 +22,11 @@ public final class ModBlockEntities
     @SuppressWarnings("DataFlowIssue") // vanilla's builder takes a null data-fixer type
     public static final RegistryObject<BlockEntityType<RatKingTrophyBlockEntity>> RAT_KING_TROPHY = BLOCK_ENTITIES.register("rat_king_trophy",
             () -> BlockEntityType.Builder.of(RatKingTrophyBlockEntity::new, ModBlocks.RAT_KING_TROPHY.get()).build(null));
+
+    // Boss area: the Huntsman trophy (holds its GeckoLib figure)
+    @SuppressWarnings("DataFlowIssue") // vanilla's builder takes a null data-fixer type
+    public static final RegistryObject<BlockEntityType<HuntsmanTrophyBlockEntity>> HUNTSMAN_TROPHY = BLOCK_ENTITIES.register("huntsman_trophy",
+            () -> BlockEntityType.Builder.of(HuntsmanTrophyBlockEntity::new, ModBlocks.HUNTSMAN_TROPHY.get()).build(null));
 
     private ModBlockEntities() {}
 }

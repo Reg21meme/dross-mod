@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.CinderFireBlock;
 import com.reg21meme.dross.boss.golem.CinderLavaBlock;
+import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyBlock;
 import com.reg21meme.dross.boss.huntsman.village.HunterCrops;
 import com.reg21meme.dross.boss.huntsman.village.MeatBlocks;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyBlock;
@@ -34,6 +35,9 @@ public final class ModBlocks
 
     // Boss area: the Rat King trophy (a miniature of him in one of five poses; he gives one to every player who helped)
     public static final RegistryObject<Block> RAT_KING_TROPHY = BLOCKS.register("rat_king_trophy", RatKingTrophyBlock::new);
+    // Boss area: the Huntsman trophy (a miniature of the Wild Hunt in one of five poses; boss/huntsman/trophy/)
+    public static final RegistryObject<Block> HUNTSMAN_TROPHY = BLOCKS.register("huntsman_trophy",
+            HuntsmanTrophyBlock::new);
 
     // Dimension area: Duskstone, the Dross's base stone (properties in dimension/block/TerrainBlocks)
     public static final RegistryObject<Block> DUSKSTONE = BLOCKS.register("duskstone", TerrainBlocks::duskstone);
@@ -139,6 +143,10 @@ public final class ModBlocks
     public static final RegistryObject<Block> ALPHA_MOOSE_SKULL = BLOCKS.register("alpha_moose_skull", HuntSkullBlock::new);
     public static final RegistryObject<Block> MOOSE_SKULL = BLOCKS.register("moose_skull", HuntSkullBlock::new);
     public static final RegistryObject<Block> RIMEHORN_SKULL = BLOCKS.register("rimehorn_skull", HuntSkullBlock::new);
+    // Boss area: the Alpha Moose's spikes of clear ice (only ever shown as block displays: never placed, no item).
+    public static final RegistryObject<Block> HUNT_ICE_SPIKE = BLOCKS.register("hunt_ice_spike",
+            () -> new Block(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().noOcclusion().noCollission()
+                    .noLootTable().strength(-1.0F, 3600000.0F)));
 
     private ModBlocks() {}
 }

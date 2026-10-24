@@ -47,7 +47,7 @@ public class Bola extends ThrowableItemProjectile
     {
         Bola bola = new Bola(thrower.level(), thrower);
         bola.setPos(from.x, from.y, from.z);
-        Vec3 aim = HuntFight.aimAt(from, target, HuntsmanTuning.BOLA_SPEED, GRAVITY / 2.0D);
+        Vec3 aim = HuntFight.aimAt(thrower, from, target, HuntsmanTuning.BOLA_SPEED, GRAVITY / 2.0D);
         bola.shoot(aim.x, aim.y, aim.z, HuntsmanTuning.BOLA_SPEED, 1.0F);
         thrower.level().addFreshEntity(bola);
         thrower.level().playSound(null, from.x, from.y, from.z, ModSounds.HUNTSMAN_BOLA_RELEASE.get(), SoundSource.HOSTILE,

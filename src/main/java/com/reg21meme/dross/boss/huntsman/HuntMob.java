@@ -99,6 +99,14 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     private int laterTicks;
     /** The tick its last arrow twanged (a volley's three arrows twang once). */
     private int lastTwang = -1;
+    /** Where the one it aims at has been, its last {@link #TRAIL} ticks (newest first), and whose they are: its
+     * speed from them leads its shots ({@link #motionOf}). */
+    private final Vec3[] trail = new Vec3[TRAIL];
+    private int trailCount;
+    private int trailOf = -1;
+    private static final int TRAIL = 5;
+    /** No faster than this is believed (blocks a tick): a teleport isn't a run. */
+    private static final double TRAIL_MAX_SPEED = 1.0D;
 
     // ---------------------------------------------------------------- its gait (HuntFight.locomote keeps it)
     /** Its speed over the ground (blocks a tick), smoothed over a few ticks. */
@@ -333,6 +341,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         super.tick();
         if (!this.level().isClientSide)
         {
+            this.track(this.shotTarget != null ? this.shotTarget : this.getTarget());
             if (this.later != null && --this.laterTicks <= 0)
             {
                 this.play(this.later);
@@ -512,7 +521,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         }
         else
         {
-            Vec3 aim = HuntFight.aimAt(from, target, ARROW_SPEED);
+            Vec3 aim = HuntFight.aimAt(this, from, target, ARROW_SPEED, HuntFight.ARROW_DROP);
             arrow.setBaseDamage(this.shotBase * HuntFight.damageScale(this));
             arrow.shoot(aim.x, aim.y, aim.z, ARROW_SPEED, AIM_SPREAD);
             HuntFight.mark(arrow, this.shotFrost);
@@ -523,6 +532,43 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             this.lastTwang = this.tickCount;
             this.playSound(ModSounds.HUNTSMAN_BOW_SHOT.get(), 1.5F, 0.95F + this.getRandom().nextFloat() * 0.1F);
         }
+    }
+
+    /** Keeps where {@code watched} has been (a new one starts afresh). */
+    private void track(@Nullable LivingEntity watched)
+    {
+        if (watched == null)
+        {
+            this.trailCount = 0;
+            this.trailOf = -1;
+            return;
+        }
+        if (watched.getId() != this.trailOf)
+        {
+            this.trailOf = watched.getId();
+            this.trailCount = 0;
+        }
+        System.arraycopy(this.trail, 0, this.trail, 1, TRAIL - 1);
+        this.trail[0] = watched.position();
+        this.trailCount = Math.min(TRAIL, this.trailCount + 1);
+    }
+
+    /** How {@code target} is moving over the ground (blocks a tick): from where it has been if it's the one this one
+     * watches, else its own motion. */
+    public Vec3 motionOf(LivingEntity target)
+    {
+        Vec3 move;
+        if (target.getId() == this.trailOf && this.trailCount >= 2)
+        {
+            move = this.trail[0].subtract(this.trail[this.trailCount - 1]).scale(1.0D / (this.trailCount - 1));
+        }
+        else
+        {
+            move = target.getDeltaMovement();
+        }
+        move = new Vec3(move.x, 0.0D, move.z);
+        double speed = move.length();
+        return speed > TRAIL_MAX_SPEED ? move.scale(TRAIL_MAX_SPEED / speed) : move;
     }
 
     // ---------------------------------------------------------------- being hurt, dying

@@ -4,6 +4,8 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.ColossusGameTest;
 import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.boss.rage.RageTeam;
+import com.reg21meme.dross.boss.rimefall.Rimehorn;
+import com.reg21meme.dross.boss.rimefall.Moose;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEffects;
 import com.reg21meme.dross.registry.ModEntities;
@@ -895,5 +897,99 @@ public final class HuntsmanFightGameTest
                 helper.succeed();
             });
         });
+    }
+
+    /** Calm, the moose of a village rides its patrol round, point after point (a small square loop here). */
+    @GameTest(template = ARENA, timeoutTicks = WAIT + 2400)
+    public static void thePatrolGoesRound(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::thePatrolGoesRound))
+        {
+            return;
+        }
+        Huntsman h = pair(helper, MIDDLE, 0.0F);
+        AlphaMoose m = moose(h);
+        List<BlockPos> loop = List.of(helper.absolutePos(MIDDLE.offset(-5, 0, -5)), helper.absolutePos(MIDDLE.offset(5, 0, -5)),
+                helper.absolutePos(MIDDLE.offset(5, 0, 5)), helper.absolutePos(MIDDLE.offset(-5, 0, 5)));
+        m.setPatrol(loop, 0);
+        boolean[] reached = new boolean[loop.size()];
+        helper.startSequence()
+                .thenWaitUntil(() ->
+                {
+                    int count = 0;
+                    for (int i = 0; i < loop.size(); i++)
+                    {
+                        BlockPos p = loop.get(i);
+                        reached[i] |= Math.hypot(m.getX() - (p.getX() + 0.5D), m.getZ() - (p.getZ() + 0.5D)) < 6.5D;
+                        count += reached[i] ? 1 : 0;
+                    }
+                    if (count < loop.size())
+                    {
+                        throw new GameTestAssertException("waiting for the moose to ride round its patrol (" + count + " of "
+                                + loop.size() + " points reached; it's at " + m.blockPosition().toShortString() + ", stage "
+                                + m.stage() + ", playing " + m.current().name() + ")");
+                    }
+                })
+                .thenExecute(() -> clear(h, m))
+                .thenSucceed();
+    }
+
+    /** He hunts Rimefall's grown animals (and hostile mobs), never their calves or a hunter village's penned ones. */
+    @GameTest(template = ARENA, timeoutTicks = WAIT + 100)
+    public static void heHuntsGrownAnimals(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::heHuntsGrownAnimals))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE, 0.0F);
+        AlphaMoose m = moose(h);
+        Rimehorn grown = ModEntities.RIMEHORN.get().create(level);
+        Rimehorn calf = ModEntities.RIMEHORN.get().create(level);
+        Rimehorn penned = ModEntities.RIMEHORN.get().create(level);
+        Moose bull = ModEntities.MOOSE.get().create(level);
+        Moose mooseCalf = ModEntities.MOOSE.get().create(level);
+        Moose pennedMoose = ModEntities.MOOSE.get().create(level);
+        if (grown == null || calf == null || penned == null || bull == null || mooseCalf == null || pennedMoose == null)
+        {
+            clear(h, m);
+            throw new GameTestAssertException("couldn't make the animals");
+        }
+        calf.setBaby(true);
+        penned.setPenned(true);
+        mooseCalf.setBaby(true);
+        pennedMoose.setPenned(true);
+        String problem = null;
+        if (!HuntFight.isFoe(h, grown) || !HuntFight.isFoe(h, bull))
+        {
+            problem = "he should hunt a grown Rimehorn and a grown moose";
+        }
+        else if (HuntFight.isFoe(h, calf) || HuntFight.isFoe(h, mooseCalf))
+        {
+            problem = "he should never hunt a calf";
+        }
+        else if (HuntFight.isFoe(h, penned) || HuntFight.isFoe(h, pennedMoose))
+        {
+            problem = "he should never hunt a hunter village's penned animals";
+        }
+        clear(h, m);
+        if (problem != null)
+        {
+            throw new GameTestAssertException(problem);
+        }
+        helper.succeed();
+    }
+
+    /** His arrows from the saddle hit a target 12 blocks off, standing or sprinting across his line, in each of the four
+     * directions (each with its own shot: ahead, left, right, behind; HuntProbeGameTest#shots, on a floor in the sky). */
+    @GameTest(template = ARENA, timeoutTicks = WAIT + 4000)
+    public static void saddleShotsHit(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::saddleShotsHit))
+        {
+            return;
+        }
+        HuntProbeGameTest.shots(helper, new int[] {12}, 1, 0.9D);
     }
 }

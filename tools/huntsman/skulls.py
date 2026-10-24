@@ -18,13 +18,18 @@ the bone plate on its face).
   moose_skull         a bull moose's (the wild moose's): clean bone, its antlers
   rimehorn_skull      a Rimehorn's (a male's): its long low head, its two horns of clear ice
 
-Each stands on the floor (on top of a post) or hangs on a wall, facing one of four ways (HuntSkullBlock).
+Each stands on the floor (on top of a post) or hangs on a wall, facing one of four ways (HuntSkullBlock), level:
+the animals carry their heads tipped nose-down (about 32-39 degrees), and copied as they sit the skulls leaned on their
+posts (the user, October 23, 2026: they "sit weird on poles"); standing, each is turned so its skull's length lies flat,
+resting on its jaw, centred on its skull (on a wall it hangs as before, nose down like a trophy). Its hitbox is fitted to its skull (its bone, not its antlers or horns), as much as lies in its block (a
+block's hitbox can't reach outside it): the generated HuntSkullShapes.
 
   python tools/huntsman/skulls.py
 
 Writes (src/main/resources/assets/dross/): models/block/hunt_skull/<id>_floor.obj and _wall.obj, their <id>.mtl, the
 models <id>_floor.json and _wall.json, textures/block/hunt_skull/<id>.png, blockstates/<id>.json,
-models/item/<id>.json; and the preview boss-previews/rimefall/huntsman/skulls.png.
+models/item/<id>.json; the hitboxes src/main/java/com/reg21meme/dross/boss/huntsman/skull/HuntSkullShapes.java;
+and the preview boss-previews/rimefall/huntsman/skulls.png.
 """
 import json
 import os
@@ -45,6 +50,8 @@ from rimekit import view as V  # noqa: E402
 from rimemobs import alpha_moose as ALPHA, moose as MOOSE, rimehorn as RIMEHORN  # noqa: E402
 
 ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
+SHAPES_JAVA = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "huntsman", "skull",
+                           "HuntSkullShapes.java")
 PREVIEW = os.path.join(ROOT, "boss-previews", "rimefall", "huntsman", "skulls.png")
 BONE = "skull"                 # the one bone every skull is built on
 
@@ -114,6 +121,8 @@ ICON_FIT = 0.9                # the inventory icon: its biggest side this share 
 WALL_GAP = 0.01               # blocks between a wall skull's back and the wall
 WALL_HEIGHT = 0.22            # blocks: a wall skull's lowest point above its block's floor
 VIEWS = ((25, 15), (90, 5), (155, 25))     # the preview's angles (yaw 0: its front at the camera)
+SKULL_MATS = ("bone", "socket")              # the skull itself (its hitbox and its levelling): not its antlers or horns
+MIN_SHAPE = 2.0 / 16.0                       # a hitbox is never thinner than this (blocks)
 FACINGS = (("north", 0), ("east", 90), ("south", 180), ("west", 270))
 
 
@@ -164,7 +173,7 @@ def _corners(c):
 
 
 def faces(m):
-    """Every face of the model at rest, in GeckoLib space (blocks): [(4 corners, 4 (u, v) texels, normal)]."""
+    """Every face of the model at rest, in GeckoLib space (blocks): [(4 corners, 4 (u, v) texels, normal, material)]."""
     mats = m.pose_matrices({})
     out = []
     for c in m.cubes():
@@ -172,8 +181,30 @@ def faces(m):
         for _face, verts, uvs, normal in c.quads(m.tex_w, m.tex_h):
             pts = [(T @ np.append(p, 1.0))[:3] for p in verts]
             n = T[:3, :3] @ np.asarray(normal, dtype=float)
-            out.append((pts, uvs, n / np.linalg.norm(n)))
+            out.append((pts, uvs, n / np.linalg.norm(n), c.mat))
     return out
+
+
+def pitch_of(m):
+    """How far the skull's head line is tipped from level, seen from the side (degrees): the long axis of its biggest
+    bone box (its cranium: the designs build a head as boxes along its line), as it sits now (on the animal it hangs
+    nose-down). (Its points' long axis didn't do for the Rimehorn's, nearly as tall as it's long.)"""
+    mats = m.pose_matrices({})
+    main = max((c for c in m.cubes() if c.mat in SKULL_MATS), key=lambda c: c.size[0] * c.size[1] * c.size[2])
+    d = (mats[main.bone.name] @ main.cube_matrix())[:3, :3] @ np.array([0.0, 1.0, 0.0])
+    return float(np.degrees(np.arctan2(d[1], abs(d[2]))))
+
+
+def level(m):
+    """Turns the skull's bone at rest so its head line lies flat (whichever way the turn's sign comes out level).
+    Returns its faces and the turn (degrees)."""
+    m[BONE].rotation = (0.0, 0.0, 0.0)
+    tilt = pitch_of(m)
+    for turn in (tilt, -tilt):
+        m[BONE].rotation = (turn, 0.0, 0.0)
+        if abs(pitch_of(m)) < 0.5:
+            return faces(m), turn
+    raise SystemExit(f"couldn't level the skull ({tilt:.1f} degrees)")
 
 
 def place(fs, mount):
@@ -182,18 +213,62 @@ def place(fs, mount):
     pts = np.array([p for f in fs for p in f[0]])
     lo, hi = pts.min(axis=0), pts.max(axis=0)
     if mount == "floor":
-        # (centred on its skull's middle, not its antlers': the antlers are as wide as they are)
-        shift = np.array([0.5 - (lo[0] + hi[0]) / 2.0, -lo[1], 0.5 - (lo[2] + hi[2]) / 2.0])
+        # centred on its skull and resting on its jaw (not on its antlers', horns' or icicles' reach), so it sits
+        # balanced on a post
+        bone = np.array([p for f in fs if f[3] in SKULL_MATS for p in f[0]])
+        blo, bhi = bone.min(axis=0), bone.max(axis=0)
+        shift = np.array([0.5 - (blo[0] + bhi[0]) / 2.0, -blo[1], 0.5 - (blo[2] + bhi[2]) / 2.0])
     else:
         shift = np.array([0.5 - (lo[0] + hi[0]) / 2.0, WALL_HEIGHT - lo[1], 1.0 - WALL_GAP - hi[2]])
-    return [([p + shift for p in f[0]], f[1], f[2]) for f in fs]
+    return [([p + shift for p in f[0]], f[1], f[2], f[3]) for f in fs]
+
+
+def shape(fs):
+    """Its hitbox (blocks, in its block): the box round its skull, cut to the block, never thinner than MIN_SHAPE."""
+    pts = np.array([p for f in fs if f[3] in SKULL_MATS for p in f[0]])
+    lo = np.clip(pts.min(axis=0), 0.0, 1.0)
+    hi = np.clip(pts.max(axis=0), 0.0, 1.0)
+    for k in range(3):
+        if hi[k] - lo[k] < MIN_SHAPE:
+            mid = min(max((lo[k] + hi[k]) / 2.0, MIN_SHAPE / 2.0), 1.0 - MIN_SHAPE / 2.0)
+            lo[k], hi[k] = mid - MIN_SHAPE / 2.0, mid + MIN_SHAPE / 2.0
+    return lo, hi
+
+
+def write_shapes(shapes_by_id):
+    rows = []
+    for sid, (floor, wall) in shapes_by_id.items():
+        def px(box):
+            lo, hi = box
+            return ", ".join(f"{v * 16.0:.2f}D" for v in (lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]))
+        rows.append(f'            Map.entry("{sid}", new double[][] {{{{{px(floor)}}}, {{{px(wall)}}}}})')
+    src = f"""package com.reg21meme.dross.boss.huntsman.skull;
+
+import java.util.Map;
+
+/**
+ * Each mounted skull's hitbox, made by {{@code tools/huntsman/skulls.py}} (don't edit by hand): the box round its skull
+ * (its bone, not its antlers or horns) as much as lies in its block, in pixels (0-16), facing north: on the floor
+ * ({{@code [0]}}) and on a wall ({{@code [1]}}), each min x, y, z, max x, y, z. {{@link HuntSkullBlock}} turns them to its
+ * facing.
+ */
+final class HuntSkullShapes
+{{
+    static final Map<String, double[][]> BOXES = Map.ofEntries(
+{",\n".join(rows)});
+
+    private HuntSkullShapes() {{}}
+}}
+"""
+    with open(SHAPES_JAVA, "w", encoding="utf-8", newline="\n") as f:
+        f.write(src)
 
 
 def write_obj(path, fs, m, mtl_name):
     lines = [f"# made by tools/huntsman/skulls.py", f"mtllib {mtl_name}.mtl", "usemtl skull"]
     vi = 0
     body = []
-    for pts, uvs, n in fs:
+    for pts, uvs, n, _mat in fs:
         for p in pts:
             lines.append(f"v {p[0]:.5f} {p[1]:.5f} {p[2]:.5f}")
         for u, v in uvs:
@@ -224,15 +299,23 @@ def composite(tex):
 
 def main():
     shots = []
+    shapes_by_id = {}
     for sid, name, mob, bones, bone_mats, materials, clear, drop in SKULLS:
         m, tex = build(mob, bones, bone_mats, materials, drop)
-        pts = np.array([p for f in faces(m) for p in f[0]])
+        fs, tilt = level(m)                    # standing, level (the preview draws it so)
+        turned = m[BONE].rotation
+        m[BONE].rotation = (0.0, 0.0, 0.0)
+        fs_wall = faces(m)                     # hung on a wall as it sat on the animal (a trophy's nose-down hang)
+        m[BONE].rotation = turned
+        pts = np.array([p for f in fs for p in f[0]])
         icon = round(ICON_FIT / float((pts.max(axis=0) - pts.min(axis=0)).max()), 3)
         folder = os.path.join(ASSETS, "models", "block", "hunt_skull")
         os.makedirs(folder, exist_ok=True)
-        fs = faces(m)
-        for mount in ("floor", "wall"):
-            write_obj(os.path.join(folder, f"{sid}_{mount}.obj"), place(fs, mount), m, sid)
+        boxes = []
+        for mount, mount_fs in (("floor", fs), ("wall", fs_wall)):
+            placed = place(mount_fs, mount)
+            boxes.append(shape(placed))
+            write_obj(os.path.join(folder, f"{sid}_{mount}.obj"), placed, m, sid)
             write_json(f"models/block/hunt_skull/{sid}_{mount}.json", {
                 "loader": "forge:obj",
                 "model": f"dross:models/block/hunt_skull/{sid}_{mount}.obj",
@@ -271,6 +354,9 @@ def main():
         pts = np.array([p for f in fs for p in f[0]])
         size = pts.max(axis=0) - pts.min(axis=0)
         live = live_head(mob.ID, bones + EARS)
+        shapes_by_id[sid] = tuple(boxes)
+        print(f"  {sid}: levelled by {tilt:.1f} degrees; hitbox on the floor {np.round(boxes[0][0] * 16, 1)} to "
+              f"{np.round(boxes[0][1] * 16, 1)}, on a wall {np.round(boxes[1][0] * 16, 1)} to {np.round(boxes[1][1] * 16, 1)} (px)")
         print(f"  {sid}: {len(m.cubes())} boxes, {len(fs)} faces, texture {m.tex_w}x{m.tex_h}, "
               f"{size[0]:.2f} wide x {size[1]:.2f} tall x {size[2]:.2f} long (blocks); the live head with its ears "
               f"{live[0]:.2f} x {live[1]:.2f} x {live[2]:.2f}")
@@ -292,6 +378,7 @@ def main():
         y += max(im.height for im in row) + 40
     os.makedirs(os.path.dirname(PREVIEW), exist_ok=True)
     sheet.save(PREVIEW)
+    write_shapes(shapes_by_id)
     print("wrote the skulls' models, textures and", os.path.relpath(PREVIEW, ROOT))
 
 

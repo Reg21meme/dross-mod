@@ -9,9 +9,10 @@ import javax.annotation.Nullable;
  * Stage 1, the Wild Hunt: the Huntsman's own moves from the saddle, on his own timer while the Alpha Moose makes its
  * own ({@link MooseGoal}; the user, October 23, 2026: "the hunter needs to be shooting or hitting me with a spear while
  * the moose attacks"; until then one table ran both of them and he sat still while it charged). He uses what fits where
- * his target is ({@link HuntsmanTuning#SADDLE_CHANCES}): his spear in reach ahead or on his right, his bow on his left
- * (it only aims that way: the moose's antlers are in front of him), the bola and the horn ahead, the arrow rain
- * anywhere.
+ * his target is ({@link HuntsmanTuning#SADDLE_CHANCES}): close up mostly his spear (not behind him), his bow with a shot
+ * for each side (ahead past the moose's head, left, right, behind over his shoulder: so the moose needn't turn side-on
+ * to him), the bola and the horn ahead, the arrow rain anywhere; and the bola at once at a target running away from him
+ * (the user: "if I am running away he should use his bola to slow me down").
  */
 final class SaddleGoal extends HuntGoal
 {
@@ -85,8 +86,47 @@ final class SaddleGoal extends HuntGoal
         double yaw = Math.toRadians(HuntFight.facing(this.rider));
         Vec3 left = new Vec3(Math.cos(yaw), 0.0D, Math.sin(yaw));
         Vec3 to = target.position().subtract(this.rider.position());
-        double d = Math.sqrt(to.x * to.x + to.z * to.z);
-        return d > 1.0E-3D && (left.x * to.x + left.z * to.z) / d >= Math.cos(Math.toRadians(HuntsmanTuning.SADDLE_SHOT_HALF_ANGLE));
+        return left.x * to.x + left.z * to.z > 0.0D;
+    }
+
+    /** Which of his shots fits where {@code target} is: ahead, to his left (ride_shoot), right, or behind. */
+    private String shotFor(LivingEntity target)
+    {
+        double off = this.angleOff(target);
+        if (off <= HuntsmanTuning.SADDLE_SHOT_FRONT)
+        {
+            return "ride_shoot_front";
+        }
+        if (off >= HuntsmanTuning.SADDLE_SHOT_BACK)
+        {
+            return "ride_shoot_back";
+        }
+        return this.onHisLeft(target) ? "ride_shoot" : "ride_shoot_right";
+    }
+
+    /** True if {@code target} is running away from him (by the spots he's seen it at). */
+    private boolean fleeing(LivingEntity target)
+    {
+        Vec3 away = target.position().subtract(this.rider.position());
+        double d = Math.sqrt(away.x * away.x + away.z * away.z);
+        if (d < 1.0E-3D)
+        {
+            return false;
+        }
+        Vec3 move = this.rider.motionOf(target);
+        return (move.x * away.x + move.z * away.z) / d >= HuntsmanTuning.BOLA_FLEEING_SPEED;
+    }
+
+    /** The bola at once at a target running away (when it's ready and he's free). */
+    @Nullable
+    @Override
+    protected Move react(LivingEntity target, double distance)
+    {
+        if (this.free() && this.ready("bola") && this.can("bola", target, distance) && this.fleeing(target))
+        {
+            return this.make("bola", target);
+        }
+        return null;
     }
 
     @Override
@@ -97,9 +137,9 @@ final class SaddleGoal extends HuntGoal
         {
             case "thrust" -> d <= HuntsmanTuning.THRUST_REACH && off <= THRUST_HALF_ANGLE;
             case "horn" -> d <= HuntsmanTuning.HORN_LENGTH && off <= HuntsmanTuning.HORN_HALF_ANGLE;
-            case "bola" -> d >= HuntsmanTuning.BOLA_MIN && d <= HuntsmanTuning.BOLA_MAX && off <= 90.0D && this.sees(target);
-            case "shoot" -> d >= HuntsmanTuning.SADDLE_SHOT_MIN && d <= HuntsmanTuning.SADDLE_SHOT_MAX
-                    && this.onHisLeft(target) && this.sees(target);
+            case "bola" -> d >= HuntsmanTuning.BOLA_MIN && d <= HuntsmanTuning.BOLA_MAX && off <= HuntsmanTuning.BOLA_HALF_ANGLE
+                    && this.sees(target);
+            case "shoot" -> d >= HuntsmanTuning.SADDLE_SHOT_MIN && d <= HuntsmanTuning.SADDLE_SHOT_MAX && this.sees(target);
             case "rain" -> true;
             default -> false;
         };
@@ -154,14 +194,18 @@ final class SaddleGoal extends HuntGoal
             case "bola" -> new Timed("bola", rider, "ride_bola", length("ride_bola"), moment("ride_bola", "release"))
                     .at(moment("ride_bola", "release"), () -> Bola.throwAt(rider, hand(rider, HuntsmanTuning.RIDER_HAND_UP),
                             target));
-            case "shoot" -> new Timed("shoot", rider, "ride_shoot", length("ride_shoot"), 0)
-                    .first(() ->
-                    {
-                        rider.shotTarget = target;
-                        rider.shotBase = HuntsmanTuning.SHOT_BASE_DAMAGE;
-                        rider.shotFrost = HuntFight.Frost.NONE;
-                    })
-                    .at(length("ride_shoot"), () -> rider.shotTarget = null);
+            case "shoot" ->
+            {
+                String anim = this.shotFor(target);
+                yield new Timed("shoot", rider, anim, length(anim), 0)
+                        .first(() ->
+                        {
+                            rider.shotTarget = target;
+                            rider.shotBase = HuntsmanTuning.SHOT_BASE_DAMAGE;
+                            rider.shotFrost = HuntFight.Frost.FROST;     // every arrow of his frosts you
+                        })
+                        .at(length(anim), () -> rider.shotTarget = null);
+            }
             case "rain" -> new Timed("rain", rider, "ride_rain", moment("ride_rain", "shots.3") + 4, moment("ride_rain", "shots.3"))
                     .first(() -> rider.shotTarget = null)
                     .at(moment("ride_rain", "shots.3"), () -> HuntFight.rain(rider, target, HuntsmanTuning.RAIN_ARROWS));

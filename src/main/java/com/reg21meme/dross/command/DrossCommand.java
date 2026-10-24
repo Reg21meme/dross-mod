@@ -105,6 +105,8 @@ import net.minecraftforge.fml.common.Mod;
  *       are the boss area's {@code ColossusTrophies}).</li>
  *   <li>{@code /dross showcase trophies ratking}: places the 5 Rat King trophy designs the same way
  *       ({@link TrophyShowcase#placeRatKingTrophies}; the designs are the boss area's {@code RatKingTrophies}).</li>
+ *   <li>{@code /dross showcase trophies huntsman}: places the 5 Huntsman trophy designs the same way
+ *       ({@link TrophyShowcase#placeHuntsmanTrophies}; the designs are the boss area's {@code HuntsmanTrophies}).</li>
  *   <li>{@code /dross boss summon colossus}: summons a fighting Cinder Colossus in front of you, facing you (not on
  *       Peaceful). From the boss area ({@link BossCommands#summonColossus}).</li>
  *   <li>{@code /dross boss arena colossus}: builds the placeholder Colossus arena round you, with a chat button that
@@ -220,7 +222,8 @@ public final class DrossCommand
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))
-                                .then(Commands.literal("ratking").executes(TrophyShowcase::placeRatKingTrophies)))
+                                .then(Commands.literal("ratking").executes(TrophyShowcase::placeRatKingTrophies))
+                                .then(Commands.literal("huntsman").executes(TrophyShowcase::placeHuntsmanTrophies)))
                         // Boss area's boss bars, one literal per boss (HuntsmanBarShowcase).
                         .then(Commands.literal("bossbars")
                                 .then(huntsmanBarShowcase()))

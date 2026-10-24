@@ -1,6 +1,7 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophies;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophies;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
@@ -120,6 +121,11 @@ public final class ModCreativeTabs
                         output.accept(ModItems.ALPHA_MOOSE_SKULL.get());
                         output.accept(ModItems.MOOSE_SKULL.get());
                         output.accept(ModItems.RIMEHORN_SKULL.get());
+                        // Boss area: the Huntsman trophy, every design (the fight gives design HuntsmanTuning.TROPHY_DROP_DESIGN)
+                        for (HuntsmanTrophies.Design design : HuntsmanTrophies.DESIGNS)
+                        {
+                            output.accept(design.stack());
+                        }
 
                         // 4. Spawn eggs
                         // Villager area: the Dross Trader

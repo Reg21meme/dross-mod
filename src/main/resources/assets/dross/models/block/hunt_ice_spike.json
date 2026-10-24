@@ -1,0 +1,11 @@
+{
+  "loader": "forge:obj",
+  "model": "dross:models/block/hunt_ice_spike.obj",
+  "flip_v": false,
+  "automatic_culling": false,
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "spike": "dross:block/hunt_ice_spike",
+    "particle": "dross:block/hunt_ice_spike"
+  }
+}

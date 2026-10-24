@@ -250,6 +250,7 @@ Unlimited uses, no restocking, no XP.
 | **Rage Wand** | A creative-only testing wand with five **teams** (blue, red, green, yellow, purple: right-click to switch; the crystal shows the colour). Hit a mob with it (no damage) to give it **Rage** and the wand's team: mobs of different teams fight each other, never their own team, and ignore players while an enemy team is near. Teams and Rage last forever, not even milk cures them. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and their minions join their team. See [The Rage Wand](#the-rage-wand). |
 | **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
 | **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
+| **Huntsman Trophy** | A one-block miniature of the Huntsman and his Alpha Moose in one of five poses: Riding Down, Rain of Arrows, The Rearing, The Rearing Shot and The Parting Shot (the tooltip names it). Right-click a placed one to change its pose. Beating the pair gives one to every player who helped. Fireproof, never despawns (see [The Huntsman](#the-huntsman)). |
 | **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
 | **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent (from the old Nether Scar: building blocks now, they no longer generate); Cragstone, Storm Lichen, Crag Thistle); and from Blightwood's sewers **Sewer Sludge** (it slows you down, less than soul sand) and the **Blight Vent** (glows poison green and puffs spores). |
 | **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores. Raw Moonsilver smelts into an ingot, and the ingot makes the Moonsilver Spear; Stormite is for gear that comes later. |
@@ -257,7 +258,7 @@ Unlimited uses, no restocking, no XP.
 | **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
 | **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -530,8 +531,8 @@ each attack sound for the fight, to pick from later.
 ## The Huntsman
 
 One of the Ice Necromancer's three servants: a hunter in a wolf-head hood with a stag's antlers, riding his **Alpha
-Moose**. He lives in **his own hunter village** in Rimefall (below): walk near it and he and the moose are waiting in his
-yard in front of his lodge, calm. He also comes from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`, and
+Moose**. He lives in **his own hunter village** in Rimefall (below): walk near it and he and the moose are already riding
+their patrol round it, a loop just outside its lights, calm. He also comes from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`, and
 `/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice, lantern posts round
 the edge) with a chat button to summon him.
 
@@ -547,11 +548,12 @@ the edge) with a chat button to summon him.
   blocks: a player (not in creative or spectator), a hostile mob (he hunts those too) or, raged with the Rage Wand, a
   mob of another team. A hit starts it too.
 - **Stage 1, The Wild Hunt** (one bar of 250 for both; hitting either of them takes it down). The two attack at the
-  same time, each on its own timer. From the saddle he uses whatever fits where you are: a spear thrust when you're in
-  reach in front or on his right, two bow shots when you're on his left (the moose's antlers are in front of him), the
-  Horn of the Hunt ahead (a cone of icy wind that pushes you away and slows you), a **bola** (held still 2 seconds,
-  then slowed) and the **arrow rain** anywhere (he shoots 12 arrows up and 48 come down round you with no warning,
-  thickest where you stand; each hit frosts you). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
+  same time, each on its own timer. From the saddle he uses whatever fits where you are: right next to the moose mostly
+  his spear, two bow shots wherever you are (ahead past the moose's head, to either side, or back over his shoulder;
+  his arrows lead you as you run, and every one frosts and slows you), the Horn of the Hunt ahead (a cone of icy wind
+  that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed; at once if you run away from him)
+  and the **arrow rain** anywhere (he shoots 12 arrows up and 48 come down round you with no warning, thickest where
+  you stand). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
   cracks across the snow up close, charges (6.5 hearts) and circles you further out, and kicks anyone behind it (4.5).
 - **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
   neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he
@@ -560,12 +562,20 @@ the edge) with a chat button to summon him.
   (it comes back to his hand), an aimed shot after a frost glint (it freezes you for a moment), a backstep and shot (he
   leaps back three blocks, shooting at the top of the leap, and is ready again as he lands), the arrow rain, the bola,
   the horn, and whenever those are all cooling down, a quick shot (2 hearts), so at range he keeps shooting.
-  The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow that burst into
-  ice spikes under you. The moose goes for the closest player, he goes for the furthest. He likes to keep his
+  The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow: where they end a
+  clump of small spikes of clear ice bursts up, then a big one 1.5 blocks tall under you that throws you up, slows and
+  frosts you. The moose goes for the closest player, he goes for the furthest. He likes to keep his
   distance: when you come close he backs off, at range he circles you, far off he closes in, and he keeps out of the
   moose's way.
 - **Kill one** and the other gets angry: its bar turns blood red, and it's faster and hits harder.
-- **Kill both:** the advancement **The Hunter Hunted** for whoever got the last kill and everyone within 40 blocks.
+- **Kill both:** the advancement **The Hunter Hunted** for whoever got the last kill and everyone within 40 blocks,
+  and each of them gets a **Huntsman Trophy** (No. 1, Riding Down), straight into their inventory. Removed with `/kill`,
+  they give neither.
+- **Trophies:** a one-block miniature of the Wild Hunt in five poses (the user's picks): 1 Riding Down, 2 Rain of Arrows,
+  3 The Rearing, 4 The Rearing Shot (the moose rearing, him loosing his bow into the sky), 5 The Parting Shot (the
+  moose's ice slam, the clear ice bursting up, as he leaps off its back shooting). It works like the other trophies:
+  right-click a placed one to change its pose. Made by `tools/huntsman/trophies.py` (previews in
+  `boss-previews/rimefall/huntsman/trophies/`); `/dross showcase trophies huntsman` places all five in a row.
   The Alpha Moose drops its skull (a block you can mount: see the items below) every time it dies.
 - **The Rage Wand:** raging either of them rages both, on the same team.
 - **Walk away** (no one within 64 blocks for 30 seconds) and the fight is broken off: both are back at full health,
@@ -661,6 +671,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase boss_designs colossus walk` / `idle` | Knuckle-walking on the spot / standing. |
 | `/dross showcase trophies colossus` | Places the five Cinder Colossus trophy designs in a row in front of you, each on a pedestal facing you with a sign giving its number and name. Running it again replaces the row. |
 | `/dross showcase trophies ratking` | Places the Rat King's five trophy designs in a row in front of you, each on a pedestal facing you with a sign. Running it again replaces the row. |
+| `/dross showcase trophies huntsman` | Places the Huntsman's five trophy designs in a row in front of you the same way. |
 | `/dross showcase boss_designs ratking` | Spawns the Rat King (Gnawrick 1C) frozen, with signs and clickable animation buttons in chat. Right-click one to play his next animation; sneak + right-click: he dies. |
 | `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
 | `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
