@@ -1270,9 +1270,9 @@ def _occupied_mask(g, owned_cols, passage_floor):
 
 def _build_pen(g, pen, X, Z, rng):
     """A pen's fence, two high all round (spruce rails, posts of Frostbitten Log or bone, skulls on the corral's
-    corners), a gate facing the village between taller posts; a floor of trodden snow; hay and a water trough at
-    least PEN_KEEP + 1 blocks in from the fence (an animal on anything near a fence could jump it: they got out in the
-    user's look, October 20); its animals (penned: they never go for anyone)."""
+    corners), a gate facing the village between taller posts; a floor of trodden snow; hay (one bale high) and a water
+    trough at least PEN_KEEP + 1 blocks in from the fence (an animal on anything near a fence could jump it: they got
+    out in the user's look, October 20); its animals (penned: they never go for anyone)."""
     x1, z1 = X(pen.rect[0]), Z(pen.rect[1])
     x2, z2 = X(pen.rect[2]), Z(pen.rect[3])
     corral = pen.kind == "corral"
@@ -1313,7 +1313,8 @@ def _build_pen(g, pen, X, Z, rng):
         hay += [(hx + 2, hz), (hx, hz + 2), (hx + 1, hz + 1)]
     for k, (x, z) in enumerate(hay):
         g.set(x, 1, z, "hay_block[axis={}]".format("x" if k % 2 else "z"), force=True)
-    g.set(hx, 2, hz, "hay_block[axis=y]", force=True)
+    # (one bale high: from a stack two high a moose jumped clean over the fence, a 2-block animal's edge being only 2
+    # blocks from it; a headless test caught one mid-leap, October 23)
     tl = 7 if corral else 4
     tz_ = z2 - keep - 1
     tx1 = x2 - keep - 1 - tl

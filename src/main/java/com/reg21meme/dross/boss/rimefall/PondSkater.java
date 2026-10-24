@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.rimefall;
 
+import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
@@ -138,6 +139,8 @@ public class PondSkater extends Monster implements GeoEntity, RimefallAnimal
         this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
         this.targetSelector.addGoal(1, new HurtByTargetGoal(this));
         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+        // the hunter villagers hunt them, and they hunt the hunters (the user, October 23, 2026)
+        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, HunterFolk.class, true));
     }
 
     @Override

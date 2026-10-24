@@ -1,7 +1,7 @@
 """
 Makes the Huntsman's and the Alpha Moose's sounds (CLAUDE.md step 14, "Sounds"): his war cry, voice, spear, bow and
 bola; the Alpha Moose's bellows, its call as it rears, its hooves, kick, ram, stomp, the cracking stamp and its ice
-spikes. Every one is synthesized from scratch with the Rat King's synthesizer (tools/ratking/ratkit/synth.py): nothing
+spikes; and the hunter villagers' and their elder's voices. Every one is synthesized from scratch with the Rat King's synthesizer (tools/ratking/ratkit/synth.py): nothing
 is recorded and nothing comes from Minecraft. Each event was made in two or three versions for the user to pick from
 (the page below plays each version on its own); an event's `picks` are the versions the game plays (the user's picks
 of October 23, 2026), the rest stay in the showcase. His horn isn't here: the user kept the goat horn
@@ -12,7 +12,8 @@ Run from the project folder:
     python tools/huntsman/sounds.py
 
 It writes:
-  src/main/resources/assets/dross/sounds/huntsman/*.ogg, alpha_moose/*.ogg   the sounds (mono Ogg Vorbis)
+  src/main/resources/assets/dross/sounds/huntsman/*.ogg, alpha_moose/*.ogg, hunter_folk/*.ogg, hunter_elder/*.ogg
+                                                     the sounds (mono Ogg Vorbis)
   src/main/resources/assets/dross/sounds.json        adds (or replaces) its own events; every other entry stays as it was
   src/main/resources/assets/dross/lang/en_us.json    adds the subtitles it needs (never changes other keys)
   src/main/java/com/reg21meme/dross/boss/huntsman/HuntsmanSounds.java   every event, for /dross showcase boss_sounds huntsman
@@ -594,6 +595,169 @@ def am_death(rng, kind):
 # ---------------------------------------------------------------- the list
 
 
+# ---------------------------------------------------------------- the hunter villagers (rimemobs/hunter_folk.py)
+# Lighter than the Huntsman's (a man's own size of voice, FOLK_SCALE, not his big one, and higher), friendly when calm;
+# the elder older: lower, slower, his voice breaking into a creak at the ends.
+
+FOLK_SCALE = 1.0
+ELDER_SCALE = 0.97
+
+
+def _amp(d, peak=0.05, hold=0.75):
+    return [(0.0, 0.0), (min(peak, d * 0.3), 1.0), (d * hold, 0.8), (d, 0.0)]
+
+
+def folk_ambient(rng, kind):
+    if kind == 1:        # humming at their work, three notes
+        parts = []
+        for t, f0, d in ((0.0, 138.0, 0.34), (0.38, 154.0, 0.3), (0.72, 130.0, 0.5)):
+            v = V.voice(d, [(0.0, f0), (d, f0 * 0.97)], "mm", rng, oq=0.55, hum=True, hum_open=0.35, vib=(5.0, 0.012),
+                        scale=FOLK_SCALE, amp=_amp(d))
+            parts.append((t, v * 0.6))
+        return S.reverb(V.place(1.4, *parts), 0.12)
+    if kind == 2:        # "mm-hm": to themselves, as if agreeing with something
+        a = V.voice(0.22, [(0.0, 148.0), (0.22, 138.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.25,
+                    scale=FOLK_SCALE, amp=_amp(0.22))
+        b = V.voice(0.32, [(0.0, 128.0), (0.32, 158.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.25,
+                    scale=FOLK_SCALE, amp=_amp(0.32))
+        return V.place(0.9, (0.0, a * 0.6), (0.3, V.aspirate(0.05, "uh", rng) * 0.2), (0.33, b * 0.6))
+    # a sniff of the cold air, a tired sigh
+    sig = V.voice(0.7, [(0.0, 140.0), (0.7, 108.0)], [(0.0, "ah"), (0.7, "uh")], rng, oq=0.72, breath=0.5,
+                  puff_breath=0.6, scale=FOLK_SCALE, amp=[(0.0, 0.0), (0.08, 0.6), (0.5, 0.4), (0.7, 0.0)])
+    return V.place(1.3, (0.0, sniff(rng, 0.09)), (0.14, sniff(rng, 0.1)), (0.4, sig * 0.5),
+                   (0.4, V.aspirate(0.7, "ah", rng, amp=[(0.0, 0.0), (0.1, 1.0), (0.7, 0.0)]) * 0.25))
+
+
+def folk_talk(rng, kind):
+    if kind == 1:        # "ho?": a greeting, rising
+        v = V.voice(0.3, [(0.0, 132.0), (0.3, 178.0)], [(0.0, "oh"), (0.3, "oo")], rng, oq=0.5, scale=FOLK_SCALE,
+                    amp=_amp(0.3))
+        return V.place(0.5, (0.0, V.aspirate(0.06, "oh", rng) * 0.4), (0.05, v))
+    if kind == 2:        # "hah, ha": a short laugh
+        parts, t = [], 0.0
+        for i, f0 in enumerate((165.0, 150.0, 138.0)):
+            v = V.voice(0.12, [(0.0, f0), (0.12, f0 * 0.9)], "ah", rng, oq=0.5, breath=0.25, scale=FOLK_SCALE,
+                        amp=[(0.0, 0.0), (0.01, 1.0), (0.09, 0.6), (0.12, 0.0)])
+            parts += [(t, V.aspirate(0.04, "ah", rng) * 0.35), (t + 0.035, v * (1.0 - 0.2 * i))]
+            t += 0.17
+        return V.place(0.7, *parts)
+    # "hm?": asking, a rising hum
+    v = V.voice(0.38, [(0.0, 125.0), (0.25, 135.0), (0.38, 182.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.3,
+                scale=FOLK_SCALE, amp=_amp(0.38))
+    return V.place(0.6, (0.0, v * 0.8))
+
+
+def folk_hurt(rng, kind):
+    if kind == 1:        # "uh!"
+        v = V.voice(0.17, [(0.0, 190.0), (0.17, 140.0)], "uh", rng, oq=0.42, rasp=0.08, scale=FOLK_SCALE,
+                    amp=[(0.0, 0.0), (0.01, 1.0), (0.13, 0.85), (0.15, 0.0), (0.17, 0.0)])
+        return V.place(0.4, (0.0, V.aspirate(0.04, "uh", rng) * 0.3), (0.03, v))
+    if kind == 2:        # "ah!"
+        v = V.voice(0.26, [(0.0, 240.0), (0.05, 262.0), (0.26, 180.0)], [(0.0, "ae"), (0.1, "ah")], rng, oq=0.4,
+                    rasp=0.18, jitter=0.018, scale=FOLK_SCALE, amp=[(0.0, 0.0), (0.01, 1.0), (0.18, 0.8), (0.26, 0.0)])
+        return V.place(0.5, (0.0, v))
+    # "oof"
+    v = V.voice(0.16, [(0.0, 155.0), (0.16, 120.0)], [(0.0, "oo"), (0.16, "uh")], rng, oq=0.72, breath=0.35,
+                puff_breath=0.6, scale=FOLK_SCALE, amp=[(0.0, 0.0), (0.01, 1.0), (0.12, 0.6), (0.16, 0.0)])
+    return V.place(0.4, (0.0, V.aspirate(0.05, "oo", rng) * 0.6), (0.03, v))
+
+
+def folk_death(rng, kind):
+    if kind == 1:        # "aaah...": falling away into a croak
+        d = 1.1
+        v = V.voice(d, [(0.0, 220.0), (0.1, 238.0), (0.5, 185.0), (d, 100.0)], [(0.0, "ae"), (0.15, "ah"), (d, "uh")],
+                    rng, oq=[(0.0, 0.44), (d, 0.7)], rasp=[(0.0, 0.15), (d, 0.08)], breath=[(0.0, 0.05), (d, 0.4)],
+                    vib=(5.0, [(0.0, 0.0), (d, 0.04)]), scale=FOLK_SCALE,
+                    amp=[(0.0, 0.0), (0.02, 1.0), (0.6, 0.8), (d, 0.0)])
+        fry = V.creak(0.3, "uh", rng, amp=[(0.0, 0.5), (0.3, 0.0)])
+        return S.reverb(V.place(2.0, (0.0, v), (d - 0.05, fry * 0.5)), 0.12)
+    # "nngh... ah": straining, then letting go
+    strain = V.voice(0.35, [(0.0, 145.0), (0.35, 165.0)], "ng", rng, oq=0.34, rasp=0.12, hum=True, scale=FOLK_SCALE,
+                     amp=[(0.0, 0.0), (0.04, 0.8), (0.3, 1.0), (0.35, 0.0)])
+    let = V.voice(0.9, [(0.0, 185.0), (0.9, 96.0)], [(0.0, "ah"), (0.9, "uh")], rng, oq=[(0.0, 0.5), (0.9, 0.75)],
+                  breath=[(0.0, 0.08), (0.9, 0.45)], scale=FOLK_SCALE, amp=[(0.0, 0.0), (0.03, 1.0), (0.6, 0.7), (0.9, 0.0)])
+    return S.reverb(V.place(2.0, (0.0, strain), (0.4, let)), 0.12)
+
+
+def folk_cry(rng, kind):
+    if kind == 1:        # "hoo-AH!": a rallying shout
+        a = V.voice(0.26, [(0.0, 170.0), (0.26, 190.0)], "oo", rng, oq=0.45, rasp=0.1, scale=FOLK_SCALE, amp=_amp(0.26))
+        b = V.voice(0.42, [(0.0, 210.0), (0.1, 250.0), (0.42, 190.0)], [(0.0, "ah"), (0.42, "ah")], rng, oq=0.42,
+                    rasp=0.18, jitter=0.02, scale=FOLK_SCALE, amp=_amp(0.42))
+        return S.reverb(V.place(0.95, (0.0, V.aspirate(0.05, "oo", rng) * 0.3), (0.04, a), (0.32, b)), 0.15)
+    # a whoop, rising high
+    v = V.voice(0.7, [(0.0, 160.0), (0.4, 320.0), (0.7, 280.0)], [(0.0, "oo"), (0.35, "oo"), (0.7, "uh")], rng, oq=0.45,
+                rasp=0.1, vib=(5.5, 0.02), scale=FOLK_SCALE, amp=[(0.0, 0.0), (0.08, 0.7), (0.4, 1.0), (0.7, 0.0)])
+    return S.reverb(V.place(1.0, (0.0, v)), 0.15)
+
+
+def elder_ambient(rng, kind):
+    if kind == 1:        # an old man's hum, slow, wavering
+        v = V.voice(1.2, [(0.0, 104.0), (0.6, 110.0), (1.2, 92.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.3,
+                    vib=(4.0, 0.025), jitter=0.025, shimmer=0.1, scale=ELDER_SCALE,
+                    amp=[(0.0, 0.0), (0.1, 1.0), (0.9, 0.8), (1.2, 0.0)])
+        return S.reverb(V.place(1.6, (0.0, v * 0.7), (1.15, V.creak(0.2, "mm", rng, amp=[(0.0, 0.3), (0.2, 0.0)]) * 0.4)), 0.15)
+    # a long breath out and a grumble in his throat
+    gr = V.voice(0.6, [(0.0, 88.0), (0.6, 78.0)], [(0.0, "uh"), (0.6, "oo")], rng, oq=0.42, rasp=0.45, jitter=0.035,
+                 shimmer=0.14, breath=0.15, scale=ELDER_SCALE, amp=[(0.0, 0.0), (0.06, 1.0), (0.45, 0.8), (0.6, 0.0)])
+    return V.place(1.6, (0.0, breath_out(rng, 0.7, 0.45)), (0.8, gr * 0.55))
+
+
+def elder_talk(rng, kind):
+    if kind == 1:        # "hmmm...": thinking it over, falling into a creak
+        v = V.voice(0.9, [(0.0, 112.0), (0.5, 104.0), (0.9, 86.0)], "mm", rng, oq=0.55, hum=True, hum_open=0.35,
+                    vib=(4.0, 0.02), jitter=0.025, scale=ELDER_SCALE, amp=[(0.0, 0.0), (0.08, 1.0), (0.7, 0.8), (0.9, 0.0)])
+        return V.place(1.3, (0.0, v), (0.85, V.creak(0.25, "mm", rng, amp=[(0.0, 0.4), (0.25, 0.0)]) * 0.45))
+    if kind == 2:        # an old man's laugh: heh, heh, heh
+        parts, t = [], 0.0
+        for i in range(3):
+            v = V.voice(0.13, [(0.0, 128.0 - 6 * i), (0.13, 112.0 - 6 * i)], "eh", rng, oq=0.48, breath=0.3, rasp=0.2,
+                        jitter=0.03, scale=ELDER_SCALE, amp=[(0.0, 0.0), (0.01, 1.0), (0.1, 0.6), (0.13, 0.0)])
+            parts += [(t, V.aspirate(0.05, "eh", rng) * 0.4), (t + 0.04, v * (0.9 - 0.15 * i))]
+            t += 0.22
+        return V.place(0.95, *parts)
+    # "ahh, so...": welcoming, slow
+    a = V.voice(0.55, [(0.0, 120.0), (0.55, 98.0)], [(0.0, "ah"), (0.55, "ah")], rng, oq=0.55, breath=0.2, jitter=0.025,
+                scale=ELDER_SCALE, amp=_amp(0.55, hold=0.7))
+    b = V.voice(0.4, [(0.0, 104.0), (0.4, 92.0)], [(0.0, "oh"), (0.4, "oh")], rng, oq=0.55, breath=0.2, jitter=0.025,
+                scale=ELDER_SCALE, amp=_amp(0.4))
+    return V.place(1.4, (0.0, V.aspirate(0.08, "ah", rng) * 0.35), (0.06, a * 0.8), (0.8, b * 0.65))
+
+
+def elder_hurt(rng, kind):
+    if kind == 1:        # "ugh!", old and rough
+        cr = V.creak(0.06, "uh", rng, amp=[(0.0, 0.0), (0.01, 0.6), (0.06, 0.6)], f0=(55.0, 80.0))
+        v = V.voice(0.22, [(0.0, 150.0), (0.22, 104.0)], "uh", rng, oq=0.4, rasp=0.25, jitter=0.03, scale=ELDER_SCALE,
+                    amp=[(0.0, 0.6), (0.02, 1.0), (0.17, 0.85), (0.2, 0.0), (0.22, 0.0)])
+        return V.place(0.5, (0.0, cr * 0.5), (0.055, v))
+    # "agh!", then a hiss through his teeth
+    v = V.voice(0.3, [(0.0, 190.0), (0.05, 205.0), (0.3, 140.0)], [(0.0, "ae"), (0.1, "ah")], rng, oq=0.38, rasp=0.3,
+                jitter=0.03, scale=ELDER_SCALE, amp=[(0.0, 0.0), (0.01, 1.0), (0.2, 0.8), (0.3, 0.0)])
+    return V.place(0.8, (0.0, v), (0.42, teeth_hiss(rng) * 0.35))
+
+
+def elder_death(rng, kind):
+    if kind == 1:        # a long falling cry, breaking, his last breath
+        d = 1.6
+        v = V.voice(d, [(0.0, 175.0), (0.15, 188.0), (0.8, 140.0), (d, 72.0)], [(0.0, "ae"), (0.2, "ah"), (1.0, "aw"),
+                                                                                (d, "uh")],
+                    rng, oq=[(0.0, 0.44), (d, 0.72)], rasp=[(0.0, 0.25), (d, 0.15)], breath=[(0.0, 0.06), (d, 0.45)],
+                    jitter=0.03, vib=(4.5, [(0.0, 0.0), (d, 0.05)]), scale=ELDER_SCALE,
+                    amp=[(0.0, 0.0), (0.02, 1.0), (0.9, 0.8), (d, 0.0)])
+        fry = V.creak(0.4, "uh", rng, amp=[(0.0, 0.5), (0.4, 0.0)])
+        out = V.aspirate(0.9, "uh", rng, amp=[(0.0, 0.0), (0.15, 1.0), (0.9, 0.0)])
+        return S.reverb(V.place(3.0, (0.0, v), (d - 0.05, fry * 0.6), (1.75, out * 0.3)), 0.14)
+    # two gasps and a sigh
+    parts, t = [], 0.0
+    for i in range(2):
+        parts.append((t, V.gasp(0.3, rng, 0.35)))
+        t += 0.6
+    sigh = V.voice(1.1, [(0.0, 96.0), (1.1, 66.0)], [(0.0, "ah"), (1.1, "uh")], rng, oq=0.75, breath=0.6, puff_breath=0.6,
+                   jitter=0.03, scale=ELDER_SCALE, amp=[(0.0, 0.0), (0.1, 0.5), (0.8, 0.3), (1.1, 0.0)])
+    parts += [(t, sigh * 0.55), (t + 1.0, V.creak(0.3, "uh", rng, amp=[(0.0, 0.35), (0.3, 0.0)]) * 0.4)]
+    return S.reverb(V.place(t + 1.5, *parts), 0.14)
+
+
 class Event:
     """
     One sound event: its id, the versions made (files), its subtitle, and where it shows in the showcase. `picks` are
@@ -635,8 +799,9 @@ def versions(prefix, fn, labels):
     return [(f"{prefix}_{i}", (lambda r, f=fn, k=i: f(r, k)), lab) for i, lab in enumerate(labels, start=1)]
 
 
-HU, AM = "huntsman", "alpha_moose"
+HU, AM, FO, EL = "huntsman", "alpha_moose", "hunter_folk", "hunter_elder"
 HUNTSMAN, MOOSE, GEAR = "The Huntsman: his voice", "The Alpha Moose", "The Huntsman: his weapons"
+FOLK, ELDER = "The hunter villagers", "The hunter elder"
 # The user's picks (October 23, 2026) are each event's `picks` (his grunt, hurt, death and war cry picked after his voice
 # was remade with voicekit). Not picked: the sounds they skipped (footsteps, landing, the spear's hit and throw, the bow's
 # draw), which play version 1 until they say otherwise. The spear's swing plays version 1 for a thrust and 2 for a
@@ -724,6 +889,34 @@ EVENTS = [
     Event("entity.alpha_moose.ice_spikes", AM, versions("ice_spikes", am_ice_spikes, ("small spikes, then the big one",
                                                                                        "more small spikes")),
           "Ice spikes burst up", MOOSE, "The clear ice spikes bursting up", picks=(1,)),
+    # the hunter villagers (October 23, 2026: "make them have a unique voice that is nice"; all play until the user
+    # picks)
+    Event("entity.hunter_folk.ambient", FO, versions("ambient", folk_ambient, ("humming at their work",
+                                                                                "mm-hm, to themselves",
+                                                                                "a sniff and a tired sigh")),
+          "Hunter hums", FOLK, "Idle"),
+    Event("entity.hunter_folk.talk", FO, versions("talk", folk_talk, ("ho? (a greeting)", "hah, ha (a short laugh)",
+                                                                       "hm? (asking)")),
+          "Hunter speaks", FOLK, "Talking to you (right-click)"),
+    Event("entity.hunter_folk.hurt", FO, versions("hurt", folk_hurt, ("uh!", "ah!", "oof")),
+          "Hunter hurts", FOLK, "Hurt"),
+    Event("entity.hunter_folk.death", FO, versions("death", folk_death, ("aaah... into a croak", "nngh... ah")),
+          "Hunter dies", FOLK, "Death"),
+    Event("entity.hunter_folk.cry", FO, versions("cry", folk_cry, ("hoo-AH! (a rallying shout)", "a whoop, rising")),
+          "Hunters shout", FOLK, "The village turning on you"),
+    Event("entity.hunter_elder.ambient", EL, versions("ambient", elder_ambient, ("an old man's hum",
+                                                                                  "a breath and a grumble")),
+          "Elder hums", ELDER, "Idle"),
+    Event("entity.hunter_elder.talk", EL, versions("talk", elder_talk, ("hmmm... (thinking it over)",
+                                                                         "heh, heh, heh (an old laugh)",
+                                                                         "ahh, so... (welcoming)")),
+          "Elder speaks", ELDER, "Talking to you (right-click)"),
+    Event("entity.hunter_elder.hurt", EL, versions("hurt", elder_hurt, ("ugh!, old and rough",
+                                                                         "agh! and a hiss through his teeth")),
+          "Elder hurts", ELDER, "Hurt"),
+    Event("entity.hunter_elder.death", EL, versions("death", elder_death, ("a long falling cry, his last breath",
+                                                                            "two gasps and a sigh")),
+          "Elder dies", ELDER, "Death"),
 ]
 
 # The picked bola sound (version 2) cut in two: its whoosh as he lets go, and the cords wrapping round you and their

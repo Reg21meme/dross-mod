@@ -373,6 +373,25 @@ public final class DrossColors {
      * user's pick, H2, October 23, 2026; tools/eggs/eggs.py), so it's tinted white: it shows as drawn. */
     public static final int HUNTSMAN_EGG_BASE = 0xFFFFFF;
     public static final int HUNTSMAN_EGG_SPOTS = 0xFFFFFF;
+    /** The hunter villagers' spawn eggs (boss/huntsman/folk/FolkRole): all the Huntsman's dark slate fur, each its
+     * calling's spots. Used in registry/ModItems. */
+    public static final int HUNTER_FOLK_EGG_BASE = 0x3A3F47;
+    /** Warriors: the spearman glacier blue, the axeman iron grey, the pikeman bone, the archer fletching ice, the
+     * horn-blower his flag's red. */
+    public static final int HUNTER_SPEARMAN_EGG_SPOTS = 0x6FA8D6;
+    public static final int HUNTER_AXEMAN_EGG_SPOTS = 0x9AA1A8;
+    public static final int HUNTER_PIKEMAN_EGG_SPOTS = 0xE2D9C2;
+    public static final int HUNTER_ARCHER_EGG_SPOTS = 0xA9DCF2;
+    public static final int HUNTER_HORNBLOWER_EGG_SPOTS = 0xA8322D;
+    /** Workers: the farmer frostroot pale, the butcher raw meat, the herder straw, the fisher fish silver, the tanner
+     * leather. */
+    public static final int HUNTER_FARMER_EGG_SPOTS = 0xBFE3E8;
+    public static final int HUNTER_BUTCHER_EGG_SPOTS = 0xB5524A;
+    public static final int HUNTER_HERDER_EGG_SPOTS = 0xD9B866;
+    public static final int HUNTER_FISHER_EGG_SPOTS = 0x9FB7C4;
+    public static final int HUNTER_TANNER_EGG_SPOTS = 0x8A5A36;
+    /** The elder: antler gold. */
+    public static final int HUNTER_ELDER_EGG_SPOTS = 0xE0B95A;
     /** Snared (his bola, his aimed shot): the effect's swirl. */
     public static final int HUNTSMAN_SNARED = 0xA8D8F0;
     /** The [Summon the Huntsman] button his arena's message has. */

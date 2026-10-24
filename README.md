@@ -258,7 +258,7 @@ Unlimited uses, no restocking, no XP.
 | **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
 | **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the eleven hunter villagers), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -590,6 +590,25 @@ the edge) with a chat button to summon him.
   animation; `/dross showcase bossbars huntsman` shows his boss bars; `/dross showcase boss_sounds huntsman` lists
   every version of his and the moose's sounds with a button that plays it.
 
+### The hunter villagers
+
+The Huntsman's people: eleven callings in his own look, half his size (about 2 blocks tall), each with its own gear,
+spawn egg and voice. For now they're on show and come from their spawn eggs; they'll live in the hunter villages later.
+
+- **Warriors:** the spearman (spear and round shield, 30 health), the axeman (28), the pikeman (a long spear, 28), the
+  archer (a bow, 25; he keeps his distance and shoots) and the horn-blower (a spear and the village's flag, 26; when a
+  fight starts he blows his horn and everyone near gets Speed and Strength for 30 seconds).
+- **Workers** (20 health, fighting with their tools): the farmer (a hoe and a basket of Frostroot), the butcher (a
+  cleaver and an apron), the herder (a crook), the fisher (a rod and a fish) and the tanner (a scraper and a roll of
+  hide).
+- **The elder** (50 health): scarred eyes, a grey beard, a sword of ice. He's the one to talk to.
+- **Calm** they wander and hum. Right-click one and it talks to you in chat (the elder has the most to say).
+- **Hit one** and it fights back. **Kill one** and every villager within 64 blocks turns on you for 10 minutes. Hit
+  the elder and he stays angry until you've been away (48 blocks off) for 10 minutes.
+- They hunt Pond Skaters, and Pond Skaters hunt them.
+- `/dross showcase hunters` lines up one of each (the warriors in front, the workers and the elder behind) with signs;
+  right-click one to hear it talk, and the chat's buttons play their animations.
+
 ---
 
 ## The Rage Wand
@@ -683,7 +702,8 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
 | `/dross showcase rimefall_mobs` | Lines up Rimefall's animals, frozen, on ice pedestals with signs: a male, a female and a calf Rimehorn, a bull, a cow and a calf moose, and a Pond Skater. Right-click one to play its next animation. |
 | `/dross showcase rimefall_mobs idle` / `walk` / `run` / `charge` / `eat` / `attack` | Plays that animation on every showcase animal nearby (attack: the Rimehorn's horn flick, the moose's ram, the Pond Skater's stab). |
-| `/dross showcase hunters` | Lines up twelve hunter designs (No. 10A-10L, about 2-2.5 blocks tall, the Huntsman's people) in two rows with signs, to pick from for the villages. |
+| `/dross showcase hunters` | Lines up the eleven hunter villagers (the warriors in front, the workers and the elder behind), frozen, with signs. Right-click one and it talks to you. |
+| `/dross showcase hunters idle` / `walk` / `run` / `attack` / `horn` / `talk` / `die` | Plays that animation on every showcase villager nearby (attack: each one's own; horn: the horn-blower's). |
 | `/dross showcase mob_sounds rimefall` | Lists every Rimehorn, moose and Pond Skater sound in chat, each with a [play] button. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |

@@ -9,6 +9,8 @@ import com.reg21meme.dross.boss.golem.StoneGolem;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.Bola;
 import com.reg21meme.dross.boss.huntsman.HuntSpear;
+import com.reg21meme.dross.boss.huntsman.folk.FolkRole;
+import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
 import com.reg21meme.dross.boss.huntsman.spear.ThrownMoonsilverSpear;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.ratking.PlagueBall;
@@ -26,6 +28,10 @@ import net.minecraft.world.entity.MobCategory;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
+
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.Map;
 
 public final class ModEntities
 {
@@ -179,6 +185,27 @@ public final class ModEntities
                     .clientTrackingRange(12)
                     .updateInterval(1)
                     .build("alpha_moose"));
+    /**
+     * Boss area: the hunter villagers ({@code dross:hunter_<calling>}, eleven callings, {@link FolkRole}: five warriors,
+     * five workers and the elder), about 2 blocks tall (the Huntsman's model at half his size). On show
+     * ({@code /dross showcase hunters}) and from their spawn eggs for now; later in the hunter villages.
+     */
+    public static final Map<FolkRole, RegistryObject<EntityType<HunterFolk>>> HUNTER_FOLK = hunterFolk();
+
+    private static Map<FolkRole, RegistryObject<EntityType<HunterFolk>>> hunterFolk()
+    {
+        Map<FolkRole, RegistryObject<EntityType<HunterFolk>>> types = new EnumMap<>(FolkRole.class);
+        for (FolkRole role : FolkRole.values())
+        {
+            types.put(role, ENTITY_TYPES.register(role.typeName(),
+                    () -> EntityType.Builder.<HunterFolk>of((type, level) -> new HunterFolk(type, level, role), MobCategory.MISC)
+                            .sized(0.6F, 2.0F)
+                            .clientTrackingRange(10)
+                            .build(role.typeName())));
+        }
+        return Collections.unmodifiableMap(types);
+    }
+
     // Boss area: the Huntsman's bola (a weighted rope of ice he throws: it snares what it hits)
     public static final RegistryObject<EntityType<Bola>> BOLA = ENTITY_TYPES.register("bola",
             () -> EntityType.Builder.<Bola>of(Bola::new, MobCategory.MISC)

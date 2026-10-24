@@ -8,6 +8,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.BossCommands;
 import com.reg21meme.dross.boss.huntsman.HuntsmanBarShowcase;
+import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
@@ -231,8 +232,8 @@ public final class DrossCommand
                         .then(Commands.literal("hunter_villages").executes(HunterVillageShowcase::run))
                         // Boss area's hunter igloos and decorations, one template each (HunterIglooShowcase).
                         .then(Commands.literal("hunter_igloos").executes(HunterIglooShowcase::run))
-                        // Boss area's hunter villager candidates, the Huntsman's people (HunterShowcase).
-                        .then(Commands.literal("hunters").executes(HunterShowcase::run)))
+                        // Boss area's hunter villagers, the Huntsman's people, one of each calling (HunterShowcase).
+                        .then(hunterShowcase()))
                 // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
                 // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).
                 .then(Commands.literal("locate")
@@ -341,6 +342,18 @@ public final class DrossCommand
             mobs.then(Commands.literal(control.word()).executes(context -> RimefallMobShowcase.control(context, control)));
         }
         return mobs;
+    }
+
+    /** {@code /dross showcase hunters} and its controls ({@code idle}, {@code walk}, {@code run}, {@code attack},
+     * {@code horn}, {@code talk}, {@code die}: {@code HunterFolk.SHOW}). */
+    private static LiteralArgumentBuilder<CommandSourceStack> hunterShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> hunters = Commands.literal("hunters").executes(HunterShowcase::run);
+        for (String control : HunterFolk.SHOW)
+        {
+            hunters.then(Commands.literal(control).executes(context -> HunterShowcase.control(context, control)));
+        }
+        return hunters;
     }
 
     /** {@code /dross showcase rats} and its controls ({@code idle}, {@code run}), one per {@link RatShowcase.Control}. */

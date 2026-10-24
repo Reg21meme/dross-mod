@@ -223,7 +223,22 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
                 ModItems.FROSTBLOOM.get()), false));
         this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.15D));
         this.goalSelector.addGoal(5, new EatGoal());
-        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0D));
+        // (a mother on her way back to her calf doesn't wander off instead: a stroll picked out there once took her 13
+        // blocks from it, past the leash she'd just given up at)
+        this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 1.0D)
+        {
+            @Override
+            public boolean canUse()
+            {
+                return !Moose.this.returningToCalf && super.canUse();
+            }
+
+            @Override
+            public boolean canContinueToUse()
+            {
+                return !Moose.this.returningToCalf && super.canContinueToUse();
+            }
+        });
         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 10.0F));
         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
         this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers());

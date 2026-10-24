@@ -2,15 +2,22 @@ package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.huntsman.folk.FolkRole;
+import com.reg21meme.dross.boss.huntsman.folk.HunterFolk;
 import com.reg21meme.dross.boss.rimefall.RimefallCandidate;
 import com.reg21meme.dross.boss.rimefall.RimefallDesigns;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
@@ -18,33 +25,49 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * {@code /dross showcase hunters} (October 23, 2026; the user: "10-12 villagers that can spawn, 2 blocks tall, that are
- * similar to the Huntsman"): the boss area's hunter designs ({@link RimefallDesigns#HUNTERS}, Nos. 10A-10L) in two rows
- * of {@value #PER_ROW} ahead of you, facing you, on a snow floor, the back row a step up so both rows show; a packed ice
- * post and a sign in front of each ("No. 10A", "Hunter", what he is). They're the gallery's frozen statues
- * ({@link RimefallCandidate}): right-click one for its name and height. Running it again replaces them (old statues
- * within {@value #REMOVE_RADIUS} blocks removed).
+ * {@code /dross showcase hunters} (October 23, 2026; the user: "make them interactable ... a unique voice that is nice
+ * ... just edit the showcase so I can see"): the boss area's hunter villagers ({@link HunterFolk}, one of each
+ * {@link FolkRole}), live but frozen, in two rows ahead of you, facing you, on a snow floor, the back row a step up so
+ * both rows show: the five warriors in front, the five workers and the elder behind; a packed ice post and a sign in
+ * front of each (its name, warrior, worker or elder, its health). Right-click one and it talks to you (a line in chat,
+ * its voice); {@code /dross showcase hunters <control>} (the chat's buttons) plays an animation on every one near.
+ * Running it again replaces them (old ones within {@value #REMOVE_RADIUS} blocks removed, the statues of the first
+ * hunter designs too).
  */
 public final class HunterShowcase
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    /** Statues in a row. */
-    static final int PER_ROW = 6;
-    /** Blocks between two statues in a row. */
+    static final String COMMAND = "/dross showcase hunters";
+    /** Blocks between two villagers in a row. */
     static final int SPACING = 3;
     /** The first row's distance ahead of you, and the second's. */
     static final int FIRST_ROW = 7;
     static final int SECOND_ROW = 12;
+    /** The widest row (the workers and the elder). */
+    static final int WIDEST = 6;
     /** Air cleared over the floor, and how deep a dip under it is filled. */
     static final int CLEAR_ABOVE = 5;
     static final int MAX_FILL = 6;
-    /** Old statues this near (X and Z) are removed first. */
+    /** Old ones this near (X and Z) are removed first. */
     static final int REMOVE_RADIUS = 48;
 
     private HunterShowcase() {}
+
+    /** The rows: the warriors in front, the workers and the elder behind. */
+    static List<List<FolkRole>> rows()
+    {
+        List<FolkRole> front = new ArrayList<>();
+        List<FolkRole> back = new ArrayList<>();
+        for (FolkRole role : FolkRole.values())
+        {
+            (role.kind == FolkRole.Kind.WARRIOR ? front : back).add(role);
+        }
+        return List.of(front, back);
+    }
 
     public static int run(CommandContext<CommandSourceStack> context)
     {
@@ -55,16 +78,8 @@ public final class HunterShowcase
         Direction right = look.getClockWise();
         BlockPos origin = new BlockPos(Mth.floor(position.x), Showcases.groundY(level, position), Mth.floor(position.z));
 
-        int removed = 0;
-        AABB area = Showcases.columnsAround(level, position, REMOVE_RADIUS);
-        for (RimefallCandidate old : level.getEntities(ModEntities.RIMEFALL_CANDIDATE.get(), area,
-                c -> RimefallDesigns.HUNTERS.contains(c.getDesign())))
-        {
-            old.discard();
-            removed++;
-        }
-
-        int half = (PER_ROW - 1) * SPACING / 2 + 2;
+        int removed = removeOld(level, position);
+        int half = (WIDEST - 1) * SPACING / 2 + 3;
         Showcases.clearFloor(level, origin, look, right, -half, half, SECOND_ROW + 3, CLEAR_ABOVE + 1, MAX_FILL);
         BlockState snow = Blocks.SNOW_BLOCK.defaultBlockState();
         BlockState post = Blocks.PACKED_ICE.defaultBlockState();
@@ -81,39 +96,113 @@ public final class HunterShowcase
             }
         }
 
-        List<RimefallDesigns.Design> hunters = RimefallDesigns.HUNTERS;
         int spawned = 0;
-        for (int i = 0; i < hunters.size(); i++)
+        int total = 0;
+        List<List<FolkRole>> rows = rows();
+        for (int row = 0; row < rows.size(); row++)
         {
-            RimefallDesigns.Design design = hunters.get(i);
-            int row = i / PER_ROW;
-            int column = i % PER_ROW;
-            int ahead = row == 0 ? FIRST_ROW : SECOND_ROW;
-            int side = column * SPACING - (PER_ROW - 1) * SPACING / 2;
-            BlockPos ground = origin.relative(look, ahead).relative(right, side).above(row);
-            Vec3 feet = Vec3.atBottomCenterOf(ground.above());
-            if (RimefallCandidate.spawnShowcase(level, feet, look.getOpposite().toYRot(), design) != null)
+            List<FolkRole> roles = rows.get(row);
+            for (int column = 0; column < roles.size(); column++)
             {
-                spawned++;
+                FolkRole role = roles.get(column);
+                total++;
+                int ahead = row == 0 ? FIRST_ROW : SECOND_ROW;
+                int side = Math.round(column * SPACING - (roles.size() - 1) * SPACING / 2.0F);
+                BlockPos ground = origin.relative(look, ahead).relative(right, side).above(row);
+                Vec3 feet = Vec3.atBottomCenterOf(ground.above());
+                if (HunterFolk.spawnShowcase(level, role, feet, look.getOpposite().toYRot()) != null)
+                {
+                    spawned++;
+                }
+                else
+                {
+                    LOGGER.warn("Hunter showcase: couldn't spawn the {}", role.key);
+                }
+                // the post and its sign, two blocks in front of him, the sign facing you
+                BlockPos postPos = ground.relative(look.getOpposite(), 2).above();
+                level.setBlock(postPos, post, Block.UPDATE_ALL);
+                Showcases.placeWallSign(level, postPos.relative(look.getOpposite()), look.getOpposite(),
+                        Component.translatable("entity.dross." + role.typeName()),
+                        Component.literal(switch (role.kind)
+                        {
+                            case WARRIOR -> "Warrior";
+                            case WORKER -> "Worker";
+                            case ELDER -> "The one to talk to";
+                        }),
+                        Component.literal((int) role.health + " health"));
             }
-            else
-            {
-                LOGGER.warn("Hunter showcase: couldn't spawn No. {}", design.label());
-            }
-            // the post and its sign, two blocks in front of him, the sign facing you
-            BlockPos postPos = ground.relative(look.getOpposite(), 2).above();
-            level.setBlock(postPos, post, Block.UPDATE_ALL);
-            Showcases.placeWallSign(level, postPos.relative(look.getOpposite()), look.getOpposite(),
-                    "No. " + design.label(), design.name(), design.mood());
         }
-        int total = hunters.size();
         int made = spawned;
+        int all = total;
         int gone = removed;
-        LOGGER.info("Hunter showcase: spawned {} of {} for {} at {} looking {}; removed {} old", made, total,
+        LOGGER.info("Hunter showcase: spawned {} of {} for {} at {} looking {}; removed {} old", made, all,
                 source.getTextName(), origin.toShortString(), look.getName(), gone);
-        source.sendSuccess(() -> Component.literal("Lined up " + made + " of " + total + " hunter designs ahead of you "
-                + "(No. 10A-10L, two rows" + (gone == 0 ? "" : "; removed " + gone + " old") + "). Right-click one "
-                + "for its name and height; tell me which you'd like in the villages."), true);
+        source.sendSuccess(() -> Component.translatable("dross.hunter_folk.showcase.done", made, all,
+                gone == 0 ? "" : "; removed " + gone + " old"), true);
+        source.sendSuccess(HunterShowcase::controls, false);
         return made;
+    }
+
+    /** Runs {@code /dross showcase hunters <control>} ({@link HunterFolk#SHOW}). */
+    public static int control(CommandContext<CommandSourceStack> context, String control)
+    {
+        CommandSourceStack source = context.getSource();
+        List<HunterFolk> near = nearby(source.getLevel(), source.getPosition());
+        if (near.isEmpty())
+        {
+            source.sendFailure(Component.literal("There are no showcase hunter villagers within " + REMOVE_RADIUS
+                    + " blocks. Spawn them with " + COMMAND + "."));
+            return 0;
+        }
+        near.forEach(folk -> folk.playShowcase(control));
+        int count = near.size();
+        source.sendSuccess(() -> Component.literal(count + " hunter villager" + (count == 1 ? "" : "s") + ": " + control
+                + (control.equals("horn") ? " (only the horn-blower has one)" : "")), false);
+        return count;
+    }
+
+    private static Component controls()
+    {
+        MutableComponent line = Component.literal("Animations: ");
+        for (String control : HunterFolk.SHOW)
+        {
+            String command = COMMAND + " " + control;
+            String label = control.substring(0, 1).toUpperCase() + control.substring(1);
+            line.append(Component.literal("[" + label + "]").withStyle(style -> style
+                    .withColor(DrossColors.RIMEFALL_SHOWCASE_BUTTON)
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(command)))));
+            line.append(" ");
+        }
+        return line;
+    }
+
+    /** Every showcase hunter villager loaded within {@link #REMOVE_RADIUS} blocks (X and Z, at any height). */
+    static List<HunterFolk> nearby(ServerLevel level, Vec3 position)
+    {
+        return level.getEntitiesOfClass(HunterFolk.class, Showcases.columnsAround(level, position, REMOVE_RADIUS),
+                HunterFolk::isShowcase);
+    }
+
+    /** Removes the showcase villagers near, and the statues of the first hunter designs (Nos. 10A-10L). */
+    private static int removeOld(ServerLevel level, Vec3 position)
+    {
+        int removed = 0;
+        AABB area = Showcases.columnsAround(level, position, REMOVE_RADIUS);
+        List<Entity> old = new ArrayList<>(nearby(level, position));
+        old.addAll(level.getEntities(ModEntities.RIMEFALL_CANDIDATE.get(), area,
+                c -> RimefallDesigns.HUNTERS.contains(c.getDesign())));
+        for (Entity entity : old)
+        {
+            entity.discard();
+            removed++;
+        }
+        return removed;
+    }
+
+    /** (For the tests) The callings, in the order they stand. */
+    static List<FolkRole> order()
+    {
+        return rows().stream().flatMap(List::stream).toList();
     }
 }

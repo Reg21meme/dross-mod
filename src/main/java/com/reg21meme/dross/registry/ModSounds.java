@@ -147,6 +147,17 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_STOMP = register("entity.alpha_moose.stomp");
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_CRACK_STAMP = register("entity.alpha_moose.crack_stamp");
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_ICE_SPIKES = register("entity.alpha_moose.ice_spikes");
+    // Boss area: the hunter villagers and their elder (original, tools/huntsman/sounds.py; each event plays all its
+    // versions until the user picks).
+    public static final RegistryObject<SoundEvent> HUNTER_FOLK_AMBIENT = register("entity.hunter_folk.ambient");
+    public static final RegistryObject<SoundEvent> HUNTER_FOLK_TALK = register("entity.hunter_folk.talk");
+    public static final RegistryObject<SoundEvent> HUNTER_FOLK_HURT = register("entity.hunter_folk.hurt");
+    public static final RegistryObject<SoundEvent> HUNTER_FOLK_DEATH = register("entity.hunter_folk.death");
+    public static final RegistryObject<SoundEvent> HUNTER_FOLK_CRY = register("entity.hunter_folk.cry");
+    public static final RegistryObject<SoundEvent> HUNTER_ELDER_AMBIENT = register("entity.hunter_elder.ambient");
+    public static final RegistryObject<SoundEvent> HUNTER_ELDER_TALK = register("entity.hunter_elder.talk");
+    public static final RegistryObject<SoundEvent> HUNTER_ELDER_HURT = register("entity.hunter_elder.hurt");
+    public static final RegistryObject<SoundEvent> HUNTER_ELDER_DEATH = register("entity.hunter_elder.death");
 
     private static RegistryObject<SoundEvent> register(String name)
     {

@@ -71,6 +71,104 @@
    "moments": {}
   }
  },
+ "hunter_folk": {
+  "aimed_shot": {
+   "arrows": [
+    {
+     "dir": [
+      0.0123,
+      0.0537,
+      0.9985
+     ],
+     "from": [
+      0.322,
+      3.39,
+      1.689
+     ],
+     "t": 1.7
+    }
+   ],
+   "moments": {
+    "glint": 1.2,
+    "release": 1.7,
+    "shots.0": 1.7
+   }
+  },
+  "chop": {
+   "arrows": [],
+   "moments": {
+    "hits.0": 0.5
+   }
+  },
+  "death": {
+   "arrows": [],
+   "moments": {
+    "cry": 2.15,
+    "falls": 3.2,
+    "lands": 0.85,
+    "slip": 0.04
+   }
+  },
+  "horn_blow": {
+   "arrows": [],
+   "moments": {
+    "blow": 0.85,
+    "end": 2.9
+   }
+  },
+  "idle": {
+   "arrows": [],
+   "moments": {}
+  },
+  "quick_shot": {
+   "arrows": [
+    {
+     "dir": [
+      0.0217,
+      0.0508,
+      0.9985
+     ],
+     "from": [
+      0.32,
+      3.395,
+      1.678
+     ],
+     "t": 1.15
+    }
+   ],
+   "moments": {
+    "release": 1.15,
+    "shots.0": 1.15
+   }
+  },
+  "run": {
+   "arrows": [],
+   "moments": {}
+  },
+  "spear_combo": {
+   "arrows": [],
+   "moments": {
+    "hits.0": 0.38,
+    "hits.1": 0.78,
+    "hits.2": 1.28
+   }
+  },
+  "talk": {
+   "arrows": [],
+   "moments": {}
+  },
+  "thrust_sweep": {
+   "arrows": [],
+   "moments": {
+    "hits.0": 0.4,
+    "hits.1": 0.88
+   }
+  },
+  "walk": {
+   "arrows": [],
+   "moments": {}
+  }
+ },
  "huntsman": {
   "aimed_shot": {
    "arrows": [
