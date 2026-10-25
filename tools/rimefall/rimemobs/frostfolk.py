@@ -16,7 +16,7 @@ the others (FolkRole.shows): its hood's style, its cape, its tools.
                axeman       a hood with a thick fur trim round the face, a wolf-pelt cape; an axe of ice
                pikeman      a tall pointed hood, a wolf-pelt cape; a long spear
                archer       a deep cowl with a drape down his back; a bow gripped in his left fist, carried level,
-                            a black quiver of ice-fletched arrows on his back (the Huntsman's at his size)
+                            a brown box of a quiver on his back, four little ice fletchings out of its top
                horn-blower  a hood with a wolf's ears, a wolf-pelt cape; a spear, a horn at his belt, the village's flag
   workers      farmer       a hood with a Rimehorn's horn on its brow; a hoe, a basket of Frostroots
                butcher      a close cap-hood; a cleaver, a leather apron
@@ -281,7 +281,7 @@ def gear(r):
                               (5.0, 6.0, 5.0, 1.5, "iron"), (6.0, 18.5, 3.0, 2.0, "leather"),
                               (18.3, 19.5, 2.0, 1.6, "iron")):            # (its tip into the sheath)
         c = top + down * ((t0 + t1) / 2.0)
-        sb.box(tuple(c), (w, t1 - t0, d), mat, rot=(0.0, 0.0, SWORD_BACK_TILT))
+        sb.box(tuple(c), (w, t1 - t0, d), mat, rot=(0.0, 0.0, -SWORD_BACK_TILT))   # (Bedrock's turn: x flipped)
     # the farmer's basket
     ba = r.part("basket")
     box(ba, xl - 0.5, xl + 0.5, 9, 10, -0.5, 0.5, "wicker")
@@ -301,30 +301,25 @@ def gear(r):
     # on his body: the butcher's apron, the archer's quiver, the horn-blower's horn and flag, the tanner's hide
     ap = r.part("apron")
     box(ap, -3.5, 3.5, 7, 21, -4.5, -3.5, "apron")
-    # the archer's quiver, the Huntsman's at his size (the user, October 25, 2026: "just make it a black rectangular
-    # thing, just copy the design of the Huntsman's quiver and make it fit on the archer's back"): a straight black box
-    # on his drape, leaning its mouth over his right shoulder for his right hand, a rim of ice round its mouth and the
-    # ice fletchings of its arrows standing out of it (the leather tube with bands before it, the user: "the quiver
-    # looks weird"); a strap from it across his chest to his left hip
+    # the archer's quiver (the user, October 25, 2026: "just make a rectangle ... make it browner ... at the top have
+    # 3-4 small icy rectangles"): one straight brown box on his drape, leaning its mouth over his right shoulder for
+    # his right hand, and four small ice fletchings standing out of its mouth, each sunk into it and turned with it.
+    # Every size is a whole unit (the export rounds sizes, and a rounded box sat off its place) and no two faces
+    # share a plane (the z-fighting fix grew the old shaft stubs and rim into a big lump beside the quiver's top: "the
+    # tips where the arrows' feathers are aren't aligned with it"); a strap from it across his chest to his left hip
     qv = r.part("quiver")
     up = np.array([-math.sin(math.radians(QUIVER_TILT)), math.cos(math.radians(QUIVER_TILT)), 0.0])
     side = np.array([up[1], -up[0], 0.0])
     c = np.array(QUIVER_AT)
-    rot = (0.0, 0.0, QUIVER_TILT)
+    rot = (0.0, 0.0, -QUIVER_TILT)     # a Bedrock turn: its x is flipped, so this leans the box's top along `up`
     half = QUIVER_LENGTH / 2.0
 
     def along(t, a=0.0, dz=0.0):
         return tuple(c + up * t + side * a + np.array([0.0, 0.0, dz]))
 
     qv.box(along(0.0), (QUIVER_WIDE, QUIVER_LENGTH, QUIVER_DEEP), "quiver", rot=rot)
-    qv.box(along(half + 0.4), (QUIVER_WIDE + 0.6, 0.8, QUIVER_DEEP + 0.6), "ice", rot=rot)    # the rim of ice
-    rim = half + 0.8
-    for a, dz, wide in ((-0.9, -0.6, True), (0.3, -0.6, False), (-0.3, 0.6, False), (0.9, 0.6, True)):
-        # each arrow: a stub of its shaft out of the rim, then its fletching of ice (broad and edge-on by turns, in
-        # two rows, each its own height: in rows their sides lay in one plane and flickered)
-        h = 0.5 + 0.2 * (a + 1.0)
-        qv.box(along(rim + h / 2.0, a, dz), (0.5, h, 0.5), "shaft", rot=rot)
-        qv.box(along(rim + h + 1.1, a, dz), (1.0, 2.2, 0.5) if wide else (0.5, 2.2, 1.0), "fletch", rot=rot)
+    for a, dz, lift in QUIVER_FLETCHES:
+        qv.box(along(half + 0.5 + lift, a, dz), (1.0, 3.0, 1.0), "fletch", rot=rot)     # 1 in, 2 out (and its lift)
     qv.box((0.0, 17.5, -3.25), (1.0, 10.8, 0.5), "belt", rot=(0.0, 0.0, 34.0))   # (under his capelet and belt)
     hb = r.part("horn_belt")
     hb.cone((4.6, 13.0, -2.0), (4.8, 10.0, 2.0), 1.8, "horn", w1=0.7, steps=3)
@@ -338,10 +333,13 @@ def gear(r):
 
 
 QUIVER_TILT = 20.0      # the archer's quiver leans its top this far over to his right
-QUIVER_AT = (-1.8, 16.8, 5.85)     # the middle of his quiver's box, on his drape (its back at 4.5)
-QUIVER_LENGTH = 9.6
+QUIVER_AT = (-1.8, 16.8, 5.6)      # the middle of his quiver's box, on his drape (its back at 4.5)
+QUIVER_LENGTH = 10.0
 QUIVER_WIDE = 3.0
-QUIVER_DEEP = 2.4
+QUIVER_DEEP = 2.0
+# its fletchings: (across its width, front to back, how much higher), two rows of two, staggered so no two of their
+# faces lie in one plane with each other's or the quiver's
+QUIVER_FLETCHES = ((-0.8, -0.35, 0.0), (0.6, -0.35, 0.3), (-0.6, 0.35, 0.45), (0.8, 0.35, 0.15))
 SWORD_BACK_TILT = 25.0  # the elder's sheath across his back: its hilt over his right shoulder
 
 
@@ -428,7 +426,7 @@ SNOWFLAKE = P("#c3d3e2", "#d8e4ee", "#ebf2f8", "#ffffff")
 ICE_SOLID = P("#5f97c4", "#78add6", "#97c5e6", "#bad9f1", "#d9ebf8", "#f2f9fd")
 HORN = P("#6d6a63", "#8a867e", "#a6a299", "#c1bdb3", "#d9d6cd", "#efede7")
 BLADE = P("#7d868e", "#98a1a9", "#b4bcc3", "#cfd6dc", "#e6ebef")      # a bright steel edge, readable against a sleeve
-QUIVER_BLACK = P("#0b0a0c", "#121114", "#1a181c", "#232026", "#2d2a31")   # the archer's quiver (the user: "black")
+QUIVER_BROWN = P("#3a2416", "#4b2f1c", "#5d3b23", "#70482b", "#845634", "#99653e")   # the archer's quiver ("browner")
 
 
 def face(lk, seed):
@@ -509,7 +507,7 @@ def materials(calling):
         "iron": M.metal(M.IRON, seed=seed + 28, shine=1.2, frost_amount=0.15),
         "blade": M.metal(BLADE, seed=seed + 41, shine=1.4, frost_amount=0.05),
         "leather": M.skin(M.LEATHER, seed=seed + 29, mottle=0.8, frost_amount=0.08),
-        "quiver": M.skin(QUIVER_BLACK, seed=seed + 42, mottle=0.6, frost_amount=0.06),
+        "quiver": M.skin(QUIVER_BROWN, seed=seed + 42, mottle=0.6, frost_amount=0.06),
         "string": M.solid(P("#bdb5a3", "#d1c9b7", "#e5ddcb"), idx=1.5, seed=seed + 30, outline=0.0),
         "bone": M.bone(M.BONE, seed=seed + 31, frost_amount=0.1),
         "shieldhide": M.worn_hide(OATMEAL, seed=seed + 32, frost_amount=0.2),

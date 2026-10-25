@@ -29,7 +29,8 @@ import javax.annotation.Nullable;
  *   <li>{@code /dross boss summon colossus}: {@link #summonColossus};</li>
  *   <li>{@code /dross boss arena colossus}: {@link #buildArena};</li>
  *   <li>{@code /dross boss summon ratking}: {@link #summonRatKing};</li>
- *   <li>{@code /dross boss arena ratking}: {@link #buildRatKingArena}.</li>
+ *   <li>{@code /dross boss arena ratking}: {@link #buildRatKingArena};</li>
+ *   <li>{@code /dross boss arena bedrock}: {@link #buildBedrockArena} (any boss: a spawn-proof test arena).</li>
  * </ul>
  * Both use the command's position, rotation and dimension, so they also work from command blocks and the console
  * ({@code execute positioned ... rotated ... run dross boss arena colossus}). They need cheats, like the rest of /dross.
@@ -285,6 +286,46 @@ public final class BossCommands
                         Component.translatable("commands.dross.boss.arena.summon_hover", SUMMON_HUNTSMAN_COMMAND)))));
         source.sendSuccess(() -> message, true);
         return Math.max(1, result.changed());
+    }
+
+    /**
+     * {@code /dross boss arena bedrock}: builds the bedrock test arena ({@link BedrockArena}) round you, its floor where
+     * you stand: bedrock walled in and lit with glowstone, where nothing spawns by itself. You stay in its middle; the
+     * chat message has a button for each boss.
+     *
+     * @return how many blocks were changed (at least 1)
+     */
+    public static int buildBedrockArena(CommandSourceStack source)
+    {
+        ServerLevel level = source.getLevel();
+        BlockPos floor = BossArena.floorUnder(level, BlockPos.containing(source.getPosition()));
+        RatKingArena.Result result = BedrockArena.build(level, floor);
+        LOGGER.info("Built the bedrock test arena for {} round {} in {} ({} blocks changed, {} block entities left alone)",
+                source.getTextName(), floor.toShortString(), level.dimension().location(), result.changed(),
+                result.keptBlockEntities());
+        MutableComponent message = Component.translatable("commands.dross.boss.arena_bedrock.success", BedrockArena.SIZE);
+        if (result.keptBlockEntities() > 0)
+        {
+            message.append(" ").append(Component.translatable("commands.dross.boss.arena.kept", result.keptBlockEntities()));
+        }
+        message.append(" ").append(summonButton("commands.dross.boss.arena.summon_button", DrossColors.BOSS_COMMAND_BUTTON,
+                SUMMON_COMMAND));
+        message.append(" ").append(summonButton("commands.dross.boss.arena_ratking.summon_button",
+                DrossColors.RAT_KING_COMMAND_BUTTON, SUMMON_RAT_KING_COMMAND));
+        message.append(" ").append(summonButton("commands.dross.boss.arena_huntsman.summon_button",
+                DrossColors.HUNTSMAN_COMMAND_BUTTON, SUMMON_HUNTSMAN_COMMAND));
+        source.sendSuccess(() -> message, true);
+        return Math.max(1, result.changed());
+    }
+
+    /** A chat button ({@code key}'s text in {@code color}) that runs {@code command}. */
+    private static MutableComponent summonButton(String key, int color, String command)
+    {
+        return Component.translatable(key).withStyle(style -> style
+                .withColor(color)
+                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable("commands.dross.boss.arena.summon_hover", command))));
     }
 
     /** A spot near {@code at} where the Colossus fits, standing on solid ground; null if there's none. */

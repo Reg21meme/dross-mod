@@ -610,7 +610,7 @@ fires. Each wanders within 24 blocks of where it started and walks back there af
 anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
 
 - **Warriors:** the spearman (a peaked hood, a wolf pelt, spear and round shield, 30 health), the axeman (a fur-trimmed
-  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, his bow carried level in his fist and a black quiver of ice-fletched arrows on his back, 25;
+  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, his bow carried level in his fist and a brown quiver with ice fletchings on his back, 25;
   he keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
   his village turns on someone he blows his horn and everyone near gets Speed and Strength for 30 seconds).
 - **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
@@ -735,6 +735,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross boss arena ratking` | Builds the Rat King's placeholder arena round you (a 31-block round floor of dirt and coarse dirt), with a chat button to summon him. |
 | `/dross boss summon huntsman` | Summons the Huntsman riding his Alpha Moose 16 blocks in front of you, calm until hit (not on Peaceful). |
 | `/dross boss arena huntsman` | Builds the Huntsman's placeholder arena round you (a 41-block round floor of snow and packed ice, with lantern posts), with a chat button to summon him. |
+| `/dross boss arena bedrock` | Builds a test arena for any boss round you: a 61-block square bedrock floor with glowstone set in it, bedrock walls 8 high with glowstone bands, where nothing spawns by itself; chat buttons summon each boss. |
 
 ---
 

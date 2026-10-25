@@ -399,6 +399,7 @@
   "commands.dross.boss.summon_huntsman.failed": "Couldn't summon the Huntsman here.",
   "commands.dross.boss.arena_huntsman.success": "Built the Huntsman's arena around you: a round floor of snow and packed ice %s blocks across, lantern posts round its edge.",
   "commands.dross.boss.arena_huntsman.summon_button": "[Summon the Huntsman]",
+  "commands.dross.boss.arena_bedrock.success": "Built a bedrock test arena around you: %s blocks across, walled in and lit with glowstone. Nothing spawns in it by itself.",
   "item.dross.moonsilver_spear": "Moonsilver Spear",
   "item.dross.moonsilver_spear.hint": "Freezes what it hits. Throw it and it comes back.",
   "entity.dross.moonsilver_spear": "Moonsilver Spear",

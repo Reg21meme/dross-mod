@@ -124,6 +124,9 @@ import net.minecraftforge.fml.common.Mod;
  *       floor of snow and packed ice with lantern posts) round you, with a chat button that summons him. From the boss
  *       area ({@link BossCommands#summonHuntsman}, {@link BossCommands#buildHuntsmanArena}). The button runs
  *       {@link BossCommands#SUMMON_HUNTSMAN_COMMAND}, so the {@code boss summon huntsman} path must match it exactly.</li>
+ *   <li>{@code /dross boss arena bedrock}: builds a test arena for any boss round you: bedrock walled in and lit with
+ *       glowstone, where nothing spawns by itself, with a summon button for each boss ({@link
+ *       BossCommands#buildBedrockArena}).</li>
  * </ul>
  * A future boss adds one literal under {@code showcase boss_designs}, {@code showcase boss_sounds},
  * {@code showcase trophies}, {@code boss summon}
@@ -257,7 +260,9 @@ public final class DrossCommand
                                 .then(Commands.literal("ratking")
                                         .executes(context -> BossCommands.buildRatKingArena(context.getSource())))
                                 .then(Commands.literal("huntsman")
-                                        .executes(context -> BossCommands.buildHuntsmanArena(context.getSource()))))));
+                                        .executes(context -> BossCommands.buildHuntsmanArena(context.getSource())))
+                                .then(Commands.literal("bedrock")
+                                        .executes(context -> BossCommands.buildBedrockArena(context.getSource()))))));
     }
 
     /**
