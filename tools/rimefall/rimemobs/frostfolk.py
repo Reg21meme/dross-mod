@@ -15,8 +15,8 @@ the others (FolkRole.shows): its hood's style, its cape, its tools.
   warriors     spearman     a peaked hood, a wolf-pelt cape; a spear and a round hide shield
                axeman       a hood with a thick fur trim round the face, a wolf-pelt cape; an axe of ice
                pikeman      a tall pointed hood, a wolf-pelt cape; a long spear
-               archer       a deep cowl with a drape down his back; a bow in his left hand, a brown quiver of ice
-                            arrows on his back
+               archer       a deep cowl with a drape down his back; a bow gripped in his left fist, carried level,
+                            a black quiver of ice-fletched arrows on his back (the Huntsman's at his size)
                horn-blower  a hood with a wolf's ears, a wolf-pelt cape; a spear, a horn at his belt, the village's flag
   workers      farmer       a hood with a Rimehorn's horn on its brow; a hoe, a basket of Frostroots
                butcher      a close cap-hood; a cleaver, a leather apron
@@ -265,14 +265,13 @@ def gear(r):
     box(ro, xr - 0.5, xr + 0.5, 13.5, 14.5, -13, -12, "iron")
     box(ro, xr - 0.5, xr + 0.5, 9, 14, -13.5, -11.5, "fishscale")             # the fish, hanging by its mouth
     box(ro, xr - 0.5, xr + 0.5, 7, 9, -13, -12, "fishscale")                  # its tail
-    # the archer's bow, always in his left fist (the user, October 24, 2026: "make him hold his bow in his hand and
-    # just have his quiver on his back"; for a while it was slung on his back): held by the outer side of his fist, so
-    # it hangs beside his arm and leg, clear of both (through the fist's middle its limbs and string cut through his
-    # sleeve, and by its inner side its lower limb went into his leg), its string towards him
-    bx = xl + BOW_OUT
+    # the archer's bow, always in his left fist, its grip through the fist's middle (the user, October 25, 2026: "make
+    # the bow fit better in his hand, he should hold the handle, not the string"; it hung off the outer side of his
+    # fist): modelled upright, its string behind it; he carries it level at his side and turns it upright to shoot
+    # (left(), _shot())
     bw = r.part("bow")
-    box(bw, bx - 1.2, bx + 0.8, 10.5, 12.5, -0.6, 0.6, "leather")          # (its grip, into his fist)
-    _bow(bw, np.array([bx, FIST_Y, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
+    box(bw, xl - 0.5, xl + 0.5, FIST_Y - 2.4, FIST_Y + 2.4, -0.5, 0.5, "leather")     # its grip, wrapped in leather
+    _bow(bw, np.array([xl, FIST_Y, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
     # the elder's sword in its sheath across his back, its hilt over his right shoulder (in his fist only to strike:
     # the user, October 24, 2026, "the sword held by the elder is still weird")
     sb = r.part("sword_back")
@@ -302,26 +301,30 @@ def gear(r):
     # on his body: the butcher's apron, the archer's quiver, the horn-blower's horn and flag, the tanner's hide
     ap = r.part("apron")
     box(ap, -3.5, 3.5, 7, 21, -4.5, -3.5, "apron")
-    # the archer's quiver: a brown leather tube on his back, on his drape, its mouth over his right shoulder for his
-    # right hand, dark bands at its mouth and foot, four arrows of ice standing out of it, a strap from it across his
-    # chest to his left hip (it was a slab half sunk in his drape with a pale blob for its arrows: "the archer's quiver
-    # looks weird"; then "brown quiver, ice arrows")
+    # the archer's quiver, the Huntsman's at his size (the user, October 25, 2026: "just make it a black rectangular
+    # thing, just copy the design of the Huntsman's quiver and make it fit on the archer's back"): a straight black box
+    # on his drape, leaning its mouth over his right shoulder for his right hand, a rim of ice round its mouth and the
+    # ice fletchings of its arrows standing out of it (the leather tube with bands before it, the user: "the quiver
+    # looks weird"); a strap from it across his chest to his left hip
     qv = r.part("quiver")
     up = np.array([-math.sin(math.radians(QUIVER_TILT)), math.cos(math.radians(QUIVER_TILT)), 0.0])
     side = np.array([up[1], -up[0], 0.0])
     c = np.array(QUIVER_AT)
     rot = (0.0, 0.0, QUIVER_TILT)
+    half = QUIVER_LENGTH / 2.0
 
     def along(t, a=0.0, dz=0.0):
         return tuple(c + up * t + side * a + np.array([0.0, 0.0, dz]))
 
-    for t0, t1, w, d, mat in ((-4.5, 4.5, 3.0, 2.4, "leather"), (4.5, 5.3, 3.4, 2.8, "boots"),
-                              (-5.0, -4.5, 2.6, 2.0, "boots")):
-        qv.box(along((t0 + t1) / 2.0), (w, t1 - t0, d), mat, rot=rot)
-    for a, dz, h in ((-1.1, -0.5, 2.0), (-0.35, 0.45, 3.4), (0.4, -0.3, 2.6), (1.1, 0.5, 1.6)):
-        top = 5.3 + h                                          # (each its own shaft and small vanes, apart)
-        qv.box(along((4.5 + top) / 2.0, a, dz), (0.5, top - 4.5, 0.5), "ice", rot=rot)
-        qv.box(along(top - 0.4, a, dz), (0.5, 1.2, 0.8), "fletch", rot=rot)
+    qv.box(along(0.0), (QUIVER_WIDE, QUIVER_LENGTH, QUIVER_DEEP), "quiver", rot=rot)
+    qv.box(along(half + 0.4), (QUIVER_WIDE + 0.6, 0.8, QUIVER_DEEP + 0.6), "ice", rot=rot)    # the rim of ice
+    rim = half + 0.8
+    for a, dz, wide in ((-0.9, -0.6, True), (0.3, -0.6, False), (-0.3, 0.6, False), (0.9, 0.6, True)):
+        # each arrow: a stub of its shaft out of the rim, then its fletching of ice (broad and edge-on by turns, in
+        # two rows, each its own height: in rows their sides lay in one plane and flickered)
+        h = 0.5 + 0.2 * (a + 1.0)
+        qv.box(along(rim + h / 2.0, a, dz), (0.5, h, 0.5), "shaft", rot=rot)
+        qv.box(along(rim + h + 1.1, a, dz), (1.0, 2.2, 0.5) if wide else (0.5, 2.2, 1.0), "fletch", rot=rot)
     qv.box((0.0, 17.5, -3.25), (1.0, 10.8, 0.5), "belt", rot=(0.0, 0.0, 34.0))   # (under his capelet and belt)
     hb = r.part("horn_belt")
     hb.cone((4.6, 13.0, -2.0), (4.8, 10.0, 2.0), 1.8, "horn", w1=0.7, steps=3)
@@ -334,9 +337,11 @@ def gear(r):
     box(hr, -0.5, 0.5, 21, 25, 3, 7, "leather")
 
 
-BOW_OUT = 2.7           # the bow in his fist sits this far to its outer side (clear of his sleeve and his leg)
-QUIVER_TILT = 18.0      # the archer's quiver leans its top this far over to his right
-QUIVER_AT = (-2.2, 17.6, 5.75)     # the middle of his quiver's tube, on his drape (its back at 4.5)
+QUIVER_TILT = 20.0      # the archer's quiver leans its top this far over to his right
+QUIVER_AT = (-1.8, 16.8, 5.85)     # the middle of his quiver's box, on his drape (its back at 4.5)
+QUIVER_LENGTH = 9.6
+QUIVER_WIDE = 3.0
+QUIVER_DEEP = 2.4
 SWORD_BACK_TILT = 25.0  # the elder's sheath across his back: its hilt over his right shoulder
 
 
@@ -423,6 +428,7 @@ SNOWFLAKE = P("#c3d3e2", "#d8e4ee", "#ebf2f8", "#ffffff")
 ICE_SOLID = P("#5f97c4", "#78add6", "#97c5e6", "#bad9f1", "#d9ebf8", "#f2f9fd")
 HORN = P("#6d6a63", "#8a867e", "#a6a299", "#c1bdb3", "#d9d6cd", "#efede7")
 BLADE = P("#7d868e", "#98a1a9", "#b4bcc3", "#cfd6dc", "#e6ebef")      # a bright steel edge, readable against a sleeve
+QUIVER_BLACK = P("#0b0a0c", "#121114", "#1a181c", "#232026", "#2d2a31")   # the archer's quiver (the user: "black")
 
 
 def face(lk, seed):
@@ -503,6 +509,7 @@ def materials(calling):
         "iron": M.metal(M.IRON, seed=seed + 28, shine=1.2, frost_amount=0.15),
         "blade": M.metal(BLADE, seed=seed + 41, shine=1.4, frost_amount=0.05),
         "leather": M.skin(M.LEATHER, seed=seed + 29, mottle=0.8, frost_amount=0.08),
+        "quiver": M.skin(QUIVER_BLACK, seed=seed + 42, mottle=0.6, frost_amount=0.06),
         "string": M.solid(P("#bdb5a3", "#d1c9b7", "#e5ddcb"), idx=1.5, seed=seed + 30, outline=0.0),
         "bone": M.bone(M.BONE, seed=seed + 31, frost_amount=0.1),
         "shieldhide": M.worn_hide(OATMEAL, seed=seed + 32, frost_amount=0.2),
@@ -671,6 +678,13 @@ SWING_R = {"pole": 0.25, "hang": 0.6, "free": 0.6, "sword": 0.6}
 # its left arm at rest (forward): a little forward holding a basket, the shield or nothing, lower with empty hands
 REST_L = {"pole": 22.0, "hang": 22.0, "free": 6.0, "sword": 6.0}
 REST_L_OUT = 3.0
+# The archer's bow, gripped through the middle of his left fist (the only thing a free left hand holds): carried level
+# at his side, turned this far from upright (its back limb a little down behind him, its front limb a little up ahead,
+# its string under it; upright, its upper limb would rise up through his sleeve), whatever his arm does; upright to
+# shoot, slid this far to the outer side of his fist first (turning from level to upright it lies along his arm for a
+# moment: on the arm's inner side it went into his chest), so neither it nor its string comes through his sleeve.
+BOW_LEVEL = 105.0
+BOW_SHOT_OUT = 2.7
 
 
 def right(p, style, d=0.0):
@@ -679,8 +693,14 @@ def right(p, style, d=0.0):
     hold(p, "r", fwd + d, out, -(fwd + d) if style == "pole" else tilt, roll)
 
 
-def left(p, style, d=0.0, out=0.0):
-    carry(p, "l", REST_L[style] + d, REST_L_OUT + out)
+def left(p, style, d=0.0, out=0.0, level=1.0):
+    """Its left arm at rest for `style`, swung `d` further forward and `out` further out; a free hand's bow turned
+    `level` of the way from upright to level (BOW_LEVEL)."""
+    fwd = REST_L[style] + d
+    if style in ("free", "sword"):
+        hold(p, "l", fwd, REST_L_OUT + out, BOW_LEVEL * level - fwd)
+    else:
+        carry(p, "l", fwd, REST_L_OUT + out)
 
 
 def _breath(p, t, period=3.2):
@@ -836,7 +856,10 @@ def _shot(rig, name, T, release):
         p = Pose()
         up = ramp(t, 0.1, 0.45) * (1.0 - ramp(t, T - 0.35, T))
         draw = ramp(t, release - 0.55, release - 0.05) * (1.0 - ramp(t, release, release + 0.05))
-        left(p, "free", (86.0 - REST_L["free"]) * up, -9.0 * up)           # the bow held out ahead, upright
+        # the bow held out ahead, upright, slid to his fist's outer side as he raises it (before it turns past
+        # upright along his arm on the way)
+        left(p, "free", (86.0 - REST_L["free"]) * up, -9.0 * up, level=1.0 - up)
+        p.pos("hand_l", BOW_SHOT_OUT * min(1.0, up / 0.4), 0.0, 0.0)
         rf = fwd0 + ((93.0 - fwd0) - 29.75 * draw) * up
         arm(p, "r", rf, out=out0 * (1.0 - up) - 26.0 * up * (1.0 - draw * 0.3))
         p.rot("body", 0.0, 22.0 * up, 0.0)

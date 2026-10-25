@@ -59,6 +59,8 @@ public final class HuntsmanTuning
     public static final double BOSS_BAR_RANGE = 40.0D;
     /** They go for players this close (once the fight has started). */
     public static final double FOLLOW_RANGE = 48.0D;
+    /** A mob this close going for either of them is dealt with first (a boss's minions: the user, October 25, 2026). */
+    public static final double DEFEND_RANGE = 10.0D;
     /** With no player this close for {@link #BREAK_OFF_TICKS} (3 minutes: the user, October 24, 2026, "if you are gone
      * for 3+ minutes then he goes back to full health"; 30 s before) the fight is broken off: both come back at full
      * health, the dead one too, the Huntsman back in the saddle (the user: "you can't kill one of them, come back all
@@ -208,27 +210,36 @@ public final class HuntsmanTuning
     public static final double BACK_KICK_KNOCK = 2.2D;
     public static final double BACK_KICK_KNOCK_UP = 0.45D;
 
-    /** The arrow rain (the user, October 24, 2026: "make it so you see arrows go up from the hunter's bow ... no,
-     * don't make arrows spawn in, just make them aimed at you automatically"; until then the 12 he shot up flew off and
-     * were cleared away, and the 48 that came down appeared 18 blocks over you): each arrow he looses up (12, four
-     * loosings of three) leaves his bow as a fan of this many real arrows, each on a high arc to a spot near where his
-     * target will be, steering as it comes down towards where the target is then: 48 in all, in both stages (the
-     * user's pick of October 23: "48: 4 per arrow"). */
+    /** The arrow rain (the user, October 25, 2026: "arrow leaves his bow, then they disappear at a certain height
+     * while still going up, then you spawn in the arrows above the target x blocks above, so it seems like those are
+     * his arrows"; on October 24 the arrows he loosed came down themselves on low arcs, "this sad little arrow thingy",
+     * and before that the 12 he shot up flew off one way while the 48 that hit appeared 18 blocks over you): each arrow
+     * he looses up (12, four loosings of three) shoots up fast and vanishes this far over his bow, still climbing; then
+     * this many come down for it out of the sky over his target: 48 in all, in both stages (the user's pick of October
+     * 23: "48: 4 per arrow"). */
     public static final int RAIN_PER_ARROW = 4;
-    public static final double RAIN_RADIUS = 5.0D;
+    public static final double RAIN_VANISH_HEIGHT = 16.0D;
+    public static final float RAIN_UP_SPEED = 3.0F;                // (a bow's full draw)
+    public static final double RAIN_RADIUS = 6.0D;
     /** How the arrows spread round the target: a spot's distance from it is the radius times a random 0-1 raised to
-     * this (0.5 would spread them evenly over the circle; 0.8 crowds them in, so of the 48 a player takes about three,
-     * moving or not, and a Pond Skater, its legs and all, several). */
-    public static final double RAIN_SPREAD_POWER = 0.8D;
-    /** An arrow's flight from his bow to the ground (ticks, each its own: so they come down over a second or so), how
-     * far ahead of a moving target it's aimed at most, and how much of the way to its spot it turns each tick as it
-     * comes down. */
-    public static final int RAIN_FLIGHT = 34;
-    public static final int RAIN_FLIGHT_SPREAD = 12;
+     * this (0.5 would spread them evenly over the circle; 0.7 crowds them in, so of the 48 a player takes a few: coming
+     * down steeply they hit more than the arcing ones did, 6-8 of them at 5 blocks and 0.8). */
+    public static final double RAIN_SPREAD_POWER = 0.7D;
+    /** Where the ones that come down appear: this far over their spot (out of sight over a player looking ahead), and
+     * this far back towards him for each block up, so they streak in steeply from his side. */
+    public static final double RAIN_HEIGHT = 22.0D;
+    public static final double RAIN_SLANT = 0.35D;
+    /** The first of an arrow's four appears this long after he looses it, the others each up to this much later (ticks),
+     * and each takes this long to come down. */
+    public static final int RAIN_DELAY = 10;
+    public static final int RAIN_DELAY_SPREAD = 10;
+    public static final int RAIN_FALL_TICKS = 12;
+    /** How far ahead of a moving target they're aimed at most, and how much of the way to its spot one turns each tick
+     * as it comes down. */
     public static final double RAIN_LEAD_MAX = 6.0D;
     public static final double RAIN_STEER = 0.35D;
-    /** The base damage that makes a hit about 3 (1.5 hearts) at the speed they come down (about 1-1.4). */
-    public static final double RAIN_BASE_DAMAGE = 2.2D;
+    /** The base damage that makes a hit about 3 (1.5 hearts) at the speed they come down (about 2.1). */
+    public static final double RAIN_BASE_DAMAGE = 1.3D;
     public static final int RAIN_COOLDOWN = 280;
     public static final int RAIN_COOLDOWN_STAGE2 = 320;
     /** A frost arrow's hit: Slowness I and the frosted screen of powder snow (never long enough to freeze). */

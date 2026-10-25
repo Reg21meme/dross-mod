@@ -116,8 +116,6 @@ public final class HuntFight
     /** An arrow's drag (a tick's speed is kept times this) and gravity (taken off its upward speed each tick). */
     private static final double ARROW_DRAG = 0.99D;
     private static final double ARROW_GRAVITY = 0.05D;
-    /** The rain's storm sound comes this long before its first arrows are down. */
-    private static final int RAIN_SOUND_LEAD = 8;
     /** An aimed arrow's drop per tick squared (an arrow's gravity, 0.05, halved: it falls that far in t ticks). */
     static final double ARROW_DROP = 0.025D;
     /** The frosted screen and freeze of the aimed shot (never long enough for powder snow's damage, 140). */
@@ -194,13 +192,13 @@ public final class HuntFight
 
     // ---------------------------------------------------------------- every tick
 
-    static void tick(HuntMob mob)
+    /** Runs what it has waiting (arrows to clear away or come down, spikes, cracks...). */
+    static void runPending(HuntMob mob)
     {
         if (!(mob.level() instanceof ServerLevel level))
         {
             return;
         }
-        mob.stageTicks++;
         for (Iterator<Pending> it = new ArrayList<>(mob.pending).iterator(); it.hasNext(); )
         {
             Pending p = it.next();
@@ -209,6 +207,16 @@ public final class HuntFight
                 mob.pending.remove(p);
             }
         }
+    }
+
+    static void tick(HuntMob mob)
+    {
+        if (!(mob.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        mob.stageTicks++;
+        runPending(mob);
         if (!mob.isAlive())
         {
             return;
@@ -887,17 +895,19 @@ public final class HuntFight
     }
 
     /**
-     * Whom it goes for. Raged with a raged enemy near: that enemy, nothing else (the Rage's rule: the Rat King of another
-     * team, say). Otherwise the moose the closest player, the Huntsman the furthest (the same one when there's only
-     * one: the moose is the close-range fighter, he the long-range one); with no player near, a hostile mob (the moose
-     * the closest, he the furthest); with none, whatever last hurt either of them.
+     * Whom it goes for. Raged with a raged enemy near: a mob of theirs closing in on either of them first ({@link
+     * #attacker}: the Cinder Colossus's golems, say), else the nearest (the Rage's rule: the Rat King of another team,
+     * say). Otherwise the moose the closest player, the Huntsman the furthest (the same one when there's only one: the
+     * moose is the close-range fighter, he the long-range one); with no player near, a mob closing in on them, else a
+     * hostile mob (the moose the closest, he the furthest); with none, whatever last hurt either of them.
      */
     @Nullable
     static LivingEntity chooseTarget(HuntMob mob)
     {
+        LivingEntity onUs = attacker(mob);
         if (Rage.hasEnemyNear(mob))
         {
-            return Rage.nearestEnemy(mob);
+            return onUs != null ? onUs : Rage.nearestEnemy(mob);
         }
         double range = HuntsmanTuning.FOLLOW_RANGE;
         boolean furthest = mob instanceof Huntsman;
@@ -933,7 +943,7 @@ public final class HuntFight
         }
         if (player != null || other != null)
         {
-            return player != null ? player : other;
+            return player != null ? player : onUs != null ? onUs : other;
         }
         for (HuntMob m : new HuntMob[] {mob, partner(mob)})
         {
@@ -946,6 +956,33 @@ public final class HuntFight
             }
         }
         return null;
+    }
+
+    /**
+     * The nearest mob (not a player) of its foes within {@link HuntsmanTuning#DEFEND_RANGE} that's going for it or its
+     * partner, or null: they deal with those first (the user, October 25, 2026: fighting the Cinder Colossus "the moose
+     * and Huntsman ignore the little golems that the Cinder Colossus spawns in"; they kept on at the Colossus, the
+     * nearest raged enemy by its middle, while its golems went for them).
+     */
+    @Nullable
+    private static LivingEntity attacker(HuntMob mob)
+    {
+        double r = HuntsmanTuning.DEFEND_RANGE;
+        HuntMob partner = partner(mob);
+        LivingEntity best = null;
+        double bestD = 0.0D;
+        for (Mob e : mob.level().getEntitiesOfClass(Mob.class, mob.getBoundingBox().inflate(r),
+                e -> isFoe(mob, e) && e.canBeSeenAsEnemy()))
+        {
+            LivingEntity its = e.getTarget();
+            double d = e.distanceToSqr(mob);
+            if (its != null && (its == mob || its == partner) && d <= r * r && (best == null || d < bestD))
+            {
+                best = e;
+                bestD = d;
+            }
+        }
+        return best;
     }
 
     /** The way it faces (the moose's, for him in the saddle). */
@@ -1209,7 +1246,7 @@ public final class HuntFight
         });
     }
 
-    /** His arrow rain starts: the arrows he looses up come down on {@code target} ({@link #rainFrom}). */
+    /** His arrow rain starts: for each arrow he looses up, arrows come down on {@code target} ({@link #rainFor}). */
     static void startRain(HuntMob shooter, LivingEntity target)
     {
         shooter.shotTarget = null;
@@ -1217,58 +1254,91 @@ public final class HuntFight
         shooter.rainSounded = false;
     }
 
-    /**
-     * One of the arrows he looses up in his arrow rain, from {@code from} (his bow), as {@link
-     * HuntsmanTuning#RAIN_PER_ARROW} real frost arrows: each on a high arc (worked out with an arrow's own drag and
-     * gravity) to a spot within {@link HuntsmanTuning#RAIN_RADIUS} of where {@code target} will be when it comes down,
-     * and steering as it falls towards that spot round where the target is then (the user, October 24, 2026: "make it
-     * so you see arrows go up from the hunter's bow ... just make them aimed at you automatically"). Nothing shows where
-     * they'll land (the user: "don't warn the player where the arrows land").
-     */
-    static void rainFrom(HuntMob shooter, Vec3 from, LivingEntity target)
+    /** An arrow he looses up into the sky (harmless) vanishes once it's {@link HuntsmanTuning#RAIN_VANISH_HEIGHT} over
+     * where it left his bow, still climbing (the user, October 25, 2026: "then they disappear at a certain height while
+     * still going up"). */
+    static void vanishHigh(HuntMob shooter, Arrow arrow, double fromY)
     {
-        if (!(shooter.level() instanceof ServerLevel level))
+        int[] age = {0};
+        shooter.pending.add((m, level) ->
         {
-            return;
-        }
+            if (arrow.isRemoved())
+            {
+                return true;
+            }
+            if (arrow.getY() >= fromY + HuntsmanTuning.RAIN_VANISH_HEIGHT || arrow.getDeltaMovement().y <= 0.0D
+                    || ++age[0] >= VOLLEY_CLEAR_TICKS)
+            {
+                arrow.discard();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    /**
+     * For one of the arrows he looses up in his arrow rain, {@link HuntsmanTuning#RAIN_PER_ARROW} real frost arrows
+     * come down out of the sky over {@code target} a moment later, as if they were his (the user, October 25, 2026:
+     * "then you spawn in the arrows above the target x blocks above, so it seems like those are his arrows"): each
+     * appears {@link HuntsmanTuning#RAIN_HEIGHT} over a spot within {@link HuntsmanTuning#RAIN_RADIUS} of where the target
+     * will be when it lands, a little back towards him, and streaks down onto it, steering as it falls towards that spot
+     * round where the target is then. Nothing shows where they'll land (the user: "don't warn the player where the
+     * arrows land").
+     */
+    static void rainFor(HuntMob shooter, LivingEntity target)
+    {
         RandomSource r = shooter.getRandom();
-        Vec3 move = shooter.motionOf(target);
         for (int k = 0; k < HuntsmanTuning.RAIN_PER_ARROW; k++)
         {
-            int flight = HuntsmanTuning.RAIN_FLIGHT + r.nextInt(HuntsmanTuning.RAIN_FLIGHT_SPREAD + 1);
-            double a = r.nextDouble() * Math.PI * 2.0D;
-            double d = Math.pow(r.nextDouble(), HuntsmanTuning.RAIN_SPREAD_POWER) * HuntsmanTuning.RAIN_RADIUS;
-            Vec3 offset = new Vec3(Math.cos(a) * d, target.getBbHeight() * 0.4D, Math.sin(a) * d);
-            Vec3 lead = new Vec3(move.x, 0.0D, move.z).scale(flight);
-            if (lead.length() > HuntsmanTuning.RAIN_LEAD_MAX)
+            int[] wait = {HuntsmanTuning.RAIN_DELAY + r.nextInt(HuntsmanTuning.RAIN_DELAY_SPREAD + 1)};
+            shooter.pending.add((m, level) ->
             {
-                lead = lead.normalize().scale(HuntsmanTuning.RAIN_LEAD_MAX);
-            }
-            Vec3 land = target.position().add(lead).add(offset);
-            Vec3 v = launch(from, land, flight);
-            Arrow arrow = new Arrow(level, from.x, from.y, from.z);
-            arrow.setOwner(shooter);
-            arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
-            arrow.setBaseDamage(HuntsmanTuning.RAIN_BASE_DAMAGE * damageScale(shooter));
-            arrow.shoot(v.x, v.y, v.z, (float) v.length(), 0.0F);
-            mark(arrow, Frost.FROST);
-            level.addFreshEntity(arrow);
-            steer(shooter, arrow, target, offset);
-            if (!shooter.rainSounded)                       // the storm's sound, as the first of them come down
-            {
-                shooter.rainSounded = true;
-                int[] sound = {flight - RAIN_SOUND_LEAD};
-                shooter.pending.add((m, l) ->
+                if (--wait[0] > 0)
                 {
-                    if (--sound[0] > 0)
-                    {
-                        return false;
-                    }
-                    l.playSound(null, target.getX(), target.getY(), target.getZ(), ModSounds.HUNTSMAN_ARROW_RAIN.get(),
-                            SoundSource.HOSTILE, 2.0F, 1.0F);
-                    return true;
-                });
-            }
+                    return false;
+                }
+                if (target.isAlive() && target.level() == level)
+                {
+                    dropArrow(m, level, target);
+                }
+                return true;
+            });
+        }
+    }
+
+    /** One arrow of his rain coming down on {@code target} out of the sky ({@link #rainFor}). */
+    private static void dropArrow(HuntMob shooter, ServerLevel level, LivingEntity target)
+    {
+        RandomSource r = shooter.getRandom();
+        int fall = HuntsmanTuning.RAIN_FALL_TICKS;
+        double a = r.nextDouble() * Math.PI * 2.0D;
+        double d = Math.pow(r.nextDouble(), HuntsmanTuning.RAIN_SPREAD_POWER) * HuntsmanTuning.RAIN_RADIUS;
+        Vec3 offset = new Vec3(Math.cos(a) * d, target.getBbHeight() * 0.4D, Math.sin(a) * d);
+        Vec3 move = shooter.motionOf(target);
+        Vec3 lead = new Vec3(move.x, 0.0D, move.z).scale(fall);
+        if (lead.length() > HuntsmanTuning.RAIN_LEAD_MAX)
+        {
+            lead = lead.normalize().scale(HuntsmanTuning.RAIN_LEAD_MAX);
+        }
+        Vec3 land = target.position().add(lead).add(offset);
+        Vec3 toHim = new Vec3(shooter.getX() - land.x, 0.0D, shooter.getZ() - land.z);
+        Vec3 back = toHim.lengthSqr() > 1.0E-4D ? toHim.normalize() : Vec3.ZERO;
+        Vec3 from = land.add(back.scale(HuntsmanTuning.RAIN_HEIGHT * HuntsmanTuning.RAIN_SLANT))
+                .add(0.0D, HuntsmanTuning.RAIN_HEIGHT, 0.0D);
+        Vec3 v = launch(from, land, fall);
+        Arrow arrow = new Arrow(level, from.x, from.y, from.z);
+        arrow.setOwner(shooter);
+        arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
+        arrow.setBaseDamage(HuntsmanTuning.RAIN_BASE_DAMAGE * damageScale(shooter));
+        arrow.shoot(v.x, v.y, v.z, (float) v.length(), 0.0F);
+        mark(arrow, Frost.FROST);
+        level.addFreshEntity(arrow);
+        steer(shooter, arrow, target, offset);
+        if (!shooter.rainSounded)                           // the storm's sound, as the first of them come down
+        {
+            shooter.rainSounded = true;
+            level.playSound(null, target.getX(), target.getY(), target.getZ(), ModSounds.HUNTSMAN_ARROW_RAIN.get(),
+                    SoundSource.HOSTILE, 2.0F, 1.0F);
         }
     }
 

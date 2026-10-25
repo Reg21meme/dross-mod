@@ -444,6 +444,12 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           boss, any `RageLeader`, never gets it: `RageAi.headbutts`; the user: "the Huntsman doesn't seem to attack when I
           use the Rage Wand on him against the other bosses". Measured by a probe, `HuntProbeGameTest.ragedHuntVersus...`:
           the raged pair took a raged Rat King from 200 to 150 in 45 s and a raged Colossus from 300 to 268 in 23 s).
+          **They deal with what attacks them first** (the user, October 25, 2026: fighting the Cinder Colossus "the moose
+          and Huntsman ignore the little golems that the Cinder Colossus spawns in": they kept on at the nearest raged
+          enemy by its middle, the Colossus, while its golems went for them): a mob of their foes within 10 blocks going
+          for either of them is their target first (`HuntFight.attacker`, `DEFEND_RANGE`), raged or not (players still
+          come first when not raged). Measured (the same probe, the Colossus at 215 in Cracking): they turned on its stone
+          golems as they climbed out and killed four in 45 s, the moose's charges and ram doing most of it.
         - **Hitting him in the Wild Hunt**: in the saddle his hitbox sits over the moose's back (3.2 wide and 4 tall,
           from 3.8 over the moose's feet: `RIDER_SEAT`, `RIDER_WIDTH`, `RIDER_HEIGHT`; it was the moose's own feet), so
           blows and arrows at him hit him, and they come off the shared bar of 200 like the moose's. Up there branches
@@ -632,7 +638,17 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           its client told every tick). Measured (`HuntProbeGameTest.rainProbe`, from 14 blocks): a villager standing took
           3-4 of the 48, one walking across 6-8, a Pond Skater standing 10-16; every arrow starts within 1.5 blocks
           of his bow, none in the sky (a first try never steered: a new arrow first moves the tick after it's loosed, and
-          seen unmoved it was taken for stuck in the ground).
+          seen unmoved it was taken for stuck in the ground). **Then (October 25, 2026) the user's own way** ("arrow
+          leaves his bow, then they disappear at a certain height while still going up, then you spawn in the arrows
+          above the target x blocks above, so it seems like those are his arrows"; the low arcs were "this sad little
+          arrow thingy"): each of the 12 he looses shoots up fast (`RAIN_UP_SPEED`, a full draw) and vanishes 16 blocks
+          over his bow, still climbing (`RAIN_VANISH_HEIGHT`, `HuntFight.vanishHigh`; on show too); for each, 4 frost
+          arrows appear 22 blocks over spots round his target (`RAIN_HEIGHT`), 0.5-1 s after he looses it (`RAIN_DELAY`,
+          `RAIN_DELAY_SPREAD`), a little back towards him (`RAIN_SLANT`), and streak down onto them in about 0.6 s
+          (`RAIN_FALL_TICKS`), steering as before (`HuntFight.rainFor`, `dropArrow`); spread within 6 blocks
+          (`RAIN_RADIUS`, `RAIN_SPREAD_POWER` 0.7), 3 a hit (`RAIN_BASE_DAMAGE` 1.3). Measured (`rainProbe`, from 14
+          blocks): his arrows vanished 16-17 blocks up, the falling ones appeared about 23 over the target; a villager
+          standing took 0-4 of the 48, one walking across 1-7, a Pond Skater 8-13.
         - **The Wild Hunt's health**: 250 (`WILD_HUNT_HEALTH`; "increase the Wild Hunt's health by 50").
         - **Two attackers at once in the Wild Hunt** ("the hunter needs to be shooting or hitting me with a spear while
           the moose attacks"): one table ran both of them, and he sat still while it charged. Now each has its own timer.
@@ -905,11 +921,13 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           eyes, `<calling>_glow.png`). Each calling's hood style, cape and tools on bones of their own, the others
           hidden (`FolkRole.shows`, `client/FolkRenderer`): **spearman** a peaked hood, a wolf-pelt cape, a spear and a
           round hide shield; **axeman** a thick fur-trimmed hood, a wolf pelt, an axe of ice; **pikeman** a tall pointed
-          hood, a long spear; **archer** a deep cowl with a drape, his bow in his left hand (held by the outer side of
-          his fist, clear of his sleeve and leg) and a brown quiver of ice arrows on his back (a leather tube with dark
-          bands, its mouth over his right shoulder, four arrows of ice standing out of it, a strap across his chest; the
-          user, October 24, 2026: "the archer's quiver looks weird", then "make him hold his bow in his hand and just
-          have his quiver on his back, brown quiver, ice arrows"; for a while the bow was slung on his back); **horn-blower** a hood with a wolf's
+          hood, a long spear; **archer** a deep cowl with a drape, his bow gripped through the middle of his left fist
+          and carried level at his side (its front limb a little up ahead, its string under it), and on his back the
+          Huntsman's quiver at his size: a straight black box leaning its mouth over his right shoulder, a rim of ice round
+          it and the ice fletchings of four arrows standing out of it, a strap across his chest (the user, October 25,
+          2026: "just make it a black rectangular thing, just copy the design of the Huntsman's quiver", and "he should
+          hold the handle, not the string": the bow hung off the outer side of his fist; before that, the user, October
+          24: "the archer's quiver looks weird", then a brown tube with bands; for a while the bow was slung on his back); **horn-blower** a hood with a wolf's
           ears, a spear, a horn at his belt, the village's flag; **farmer** a Rimehorn's hide and horns over his hood, a
           hoe, a basket of Frostroots; **butcher** a close hood, a cleaver, a leather apron; **herder** fur ear flaps and
           a bobble, a crook; **fisher** an oilskin hood with a wide brim, a rod, a fish; **tanner** a fringed capelet, a
@@ -925,9 +943,10 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           holds a tool, swinging with the arm; **free** (the archer, the tanner; the elder, whose chop reaches over his
           shoulder and draws his sword, which goes back on his back after). The fist grips a tool 1.5 pixels towards
           the side that part of it leaves from (`GRIP`), so a shaft never runs up the sleeve; the spear thrusts are
-          underhand, the spear levelled under the raised forearm. The archer's bow is slung flat across his back and is
-          in his left fist only while he shoots, held in the inner side of the fist so its string runs along the inside
-          of his forearm. Checked on every build: no tool into a sleeve at all in any of its calling's animations (the
+          underhand, the spear levelled under the raised forearm. The archer's bow is level in his fist (upright it rose
+          up through his sleeve, `BOW_LEVEL`); to shoot he raises it upright, slid first to the outer side of his fist so
+          neither it nor its string comes through his sleeve as it turns (`BOW_SHOT_OUT`; on the inner side it went into
+          his chest). Checked on every build: no tool into a sleeve at all in any of its calling's animations (the
           sleeves on bones of their own, `CLIP_STRICT`; before, only the body was checked, and a tool sat inside the arm
           at rest). The fisher's fish hangs on his hook at the end of his line; the butcher's cleaver bigger, with a
           bright steel blade. 144 boxes, about 40 drawn per calling, cut out plus its head drawn again for the glowing eyes
@@ -1164,7 +1183,10 @@ skulls at every village's way in, and a few more villagers (1.2-1.4 a bed) (not 
 archer's quiver remade, the Rage Wand's raged Huntsman fighting with his real moves (it only headbutted), and Pond
 Skaters hunting the Huntsman, his moose, moose and Rimehorns (not yet tested in-game). Then: the arrow rain's arrows
 leaving his bow and arcing down onto the target (no arrows appearing in the sky), and the archer's bow back in his hand
-with a brown quiver of ice arrows (not yet tested in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
+with a brown quiver of ice arrows (not yet tested in-game). Then (October 25): the rain the user's way (his arrows vanish
+high up, still climbing, and 48 come down out of the sky over the target), the Huntsman and his moose dealing with
+whatever attacks them first (the Colossus's golems), and the archer's bow gripped through his fist and carried level,
+with the Huntsman's black quiver at his size (not yet tested in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
 Run the agents **one at a time** (never in parallel). They add to the same shared files and their Gradle builds would collide. Run `mod-tester` after each step.
@@ -1282,9 +1304,9 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   blue eyes.
 - **The October 23 third round** (step 14): in the Wild Hunt (its bar 250) the Huntsman attacks while the moose
   does: up close the moose rams, tosses, stomps or bellows while he spears or blows his horn; at range it charges or
-  circles while he shoots (when you're on his left), throws the bola or rains arrows; the rain's arrows leave his bow
-  and arc up and down onto you (48 of them, a fan of 4 for each he looses), steering after you as they fall, and none
-  appear in the sky; against a Pond Skater they hit it too; on foot at range he never just circles: quick shots between his big
+  circles while he shoots (when you're on his left), throws the bola or rains arrows; in the rain his 12 arrows shoot
+  up fast out of his bow and vanish high up while still climbing, then 48 streak down out of the sky round you about a
+  second later, steering after you as they fall (you take a few); against a Pond Skater they hit it too; on foot at range he never just circles: quick shots between his big
   moves; his backstep shot glides him back with the leap and he's ready as he lands (no jump forward at the end); he's
   a tenth smaller (about 4 blocks to his hood), still sitting on the saddle, his hitbox matching; the skulls are bone
   copies of the live heads (the Alpha Moose's as big as its head).
@@ -1320,9 +1342,11 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   smoke now and then; Rimehorn herds and the Huntsman look the same as before (their ice and glow intact).
 - **The Rage Wand on the Huntsman** (step 14, October 24): rage the Huntsman (or his moose) one colour and the Rat King
   or the Cinder Colossus another: the Wild Hunt fights them with its real moves (spear, arrows, the rain, the bola,
-  the horn; the moose's charge, kicks, bellow and stamp), never just headbutting, and they fight the Colossus's golems
-  as they climb out (measured in a probe); the archer Frostfolk holds his bow in his left hand, a brown quiver of ice
-  arrows on his back; Pond Skaters go for the Huntsman, the Alpha Moose, moose and Rimehorns, and those fight back.
+  the horn; the moose's charge, kicks, bellow and stamp), never just headbutting, and when the Colossus's golems climb
+  out and come for them they turn on the golems first, then go back to the Colossus; the archer Frostfolk carries his
+  bow level through the middle of his fist (raising it upright to shoot), a black box of a quiver on his back with a
+  rim of ice and four ice fletchings; Pond Skaters go for the Huntsman, the Alpha Moose, moose and Rimehorns, and those
+  fight back.
 - **The way in's moose skulls** (step 14, October 24): every Frostfolk village (`/dross locate villages` and [go]) has
   a moose skull with its antlers on a tall post either side of the top of its main steps, facing you as you come in.
 - **Villagers in the villages** (step 14, October 24; a new world, cheats on): `/dross locate villages` and [go]: the

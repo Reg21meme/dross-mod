@@ -371,9 +371,20 @@ public final class HuntProbeGameTest
     @javax.annotation.Nullable
     private static PondSkater watchedSkater;
 
+    /** (the Colossus probe) what the Wild Hunt's blows on the Colossus's golems were: the maker and move, and damage. */
+    private static final java.util.Map<String, Float> GOLEM_HITS = new java.util.TreeMap<>();
+    private static boolean watchGolems;
+
     @SubscribeEvent
     public static void onHurt(net.minecraftforge.event.entity.living.LivingHurtEvent event)
     {
+        if (watchGolems && event.getEntity() instanceof com.reg21meme.dross.boss.golem.GolemMinion
+                && event.getSource().getEntity() instanceof HuntMob hm)
+        {
+            net.minecraft.world.entity.Entity direct = event.getSource().getDirectEntity();
+            GOLEM_HITS.merge(name(hm) + " in " + hm.current().name() + (direct != hm ? " by " + name(direct) : ""),
+                    event.getAmount(), Float::sum);
+        }
         if (watchedSkater == null || event.getEntity() != watchedSkater)
         {
             return;
@@ -412,6 +423,8 @@ public final class HuntProbeGameTest
         LOGGER.info("[rage probe] {} vs the Wild Hunt: raged {}, the moose {} {}", boss.getType().getDescriptionId(),
                 raged, Rage.isRaged(m), Rage.teamOf(m));
         float[] start = {boss.getHealth(), m.wildHunt};
+        GOLEM_HITS.clear();
+        watchGolems = true;
         for (int at = 20; at <= RAGE_PROBE_TICKS; at += 20)
         {
             int when = at;
@@ -424,6 +437,11 @@ public final class HuntProbeGameTest
         }
         helper.runAfterDelay(RAGE_PROBE_TICKS + 5, () ->
         {
+            if (!GOLEM_HITS.isEmpty())
+            {
+                LOGGER.info("[rage probe] the Wild Hunt's blows on the golems (damage): {}", GOLEM_HITS);
+            }
+            watchGolems = false;
             h.discard();
             m.discard();
             boss.discard();
@@ -548,8 +566,11 @@ public final class HuntProbeGameTest
         int[] hurts = {0};
         float[] last = {TARGET_HEALTH};
         java.util.Set<java.util.UUID> seen = new java.util.HashSet<>();
-        double[] far = {0.0D};
+        java.util.Map<net.minecraft.world.entity.projectile.Arrow, Double> up = new java.util.HashMap<>();
+        double[] vanish = {Double.MAX_VALUE, 0.0D};      // how high over his bow his own arrows vanished (least, most)
+        double[] appear = {Double.MAX_VALUE, 0.0D};      // how high over the target the falling ones appeared
         int[] launched = {0};
+        int[] loosed = {0};
         Runnable[] watch = new Runnable[1];
         watch[0] = () ->
         {
@@ -566,8 +587,30 @@ public final class HuntProbeGameTest
             {
                 if (seen.add(a.getUUID()) && a.tickCount <= 2)
                 {
-                    launched[0]++;
-                    far[0] = Math.max(far[0], a.position().distanceTo(h.position().add(0.0D, 4.0D, 0.0D)));
+                    if (a.getBaseDamage() <= 0.0D)
+                    {
+                        loosed[0]++;
+                        up.put(a, a.getY());
+                    }
+                    else
+                    {
+                        launched[0]++;
+                        double hgt = a.getY() - t.getY();
+                        appear[0] = Math.min(appear[0], hgt);
+                        appear[1] = Math.max(appear[1], hgt);
+                    }
+                }
+            }
+            for (java.util.Iterator<java.util.Map.Entry<net.minecraft.world.entity.projectile.Arrow, Double>> it =
+                    up.entrySet().iterator(); it.hasNext(); )
+            {
+                java.util.Map.Entry<net.minecraft.world.entity.projectile.Arrow, Double> e = it.next();
+                if (e.getKey().isRemoved())
+                {
+                    double hgt = e.getKey().getY() - e.getValue();
+                    vanish[0] = Math.min(vanish[0], hgt);
+                    vanish[1] = Math.max(vanish[1], hgt);
+                    it.remove();
                 }
             }
             place.run();
@@ -580,8 +623,10 @@ public final class HuntProbeGameTest
                 helper.runAfterDelay(1, () -> watch[0].run());
                 return;
             }
-            out.add(String.format(Locale.ROOT, "%s, %d blocks off: %d of %d arrows hit; every arrow showed up within %.1f"
-                    + " blocks of his saddle", what[i], RAIN_PROBE_DISTANCE, hurts[0], launched[0], far[0]));
+            out.add(String.format(Locale.ROOT, "%s, %d blocks off: %d of %d arrows hit; he loosed %d, which vanished"
+                    + " %.1f-%.1f blocks over his bow (%d not yet); the falling ones appeared %.1f-%.1f blocks over it",
+                    what[i], RAIN_PROBE_DISTANCE, hurts[0], launched[0], loosed[0], vanish[0], vanish[1], up.size(),
+                    appear[0], appear[1]));
             h.play("ride_idle");
             boolean again = rep + 1 < RAIN_PROBE_REPS;
             helper.runAfterDelay(2, () -> rainCase(helper, level, h, base, who, walking, what, again ? i : i + 1,

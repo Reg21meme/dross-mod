@@ -60,9 +60,8 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     public static final int HOLD_AFTER = 20;
     /** GeckoLib's blend between two animations (ticks). */
     protected static final int BLEND_TICKS = 4;
-    /** His arrows' speed (a fully drawn bow shoots at 3), and the arrow rain's (into the sky, so they come down near). */
+    /** His arrows' speed (a fully drawn bow shoots at 3; the arrow rain's into the sky: HuntsmanTuning.RAIN_UP_SPEED). */
     public static final float ARROW_SPEED = 3.0F;
-    public static final float VOLLEY_SPEED = 1.8F;
     /** Bigger moves than this (blocks) are shown at once ({@link #lerpTo}): his leap off the moose and his backstep
      * (about 3), never a gallop (their positions are sent every tick, {@code ModEntities}; until October 23, 2026 it was
      * 1 block, and with vanilla's update every 3 ticks a galloping moose went over it and hopped: the user's "walking
@@ -390,6 +389,10 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             {
                 HuntFight.tick(this);
             }
+            else
+            {
+                HuntFight.runPending(this);          // (on show too: his volley's arrows vanish up in the sky)
+            }
         }
     }
 
@@ -508,7 +511,9 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     }
 
     /** A real arrow off his bow, where the animation's arrow leaves it. On show (and a volley into the sky) it can't
-     * hurt: it has no damage, so it glances off a player. Fighting, it flies at his target and hurts. */
+     * hurt: it has no damage, so it glances off a player; a volley's vanishes high up, still climbing, and in his arrow
+     * rain arrows come down for it out of the sky over his target ({@link HuntFight#rainFor}). Fighting, a shot flies at
+     * his target and hurts. */
     private void loose(HuntCues.Shot shot)
     {
         double yaw = Math.toRadians(this.yBodyRot);
@@ -519,21 +524,25 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         Vec3 dir = right.scale(shot.dirRight()).add(0.0D, shot.dirUp(), 0.0D).add(ahead.scale(shot.dirAhead()))
                 .normalize();
         boolean volley = shot.dirUp() > VOLLEY_UP;
-        LivingEntity rainOn = this.rainTarget;
-        if (volley && !this.showcase && rainOn != null && rainOn.isAlive() && this.current().name().contains("rain"))
-        {
-            HuntFight.rainFrom(this, from, rainOn);           // the arrows he looses up are the ones that come down
-            this.twang();
-            return;
-        }
         Arrow arrow = new Arrow(this.level(), from.x, from.y, from.z);
         arrow.setOwner(this);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
         LivingEntity target = this.shotTarget;
-        if (this.showcase || volley || target == null || !target.isAlive())
+        if (volley)
         {
             arrow.setBaseDamage(0.0D);
-            arrow.shoot(dir.x, dir.y, dir.z, volley ? VOLLEY_SPEED : ARROW_SPEED, 0.0F);
+            arrow.shoot(dir.x, dir.y, dir.z, HuntsmanTuning.RAIN_UP_SPEED, 0.0F);
+            HuntFight.vanishHigh(this, arrow, from.y);
+            LivingEntity rainOn = this.rainTarget;
+            if (!this.showcase && rainOn != null && rainOn.isAlive() && this.current().name().contains("rain"))
+            {
+                HuntFight.rainFor(this, rainOn);
+            }
+        }
+        else if (this.showcase || target == null || !target.isAlive())
+        {
+            arrow.setBaseDamage(0.0D);
+            arrow.shoot(dir.x, dir.y, dir.z, ARROW_SPEED, 0.0F);
             if (!this.showcase)
             {
                 HuntFight.clearLater(this, arrow);

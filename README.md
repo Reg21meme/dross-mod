@@ -557,8 +557,8 @@ the edge) with a chat button to summon him.
   his spear, two bow shots wherever you are (ahead past the moose's head, to either side, or back over his shoulder;
   his arrows lead you as you run, and every one frosts and slows you), the Horn of the Hunt ahead (a cone of icy wind
   that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed; at once if you run away from him)
-  and the **arrow rain** anywhere (he looses arrows up from his bow, 48 in all, and they arc down onto you with no
-  warning, steering after you as they fall). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
+  and the **arrow rain** anywhere (his arrows shoot up out of his bow and vanish high up, then 48 streak down out of
+  the sky round you with no warning, steering after you as they fall). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
   cracks across the snow up close, charges (6.5 hearts) and circles you further out, and kicks anyone behind it (4.5).
 - **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
   neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he
@@ -610,7 +610,7 @@ fires. Each wanders within 24 blocks of where it started and walks back there af
 anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
 
 - **Warriors:** the spearman (a peaked hood, a wolf pelt, spear and round shield, 30 health), the axeman (a fur-trimmed
-  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, his bow in his hand and a brown quiver of ice arrows on his back, 25;
+  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, his bow carried level in his fist and a black quiver of ice-fletched arrows on his back, 25;
   he keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
   his village turns on someone he blows his horn and everyone near gets Speed and Strength for 30 seconds).
 - **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
