@@ -831,6 +831,16 @@ public final class HuntsmanFightGameTest
         helper.startSequence()
                 .thenWaitUntil(() ->
                 {
+                    // (a wild monster wandering in becomes its target in the zombie's place: a creeper did, three runs)
+                    for (Mob stray : level.getEntitiesOfClass(Mob.class, m.getBoundingBox().inflate(48.0D),
+                            e -> e instanceof Enemy && e != zombie))
+                    {
+                        stray.discard();
+                    }
+                    if (m.getTarget() != zombie && m.getTarget() != null && !m.getTarget().isAlive())
+                    {
+                        m.setTarget(zombie);
+                    }
                     kicked[0] |= m.current().name().equals("back_kick");
                     if (!kicked[0] || zombie.getHealth() >= before)
                     {

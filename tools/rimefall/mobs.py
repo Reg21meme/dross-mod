@@ -80,7 +80,8 @@ def build(mob_id, gifs=True):
         for key, _name, _kind, shows, plays in callings:
             own = {n: shown[n] for n in tuple(mob.IDLE_ETC) + tuple(plays) if n in shown}
             for (name, what), v in mobkit.clip_check(m, own, mob.clip_group, mob.CLIP_PAIRS,
-                                                     hidden=mob.hidden_for(shows)).items():
+                                                     hidden=mob.hidden_for(shows),
+                                                     strict=getattr(mob, "CLIP_STRICT", ())).items():
                 found[(f"{name} [{key}]", what)] = v
     else:
         found = mobkit.clip_check(m, shown, mob.clip_group, mob.CLIP_PAIRS)

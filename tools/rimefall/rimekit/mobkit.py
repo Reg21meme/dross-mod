@@ -232,11 +232,12 @@ def _grid(frame, spacing=1.5):
     return (M @ np.c_[local, np.ones(len(local))].T).T[:, :3]
 
 
-def clip_check(m, anims, groups, pairs, hidden=(), step=0.1):
+def clip_check(m, anims, groups, pairs, hidden=(), step=0.1, strict=()):
     """
     {(animation, what): (deepest units, seconds, where)}: parts of one group going into another's boxes (`pairs`), and
     anything under the floor. `groups(bone name)` -> group name or None (not checked). Parts that already overlap in
-    the rest pose (a leg growing out from under an eye) only count when they go in deeper than that.
+    the rest pose (a leg growing out from under an eye) only count when they go in deeper than that, except the pairs
+    in `strict` (a tool modelled inside the arm that holds it: in every animation it must be clear of the sleeve).
     """
     found = {}
     rest = {}
@@ -269,7 +270,8 @@ def clip_check(m, anims, groups, pairs, hidden=(), step=0.1):
                 if a is None:
                     rest[(ga, gb)] = d
                     continue
-                if d > rest.get((ga, gb), 0.0) + CLIP_TOLERANCE:
+                allowed = 0.0 if (ga, gb) in strict else rest.get((ga, gb), 0.0)
+                if d > allowed + CLIP_TOLERANCE:
                     key = (name, f"{ga}/{gb}")
                     if key not in found or d > found[key][0]:
                         found[key] = (d, float(t), lab)

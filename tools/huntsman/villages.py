@@ -255,6 +255,8 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
     beds = sum(1 for _x, _y, _z, st in g.blocks() if mc.base(st).endswith("_bed") and "part=head" in st)
     if beds < (igloos + 1) // 2:
         problems.append(f"only {beds} beds for {igloos} igloos (at least one for every two)")
+    if info.get("moose_skulls", 0) < 2:
+        problems.append(f"only {info.get('moose_skulls', 0)} moose skull post(s) at the way in (2 always)")
     base, deco = dec.split()
     base.entities = list(getattr(g, "entities", ()))         # (the pens' animals go with the village, not its decor)
     problems += world_shows(base, "with every decoration left out")
@@ -369,6 +371,7 @@ def build_layout(number, seed, igloos, huntsman, shrine=False, write_nbt=True):
           f"inside ({open_dim} of {len(ex['open_floors'])} courtyard and lane cells under {lighting.MIN_LIGHT}), "
           f"{kinds.count('dross:moose')} moose, {kinds.count('dross:rimehorn')} Rimehorns, "
           f"{sum(1 for k in kinds if k.startswith('dross:frostfolk_'))} villagers {info.get('folk', {})}, "
+          f"{info.get('moose_skulls', 0)} moose skulls at the way in, "
           f"{floating} floating removed, "
           f"{swapped} lights softened, {given_up} windows iced over, plan attempt {info['plan_attempt']}, "
           f"{time.time() - t0:.1f}s")

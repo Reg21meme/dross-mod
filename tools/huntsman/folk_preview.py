@@ -25,8 +25,10 @@ OUT = os.path.join(ROOT, "boss-previews", "rimefall", "frostfolk")
 MOVE = {"spearman": ("spear_combo", 0.4), "axeman": ("chop", 0.38), "pikeman": ("thrust_sweep", 0.4),
         "archer": ("quick_shot", 1.05), "hornblower": ("horn_blow", 1.6), "farmer": ("chop", 0.5),
         "butcher": ("chop", 0.5), "herder": ("talk", 0.8), "fisher": ("talk", 0.8), "tanner": ("chop", 0.38),
-        "elder": ("talk", 0.8)}
-ROLES = tuple((key, name, kind, shows) + MOVE[key] for key, name, kind, shows, _plays in F.CALLINGS)
+        "elder": ("chop", 0.45)}
+# (each calling's own version of an idle, talk or chop: the way it carries its tool, F.STYLE)
+ROLES = tuple((key, name, kind, shows, F.anim_for(key, MOVE[key][0]), MOVE[key][1])
+              for key, name, kind, shows, _plays in F.CALLINGS)
 SCALE = 9.0
 VIEWS = ((20.0, 8.0), (95.0, 6.0), (200.0, 8.0))
 
@@ -42,7 +44,7 @@ def main():
         tex = texs[key]
         ims = []
         for yaw, el in VIEWS:
-            ims.append(V.draw(m, tex, yaw=yaw, elevation=el, scale=SCALE, pose=anims["idle"].sample(0.0), hidden=hid,
+            ims.append(V.draw(m, tex, yaw=yaw, elevation=el, scale=SCALE, pose=anims[F.anim_for(key, "idle")].sample(0.0), hidden=hid,
                               grid=False, figure=False))
         ims.append(V.draw(m, tex, yaw=35.0, elevation=10.0, scale=SCALE, pose=anims[move].sample(at), hidden=hid,
                           grid=False, figure=False))
@@ -55,14 +57,15 @@ def main():
             x += im.width + 10
         d = ImageDraw.Draw(card)
         d.text((8, 4), f"Frostfolk {name}" if key != "elder" else "The Frostfolk Elder", font=V.font(24), fill=V.TEXT)
-        d.text((8, 36), f"{kind}: front, from its left, from behind, and its {move.replace('_', ' ')}",
+        d.text((8, 36), f"{kind}: front, from its left, from behind, and its {MOVE[key][0].replace('_', ' ')}",
                font=V.font(15, bold=False), fill=V.DIM)
         cards.append(card)
         card.save(os.path.join(OUT, f"frostfolk_{key}.png"))
     V.page("The Frostfolk",
            "Rimefall's villagers: a pillager's build, no face under the hood but darkness and glowing blue eyes, blue "
-           "hoods in a style of their own for each calling, gloves, simple clothes, and their tools: five warriors, five "
-           "workers and the elder (a white scar across his right eye, a white beard, a sword).",
+           "hoods in a style of their own for each calling, gloves, simple clothes, and their tools held in their fists: "
+           "five warriors, five workers and the elder (a white scar across his right eye, a white beard, a sword on "
+           "his back, drawn to strike).",
            [("Warriors", V.grid(cards[0:5], 2)), ("Workers", V.grid(cards[5:10], 2)), ("The elder", V.grid(cards[10:], 2))],
            os.path.join(OUT, "frostfolk.png"))
     with open(os.path.join(OUT, "index.html"), "w", encoding="utf-8") as f:

@@ -448,7 +448,7 @@ public final class FrostfolkGameTest
         try
         {
             player.interactOn(elder, InteractionHand.MAIN_HAND);
-            if (elder.talks() != 1 || elder.action() != FolkAnims.TALK)
+            if (elder.talks() != 1 || elder.action() != FolkRole.ELDER.carry.talk)
             {
                 throw new GameTestAssertException("right-clicked, the elder should talk (talked " + elder.talks()
                         + " times, playing " + elder.action() + ")");
@@ -516,7 +516,7 @@ public final class FrostfolkGameTest
                         server.getCommands().performPrefixedCommand(source, "dross showcase frostfolk attack");
                         for (Frostfolk folk : first)
                         {
-                            expectPlaying(folk, folk.role().shoots() ? FolkAnims.QUICK_SHOT : folk.role().attack.anim);
+                            expectPlaying(folk, folk.role().shoots() ? FolkAnims.QUICK_SHOT : folk.role().attackAnim());
                         }
                         server.getCommands().performPrefixedCommand(source, "dross showcase frostfolk");
                         List<Frostfolk> second = lined(level);

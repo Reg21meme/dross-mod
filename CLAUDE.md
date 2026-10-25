@@ -888,22 +888,34 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           eyes, `<calling>_glow.png`). Each calling's hood style, cape and tools on bones of their own, the others
           hidden (`FolkRole.shows`, `client/FolkRenderer`): **spearman** a peaked hood, a wolf-pelt cape, a spear and a
           round hide shield; **axeman** a thick fur-trimmed hood, a wolf pelt, an axe of ice; **pikeman** a tall pointed
-          hood, a long spear; **archer** a deep cowl with a drape, a bow and quiver; **horn-blower** a hood with a wolf's
+          hood, a long spear; **archer** a deep cowl with a drape, a bow slung on his back and a quiver; **horn-blower** a hood with a wolf's
           ears, a spear, a horn at his belt, the village's flag; **farmer** a Rimehorn's hide and horns over his hood, a
           hoe, a basket of Frostroots; **butcher** a close hood, a cleaver, a leather apron; **herder** fur ear flaps and
           a bobble, a crook; **fisher** an oilskin hood with a wide brim, a rod, a fish; **tanner** a fringed capelet, a
-          scraper, a rolled hide; **the elder** a long hood with its tail down his back, a long blue cape, a white scar
-          down over his right eye (that eye gone under it: one blue eye), a long white beard, a sword of ice. Each
-          carries its tool upright in front of its arm (its arm forward, its fist turned back as far: the user, October
-          24, 2026, the tools "are not properly held"; hanging down along the arm a cleaver's or sword's blade was inside
-          it), the bow, a basket the same in the left hand; the fisher's fish hangs on his hook at the end of his line
-          (it was in his other hand); the butcher's cleaver and the tanner's scraper bigger, with bright steel blades.
-          135 boxes, about 40 drawn per calling, cut out plus its head drawn again for the glowing eyes
+          rolled hide, nothing in his hands (his scraper gone: the user, October 24, 2026, "don't make the tanner hold
+          any items"); **the elder** a long hood with its tail down his back, a long blue cape, a white scar
+          down over his right eye (that eye gone under it: one blue eye), a long white beard, a sword of ice in its
+          sheath across his back, its hilt over his right shoulder. **How they hold their tools** (the user, October 24,
+          2026, twice: the tools "are not properly held", then "the items go through the arms when they should be in
+          their hands"): each calling carries its tool one of three ways (`STYLE` in the generator, `FolkAnims.Carry` in
+          the game), each with its own idle, walk, run, talk and chop: **pole** (the spears, the pike, the crook, the hoe,
+          the rod) stood upright out of the front of its fist, its arm forward 40 degrees and its fist turned back as
+          far; **hang** (the axe, the cleaver) held out ahead of the fist at right angles to the arm, the way Minecraft
+          holds a tool, swinging with the arm; **free** (the archer, the tanner; the elder, whose chop reaches over his
+          shoulder and draws his sword, which goes back on his back after). The fist grips a tool 1.5 pixels towards
+          the side that part of it leaves from (`GRIP`), so a shaft never runs up the sleeve; the spear thrusts are
+          underhand, the spear levelled under the raised forearm. The archer's bow is slung flat across his back and is
+          in his left fist only while he shoots, held in the inner side of the fist so its string runs along the inside
+          of his forearm. Checked on every build: no tool into a sleeve at all in any of its calling's animations (the
+          sleeves on bones of their own, `CLIP_STRICT`; before, only the body was checked, and a tool sat inside the arm
+          at rest). The fisher's fish hangs on his hook at the end of his line; the butcher's cleaver bigger, with a
+          bright steel blade. 144 boxes, about 40 drawn per calling, cut out plus its head drawn again for the glowing eyes
           (`boss/client/PartLayer`) (the first model was 470, drawn four times: the user saw the Huntsman's
           village lag with about 85 of them). Animations keyed by hand, blocky like Minecraft's villagers: idle, walk,
-          run, talk, chop, spear_combo, thrust_sweep, quick_shot, aimed_shot, horn_blow; they die the vanilla way (tip
+          run, talk and chop for each way of carrying (`idle`, `idle_pole`, `idle_hang`...; `chop_sword` the elder's),
+          spear_combo, thrust_sweep, quick_shot, aimed_shot, horn_blow; they die the vanilla way (tip
           over, flash red; the user: "just the regular death animation"). Checked on every build: each calling's tools
-          never into its body in any of its moves, nothing z-fighting. Previews: `boss-previews/rimefall/frostfolk/`
+          never into its body or its sleeves in any of its moves, nothing z-fighting. Previews: `boss-previews/rimefall/frostfolk/`
           (`frostfolk.png`, one card per calling, `index.html`; `tools/huntsman/folk_preview.py`).
         - **Eleven callings** (`boss/frostfolk/FolkRole`), each its own entity type `dross:frostfolk_<calling>` (0.6 x
           2.0); **three spawn eggs** (the user, October 24, 2026: "just one for the elder, one for warriors and one for
@@ -949,8 +961,9 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         - **In the villages** [built October 24, 2026] (the user's "about 1.5 to 2 villagers a bed"): put in each
           village's template with it (`tools/huntsman/village_designs/warren.py` `_folk`, numbers `FOLK_*`; placed like
           the pens' animals, `VillageAnimals`, each moved with its zone), its beds (homes, Barracks, the lodge) times a
-          number rolled between 1.0 and 1.2 by the village's seed (1.5-2 until the user's play test of October 24,
-          2026: "a little too many"): a regular village 13-30, the Huntsman's 54 and 55 (the generated
+          number rolled between 1.2 and 1.4 by the village's seed (1.5-2 until the user's play test of October 24,
+          2026: "a little too many", then 1.0-1.2 until their next look the same day: "add a couple more villagers"): a
+          regular village 15-35, the Huntsman's 64 and 65 (the generated
           `HunterVillageDesigns.Design.folk()`). **The elder** in the meeting hall (the one nearest the first
           courtyard), **a worker at each workplace** (the butcher in the Cookhouse, the tanner in the Tannery, the fisher
           in the Ice-Fishing Hut, a farmer in the Root House, the Lichen House and each Rimeberry Patch, a herder in the
@@ -1005,6 +1018,11 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         `village_soul_fire`: a campfire's model, light and crackle, no block entity, a wisp of smoke now and then; the
         village tools still build and check with campfires, `villagekit/writer.py` writes the village fire). After:
         180 / 278 / 181 fps (the block entities about 10% of what's left: left as they are).
+      - **The way in's moose skulls** [built October 24, 2026] (the user: "where are the moose heads, make sure 1 or 2
+        of them"): every village has a bull moose's skull on a 4-high post either side of the top of its main steps,
+        facing whoever comes in, outside the totems or inuksuks there; always there (until then a village's moose
+        skulls all came on decorations kept 1 in 2, or on one of the seven designs of its ring of lights, so some had
+        none) (`warren._entrance_skulls`, `ENTRANCE_SKULL_SPOTS`; `villages.py` checks every village has both).
       - **The villages' paths and decorations, second look** [built October 24, 2026]: a path gets a stair only where
         it climbs a block onto ground that goes on (more path, a courtyard, or a zone of 36 columns or more: the
         shrine's, a pen's, a patch's), never round a one-block bump or onto a lamp's or a decoration's little patch (the
@@ -1115,7 +1133,10 @@ the user's look the same day: the Frostfolk holding their tools upright, the eld
 on the fisher's hook, three spawn eggs, fighting back Pond Skaters away from home; the villages' frame rate measured and
 fixed (extra passes drawn only for their parts, fewer villagers, at most 2 in a Barracks, village fires without the
 campfires' smoke: about 3-4 times the frame rate); path stairs only onto real steps, decorations' ground under their
-whole box (not yet tested in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
+whole box (not yet tested in-game). Then, from the user's next look the same day: the Frostfolk's tools in their fists
+and never through their arms (three ways of carrying, each with its own idle, walk, run, talk and chop, and a strict
+check), the archer's bow and the elder's sword on their backs until they fight, the tanner's hands empty, two moose
+skulls at every village's way in, and a few more villagers (1.2-1.4 a bed) (not yet tested in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
 Run the agents **one at a time** (never in parallel). They add to the same shared files and their Gradle builds would collide. Run `mod-tester` after each step.
@@ -1253,8 +1274,10 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   `boss-previews/rimefall/frostfolk/frostfolk.png`: a pillager's build, blue hoods each in its own style (the farmer's
   with a Rimehorn's horns), no face under the hood but black with two blue eyes that glow at night, gloves (no skin
   anywhere), the elder's small white scar over his right eye (no eye there: one blue eye) and his white beard; each
-  holds its tool upright in front of its arm (spears, the pike, the crook, the axe, the sword, the cleaver and the
-  scraper all clear of the sleeve), the fisher's fish hanging from his hook; each button plays its animation on all of
+  holds its tool in its fist, never through its arm: the spears, the pike, the crook, the hoe and the rod upright out
+  of the front of the fist, the axe and the cleaver held out ahead like a Minecraft tool; the archer's bow on his back
+  until he shoots, the elder's sword in its sheath on his back until he strikes (he reaches over his shoulder for it),
+  the tanner's hands empty; the fisher's fish hanging from his hook; each button plays its animation on all of
   them (the archer shoots, the horn-blower blows his horn); right-click one: a line in chat and its voice (the elder
   sounds older and has seven lines). The Dross tab has three Frostfolk eggs (Warrior, Worker, Elder): the warrior and
   worker eggs bring a different calling of their kind each time. From the eggs (survival): they wander and hum; hit one
@@ -1263,15 +1286,17 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   minutes: he's calm; a Pond Skater spawned beside them fights them, and when one hurts a villager the others near come
   to help.
 - **The villages' frame rate** (step 14, October 24): in the Huntsman's village it stays smooth (measured about 180-280
-  fps on this computer, from 47-84 before); about 54 villagers there, a regular village 13-30, never more than 2 in a
+  fps on this computer, from 47-84 before); 64 and 65 villagers there, a regular village 15-35, never more than 2 in a
   Barracks (the other warriors in the courtyards); their fires look and crackle like campfires with only a wisp of
   smoke now and then; Rimehorn herds and the Huntsman look the same as before (their ice and glow intact).
+- **The way in's moose skulls** (step 14, October 24): every Frostfolk village (`/dross locate villages` and [go]) has
+  a moose skull with its antlers on a tall post either side of the top of its main steps, facing you as you come in.
 - **Villagers in the villages** (step 14, October 24; a new world, cheats on): `/dross locate villages` and [go]: the
-  village is busy (a regular one 19-48 villagers, the Huntsman's 80-90): the elder in the meeting hall, the butcher in
+  village is busy (a regular one 15-35 villagers, the Huntsman's 64-65): the elder in the meeting hall, the butcher in
   the Cookhouse, a farmer in each farm, warriors in the Barracks, people in their homes and round the courtyards' fires;
   none stuck in a wall, a bed or a doorway; they wander but stay round their part of the village; hit one and it comes
   after you, then walks back; the Huntsman fighting near them never hurts them; `/dross showcase frostfolk_villages` built
-  twice doesn't double them. Watch the frame rate in the Huntsman's village (about 85 of them).
+  twice doesn't double them. Watch the frame rate in the Huntsman's village (about 65 of them).
 - **The Huntsman's chase** (step 14, October 24; survival, at his village): let him spot you and run straight away
   from the village: he chases you, then about 60 blocks past his patrol loop stops and keeps shooting (arrow rain too)
   while you're within about 40 blocks; get further (or out of Rimefall): they let you go and walk back home, still hurt

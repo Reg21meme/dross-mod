@@ -247,14 +247,17 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
     {
         RimefallAnims.Anim anim = switch (name)
         {
-            case "attack" -> this.role.shoots() ? FolkAnims.QUICK_SHOT : this.role.attack.anim;
+            case "attack" -> this.role.shoots() ? FolkAnims.QUICK_SHOT : this.role.attackAnim();
             case "horn" -> this.role.blowsHorn() ? FolkAnims.HORN_BLOW : null;
-            case "idle" -> FolkAnims.IDLE;
+            case "idle" -> this.role.carry.idle;
+            case "walk" -> this.role.carry.walk;
+            case "run" -> this.role.carry.run;
+            case "talk" -> this.role.carry.talk;
             default -> RimefallAnims.named(FolkAnims.ALL, name);
         };
         if (anim != null)
         {
-            this.startAction(anim == FolkAnims.IDLE ? null : anim);
+            this.startAction(anim == this.role.carry.idle ? null : anim);
         }
     }
 
@@ -310,12 +313,12 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
         double speed = RimefallAnims.groundSpeed(this);
         if (!this.isShowcase() && speed > RimefallAnims.MOVING)
         {
-            RimefallAnims.Anim gait = speed > FolkTuning.RUN_ABOVE ? FolkAnims.RUN : FolkAnims.WALK;
+            RimefallAnims.Anim gait = speed > FolkTuning.RUN_ABOVE ? this.role.carry.run : this.role.carry.walk;
             RimefallAnims.matchSpeed(controller, gait, speed);
             return state.setAndContinue(gait.raw());
         }
         controller.setAnimationSpeed(1.0D);
-        return state.setAndContinue(FolkAnims.IDLE.raw());
+        return state.setAndContinue(this.role.carry.idle.raw());
     }
 
     @Override
@@ -574,7 +577,7 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
             this.getLookControl().setLookAt(player);
             if (!this.busy())
             {
-                this.startAction(FolkAnims.TALK);
+                this.startAction(this.role.carry.talk);
             }
             this.playSound(this.role == FolkRole.ELDER ? ModSounds.FROSTFOLK_ELDER_TALK.get() : ModSounds.FROSTFOLK_TALK.get(),
                     1.0F, this.getVoicePitch());
@@ -743,7 +746,7 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
             Frostfolk me = Frostfolk.this;
             LivingEntity t = me.getTarget();
             FolkRole.Attack attack = me.role.attack;
-            if (me.busy() && me.action() == attack.anim)
+            if (me.busy() && me.action() == me.role.attackAnim())
             {
                 int at = me.actionTicks();
                 for (int hit : attack.hits)
@@ -781,8 +784,8 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
             me.getNavigation().stop();
             if (this.pause <= 0 && !me.busy())
             {
-                me.startAction(attack.anim);
-                this.pause = attack.anim.ticks() + FolkTuning.ATTACK_PAUSE;
+                me.startAction(me.role.attackAnim());
+                this.pause = me.role.attackAnim().ticks() + FolkTuning.ATTACK_PAUSE;
             }
         }
     }

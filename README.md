@@ -542,7 +542,8 @@ the edge) with a chat button to summon him.
   ground of its area, never on or next to the big lake, and each part of it on its own ground: each courtyard with its
   igloos at its own height, the lanes between them climbing with a stair at each step, every decoration on solid
   ground, and the land between the parts left as it was (its trees and hills). Only the animals in its pens are tame
-  (one that gets out is wild), and no moose or Pond Skaters spawn by themselves inside a village. Beat
+  (one that gets out is wild), and no moose or Pond Skaters spawn by themselves inside a village. A moose skull with
+  its antlers stands on a tall post either side of every village's way in. Beat
   him (both of them) and his village stays without him for good; on Peaceful he never comes. They only appear in newly
   generated land.
 
@@ -598,24 +599,24 @@ the edge) with a chat button to summon him.
 ### The Frostfolk
 
 Rimefall's villagers: eleven callings, about 2 blocks tall, built like a pillager, each in a blue hood of its own style
-with no face under it, only darkness and two glowing blue eyes, gloved, in simple clothes, carrying its own tools
-upright in front of it, with its own voice. Three spawn eggs (Frostfolk Warrior, Worker and Elder) each bring a calling
-of that kind at random. They live in Rimefall's villages, 1 to 1.2 for every bed (a regular village 13 to 30, the
-Huntsman's 54 and 55): the elder in the meeting hall, a worker at each workplace (the butcher in the Cookhouse, the tanner in the
+with no face under it, only darkness and two glowing blue eyes, gloved, in simple clothes, carrying its own tools in
+its fist (long ones stood upright, short ones held out ahead like a Minecraft tool), with its own voice. Three spawn eggs (Frostfolk Warrior, Worker and Elder) each bring a calling
+of that kind at random. They live in Rimefall's villages, 1.2 to 1.4 for every bed (a regular village 15 to 35, the
+Huntsman's 64 and 65): the elder in the meeting hall, a worker at each workplace (the butcher in the Cookhouse, the tanner in the
 Tannery, the fisher in the Ice-Fishing Hut, a farmer in each farm, a herder in the Storehouse and the barn, the archer
 in the Workshop), at most 2 warriors in each Barracks and the rest on guard in the courtyards, one or two horn-blowers, the rest in their homes and round the courtyards'
 fires. Each wanders within 24 blocks of where it started and walks back there after a fight (angry, it chases you
 anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
 
 - **Warriors:** the spearman (a peaked hood, a wolf pelt, spear and round shield, 30 health), the axeman (a fur-trimmed
-  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, a bow, 25; he
-  keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
+  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, a bow slung on his back, 25;
+  he keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
   his village turns on someone he blows his horn and everyone near gets Speed and Strength for 30 seconds).
 - **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
   Frostroot), the butcher (a cleaver and an apron), the herder (fur ear flaps, a crook), the fisher (a wide-brimmed
-  oilskin hood, a rod with a fish on its hook) and the tanner (a fringed capelet, a scraper and a roll of hide).
-- **The elder** (50 health): a small white scar over one eye (that eye gone), a long white beard, a sword of ice. He's
-  the one to talk to.
+  oilskin hood, a rod with a fish on its hook) and the tanner (a fringed capelet and a roll of hide on his back; nothing in his hands).
+- **The elder** (50 health): a small white scar over one eye (that eye gone), a long white beard, a sword of ice in its
+  sheath on his back, drawn when he fights. He's the one to talk to.
 - **Calm** they wander and hum. Right-click one and it talks to you in chat (the elder has the most to say).
 - **Hit one** and it fights you back until you're about 16 blocks from it. **Kill one** (it tips over like any mob):
   every horn-blower blows his horn and every one of them within 96 blocks rushes you, until you've left their village

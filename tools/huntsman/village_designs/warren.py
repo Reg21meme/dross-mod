@@ -78,7 +78,7 @@ PEN_KEEP = 2                     # nothing an animal could stand on within this 
 RIMEHORN_CALF_AGE = sw.RIMEHORN_CALF_AGE
 # the Frostfolk (boss/frostfolk): each village has its beds times a number rolled between these (by its own seed); 1.5 to
 # 2 until the user's play test of October 24, 2026 ("there might be a little too many villagers")
-FOLK_PER_BED = (1.0, 1.2)
+FOLK_PER_BED = (1.2, 1.4)
 # at most this many in each Barracks; its other warriors stand guard outside, in the courtyards (the user: "the armory is
 # really crowded ... make sure the armory count is not over 2 ... the rest of them should be outside")
 FOLK_BARRACKS_INSIDE = 2
@@ -1097,6 +1097,7 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
         lodge_info = _lodge_yard(g, dec, lodge_box, lodge_items, rng)
     for (x, z) in stair_cells:
         dec.keep_out(x, z, 0)
+    skulls = _entrance_skulls(g, dec, p, X, Z, fixtures)      # (first: the lights and lamps go round them)
     ring_lights = _light_ring(g, dec, p, X, Z, blocked, rng, fixtures)
     inside_lights = _light_inside(g, dec, p, X, Z, courts, blocked, fixtures,
                                   (lane_x, ze) if lodge_box is not None else None)
@@ -1157,7 +1158,8 @@ def build(number, seed, igloos, huntsman=False, shrine=False, name=None):
             "igloos": igloos, "courts": len(p.courts), "huntsman": huntsman, "plan_attempt": attempt,
             "lanes": len(p.lanes), "loops": p.loops, "passages": len(p.links), "kinds": kinds,
             "roles": {r: sum(1 for i in p.items if i.role == r) for r in ("ring", "lane", "warren", "surface")},
-            "buried_windows": buried, "ring_lights": ring_lights, "inside_lights": inside_lights, "folk": folk}
+            "buried_windows": buried, "ring_lights": ring_lights, "inside_lights": inside_lights, "folk": folk,
+            "moose_skulls": skulls}
     # (the courtyards', lanes' and steps' floors, where one stands in them: their lamps light them, the checks look)
     open_floors = lighting.floors(g, None, {(x, y, z) for (x, z), y in dug_floor.items()})
     extras = {"decor": dec, "plan": p, "entrance": (sx, 1, sz), "targets": targets, "courts": courts,
@@ -1735,6 +1737,38 @@ def _light_inside(g, dec, p, X, Z, courts, blocked, fixtures=None, lodge_stairs=
             placed += 1
     if fixtures is not None:
         fixtures.extend(lamps.groups)
+    return placed
+
+
+# The way in's moose skulls (always there, not decorations: the user, October 24, 2026, "where are the moose heads, make
+# sure 1 or 2 of them"; until then a village's moose skulls all came on decorations kept 1 in 2, or on one of the seven
+# designs of its ring of lights, so some had none): a bull moose's skull on a tall post either side of the top of the
+# main steps, facing whoever comes in, outside the totems or inuksuks there; placed before the village's lamps and
+# lights, which go round them. Spots to try, (across, out) from the middle of the top step, nearest first, its antlers
+# kept clear of everything (dross_blocks.REACH).
+ENTRANCE_SKULL_SPOTS = tuple((across, out) for out in range(3, 13) for across in (7, 8, 6, 9, 10))
+ENTRANCE_SKULL_POST = 4
+
+
+def _entrance_skulls(g, dec, p, X, Z, fixtures=None):
+    """A moose skull on a post either side of the way in (ENTRANCE_SKULL_SPOTS); returns how many stand."""
+    posts = Decor(g)
+    posts.keepout = dec.keepout
+    posts.taken = dec.taken
+    c0, d0, _a, _b = p.steps[0]
+    f = Frame(g, X(c0.x), Z(c0.z), d0)
+    top = int(math.floor(c0.r)) + sw.STEPS_LEN + 2
+    placed = 0
+    for sign in (-1, 1):
+        for across, out in ENTRANCE_SKULL_SPOTS:
+            x, z = f.xz(sign * across, top + out)
+            if 0 <= x < g.W and 0 <= z < g.D and posts.place(
+                    "moose skull post", lambda s, x=x, z=z: props.antler_post(
+                        Frame(s, x, z, d0), height=ENTRANCE_SKULL_POST, skull="moose_skull"), margin=0):
+                placed += 1
+                break
+    if fixtures is not None:
+        fixtures.extend(posts.groups)
     return placed
 
 

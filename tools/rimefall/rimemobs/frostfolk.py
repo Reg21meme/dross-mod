@@ -15,19 +15,27 @@ the others (FolkRole.shows): its hood's style, its cape, its tools.
   warriors     spearman     a peaked hood, a wolf-pelt cape; a spear and a round hide shield
                axeman       a hood with a thick fur trim round the face, a wolf-pelt cape; an axe of ice
                pikeman      a tall pointed hood, a wolf-pelt cape; a long spear
-               archer       a deep cowl with a drape down his back; a bow, a quiver
+               archer       a deep cowl with a drape down his back; a bow slung on his back (in his hand to shoot),
+                            a quiver
                horn-blower  a hood with a wolf's ears, a wolf-pelt cape; a spear, a horn at his belt, the village's flag
   workers      farmer       a hood with a Rimehorn's horn on its brow; a hoe, a basket of Frostroots
                butcher      a close cap-hood; a cleaver, a leather apron
                herder       a hood with fur ear flaps and a bobble; a shepherd's crook
                fisher       an oilskin hood with a wide brim; a rod and line, a fish on its hook
-               tanner       a hood with a fringed capelet; a scraper, a rolled hide on his back
+               tanner       a hood with a fringed capelet; a rolled hide on his back (nothing in his hands: the user,
+                            October 24, 2026)
   the elder                 a long hood with its tail down his back, a long blue cape; a white scar across his right
-                            eye, a long white beard (the user: "kind of like the Huntsman's face"); a sword of ice
+                            eye, a long white beard (the user: "kind of like the Huntsman's face"); a sword of ice in
+                            its sheath on his back, drawn to strike
 
-Their animations are keyed by hand (no IK: they're blocky, like Minecraft's villagers): idle, walk, run, talk, chop,
-spear_combo, thrust_sweep, quick_shot, aimed_shot, horn_blow. They die the way vanilla mobs do (the user: "just the
-regular death animation"): no death animation of their own.
+Their animations are keyed by hand (no IK: they're blocky, like Minecraft's villagers). Each calling carries its tool
+one of three ways (STYLE), and its idle, walk, run, talk and chop are made for that way: "pole" (a spear, pike, crook,
+hoe or rod stood upright in front of its arm), "hang" (an axe or cleaver held out ahead of the fist, the way Minecraft
+holds a tool) and "free" (nothing in its hands: the archer, the tanner; the elder, whose chop draws his sword); then
+spear_combo, thrust_sweep, quick_shot, aimed_shot, horn_blow. A tool always leaves the fist clear of the sleeve (the
+user, October 24, 2026: "the items go through the arms when they should be in their hands"; checked on every build,
+CLIP_STRICT). They die the way vanilla mobs do (the user: "just the regular death animation"): no death animation of
+their own.
 """
 import math
 
@@ -73,6 +81,8 @@ GEAR = (
     ("flag", "body", (0.0, 20.0, 3.0)),
     ("hide_roll", "body", (0.0, 23.0, 3.0)),
     ("horn_belt", "body", (4.0, 12.0, 0.0)),
+    ("bow_back", "body", (0.0, 18.0, 6.0)),
+    ("sword_back", "body", (0.0, 20.0, 7.0)),
     ("spear", "hand_r", (-6.0, FIST_Y, 0.0)),
     ("long_spear", "hand_r", (-6.0, FIST_Y, 0.0)),
     ("axe", "hand_r", (-6.0, FIST_Y, 0.0)),
@@ -81,7 +91,6 @@ GEAR = (
     ("cleaver", "hand_r", (-6.0, FIST_Y, 0.0)),
     ("crook", "hand_r", (-6.0, FIST_Y, 0.0)),
     ("rod", "hand_r", (-6.0, FIST_Y, 0.0)),
-    ("scraper", "hand_r", (-6.0, FIST_Y, 0.0)),
     ("bow", "hand_l", (6.0, FIST_Y, 0.0)),
     ("basket", "hand_l", (6.0, FIST_Y, 0.0)),
     ("horn_held", "hand_l", (6.0, FIST_Y, 0.0)),
@@ -94,8 +103,10 @@ BONES = [
     ("head", (0.0, NECK_Y, 0.0), "body"),
     ("cape", (0.0, NECK_Y, 3.0), "body"),
     ("arm_r", (-6.0, SHOULDER_Y, 0.0), "body"),
+    ("sleeve_r", (-6.0, SHOULDER_Y, 0.0), "arm_r"),
     ("hand_r", (-6.0, FIST_Y, 0.0), "arm_r"),
     ("arm_l", (6.0, SHOULDER_Y, 0.0), "body"),
+    ("sleeve_l", (6.0, SHOULDER_Y, 0.0), "arm_l"),
     ("hand_l", (6.0, FIST_Y, 0.0), "arm_l"),
     ("leg_r", (-2.0, HIP_Y, 0.0), "waist"),
     ("leg_l", (2.0, HIP_Y, 0.0), "waist"),
@@ -119,10 +130,10 @@ def body(r):
     box(b, -5, 5, 12, 13, -4, 4, "belt")                        # the belt and its buckle
     box(b, -1, 1, 11.5, 13.5, -4.5, -3.5, "buckle")
     box(b, -5, 5, 21, 24, -3.5, 3.5, "capelet")                 # the capelet over his shoulders
-    for side in (-1, 1):                                        # the arms: sleeve, fur cuff, hand
-        a = r.part("arm_l" if side > 0 else "arm_r")
-        x = side * 6.0
-        box(a, x - 2, x + 2, 13, 22, -2, 2, "sleeve")
+    for side in (-1, 1):                                        # the arms: sleeve, fur cuff, hand (the sleeve on
+        a = r.part("arm_l" if side > 0 else "arm_r")            # a bone of its own, for the check that no tool
+        x = side * 6.0                                          # passes through it: CLIP_STRICT)
+        box(r.part("sleeve_l" if side > 0 else "sleeve_r"), x - 2, x + 2, 13, 22, -2, 2, "sleeve")
         box(a, x - 2.5, x + 2.5, 12.6, 13.6, -2.5, 2.5, "cuff")
         box(a, x - 2, x + 2, 10, 13, -2, 2, "glove")
         g = r.part("leg_l" if side > 0 else "leg_r")
@@ -231,7 +242,7 @@ def gear(r):
     sw = r.part("sword")
     box(sw, xr - 1, xr + 1, 8, 9, -1, 1, "iron")
     box(sw, xr - 0.5, xr + 0.5, 9, 13, -0.5, 0.5, "leather")
-    box(sw, xr - 0.5, xr + 0.5, 13, 14, -2.5, 2.5, "iron")
+    box(sw, xr - 2.5, xr + 2.5, 13, 14, -0.5, 0.5, "iron")             # (its guard across: held out, along it)
     box(sw, xr - 0.5, xr + 0.5, 14, 25, -1, 1, "ice")
     sw.cone((xr, 25.0, 0.0), (xr, 27.0, 0.0), 1.6, "ice", w1=0.3, d0=0.6, steps=2)
     # the farmer's hoe
@@ -255,18 +266,29 @@ def gear(r):
     box(ro, xr - 0.5, xr + 0.5, 13.5, 14.5, -13, -12, "iron")
     box(ro, xr - 0.5, xr + 0.5, 9, 14, -13.5, -11.5, "fishscale")             # the fish, hanging by its mouth
     box(ro, xr - 0.5, xr + 0.5, 7, 9, -13, -12, "fishscale")                  # its tail
-    # the tanner's scraper: a wide bright blade across its handle
-    sc = r.part("scraper")
-    shaft(sc, 9, 16)
-    box(sc, xr - 2.5, xr + 2.5, 16, 18, -1.5, 0.5, "blade")
-    # the archer's bow in his left fist, its string towards him
+    # the archer's bow in his left fist, its string towards him: held in the inner side of his fist, so its string
+    # runs along the inside of his forearm (through its middle, it cut through his sleeve: the user, October 24, 2026,
+    # "the bow for the archer is still weird"); only in his hand while he shoots, slung on his back the rest of the time
+    bx = xl - BOW_IN
     bw = r.part("bow")
-    box(bw, xl - 0.5, xl + 0.5, 10, 13, -0.5, 0.5, "leather")
-    bw.seg((xl, 13.0, 0.0), (xl, 19.0, 1.4), 1.0, 1.0, "bowwood")
-    bw.seg((xl, 19.0, 1.4), (xl, 21.5, 3.0), 1.0, 1.0, "bowwood")
-    bw.seg((xl, 10.0, 0.0), (xl, 4.0, 1.4), 1.0, 1.0, "bowwood")
-    bw.seg((xl, 4.0, 1.4), (xl, 1.5, 3.0), 1.0, 1.0, "bowwood")
-    box(bw, xl - 0.5, xl + 0.5, 2, 21, 3, 4, "string")
+    box(bw, bx - 0.8, bx + 0.8, 10, 13, -0.6, 0.6, "leather")
+    _bow(bw, np.array([bx, FIST_Y, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
+    bb = r.part("bow_back")                                    # slung on his back, flat against it, over his drape
+    up = np.array([-math.sin(math.radians(BOW_BACK_TILT)), math.cos(math.radians(BOW_BACK_TILT)), 0.0])
+    side = np.array([up[1], -up[0], 0.0])
+    o = np.array([-2.0, 17.5, 6.1])
+    bb.seg(o - 1.5 * up, o + 1.5 * up, 1.2, 1.2, "leather")
+    _bow(bb, o, up, side)
+    # the elder's sword in its sheath across his back, its hilt over his right shoulder (in his fist only to strike:
+    # the user, October 24, 2026, "the sword held by the elder is still weird")
+    sb = r.part("sword_back")
+    down = np.array([math.sin(math.radians(SWORD_BACK_TILT)), -math.cos(math.radians(SWORD_BACK_TILT)), 0.0])
+    top = np.array([-3.8, 28.5, 7.0])
+    for t0, t1, w, d, mat in ((0.0, 1.0, 2.0, 2.0, "iron"), (1.0, 5.0, 1.0, 1.0, "leather"),
+                              (5.0, 6.0, 5.0, 1.5, "iron"), (6.0, 18.5, 3.0, 2.0, "leather"),
+                              (18.5, 19.5, 2.0, 1.6, "iron")):
+        c = top + down * ((t0 + t1) / 2.0)
+        sb.box(tuple(c), (w, t1 - t0, d), mat, rot=(0.0, 0.0, SWORD_BACK_TILT))
     # the farmer's basket
     ba = r.part("basket")
     box(ba, xl - 0.5, xl + 0.5, 9, 10, -0.5, 0.5, "wicker")
@@ -299,6 +321,20 @@ def gear(r):
     hr = r.part("hide_roll")
     hr.seg((-5.0, 23.0, 5.0), (5.0, 23.0, 5.0), 3.0, 3.0, "hide")
     box(hr, -0.5, 0.5, 21, 25, 3, 7, "leather")
+
+
+BOW_IN = 2.2            # the bow in his fist sits this far to its inner side (its string along his forearm's inside)
+BOW_BACK_TILT = 25.0    # slung on his back: its top this many degrees over towards his right shoulder
+SWORD_BACK_TILT = 25.0  # the elder's sheath across his back: its hilt over his right shoulder
+
+
+def _bow(part, o, up, out):
+    """A bow from its grip `o`: limbs bending out along `out` to their tips 10 up and down `up`, its string 3.5 out."""
+    for sgn in (1.0, -1.0):
+        u = up * sgn
+        part.seg(tuple(o + 1.5 * u), tuple(o + 7.5 * u + 1.4 * out), 1.0, 1.0, "bowwood")
+        part.seg(tuple(o + 7.5 * u + 1.4 * out), tuple(o + 10.0 * u + 3.0 * out), 1.0, 1.0, "bowwood")
+    part.seg(tuple(o - 9.5 * up + 3.5 * out), tuple(o + 9.5 * up + 3.5 * out), 1.0, 1.0, "string")
 
 
 class Design:
@@ -471,23 +507,46 @@ def materials(calling):
 
 # ---------------------------------------------------------------- the callings
 
-# (key, name, kind, the gear bones it shows, the moves it plays besides IDLE_ETC); the game's FolkRole has the same
+# How each calling carries what it holds (its idle, walk, run, talk and chop are made for it): "pole" a long tool stood
+# upright in front of its arm, "hang" a short one held out ahead of its fist, "free" nothing in its hands, "sword" the
+# elder (nothing in his hands; his chop draws the sword off his back). The game's FolkAnims.Carry has the same.
+STYLE = {"spearman": "pole", "axeman": "hang", "pikeman": "pole", "archer": "free", "hornblower": "pole",
+         "farmer": "pole", "butcher": "hang", "herder": "pole", "fisher": "pole", "tanner": "free", "elder": "sword"}
+SUFFIX = {"pole": "_pole", "hang": "_hang", "free": "", "sword": ""}
+
+
+def style_anims(style):
+    """The animations a way of carrying has: idle, walk, run, talk and chop (the elder's chop his own)."""
+    sx = SUFFIX[style]
+    return (f"idle{sx}", f"walk{sx}", f"run{sx}", f"talk{sx}", "chop_sword" if style == "sword" else f"chop{sx}")
+
+
+def anim_for(key, base):
+    """The name of calling `key`'s own version of `base` (idle, walk, run, talk, chop; anything else as it is)."""
+    names = dict(zip(("idle", "walk", "run", "talk", "chop"), style_anims(STYLE[key])))
+    return names.get(base, base)
+
+
+# (key, name, kind, the gear bones it shows, the moves it plays: its own carrying's and its fighting); the game's
+# FolkRole has the same
 FOLK_GEAR = tuple(name for name, _p, _v in GEAR)
-IDLE_ETC = ("idle", "walk", "run", "talk")
-CALLINGS = (
+IDLE_ETC = ()
+_CALLINGS = (
     ("spearman", "Spearman", "warrior", ("hood_peak", "cape_pelt", "spear", "shield"), ("spear_combo",)),
-    ("axeman", "Axeman", "warrior", ("hood_furtrim", "cape_pelt", "axe"), ("chop",)),
+    ("axeman", "Axeman", "warrior", ("hood_furtrim", "cape_pelt", "axe"), ()),
     ("pikeman", "Pikeman", "warrior", ("hood_point", "cape_pelt", "long_spear"), ("thrust_sweep",)),
-    ("archer", "Archer", "warrior", ("hood_cowl", "drape", "bow", "quiver"), ("quick_shot", "aimed_shot", "chop")),
+    ("archer", "Archer", "warrior", ("hood_cowl", "drape", "bow", "bow_back", "quiver"), ("quick_shot", "aimed_shot")),
     ("hornblower", "Horn-blower", "warrior", ("hood_ears", "cape_pelt", "spear", "horn_belt", "horn_held", "flag"),
      ("horn_blow", "thrust_sweep")),
-    ("farmer", "Farmer", "worker", ("hood_horn", "hoe", "basket"), ("chop",)),
-    ("butcher", "Butcher", "worker", ("cleaver", "apron"), ("chop",)),
-    ("herder", "Herder", "worker", ("hood_flaps", "crook"), ("chop",)),
-    ("fisher", "Fisher", "worker", ("hood_brim", "rod"), ("chop",)),
-    ("tanner", "Tanner", "worker", ("fringe", "scraper", "hide_roll"), ("chop",)),
-    ("elder", "Elder", "elder", ("hood_tail", "beard", "cape_long", "sword"), ("chop",)),
+    ("farmer", "Farmer", "worker", ("hood_horn", "hoe", "basket"), ()),
+    ("butcher", "Butcher", "worker", ("cleaver", "apron"), ()),
+    ("herder", "Herder", "worker", ("hood_flaps", "crook"), ()),
+    ("fisher", "Fisher", "worker", ("hood_brim", "rod"), ()),
+    ("tanner", "Tanner", "worker", ("fringe", "hide_roll"), ()),
+    ("elder", "Elder", "elder", ("hood_tail", "beard", "cape_long", "sword", "sword_back"), ()),
 )
+CALLINGS = tuple((key, name, kind, shows, style_anims(STYLE[key]) + moves)
+                 for key, name, kind, shows, moves in _CALLINGS)
 
 
 def hidden_for(shows):
@@ -513,20 +572,25 @@ VARIANTS = tuple(dict(name=key, design=dict(calling=key), hidden=hidden_for(show
 
 
 def clip_group(bone):
-    if bone in ("spear", "long_spear", "axe", "sword", "hoe", "cleaver", "crook", "rod", "scraper", "bow"):
+    if bone in ("spear", "long_spear", "axe", "sword", "hoe", "cleaver", "crook", "rod", "bow"):
         return "tool"
+    if bone in ("sleeve_r", "sleeve_l"):
+        return "sleeve"
     if bone in ("body", "head", "leg_l", "leg_r", "waist"):
         return "body"
     return None
 
 
-CLIP_PAIRS = (("tool", "body"),)
+CLIP_PAIRS = (("tool", "body"), ("tool", "sleeve"))
+# Every tool is modelled inside the arm that holds it (its rest pose): it must be clear of the sleeve in every animation
+# all the same, not just no deeper than at rest.
+CLIP_STRICT = (("tool", "sleeve"),)
 
 
 # ---------------------------------------------------------------- their animations (keyed by hand)
 
-PROPS = ("horn_held",)            # shown only while used
-STANDS_FOR = {"horn_held": "horn_belt"}
+PROPS = ("horn_held", "bow", "sword")            # shown only while used
+STANDS_FOR = {"horn_held": "horn_belt", "bow": "bow_back", "sword": "sword_back"}
 
 
 def show(p, props=()):
@@ -552,6 +616,27 @@ def hand(p, side, tilt=0.0, roll=0.0):
     p.rot(f"hand_{side}", -tilt, 0.0, roll * s)
 
 
+# Each tool is modelled through the middle of its fist, along the arm. Held at an angle to the arm, the part of it that
+# rises alongside the arm would cut through the sleeve near the fist; so the right fist grips it this far towards the
+# side that part leaves from: its front while its head rises up the front of the arm (tilt above -90), its back while
+# its butt rises up the back (below -90: a spear levelled under a raised arm), in between at right angles.
+GRIP = 1.5
+
+
+def hold(p, side, fwd, out=0.0, tilt=0.0, roll=0.0):
+    """Its arm swung `fwd` forward and `out` to its side, what its fist holds turned `tilt` (hand()) and gripped clear
+    of the sleeve (GRIP)."""
+    arm(p, side, fwd, out=out)
+    hand(p, side, tilt, roll)
+    if side == "r":
+        p.pos("hand_r", 0.0, 0.0, -GRIP * max(-1.0, min(1.0, (tilt + 90.0) / 40.0)))
+
+
+def carry(p, side, fwd, out, roll=0.0):
+    """Its arm swung `fwd` forward and `out` to its side, its fist turned back by as much, so what it holds stays
+    upright (or hangs straight down: a basket)."""
+    hold(p, side, fwd, out, -fwd, roll)
+
 
 def legs(p, swing, lift=True):
     """Its legs swung by `swing` degrees, the right one forward for positive; it rises as much as its boots' corners
@@ -562,22 +647,26 @@ def legs(p, swing, lift=True):
     return (HIP_Y * (1.0 - math.cos(a)) + 2.4 * math.sin(a)) if lift else 0.0
 
 
-# At rest each hand holds its tool upright in front of its arm, the way a man carries a spear: the arm brought forward,
-# the fist turned back by as much, so the tool stands straight up from the fist, clear of the sleeve (the user, October
-# 24, 2026: the tools "are not properly held"; hanging straight down along the arm, a cleaver's or a sword's blade was
-# inside the arm and an axe's behind it). The left hand the same (the archer's bow upright, a basket or a fish hanging).
-REST_R = 34.0
-REST_R_OUT = 6.0
-REST_L = 22.0
+# Its right arm at rest for each way of carrying: (forward, out, tilt, roll), and how much of the walk's arm swing it
+# takes. "pole": the arm brought forward and the fist turned back as much, so the tool stands straight up in front of
+# the arm (the swing turns the fist with it, so it stays upright); "hang": the tool held out ahead of the fist at right
+# angles to the arm, swinging with it, the way Minecraft holds a tool; "free": an empty hand.
+REST = {"pole": (40.0, 6.0, -40.0, 8.0), "hang": (10.0, 4.0, -90.0, 0.0), "free": (5.0, 4.0, 0.0, 0.0),
+        "sword": (5.0, 4.0, 0.0, 0.0)}
+SWING_R = {"pole": 0.25, "hang": 0.6, "free": 0.6, "sword": 0.6}
+# its left arm at rest (forward): a little forward holding a basket, the shield or nothing, lower with empty hands
+REST_L = {"pole": 22.0, "hang": 22.0, "free": 6.0, "sword": 6.0}
 REST_L_OUT = 3.0
-CARRY_ROLL = 8.0       # its tool's top leant a little out to its side, clear of its hood
 
 
-def carry(p, side, fwd, out, roll=None):
-    """Its arm swung `fwd` forward and `out` to its side, its fist turned back by as much, so what it holds stays
-    upright."""
-    arm(p, side, fwd, out=out)
-    hand(p, side, -fwd, CARRY_ROLL if roll is None else roll)
+def right(p, style, d=0.0):
+    """Its right arm at rest for `style`, swung `d` degrees further forward."""
+    fwd, out, tilt, roll = REST[style]
+    hold(p, "r", fwd + d, out, -(fwd + d) if style == "pole" else tilt, roll)
+
+
+def left(p, style, d=0.0, out=0.0):
+    carry(p, "l", REST_L[style] + d, REST_L_OUT + out)
 
 
 def _breath(p, t, period=3.2):
@@ -586,7 +675,7 @@ def _breath(p, t, period=3.2):
     return b
 
 
-def idle(rig):
+def idle(rig, style):
     T = 4.0
 
     def frame(t):
@@ -594,22 +683,22 @@ def idle(rig):
         b = _breath(p, t, T / 2.0)
         look = math.sin(2.0 * math.pi * t / T)
         p.rot("head", 2.0 * b, 14.0 * look, 0.0)
-        carry(p, "r", REST_R + 1.5 * b, REST_R_OUT)
-        carry(p, "l", REST_L - 1.5 * b, REST_L_OUT, 0.0)
+        right(p, style, 1.5 * b)
+        left(p, style, -1.5 * b)
         show(p)
         return p
 
-    return mobkit.record(rig, "idle", T, frame, loop=True)
+    return mobkit.record(rig, "idle" + SUFFIX[style], T, frame, loop=True)
 
 
-def _gait(rig, name, T, leg, arm_amp, lean, bob, stride_px):
+def _gait(rig, name, style, T, leg, arm_amp, lean, bob):
     def frame(t):
         p = Pose()
         w = 2.0 * math.pi * t / T
         sw = math.sin(w)
         rise = legs(p, leg * sw)
-        carry(p, "r", REST_R - arm_amp * 0.35 * sw, REST_R_OUT)            # (its tool hand swings less)
-        carry(p, "l", REST_L + arm_amp * 0.6 * sw, REST_L_OUT, 0.0)
+        right(p, style, -arm_amp * SWING_R[style] * sw)
+        left(p, style, arm_amp * 0.6 * sw)
         p.rot("body", lean, 0.0, 0.0)
         p.pos("waist", 0.0, rise + bob * abs(math.cos(w)), 0.0)
         p.rot("head", -lean * 0.6, 0.0, 0.0)
@@ -623,7 +712,7 @@ def _gait(rig, name, T, leg, arm_amp, lean, bob, stride_px):
     return a
 
 
-def talk(rig):
+def talk(rig, style):
     T = 2.0
 
     def frame(t):
@@ -631,57 +720,70 @@ def talk(rig):
         _breath(p, t, 2.0)
         up = ramp(t, 0.15, 0.5) * (1.0 - ramp(t, 1.5, 1.9))
         p.rot("head", 7.0 * math.sin(2.0 * math.pi * t / 0.8) * up, 0.0, 0.0)
-        carry(p, "r", REST_R, REST_R_OUT)
+        right(p, style)
         wave = 8.0 * math.sin(2.0 * math.pi * t / 0.8)                  # his hand out to his side as he speaks
-        carry(p, "l", REST_L + (38.0 + wave) * up, REST_L_OUT + 27.0 * up, 0.0)
+        left(p, style, (38.0 + wave) * up, 27.0 * up)
         p.rot("body", 0.0, 8.0 * up, 0.0)
         show(p)
         return p
 
-    return mobkit.record(rig, "talk", T, frame, loop=False)
+    return mobkit.record(rig, "talk" + SUFFIX[style], T, frame, loop=False)
 
 
 CHOP_HIT = 0.5
+# the elder's sword is in his fist from as he reaches over his shoulder for it until it's on its way back down
+SWORD_DRAWN = (0.34, 0.8)
 
 
-def chop(rig):
+def chop(rig, style):
+    """Its tool raised high (at right angles to its arm, its head back over its shoulder) and brought down; the elder
+    reaches over his shoulder and draws his sword for it."""
     T = 1.1
+    fwd0, out0, tilt0, roll0 = REST[style]
+    sword = style == "sword"
 
     def frame(t):
         p = Pose()
-        fwd = float(keyed(t, [(0.0, REST_R), (0.38, 165.0), (CHOP_HIT, 55.0, "in"), (0.75, 50.0), (T, REST_R)]))
-        tilt = float(keyed(t, [(0.0, -REST_R), (0.38, -40.0), (CHOP_HIT, -95.0, "in"), (0.75, -95.0), (T, -REST_R)]))
-        out = float(keyed(t, [(0.0, REST_R_OUT), (0.38, 0.0), (0.75, 0.0), (T, REST_R_OUT)]))
-        arm(p, "r", fwd, out=out)
-        hand(p, "r", tilt, CARRY_ROLL * float(keyed(t, [(0.0, 1.0), (0.3, 0.0), (0.8, 0.0), (T, 1.0)])))
-        carry(p, "l", REST_L + float(keyed(t, [(0.0, 0.0), (0.38, 20.0), (CHOP_HIT, -10.0), (T, 0.0)])), REST_L_OUT + 3.0,
-              0.0)
+        fwd = float(keyed(t, [(0.0, fwd0), (0.38, 165.0), (CHOP_HIT, 55.0, "in"), (0.75, 50.0),
+                              (T, fwd0)]))
+        tilt = float(keyed(t, [(0.0, tilt0), (0.38, -90.0), (CHOP_HIT, -95.0, "in"), (0.75, -95.0), (T, tilt0)]))
+        out = float(keyed(t, [(0.0, out0), (0.38, 0.0), (0.75, 0.0), (T, out0)]))
+        roll = roll0 * float(keyed(t, [(0.0, 1.0), (0.3, 0.0), (0.8, 0.0), (T, 1.0)]))
+        hold(p, "r", fwd, out, tilt, roll)
+        left(p, style, float(keyed(t, [(0.0, 0.0), (0.38, 20.0), (CHOP_HIT, -10.0), (T, 0.0)])), 3.0)
         p.rot("body", float(keyed(t, [(0.0, 0.0), (0.38, -6.0), (CHOP_HIT, 10.0, "in"), (T, 0.0)])),
               float(keyed(t, [(0.0, 0.0), (0.38, 15.0), (CHOP_HIT, -12.0, "in"), (T, 0.0)])), 0.0)
-        show(p)
+        show(p, ("sword",) if sword and SWORD_DRAWN[0] <= t <= SWORD_DRAWN[1] else ())
         return p
 
-    a = mobkit.record(rig, "chop", T, frame, loop=False)
+    a = mobkit.record(rig, "chop_sword" if sword else "chop" + SUFFIX[style], T, frame, loop=False)
     a.meta["hits"] = [CHOP_HIT]
     return a
 
 
+# A thrust: the spear levelled (this many degrees from straight up: a little below level) and driven forward from low
+# at its side, underhand, its butt passing under its raised forearm (overhand, along the arm, the butt ran back up the
+# sleeve); the sweep swings it out from straight ahead.
+LEVEL = 95.0
+
+
 def _thrust_keys(hits, T, sweep_last):
     """Keys for its right arm (fwd, out, tilt) for thrusts at `hits` (the last one a sweep if `sweep_last`)."""
-    fwd = [(0.0, REST_R)]
-    out = [(0.0, REST_R_OUT)]
-    tilt = [(0.0, -REST_R)]
+    fwd0, out0, tilt0, _roll = REST["pole"]
+    fwd = [(0.0, fwd0)]
+    out = [(0.0, out0)]
+    tilt = [(0.0, tilt0)]
     for i, h in enumerate(hits):
         last = sweep_last and i == len(hits) - 1
-        fwd += [(h - 0.18, 75.0), (h, 95.0, "in"), (h + 0.14, 82.0)]
-        tilt += [(h - 0.18, -175.0), (h, -182.0), (h + 0.14, -178.0)]
-        if last:
-            out += [(h - 0.18, -40.0), (h, 55.0, "in"), (h + 0.14, 60.0)]
-        else:
-            out += [(h - 0.18, 0.0), (h, 0.0), (h + 0.14, 0.0)]
-    fwd += [(T, REST_R)]
-    tilt += [(T, -REST_R)]
-    out += [(T, REST_R_OUT)]
+        keys = (((h - 0.18, 34.0, 4.0), (h, 52.0, 55.0, "in"), (h + 0.14, 46.0, 60.0)) if last else
+                ((h - 0.18, 8.0, 0.0), (h, 55.0, 0.0, "in"), (h + 0.14, 48.0, 0.0)))
+        for k in keys:
+            fwd.append((k[0], k[1]) + k[3:])
+            out.append((k[0], k[2]) + k[3:])
+            tilt.append((k[0], -LEVEL - k[1]) + k[3:])
+    fwd += [(T, fwd0)]
+    tilt += [(T, tilt0)]
+    out += [(T, out0)]
     return fwd, out, tilt
 
 
@@ -690,13 +792,12 @@ def _thrusts(rig, name, T, hits, sweep_last):
 
     def frame(t):
         p = Pose()
-        arm(p, "r", float(keyed(t, fwd_k)), out=float(keyed(t, out_k)))
-        hand(p, "r", float(keyed(t, tilt_k)))
+        hold(p, "r", float(keyed(t, fwd_k)), float(keyed(t, out_k)), float(keyed(t, tilt_k)),
+             REST["pole"][3] * (1.0 - ramp(t, 0.0, 0.2) * (1.0 - ramp(t, T - 0.3, T))))
         lunge = min(1.0, sum(max(0.0, 1.0 - abs(t - h) / 0.2) for h in hits))
         p.rot("body", 8.0 * lunge, -10.0 * lunge, 0.0)
         p.pos("waist", 0.0, legs(p, 10.0 * lunge), 0.0)
-        carry(p, "l", REST_L + 25.0 * min(1.0, lunge + ramp(t, 0.0, 0.2) * (1.0 - ramp(t, T - 0.3, T))), REST_L_OUT + 5.0,
-              0.0)
+        left(p, "pole", 25.0 * min(1.0, lunge + ramp(t, 0.0, 0.2) * (1.0 - ramp(t, T - 0.3, T))), 5.0)
         show(p)
         return p
 
@@ -713,18 +814,23 @@ def thrust_sweep(rig):
     return _thrusts(rig, "thrust_sweep", 1.4, (0.4, 0.9), True)
 
 
+# the archer's bow comes off his back into his fist once his arm is this far up (of the way to his aim)
+BOW_IN_HAND = 0.7
+
+
 def _shot(rig, name, T, release):
+    fwd0, out0, _tilt0, _roll0 = REST["free"]
+
     def frame(t):
         p = Pose()
         up = ramp(t, 0.1, 0.45) * (1.0 - ramp(t, T - 0.35, T))
         draw = ramp(t, release - 0.55, release - 0.05) * (1.0 - ramp(t, release, release + 0.05))
-        carry(p, "l", REST_L + (86.0 - REST_L) * up, REST_L_OUT - 9.0 * up, 0.0)   # the bow held out ahead, upright
-        rf = REST_R + ((93.0 - REST_R) - 29.75 * draw) * up
-        arm(p, "r", rf, out=REST_R_OUT * (1.0 - up) - 26.0 * up * (1.0 - draw * 0.3))
-        hand(p, "r", -REST_R * (1.0 - up), CARRY_ROLL * (1.0 - up))
+        left(p, "free", (86.0 - REST_L["free"]) * up, -9.0 * up)           # the bow held out ahead, upright
+        rf = fwd0 + ((93.0 - fwd0) - 29.75 * draw) * up
+        arm(p, "r", rf, out=out0 * (1.0 - up) - 26.0 * up * (1.0 - draw * 0.3))
         p.rot("body", 0.0, 22.0 * up, 0.0)
         p.rot("head", 0.0, -20.0 * up, 0.0)
-        show(p)
+        show(p, ("bow",) if up >= BOW_IN_HAND else ())
         return p
 
     a = mobkit.record(rig, name, T, frame, loop=False)
@@ -745,13 +851,14 @@ HORN_CALL = 0.85
 
 def horn_blow(rig):
     T = 3.7
+    l0 = REST_L["pole"]
 
     def frame(t):
         p = Pose()
         up = ramp(t, 0.15, HORN_CALL) * (1.0 - ramp(t, 2.9, 3.4))
-        arm(p, "l", REST_L + (139.0 - REST_L) * up, out=REST_L_OUT - 31.0 * up)
-        hand(p, "l", -REST_L * (1.0 - up) - 40.0 * up, 0.0)
-        carry(p, "r", REST_R, REST_R_OUT)
+        arm(p, "l", l0 + (139.0 - l0) * up, out=REST_L_OUT - 31.0 * up)
+        hand(p, "l", -l0 * (1.0 - up) - 40.0 * up, 0.0)
+        right(p, "pole")
         p.rot("head", -14.0 * up, 0.0, 0.0)
         p.rot("body", -4.0 * up, 0.0, 0.0)
         show(p, ("horn_held",) if t > 0.15 and t < 3.4 else ())
@@ -763,15 +870,18 @@ def horn_blow(rig):
 
 
 def animations(rig):
-    return {
-        "idle": idle(rig),
-        "walk": _gait(rig, "walk", 1.0, 28.0, 24.0, 0.0, 0.25, 0.0),
-        "run": _gait(rig, "run", 0.62, 50.0, 46.0, 12.0, 0.6, 0.0),
-        "talk": talk(rig),
-        "chop": chop(rig),
-        "spear_combo": spear_combo(rig),
-        "thrust_sweep": thrust_sweep(rig),
-        "quick_shot": quick_shot(rig),
-        "aimed_shot": aimed_shot(rig),
-        "horn_blow": horn_blow(rig),
-    }
+    out = {}
+    for style in ("free", "pole", "hang"):
+        sx = SUFFIX[style]
+        out["idle" + sx] = idle(rig, style)
+        out["walk" + sx] = _gait(rig, "walk" + sx, style, 1.0, 28.0, 24.0, 0.0, 0.25)
+        out["run" + sx] = _gait(rig, "run" + sx, style, 0.62, 50.0, 46.0, 12.0, 0.6)
+        out["talk" + sx] = talk(rig, style)
+        out["chop" + sx] = chop(rig, style)
+    out["chop_sword"] = chop(rig, "sword")
+    out["spear_combo"] = spear_combo(rig)
+    out["thrust_sweep"] = thrust_sweep(rig)
+    out["quick_shot"] = quick_shot(rig)
+    out["aimed_shot"] = aimed_shot(rig)
+    out["horn_blow"] = horn_blow(rig)
+    return out
