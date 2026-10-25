@@ -24,9 +24,9 @@ public enum FolkRole
             Set.of("hood_furtrim", "cape_pelt", "axe")),
     PIKEMAN("pikeman", Kind.WARRIOR, 28.0D, 5.0D, 3.0D, Attack.PIKE, FolkAnims.Carry.POLE,
             Set.of("hood_point", "cape_pelt", "long_spear")),
-    /** His bow slung on his back, in his hand only while he shoots (the user, October 24, 2026). */
+    /** His bow in his left hand, a brown quiver of ice arrows on his back (the user, October 24, 2026). */
     ARCHER("archer", Kind.WARRIOR, 25.0D, 3.0D, 2.0D, Attack.CHOP, FolkAnims.Carry.FREE,
-            Set.of("hood_cowl", "drape", "bow", "bow_back", "quiver")),
+            Set.of("hood_cowl", "drape", "bow", "quiver")),
     HORNBLOWER("hornblower", Kind.WARRIOR, 26.0D, 4.0D, 3.0D, Attack.THRUST_SWEEP, FolkAnims.Carry.POLE,
             Set.of("hood_ears", "cape_pelt", "spear", "horn_belt", "horn_held", "flag")),
     // workers: they fight with their tools, weakly
@@ -87,7 +87,7 @@ public enum FolkRole
     /** Every bone of the model only some callings show (its hood styles, capes and tools; the others hide it). */
     public static final List<String> GEAR = List.of("hood_peak", "hood_furtrim", "hood_point", "hood_cowl", "hood_ears",
             "hood_horn", "hood_flaps", "hood_brim", "hood_tail", "beard", "cape_pelt", "cape_long", "drape", "fringe", "apron",
-            "quiver", "flag", "hide_roll", "horn_belt", "bow_back", "sword_back", "spear", "long_spear", "axe", "sword", "hoe",
+            "quiver", "flag", "hide_roll", "horn_belt", "sword_back", "spear", "long_spear", "axe", "sword", "hoe",
             "cleaver", "crook", "rod", "bow", "basket", "horn_held", "shield");
 
     public final String key;

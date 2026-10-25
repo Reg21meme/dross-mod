@@ -207,8 +207,8 @@ final class SaddleGoal extends HuntGoal
                         .at(length(anim), () -> rider.shotTarget = null);
             }
             case "rain" -> new Timed("rain", rider, "ride_rain", moment("ride_rain", "shots.3") + 4, moment("ride_rain", "shots.3"))
-                    .first(() -> rider.shotTarget = null)
-                    .at(moment("ride_rain", "shots.3"), () -> HuntFight.rain(rider, target, HuntsmanTuning.RAIN_ARROWS));
+                    .first(() -> HuntFight.startRain(rider, target))
+                    .at(moment("ride_rain", "shots.3") + 1, () -> rider.rainTarget = null);
             default -> null;
         };
     }

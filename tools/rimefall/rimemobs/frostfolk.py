@@ -15,8 +15,8 @@ the others (FolkRole.shows): its hood's style, its cape, its tools.
   warriors     spearman     a peaked hood, a wolf-pelt cape; a spear and a round hide shield
                axeman       a hood with a thick fur trim round the face, a wolf-pelt cape; an axe of ice
                pikeman      a tall pointed hood, a wolf-pelt cape; a long spear
-               archer       a deep cowl with a drape down his back; a bow slung on his back (in his hand to shoot),
-                            a quiver
+               archer       a deep cowl with a drape down his back; a bow in his left hand, a brown quiver of ice
+                            arrows on his back
                horn-blower  a hood with a wolf's ears, a wolf-pelt cape; a spear, a horn at his belt, the village's flag
   workers      farmer       a hood with a Rimehorn's horn on its brow; a hoe, a basket of Frostroots
                butcher      a close cap-hood; a cleaver, a leather apron
@@ -81,7 +81,6 @@ GEAR = (
     ("flag", "body", (0.0, 20.0, 3.0)),
     ("hide_roll", "body", (0.0, 23.0, 3.0)),
     ("horn_belt", "body", (4.0, 12.0, 0.0)),
-    ("bow_back", "body", (0.0, 18.0, 6.0)),
     ("sword_back", "body", (0.0, 20.0, 7.0)),
     ("spear", "hand_r", (-6.0, FIST_Y, 0.0)),
     ("long_spear", "hand_r", (-6.0, FIST_Y, 0.0)),
@@ -266,21 +265,14 @@ def gear(r):
     box(ro, xr - 0.5, xr + 0.5, 13.5, 14.5, -13, -12, "iron")
     box(ro, xr - 0.5, xr + 0.5, 9, 14, -13.5, -11.5, "fishscale")             # the fish, hanging by its mouth
     box(ro, xr - 0.5, xr + 0.5, 7, 9, -13, -12, "fishscale")                  # its tail
-    # the archer's bow in his left fist, its string towards him: held in the inner side of his fist, so its string
-    # runs along the inside of his forearm (through its middle, it cut through his sleeve: the user, October 24, 2026,
-    # "the bow for the archer is still weird"); only in his hand while he shoots, slung on his back the rest of the time
-    bx = xl - BOW_IN
+    # the archer's bow, always in his left fist (the user, October 24, 2026: "make him hold his bow in his hand and
+    # just have his quiver on his back"; for a while it was slung on his back): held by the outer side of his fist, so
+    # it hangs beside his arm and leg, clear of both (through the fist's middle its limbs and string cut through his
+    # sleeve, and by its inner side its lower limb went into his leg), its string towards him
+    bx = xl + BOW_OUT
     bw = r.part("bow")
-    box(bw, bx - 0.8, bx + 0.8, 10, 13, -0.6, 0.6, "leather")
+    box(bw, bx - 1.2, bx + 0.8, 10.5, 12.5, -0.6, 0.6, "leather")          # (its grip, into his fist)
     _bow(bw, np.array([bx, FIST_Y, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
-    # on his back, flat against his drape, beside his quiver and leaning the same way (the user, October 24, 2026,
-    # "the archer's quiver looks weird": it lay across the quiver), its string on the far side
-    bb = r.part("bow_back")
-    up = np.array([-math.sin(math.radians(QUIVER_TILT)), math.cos(math.radians(QUIVER_TILT)), 0.0])
-    side = np.array([up[1], -up[0], 0.0])
-    o = np.array(BOW_BACK_AT)
-    bb.seg(tuple(o - 1.5 * up), tuple(o + 1.5 * up), 1.2, 1.2, "leather")
-    _bow(bb, o, up, side)
     # the elder's sword in its sheath across his back, its hilt over his right shoulder (in his fist only to strike:
     # the user, October 24, 2026, "the sword held by the elder is still weird")
     sb = r.part("sword_back")
@@ -288,7 +280,7 @@ def gear(r):
     top = np.array([-3.8, 28.5, 7.0])
     for t0, t1, w, d, mat in ((0.0, 1.0, 2.0, 2.0, "iron"), (1.0, 5.0, 1.0, 1.0, "leather"),
                               (5.0, 6.0, 5.0, 1.5, "iron"), (6.0, 18.5, 3.0, 2.0, "leather"),
-                              (18.5, 19.5, 2.0, 1.6, "iron")):
+                              (18.3, 19.5, 2.0, 1.6, "iron")):            # (its tip into the sheath)
         c = top + down * ((t0 + t1) / 2.0)
         sb.box(tuple(c), (w, t1 - t0, d), mat, rot=(0.0, 0.0, SWORD_BACK_TILT))
     # the farmer's basket
@@ -310,23 +302,25 @@ def gear(r):
     # on his body: the butcher's apron, the archer's quiver, the horn-blower's horn and flag, the tanner's hide
     ap = r.part("apron")
     box(ap, -3.5, 3.5, 7, 21, -4.5, -3.5, "apron")
-    # the archer's quiver: a tube of pale hide on his back, on his drape, its mouth over his right shoulder for his right
-    # hand, dark bands at its mouth, round its middle and on its foot, five arrows standing out of it (their ice
-    # fletching), a strap from it across his chest to his left hip (it was a slab half sunk in his drape with a
-    # pale blob for its arrows: "the archer's quiver looks weird")
+    # the archer's quiver: a brown leather tube on his back, on his drape, its mouth over his right shoulder for his
+    # right hand, dark bands at its mouth and foot, four arrows of ice standing out of it, a strap from it across his
+    # chest to his left hip (it was a slab half sunk in his drape with a pale blob for its arrows: "the archer's quiver
+    # looks weird"; then "brown quiver, ice arrows")
     qv = r.part("quiver")
+    up = np.array([-math.sin(math.radians(QUIVER_TILT)), math.cos(math.radians(QUIVER_TILT)), 0.0])
+    side = np.array([up[1], -up[0], 0.0])
     c = np.array(QUIVER_AT)
     rot = (0.0, 0.0, QUIVER_TILT)
 
     def along(t, a=0.0, dz=0.0):
         return tuple(c + up * t + side * a + np.array([0.0, 0.0, dz]))
 
-    for t0, t1, w, d, mat in ((-4.5, 4.5, 3.0, 2.4, "hide"), (4.5, 5.3, 3.4, 2.8, "boots"),
+    for t0, t1, w, d, mat in ((-4.5, 4.5, 3.0, 2.4, "leather"), (4.5, 5.3, 3.4, 2.8, "boots"),
                               (-5.0, -4.5, 2.6, 2.0, "boots")):
         qv.box(along((t0 + t1) / 2.0), (w, t1 - t0, d), mat, rot=rot)
     for a, dz, h in ((-1.1, -0.5, 2.0), (-0.35, 0.45, 3.4), (0.4, -0.3, 2.6), (1.1, 0.5, 1.6)):
         top = 5.3 + h                                          # (each its own shaft and small vanes, apart)
-        qv.box(along((4.5 + top) / 2.0, a, dz), (0.5, top - 4.5, 0.5), "shaft", rot=rot)
+        qv.box(along((4.5 + top) / 2.0, a, dz), (0.5, top - 4.5, 0.5), "ice", rot=rot)
         qv.box(along(top - 0.4, a, dz), (0.5, 1.2, 0.8), "fletch", rot=rot)
     qv.box((0.0, 17.5, -3.25), (1.0, 10.8, 0.5), "belt", rot=(0.0, 0.0, 34.0))   # (under his capelet and belt)
     hb = r.part("horn_belt")
@@ -340,10 +334,9 @@ def gear(r):
     box(hr, -0.5, 0.5, 21, 25, 3, 7, "leather")
 
 
-BOW_IN = 2.2            # the bow in his fist sits this far to its inner side (its string along his forearm's inside)
-QUIVER_TILT = 18.0      # the archer's quiver (and his bow beside it) lean their tops this far over to his right
-QUIVER_AT = (-2.8, 17.6, 5.75)     # the middle of his quiver's tube, on his drape (its back at 4.5)
-BOW_BACK_AT = (0.17, 17.19, 5.6)   # his bow's grip on his back, beside the quiver (clear of the hood behind his head)
+BOW_OUT = 2.7           # the bow in his fist sits this far to its outer side (clear of his sleeve and his leg)
+QUIVER_TILT = 18.0      # the archer's quiver leans its top this far over to his right
+QUIVER_AT = (-2.2, 17.6, 5.75)     # the middle of his quiver's tube, on his drape (its back at 4.5)
 SWORD_BACK_TILT = 25.0  # the elder's sheath across his back: its hilt over his right shoulder
 
 
@@ -554,7 +547,7 @@ _CALLINGS = (
     ("spearman", "Spearman", "warrior", ("hood_peak", "cape_pelt", "spear", "shield"), ("spear_combo",)),
     ("axeman", "Axeman", "warrior", ("hood_furtrim", "cape_pelt", "axe"), ()),
     ("pikeman", "Pikeman", "warrior", ("hood_point", "cape_pelt", "long_spear"), ("thrust_sweep",)),
-    ("archer", "Archer", "warrior", ("hood_cowl", "drape", "bow", "bow_back", "quiver"), ("quick_shot", "aimed_shot")),
+    ("archer", "Archer", "warrior", ("hood_cowl", "drape", "bow", "quiver"), ("quick_shot", "aimed_shot")),
     ("hornblower", "Horn-blower", "warrior", ("hood_ears", "cape_pelt", "spear", "horn_belt", "horn_held", "flag"),
      ("horn_blow", "thrust_sweep")),
     ("farmer", "Farmer", "worker", ("hood_horn", "hoe", "basket"), ()),
@@ -595,7 +588,7 @@ def clip_group(bone):
         return "tool"
     if bone in ("sleeve_r", "sleeve_l"):
         return "sleeve"
-    if bone in ("bow_back", "quiver", "sword_back"):
+    if bone in ("quiver", "sword_back"):
         return "back"
     if bone in ("body", "head", "leg_l", "leg_r", "waist"):
         return "body"
@@ -610,8 +603,8 @@ CLIP_STRICT = (("tool", "sleeve"),)
 
 # ---------------------------------------------------------------- their animations (keyed by hand)
 
-PROPS = ("horn_held", "bow", "sword")            # shown only while used
-STANDS_FOR = {"horn_held": "horn_belt", "bow": "bow_back", "sword": "sword_back"}
+PROPS = ("horn_held", "sword")            # shown only while used
+STANDS_FOR = {"horn_held": "horn_belt", "sword": "sword_back"}
 
 
 def show(p, props=()):
@@ -835,9 +828,6 @@ def thrust_sweep(rig):
     return _thrusts(rig, "thrust_sweep", 1.4, (0.4, 0.9), True)
 
 
-# the archer's bow comes off his back into his fist once his arm is this far up (of the way to his aim)
-BOW_IN_HAND = 0.7
-
 
 def _shot(rig, name, T, release):
     fwd0, out0, _tilt0, _roll0 = REST["free"]
@@ -851,7 +841,7 @@ def _shot(rig, name, T, release):
         arm(p, "r", rf, out=out0 * (1.0 - up) - 26.0 * up * (1.0 - draw * 0.3))
         p.rot("body", 0.0, 22.0 * up, 0.0)
         p.rot("head", 0.0, -20.0 * up, 0.0)
-        show(p, ("bow",) if up >= BOW_IN_HAND else ())
+        show(p)
         return p
 
     a = mobkit.record(rig, name, T, frame, loop=False)

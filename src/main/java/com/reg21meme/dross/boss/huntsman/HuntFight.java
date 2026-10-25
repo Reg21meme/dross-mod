@@ -111,12 +111,15 @@ public final class HuntFight
     private static final UUID ANGRY_SPEED_ID = UUID.fromString("6c1a8a0e-3f9b-4d6e-9a51-2b7f3c8d4e11");
     /** A volley arrow (into the sky, harmless) is cleared away this long after it's loosed. */
     private static final int VOLLEY_CLEAR_TICKS = 60;
-    /** A rain arrow is cleared away this long after it comes down. */
-    private static final int RAIN_CLEAR_TICKS = 80;
+    /** A rain arrow is cleared away this long after it's loosed. */
+    private static final int RAIN_CLEAR_TICKS = 120;
+    /** An arrow's drag (a tick's speed is kept times this) and gravity (taken off its upward speed each tick). */
+    private static final double ARROW_DRAG = 0.99D;
+    private static final double ARROW_GRAVITY = 0.05D;
+    /** The rain's storm sound comes this long before its first arrows are down. */
+    private static final int RAIN_SOUND_LEAD = 8;
     /** An aimed arrow's drop per tick squared (an arrow's gravity, 0.05, halved: it falls that far in t ticks). */
     static final double ARROW_DROP = 0.025D;
-    /** The arrow rain's few degrees of spread as it comes down. */
-    private static final float RAIN_SPREAD_DEGREES = 2.0F;
     /** The frosted screen and freeze of the aimed shot (never long enough for powder snow's damage, 140). */
     private static final int FREEZE_FROST_TICKS = 130;
     /** Every spike standing and when it goes (game time). */
@@ -1206,54 +1209,138 @@ public final class HuntFight
         });
     }
 
-    /** The arrow rain: {@code arrows} frost arrows come down at random spots within
-     * {@link HuntsmanTuning#RAIN_RADIUS} of {@code target}, starting a moment later, with nothing to show where (the
-     * user: "don't warn the player where the arrows land"). */
-    static void rain(HuntMob shooter, LivingEntity target, int arrows)
+    /** His arrow rain starts: the arrows he looses up come down on {@code target} ({@link #rainFrom}). */
+    static void startRain(HuntMob shooter, LivingEntity target)
     {
-        for (int i = 0; i < arrows; i++)
+        shooter.shotTarget = null;
+        shooter.rainTarget = target;
+        shooter.rainSounded = false;
+    }
+
+    /**
+     * One of the arrows he looses up in his arrow rain, from {@code from} (his bow), as {@link
+     * HuntsmanTuning#RAIN_PER_ARROW} real frost arrows: each on a high arc (worked out with an arrow's own drag and
+     * gravity) to a spot within {@link HuntsmanTuning#RAIN_RADIUS} of where {@code target} will be when it comes down,
+     * and steering as it falls towards that spot round where the target is then (the user, October 24, 2026: "make it
+     * so you see arrows go up from the hunter's bow ... just make them aimed at you automatically"). Nothing shows where
+     * they'll land (the user: "don't warn the player where the arrows land").
+     */
+    static void rainFrom(HuntMob shooter, Vec3 from, LivingEntity target)
+    {
+        if (!(shooter.level() instanceof ServerLevel level))
         {
-            boolean first = i == 0;     // the first arrow down brings the storm's sound with it
-            int[] left = {HuntsmanTuning.RAIN_DELAY + (int) (i * (double) HuntsmanTuning.RAIN_SPREAD / arrows)};
-            Vec3[] last = {target.position()};
-            shooter.pending.add((m, level) ->
+            return;
+        }
+        RandomSource r = shooter.getRandom();
+        Vec3 move = shooter.motionOf(target);
+        for (int k = 0; k < HuntsmanTuning.RAIN_PER_ARROW; k++)
+        {
+            int flight = HuntsmanTuning.RAIN_FLIGHT + r.nextInt(HuntsmanTuning.RAIN_FLIGHT_SPREAD + 1);
+            double a = r.nextDouble() * Math.PI * 2.0D;
+            double d = Math.pow(r.nextDouble(), HuntsmanTuning.RAIN_SPREAD_POWER) * HuntsmanTuning.RAIN_RADIUS;
+            Vec3 offset = new Vec3(Math.cos(a) * d, target.getBbHeight() * 0.4D, Math.sin(a) * d);
+            Vec3 lead = new Vec3(move.x, 0.0D, move.z).scale(flight);
+            if (lead.length() > HuntsmanTuning.RAIN_LEAD_MAX)
             {
-                if (target.isAlive())
+                lead = lead.normalize().scale(HuntsmanTuning.RAIN_LEAD_MAX);
+            }
+            Vec3 land = target.position().add(lead).add(offset);
+            Vec3 v = launch(from, land, flight);
+            Arrow arrow = new Arrow(level, from.x, from.y, from.z);
+            arrow.setOwner(shooter);
+            arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
+            arrow.setBaseDamage(HuntsmanTuning.RAIN_BASE_DAMAGE * damageScale(shooter));
+            arrow.shoot(v.x, v.y, v.z, (float) v.length(), 0.0F);
+            mark(arrow, Frost.FROST);
+            level.addFreshEntity(arrow);
+            steer(shooter, arrow, target, offset);
+            if (!shooter.rainSounded)                       // the storm's sound, as the first of them come down
+            {
+                shooter.rainSounded = true;
+                int[] sound = {flight - RAIN_SOUND_LEAD};
+                shooter.pending.add((m, l) ->
                 {
-                    last[0] = target.position();
-                }
-                if (--left[0] > 0)
-                {
-                    return false;
-                }
-                RandomSource r = m.getRandom();
-                double a = r.nextDouble() * Math.PI * 2.0D;
-                double d = Math.pow(r.nextDouble(), HuntsmanTuning.RAIN_SPREAD_POWER) * HuntsmanTuning.RAIN_RADIUS;
-                Vec3 c = last[0];
-                Arrow arrow = new Arrow(level, c.x + Math.cos(a) * d, c.y + HuntsmanTuning.RAIN_HEIGHT, c.z + Math.sin(a) * d);
-                arrow.setOwner(m);
-                arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
-                arrow.setBaseDamage(HuntsmanTuning.RAIN_BASE_DAMAGE * damageScale(m));
-                arrow.shoot(0.0D, -1.0D, 0.0D, (float) HuntsmanTuning.RAIN_SPEED, RAIN_SPREAD_DEGREES);
-                mark(arrow, Frost.FROST);
-                level.addFreshEntity(arrow);
-                if (first)
-                {
-                    level.playSound(null, c.x, c.y, c.z, ModSounds.HUNTSMAN_ARROW_RAIN.get(), SoundSource.HOSTILE, 2.0F, 1.0F);
-                }
-                int[] gone = {RAIN_CLEAR_TICKS};
-                m.pending.add((m2, l2) ->
-                {
-                    if (--gone[0] > 0)
+                    if (--sound[0] > 0)
                     {
                         return false;
                     }
-                    arrow.discard();
+                    l.playSound(null, target.getX(), target.getY(), target.getZ(), ModSounds.HUNTSMAN_ARROW_RAIN.get(),
+                            SoundSource.HOSTILE, 2.0F, 1.0F);
                     return true;
                 });
-                return true;
-            });
+            }
         }
+    }
+
+    /** The speed an arrow needs to go from {@code from} to {@code to} in {@code ticks}, with an arrow's drag and
+     * gravity (its position moves by its speed, then its speed is kept times {@link #ARROW_DRAG} and loses
+     * {@link #ARROW_GRAVITY} upwards, each tick). */
+    static Vec3 launch(Vec3 from, Vec3 to, int ticks)
+    {
+        double keep = Math.pow(ARROW_DRAG, ticks);
+        double sum = (1.0D - keep) / (1.0D - ARROW_DRAG);             // how far a speed of 1 carries it in that time
+        double fall = ARROW_GRAVITY / (1.0D - ARROW_DRAG) * (ticks - sum);   // how far gravity pulls it down meanwhile
+        Vec3 d = to.subtract(from);
+        return new Vec3(d.x / sum, (d.y + fall) / sum, d.z / sum);
+    }
+
+    /** As it comes down, a rain arrow turns towards its spot round where {@code target} is now (its client told every
+     * tick); it's cleared away a while after. */
+    private static void steer(HuntMob shooter, Arrow arrow, LivingEntity target, Vec3 offset)
+    {
+        int[] age = {0};
+        int[] seen = {-1};
+        Vec3[] was = {arrow.position()};
+        boolean[] steering = {true};
+        shooter.pending.add((m, level) ->
+        {
+            age[0]++;
+            if (arrow.isRemoved())
+            {
+                return true;
+            }
+            if (age[0] >= RAIN_CLEAR_TICKS)
+            {
+                arrow.discard();
+                return true;
+            }
+            // (judged by the arrow's own ticks: a new arrow first moves the tick after it's loosed, after he has acted,
+            // and seen unmoved then it looked stuck in the ground, and never steered)
+            if (arrow.tickCount == seen[0])
+            {
+                return false;
+            }
+            Vec3 at = arrow.position();
+            boolean moving = seen[0] < 0 || at.distanceToSqr(was[0]) > 1.0E-4D;
+            seen[0] = arrow.tickCount;
+            was[0] = at;
+            Vec3 v = arrow.getDeltaMovement();
+            if (!steering[0] || v.y >= 0.0D)
+            {
+                steering[0] &= moving;                         // (stuck in the ground: done steering)
+                return false;
+            }
+            if (!moving || !target.isAlive())
+            {
+                steering[0] = false;
+                return false;
+            }
+            Vec3 spot = target.position().add(offset);
+            double h = at.y - spot.y;
+            if (h <= 0.3D)
+            {
+                steering[0] = false;
+                return false;
+            }
+            double down = -v.y;
+            double t = Math.max(1.0D, (-down + Math.sqrt(down * down + 2.0D * ARROW_GRAVITY * h)) / ARROW_GRAVITY);
+            double wantX = (spot.x - at.x) / t;
+            double wantZ = (spot.z - at.z) / t;
+            double steer = HuntsmanTuning.RAIN_STEER;
+            arrow.setDeltaMovement(v.x + (wantX - v.x) * steer, v.y, v.z + (wantZ - v.z) * steer);
+            arrow.hasImpulse = true;
+            return false;
+        });
     }
 
     // ---------------------------------------------------------------- the Cracking Stamp

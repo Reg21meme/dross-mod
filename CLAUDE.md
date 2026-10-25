@@ -620,7 +620,19 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           "48: 4 per arrow"): 48 come down in both stages (`RAIN_ARROWS`, `RAIN_ARROWS_STAGE2`; 15 and 10 before, which a
           player standing still was hit by about once in six rains), over 1.5 s (`RAIN_SPREAD` 30 ticks), crowded towards
           where you are (a spot's distance from the middle is the radius times a random 0-1 to the power 0.75,
-          `RAIN_SPREAD_POWER`; standing still in it you take about two), still with no warning.
+          `RAIN_SPREAD_POWER`; standing still in it you take about two), still with no warning. **Then (October 24,
+          2026) the arrows he looses are the ones that come down** (the user: "the hunter's arrows that he launches go
+          one way and the arrows that actually hit you just spawn in ... make it so you see arrows go up from the
+          hunter's bow ... no, don't make arrows spawn in, just make them aimed at you automatically"; and against Pond
+          Skaters the rain didn't hit them): each of the 12 he looses up leaves his bow as a fan of 4 real frost arrows
+          (`RAIN_PER_ARROW`; 48 in both stages), each on a high arc worked out with an arrow's own drag and gravity
+          (`HuntFight.launch`) to a spot within 5 blocks of where his target will be (`RAIN_RADIUS`, `RAIN_SPREAD_POWER`
+          0.8, led by its movement up to 6 blocks: `RAIN_LEAD_MAX`), each its own flight of 34-46 ticks (`RAIN_FLIGHT`),
+          and as it comes down it steers towards its spot round where the target is then (`RAIN_STEER`, `HuntFight.steer`;
+          its client told every tick). Measured (`HuntProbeGameTest.rainProbe`, from 14 blocks): a villager standing took
+          3-4 of the 48, one walking across 6-8, a Pond Skater standing 10-16; every arrow starts within 1.5 blocks
+          of his bow, none in the sky (a first try never steered: a new arrow first moves the tick after it's loosed, and
+          seen unmoved it was taken for stuck in the ground).
         - **The Wild Hunt's health**: 250 (`WILD_HUNT_HEALTH`; "increase the Wild Hunt's health by 50").
         - **Two attackers at once in the Wild Hunt** ("the hunter needs to be shooting or hitting me with a spear while
           the moose attacks"): one table ran both of them, and he sat still while it charged. Now each has its own timer.
@@ -893,10 +905,11 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
           eyes, `<calling>_glow.png`). Each calling's hood style, cape and tools on bones of their own, the others
           hidden (`FolkRole.shows`, `client/FolkRenderer`): **spearman** a peaked hood, a wolf-pelt cape, a spear and a
           round hide shield; **axeman** a thick fur-trimmed hood, a wolf pelt, an axe of ice; **pikeman** a tall pointed
-          hood, a long spear; **archer** a deep cowl with a drape, a quiver on his back (a tube of pale hide with dark
-          bands, its mouth over his right shoulder, four arrows with ice fletching standing out of it, a strap across his
-          chest; it was a slab half sunk in his drape: the user, "the archer's quiver looks weird") and his bow slung
-          flat beside it; **horn-blower** a hood with a wolf's
+          hood, a long spear; **archer** a deep cowl with a drape, his bow in his left hand (held by the outer side of
+          his fist, clear of his sleeve and leg) and a brown quiver of ice arrows on his back (a leather tube with dark
+          bands, its mouth over his right shoulder, four arrows of ice standing out of it, a strap across his chest; the
+          user, October 24, 2026: "the archer's quiver looks weird", then "make him hold his bow in his hand and just
+          have his quiver on his back, brown quiver, ice arrows"; for a while the bow was slung on his back); **horn-blower** a hood with a wolf's
           ears, a spear, a horn at his belt, the village's flag; **farmer** a Rimehorn's hide and horns over his hood, a
           hoe, a basket of Frostroots; **butcher** a close hood, a cleaver, a leather apron; **herder** fur ear flaps and
           a bobble, a crook; **fisher** an oilskin hood with a wide brim, a rod, a fish; **tanner** a fringed capelet, a
@@ -1149,7 +1162,9 @@ and never through their arms (three ways of carrying, each with its own idle, wa
 check), the archer's bow and the elder's sword on their backs until they fight, the tanner's hands empty, two moose
 skulls at every village's way in, and a few more villagers (1.2-1.4 a bed) (not yet tested in-game). Then: the
 archer's quiver remade, the Rage Wand's raged Huntsman fighting with his real moves (it only headbutted), and Pond
-Skaters hunting the Huntsman, his moose, moose and Rimehorns (not yet tested in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
+Skaters hunting the Huntsman, his moose, moose and Rimehorns (not yet tested in-game). Then: the arrow rain's arrows
+leaving his bow and arcing down onto the target (no arrows appearing in the sky), and the archer's bow back in his hand
+with a brown quiver of ice arrows (not yet tested in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
 Run the agents **one at a time** (never in parallel). They add to the same shared files and their Gradle builds would collide. Run `mod-tester` after each step.
@@ -1267,8 +1282,9 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   blue eyes.
 - **The October 23 third round** (step 14): in the Wild Hunt (its bar 250) the Huntsman attacks while the moose
   does: up close the moose rams, tosses, stomps or bellows while he spears or blows his horn; at range it charges or
-  circles while he shoots (when you're on his left), throws the bola or rains arrows; the rain is a storm of 48 round
-  you, thickest where you stand (move out of it); on foot at range he never just circles: quick shots between his big
+  circles while he shoots (when you're on his left), throws the bola or rains arrows; the rain's arrows leave his bow
+  and arc up and down onto you (48 of them, a fan of 4 for each he looses), steering after you as they fall, and none
+  appear in the sky; against a Pond Skater they hit it too; on foot at range he never just circles: quick shots between his big
   moves; his backstep shot glides him back with the leap and he's ready as he lands (no jump forward at the end); he's
   a tenth smaller (about 4 blocks to his hood), still sitting on the saddle, his hitbox matching; the skulls are bone
   copies of the live heads (the Alpha Moose's as big as its head).
@@ -1304,9 +1320,9 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   smoke now and then; Rimehorn herds and the Huntsman look the same as before (their ice and glow intact).
 - **The Rage Wand on the Huntsman** (step 14, October 24): rage the Huntsman (or his moose) one colour and the Rat King
   or the Cinder Colossus another: the Wild Hunt fights them with its real moves (spear, arrows, the rain, the bola,
-  the horn; the moose's charge, kicks, bellow and stamp), never just headbutting; the archer Frostfolk's quiver is a
-  pale tube with four arrows standing out of it, the bow beside it; Pond Skaters go for the Huntsman, the Alpha Moose,
-  moose and Rimehorns, and those fight back.
+  the horn; the moose's charge, kicks, bellow and stamp), never just headbutting, and they fight the Colossus's golems
+  as they climb out (measured in a probe); the archer Frostfolk holds his bow in his left hand, a brown quiver of ice
+  arrows on his back; Pond Skaters go for the Huntsman, the Alpha Moose, moose and Rimehorns, and those fight back.
 - **The way in's moose skulls** (step 14, October 24): every Frostfolk village (`/dross locate villages` and [go]) has
   a moose skull with its antlers on a tall post either side of the top of its main steps, facing you as you come in.
 - **Villagers in the villages** (step 14, October 24; a new world, cheats on): `/dross locate villages` and [go]: the

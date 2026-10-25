@@ -194,8 +194,8 @@ final class FootGoal extends HuntGoal
                     .at(moment("aimed_shot", "glint"), this::glint);
             case "rain" -> new Timed("rain", this.h, "arrow_rain", moment("arrow_rain", "shots.3") + 4,
                     moment("arrow_rain", "shots.3"))
-                    .first(() -> this.h.shotTarget = null)
-                    .at(moment("arrow_rain", "shots.3"), () -> HuntFight.rain(this.h, target, HuntsmanTuning.RAIN_ARROWS_STAGE2));
+                    .first(() -> HuntFight.startRain(this.h, target))
+                    .at(moment("arrow_rain", "shots.3") + 1, () -> this.h.rainTarget = null);
             case "bola" -> new Timed("bola", this.h, "bola_throw", length("bola_throw"), moment("bola_throw", "release"))
                     .at(moment("bola_throw", "release"), () -> Bola.throwAt(this.h,
                             hand(this.h, HuntsmanTuning.FOOT_HAND_UP), target));

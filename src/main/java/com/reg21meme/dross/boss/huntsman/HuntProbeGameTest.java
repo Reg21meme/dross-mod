@@ -297,17 +297,95 @@ public final class HuntProbeGameTest
     @GameTest(template = EMPTY, batch = "dross_probe_rage_king", timeoutTicks = RAGE_PROBE_TICKS + 200)
     public static void ragedHuntVersusRatKing(GameTestHelper helper)
     {
-        ragedVersus(helper, ModEntities.RAT_KING.get());
+        ragedVersus(helper, ModEntities.RAT_KING.get(), 0.0F);
     }
 
-    /** The same against a raged Cinder Colossus. */
+    /** The same against a raged Cinder Colossus, just over its first stage change (so it erupts and summons its golems
+     * soon: the user, October 24, 2026, "make sure the Huntsman, rage-wanded, also fights the golems it spawns"). */
     @GameTest(template = EMPTY, batch = "dross_probe_rage_colossus", timeoutTicks = RAGE_PROBE_TICKS + 200)
     public static void ragedHuntVersusColossus(GameTestHelper helper)
     {
-        ragedVersus(helper, ModEntities.CINDER_COLOSSUS.get());
+        ragedVersus(helper, ModEntities.CINDER_COLOSSUS.get(), 215.0F);
     }
 
-    private static void ragedVersus(GameTestHelper helper, EntityType<? extends Mob> type)
+    /** The Wild Hunt (not raged) against one Pond Skater that can't be hurt, logged every second: which of his moves he
+     * makes at it (the user, October 24, 2026: "the Huntsman isn't using his other tool kit against the skater"). */
+    @GameTest(template = EMPTY, batch = "dross_probe_skater_moves", timeoutTicks = RAGE_PROBE_TICKS + 200)
+    public static void huntVersusSkater(GameTestHelper helper)
+    {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        BlockPos base = new BlockPos(origin.getX(), SKY_Y, origin.getZ());
+        List<ChunkPos> forced = forceChunks(level, base, RAGE_FLOOR_HALF);
+        floor(level, base, Blocks.BARRIER, RAGE_FLOOR_HALF);
+        Huntsman h = HuntsmanPair.spawn(level, Vec3.atBottomCenterOf(base.offset(-10, 0, 0)), 270.0F);
+        if (h == null || !(h.getVehicle() instanceof AlphaMoose m))
+        {
+            throw new GameTestAssertException("couldn't make the Huntsman in his saddle");
+        }
+        PondSkater skater = ModEntities.POND_SKATER.get().create(level);
+        if (skater == null)
+        {
+            throw new GameTestAssertException("couldn't make a Pond Skater");
+        }
+        skater.moveTo(base.getX() + 10.5D, base.getY(), base.getZ() + 0.5D, 90.0F, 0.0F);
+        skater.getAttribute(Attributes.MAX_HEALTH).setBaseValue(TARGET_HEALTH);
+        skater.setHealth(TARGET_HEALTH);
+        level.addFreshEntity(skater);
+        SKATER_HITS.clear();
+        watchedSkater = skater;
+        java.util.Map<String, Integer> moves = new java.util.TreeMap<>();
+        helper.onEachTick(() ->
+        {
+            String a = h.current().name();
+            if (!h.current().loop() && h.playingTicks() == 1)
+            {
+                moves.merge(a, 1, Integer::sum);
+            }
+        });
+        for (int at = 20; at <= RAGE_PROBE_TICKS; at += 20)
+        {
+            int when = at;
+            helper.runAfterDelay(at, () -> LOGGER.info(String.format(Locale.ROOT,
+                    "[skater moves] %3ds %s; him %s at %s; the moose %s at %s; apart %.1f; the skater %s",
+                    when / 20, m.stage(), h.current().name(), name(h.getTarget()), m.current().name(),
+                    name(m.getTarget()), skater.distanceTo(m), name(skater.getTarget()))));
+        }
+        helper.runAfterDelay(RAGE_PROBE_TICKS + 5, () ->
+        {
+            LOGGER.info("[skater moves] his moves in {} s: {}", RAGE_PROBE_TICKS / 20, moves);
+            LOGGER.info("[skater moves] what hit the skater: {}; its health {}/{}", SKATER_HITS, skater.getHealth(),
+                    TARGET_HEALTH);
+            watchedSkater = null;
+            h.discard();
+            m.discard();
+            skater.discard();
+            floor(level, base, Blocks.AIR, RAGE_FLOOR_HALF);
+            forced.forEach(c -> level.setChunkForced(c.x, c.z, false));
+            helper.succeed();
+        });
+    }
+
+    /** (the skater probe) what hit the watched skater: the blow's maker and, for the Huntsman's, his move then. */
+    private static final java.util.Map<String, Integer> SKATER_HITS = new java.util.TreeMap<>();
+    @javax.annotation.Nullable
+    private static PondSkater watchedSkater;
+
+    @SubscribeEvent
+    public static void onHurt(net.minecraftforge.event.entity.living.LivingHurtEvent event)
+    {
+        if (watchedSkater == null || event.getEntity() != watchedSkater)
+        {
+            return;
+        }
+        net.minecraft.world.entity.Entity by = event.getSource().getEntity();
+        net.minecraft.world.entity.Entity direct = event.getSource().getDirectEntity();
+        String key = name(by) + (direct != null && direct != by ? " by " + name(direct) : "")
+                + (by instanceof HuntMob hm ? " in " + hm.current().name() : "");
+        SKATER_HITS.merge(key, 1, Integer::sum);
+    }
+
+    private static void ragedVersus(GameTestHelper helper, EntityType<? extends Mob> type, float health)
     {
         ServerLevel level = helper.getLevel();
         BlockPos origin = helper.absolutePos(BlockPos.ZERO);
@@ -326,6 +404,10 @@ public final class HuntProbeGameTest
         }
         boss.moveTo(base.getX() + 12.5D, base.getY(), base.getZ() + 0.5D, 90.0F, 0.0F);
         level.addFreshEntity(boss);
+        if (health > 0.0F)
+        {
+            boss.setHealth(health);
+        }
         boolean raged = Rage.enrage(h, RageTeam.RED) && Rage.enrage(boss, RageTeam.BLUE);
         LOGGER.info("[rage probe] {} vs the Wild Hunt: raged {}, the moose {} {}", boss.getType().getDescriptionId(),
                 raged, Rage.isRaged(m), Rage.teamOf(m));
@@ -335,7 +417,7 @@ public final class HuntProbeGameTest
             int when = at;
             helper.runAfterDelay(at, () -> LOGGER.info(String.format(Locale.ROOT,
                     "[rage probe] %3ds %s; him %s at %s, %s, held %s; the moose %s at %s, %s; Wild Hunt %.0f/%.0f;"
-                            + " the boss %.0f/%.0f at %s, its target %s; apart %.1f",
+                            + " the boss %.0f/%.0f at %s, its target %s; apart %.1f; its others " + others(level, boss, m),
                     when / 20, m.stage(), h.current().name(), name(h.getTarget()), h.isPassenger() ? "riding" : "on foot",
                     h.held, m.current().name(), name(m.getTarget()), m.held, m.wildHunt, start[1], boss.getHealth(),
                     start[0], name(boss), name(boss.getTarget()), boss.distanceTo(m))));
@@ -349,6 +431,18 @@ public final class HuntProbeGameTest
             forced.forEach(c -> level.setChunkForced(c.x, c.z, false));
             helper.succeed();
         });
+    }
+
+    /** The boss's minions near (golems, rats) and whom they go for. */
+    private static String others(ServerLevel level, Mob boss, Mob near)
+    {
+        StringBuilder b = new StringBuilder();
+        for (Mob other : level.getEntitiesOfClass(Mob.class, near.getBoundingBox().inflate(40.0D),
+                e -> e != boss && !(e instanceof HuntMob) && Rage.isRaged(e)))
+        {
+            b.append(name(other)).append(" at ").append(name(other.getTarget())).append(", ");
+        }
+        return b.length() == 0 ? "none" : b.toString();
     }
 
     private static String name(@javax.annotation.Nullable net.minecraft.world.entity.Entity e)
@@ -369,6 +463,131 @@ public final class HuntProbeGameTest
             }
         }
         return forced;
+    }
+
+    // ---------------------------------------------------------------- the arrow rain
+
+    private static final int RAIN_PROBE_DISTANCE = 14;
+    private static final int RAIN_PROBE_REPS = 3;
+    /** A walking player: about this many blocks a tick. */
+    private static final double RAIN_PROBE_WALK = 0.2D;
+
+    /** The arrow rain (the user, October 24, 2026: "make it so you see arrows go up from the hunter's bow ... just make
+     * them aimed at you automatically"): him in the saddle on a floor in the sky, his rain played at a villager 14
+     * blocks off (standing, then walking across his line) and at a Pond Skater (standing); logs how many of the arrows
+     * hit each time and how far from him every arrow first showed up (all at his bow, none in the sky). */
+    @GameTest(template = EMPTY, batch = "dross_probe_rain", timeoutTicks = 6_000)
+    public static void rainProbe(GameTestHelper helper)
+    {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        BlockPos base = new BlockPos(origin.getX(), SKY_Y, origin.getZ());
+        List<ChunkPos> forced = forceChunks(level, base, RAGE_FLOOR_HALF);
+        floor(level, base, Blocks.BARRIER, RAGE_FLOOR_HALF);
+        Huntsman h = HuntsmanPair.spawn(level, Vec3.atBottomCenterOf(base), 0.0F);
+        if (h == null || !(h.getVehicle() instanceof AlphaMoose m))
+        {
+            throw new GameTestAssertException("couldn't make the Huntsman in his saddle");
+        }
+        h.setNoAi(true);
+        m.setNoAi(true);
+        List<Mob> targets = new ArrayList<>();
+        Villager v = EntityType.VILLAGER.create(level);
+        PondSkater skater = ModEntities.POND_SKATER.get().create(level);
+        if (v == null || skater == null)
+        {
+            throw new GameTestAssertException("couldn't make the targets");
+        }
+        for (Mob t : List.<Mob>of(v, skater))
+        {
+            t.setNoAi(true);
+            t.getAttribute(Attributes.MAX_HEALTH).setBaseValue(TARGET_HEALTH);
+            t.setHealth(TARGET_HEALTH);
+            t.moveTo(base.getX() + 0.5D + 30.0D, base.getY(), base.getZ() + 0.5D + 30.0D, 0.0F, 0.0F);
+            level.addFreshEntity(t);
+            targets.add(t);
+        }
+        List<String> out = new ArrayList<>();
+        rainCase(helper, level, h, base, new Mob[] {v, v, skater}, new boolean[] {false, true, false},
+                new String[] {"a villager standing", "a villager walking across", "a Pond Skater standing"}, 0, 0, out,
+                () ->
+                {
+                    out.forEach(line -> LOGGER.info("[rain probe] {}", line));
+                    h.discard();
+                    m.discard();
+                    targets.forEach(Mob::discard);
+                    floor(level, base, Blocks.AIR, RAGE_FLOOR_HALF);
+                    forced.forEach(c -> level.setChunkForced(c.x, c.z, false));
+                    helper.succeed();
+                });
+    }
+
+    private static void rainCase(GameTestHelper helper, ServerLevel level, Huntsman h, BlockPos base, Mob[] who,
+                                 boolean[] walking, String[] what, int i, int rep, List<String> out, Runnable done)
+    {
+        if (i >= who.length)
+        {
+            done.run();
+            return;
+        }
+        Mob t = who[i];
+        int[] tick = {0};
+        Runnable place = () ->
+        {
+            double run = walking[i] ? RAIN_PROBE_WALK * tick[0] - 6.0D : 0.0D;
+            t.moveTo(base.getX() + 0.5D + RAIN_PROBE_DISTANCE, base.getY(), base.getZ() + 0.5D + run, 0.0F, 0.0F);
+            t.setDeltaMovement(Vec3.ZERO);
+        };
+        place.run();
+        t.xo = t.getX();
+        t.zo = t.getZ();
+        t.setHealth(TARGET_HEALTH);
+        HuntFight.startRain(h, t);
+        h.play("ride_rain");
+        int length = HuntAnims.named(HuntAnims.RIDING, "ride_rain").ticks();
+        int[] hurts = {0};
+        float[] last = {TARGET_HEALTH};
+        java.util.Set<java.util.UUID> seen = new java.util.HashSet<>();
+        double[] far = {0.0D};
+        int[] launched = {0};
+        Runnable[] watch = new Runnable[1];
+        watch[0] = () ->
+        {
+            float now = t.getHealth();
+            if (now < last[0] - 0.5F)
+            {
+                hurts[0]++;
+                t.invulnerableTime = 0;
+            }
+            last[0] = now;
+            for (net.minecraft.world.entity.projectile.Arrow a : level.getEntitiesOfClass(
+                    net.minecraft.world.entity.projectile.Arrow.class, new AABB(base).inflate(60.0D),
+                    a -> a.getOwner() == h))
+            {
+                if (seen.add(a.getUUID()) && a.tickCount <= 2)
+                {
+                    launched[0]++;
+                    far[0] = Math.max(far[0], a.position().distanceTo(h.position().add(0.0D, 4.0D, 0.0D)));
+                }
+            }
+            place.run();
+            if (++tick[0] == length - 2)
+            {
+                h.rainTarget = null;
+            }
+            if (tick[0] < length + 90)
+            {
+                helper.runAfterDelay(1, () -> watch[0].run());
+                return;
+            }
+            out.add(String.format(Locale.ROOT, "%s, %d blocks off: %d of %d arrows hit; every arrow showed up within %.1f"
+                    + " blocks of his saddle", what[i], RAIN_PROBE_DISTANCE, hurts[0], launched[0], far[0]));
+            h.play("ride_idle");
+            boolean again = rep + 1 < RAIN_PROBE_REPS;
+            helper.runAfterDelay(2, () -> rainCase(helper, level, h, base, who, walking, what, again ? i : i + 1,
+                    again ? rep + 1 : 0, out, done));
+        };
+        helper.runAfterDelay(1, () -> watch[0].run());
     }
 
     // ---------------------------------------------------------------- Pond Skaters against Rimefall's big game

@@ -150,6 +150,11 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     LivingEntity shotTarget;
     double shotBase;
     HuntFight.Frost shotFrost = HuntFight.Frost.NONE;
+    /** Whom the arrows he looses up in his arrow rain come down on (his goals set it for the rain), and whether its
+     * storm's sound is on its way. */
+    @Nullable
+    LivingEntity rainTarget;
+    boolean rainSounded;
     /** Things due later: the arrow rain coming down, the cracks running over the ice, volley arrows to clear away. */
     final List<HuntFight.Pending> pending = new ArrayList<>();
     /** A loop the fight wants played in place of walking or standing (the charge's gallop), or null. */
@@ -514,6 +519,13 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         Vec3 dir = right.scale(shot.dirRight()).add(0.0D, shot.dirUp(), 0.0D).add(ahead.scale(shot.dirAhead()))
                 .normalize();
         boolean volley = shot.dirUp() > VOLLEY_UP;
+        LivingEntity rainOn = this.rainTarget;
+        if (volley && !this.showcase && rainOn != null && rainOn.isAlive() && this.current().name().contains("rain"))
+        {
+            HuntFight.rainFrom(this, from, rainOn);           // the arrows he looses up are the ones that come down
+            this.twang();
+            return;
+        }
         Arrow arrow = new Arrow(this.level(), from.x, from.y, from.z);
         arrow.setOwner(this);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
@@ -535,7 +547,13 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             HuntFight.mark(arrow, this.shotFrost);
         }
         this.level().addFreshEntity(arrow);
-        if (this.tickCount != this.lastTwang)        // a volley of three looses at once: one twang
+        this.twang();
+    }
+
+    /** His bow's twang (a volley of three looses at once: one twang). */
+    private void twang()
+    {
+        if (this.tickCount != this.lastTwang)
         {
             this.lastTwang = this.tickCount;
             this.playSound(ModSounds.HUNTSMAN_BOW_SHOT.get(), 1.5F, 0.95F + this.getRandom().nextFloat() * 0.1F);

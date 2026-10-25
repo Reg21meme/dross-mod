@@ -208,23 +208,27 @@ public final class HuntsmanTuning
     public static final double BACK_KICK_KNOCK = 2.2D;
     public static final double BACK_KICK_KNOCK_UP = 0.45D;
 
-    /** How many come down in both stages: four for each of the 12 he shoots up (the user's pick, October 23, 2026: "48:
-     * 4 per arrow"; 15 in the Wild Hunt and 10 on foot before, which a player standing still was hit by about once in
-     * six rains). */
-    public static final int RAIN_ARROWS = 48;
-    public static final int RAIN_ARROWS_STAGE2 = 48;
-    public static final double RAIN_RADIUS = 6.0D;
-    /** How the arrows spread over the circle: a spot's distance from the middle is the radius times a random 0-1
-     * raised to this (0.5 would spread them evenly over it; 0.75 crowds them towards where you are, so standing still
-     * in it you take about two of the 48, and you run out of it). */
-    public static final double RAIN_SPREAD_POWER = 0.75D;
-    /** The arrows come down this long after the last loosing, spread over {@link #RAIN_SPREAD} ticks. */
-    public static final int RAIN_DELAY = 16;
-    public static final int RAIN_SPREAD = 30;
-    public static final double RAIN_HEIGHT = 18.0D;
-    /** Their speed coming down, and the base damage that makes a hit 3 (1.5 hearts) at it. */
-    public static final double RAIN_SPEED = 1.5D;
-    public static final double RAIN_BASE_DAMAGE = 2.0D;
+    /** The arrow rain (the user, October 24, 2026: "make it so you see arrows go up from the hunter's bow ... no,
+     * don't make arrows spawn in, just make them aimed at you automatically"; until then the 12 he shot up flew off and
+     * were cleared away, and the 48 that came down appeared 18 blocks over you): each arrow he looses up (12, four
+     * loosings of three) leaves his bow as a fan of this many real arrows, each on a high arc to a spot near where his
+     * target will be, steering as it comes down towards where the target is then: 48 in all, in both stages (the
+     * user's pick of October 23: "48: 4 per arrow"). */
+    public static final int RAIN_PER_ARROW = 4;
+    public static final double RAIN_RADIUS = 5.0D;
+    /** How the arrows spread round the target: a spot's distance from it is the radius times a random 0-1 raised to
+     * this (0.5 would spread them evenly over the circle; 0.8 crowds them in, so of the 48 a player takes about three,
+     * moving or not, and a Pond Skater, its legs and all, several). */
+    public static final double RAIN_SPREAD_POWER = 0.8D;
+    /** An arrow's flight from his bow to the ground (ticks, each its own: so they come down over a second or so), how
+     * far ahead of a moving target it's aimed at most, and how much of the way to its spot it turns each tick as it
+     * comes down. */
+    public static final int RAIN_FLIGHT = 34;
+    public static final int RAIN_FLIGHT_SPREAD = 12;
+    public static final double RAIN_LEAD_MAX = 6.0D;
+    public static final double RAIN_STEER = 0.35D;
+    /** The base damage that makes a hit about 3 (1.5 hearts) at the speed they come down (about 1-1.4). */
+    public static final double RAIN_BASE_DAMAGE = 2.2D;
     public static final int RAIN_COOLDOWN = 280;
     public static final int RAIN_COOLDOWN_STAGE2 = 320;
     /** A frost arrow's hit: Slowness I and the frosted screen of powder snow (never long enough to freeze). */
