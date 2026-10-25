@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.rimefall;
 
 import com.reg21meme.dross.boss.frostfolk.Frostfolk;
+import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
@@ -19,6 +20,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -141,6 +143,18 @@ public class PondSkater extends Monster implements GeoEntity, RimefallAnimal
         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
         // the Frostfolk hunt them, and they hunt the Frostfolk (the user, October 23, 2026)
         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Frostfolk.class, true));
+        // ... and Rimefall's other big game: the Huntsman, his Alpha Moose, the moose and the Rimehorns (the user,
+        // October 24, 2026: "make sure Pond Skaters are hostile to the Frostfolk, the Huntsman and the moose and
+        // Rimehorns as well"; the Huntsman and the moose already hunted them, the Rimehorns fight back as a herd)
+        this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false,
+                PondSkater::isPrey));
+    }
+
+    /** Rimefall's animals and its hunters a Pond Skater goes for (besides players and the Frostfolk); never one on
+     * show. */
+    static boolean isPrey(LivingEntity e)
+    {
+        return (e instanceof HuntMob || e instanceof Moose || e instanceof Rimehorn) && !((Mob) e).isNoAi();
     }
 
     @Override

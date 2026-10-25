@@ -97,6 +97,14 @@ public final class RageAi
      */
     public static boolean headbutts(Mob mob)
     {
+        // a boss fights with its own moves (the Huntsman and his Alpha Moose have no attack-damage stat, their blows
+        // being their fight's own numbers: given the headbutt, which outranks their moves, they only headbutted their
+        // raged enemies: the user, October 24, 2026, "the Huntsman doesn't seem to attack when I use the Rage Wand on
+        // him against the other bosses")
+        if (mob instanceof RageLeader)
+        {
+            return false;
+        }
         if (mob.getAttribute(Attributes.ATTACK_DAMAGE) == null)
         {
             return true;

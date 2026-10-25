@@ -3,6 +3,7 @@ package com.reg21meme.dross.boss.huntsman;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.golem.ColossusGameTest;
 import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.boss.rage.RageAi;
 import com.reg21meme.dross.boss.rage.RageTeam;
 import com.reg21meme.dross.boss.rimefall.Rimehorn;
 import com.reg21meme.dross.boss.rimefall.Moose;
@@ -22,6 +23,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -266,8 +268,10 @@ public final class HuntsmanFightGameTest
     }
 
     /** The Rage Wand on one of the pair rages both onto its team; a raged enemy of another team near starts the hunt,
-     * and it's whom both of them go for. */
-    @GameTest(template = ARENA, batch = "dross_huntsman_rage", timeoutTicks = WAIT + 200)
+     * it's whom both of them go for, and they fight it with their own moves (no Rage headbutt in their place: the user,
+     * October 24, 2026, "the Huntsman doesn't seem to attack when I use the Rage Wand on him against the other
+     * bosses"). */
+    @GameTest(template = ARENA, batch = "dross_huntsman_rage", timeoutTicks = WAIT + 600)
     public static void ragedTheyFightAsAPair(GameTestHelper helper)
     {
         if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::ragedTheyFightAsAPair))
@@ -295,25 +299,46 @@ public final class HuntsmanFightGameTest
             throw new GameTestAssertException("raging the Huntsman should rage his moose onto his team too, but it's "
                     + (Rage.isRaged(m) ? Rage.teamOf(m) : "not raged"));
         }
-        helper.runAfterDelay(HuntsmanTuning.SPOT_INTERVAL * 3, () ->
-        {
-            String problem = null;
-            if (!m.stage().fighting())
-            {
-                problem = "a raged enemy near should start the hunt, but they're " + m.stage();
-            }
-            else if (m.getTarget() != zombie || h.getTarget() != zombie)
-            {
-                problem = "both should go for the raged enemy, not " + m.getTarget() + " and " + h.getTarget();
-            }
-            clear(h, m);
-            zombie.discard();
-            if (problem != null)
-            {
-                throw new GameTestAssertException(problem);
-            }
-            helper.succeed();
-        });
+        boolean[] moved = {false};
+        helper.startSequence()
+                .thenIdle(HuntsmanTuning.SPOT_INTERVAL * 3)
+                .thenExecute(() ->
+                {
+                    String problem = null;
+                    if (!m.stage().fighting())
+                    {
+                        problem = "a raged enemy near should start the hunt, but they're " + m.stage();
+                    }
+                    else if (m.getTarget() != zombie || h.getTarget() != zombie)
+                    {
+                        problem = "both should go for the raged enemy, not " + m.getTarget() + " and " + h.getTarget();
+                    }
+                    else if (RageAi.headbutts(m) || RageAi.headbutts(h))
+                    {
+                        problem = "raged, they should fight with their own moves, not the Rage's headbutt";
+                    }
+                    if (problem != null)
+                    {
+                        clear(h, m);
+                        zombie.discard();
+                        throw new GameTestAssertException(problem);
+                    }
+                })
+                .thenWaitUntil(() ->
+                {
+                    moved[0] |= !m.current().loop() || !h.current().loop();
+                    if (!moved[0])
+                    {
+                        throw new GameTestAssertException("waiting for one of them to make a move at the raged enemy"
+                                + " (the moose plays " + m.current().name() + ", he plays " + h.current().name() + ")");
+                    }
+                })
+                .thenExecute(() ->
+                {
+                    clear(h, m);
+                    zombie.discard();
+                })
+                .thenSucceed();
     }
 
     /** In the saddle his hitbox is over the moose's back, a little wider than the moose's: an arrow at his body hits
@@ -854,6 +879,66 @@ public final class HuntsmanFightGameTest
                     m.discard();
                 })
                 .thenSucceed();
+    }
+
+    /** A Pond Skater goes for Rimefall's big game: a moose, a Rimehorn and the Wild Hunt (the user, October 24, 2026:
+     * "make sure Pond Skaters are hostile to the Frostfolk, the Huntsman and the moose and Rimehorns as well"). Each
+     * skater stands 4 blocks from its own quarry, far from the others'. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_skaters", timeoutTicks = WAIT + 400)
+    public static void pondSkatersHuntTheBigGame(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::pondSkatersHuntTheBigGame))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE.offset(-11, 0, 0), 0.0F);
+        AlphaMoose alpha = moose(h);
+        Moose moose = ModEntities.MOOSE.get().create(level);
+        Rimehorn rimehorn = ModEntities.RIMEHORN.get().create(level);
+        if (moose == null || rimehorn == null)
+        {
+            clear(h, alpha);
+            throw new GameTestAssertException("couldn't make a moose or a Rimehorn");
+        }
+        Vec3 mooseAt = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(2, 0, -10)));
+        moose.moveTo(mooseAt.x, mooseAt.y, mooseAt.z, 0.0F, 0.0F);
+        level.addFreshEntity(moose);
+        Vec3 hornAt = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(2, 0, 10)));
+        rimehorn.moveTo(hornAt.x, hornAt.y, hornAt.z, 0.0F, 0.0F);
+        level.addFreshEntity(rimehorn);
+        List<Mob> all = new java.util.ArrayList<>(List.of(h, alpha, moose, rimehorn));
+        Map<Mob, Mob> skaterOf = new HashMap<>();
+        for (Mob quarry : List.<Mob>of(alpha, moose, rimehorn))
+        {
+            com.reg21meme.dross.boss.rimefall.PondSkater skater = ModEntities.POND_SKATER.get().create(level);
+            if (skater == null)
+            {
+                all.forEach(Mob::discard);
+                throw new GameTestAssertException("couldn't make a Pond Skater");
+            }
+            skater.moveTo(quarry.getX() + 4.0D + quarry.getBbWidth() / 2.0D, quarry.getY(), quarry.getZ(), 90.0F, 0.0F);
+            skater.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 100_000, 4)); // it stays for the check
+            level.addFreshEntity(skater);
+            all.add(skater);
+            skaterOf.put(quarry, skater);
+        }
+        // (wild monsters wandering in, a creeper say, would be the nearest foe of ours)
+        helper.onEachTick(() -> level.getEntitiesOfClass(Mob.class, h.getBoundingBox().inflate(48.0D),
+                e -> e instanceof Enemy && !all.contains(e)).forEach(Mob::discard));
+        helper.succeedWhen(() ->
+        {
+            for (Map.Entry<Mob, Mob> e : skaterOf.entrySet())
+            {
+                LivingEntity target = e.getValue().getTarget();
+                boolean onIt = target == e.getKey() || e.getKey() == alpha && target == h;
+                if (!onIt)
+                {
+                    helper.fail("a Pond Skater by " + e.getKey().getType().getDescriptionId() + " goes for " + target);
+                }
+            }
+            all.forEach(Mob::discard);
+        });
     }
 
     // ---------------------------------------------------------------- breaking off

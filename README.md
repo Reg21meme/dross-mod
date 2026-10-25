@@ -120,7 +120,8 @@ half the time. That repeats outwards forever, so there are many of both, never t
   blocks from her calf. No drops yet.
 - **Pond Skaters:** hostile long-legged skaters that spawn on ice at night: at most 1 or 2 on a big lake (lakes differ), at
   most 1 on any other patch of ice at least 20 blocks across, none on smaller ice. As fast as a spider off the ice and very fast on it;
-  they rear up and stab with their beak. Their legs have hitboxes of their own.
+  they rear up and stab with their beak. Their legs have hitboxes of their own. Besides players they go for the
+  Frostfolk, the Huntsman, his Alpha Moose, moose and Rimehorns (which fight back).
 - Every one of their sounds is original (`/dross showcase mob_sounds rimefall`). Spawn eggs for all three are in the
   Dross tab, and `/dross showcase rimefall_mobs` lines them up with animation buttons.
 
@@ -609,7 +610,7 @@ fires. Each wanders within 24 blocks of where it started and walks back there af
 anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
 
 - **Warriors:** the spearman (a peaked hood, a wolf pelt, spear and round shield, 30 health), the axeman (a fur-trimmed
-  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, a bow slung on his back, 25;
+  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, a quiver of arrows and his bow on his back, 25;
   he keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
   his village turns on someone he blows his horn and everyone near gets Speed and Strength for 30 seconds).
 - **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
@@ -648,7 +649,9 @@ can't be cured, not even with milk.
   their team, so the winners stay ready for the next fight.
 - No new animations: every mob uses its own attacks (zombies swing, skeletons shoot, creepers explode, golems smash).
   Animals with no attack of their own (cows, pigs, sheep, chickens, villagers...) **headbutt** for 1 heart.
-- **Bosses** work too: raging the Cinder Colossus makes it fight; raging the sleeping Rat King wakes him. Their golems
+- **Bosses** work too, each with its own moves: raging the Cinder Colossus makes it fight; raging the sleeping Rat
+  King wakes him; raging the Huntsman or his moose rages both, and the Wild Hunt fights with its spear, arrows, horn
+  and the moose's charges. Their golems
   or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
 - It won't rage players, showcase mobs, the Ender Dragon, the trader or the hub's survivors.
 

@@ -1,6 +1,10 @@
 package com.reg21meme.dross.boss.huntsman;
 
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.boss.rage.RageTeam;
+import com.reg21meme.dross.boss.rimefall.PondSkater;
+import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
@@ -13,6 +17,7 @@ import net.minecraft.nbt.NbtUtils;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.level.ChunkPos;
@@ -44,6 +49,10 @@ import java.util.Locale;
  * shots from the saddle that fits the direction is played at it three times and the hits counted (the user, October
  * 23, 2026: his arrows from the saddle didn't hit them; a running target was missed: 0 of 6 at 12 and 20 blocks, until
  * he led his shots). {@link #shots} is also the normal run's check, {@code HuntsmanFightGameTest.saddleShotsHit}.
+ * <p>
+ * {@link #ragedHuntVersusRatKing} and {@link #ragedHuntVersusColossus}: the Wild Hunt raged against another raged boss,
+ * logged every second (it only headbutted them until October 24, 2026). {@link #skatersHuntBigGame}: a Pond Skater by a
+ * moose, a Rimehorn and the Wild Hunt, logged.
  */
 @GameTestHolder(HuntProbeGameTest.NAMESPACE)
 @PrefixGameTestTemplate(false)
@@ -169,9 +178,14 @@ public final class HuntProbeGameTest
 
     private static void floor(ServerLevel level, BlockPos base, Block block)
     {
-        for (int x = -FLOOR_HALF; x <= FLOOR_HALF; x++)
+        floor(level, base, block, FLOOR_HALF);
+    }
+
+    private static void floor(ServerLevel level, BlockPos base, Block block, int half)
+    {
+        for (int x = -half; x <= half; x++)
         {
-            for (int z = -FLOOR_HALF; z <= FLOOR_HALF; z++)
+            for (int z = -half; z <= half; z++)
             {
                 level.setBlock(base.offset(x, -1, z), block.defaultBlockState(), 2);
             }
@@ -270,6 +284,166 @@ public final class HuntProbeGameTest
             }
         }
         return -1;
+    }
+
+    // ---------------------------------------------------------------- raged against the other bosses
+
+    private static final int RAGE_FLOOR_HALF = 40;
+    private static final int RAGE_PROBE_TICKS = 900;
+
+    /** (the user, October 24, 2026: "the Huntsman doesn't seem to attack when I use the Rage Wand on him against the other
+     * bosses") A raged Wild Hunt (red) against a raged Rat King (blue), on a floor in the sky; logs every second what
+     * each of them does and how much health the king has left. */
+    @GameTest(template = EMPTY, batch = "dross_probe_rage_king", timeoutTicks = RAGE_PROBE_TICKS + 200)
+    public static void ragedHuntVersusRatKing(GameTestHelper helper)
+    {
+        ragedVersus(helper, ModEntities.RAT_KING.get());
+    }
+
+    /** The same against a raged Cinder Colossus. */
+    @GameTest(template = EMPTY, batch = "dross_probe_rage_colossus", timeoutTicks = RAGE_PROBE_TICKS + 200)
+    public static void ragedHuntVersusColossus(GameTestHelper helper)
+    {
+        ragedVersus(helper, ModEntities.CINDER_COLOSSUS.get());
+    }
+
+    private static void ragedVersus(GameTestHelper helper, EntityType<? extends Mob> type)
+    {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        BlockPos base = new BlockPos(origin.getX(), SKY_Y, origin.getZ());
+        List<ChunkPos> forced = forceChunks(level, base, RAGE_FLOOR_HALF);
+        floor(level, base, Blocks.BARRIER, RAGE_FLOOR_HALF);
+        Huntsman h = HuntsmanPair.spawn(level, Vec3.atBottomCenterOf(base.offset(-12, 0, 0)), 270.0F);
+        if (h == null || !(h.getVehicle() instanceof AlphaMoose m))
+        {
+            throw new GameTestAssertException("couldn't make the Huntsman in his saddle");
+        }
+        Mob boss = type.create(level);
+        if (boss == null)
+        {
+            throw new GameTestAssertException("couldn't make the boss");
+        }
+        boss.moveTo(base.getX() + 12.5D, base.getY(), base.getZ() + 0.5D, 90.0F, 0.0F);
+        level.addFreshEntity(boss);
+        boolean raged = Rage.enrage(h, RageTeam.RED) && Rage.enrage(boss, RageTeam.BLUE);
+        LOGGER.info("[rage probe] {} vs the Wild Hunt: raged {}, the moose {} {}", boss.getType().getDescriptionId(),
+                raged, Rage.isRaged(m), Rage.teamOf(m));
+        float[] start = {boss.getHealth(), m.wildHunt};
+        for (int at = 20; at <= RAGE_PROBE_TICKS; at += 20)
+        {
+            int when = at;
+            helper.runAfterDelay(at, () -> LOGGER.info(String.format(Locale.ROOT,
+                    "[rage probe] %3ds %s; him %s at %s, %s, held %s; the moose %s at %s, %s; Wild Hunt %.0f/%.0f;"
+                            + " the boss %.0f/%.0f at %s, its target %s; apart %.1f",
+                    when / 20, m.stage(), h.current().name(), name(h.getTarget()), h.isPassenger() ? "riding" : "on foot",
+                    h.held, m.current().name(), name(m.getTarget()), m.held, m.wildHunt, start[1], boss.getHealth(),
+                    start[0], name(boss), name(boss.getTarget()), boss.distanceTo(m))));
+        }
+        helper.runAfterDelay(RAGE_PROBE_TICKS + 5, () ->
+        {
+            h.discard();
+            m.discard();
+            boss.discard();
+            floor(level, base, Blocks.AIR, RAGE_FLOOR_HALF);
+            forced.forEach(c -> level.setChunkForced(c.x, c.z, false));
+            helper.succeed();
+        });
+    }
+
+    private static String name(@javax.annotation.Nullable net.minecraft.world.entity.Entity e)
+    {
+        return e == null ? "nothing" : e.getType().getDescriptionId().replace("entity.dross.", "").replace("entity.minecraft.", "")
+                + (e.isAlive() ? "" : " (dead)");
+    }
+
+    private static List<ChunkPos> forceChunks(ServerLevel level, BlockPos base, int half)
+    {
+        List<ChunkPos> forced = new ArrayList<>();
+        for (int cx = (base.getX() - half) >> 4; cx <= (base.getX() + half) >> 4; cx++)
+        {
+            for (int cz = (base.getZ() - half) >> 4; cz <= (base.getZ() + half) >> 4; cz++)
+            {
+                level.setChunkForced(cx, cz, true);
+                forced.add(new ChunkPos(cx, cz));
+            }
+        }
+        return forced;
+    }
+
+    // ---------------------------------------------------------------- Pond Skaters against Rimefall's big game
+
+    private static final int SKATER_PROBE_TICKS = 400;
+
+    /** (the user, October 24, 2026: "make sure Pond Skaters are hostile to the Frostfolk, the Huntsman and the moose and
+     * Rimehorns as well") A Pond Skater 6 blocks from a moose, a Rimehorn and the Wild Hunt in turn (each on its own
+     * floor in the sky); logs whom it goes for and their health. */
+    @GameTest(template = EMPTY, batch = "dross_probe_skaters", timeoutTicks = SKATER_PROBE_TICKS + 200)
+    public static void skatersHuntBigGame(GameTestHelper helper)
+    {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        BlockPos base = new BlockPos(origin.getX(), SKY_Y, origin.getZ());
+        List<ChunkPos> forced = forceChunks(level, base, RAGE_FLOOR_HALF);
+        floor(level, base, Blocks.BARRIER, RAGE_FLOOR_HALF);
+        List<Mob> all = new ArrayList<>();
+        List<Mob[]> pairs = new ArrayList<>();
+        int row = -24;
+        for (EntityType<? extends Mob> type : List.<EntityType<? extends Mob>>of(ModEntities.MOOSE.get(),
+                ModEntities.RIMEHORN.get(), ModEntities.ALPHA_MOOSE.get()))
+        {
+            Mob prey;
+            if (type == ModEntities.ALPHA_MOOSE.get())
+            {
+                Huntsman h = HuntsmanPair.spawn(level, Vec3.atBottomCenterOf(base.offset(0, 0, row)), 0.0F);
+                prey = h == null ? null : (Mob) h.getVehicle();
+                if (h != null)
+                {
+                    all.add(h);
+                }
+            }
+            else
+            {
+                prey = type.create(level);
+                if (prey != null)
+                {
+                    prey.moveTo(base.getX() + 0.5D, base.getY(), base.getZ() + row + 0.5D, 0.0F, 0.0F);
+                    level.addFreshEntity(prey);
+                }
+            }
+            PondSkater skater = ModEntities.POND_SKATER.get().create(level);
+            if (prey == null || skater == null)
+            {
+                throw new GameTestAssertException("couldn't make " + type.getDescriptionId() + " or a skater");
+            }
+            skater.moveTo(base.getX() + 6.5D, base.getY(), base.getZ() + row + 0.5D, 90.0F, 0.0F);
+            level.addFreshEntity(skater);
+            all.add(prey);
+            all.add(skater);
+            pairs.add(new Mob[] {prey, skater});
+            row += 24;
+        }
+        for (int at = 40; at <= SKATER_PROBE_TICKS; at += 40)
+        {
+            int when = at;
+            helper.runAfterDelay(at, () ->
+            {
+                for (Mob[] pair : pairs)
+                {
+                    LOGGER.info(String.format(Locale.ROOT, "[skater probe] %3ds %s %.0f/%.0f, its target %s; the skater"
+                                    + " %.0f, its target %s",
+                            when / 20, name(pair[0]), pair[0].getHealth(), pair[0].getMaxHealth(), name(pair[0].getTarget()),
+                            pair[1].getHealth(), name(pair[1].getTarget())));
+                }
+            });
+        }
+        helper.runAfterDelay(SKATER_PROBE_TICKS + 5, () ->
+        {
+            all.forEach(Mob::discard);
+            floor(level, base, Blocks.AIR, RAGE_FLOOR_HALF);
+            forced.forEach(c -> level.setChunkForced(c.x, c.z, false));
+            helper.succeed();
+        });
     }
 
     // ---------------------------------------------------------------- the probes' empty template

@@ -273,11 +273,13 @@ def gear(r):
     bw = r.part("bow")
     box(bw, bx - 0.8, bx + 0.8, 10, 13, -0.6, 0.6, "leather")
     _bow(bw, np.array([bx, FIST_Y, 0.0]), np.array([0.0, 1.0, 0.0]), np.array([0.0, 0.0, 1.0]))
-    bb = r.part("bow_back")                                    # slung on his back, flat against it, over his drape
-    up = np.array([-math.sin(math.radians(BOW_BACK_TILT)), math.cos(math.radians(BOW_BACK_TILT)), 0.0])
+    # on his back, flat against his drape, beside his quiver and leaning the same way (the user, October 24, 2026,
+    # "the archer's quiver looks weird": it lay across the quiver), its string on the far side
+    bb = r.part("bow_back")
+    up = np.array([-math.sin(math.radians(QUIVER_TILT)), math.cos(math.radians(QUIVER_TILT)), 0.0])
     side = np.array([up[1], -up[0], 0.0])
-    o = np.array([-2.0, 17.5, 6.1])
-    bb.seg(o - 1.5 * up, o + 1.5 * up, 1.2, 1.2, "leather")
+    o = np.array(BOW_BACK_AT)
+    bb.seg(tuple(o - 1.5 * up), tuple(o + 1.5 * up), 1.2, 1.2, "leather")
     _bow(bb, o, up, side)
     # the elder's sword in its sheath across his back, its hilt over his right shoulder (in his fist only to strike:
     # the user, October 24, 2026, "the sword held by the elder is still weird")
@@ -308,10 +310,25 @@ def gear(r):
     # on his body: the butcher's apron, the archer's quiver, the horn-blower's horn and flag, the tanner's hide
     ap = r.part("apron")
     box(ap, -3.5, 3.5, 7, 21, -4.5, -3.5, "apron")
+    # the archer's quiver: a tube of pale hide on his back, on his drape, its mouth over his right shoulder for his right
+    # hand, dark bands at its mouth, round its middle and on its foot, five arrows standing out of it (their ice
+    # fletching), a strap from it across his chest to his left hip (it was a slab half sunk in his drape with a
+    # pale blob for its arrows: "the archer's quiver looks weird")
     qv = r.part("quiver")
-    qv.box((2.0, 19.0, 4.5), (3, 9, 2), "leather", rot=(0.0, 0.0, -20.0))
-    for i, dx in enumerate((-0.6, 0.6)):
-        qv.box((3.4 + dx, 24.6 + i, 4.5), (1, 2, 1), "fletch", rot=(0.0, 0.0, -20.0))
+    c = np.array(QUIVER_AT)
+    rot = (0.0, 0.0, QUIVER_TILT)
+
+    def along(t, a=0.0, dz=0.0):
+        return tuple(c + up * t + side * a + np.array([0.0, 0.0, dz]))
+
+    for t0, t1, w, d, mat in ((-4.5, 4.5, 3.0, 2.4, "hide"), (4.5, 5.3, 3.4, 2.8, "boots"),
+                              (-5.0, -4.5, 2.6, 2.0, "boots")):
+        qv.box(along((t0 + t1) / 2.0), (w, t1 - t0, d), mat, rot=rot)
+    for a, dz, h in ((-1.1, -0.5, 2.0), (-0.35, 0.45, 3.4), (0.4, -0.3, 2.6), (1.1, 0.5, 1.6)):
+        top = 5.3 + h                                          # (each its own shaft and small vanes, apart)
+        qv.box(along((4.5 + top) / 2.0, a, dz), (0.5, top - 4.5, 0.5), "shaft", rot=rot)
+        qv.box(along(top - 0.4, a, dz), (0.5, 1.2, 0.8), "fletch", rot=rot)
+    qv.box((0.0, 17.5, -3.25), (1.0, 10.8, 0.5), "belt", rot=(0.0, 0.0, 34.0))   # (under his capelet and belt)
     hb = r.part("horn_belt")
     hb.cone((4.6, 13.0, -2.0), (4.8, 10.0, 2.0), 1.8, "horn", w1=0.7, steps=3)
     fg = r.part("flag")
@@ -324,7 +341,9 @@ def gear(r):
 
 
 BOW_IN = 2.2            # the bow in his fist sits this far to its inner side (its string along his forearm's inside)
-BOW_BACK_TILT = 25.0    # slung on his back: its top this many degrees over towards his right shoulder
+QUIVER_TILT = 18.0      # the archer's quiver (and his bow beside it) lean their tops this far over to his right
+QUIVER_AT = (-2.8, 17.6, 5.75)     # the middle of his quiver's tube, on his drape (its back at 4.5)
+BOW_BACK_AT = (0.17, 17.19, 5.6)   # his bow's grip on his back, beside the quiver (clear of the hood behind his head)
 SWORD_BACK_TILT = 25.0  # the elder's sheath across his back: its hilt over his right shoulder
 
 
@@ -576,12 +595,14 @@ def clip_group(bone):
         return "tool"
     if bone in ("sleeve_r", "sleeve_l"):
         return "sleeve"
+    if bone in ("bow_back", "quiver", "sword_back"):
+        return "back"
     if bone in ("body", "head", "leg_l", "leg_r", "waist"):
         return "body"
     return None
 
 
-CLIP_PAIRS = (("tool", "body"), ("tool", "sleeve"))
+CLIP_PAIRS = (("tool", "body"), ("tool", "sleeve"), ("back", "sleeve"))
 # Every tool is modelled inside the arm that holds it (its rest pose): it must be clear of the sleeve in every animation
 # all the same, not just no deeper than at rest.
 CLIP_STRICT = (("tool", "sleeve"),)
