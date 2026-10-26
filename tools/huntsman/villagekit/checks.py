@@ -66,9 +66,16 @@ def check(grid):
     beds = {}
     doors = {}
     unsupported = []
+    roofed_spears = []
     for x, yi, z, s in grid.blocks():
         b = mc.base(s)
         y = yi - G
+        if b.split(":")[-1] == "planted_spear":
+            # (the spear stands 1.75 blocks tall, so the block over it must be clear: the lightning rods it replaced
+            # were 1 block, and spears under a roof stuck up through the snow; the user, October 26, 2026)
+            above = grid.get(x, y + 1, z)
+            if above is not None and not mc.is_air(above):
+                roofed_spears.append((x, y, z, mc.base(above)))
         if b == "ice" and light[x, yi, z] > ICE_MELT_ABOVE:
             melt.append((x, y, z, int(light[x, yi, z])))
         elif b == "snow":
@@ -113,6 +120,9 @@ def check(grid):
         problems.append(f"{len(bad_snow)} snow layers on something they can't lie on, e.g. {bad_snow[:5]}")
     if unsupported:
         problems.append(f"{len(unsupported)} things with nothing holding them, e.g. {unsupported[:6]}")
+    if roofed_spears:
+        problems.append(f"{len(roofed_spears)} planted spear(s) with a block over them (the spear would stick up "
+                        f"through it), e.g. {roofed_spears[:6]}")
     return problems, light
 
 

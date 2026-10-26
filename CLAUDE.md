@@ -532,7 +532,10 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         - **The Planted Moonsilver Spear** (`dross:planted_spear`, `PlantedSpearBlock`): the spear's model at 0.7,
           standing 1.75 blocks tall on its block, a decoration that drops itself (end of the blocks group). It
           replaced every lightning rod that stood in for a spear in the igloos, the lodge, the barn and the
-          decorations.
+          decorations. **Nothing over a planted spear** (the user, October 26, 2026: in the igloos the spears stuck up
+          through the snow, the lightning rods having been 1 block tall): every template's check
+          (`villagekit/checks.py`, igloos, decorations and whole villages) fails on a spear with any block over it;
+          the Twin Hunters' two and two of the Workshop's four stood against the dome's wall and moved a step in.
         - **The mounted skulls** (`dross:alpha_moose_skull`, `moose_skull`, `rimehorn_skull`; `HuntSkullBlock`, its
           `facing` and `wall`): placed on top of a block a skull stands there (on a post) facing whoever placed it,
           against a block's side it hangs there facing out. Bare bone skulls without the lower jaw, made by
@@ -1234,7 +1237,8 @@ player; the rain tighter, half a heart a hit, every arrow counting and none push
 keeping off walls; at most 3 passages in a cluster of igloos; the Alpha Moose's skull on the barn (not yet tested
 in-game). Then: every other skull a bull's (the Alpha's only on his lodge's and barn's fronts), the Moonsilver Spear's
 enchantments (Sharpness or Smite, Impaling, Looting, Knockback, Channeling), and a moose mother keeping to her calf
-even when you hurt her (not yet tested in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
+even when you hurt her (the user checked these in-game: "all good"). Then: no planted spear under a block (they stuck
+up through the igloos' snow; not yet looked at in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
 Run the agents **one at a time** (never in parallel). They add to the same shared files and their Gradle builds would collide. Run `mod-tester` after each step.
@@ -1399,11 +1403,11 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   after the split, a golem that goes for him gets his spear, and his arrows and rain at a golem never hit the Colossus
   behind it; his arrow rain lands close round you (you take several, half a heart each, and they don't shove you);
   backed against the arena's wall he slides along it instead of running into it, and the moose circles back the other
-  way at a wall; in his villages (`/dross goto lair huntsman`) the barn has the Alpha Moose's skull over its door, his
-  lodge's front too, and every other moose skull (the way in's posts, the palm antlers) is a bull's; in any village no
-  igloo cluster has more than 3 passages; the Moonsilver Spear takes Sharpness or Smite, Impaling, Looting, Knockback
-  and Channeling at the table and from books (not Fire Aspect or Riptide), and with Impaling a thrown spear hits
-  anything harder; a moose mother you hit charges you but turns back about 10 blocks from her calf.
+  way at a wall; in any village no igloo cluster has more than 3 passages. (The Alpha skulls, the spear's
+  enchantments and the moose mother: confirmed by the user, October 26.)
+- **No spear through a roof** (October 26): in a new world's Frostfolk villages (`/dross locate villages` and [go]), and
+  in `/dross showcase frostfolk_igloos`, no planted spear pokes up through an igloo's snow (the Twin Hunters' and the
+  Workshop's now stand a step in from the wall).
 - **The bedrock test arena** (October 25): `/dross boss arena bedrock` (cheats on) builds a square bedrock floor
   61 blocks across round you with glowstone set in it, bedrock walls 8 high with glowstone bands, open sky; its three
   buttons summon the Cinder Colossus, the Rat King and the Huntsman; at night (or in the Dross) nothing spawns in it
