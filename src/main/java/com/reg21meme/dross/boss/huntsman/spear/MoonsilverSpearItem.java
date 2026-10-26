@@ -22,6 +22,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.Vanishable;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
@@ -143,6 +144,18 @@ public class MoonsilverSpearItem extends Item implements Vanishable
     public int getEnchantmentValue()
     {
         return SpearTuning.ENCHANTABILITY;
+    }
+
+    /**
+     * Besides what anything that wears out takes (Unbreaking, Mending, Curse of Vanishing): Sharpness or Smite, Impaling,
+     * Looting, Knockback and Channeling, at the enchanting table and from books (the user, October 25, 2026). Not Fire
+     * Aspect (it fights the freeze), Riptide (it would throw you, not the spear), Loyalty (it comes back anyway) or
+     * Sweeping Edge (a sword's swing).
+     */
+    @Override
+    public boolean canApplyAtEnchantingTable(ItemStack stack, Enchantment enchantment)
+    {
+        return SpearTuning.EXTRA_ENCHANTMENTS.contains(enchantment) || super.canApplyAtEnchantingTable(stack, enchantment);
     }
 
     @Override

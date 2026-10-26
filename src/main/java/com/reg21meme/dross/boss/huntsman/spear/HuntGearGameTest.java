@@ -25,6 +25,9 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Skeleton;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.ShapedRecipe;
@@ -177,6 +180,97 @@ public final class HuntGearGameTest
                     }
                 })
                 .thenExecute(() -> clear(thrower, target, spear))
+                .thenSucceed();
+    }
+
+    /** (the user, October 25, 2026) The spear takes Sharpness, Smite, Impaling, Looting, Knockback and Channeling (and
+     * Unbreaking and Mending), at the table and from books; not Fire Aspect, Riptide, Loyalty or Sweeping Edge. */
+    @GameTest(template = ARENA, batch = "dross_hunt_gear_enchants", timeoutTicks = TIMEOUT)
+    public static void spearTakesItsEnchantments(GameTestHelper helper)
+    {
+        ItemStack spear = new ItemStack(ModItems.MOONSILVER_SPEAR.get());
+        List<Enchantment> takes = List.of(Enchantments.SHARPNESS, Enchantments.SMITE, Enchantments.IMPALING,
+                Enchantments.MOB_LOOTING, Enchantments.KNOCKBACK, Enchantments.CHANNELING, Enchantments.UNBREAKING,
+                Enchantments.MENDING);
+        List<Enchantment> refuses = List.of(Enchantments.FIRE_ASPECT, Enchantments.RIPTIDE, Enchantments.LOYALTY,
+                Enchantments.SWEEPING_EDGE, Enchantments.BANE_OF_ARTHROPODS);
+        for (Enchantment e : takes)
+        {
+            if (!e.canEnchant(spear))
+            {
+                throw new GameTestAssertException("the spear should take " + e.getDescriptionId());
+            }
+        }
+        for (Enchantment e : refuses)
+        {
+            if (e.canEnchant(spear))
+            {
+                throw new GameTestAssertException("the spear shouldn't take " + e.getDescriptionId());
+            }
+        }
+        java.util.Set<Enchantment> table = new java.util.HashSet<>();
+        for (int i = 0; i < 200; i++)
+        {
+            EnchantmentHelper.getAvailableEnchantmentResults(30, spear, false).forEach(r -> table.add(r.enchantment));
+        }
+        for (Enchantment e : List.of(Enchantments.SHARPNESS, Enchantments.SMITE, Enchantments.IMPALING,
+                Enchantments.MOB_LOOTING, Enchantments.KNOCKBACK, Enchantments.CHANNELING, Enchantments.UNBREAKING))
+        {
+            if (!table.contains(e))
+            {
+                throw new GameTestAssertException("the enchanting table should offer " + e.getDescriptionId() + " for it");
+            }
+        }
+        if (table.contains(Enchantments.FIRE_ASPECT) || table.contains(Enchantments.RIPTIDE))
+        {
+            throw new GameTestAssertException("the enchanting table offers it Fire Aspect or Riptide");
+        }
+        helper.succeed();
+    }
+
+    /** Impaling V drives a thrown spear into a zombie (not a sea creature) for about 12.5 more. */
+    @GameTest(template = ARENA, batch = "dross_hunt_gear_impaling", timeoutTicks = TIMEOUT)
+    public static void impalingWorksOnAnything(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntGearGameTest::impalingWorksOnAnything))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Skeleton thrower = helper.spawn(EntityType.SKELETON, ColossusGameTest.MIDDLE.offset(-5, 0, 0));
+        thrower.setNoAi(true);
+        thrower.setPersistenceRequired();
+        Zombie target = zombie(helper, ColossusGameTest.MIDDLE.offset(4, 0, 0));
+        java.util.Objects.requireNonNull(target.getAttribute(Attributes.MAX_HEALTH)).setBaseValue(100.0D);
+        target.setHealth(100.0F);
+        float before = target.getHealth();
+        ItemStack stack = new ItemStack(ModItems.MOONSILVER_SPEAR.get());
+        stack.enchant(Enchantments.IMPALING, 5);
+        ThrownMoonsilverSpear spear = new ThrownMoonsilverSpear(level, thrower, stack);
+        Vec3 from = thrower.getEyePosition();
+        Vec3 to = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
+        spear.setPos(from.x, from.y, from.z);
+        Vec3 d = to.subtract(from);
+        spear.shoot(d.x, d.y, d.z, SpearTuning.THROW_POWER, 0.0F);
+        level.addFreshEntity(spear);
+        helper.startSequence()
+                .thenWaitUntil(() ->
+                {
+                    if (target.getHealth() >= before)
+                    {
+                        throw new GameTestAssertException("waiting for the spear to hit");
+                    }
+                })
+                .thenExecute(() ->
+                {
+                    float took = before - target.getHealth();
+                    clear(thrower, target, spear);
+                    if (took < SpearTuning.THROW_DAMAGE + 9.0F)
+                    {
+                        throw new GameTestAssertException("with Impaling V a thrown spear should hit a zombie for about "
+                                + (SpearTuning.THROW_DAMAGE + 12.5F) + " (less its armour); it took " + took);
+                    }
+                })
                 .thenSucceed();
     }
 

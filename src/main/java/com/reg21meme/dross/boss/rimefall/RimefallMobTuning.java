@@ -89,9 +89,13 @@ public final class RimefallMobTuning
      * "the range of attack for a moose mother is too far, it leaves the calf"). */
     public static final double MOTHER_CALF_RANGE = 16.0D;
     public static final double MOTHER_NOTICE_RANGE = 6.0D;
-    /** She never chases you further than this from her calf: past it she gives up and goes back to it (unless you
-     * hurt her: then she's angry like any moose). After giving up she won't start again for a moment. */
+    /** She never chases you further than this from her calf, even when you hurt her (until October 25, 2026 a hurt
+     * mother chased like any moose): past it she gives up and goes back to it. After giving up she won't start again for
+     * a moment. */
     public static final double MOTHER_LEASH = 10.0D;
+    /** A mother remembers her calf while she's within this many blocks of it (beyond MOTHER_CALF_RANGE, as a chase takes
+     * her off); the leash holds whatever she chases, a player who hurt her too. */
+    public static final double MOTHER_REMEMBERS = 64.0D;
     public static final int MOTHER_GIVE_UP_PAUSE = 60;
     /** Having given up, she walks back until she's this close to her calf (then she's free to graze and wander). */
     public static final double MOTHER_BACK_WITHIN = 4.0D;

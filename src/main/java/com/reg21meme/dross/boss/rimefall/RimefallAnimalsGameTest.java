@@ -506,6 +506,69 @@ public final class RimefallAnimalsGameTest
         });
     }
 
+    /** (the user, October 25, 2026: "she charges all the way away from her calf") Hit by a player who then runs off,
+     * a mother chases them but gives up near her calf, as she does for one who only came near it. */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void hurtMooseMotherKeepsToHerCalf(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, RimefallAnimalsGameTest::hurtMooseMotherKeepsToHerCalf))
+        {
+            return;
+        }
+        Moose mother = spawn(helper, ModEntities.MOOSE.get(), MIDDLE.offset(-5, 0, -7), 0.0F);
+        mother.setBull(false);
+        Moose calf = spawn(helper, ModEntities.MOOSE.get(), MIDDLE.offset(-7, 0, -7), 0.0F);
+        calf.setBaby(true);
+        calf.setNoAi(true);
+        // (out of her notice range: she only goes for them because they hurt her)
+        ServerPlayer player = survivalPlayer(helper, "moose_hunter", MIDDLE.offset(4, 0, -7));
+        List<Entity> made = List.of(mother, calf);
+        Vec3 far = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(7, 0, 7)));
+        boolean[] chased = {false};
+        int[] calm = {0};
+        double[] furthest = {0.0D};
+        helper.runAfterDelay(2, () -> mother.hurt(helper.getLevel().damageSources().playerAttack(player), 1.0F));
+        helper.onEachTick(() ->
+        {
+            furthest[0] = Math.max(furthest[0], mother.distanceTo(calf));
+            if (!chased[0])
+            {
+                if (mother.getTarget() == player)
+                {
+                    chased[0] = true;
+                    player.moveTo(far.x, far.y, far.z);       // run off, far from her calf
+                }
+                return;
+            }
+            if (mother.getTarget() == null && mother.distanceTo(calf) <= RimefallMobTuning.MOTHER_LEASH + 2.0D)
+            {
+                calm[0]++;
+            }
+            else
+            {
+                calm[0] = 0;
+            }
+        });
+        helper.succeedWhen(() ->
+        {
+            if (!chased[0])
+            {
+                throw new GameTestAssertException("the mother hasn't gone for the player who hurt her yet");
+            }
+            if (furthest[0] > RimefallMobTuning.MOTHER_LEASH + 3.0D)
+            {
+                cleanUp(made, List.of(player));
+                helper.fail("the hurt mother ran " + Math.round(furthest[0]) + " blocks from her calf (she should give up at "
+                        + RimefallMobTuning.MOTHER_LEASH + ")");
+            }
+            if (calm[0] < 40)
+            {
+                throw new GameTestAssertException("the mother is still after the player (or has just stopped)");
+            }
+            cleanUp(made, List.of(player));
+        });
+    }
+
     @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
     public static void mooseMotherAttacks(GameTestHelper helper)
     {

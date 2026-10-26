@@ -22,6 +22,15 @@ public final class SpearTuning
     /** Uses before it breaks (a trident's 250, a diamond sword's 1561). */
     public static final int DURABILITY = 500;
     public static final int ENCHANTABILITY = 10;
+    /** The enchantments it takes besides Unbreaking, Mending and Curse of Vanishing (MoonsilverSpearItem). Impaling
+     * adds its damage to a thrown spear's hit on anything, not only sea creatures. */
+    public static final java.util.Set<net.minecraft.world.item.enchantment.Enchantment> EXTRA_ENCHANTMENTS = java.util.Set.of(
+            net.minecraft.world.item.enchantment.Enchantments.SHARPNESS,
+            net.minecraft.world.item.enchantment.Enchantments.SMITE,
+            net.minecraft.world.item.enchantment.Enchantments.IMPALING,
+            net.minecraft.world.item.enchantment.Enchantments.MOB_LOOTING,
+            net.minecraft.world.item.enchantment.Enchantments.KNOCKBACK,
+            net.minecraft.world.item.enchantment.Enchantments.CHANNELING);
 
     /** What its hit does: frozen solid for this long (4 s: the frost on the screen, shaking, slow) ... */
     public static final int FREEZE_TICKS = 80;

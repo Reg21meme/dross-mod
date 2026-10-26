@@ -200,11 +200,12 @@ def harvest_heap(f):
 
 
 def palm_antlers(f):
-    """An Alpha Moose's skull and its great palm antlers mounted on a post (until October 22, 2026 antlers of birch
-    wood and fences)."""
+    """A bull moose's skull and its palm antlers mounted on a post (until October 22, 2026 antlers of birch wood and
+    fences; the Alpha Moose's until October 25, the user: "all other moose should be regular moose ... only the
+    Huntsman's home's front and the barn's front should have Alpha Moose skulls")."""
     for y in (1, 2, 3):
         f.set(0, y, 0, "spruce_log[axis=y]")
-    f.set(0, 4, 0, props.skull_on_post("alpha_moose_skull"))
+    f.set(0, 4, 0, props.skull_on_post("moose_skull"))
 
 
 IDEAS = [

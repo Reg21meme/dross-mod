@@ -40,6 +40,7 @@ import net.minecraft.world.entity.ai.goal.PanicGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.TemptGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
@@ -126,6 +127,9 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     private int motherPause;
     /** Server: a mother who gave up a chase is walking back to her calf. */
     private boolean returningToCalf;
+    /** Server: her calf, remembered while a chase takes her out of the range she'd find it in. */
+    @Nullable
+    private Moose calf;
     /** Server: where it was when it started chasing its target. */
     @Nullable
     private Vec3 chaseFrom;
@@ -570,8 +574,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         if (this.position().subtract(this.chaseFrom).horizontalDistance() > RimefallMobTuning.MOOSE_CHASE_LEASH)
         {
             Vec3 home = this.chaseFrom;
-            this.stopBeingAngry();
-            this.setTarget(null);
+            this.dropTarget();
             this.protecting = false;
             this.chaseFrom = null;
             this.getNavigation().moveTo(home.x, home.y, home.z, 1.0D);
@@ -579,8 +582,45 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     }
 
     /**
-     * A mother chasing a player who came near her calf gives up once she's {@link RimefallMobTuning#MOTHER_LEASH} blocks
-     * from it (or the calf is gone) and walks back to it.
+     * Gives up its target for good. The target goal that picked it is stopped too: it remembers its target and would
+     * set it again the very next tick (so a mother who "gave up" at her leash went on after the player, creeping a
+     * little further from her calf every tick).
+     */
+    private void dropTarget()
+    {
+        this.stopBeingAngry();
+        this.targetSelector.getRunningGoals().toList().forEach(WrappedGoal::stop);
+        this.setTarget(null);
+    }
+
+    /** Her calf: the nearest within {@link RimefallMobTuning#MOTHER_CALF_RANGE}, else the one she last had, while it's
+     * still a calf and within {@link RimefallMobTuning#MOTHER_REMEMBERS} (she remembers it when a chase takes her past
+     * the range she'd find it in). */
+    @Nullable
+    private Moose myCalf()
+    {
+        if (this.isBull() || this.isBaby() || this.isShowcase())
+        {
+            return null;
+        }
+        Moose near = this.nearestCalf();
+        if (near != null)
+        {
+            this.calf = near;
+        }
+        else if (this.calf != null && (!this.calf.isAlive() || !this.calf.isBaby() || this.calf.level() != this.level()
+                || this.distanceTo(this.calf) > RimefallMobTuning.MOTHER_REMEMBERS))
+        {
+            this.calf = null;
+        }
+        return this.calf;
+    }
+
+    /**
+     * A mother never chases far from her calf: whatever she's after (a player who came near it, or one who hurt her),
+     * she gives up once she's {@link RimefallMobTuning#MOTHER_LEASH} blocks from it and walks back to it (the user,
+     * October 25, 2026: "she charges all the way away from her calf ... like 50 blocks away during her charge"; hurt,
+     * she used to chase like any moose, 24 blocks from wherever the chase began, again after every hit).
      */
     private void keepToCalf()
     {
@@ -603,20 +643,20 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
                 this.getNavigation().moveTo(calf, 1.2D);
             }
         }
-        if (!this.protecting)
-        {
-            return;
-        }
         LivingEntity target = this.getTarget();
         if (target == null)
         {
             this.protecting = false;
             return;
         }
-        Moose calf = this.nearestCalf();
+        Moose calf = this.myCalf();
+        if (!this.protecting && calf == null)
+        {
+            return;                                  // (no calf: a moose like any other)
+        }
         if (calf == null || this.distanceTo(calf) > RimefallMobTuning.MOTHER_LEASH)
         {
-            this.stopBeingAngry();
+            this.dropTarget();
             this.protecting = false;
             this.motherPause = RimefallMobTuning.MOTHER_GIVE_UP_PAUSE;
             if (calf != null)
@@ -627,7 +667,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         }
     }
 
-    /** Hurt by someone, she's angry like any moose (she chases them as far as a moose does). */
+    /** Hurt by someone, she's angry like any moose (but a mother still keeps to her calf: keepToCalf). */
     @Override
     public boolean hurt(DamageSource source, float amount)
     {

@@ -37,6 +37,7 @@ import net.minecraft.world.entity.ai.goal.PanicGoal;
 import net.minecraft.world.entity.ai.goal.RandomLookAroundGoal;
 import net.minecraft.world.entity.ai.goal.TemptGoal;
 import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
+import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
@@ -620,6 +621,8 @@ public class Rimehorn extends Animal implements GeoEntity, NeutralMob, RimefallA
         {
             Vec3 home = this.chaseFrom;
             this.stopBeingAngry();
+            // (the target goal that picked it would set it again the next tick: stopped too)
+            this.targetSelector.getRunningGoals().toList().forEach(WrappedGoal::stop);
             this.setTarget(null);
             this.chaseFrom = null;
             this.getNavigation().moveTo(home.x, home.y, home.z, 1.0D);

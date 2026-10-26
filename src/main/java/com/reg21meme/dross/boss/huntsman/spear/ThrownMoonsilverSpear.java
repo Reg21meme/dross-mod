@@ -2,18 +2,23 @@ package com.reg21meme.dross.boss.huntsman.spear;
 
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModItems;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MobType;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -111,7 +116,14 @@ public class ThrownMoonsilverSpear extends AbstractArrow
         float damage = SpearTuning.THROW_DAMAGE;
         if (target instanceof LivingEntity living)
         {
+            // Sharpness or Smite, and Impaling, which a thrown spear drives into anything (vanilla's only into sea
+            // creatures, which the Dross hardly has: the user, October 25, 2026)
             damage += EnchantmentHelper.getDamageBonus(this.spear, living.getMobType());
+            if (living.getMobType() != MobType.WATER)
+            {
+                damage += Enchantments.IMPALING.getDamageBonus(
+                        EnchantmentHelper.getItemEnchantmentLevel(Enchantments.IMPALING, this.spear), MobType.WATER);
+            }
         }
         Entity owner = this.getOwner();
         DamageSource source = this.damageSources().trident(this, owner == null ? this : owner);
@@ -126,8 +138,32 @@ public class ThrownMoonsilverSpear extends AbstractArrow
             SpearFreeze.freeze(living, owner);
             this.doPostHurtEffects(living);
         }
+        this.channel(target, owner);
         this.setDeltaMovement(this.getDeltaMovement().multiply(-0.01D, -0.1D, -0.01D));
         this.playSound(SoundEvents.TRIDENT_HIT, 1.0F, 1.0F);
+    }
+
+    /** Channeling: in a thunderstorm, the spear's hit calls lightning down on what it hit (as a trident's does). */
+    private void channel(Entity target, @Nullable Entity owner)
+    {
+        if (!(this.level() instanceof ServerLevel level) || !level.isThundering()
+                || !EnchantmentHelper.hasChanneling(this.spear))
+        {
+            return;
+        }
+        BlockPos at = target.blockPosition();
+        if (!level.canSeeSky(at))
+        {
+            return;
+        }
+        LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
+        if (bolt != null)
+        {
+            bolt.moveTo(Vec3.atBottomCenterOf(at));
+            bolt.setCause(owner instanceof ServerPlayer player ? player : null);
+            level.addFreshEntity(bolt);
+            this.playSound(SoundEvents.TRIDENT_THUNDER, 5.0F, 1.0F);
+        }
     }
 
     @Override

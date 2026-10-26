@@ -1775,17 +1775,14 @@ def _light_inside(g, dec, p, X, Z, courts, blocked, fixtures=None, lodge_stairs=
 # lights, which go round them. Spots to try, (across, out) from the middle of the top step, nearest first, its antlers
 # kept clear of everything (dross_blocks.REACH).
 ENTRANCE_SKULL_SPOTS = tuple((across, out) for out in range(3, 13) for across in (7, 8, 6, 9, 10))
-# the Alpha Moose's skull (in the Huntsman's villages) needs more room for its antlers (5 blocks across)
-ENTRANCE_SKULL_SPOTS_ALPHA = tuple((across, out) for out in range(3, 17) for across in (8, 9, 7, 10, 11, 12, 13))
 ENTRANCE_SKULL_POST = 4
 
 
 def _entrance_skulls(g, dec, p, X, Z, fixtures=None):
-    """A moose skull on a post either side of the way in (ENTRANCE_SKULL_SPOTS); returns how many stand. In the
-    Huntsman's villages the Alpha Moose's (the user, October 25, 2026: "make sure his entrances and his barn have Alpha
-    Moose skulls")."""
-    skull = "alpha_moose_skull" if p.lodge is not None else "moose_skull"
-    spots = ENTRANCE_SKULL_SPOTS_ALPHA if p.lodge is not None else ENTRANCE_SKULL_SPOTS
+    """A bull moose's skull on a post either side of the way in (ENTRANCE_SKULL_SPOTS); returns how many stand (the
+    Alpha Moose's skull is only on his lodge's front and his barn's: the user, October 25, 2026)."""
+    skull = "moose_skull"
+    spots = ENTRANCE_SKULL_SPOTS
     posts = Decor(g)
     posts.keepout = dec.keepout
     posts.taken = dec.taken
