@@ -58,6 +58,10 @@ PASSAGE_LEN = (3, 6)             # blocks of passage between a parent's wall and
 PASSAGE_JOG = 2                  # the outlier may sit this far to the side of the passage's straight line
 EXTRA_LEN = (2.0, 9.0)           # two facing walls this far apart may be joined too (the warren)
 MAX_LINKS = 3                    # passages into one igloo, at most
+# passages in one cluster of igloos joined by them, at most (the user, October 25, 2026: a cluster of 7 joined igloos
+# "is too much ... if you have more than 3 connections the other side of the connection must connect with another hub");
+# a warren igloo past that hangs off another courtyard's igloo instead
+MAX_CLUSTER_LINKS = 3
 OUTLIER_SHARE = 0.3              # about this share of the igloos sit behind the rings
 APPROACH_MAX = 8                 # a doorway's dug way to its courtyard or lane, at most this long
 MARGIN = 13                      # open ground round the village (its ring of lights stands in it)
@@ -431,7 +435,8 @@ def _outlier(p, rng, did, tries=300):
     """A warren igloo behind the others: a free spot on another igloo's wall facing out, then this one a few blocks out
     from it, its doorway facing back, a covered passage between."""
     piece = pieces()[did]
-    hosts = [i for i in p.items if i.role in ("ring", "lane", "warren") and i.links < MAX_LINKS]
+    hosts = [i for i in p.items if i.role in ("ring", "lane", "warren") and i.links < MAX_LINKS
+             and _cluster_links(p, i) < MAX_CLUSTER_LINKS]
     for _t in range(tries):
         if not hosts:
             return None
@@ -557,6 +562,10 @@ def _extra_links(p):
             continue
         if any((f is a and t is b) or (f is b and t is a) for f, _x, t, _y in p.links):
             continue
+        ca = _cluster(p, a)
+        joined = len(ca) if b in ca else len(ca) + len(_cluster(p, b))
+        if joined + 1 > MAX_CLUSTER_LINKS:
+            continue
         best = None
         for sa in a.free_spots():
             for sb in b.free_spots():
@@ -586,6 +595,25 @@ def _extra_links(p):
         p.link_spots[(id(b), sb.outer)] = sb
         added += 1
     return added
+
+
+def _cluster(p, item):
+    """The passages (indices into p.links) of the cluster of igloos `item` is joined to by them."""
+    seen, todo, links = {id(item)}, [item], set()
+    while todo:
+        cur = todo.pop()
+        for k, (f, _x, t, _y) in enumerate(p.links):
+            if f is cur or t is cur:
+                links.add(k)
+                other = t if f is cur else f
+                if id(other) not in seen:
+                    seen.add(id(other))
+                    todo.append(other)
+    return links
+
+
+def _cluster_links(p, item):
+    return len(_cluster(p, item))
 
 
 class Surface:
@@ -1747,11 +1775,17 @@ def _light_inside(g, dec, p, X, Z, courts, blocked, fixtures=None, lodge_stairs=
 # lights, which go round them. Spots to try, (across, out) from the middle of the top step, nearest first, its antlers
 # kept clear of everything (dross_blocks.REACH).
 ENTRANCE_SKULL_SPOTS = tuple((across, out) for out in range(3, 13) for across in (7, 8, 6, 9, 10))
+# the Alpha Moose's skull (in the Huntsman's villages) needs more room for its antlers (5 blocks across)
+ENTRANCE_SKULL_SPOTS_ALPHA = tuple((across, out) for out in range(3, 17) for across in (8, 9, 7, 10, 11, 12, 13))
 ENTRANCE_SKULL_POST = 4
 
 
 def _entrance_skulls(g, dec, p, X, Z, fixtures=None):
-    """A moose skull on a post either side of the way in (ENTRANCE_SKULL_SPOTS); returns how many stand."""
+    """A moose skull on a post either side of the way in (ENTRANCE_SKULL_SPOTS); returns how many stand. In the
+    Huntsman's villages the Alpha Moose's (the user, October 25, 2026: "make sure his entrances and his barn have Alpha
+    Moose skulls")."""
+    skull = "alpha_moose_skull" if p.lodge is not None else "moose_skull"
+    spots = ENTRANCE_SKULL_SPOTS_ALPHA if p.lodge is not None else ENTRANCE_SKULL_SPOTS
     posts = Decor(g)
     posts.keepout = dec.keepout
     posts.taken = dec.taken
@@ -1760,11 +1794,11 @@ def _entrance_skulls(g, dec, p, X, Z, fixtures=None):
     top = int(math.floor(c0.r)) + sw.STEPS_LEN + 2
     placed = 0
     for sign in (-1, 1):
-        for across, out in ENTRANCE_SKULL_SPOTS:
+        for across, out in spots:
             x, z = f.xz(sign * across, top + out)
             if 0 <= x < g.W and 0 <= z < g.D and posts.place(
                     "moose skull post", lambda s, x=x, z=z: props.antler_post(
-                        Frame(s, x, z, d0), height=ENTRANCE_SKULL_POST, skull="moose_skull"), margin=0):
+                        Frame(s, x, z, d0), height=ENTRANCE_SKULL_POST, skull=skull), margin=0):
                 placed += 1
                 break
     if fixtures is not None:

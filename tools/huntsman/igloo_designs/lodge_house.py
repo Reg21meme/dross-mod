@@ -271,7 +271,9 @@ def _barn(g):
             g.set(mid, y, z, "chain[axis=y]", force=True)
         g.set(mid, BH - 3, z, "lantern[hanging=true]", force=True)
     g.set(x1 - 4, 2, z1 - 2, "lantern[hanging=false]", force=True)
-    Frame(g, mid, z1, "south").set(0, 7, 1, props.skull_on_wall("moose_skull"))   # a bull's skull over the door
+    # the Alpha Moose's own skull over the door (a bull's until October 25, 2026, the user: "have the Alpha Moose skull
+    # on the barn instead of the regular moose")
+    Frame(g, mid, z1, "south").set(0, 7, 1, props.skull_on_wall("alpha_moose_skull"))
     # the corral, east of the barn: bone posts (their skulls facing out) and spruce rails, a gate at the south, a
     # water trough and hay inside
     cx0, cx1 = x1 + 2, x1 + 1 + CW

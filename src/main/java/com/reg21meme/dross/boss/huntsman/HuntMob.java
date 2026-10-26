@@ -554,6 +554,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             arrow.setBaseDamage(this.shotBase * HuntFight.damageScale(this));
             arrow.shoot(aim.x, aim.y, aim.z, ARROW_SPEED, AIM_SPREAD);
             HuntFight.mark(arrow, this.shotFrost);
+            arrow.getPersistentData().putUUID(HuntFight.AIM_TAG, target.getUUID());
         }
         this.level().addFreshEntity(arrow);
         this.twang();

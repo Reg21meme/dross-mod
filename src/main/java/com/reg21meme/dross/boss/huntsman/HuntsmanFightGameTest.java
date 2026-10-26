@@ -410,6 +410,82 @@ public final class HuntsmanFightGameTest
     /** The Alpha Moose's hitboxes past its square middle (the user, October 23, 2026: "increase his hitbox near his
      * legs"): its chest and front legs ahead, its rump and hind legs behind, its head further ahead; a blow on one
      * hurts it, and they're the Huntsman's partner (his shots and throws fly through them). */
+    /** (the user, October 25, 2026: "he often moves into walls") With a wall just behind him, falling back from a foe in
+     * front he picks a way with room (along the wall, still away from the foe), never into it. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_walls", timeoutTicks = WAIT + 40)
+    public static void heFallsBackAlongTheWall(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::heFallsBackAlongTheWall))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        int wallX = 14;
+        for (int z = 0; z < 17; z++)
+        {
+            for (int y = MIDDLE.getY(); y < MIDDLE.getY() + 6; y++)
+            {
+                helper.setBlock(new BlockPos(wallX, y, z), net.minecraft.world.level.block.Blocks.STONE);
+            }
+        }
+        Huntsman h = ModEntities.HUNTSMAN.get().create(level);
+        if (h == null)
+        {
+            throw new GameTestAssertException("couldn't make the Huntsman");
+        }
+        h.setNoAi(true);
+        Vec3 at = helper.absoluteVec(new Vec3(11.5D, MIDDLE.getY(), 8.5D));
+        h.moveTo(at.x, at.y, at.z, 270.0F, 0.0F);
+        level.addFreshEntity(h);
+        Vec3 foe = helper.absoluteVec(new Vec3(3.5D, MIDDLE.getY(), 8.5D));
+        helper.startSequence()
+                .thenIdle(2)
+                .thenExecute(() ->
+                {
+                    // (a Huntsman put in the world gets his Alpha Moose and its saddle: on foot, alone)
+                    if (h.getVehicle() != null)
+                    {
+                        net.minecraft.world.entity.Entity moose = h.getVehicle();
+                        h.stopRiding();
+                        moose.discard();
+                    }
+                    h.moveTo(at.x, at.y, at.z, 270.0F, 0.0F);
+                })
+                .thenIdle(2)
+                .thenExecute(() ->
+                {
+                    Vec3 away = new Vec3(1.0D, 0.0D, 0.0D);
+                    double straight = HuntRoom.run(h, away, 10.0D);
+                    Vec3 to = HuntRoom.spot(h, away, 10.0D, foe);
+                    double before = Math.hypot(h.getX() - foe.x, h.getZ() - foe.z);
+                    double after = Math.hypot(to.x - foe.x, to.z - foe.z);
+                    double wall = helper.absoluteVec(new Vec3(wallX, 0.0D, 0.0D)).x;
+                    String problem = null;
+                    if (straight > 1.5D)
+                    {
+                        problem = "straight back he has " + straight + " blocks of room, but the wall is 2 behind him";
+                    }
+                    else if (to.x + h.getBbWidth() / 2.0D > wall)
+                    {
+                        problem = "he'd fall back into the wall (to x " + to.x + ", the wall at " + wall + ")";
+                    }
+                    else if (after < before + 1.0D)
+                    {
+                        problem = "his way out takes him only from " + before + " to " + after + " blocks off his foe";
+                    }
+                    else if (!HuntRoom.clear(h, to))
+                    {
+                        problem = "his way out isn't clear";
+                    }
+                    clear(h);
+                    if (problem != null)
+                    {
+                        throw new GameTestAssertException(problem);
+                    }
+                })
+                .thenSucceed();
+    }
+
     @GameTest(template = ARENA, batch = "dross_huntsman_legs", timeoutTicks = WAIT + 100)
     public static void theMoosesLegsAreHitboxes(GameTestHelper helper)
     {

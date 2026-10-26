@@ -558,7 +558,7 @@ the edge) with a chat button to summon him.
   his arrows lead you as you run, and every one frosts and slows you), the Horn of the Hunt ahead (a cone of icy wind
   that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed; at once if you run away from him)
   and the **arrow rain** anywhere (his arrows shoot up out of his bow and vanish high up, then 48 streak down out of
-  the sky round you with no warning, steering after you as they fall). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
+  the sky close round you with no warning, steering after you as they fall: half a heart each, and you take several). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
   cracks across the snow up close, charges (6.5 hearts) and circles you further out, and kicks anyone behind it (4.5).
 - **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
   neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he

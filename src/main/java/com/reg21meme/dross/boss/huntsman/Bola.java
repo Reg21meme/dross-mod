@@ -49,6 +49,7 @@ public class Bola extends ThrowableItemProjectile
         bola.setPos(from.x, from.y, from.z);
         Vec3 aim = HuntFight.aimAt(thrower, from, target, HuntsmanTuning.BOLA_SPEED, GRAVITY / 2.0D);
         bola.shoot(aim.x, aim.y, aim.z, HuntsmanTuning.BOLA_SPEED, 1.0F);
+        bola.getPersistentData().putUUID(HuntFight.AIM_TAG, target.getUUID());
         thrower.level().addFreshEntity(bola);
         thrower.level().playSound(null, from.x, from.y, from.z, ModSounds.HUNTSMAN_BOLA_RELEASE.get(), SoundSource.HOSTILE,
                 1.5F, 1.0F);

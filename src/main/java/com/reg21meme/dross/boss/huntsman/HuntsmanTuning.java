@@ -220,11 +220,12 @@ public final class HuntsmanTuning
     public static final int RAIN_PER_ARROW = 4;
     public static final double RAIN_VANISH_HEIGHT = 16.0D;
     public static final float RAIN_UP_SPEED = 3.0F;                // (a bow's full draw)
-    public static final double RAIN_RADIUS = 6.0D;
+    /** How far round the target they come down (blocks; 6 until October 25, 2026, the user: "don't make the rain of
+     * arrows so far ... the arrows don't seem to hit me that often, make them do less damage but more of them hit me"). */
+    public static final double RAIN_RADIUS = 2.5D;
     /** How the arrows spread round the target: a spot's distance from it is the radius times a random 0-1 raised to
-     * this (0.5 would spread them evenly over the circle; 0.7 crowds them in, so of the 48 a player takes a few: coming
-     * down steeply they hit more than the arcing ones did, 6-8 of them at 5 blocks and 0.8). */
-    public static final double RAIN_SPREAD_POWER = 0.7D;
+     * this (0.5 would spread them evenly over the circle; more crowds them in towards the target). */
+    public static final double RAIN_SPREAD_POWER = 0.65D;
     /** Where the ones that come down appear: this far over their spot (out of sight over a player looking ahead), and
      * this far back towards him for each block up, so they streak in steeply from his side. */
     public static final double RAIN_HEIGHT = 22.0D;
@@ -238,8 +239,12 @@ public final class HuntsmanTuning
      * as it comes down. */
     public static final double RAIN_LEAD_MAX = 6.0D;
     public static final double RAIN_STEER = 0.35D;
-    /** The base damage that makes a hit about 3 (1.5 hearts) at the speed they come down (about 2.1). */
-    public static final double RAIN_BASE_DAMAGE = 1.3D;
+    /** The base damage of the arrows that come down (a hit's damage is set to {@link #RAIN_HIT_DAMAGE} anyway). */
+    public static final double RAIN_BASE_DAMAGE = 0.5D;
+    /** What each of them does when it hits (half a heart; 3 until October 25, 2026, the user: "make them do less damage
+     * but more of them hit me"). Every one counts: a hit's moment of not being hurt again (vanilla's half second after
+     * a hit) doesn't stop the next arrow of the rain, and it doesn't push its target about. */
+    public static final float RAIN_HIT_DAMAGE = 1.0F;
     public static final int RAIN_COOLDOWN = 280;
     public static final int RAIN_COOLDOWN_STAGE2 = 320;
     /** A frost arrow's hit: Slowness I and the frosted screen of powder snow (never long enough to freeze). */

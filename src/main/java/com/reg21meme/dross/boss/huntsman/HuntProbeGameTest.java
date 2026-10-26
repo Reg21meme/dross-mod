@@ -297,7 +297,7 @@ public final class HuntProbeGameTest
     @GameTest(template = EMPTY, batch = "dross_probe_rage_king", timeoutTicks = RAGE_PROBE_TICKS + 200)
     public static void ragedHuntVersusRatKing(GameTestHelper helper)
     {
-        ragedVersus(helper, ModEntities.RAT_KING.get(), 0.0F);
+        ragedVersus(helper, ModEntities.RAT_KING.get(), 0.0F, false);
     }
 
     /** The same against a raged Cinder Colossus, just over its first stage change (so it erupts and summons its golems
@@ -305,7 +305,15 @@ public final class HuntProbeGameTest
     @GameTest(template = EMPTY, batch = "dross_probe_rage_colossus", timeoutTicks = RAGE_PROBE_TICKS + 200)
     public static void ragedHuntVersusColossus(GameTestHelper helper)
     {
-        ragedVersus(helper, ModEntities.CINDER_COLOSSUS.get(), 215.0F);
+        ragedVersus(helper, ModEntities.CINDER_COLOSSUS.get(), 215.0F, false);
+    }
+
+    /** The same after the split (the user, October 25, 2026: "the hunter still doesn't target the rock minions like they
+     * are attacking him ... during the split part"): the Wild Hunt's pool emptied 2 s in, then the duel on foot. */
+    @GameTest(template = EMPTY, batch = "dross_probe_rage_colossus_duel", timeoutTicks = RAGE_PROBE_TICKS + 200)
+    public static void ragedDuelVersusColossus(GameTestHelper helper)
+    {
+        ragedVersus(helper, ModEntities.CINDER_COLOSSUS.get(), 215.0F, true);
     }
 
     /** The Wild Hunt (not raged) against one Pond Skater that can't be hurt, logged every second: which of his moves he
@@ -366,10 +374,97 @@ public final class HuntProbeGameTest
         });
     }
 
+    /** (the user, October 25, 2026: after the split he went for the golems but never hurt them) Him on foot (the duel)
+     * against one stone golem that can't die and goes for him, 3 blocks off for 30 s, then 10 off for 30 s: his moves
+     * and which of them hurt it. */
+    @GameTest(template = EMPTY, batch = "dross_probe_foot_golem", timeoutTicks = 1400)
+    public static void footVersusGolem(GameTestHelper helper)
+    {
+        ServerLevel level = helper.getLevel();
+        BlockPos origin = helper.absolutePos(BlockPos.ZERO);
+        BlockPos base = new BlockPos(origin.getX(), SKY_Y, origin.getZ());
+        List<ChunkPos> forced = forceChunks(level, base, RAGE_FLOOR_HALF);
+        floor(level, base, Blocks.BARRIER, RAGE_FLOOR_HALF);
+        Huntsman h = HuntsmanPair.spawn(level, Vec3.atBottomCenterOf(base), 270.0F);
+        if (h == null || !(h.getVehicle() instanceof AlphaMoose m))
+        {
+            throw new GameTestAssertException("couldn't make the Huntsman in his saddle");
+        }
+        Mob golem = ModEntities.STONE_GOLEM.get().create(level);
+        if (golem == null)
+        {
+            throw new GameTestAssertException("couldn't make a stone golem");
+        }
+        // (it keeps its AI: one without is a statue to them, never a foe; it just can't move)
+        golem.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.0D);
+        golem.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(1.0D);
+        golem.getAttribute(Attributes.MAX_HEALTH).setBaseValue(TARGET_HEALTH);
+        golem.setHealth(TARGET_HEALTH);
+        golem.moveTo(base.getX() + 20.5D, base.getY(), base.getZ() + 0.5D, 90.0F, 0.0F);
+        level.addFreshEntity(golem);
+        golem.setTarget(h);
+        HuntFight.startFight(m);
+        java.util.Map<String, Integer> moves = new java.util.TreeMap<>();
+        SKATER_HITS.clear();
+        watchedSkater = golem;
+        float[] last = {TARGET_HEALTH};
+        int[] tick = {0};
+        helper.onEachTick(() ->
+        {
+            tick[0]++;
+            if (tick[0] == 20)
+            {
+                m.wildHunt = 0.0F;                          // the split
+            }
+            if (h.isPassenger() || m.stage() != HuntStage.DUEL)
+            {
+                return;
+            }
+            if (m.isAlive())
+            {
+                m.discard();                                // (just him and the golem)
+            }
+            double off = tick[0] < 700 ? 3.0D : 10.0D;
+            double yaw = Math.toRadians(h.yBodyRot);
+            if (tick[0] % 20 == 0)
+            {
+                golem.moveTo(h.getX() - Math.sin(yaw) * off, h.getY(), h.getZ() + Math.cos(yaw) * off, 0.0F, 0.0F);
+                golem.setTarget(h);
+            }
+            golem.setHealth(TARGET_HEALTH);
+            golem.invulnerableTime = 0;
+            String a = h.current().name() + (off < 5 ? " (3 off)" : " (10 off)");
+            if (!h.current().loop() && h.playingTicks() == 1)
+            {
+                moves.merge(a, 1, Integer::sum);
+            }
+        });
+        for (int at = 40; at <= 1300; at += 40)
+        {
+            int when = at;
+            helper.runAfterDelay(at, () -> LOGGER.info(String.format(Locale.ROOT,
+                    "[golem probe] %3ds %s; him %s at %s; %.1f apart; the golem at %s",
+                    when / 20, m.stage(), h.current().name(), name(h.getTarget()), h.distanceTo(golem),
+                    name(golem.getTarget()))));
+        }
+        helper.runAfterDelay(1330, () ->
+        {
+            LOGGER.info("[golem probe] his moves: {}", moves);
+            LOGGER.info("[golem probe] what hurt the golem: {}", SKATER_HITS);
+            watchedSkater = null;
+            h.discard();
+            m.discard();
+            golem.discard();
+            floor(level, base, Blocks.AIR, RAGE_FLOOR_HALF);
+            forced.forEach(c -> level.setChunkForced(c.x, c.z, false));
+            helper.succeed();
+        });
+    }
+
     /** (the skater probe) what hit the watched skater: the blow's maker and, for the Huntsman's, his move then. */
     private static final java.util.Map<String, Integer> SKATER_HITS = new java.util.TreeMap<>();
     @javax.annotation.Nullable
-    private static PondSkater watchedSkater;
+    private static Mob watchedSkater;
 
     /** (the Colossus probe) what the Wild Hunt's blows on the Colossus's golems were: the maker and move, and damage. */
     private static final java.util.Map<String, Float> GOLEM_HITS = new java.util.TreeMap<>();
@@ -396,7 +491,7 @@ public final class HuntProbeGameTest
         SKATER_HITS.merge(key, 1, Integer::sum);
     }
 
-    private static void ragedVersus(GameTestHelper helper, EntityType<? extends Mob> type, float health)
+    static void ragedVersus(GameTestHelper helper, EntityType<? extends Mob> type, float health, boolean duel)
     {
         ServerLevel level = helper.getLevel();
         BlockPos origin = helper.absolutePos(BlockPos.ZERO);
@@ -425,6 +520,10 @@ public final class HuntProbeGameTest
         float[] start = {boss.getHealth(), m.wildHunt};
         GOLEM_HITS.clear();
         watchGolems = true;
+        if (duel)
+        {
+            helper.runAfterDelay(40, () -> m.wildHunt = 0.0F);
+        }
         for (int at = 20; at <= RAGE_PROBE_TICKS; at += 20)
         {
             int when = at;

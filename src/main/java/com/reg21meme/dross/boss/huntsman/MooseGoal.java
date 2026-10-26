@@ -28,6 +28,12 @@ final class MooseGoal extends HuntGoal
     private static final double STOMP_KNOCK_UP = 0.2D;
     private static final double BELLOW_PUSH_UP = 0.3D;
     private static final int BELLOW_SLOW_LEVEL = 1;
+    /** Circling, it looks this far ahead for a wall every few ticks, and turns round again only after a while. */
+    private static final double CIRCLE_LOOK_AHEAD = 4.0D;
+    private static final int CIRCLE_LOOK_EVERY = 5;
+    private static final int CIRCLE_TURN_AGAIN = 30;
+    /** Riding off, it goes at least this far. */
+    private static final double RIDE_OFF_LEAST = 5.0D;
 
     private final AlphaMoose moose;
 
@@ -178,6 +184,10 @@ final class MooseGoal extends HuntGoal
      * shoot from its back (his own moves: {@link SaddleGoal}). */
     private final class Circle implements Move
     {
+        /** Which way round (1: keeping its target on his left); turned round at a wall. */
+        private double way = 1.0D;
+        private int turnedAt = -CIRCLE_TURN_AGAIN;
+
         @Override
         public String name()
         {
@@ -187,6 +197,8 @@ final class MooseGoal extends HuntGoal
         @Override
         public void start()
         {
+            this.way = 1.0D;
+            this.turnedAt = -CIRCLE_TURN_AGAIN;
         }
 
         @Override
@@ -198,11 +210,29 @@ final class MooseGoal extends HuntGoal
                 return true;
             }
             AlphaMoose moose = MooseGoal.this.moose;
-            double angle = Math.atan2(moose.getZ() - target.getZ(), moose.getX() - target.getX()) - HuntsmanTuning.CIRCLE_LEAD;
-            double r = HuntsmanTuning.CIRCLE_RADIUS;
-            moose.getMoveControl().setWantedPosition(target.getX() + Math.cos(angle) * r, target.getY(),
-                    target.getZ() + Math.sin(angle) * r, HuntsmanTuning.CIRCLE_SPEED);
+            Vec3 to = this.next(target);
+            if (t % CIRCLE_LOOK_EVERY == 0 && HuntRoom.run(moose, to.subtract(moose.position()), CIRCLE_LOOK_AHEAD)
+                    < CIRCLE_LOOK_AHEAD - 0.5D)
+            {
+                if (t - this.turnedAt < CIRCLE_TURN_AGAIN)
+                {
+                    return true;                     // walled in both ways: on to its next move
+                }
+                this.way = -this.way;                // a wall ahead: round the other way
+                this.turnedAt = t;
+                to = this.next(target);
+            }
+            moose.getMoveControl().setWantedPosition(to.x, to.y, to.z, HuntsmanTuning.CIRCLE_SPEED);
             return t >= HuntsmanTuning.CIRCLE_TICKS;
+        }
+
+        private Vec3 next(LivingEntity target)
+        {
+            AlphaMoose moose = MooseGoal.this.moose;
+            double angle = Math.atan2(moose.getZ() - target.getZ(), moose.getX() - target.getX())
+                    - this.way * HuntsmanTuning.CIRCLE_LEAD;
+            double r = HuntsmanTuning.CIRCLE_RADIUS;
+            return new Vec3(target.getX() + Math.cos(angle) * r, target.getY(), target.getZ() + Math.sin(angle) * r);
         }
 
         @Override
@@ -243,7 +273,9 @@ final class MooseGoal extends HuntGoal
             }
             double out = HuntsmanTuning.RIDE_OFF_MIN
                     + moose.getRandom().nextDouble() * (HuntsmanTuning.RIDE_OFF_MAX - HuntsmanTuning.RIDE_OFF_MIN);
-            this.to = target.position().add(away.x / d * out, 0.0D, away.z / d * out);
+            // out along the way with room (a wall behind turns it along the wall)
+            double want = Math.max(RIDE_OFF_LEAST, out - d);
+            this.to = HuntRoom.spot(moose, away, want, target.position());
             moose.getNavigation().moveTo(this.to.x, this.to.y, this.to.z, HuntsmanTuning.MOOSE_RUN);
         }
 

@@ -105,6 +105,12 @@ public final class HuntFight
 
     /** The tag his arrows carry (what their hit does). */
     static final String ARROW_TAG = "DrossHuntHit";
+    /** On an arrow of his rain: what its hit does (a float). */
+    static final String RAIN_TAG = "DrossHuntRain";
+    /** On an arrow he aimed: whom at (it flies through anything else but players: past the Colossus at its golems). */
+    static final String AIM_TAG = "DrossHuntAim";
+    /** (attacker) one going for the other of them counts as this much further off (blocks squared). */
+    private static final double OTHERS_ATTACKER = 10_000.0D;
     /** The tag the Cracking Stamp's spikes carry (so ones left over after a restart are cleared away). */
     static final String SPIKE_TAG = "dross_hunt_spike";
     /** The angry one's extra speed (its id fixed so it's never added twice). */
@@ -969,6 +975,9 @@ public final class HuntFight
     {
         double r = HuntsmanTuning.DEFEND_RANGE;
         HuntMob partner = partner(mob);
+        // apart (after the split) each deals with what's going for it first, and only then with what's after the other
+        // (the user, October 25, 2026: on foot he kept shooting at the golems round the moose while one hit him)
+        boolean together = partner != null && (mob.getVehicle() == partner || partner.getVehicle() == mob);
         LivingEntity best = null;
         double bestD = 0.0D;
         for (Mob e : mob.level().getEntitiesOfClass(Mob.class, mob.getBoundingBox().inflate(r),
@@ -976,10 +985,15 @@ public final class HuntFight
         {
             LivingEntity its = e.getTarget();
             double d = e.distanceToSqr(mob);
-            if (its != null && (its == mob || its == partner) && d <= r * r && (best == null || d < bestD))
+            if (its == null || (its != mob && its != partner) || d > r * r)
+            {
+                continue;
+            }
+            double rank = its == mob || together ? d : d + OTHERS_ATTACKER;
+            if (best == null || rank < bestD)
             {
                 best = e;
-                bestD = d;
+                bestD = rank;
             }
         }
         return best;
@@ -1330,6 +1344,8 @@ public final class HuntFight
         arrow.setOwner(shooter);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
         arrow.setBaseDamage(HuntsmanTuning.RAIN_BASE_DAMAGE * damageScale(shooter));
+        arrow.getPersistentData().putFloat(RAIN_TAG, (float) (HuntsmanTuning.RAIN_HIT_DAMAGE * damageScale(shooter)));
+        arrow.getPersistentData().putUUID(AIM_TAG, target.getUUID());
         arrow.shoot(v.x, v.y, v.z, (float) v.length(), 0.0F);
         mark(arrow, Frost.FROST);
         level.addFreshEntity(arrow);

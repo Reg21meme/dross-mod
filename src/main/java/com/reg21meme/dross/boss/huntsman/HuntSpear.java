@@ -49,6 +49,7 @@ public class HuntSpear extends AbstractArrow
         Vec3 aim = HuntFight.aimAt(owner, from, target, HuntsmanTuning.SPEAR_THROW_SPEED, HuntFight.ARROW_DROP);
         spear.shoot(aim.x, aim.y, aim.z, HuntsmanTuning.SPEAR_THROW_SPEED, 1.0F);
         spear.setBaseDamage(0.0D);
+        spear.getPersistentData().putUUID(HuntFight.AIM_TAG, target.getUUID());
         if (owner.level().addFreshEntity(spear))
         {
             owner.spearOut = true;

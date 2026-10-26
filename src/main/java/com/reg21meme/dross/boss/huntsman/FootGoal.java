@@ -43,6 +43,8 @@ final class FootGoal extends HuntGoal
     private static final double RANGE_LEAD = 0.35D;
     /** A fall back is over this close to where he was going. */
     private static final double ARRIVED = 2.5D;
+    /** Falling back, he goes at least this far (even when he's nearly out of reach already). */
+    private static final double FALL_BACK_LEAST = 4.0D;
 
     private final Huntsman h;
 
@@ -95,8 +97,8 @@ final class FootGoal extends HuntGoal
         return switch (name)
         {
             case "combo", "thrust_sweep" -> spear && d <= HuntsmanTuning.SPEAR_REACH + 1.0D;
-            case "backstep" -> d <= HuntsmanTuning.FOOT_CLOSE && this.sees(target) && HuntFight.clearOfMoose(this.h,
-                    this.h.shifted(HuntCues.shift(HuntAnims.FOOT, "backstep_shoot"), 1.0D));
+            case "backstep" -> d <= HuntsmanTuning.FOOT_CLOSE && this.sees(target) && this.roomBehind()
+                    && HuntFight.clearOfMoose(this.h, this.h.shifted(HuntCues.shift(HuntAnims.FOOT, "backstep_shoot"), 1.0D));
             case "horn" -> d <= HuntsmanTuning.HORN_LENGTH;
             case "leap" -> spear && d >= HuntsmanTuning.LEAP_MIN && d <= HuntsmanTuning.LEAP_MAX && this.sees(target)
                     && HuntFight.clearOfMoose(this.h, landing(this.h.position(), target));
@@ -365,7 +367,9 @@ final class FootGoal extends HuntGoal
             {
                 away = flatUnit(away.add(flatUnit(h.position().subtract(moose.position()), h).scale(AWAY_FROM_MOOSE)), h);
             }
-            this.to = target.position().add(away.scale(HuntsmanTuning.FALL_BACK_TO));
+            // out of his target's reach, along the way with room (a wall behind him turns him along it)
+            double want = Math.max(FALL_BACK_LEAST, HuntsmanTuning.FALL_BACK_TO - HuntFight.flat(h, target) + 1.0D);
+            this.to = HuntRoom.spot(h, away, want, target.position());
             h.getNavigation().moveTo(this.to.x, this.to.y, this.to.z, HuntsmanTuning.HUNTSMAN_RUN);
         }
 
@@ -433,9 +437,25 @@ final class FootGoal extends HuntGoal
                 return;
             }
             double r = Math.max(RANGE_LEAST, Math.min(RANGE_MOST, HuntFight.flat(h, target)));
+            Vec3 to = this.round(target, r);
+            if (!HuntRoom.clear(h, to))
+            {
+                this.way = -this.way;                // a wall that way: round the other way
+                to = this.round(target, r);
+                if (!HuntRoom.clear(h, to))
+                {
+                    to = HuntRoom.spot(h, to.subtract(h.position()), Math.sqrt(h.distanceToSqr(to)), null);
+                }
+            }
+            h.getNavigation().moveTo(to.x, to.y, to.z, HuntsmanTuning.HUNTSMAN_WALK);
+        }
+
+        /** The next spot on his way round {@code target}, {@code r} out. */
+        private Vec3 round(LivingEntity target, double r)
+        {
+            Huntsman h = FootGoal.this.h;
             double a = Math.atan2(h.getZ() - target.getZ(), h.getX() - target.getX()) + this.way * RANGE_LEAD;
-            h.getNavigation().moveTo(target.getX() + Math.cos(a) * r, target.getY(), target.getZ() + Math.sin(a) * r,
-                    HuntsmanTuning.HUNTSMAN_WALK);
+            return new Vec3(target.getX() + Math.cos(a) * r, target.getY(), target.getZ() + Math.sin(a) * r);
         }
 
         @Override
@@ -443,6 +463,13 @@ final class FootGoal extends HuntGoal
         {
             FootGoal.this.h.getNavigation().stop();
         }
+    }
+
+    /** True if there's room behind him for the backstep's leap (it never lands him against a wall). */
+    private boolean roomBehind()
+    {
+        Vec3 to = this.h.shifted(HuntCues.shift(HuntAnims.FOOT, "backstep_shoot"), 1.0D);
+        return HuntRoom.clear(this.h, to);
     }
 
     /** A flat direction of length 1 ({@code v} across the ground; any way at random if it's nothing). */
