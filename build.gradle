@@ -197,6 +197,10 @@ tasks.named('processResources', ProcessResources).configure {
 
 // Example for how to get properties into the manifest for reading at runtime.
 tasks.named('jar', Jar).configure {
+    // The jar's name says the Minecraft version and the stage too: dross-0.2.0-1.20.1-beta.jar (the user's pick,
+    // October 26, 2026, like Ice and Fire's). The version the game shows stays mod_version.
+    archiveVersion = "${mod_version}-${minecraft_version}-${mod_release}"
+
     manifest {
         attributes([
                 'Specification-Title'     : mod_id,
