@@ -45,6 +45,9 @@ public final class DrossAdvancements
     /** "The Hunter Hunted" (the user's pick of name): the boss area grants it when a player helps beat the Huntsman and
      * his Alpha Moose. Not part of the quest. */
     public static final String THE_HUNTER_HUNTED = "the_hunter_hunted";
+    /** "Wings Clipped" (the user's name): the boss area grants it when a player helps beat the Emberdactyl's young
+     * reborn, the end of its fight (the user: only for killing the young). Not part of the quest. */
+    public static final String WINGS_CLIPPED = "wings_clipped";
 
     /** The advancements {@code /dross quest reset} takes away ("Rise!", "Set in Stone" and "Down the Drain" stay: they're about Necromancy and the bosses, not the quest). */
     static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, PROVEN_WORTHY, KEYMASTER, ENTERED_THE_DROSS);

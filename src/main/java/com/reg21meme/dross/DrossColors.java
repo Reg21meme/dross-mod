@@ -381,6 +381,12 @@ public final class DrossColors {
      * user's pick, H2, October 23, 2026; tools/eggs/eggs.py), so it's tinted white: it shows as drawn. */
     public static final int HUNTSMAN_EGG_BASE = 0xFFFFFF;
     public static final int HUNTSMAN_EGG_SPOTS = 0xFFFFFF;
+    /** The Emberdactyl's and its young's spawn eggs are drawn whole (tools/eggs/eggs.py; option 1 of each until the
+     * user picks), so they're tinted white: they show as drawn. */
+    public static final int EMBERDACTYL_EGG_BASE = 0xFFFFFF;
+    public static final int EMBERDACTYL_EGG_SPOTS = 0xFFFFFF;
+    public static final int EMBERYOUNG_EGG_BASE = 0xFFFFFF;
+    public static final int EMBERYOUNG_EGG_SPOTS = 0xFFFFFF;
     /** The Frostfolk's three spawn eggs (boss/frostfolk/FolkRole.Kind: warriors, workers, the elder; the user, October 24,
      * 2026): all their hoods' blue, each kind's own spots. */
     public static final int FROSTFOLK_EGG_BASE = 0x22406E;
@@ -393,6 +399,8 @@ public final class DrossColors {
     public static final int HUNTSMAN_SNARED = 0xA8D8F0;
     /** The [Summon the Huntsman] button his arena's message has. */
     public static final int HUNTSMAN_COMMAND_BUTTON = 0x96D2F0;
+    /** The Emberdactyl arena's [Summon the Emberdactyl] chat button (ember orange). */
+    public static final int EMBERDACTYL_COMMAND_BUTTON = 0xFF7A2E;
 
     /** Cinder Colossus trophy: the item's name, lava orange. Used in boss/trophy/ColossusTrophyItem. */
     public static final int TROPHY_NAME = 0xFF8A1F;
@@ -482,6 +490,21 @@ public final class DrossColors {
     /** Huntsman trophy: the Alpha Moose's frosty breath now and then. Used in boss/huntsman/trophy/client/HuntsmanTrophyParticles. */
     public static final int HUNTSMAN_TROPHY_BREATH = 0xE8F3FA;
 
+    /** Emberdactyl trophy: the item's name, lava orange. Used in boss/emberdactyl/trophy/EmberTrophyItem. */
+    public static final int EMBERDACTYL_TROPHY_NAME = 0xFF8A3D;
+
+    /** Emberdactyl trophy: the tooltip line naming its design. Used in boss/emberdactyl/trophy/EmberTrophyItem. */
+    public static final ChatFormatting EMBERDACTYL_TROPHY_TOOLTIP = ChatFormatting.GRAY;
+
+    /** Emberdactyl trophy: the tooltip hint "Right-click to change its pose". Used in boss/emberdactyl/trophy/EmberTrophyItem. */
+    public static final ChatFormatting EMBERDACTYL_TROPHY_HINT = ChatFormatting.GRAY;
+
+    /** Emberdactyl trophy: the embers puffed out when it's right-clicked to a new pose. Used in boss/emberdactyl/trophy/EmberTrophyBlock. */
+    public static final int EMBERDACTYL_TROPHY_CYCLE_DUST = 0xFF7A2E;
+
+    /** Emberdactyl trophy: an ember drifting down from a wing tip now and then. Used in boss/emberdactyl/trophy/client/EmberTrophyParticles. */
+    public static final int EMBERDACTYL_TROPHY_EMBER = 0xFF9A3C;
+
     /**
      * Rage Wand teams (the user's request, October 16): each team's colour, for the dust over its raged mobs, the burst
      * when one is raged or switches team, and the team's name on the action bar and in the wand's tooltip. Used in
@@ -504,6 +527,14 @@ public final class DrossColors {
      */
     public static final int EMBERDACTYL_WING_EMBER = 0xFF8A26;
     public static final int EMBERDACTYL_WING_EMBER_COOL = 0x6A1406;
+    /** The Emberdactyl's boss bars: the name over them (as tools/fire/bossbars.py's previews draw it): the adult's pale
+     * ember amber, the young reborn's brighter, hotter yellow. Used in boss/client/DrossBossBars. */
+    public static final int EMBERDACTYL_BAR_NAME_ADULT = 0xFFD6A0;
+    public static final int EMBERDACTYL_BAR_NAME_YOUNG = 0xFFF0B0;
+    /** The Emberdactyl's boss bar showcase: its chat buttons (the other pages, lava orange) and its gray hint line. Used in
+     * boss/fire/EmberdactylBarShowcase. */
+    public static final int EMBERDACTYL_BAR_BUTTON = 0xFFA040;
+    public static final int EMBERDACTYL_BAR_HINT = 0xAAAAAA;
 
     // ---------------------------------------------------------------- Helpers
 

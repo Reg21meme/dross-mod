@@ -633,6 +633,36 @@ anywhere). The Huntsman's blows never hurt them. They also come from their spawn
 
 ---
 
+## The Emberdactyl
+
+A giant volcanic pterosaur, 33 blocks across its wings, one of the Fire Necromancer's servants. It lives on its own
+**volcano** in the Cinder Wastes: one in every group of three Cinder Wastes areas, never where a Cinder Colossus lair is,
+built (in the background) the first time you come within about 384 blocks. The volcano is 70 blocks tall, with a lava lake
+in its crater, the **egg** on a basalt pillar in the lake, rivers and pockets of lava down its flanks (all still lava that
+never spills), and a lit path winding up to a lookout over the crater. `/dross goto lair emberdactyl` takes you to the
+foot of its path.
+
+**The fight** (400 health): it perches on the crater's rim guarding its egg. Come within 60 blocks of the volcano's foot
+and it screeches (you hear it from far off), takes off and its boss bar appears. It fights mostly in the air, circling
+you, and never strays more than 100 blocks from its nest:
+- **Dive bomb** (7 hearts round where it crashes): then it lies stuck on the ground for 3 seconds, your chance to hit it
+  up close. On the ground it may snap its obsidian beak (7 hearts).
+- **Fire tornadoes**: its wings whip up two (three at half health) that chase you, pull you in, burn you and throw you
+  up into the sky.
+- **Strafing run**: low over you in a line, breathing fire (4 hearts and fire), leaving fire on the ground.
+- **Talon grab**: it carries you about 20 blocks up and drops you, wherever it is, its crater's lava included.
+- **Wing buffet** and **screech**: they throw you about 20 blocks.
+
+At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
+apart, its egg cracks open and its **young reborn** (175 health) bursts out: the same moves, just as hard, but 2.5 times
+as fast with almost no rest, and a dash straight through you. Beat the young (it hardens into obsidian) and everyone near
+gets the challenge advancement **Wings Clipped** and a trophy. It never comes back.
+
+It also comes from its spawn eggs (the adult alone, hovering over where it was spawned; the young has its own) and
+`/dross boss summon emberdactyl` / `emberyoung`; `/dross boss arena emberdactyl` builds a volcano with both in front of
+you. Its boss bars, spawn eggs and trophy are still options to pick from: `/dross showcase bossbars emberdactyl`,
+`/dross showcase trophies emberdactyl`, and the egg sheets in `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/`.
+
 ## The Rage Wand
 
 A creative-only testing tool in the Dross tab (after the Admin Sword), with five **teams**: **right-click** to switch
@@ -672,6 +702,7 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | Set in Stone | Defeat the Cinder Colossus | Challenge, under *Enter the Dross*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
 | Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Enter the Dross*. Goes to the player who killed him and everyone within 40 blocks when he dies |
 | The Hunter Hunted | Bring down the Huntsman and his Alpha Moose | Challenge, under *Enter the Dross*. Goes to the player with the last kill and everyone within 40 blocks |
+| Wings Clipped | Bring down the Emberdactyl and the young reborn from its egg | Challenge, under *Enter the Dross*. Goes to the player who kills the young and everyone within 64 blocks |
 
 ---
 
@@ -704,6 +735,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
 | `/dross goto lake` | Teleports you to the shore of the nearest of Rimefall's big frozen lakes, facing it. |
 | `/dross goto lair huntsman` | Teleports you to the way into the nearest Huntsman's village, facing in, and says whether he's at home or beaten. |
+| `/dross goto lair emberdactyl` | Teleports you to the foot of the path up the nearest Emberdactyl volcano (one in every group of 3 Cinder Wastes areas), building it first if it isn't yet. Within 60 blocks of its foot, the Emberdactyl wakes. |
 | `/dross goto village` | Teleports you to the way into the nearest hunter village (either kind). `/dross goto village <x> <z>`: the one nearest that spot. |
 | `/dross locate villages` | A test tool for now: lists the 5 nearest hunter villages (which kind, where, how far, how many igloos), each with a [go] button. |
 | `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
@@ -735,12 +767,16 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase cinder_mobs` | Lines up the Cinder Wastes' mobs with signs: the Pallbearer and the Cinder Hermit in eight shells; chat buttons play their animations (idle, walk, swipe, slam, roar, snap, pinch, hide, peek, come_out, death). |
 | `/dross showcase cinder_mobs <animation>` | Plays one animation on the Cinder Wastes' mobs near you (with its sounds). |
 | `/dross showcase boss_sounds emberdactyl` | Lists the Emberdactyl's and its young's sounds (its screech, wingbeats, gust, dive...) with play buttons. |
+| `/dross showcase bossbars emberdactyl [1-4]` | Shows the Emberdactyl's 10 boss bar designs to pick from, 5 at a time (pages 1-2 the adult, 3-4 its young), for a minute. Lower the GUI scale to see all five. |
+| `/dross showcase trophies emberdactyl` | Places the 15 Emberdactyl trophy options in three rows with signs (right-click one to turn it through the poses). |
 | `/dross showcase mob_sounds cinder_wastes` | Lists the Pallbearer's and the Cinder Hermit's sounds with play buttons. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
 | `/dross boss summon ratking` | Summons a fighting Rat King, asleep, 14 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena ratking` | Builds the Rat King's placeholder arena round you (a 31-block round floor of dirt and coarse dirt), with a chat button to summon him. |
 | `/dross boss summon huntsman` | Summons the Huntsman riding his Alpha Moose 16 blocks in front of you, calm until hit (not on Peaceful). |
+| `/dross boss summon emberdactyl` / `emberyoung` | Summons the Emberdactyl (or its young) 30 (18) blocks in front of you, hovering over that spot, alone (not on Peaceful). |
+| `/dross boss arena emberdactyl` | Builds an Emberdactyl volcano on the land in front of you, with its egg in the nest and the Emberdactyl perched on the rim (a few seconds' freeze). |
 | `/dross boss arena huntsman` | Builds the Huntsman's placeholder arena round you (a 41-block round floor of snow and packed ice, with lantern posts), with a chat button to summon him. |
 | `/dross boss arena bedrock` | Builds a test arena for any boss round you: a 61-block square bedrock floor with glowstone set in it, bedrock walls 8 high with glowstone bands, where nothing spawns by itself; chat buttons summon each boss. |
 

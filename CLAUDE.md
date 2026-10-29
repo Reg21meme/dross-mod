@@ -1425,8 +1425,81 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       `python tools/fire/volcano_preview.py run/probe/ember_volcano_land.txt volcano_land`). Headless test `command/GotoVolcanoGameTest` (one volcano in
       each of the first groups, never the Colossus's patch, slot 1, the same when planned again; built and landed on
       through the command; its lava walled in and still a few seconds later; its rim; its path walkable; the ground from
-      the path's foot outwards a block's step at most; a biome landing keeps clear). Its egg, the Emberdactyl on its nest
-      and the fight come next.
+      the path's foot outwards a block's step at most; a biome landing keeps clear).
+    - **The fight** [built October 29, 2026, not yet tested in-game] (the user's plan of October 27 and their answers of
+      October 29: "do everything right now", committing each stage; Boss area, `boss/emberdactyl/`; every number in
+      `EmberTuning`): **the adult `dross:emberdactyl` (400 health) and its young reborn `dross:emberyoung` (175)**, built on
+      the showcase's fire model (`EmberBoss extends FireCandidate`: its look, glow, wing fire, death cracks, synced
+      animations and their sounds), alive: it flies (no gravity, straight at where it goes, kept over the ground, never
+      further than its leash from home: 100 blocks, the young 40), turns at most 9 degrees a tick.
+      - **At its volcano** (`EmberKeeper`, every 2 s, a player within 200 blocks, never on Peaceful): its egg
+        (`dross:emberdactyl_egg`, `EmberEgg`: design E3B; can't be destroyed, only `/kill`) in the nest and the adult
+        perched on the crater's rim opposite the lookout, facing the nest (`perch`); the fight's state saved with the
+        volcano (`EmberVolcanoData.State`: WAITING, ADULT, YOUNG, BEATEN; a missing one, removed without dying, comes
+        again; beaten, never again).
+      - **Waking**: a player (not creative or a spectator) within 60 blocks of its volcano's foot (`NOTICE_RANGE` +
+        `VOLCANO_FOOT`; one from a spawn egg: within 60 of where it was spawned, where it hovers, circling, when calm:
+        the user, "it will just fly over where it was spawned"), or a hit: its screech, heard from afar (volume 12: 192
+        blocks; the user's "make sure its screech can be heard from afar"), lifting off, and its boss bar (players within
+        110 blocks; "Emberdactyl: The Sky That Burns", the young's "...: The Ember That Remains"). With nobody to fight for
+        15 s it goes back to resting (its health as it is: the boss-buff rules come later, the user's word).
+      - **The moves** (`EmberBoss`; the user's approved numbers, in hearts; picked by its target's distance: under 16
+        blocks grab 30 / buffet 25 / dive 20 / screech 15 (the young: dash 25), 16-40 dive 30 / tornadoes 25 / strafe 25 /
+        grab 20 (dash 20), over 40 strafe 40 / tornadoes 35 / dive 25; a move on cooldown drops out): **dive bomb** 7
+        within 5 blocks, thrown out and up, then **stuck 3 s on the ground** (the melee window: there it may **beak snap**
+        7, wing buffet or screech, then takes off); **fire tornadoes** (`FireTornado`: the Firestorm candidate's model
+        spinning, 2, 3 when enraged, smaller for the young; 8 s after its target, pulling you in, 1.5 a second and fire,
+        **throwing you up into the sky** in its core: the user's request); **strafing run** 4 and fire, low along a line
+        over you breathing fire, a trail of the Colossus's temporary fire under it (4-5 s); **talon grab** 3, carried
+        20 blocks up and dropped, anywhere (over its crater's lava when it has one: the user's "anywhere, lava
+        included"); **wing buffet** 4, a cone in front, thrown about 20 blocks; **screech** 1, slowed, everyone within 20
+        blocks thrown about 20 (the user's "20 blocks"); magma spit removed (the user). Ranged hits do full damage.
+      - **Half health (the adult)**: no new look or animation (the user): 20% faster, cooldowns and pauses 30% shorter,
+        a third tornado, and its volcano erupts every 6 s, raining 3 lava bombs (the Colossus's `LavaBlob`, temporary
+        lava pools) round the players near its nest.
+      - **The young** (2.5 times as fast as the adult: the user's pick; almost no rest, cooldowns 0.4 times, its own
+        dash 5 straight through you; same damage per hit): when the adult breaks apart in its death (4.2 s in) its egg
+        cracks open (design E3D, lava and flames) and the young bursts out, fighting at once; from a spawn egg it hovers
+        over its spawn spot. Its death hardens it into an obsidian statue that stands 2 minutes.
+      - **"Wings Clipped"** (`dross:wings_clipped`, the user's name, Quest's JSON; the user: only for killing the young):
+        to the player credited with the young's death and every player within 64 blocks, never for `/kill`; 50 XP each
+        boss. Its trophy: the user picks from the options first (`EmberTrophies.reward`).
+      - **Boss bars** (drawn by `boss/client/DrossBossBars` from `textures/gui/emberdactyl_bar.png` and the generated
+        `boss/client/EmberdactylBarArt`; `tools/fire/bossbars.py` with `emberbars.py`, reusing the Huntsman's `barkit.py`):
+        **10 designs** for the user to pick, each in the adult look and the young's hotter one (magma crust, lava veins):
+        1 Half-Moon Crest, 2 Burning Wings, 3 Volcano (erupting for the young), 4 Obsidian Bill, 5 Ember Egg (hatched for
+        the young), 6 Ember Gaze, 7 Blade Horns, 8 Molten Crust, 9 Talon Grip, 10 Firestorm; the fight shows design 1
+        (`EmberdactylBarArt.PICK`, `PICK` in `bossbars.py`) until the user picks. **`/dross showcase bossbars emberdactyl
+        [1-4]`** (`boss/fire/EmberdactylBarShowcase`): 5 bars a page for a minute (page 1 designs 1-5 adult, 2 designs 6-10
+        adult, 3 and 4 the same young), chat buttons for the other pages (at GUI scale 3 or more only 3-4 fit: lower it).
+        Previews `boss-previews/cinder_wastes/emberdactyl/bossbars/` (`bars.png`, `index.html`).
+      - **Trophy options** (the user: 15, mostly the adult, the only young-alone one bursting out of its egg, some of the
+        two together, maybe the volcano): `dross:emberdactyl_trophy` (`boss/emberdactyl/trophy/`: block with a `design`
+        state 1-15, block entity, item, `client/` renderers and particles, the generated `EmberTrophyModels`; the API
+        `EmberdactylTrophies`), made by `tools/fire/trophies.py` from the game's own adult and young models and
+        animations (the volcano, lava pool, rock spires and eggs built in Python); previews
+        `boss-previews/cinder_wastes/emberdactyl/trophies/` (`trophies.png`, `index.html`). 1 The Sky That Burns, 2 The
+        Downbeat, 3 Wide Glide, 4 Into the Fire, 5 Talons Out, 6 Gathering Storm, 7 Obsidian Beak, 8 At Rest, 9 The Last
+        Scream, 10 Lord of the Caldera (on its volcano's rim), 11 Guardian of the Nest (over its crater and egg), 12 Reborn
+        (the young bursting from its egg), 13 Under Its Wing, 14 Flight of Embers, 15 Twin Screech (the two together).
+        Right-click cycles 1 > ... > 15 > 1 like the others; embers off its wing tips, smoke and lava pops from the crater
+        or the burst egg. **`/dross showcase trophies emberdactyl`** (`command/TrophyShowcase.placeRows`): the 15 in three
+        rows of five on polished blackstone bricks, each row a block higher and further back. Beating the young gives each
+        victor design 1 (`EmberTrophies.DROP_DESIGN`, the shared `TrophyRewards`) until the user picks.
+      - **Hitboxes**: its body (5 x 11, the young 3.5 x 9.5) and 7 parts (`RimefallBodyPart`): head, neck, both wings,
+        both wing tips, tail, measured from its model's poses, placed for flying or standing by its animation.
+      - **Commands** (`EmberCommands`, World site wires them): `/dross boss summon emberdactyl` (30 blocks ahead, alone,
+        its home there), `/dross boss summon emberyoung`, `/dross boss arena emberdactyl` (its volcano built on the land
+        in front of you, all at once, its egg and the adult perched; a few seconds' freeze), and a button in the bedrock
+        arena. Spawn eggs (`dross:emberdactyl_spawn_egg`, `emberyoung_spawn_egg`; the user: the adult's lies alone, no egg,
+        no young after; the young has its own), drawn by `tools/eggs/eggs.py` in 5 options each for the user to pick
+        (`boss-previews/cinder_wastes/emberdactyl/spawn_eggs/options.png`, `young_options.png`, each alone in
+        `spawn_eggs/textures/`): A1 crest and slit eye, A2 wings spread, A3 half-moon crown, A4 over its volcano, A5 its
+        eye; Y1 hatching, Y2 molten crust, Y3 wings out, Y4 molten head, Y5 peeking out. A1 and Y1 are in the game until
+        the user picks (`PICKS` in `eggs.py`).
+      - Headless test `boss/emberdactyl/EmberFightGameTest` (it wakes for a player near and shows its bar, a wing blow
+        hurts it, enraged at half; a tornado burns a cow and throws it up; the adult beaten beside its egg: the egg
+        hatches and the young comes out; the young beaten: "Wings Clipped").
     - **The Cinder Wastes' mobs** (the user's picks of the servant candidates, as regular mobs that will spawn there;
       only their looks for now: `firedesigns/m01_pallbearer.py`, `m02_hermit.py`; previews
       `boss-previews/cinder_wastes/mobs/`): **M1A the Pallbearer** (11A as the user picked it, at his full 8.7 blocks:
@@ -1619,9 +1692,8 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       sound (`fireAnimationsAreInTheMod`). Previews of the volcano itself (`volcano_front`, `_back`, `_night`,
       `_map`, `_crater`.png) are drawn by `tools/fire/volcano_preview.py` from the blocks the game placed (the probe
       `boss/emberdactyl/EmberVolcanoProbeGameTest`, its own GameTest namespace `dross_volcano`).
-    - **Next**: the user looks at round 3, its animations and sounds (picks a screech) and the volcano's hoard and path;
-      then its fight (a body that big needs several hitboxes, like the Alpha Moose's), its young, its volcano on the
-      planner and the mobs' behaviour (`BOSS_GUIDE.md`). The night's decisions: `tools/fire/NIGHT_REPORT_2026-10-27.md`.
+    - **Next**: the user plays the fight and picks its boss bar, spawn eggs and trophy designs; the boss-buff rules
+      (hit cap, multiplayer, resets) later; the Cinder Wastes mobs' behaviour (`BOSS_GUIDE.md`).
 
 ## Terrain v1 [built, branch `terrain-v1`]
 The user's request and answers (October 2026), kept as a record. Built in stages on branch `terrain-v1`, each checked headlessly and committed; the user play-tested it twice and their feedback is built in. The full report, every choice made and the in-game checklist are in `TERRAIN_REPORT.md`; the design now lives in The plan (steps 1, 4, 5 and 8) and the Areas table.
@@ -1719,7 +1791,7 @@ nothing floating; the Pallbearer's roar 3 and death 3 (with the bells withering 
 hermit's eyes out on their stalks and apart, the skull's peek through its eye holes, round mouths for the brazier,
 geode and shard (not yet looked at in-game). Then the user's look at round 7 (October 28): the hermit's snap clear of
 its antennae, and its peek remade (the claw a door, the eyes out through the mouth at full size, never through the
-shell, looking left and right) (not yet looked at in-game). The
+shell, looking left and right) (not yet looked at in-game). Then (October 29) the Emberdactyl in the world and its fight: its volcanoes on the planner (one per group of 3 Cinder Wastes patches, fitted to the land), its egg and its perch, the fight (400 health; dive bomb, fire tornadoes, strafing run, talon grab, wing buffet, screech, beak snap; faster at half health with the crater erupting), its young (175, 2.5 times as fast) hatching from the egg, "Wings Clipped", the commands, and the options to pick from: 10 boss bars, 5 spawn eggs each, 15 trophies (all checked headlessly; not yet tested in-game). The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
@@ -1964,6 +2036,23 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   cliffs of dirt), its lava never flowing out; the path from the land up to the lookout; flying round the Cinder
   Wastes, a volcano in one area of every three, never where a Colossus lair is; `/dross goto biome cinder_wastes`
   never lands on one.
+- **The Emberdactyl's fight** (step 16, October 29; a new world in survival, cheats on): `/dross goto lair emberdactyl`,
+  walk up: its egg in the nest, the Emberdactyl perched on the rim facing it; within 60 blocks of the volcano's foot it
+  screeches (heard from far), lifts off and its bar appears ("Emberdactyl: The Sky That Burns"); it circles you and
+  dives (stuck on the ground 3 s after: hit it), sends fire tornadoes that pull you in, burn and throw you up, strafes
+  low breathing fire (fire left on the ground), grabs you and drops you from about 20 blocks (over the crater's lava),
+  buffets and screeches you about 20 blocks away; on the ground it snaps its beak; at half health it gets faster, makes
+  3 tornadoes and the crater rains lava bombs; it never goes more than 100 blocks from its nest; beaten it breaks apart,
+  the egg cracks open and the young bursts out (much faster, its own bar "The Ember That Remains"); beaten, it hardens
+  into obsidian, you get "Wings Clipped" and trophy No. 1; going back later, nothing comes again. Spawn eggs: the adult
+  hovers alone over where it was spawned and fights there (no young after); the young's egg too.
+  `/dross boss arena emberdactyl` builds a volcano in front of you with both (a few seconds' freeze);
+  `/dross boss summon emberdactyl` / `emberyoung`. Watch: its hitboxes (wings, head, tail hurt it), its flight over
+  hills (never inside the ground), the frame rate round it, the grab with a real player.
+- **The Emberdactyl's boss bars, eggs and trophies** (step 16, October 29): `/dross showcase bossbars emberdactyl 1-4`
+  (lower the GUI scale to see all 5 of a page) shows the 10 designs, adult and young; the spawn eggs in the tab are
+  options A1 and Y1 (the sheets `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/`); `/dross showcase trophies
+  emberdactyl` places the 15 trophy options (readable at that size? right-click cycles; in hand and in the tab).
 - **The Cinder Wastes' mobs' animations** (step 16, October 27 overnight; checked headlessly): `/dross showcase
   cinder_mobs`: the Pallbearer and the eight hermit shells in a row (no knight's helm or charred stump), each idling;
   the Pallbearer's coffin fire and the brazier hermit's fire flicker and rise; his censers hang beside the coffin and
@@ -1995,6 +2084,10 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - **The rat cave's grand entrance not found on some seeds** (Dimension area, found October 20): in one fresh GameTest world `SewersGameTest.ratCaveHasNestHoardAndDrains` failed with "RatCaves.entrancesNear doesn't find the grand entrance at -590, 76, -366" (the cave's own entrance and the planner's layout of it disagree there, perhaps on its height); the next fresh world passed (181 of 181). Not looked into yet.
 
 - **A Rimehorn herd with no Rimehorns on some seeds** (Dimension area, found October 20): in one fresh GameTest world `RimefallLakeGameTest.rimehornHerdsAreThere` waited its full 10 minutes and found 0 Rimehorns at the nearest herd spot (-344, 280; chunk -22, 17), in a tiny Rimefall patch (16,896 blocks², 58 deep): perhaps no spot near it had Rimefall ground with room for them. Other seeds passed. Not looked into yet.
+- **The Cinder Wastes' regions a little too big on one seed** (Dimension area, found October 29): in one full fresh run
+  `terrainfromthenoise` failed with "cinder_wastes's regions are 835 blocks across (area-weighted median; 400 to 800)";
+  a statistical check of the terrain that depends on the seed (nothing about the terrain changed that day). Not looked
+  into yet.
 - **The Rat King's poisoned ground short of fence posts on one seed** (Dimension area, found October 29): in one full
   fresh run `SewersGameTest.ratKingSewerHasItsGrandEntrance` failed with "the ground round it isn't poisoned enough:
   ... 1 fence posts (3+)" (the other counts were well over); the next fresh run passed. Not looked into yet.

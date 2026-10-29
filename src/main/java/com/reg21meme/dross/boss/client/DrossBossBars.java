@@ -3,6 +3,7 @@ package com.reg21meme.dross.boss.client;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.fire.EmberdactylBarShowcase;
 import com.reg21meme.dross.boss.huntsman.HuntsmanBarShowcase;
 import com.reg21meme.dross.boss.ratking.RatKingTuning;
 import net.minecraft.client.Minecraft;
@@ -31,6 +32,9 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>the Huntsman's ({@code boss.dross.huntsman.bar.<look>}; {@link HuntsmanBarArt}, the user's picks): the Wild
  *       Hunt (stage 1), the Huntsman and the Alpha Moose (stage 2), and those two angry (blood red, when the other has
  *       died); shown by {@code /dross showcase bossbars huntsman} until his fight is built.</li>
+ *   <li>the Emberdactyl's ({@code boss.dross.emberdactyl.bar.adult} and {@code .young}, in design
+ *       {@link EmberdactylBarArt#PICK}; the showcase's {@code boss.dross.emberdactyl.bar.design_<n>_<adult|young>}, ten
+ *       candidate designs; {@link EmberdactylBarArt}), shown by {@code /dross showcase bossbars emberdactyl [page]}.</li>
  * </ul>
  * Any other bar is left to Minecraft. Every colour comes from {@link DrossColors} (the "Boss" section).
  */
@@ -97,6 +101,51 @@ public final class DrossBossBars
                 event.setIncrement(look.height());
             }
         }
+        if (key.startsWith(EmberdactylBarShowcase.KEY_PREFIX))
+        {
+            String lookKey = key.substring(EmberdactylBarShowcase.KEY_PREFIX.length());
+            EmberdactylBarArt.Look look = EmberdactylBarArt.look(lookKey);
+            if (look != null)
+            {
+                event.setCanceled(true);
+                drawEmberdactyl(event.getGuiGraphics(), event.getX(), event.getY(), bar.getProgress(), bar.getName(), look,
+                        lookKey.endsWith("young"));
+                event.setIncrement(look.height());
+            }
+        }
+    }
+
+    /**
+     * An Emberdactyl bar ({@link EmberdactylBarArt}: the fight's adult or young look in the picked design, or a
+     * showcase design): the empty bar, the full bar cut off at the health, the decorations and the name, like the
+     * Huntsman's. Its name may stand higher than vanilla's, so it's moved down to keep the name on the screen; each design
+     * takes its own height.
+     */
+    private static void drawEmberdactyl(GuiGraphics g, int x, int barY, float progress, Component name,
+                                        EmberdactylBarArt.Look look, boolean young)
+    {
+        int y = barY + Math.max(0, -look.nameY() - NAME_ABOVE);
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        blitEmberdactyl(g, look.empty(), x, y);
+        int filled = Math.round(Math.max(0.0F, Math.min(1.0F, progress)) * look.fillWidth());
+        if (filled > 0)
+        {
+            EmberdactylBarArt.Part full = look.full();
+            g.blit(EmberdactylBarArt.TEXTURE, x + full.x() + look.fillLeft(), y + full.y(), full.u() + look.fillLeft(), full.v(),
+                    filled, full.height(), EmberdactylBarArt.TEXTURE_WIDTH, EmberdactylBarArt.TEXTURE_HEIGHT);
+        }
+        blitEmberdactyl(g, look.decorations(), x, y);
+        RenderSystem.disableBlend();
+        int nameColor = young ? DrossColors.EMBERDACTYL_BAR_NAME_YOUNG : DrossColors.EMBERDACTYL_BAR_NAME_ADULT;
+        Font font = Minecraft.getInstance().font;
+        g.drawString(font, name, x + WIDTH / 2 - font.width(name) / 2, y + look.nameY(), nameColor, true);
+    }
+
+    private static void blitEmberdactyl(GuiGraphics g, EmberdactylBarArt.Part part, int x, int y)
+    {
+        g.blit(EmberdactylBarArt.TEXTURE, x + part.x(), y + part.y(), part.u(), part.v(), part.width(), part.height(),
+                EmberdactylBarArt.TEXTURE_WIDTH, EmberdactylBarArt.TEXTURE_HEIGHT);
     }
 
     /**

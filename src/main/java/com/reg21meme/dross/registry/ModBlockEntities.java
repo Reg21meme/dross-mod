@@ -28,5 +28,11 @@ public final class ModBlockEntities
     public static final RegistryObject<BlockEntityType<HuntsmanTrophyBlockEntity>> HUNTSMAN_TROPHY = BLOCK_ENTITIES.register("huntsman_trophy",
             () -> BlockEntityType.Builder.of(HuntsmanTrophyBlockEntity::new, ModBlocks.HUNTSMAN_TROPHY.get()).build(null));
 
+    // Boss area: the Emberdactyl trophy (holds its GeckoLib figure)
+    @SuppressWarnings("DataFlowIssue") // vanilla's builder takes a null data-fixer type
+    public static final RegistryObject<BlockEntityType<com.reg21meme.dross.boss.emberdactyl.trophy.EmberTrophyBlockEntity>> EMBERDACTYL_TROPHY =
+            BLOCK_ENTITIES.register("emberdactyl_trophy", () -> BlockEntityType.Builder.of(
+                    com.reg21meme.dross.boss.emberdactyl.trophy.EmberTrophyBlockEntity::new, ModBlocks.EMBERDACTYL_TROPHY.get()).build(null));
+
     private ModBlockEntities() {}
 }

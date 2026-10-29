@@ -2,6 +2,10 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.fire.FireCandidate;
+import com.reg21meme.dross.boss.emberdactyl.EmberEgg;
+import com.reg21meme.dross.boss.emberdactyl.EmberYoung;
+import com.reg21meme.dross.boss.emberdactyl.Emberdactyl;
+import com.reg21meme.dross.boss.emberdactyl.FireTornado;
 import com.reg21meme.dross.boss.golem.CinderColossus;
 import com.reg21meme.dross.boss.golem.ColossusRock;
 import com.reg21meme.dross.boss.golem.LavaBlob;
@@ -154,6 +158,39 @@ public final class ModEntities
                     .fireImmune()
                     .clientTrackingRange(12)
                     .build("fire_candidate"));
+
+    /**
+     * Boss area: the Emberdactyl fighting (CLAUDE.md step 16) and its young reborn: their body's hitbox (their head,
+     * neck, wings and tail are parts of them); their egg in the nest (its hitbox its design's); and the fire tornadoes
+     * their wings whip up. Seen from far (they're huge and fly fast), their positions sent every tick.
+     */
+    public static final RegistryObject<EntityType<Emberdactyl>> EMBERDACTYL = ENTITY_TYPES.register("emberdactyl",
+            () -> EntityType.Builder.<Emberdactyl>of(Emberdactyl::new, MobCategory.MONSTER)
+                    .sized(5.0F, 11.0F)
+                    .fireImmune()
+                    .clientTrackingRange(16)
+                    .updateInterval(1)
+                    .build("emberdactyl"));
+    public static final RegistryObject<EntityType<EmberYoung>> EMBERYOUNG = ENTITY_TYPES.register("emberyoung",
+            () -> EntityType.Builder.<EmberYoung>of(EmberYoung::new, MobCategory.MONSTER)
+                    .sized(3.5F, 9.5F)
+                    .fireImmune()
+                    .clientTrackingRange(16)
+                    .updateInterval(1)
+                    .build("emberyoung"));
+    public static final RegistryObject<EntityType<EmberEgg>> EMBERDACTYL_EGG = ENTITY_TYPES.register("emberdactyl_egg",
+            () -> EntityType.Builder.<EmberEgg>of(EmberEgg::new, MobCategory.MISC)
+                    .sized(6.0F, 13.0F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("emberdactyl_egg"));
+    public static final RegistryObject<EntityType<FireTornado>> FIRE_TORNADO = ENTITY_TYPES.register("fire_tornado",
+            () -> EntityType.Builder.<FireTornado>of(FireTornado::new, MobCategory.MISC)
+                    .sized(3.0F, 7.0F)
+                    .fireImmune()
+                    .clientTrackingRange(10)
+                    .updateInterval(2)
+                    .build("fire_tornado"));
 
     /**
      * Boss area: Rimefall's animals (CLAUDE.md step 14), the only mobs that spawn there: the Rimehorn (a woolly rhino

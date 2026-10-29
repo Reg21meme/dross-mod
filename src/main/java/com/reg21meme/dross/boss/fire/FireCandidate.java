@@ -198,9 +198,16 @@ public class FireCandidate extends Mob implements GeoEntity
                 SoundEvent sound = SOUNDS.computeIfAbsent(this.versionOf(cue.event()), event ->
                         SoundEvent.createVariableRangeEvent(new ResourceLocation(Dross.MODID, event)));
                 this.level().playSound(null, this.getX(), this.getY() + this.getBbHeight() / 2.0D, this.getZ(), sound,
-                        SoundSource.HOSTILE, VOLUME.getOrDefault(mob.id(), 1.0F), 1.0F);
+                        SoundSource.HOSTILE, this.cueVolume(mob, cue.event()), 1.0F);
             }
         }
+    }
+
+    /** How loud a cue's sound is (a sound's range is 16 blocks times this): the mob's own loudness (the fighting
+     *  Emberdactyl's screech carries further: {@code EmberBoss}). */
+    protected float cueVolume(FireAnims.Mob mob, String event)
+    {
+        return VOLUME.getOrDefault(mob.id(), 1.0F);
     }
 
     /** The event a cue plays now: the sound's versions in turn (this model's own count; the user's request), or the

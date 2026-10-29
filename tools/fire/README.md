@@ -68,6 +68,16 @@ until the user picks). An animation `anims.json` doesn't have yet just has its s
 `python tools/fire/sounds.py --only emberdactyl,pallbearer/roar` makes only those folders' (or those) sounds; a sound
 whose samples haven't changed is never written again (its fingerprint is in the Ogg's comment).
 
+**The Emberdactyl's boss bars** (`bossbars.py`, the designs in `emberbars.py`; the Huntsman's pixel tools,
+`tools/huntsman/barkit.py`): ten candidate designs (October 29, 2026), each in the adult's look ("Emberdactyl: The Sky
+That Burns": obsidian, a lava-orange fill) and its young reborn's ("... The Ember That Remains": the same design hotter,
+magma crust and a white-hot fill). `python tools/fire/bossbars.py` writes `textures/gui/emberdactyl_bar.png`, the
+generated `boss/client/EmberdactylBarArt.java` (each look's parts; `PICK`, the design the fight uses until the user
+picks: change `PICK` at the top of `bossbars.py` and run it again) and the previews in
+`boss-previews/cinder_wastes/emberdactyl/bossbars/` (`bars.png`, the showcase's four pages `page_<n>.png`,
+`index.html`); `--previews-only` leaves the game files alone, `--lang` prints the showcase bars' names for `en_us.json`.
+In the game: `/dross showcase bossbars emberdactyl [1-4]`.
+
 The volcano is built by the game, not here; its previews are drawn from the blocks the game really placed. First the
 probe (it builds the volcano on a flat plain in a test world and writes what you could see to
 `run/probe/ember_volcano.txt`), then the drawing:

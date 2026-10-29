@@ -126,6 +126,12 @@ public final class ModCreativeTabs
                         {
                             output.accept(design.stack());
                         }
+                        // Boss area: the Emberdactyl trophy, every design (fifteen for the user to pick from)
+                        for (com.reg21meme.dross.boss.emberdactyl.trophy.EmberdactylTrophies.Design design
+                                : com.reg21meme.dross.boss.emberdactyl.trophy.EmberdactylTrophies.DESIGNS)
+                        {
+                            output.accept(design.stack());
+                        }
 
                         // 4. Spawn eggs
                         // Villager area: the Dross Trader
@@ -144,6 +150,9 @@ public final class ModCreativeTabs
                         output.accept(ModItems.HUNTSMAN_SPAWN_EGG.get());
                         // Boss area: the Frostfolk's eggs, warriors, then workers, then the elder
                         ModItems.FROSTFOLK_SPAWN_EGGS.values().forEach(egg -> output.accept(egg.get()));
+                        // Boss area: the Emberdactyl, then its young reborn
+                        output.accept(ModItems.EMBERDACTYL_SPAWN_EGG.get());
+                        output.accept(ModItems.EMBERYOUNG_SPAWN_EGG.get());
 
                         // 5. Weapons and tools
                         // Villager area: the test-only Admin Sword

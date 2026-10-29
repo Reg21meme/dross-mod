@@ -1,0 +1,28 @@
+{
+  "parent": "dross:entered_the_dross",
+  "display": {
+    "icon": {
+      "item": "dross:emberdactyl_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.dross.wings_clipped.title"
+    },
+    "description": {
+      "translate": "advancements.dross.wings_clipped.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "defeated": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "defeated"
+    ]
+  ]
+}

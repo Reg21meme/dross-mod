@@ -1,0 +1,201 @@
+package com.reg21meme.dross.boss.emberdactyl;
+
+import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.registry.ModEntities;
+import java.util.List;
+import javax.annotation.Nullable;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import org.slf4j.Logger;
+
+import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
+
+/**
+ * Brings each built volcano its egg and its Emberdactyl (the user's plan: it rests on its volcano guarding its egg), once a
+ * player is within {@link EmberTuning#KEEPER_RANGE} blocks and the volcano's land has its entities loaded (never on
+ * Peaceful): the egg in the nest, the adult perched on the crater's rim opposite the lookout, facing the nest. Its fight's
+ * state is saved with the volcano ({@link EmberVolcanoData.State}):
+ * <ul>
+ *   <li>{@code WAITING}: nothing there yet: both come ({@code ADULT}).</li>
+ *   <li>{@code ADULT}: a missing egg or adult (removed without dying: Peaceful) comes again.</li>
+ *   <li>{@code YOUNG} (the adult died): if its egg didn't hatch (the server stopped first), it hatches now; a missing young
+ *       (removed without dying) comes again over the nest.</li>
+ *   <li>{@code BEATEN} (the young died): never again (the user's rule for every boss: no respawn).</li>
+ * </ul>
+ */
+@Mod.EventBusSubscriber(modid = Dross.MODID)
+public final class EmberKeeper
+{
+    private static final Logger LOGGER = LogUtils.getLogger();
+
+    private EmberKeeper() {}
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event)
+    {
+        if (event.phase != TickEvent.Phase.END || event.getServer().getTickCount() % KEEPER_CHECK_TICKS != 0)
+        {
+            return;
+        }
+        MinecraftServer server = event.getServer();
+        ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
+        if (dross == null || dross.players().isEmpty() || dross.getDifficulty() == Difficulty.PEACEFUL)
+        {
+            return;
+        }
+        EmberVolcanoData data = EmberVolcanoData.get(server);
+        for (EmberVolcanoData.Volcano volcano : data.all())
+        {
+            EmberVolcanoData.State state = data.state(volcano.id());
+            if (state == EmberVolcanoData.State.BEATEN || !playerNear(dross, volcano))
+            {
+                continue;
+            }
+            try
+            {
+                keep(dross, data, volcano, state);
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("Emberdactyl volcanoes: looking after the volcano at {} failed.", volcano.ground().toShortString(), e);
+            }
+        }
+    }
+
+    private static boolean playerNear(ServerLevel dross, EmberVolcanoData.Volcano volcano)
+    {
+        for (ServerPlayer p : dross.players())
+        {
+            if (!p.isSpectator() && volcano.distanceTo(p.getX(), p.getZ()) <= KEEPER_RANGE)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean loaded(ServerLevel level, Vec3 at)
+    {
+        BlockPos pos = BlockPos.containing(at);
+        return level.isPositionEntityTicking(pos) && level.areEntitiesLoaded(ChunkPos.asLong(pos));
+    }
+
+    private static void keep(ServerLevel dross, EmberVolcanoData data, EmberVolcanoData.Volcano volcano, EmberVolcanoData.State state)
+    {
+        Vec3 nest = volcano.egg();
+        Perch perch = perch(dross, volcano);
+        if (!loaded(dross, nest) || !loaded(dross, perch.spot()))
+        {
+            return;
+        }
+        AABB area = new AABB(nest, nest).inflate(130.0D, 140.0D, 130.0D);
+        long id = volcano.id();
+        EmberEgg egg = first(dross.getEntitiesOfClass(EmberEgg.class, area, e -> e.volcano() == id));
+        Emberdactyl adult = first(dross.getEntitiesOfClass(Emberdactyl.class, area, e -> e.volcano() == id));
+        EmberYoung young = first(dross.getEntitiesOfClass(EmberYoung.class, area, e -> e.volcano() == id));
+        switch (state)
+        {
+            case WAITING, ADULT ->
+            {
+                if (egg == null)
+                {
+                    egg = EmberEgg.lay(dross, nest, perch.yaw() + 180.0F, id);
+                }
+                if (adult == null)
+                {
+                    spawnAdult(dross, volcano, perch);
+                }
+                data.setState(id, EmberVolcanoData.State.ADULT);
+            }
+            case YOUNG ->
+            {
+                if (adult != null && adult.isDeadOrDying())
+                {
+                    return;   // (still breaking apart: its egg hatches as it does)
+                }
+                if (egg == null)
+                {
+                    egg = EmberEgg.lay(dross, nest, perch.yaw() + 180.0F, id);
+                }
+                if (egg != null && !egg.isHatched())
+                {
+                    egg.hatch();
+                }
+                if (young == null)
+                {
+                    spawnYoung(dross, volcano);
+                }
+            }
+            default ->
+            {
+            }
+        }
+    }
+
+    @Nullable
+    private static <T> T first(List<T> list)
+    {
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    /** Where the adult perches: on the crater's rim opposite the lookout, facing the nest. */
+    record Perch(Vec3 spot, float yaw)
+    {
+    }
+
+    static Perch perch(ServerLevel level, EmberVolcanoData.Volcano volcano)
+    {
+        Vec3 centre = new Vec3(volcano.ground().getX() + 0.5D, 0.0D, volcano.ground().getZ() + 0.5D);
+        Vec3 away = new Vec3(centre.x - volcano.lookout().x, 0.0D, centre.z - volcano.lookout().z);
+        away = away.lengthSqr() < 0.01D ? new Vec3(1.0D, 0.0D, 0.0D) : away.normalize();
+        Vec3 spot = centre.add(away.scale(PERCH_OUT));
+        double y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(spot.x), Mth.floor(spot.z));
+        float yaw = (float) (Mth.atan2(-away.z, -away.x) * Mth.RAD_TO_DEG) - 90.0F;
+        return new Perch(new Vec3(spot.x, y, spot.z), yaw);
+    }
+
+    static void spawnAdult(ServerLevel level, EmberVolcanoData.Volcano volcano, Perch perch)
+    {
+        Emberdactyl adult = ModEntities.EMBERDACTYL.get().create(level);
+        if (adult == null)
+        {
+            return;
+        }
+        adult.moveTo(perch.spot().x, perch.spot().y, perch.spot().z, perch.yaw(), 0.0F);
+        adult.setYHeadRot(perch.yaw());
+        adult.setYBodyRot(perch.yaw());
+        adult.setHome(volcano.egg(), volcano.egg(), perch.spot(), perch.yaw(), volcano.id());
+        adult.finalizeSpawn(level, level.getCurrentDifficultyAt(adult.blockPosition()), MobSpawnType.STRUCTURE, null, null);
+        level.addFreshEntity(adult);
+        LOGGER.info("Emberdactyl volcanoes: the Emberdactyl perches on its volcano at {} (patch {}), guarding its egg.",
+                volcano.ground().toShortString(), volcano.id());
+    }
+
+    static void spawnYoung(ServerLevel level, EmberVolcanoData.Volcano volcano)
+    {
+        EmberYoung young = ModEntities.EMBERYOUNG.get().create(level);
+        if (young == null)
+        {
+            return;
+        }
+        Vec3 over = volcano.egg().add(0.0D, 16.0D, 0.0D);
+        young.moveTo(over.x, over.y, over.z, 0.0F, 0.0F);
+        young.setHome(volcano.egg(), volcano.egg(), null, 0.0F, volcano.id());
+        young.finalizeSpawn(level, level.getCurrentDifficultyAt(young.blockPosition()), MobSpawnType.STRUCTURE, null, null);
+        level.addFreshEntity(young);
+    }
+}

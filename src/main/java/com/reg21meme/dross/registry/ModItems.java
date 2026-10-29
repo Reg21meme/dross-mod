@@ -90,6 +90,13 @@ public final class ModItems
     public static final RegistryObject<Item> HUNTSMAN_SPAWN_EGG = ITEMS.register("huntsman_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.HUNTSMAN, DrossColors.HUNTSMAN_EGG_BASE, DrossColors.HUNTSMAN_EGG_SPOTS,
                     new Item.Properties()));
+    // Boss area: the Emberdactyl and its young reborn (drawn eggs; until the user picks, option 1 of each: tools/eggs)
+    public static final RegistryObject<Item> EMBERDACTYL_SPAWN_EGG = ITEMS.register("emberdactyl_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.EMBERDACTYL, DrossColors.EMBERDACTYL_EGG_BASE, DrossColors.EMBERDACTYL_EGG_SPOTS,
+                    new Item.Properties()));
+    public static final RegistryObject<Item> EMBERYOUNG_SPAWN_EGG = ITEMS.register("emberyoung_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.EMBERYOUNG, DrossColors.EMBERYOUNG_EGG_BASE, DrossColors.EMBERYOUNG_EGG_SPOTS,
+                    new Item.Properties()));
     // Boss area: the Frostfolk, one egg for each kind (warriors, workers, the elder), each bringing a calling of it at random
     public static final Map<FolkRole.Kind, RegistryObject<Item>> FROSTFOLK_SPAWN_EGGS = frostfolkEggs();
 
@@ -116,6 +123,9 @@ public final class ModItems
     // Boss area: the Huntsman trophy (its design is in the item; the 3D figure in the hand)
     public static final RegistryObject<Item> HUNTSMAN_TROPHY = ITEMS.register("huntsman_trophy",
             () -> new HuntsmanTrophyItem(ModBlocks.HUNTSMAN_TROPHY.get()));
+    // Boss area: the Emberdactyl trophy (its design is in the item; the 3D figure in the hand)
+    public static final RegistryObject<Item> EMBERDACTYL_TROPHY = ITEMS.register("emberdactyl_trophy",
+            () -> new com.reg21meme.dross.boss.emberdactyl.trophy.EmberTrophyItem(ModBlocks.EMBERDACTYL_TROPHY.get()));
 
     // Boss area: the Rage Wand, a creative-only test tool (no recipe): hit mobs and they fight each other
     public static final RegistryObject<Item> RAGE_WAND = ITEMS.register("rage_wand", RageWandItem::new);

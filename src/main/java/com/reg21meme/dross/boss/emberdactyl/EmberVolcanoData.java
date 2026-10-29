@@ -26,6 +26,29 @@ public final class EmberVolcanoData extends SavedData
     private static final String NAME = "dross_ember_volcanoes";
 
     private final Map<Long, Volcano> volcanoes = new LinkedHashMap<>();
+    private final Map<Long, State> states = new LinkedHashMap<>();
+
+    /** Where a volcano's fight is: its egg and Emberdactyl not come yet, the adult there, its young out, or both beaten
+     *  (for good: no respawn, the user's rule for every boss). */
+    public enum State
+    {
+        WAITING, ADULT, YOUNG, BEATEN
+    }
+
+    /** A built volcano's fight. */
+    public State state(long id)
+    {
+        return this.states.getOrDefault(id, State.WAITING);
+    }
+
+    public void setState(long id, State state)
+    {
+        if (this.state(id) != state)
+        {
+            this.states.put(id, state);
+            setDirty();
+        }
+    }
 
     /**
      * One built volcano.
@@ -92,6 +115,10 @@ public final class EmberVolcanoData extends SavedData
         {
             CompoundTag v = (CompoundTag) t;
             long id = v.getLong("Id");
+            if (v.contains("State"))
+            {
+                data.states.put(id, State.valueOf(v.getString("State")));
+            }
             data.volcanoes.put(id, new Volcano(id, v.getInt("Group"), new BlockPos(v.getInt("X"), v.getInt("Y"), v.getInt("Z")),
                     v.getInt("RimY"), v.getInt("LakeY"), vec(v, "Egg"), vec(v, "PathFoot"), v.getFloat("PathFootYaw"), vec(v, "Lookout"),
                     v.getFloat("LookoutYaw"), v.getLong("BuildMillis")));
@@ -119,6 +146,7 @@ public final class EmberVolcanoData extends SavedData
             putVec(v, "Lookout", volcano.lookout());
             v.putFloat("LookoutYaw", volcano.lookoutYaw());
             v.putLong("BuildMillis", volcano.buildMillis());
+            v.putString("State", this.state(volcano.id()).name());
             list.add(v);
         }
         tag.put("Volcanoes", list);

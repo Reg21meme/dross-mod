@@ -314,6 +314,8 @@ public final class BossCommands
                 DrossColors.RAT_KING_COMMAND_BUTTON, SUMMON_RAT_KING_COMMAND));
         message.append(" ").append(summonButton("commands.dross.boss.arena_huntsman.summon_button",
                 DrossColors.HUNTSMAN_COMMAND_BUTTON, SUMMON_HUNTSMAN_COMMAND));
+        message.append(" ").append(summonButton("commands.dross.boss.arena_emberdactyl.summon_button",
+                DrossColors.EMBERDACTYL_COMMAND_BUTTON, com.reg21meme.dross.boss.emberdactyl.EmberCommands.SUMMON_COMMAND));
         source.sendSuccess(() -> message, true);
         return Math.max(1, result.changed());
     }

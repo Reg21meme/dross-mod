@@ -10,6 +10,9 @@ A design may reach over the egg's top (ears, a crown, volcano peaks, antlers) bu
   python tools/eggs/eggs.py      the option sheets (boss-previews/<biome>/<boss>/spawn_eggs/options.png) and the
                                  picked eggs' textures (src/main/resources/assets/dross/textures/item/<boss>_spawn_egg.png)
 
+The Emberdactyl and its young (emberdactyl, emberyoung) share one folder, boss-previews/cinder_wastes/emberdactyl/
+spawn_eggs/: options.png and young_options.png, and every option's texture on its own in textures/<label>.png.
+
 A picked egg's item model is item/generated on its texture, and its two tints in DrossColors are white.
 """
 import os
@@ -23,10 +26,21 @@ TEXTURES = os.path.join(ROOT, "src", "main", "resources", "assets", "dross", "te
 PREVIEWS = {"huntsman": os.path.join(ROOT, "boss-previews", "rimefall", "huntsman", "spawn_eggs"),
             "cinder_colossus": os.path.join(ROOT, "boss-previews", "cinder_wastes", "cinder_colossus", "spawn_eggs"),
             "rat_king": os.path.join(ROOT, "boss-previews", "blightwood", "rat_king", "spawn_eggs")}
-TITLES = {"huntsman": "The Huntsman", "cinder_colossus": "The Cinder Colossus", "rat_king": "The Rat King"}
+EMBER_EGGS = os.path.join(ROOT, "boss-previews", "cinder_wastes", "emberdactyl", "spawn_eggs")
+PREVIEWS["emberdactyl"] = EMBER_EGGS
+PREVIEWS["emberyoung"] = EMBER_EGGS
+TITLES = {"huntsman": "The Huntsman", "cinder_colossus": "The Cinder Colossus", "rat_king": "The Rat King",
+          "emberdactyl": "The Emberdactyl", "emberyoung": "The Emberdactyl's young reborn"}
 # the user's picks (October 23, 2026: "C1 is good for dormant shell"; R1 with its crown centred; "h2" for the
 # Huntsman, his hood with its fangs)
-PICKS = {"huntsman": "H2", "cinder_colossus": "C1", "rat_king": "R1"}
+PICKS = {"huntsman": "H2", "cinder_colossus": "C1", "rat_king": "R1",
+         # not picked yet (October 29, 2026): option 1 of each stands in until the user picks
+         "emberdactyl": "A1", "emberyoung": "Y1"}
+# the option sheet's file name, when it isn't options.png (the young's sheet shares the adult's folder)
+SHEET_FILES = {"emberyoung": "young_options.png"}
+# bosses whose every option is also saved as its own texture (<folder>/textures/<label>.png), so swapping the pick is
+# a file copy (or PICKS changed and the tool run again)
+OPTION_TEXTURES = ("emberdactyl", "emberyoung")
 
 # vanilla's spawn egg (textures/item/spawn_egg.png and its overlay together): each row's first and last column
 SHAPE = {2: (7, 8), 3: (5, 10), 4: (4, 11), 5: (4, 11), 6: (3, 12), 7: (3, 12), 8: (2, 13), 9: (2, 13),
@@ -306,7 +320,215 @@ RAT_KING = [
          "................"]),
 ]
 
-DESIGNS = {"huntsman": HUNTSMAN, "cinder_colossus": COLOSSUS, "rat_king": RAT_KING}
+# ---------------------------------------------------------------- the Emberdactyl and its young reborn (October 29,
+# 2026: spawn eggs for both, with options to pick from). The Fire Necromancer's colours only: lava orange, ember red,
+# obsidian black and violet, never the Dross blue. The adult: an obsidian bill with its half moon standing along it,
+# two blade horns, ember-slit eyes, scalloped wings shedding fire, a rocky obsidian hide veined with lava. The young:
+# smaller and sleeker, much more molten (lava under a thin obsidian crust), plain round amber eyes, out of an
+# obsidian egg that fades from near black at its foot to violet at its top.
+
+
+def egg(top, body):
+    """A design's rows: rows 0-2 as given (16 wide; they may reach over the egg's top), rows 3-14 from just the egg's
+    inside (each its own width there, SHAPE), row 15 empty."""
+    rows = list(top)
+    for y, inner in zip(range(3, 15), body):
+        l, r = SHAPE[y]
+        if len(inner) != r - l + 1:
+            raise ValueError(f"row {y} is {len(inner)} wide, the egg is {r - l + 1} there: {inner!r}")
+        rows.append("." * l + inner + "." * (15 - r))
+    return rows + ["." * 16]
+
+
+OBSIDIAN = [(16, 10, 24), (30, 20, 44), (48, 34, 70), (72, 54, 102)]          # its hide, dark to lit
+SMOKE = [(54, 34, 72), (76, 50, 100), (100, 70, 130), (128, 94, 162)]         # a violet sky of volcanic smoke
+EMBER_SKY = [(66, 18, 14), (100, 30, 16), (136, 48, 20), (172, 72, 26)]       # a sky lit by fire
+BASALT = [(20, 16, 20), (34, 28, 32), (50, 42, 46), (68, 58, 62)]
+MAGMA = [(190, 62, 12), (232, 106, 20), (250, 160, 40), (255, 212, 104)]     # the young's molten hide
+EMBER = {"k": (10, 6, 14), "o": (30, 22, 44), "O": (64, 48, 90), "V": (96, 72, 132),
+         "y": (255, 232, 130), "L": (255, 150, 30), "l": (214, 78, 14), "r": (122, 34, 12), "w": (255, 250, 228)}
+YOUNG = {"A": (255, 182, 44), "a": (196, 116, 22), "c": (30, 20, 38), "C": (62, 42, 78)}
+# its egg: near black at its foot to violet at its top
+SHELL = {"1": (12, 8, 16), "2": (26, 18, 36), "3": (44, 30, 62), "4": (68, 50, 96), "5": (98, 74, 136)}
+
+EMBERDACTYL = [
+    ("A1", "Crest and slit eye", "its obsidian head side-on: the glowing half moon standing on its bill, a blade "
+     "horn swept back over the top, an ember-slit eye, lava down its neck", {":": SMOKE, **EMBER}, egg(
+         [".............k..",
+          "............kO..",
+          ".......::..kO..."], [
+             ":::::k",
+             ":yy:::kO",
+             "yLLy::kO",
+             "yLllLykkk:",
+             "LlrrlLkLyk",
+             ":kkkkkkkkkk:",
+             "kkkkkkkkkkk:",
+             ":::oooooooo:",
+             ":::::oolOo",
+             "::::oolooo",
+             "::ooLooo",
+             "olLo"])),
+    ("A2", "Wings spread", "seen from above against a burning sky: its long bill with the half moon along it "
+     "pointing up, its wings swept back, fire dropping from their scalloped edges", {":": EMBER_SKY, **EMBER}, egg(
+         [".......yy.......",
+          "......kLLk......",
+          "......kLLk......"], [
+             ":kLLk:",
+             "::kLLk::",
+             ":kkkkkk:",
+             ":::kkkk:::",
+             "::kokkok::",
+             "::kookkook::",
+             ":koookkoook:",
+             "kLoLokkoLoLk",
+             ":L:LkkL:L:",
+             ":y::kk::y:",
+             ":y:k::L:",
+             ":l::"])),
+    ("A3", "Half-moon crown", "its obsidian face head-on: heavy brows over two ember slits, its bill down the middle, "
+     "lava in the cracks and its half moon rising over the top like a crown", {":": OBSIDIAN, **EMBER}, egg(
+         ["......yyyy......",
+          ".....yLrrLy.....",
+          "....yLrLLrLy...."], [
+             "rlLLlr",
+             ":kk::kk:",
+             ":Ly::yL:",
+             "::::kk::::",
+             ":l::kO::l:",
+             "::L::kO::L::",
+             ":L:l:kO:l:L:",
+             ":l::LkkL::l:",
+             ":l::kk::l:",
+             "::r:k::r::",
+             "::L::r::",
+             ":r::"])),
+    ("A4", "Over its volcano", "its silhouette on the wing over its volcano, lava welling in the crater and running "
+     "down the cone under a sky lit by fire", {":": EMBER_SKY, "b": BASALT, **EMBER}, egg(
+         ["................",
+          "................",
+          ".......::......."], [
+             "::::::",
+             "k::kk::k",
+             ":k:kk:k:",
+             ":::kkkk:::",
+             ":y::kk::y:",
+             "::::LyyL::::",
+             ":::bLLLLb:::",
+             "::bbLbbLbb::",
+             "bbLbbbbLbb",
+             "bLbbbbbbLb",
+             "lbbbbbbl",
+             "bbbb"])),
+    ("A5", "Its eye", "its ember-slit eye up close under a heavy obsidian brow, a black slit in a glowing iris, lava "
+     "cracks round it", {":": OBSIDIAN, **EMBER}, egg(
+         ["................",
+          "................",
+          ".......::......."], [
+             "::::::",
+             "::l:::::",
+             ":OOOOOO:",
+             "kkkkkkkkkk",
+             ":rlLLLLlr:",
+             ":rLyykkyyLr:",
+             ":rLyykkyyLr:",
+             "::rlLkkLlr::",
+             "::rrllrr::",
+             ":::::::l::",
+             ":l::::r:",
+             "::::"])),
+]
+
+EMBERYOUNG = [
+    ("Y1", "Hatching", "its molten head bursting out of the top of its obsidian egg, round amber eyes, little soft "
+     "horns, shards of shell flying", {":": MAGMA, **EMBER, **YOUNG, **SHELL}, egg(
+         ["......C..C......",
+          "......C..C..4...",
+          "...5.::::::....."], [
+             "::::::",
+             ":wA::wA:",
+             ":Ak::Ak:",
+             "c:::yy:::c",
+             "4::LyyL::4",
+             "45c::LL::c54",
+             "4435r::r5344",
+             "334343rr4343",
+             "2332rl2332",
+             "2212r21222",
+             "11212111",
+             "1111"])),
+    ("Y2", "Molten crust", "its hide: glowing magma under a thin, cracked obsidian crust, its little half moon on top",
+     {":": MAGMA, **EMBER, **YOUNG}, egg(
+         ["................",
+          ".......yy.......",
+          "......yLLy......"], [
+             ":cc:::",
+             "::Ccc:::",
+             ":c:::y:c",
+             ":Cc:::Ccc:",
+             "::c:y::cC:",
+             ":Cc::yw::c::",
+             "::::Ccc::y::",
+             ":y::cC:::Cc:",
+             ":::::c::c:",
+             ":Cc::::Cc:",
+             "::c:y:::",
+             ":::c"])),
+    ("Y3", "Wings out", "the young seen from above over a smoky violet sky: its bill and little half moon "
+     "pointing up, round amber eyes, molten wings dropping embers", {":": SMOKE, "m": MAGMA, **EMBER, **YOUNG}, egg(
+         ["................",
+          "................",
+          "......cyyc......"], [
+             ":cLLc:",
+             "::cLLc::",
+             ":cAccAc:",
+             ":::cmmc:::",
+             "::cmccmc::",
+             "::cmmccmmc::",
+             ":cmmmccmmmc:",
+             "cymymccmymyc",
+             ":y:yccy:y:",
+             ":L::cc::L:",
+             ":L:c::y:",
+             ":y::"])),
+    ("Y4", "Molten head", "its molten head side-on: a round amber eye, a short soft horn, the little glowing half "
+     "moon on its bill, crust flaking off its neck", {":": SMOKE, "m": MAGMA, **EMBER, **YOUNG}, egg(
+         ["................",
+          "................",
+          "....C..::......."], [
+             "C:::::",
+             ":C:::yy:",
+             ":mm:ylly",
+             "mwAmylrrly",
+             "mAkmyrrrry",
+             ":mmmmcccccc:",
+             ":mmmmmmmmmmm",
+             ":mmmmaaaa:::",
+             "mcmmm:::::",
+             "mmcmm:::::",
+             "mmymcm::",
+             "mcmm"])),
+    ("Y5", "Peeking out", "its obsidian egg, near black at the foot and violet at the top, cracked and glowing, one "
+     "round amber eye looking out of a hole", {"m": MAGMA, **EMBER, **YOUNG, **SHELL}, egg(
+         ["................",
+          "................",
+          ".......55......."], [
+             "4555l4",
+             "4555L554",
+             "45LmmL44",
+             "34LmwAmL43",
+             "34LmAkmL43",
+             "3344LmmL4433",
+             "2333L3333l32",
+             "223L33333l22",
+             "22l232222l",
+             "2r21212222",
+             "11211121",
+             "1111"])),
+]
+
+DESIGNS = {"huntsman": HUNTSMAN, "cinder_colossus": COLOSSUS, "rat_king": RAT_KING,
+           "emberdactyl": EMBERDACTYL, "emberyoung": EMBERYOUNG}
 
 
 def check(boss, design):
@@ -419,9 +641,15 @@ def main(argv):
         print("wrote", os.path.relpath(path, ROOT), "from", label)
     for boss, designs in DESIGNS.items():
         os.makedirs(PREVIEWS[boss], exist_ok=True)
-        path = os.path.join(PREVIEWS[boss], "options.png")
+        path = os.path.join(PREVIEWS[boss], SHEET_FILES.get(boss, "options.png"))
         sheet(boss, designs).save(path)
         print("wrote", os.path.relpath(path, ROOT))
+        if boss in OPTION_TEXTURES:
+            folder = os.path.join(PREVIEWS[boss], "textures")
+            os.makedirs(folder, exist_ok=True)
+            for design in designs:
+                draw(design).save(os.path.join(folder, f"{design[0]}.png"))
+            print("wrote", os.path.relpath(folder, ROOT), "(each option's texture)")
 
 
 if __name__ == "__main__":

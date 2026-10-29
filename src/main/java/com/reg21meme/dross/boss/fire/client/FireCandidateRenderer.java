@@ -7,6 +7,7 @@ import com.reg21meme.dross.boss.fire.FireDesigns;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.resources.ResourceLocation;
 import software.bernie.geckolib.cache.object.BakedGeoModel;
@@ -66,6 +67,21 @@ public class FireCandidateRenderer extends GeoEntityRenderer<FireCandidate>
         super.postRender(poseStack, candidate, model, bufferSource, buffer, isReRender, partialTick, packedLight,
                 packedOverlay, red, green, blue, alpha);
         EmberWingFire.capture(candidate, model, isReRender);
+    }
+
+    /** It dies only by its own death animation (the fighting Emberdactyl breaks apart, its young hardens): never tipped
+     *  over on its side like a vanilla mob. */
+    @Override
+    protected float getDeathMaxRotation(FireCandidate candidate)
+    {
+        return 0.0F;
+    }
+
+    /** No red flash while it dies (its death animation shows it); a hit still flashes it red. */
+    @Override
+    public int getPackedOverlay(FireCandidate candidate, float u, float partialTick)
+    {
+        return OverlayTexture.pack(OverlayTexture.u(u), OverlayTexture.v(candidate.hurtTime > 0 && candidate.deathTime == 0));
     }
 
     /** The solid parts: cut out (the clear parts' texels are holes in this texture). */
