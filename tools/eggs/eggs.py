@@ -5,13 +5,17 @@ pick from"). A spawn egg's texture is normally two tinted layers; these are draw
 vanilla's own egg shape (SHAPE) so they sit well beside the other eggs, and their two tints are white.
 
 Each design is pixel art written out as rows of letters (the design's palette says what each letter is; '.' is empty).
-A design may reach over the egg's top (ears, a crown, volcano peaks, antlers) but nowhere else outside it.
+A design may reach over the egg's top (ears, a crown, volcano peaks, antlers) but nowhere else outside it, except the
+winged designs (WINGS_OUT: the Emberdactyl's and its young's round 2), whose wings spread out past the egg on both
+sides (the user, October 29, 2026, of round 1: "none of these boss egg ideas are good, maybe try to incorporate the
+wings outside or something").
 
   python tools/eggs/eggs.py      the option sheets (boss-previews/<biome>/<boss>/spawn_eggs/options.png) and the
                                  picked eggs' textures (src/main/resources/assets/dross/textures/item/<boss>_spawn_egg.png)
 
 The Emberdactyl and its young (emberdactyl, emberyoung) share one folder, boss-previews/cinder_wastes/emberdactyl/
-spawn_eggs/: options.png and young_options.png, and every option's texture on its own in textures/<label>.png.
+spawn_eggs/: options.png and young_options.png, and every option's texture on its own in textures/<label>.png. Round 1
+(A1-A5, Y1-Y5, a picture on the egg) is kept as a record in spawn_eggs/round1/; round 2 (A6-A10, Y6-Y10) is drawn now.
 
 A picked egg's item model is item/generated on its texture, and its two tints in DrossColors are white.
 """
@@ -34,10 +38,12 @@ TITLES = {"huntsman": "The Huntsman", "cinder_colossus": "The Cinder Colossus", 
 # the user's picks (October 23, 2026: "C1 is good for dormant shell"; R1 with its crown centred; "h2" for the
 # Huntsman, his hood with its fangs)
 PICKS = {"huntsman": "H2", "cinder_colossus": "C1", "rat_king": "R1",
-         # not picked yet (October 29, 2026): option 1 of each stands in until the user picks
-         "emberdactyl": "A1", "emberyoung": "Y1"}
+         # not picked yet (October 29, 2026): round 2's first option of each stands in until the user picks
+         "emberdactyl": "A6", "emberyoung": "Y6"}
 # the option sheet's file name, when it isn't options.png (the young's sheet shares the adult's folder)
 SHEET_FILES = {"emberyoung": "young_options.png"}
+# what follows the sheet's title, when there's more to say
+SUBTITLES = {"emberdactyl": ", round 2: wings out", "emberyoung": ", round 2: wings out"}
 # bosses whose every option is also saved as its own texture (<folder>/textures/<label>.png), so swapping the pick is
 # a file copy (or PICKS changed and the tool run again)
 OPTION_TEXTURES = ("emberdactyl", "emberyoung")
@@ -351,7 +357,9 @@ YOUNG = {"A": (255, 182, 44), "a": (196, 116, 22), "c": (30, 20, 38), "C": (62, 
 # its egg: near black at its foot to violet at its top
 SHELL = {"1": (12, 8, 16), "2": (26, 18, 36), "3": (44, 30, 62), "4": (68, 50, 96), "5": (98, 74, 136)}
 
-EMBERDACTYL = [
+# Round 1 (October 29, 2026), kept as a record and no longer drawn: its sheets and textures are in
+# boss-previews/cinder_wastes/emberdactyl/spawn_eggs/round1/. Round 2 (the wings out past the egg) is further down.
+EMBERDACTYL_ROUND1 = [
     ("A1", "Crest and slit eye", "its obsidian head side-on: the glowing half moon standing on its bill, a blade "
      "horn swept back over the top, an ember-slit eye, lava down its neck", {":": SMOKE, **EMBER}, egg(
          [".............k..",
@@ -439,7 +447,7 @@ EMBERDACTYL = [
              "::::"])),
 ]
 
-EMBERYOUNG = [
+EMBERYOUNG_ROUND1 = [
     ("Y1", "Hatching", "its molten head bursting out of the top of its obsidian egg, round amber eyes, little soft "
      "horns, shards of shell flying", {":": MAGMA, **EMBER, **YOUNG, **SHELL}, egg(
          ["......C..C......",
@@ -527,17 +535,304 @@ EMBERYOUNG = [
              "1111"])),
 ]
 
+# ---------------------------------------------------------------- round 2 of the Emberdactyl's eggs (October 29,
+# 2026): the egg with its wings spread out past the egg's outline, bat-like pterosaur wings (a thumb claw at the wrist,
+# finger bones, a scalloped trailing edge), so the item reads as "an egg with wings" at a glance. Each wing is drawn
+# as the left half (8 wide) and mirrored; the egg goes in front of it.
+
+
+def at(top, rows, width=16):
+    """16 rows: `rows` from row `top` down, the others empty."""
+    out = ["." * width] * top + list(rows)
+    return out + ["." * width] * (16 - len(out))
+
+
+def mirror(half, dark=None):
+    """Left halves (8 wide) made whole: the right half mirrored, its letters through `dark` (a little darker)."""
+    return [r + "".join((dark or {}).get(c, c) for c in reversed(r)) for r in half]
+
+
+def winged(wing, body, dark=None):
+    """A wing (left halves, mirrored) behind a body (16 wide, '.' where it isn't)."""
+    w = mirror(wing, dark)
+    return ["".join(b if b != "." else c for b, c in zip(body[y], w[y])) for y in range(16)]
+
+
+def recolor(rows, mapping):
+    """The rows with letters swapped (the same wing in other materials)."""
+    return ["".join(mapping.get(c, c) for c in r) for r in rows]
+
+
+# the wings (left halves): '0' its thumb claw, 'V' the arm along the leading edge, 'O' the finger bones, 'k' the
+# membrane, 'L' the glowing scalloped edge. Spread: the wrists high, the tips out at the egg's sides.
+WING_SPREAD = at(1, [
+    "..0.....",
+    "..VV....",
+    ".VkOV...",
+    "VkOkOV..",
+    "kOkkOkV.",
+    "OkkOkk..",
+    "LkkOkO..",
+    ".LkOLO..",
+    ".LLOLL..",
+    "...L....",
+], 8)
+# raised high in a V, the tips in the top corners
+WING_RAISED = at(0, [
+    "0..0....",
+    "VOOV....",
+    "kkOkV...",
+    "LkOkV...",
+    "kLOkkV..",
+    "LkOkkV..",
+    ".LkOkk..",
+    ".LkOk...",
+    "..LOL...",
+    "...L....",
+], 8)
+# level and low, under a crest
+WING_LEVEL = at(3, [
+    "...0....",
+    ".VVOV...",
+    "VkOkOV..",
+    "OkOkOkV.",
+    "LkOkkO..",
+    "LLkOkO..",
+    ".LLOLk..",
+    "...LL...",
+], 8)
+# burning: charred bones ('0') over membranes glowing ember red ('r') to flame ('l', 'L', 'y'), embers falling
+WING_FIRE = at(1, [
+    "..0.....",
+    "..00....",
+    ".0r00...",
+    "0r0r00..",
+    "l0rr0r0.",
+    "0ll0ll..",
+    "yLL0L0..",
+    ".yL0y0..",
+    ".yy0yy..",
+    ".y.y....",
+    "...l....",
+    ".L......",
+    "........",
+    "..l.....",
+], 8)
+# the young's, bursting out level from a crack round its shell's middle
+WING_BURST = at(4, [
+    "..0.....",
+    ".VVV....",
+    "VkOkV...",
+    "OkOkOV..",
+    "LkOkOk..",
+    "yLkOkL..",
+    ".yLOLy..",
+    "...yy...",
+], 8)
+
+# the adult: black obsidian wings with ember-orange edges, a glossy obsidian egg (violet where the light catches it,
+# lit from the top left, near black at its foot, an ember glow under it) with lava spots or a lava crack
+ADULT_WINGS = {"0": (6, 4, 10), "k": (16, 10, 24), "o": (30, 20, 44), "O": (48, 34, 70), "V": (72, 54, 102),
+               "v": (100, 76, 140), "g": (150, 124, 190), "w": (255, 250, 228), "r": (122, 34, 12),
+               "l": (214, 78, 14), "L": (255, 150, 30), "y": (255, 232, 130)}
+ADULT_DARK = {"o": "k"}
+SPOTTED_EGG = at(4, [
+    ".......gv.......",
+    "......gwgv......",
+    ".....ggvvvV.....",
+    ".....gvvLlV.....",
+    "....vvvvlrVO....",
+    "....vvvvVVVO....",
+    "....vlLVVVOO....",
+    "....VVlVOLlo....",
+    "....OVOOOlOo....",
+    ".....rOOOOo.....",
+    "......rrrr......",
+])
+LOW_EGG = at(5, [
+    ".......gv.......",
+    "......gwgv......",
+    ".....ggvLlV.....",
+    ".....gvvlrV.....",
+    "....vvvvVVVO....",
+    "....vlLVVVOO....",
+    "....VVlVOLlo....",
+    "....OVOOOlOo....",
+    ".....rOOOOo.....",
+    "......rrrr......",
+])
+CRACKED_EGG = at(4, [
+    ".......gv.......",
+    "......gwgv......",
+    ".....ggvvvV.....",
+    ".....gvvVVO.....",
+    "....vvvlVVOO....",
+    "....vvlLlVOO....",
+    "....VVVLVOOo....",
+    "....VVlLOOoo....",
+    "....OOOlLOoo....",
+    ".....OOrLoo.....",
+    "......rrlr......",
+])
+# its glowing half-moon crest standing on top, its ember-slit eyes on the egg
+CREST_EGG = at(1, [
+    "......yLLy......",
+    ".....yLrrLy.....",
+    ".....LrrrrL.....",
+    "......OVVO......",
+    ".....gvvvVO.....",
+    ".....vvwvVO.....",
+    "....0LyO0yL0....",
+    "....vVVVVVOO....",
+    "....vVVVlVOO....",
+    "....VVVlLOOo....",
+    "....OOlLOOoo....",
+    "....OOOlOooo....",
+    ".....rOOOoo.....",
+    "......rrrr......",
+])
+
+EMBERDACTYL = [
+    ("A6", "Wings spread", "its glossy obsidian egg with lava spots, and its black wings spread out past the egg on "
+     "both sides: thumb claws, finger bones, scalloped edges glowing ember orange", ADULT_WINGS,
+     winged(WING_SPREAD, SPOTTED_EGG, ADULT_DARK)),
+    ("A7", "Wings raised", "the egg lower down, its wings raised high in a V behind it, their tips in the top corners, "
+     "their glowing edges facing in", ADULT_WINGS, winged(WING_RAISED, LOW_EGG, ADULT_DARK)),
+    ("A8", "Wrapped in its wings", "its wings folded round the egg like a cloak, thumb claws up over its shoulders, the "
+     "egg showing between their glowing edges", ADULT_WINGS, at(1, [
+         "..0..........0..",
+         "..V0........0V..",
+         ".0VO........OV0.",
+         ".VkO...gv...OkV.",
+         ".VkkO.gwgv.OkkV.",
+         ".VkOLggvvvVLOkV.",
+         ".VkOkgvvLvVkOkV.",
+         ".VOkLvvlVVOLkOV.",
+         ".VkOkLvLlVLkOkV.",
+         "..VkOkLlVLkOkV..",
+         "..VkkOkLLkOkkV..",
+         "...VkOkkkkOkV...",
+         "....LkOkkOkL....",
+         ".....LyLLyL....."])),
+    ("A9", "Wings of fire", "its wings burning: charred finger bones over membranes glowing from ember red to "
+     "white-hot flame, embers falling, the egg split by a lava crack", ADULT_WINGS,
+     winged(WING_FIRE, CRACKED_EGG, ADULT_DARK)),
+    ("A10", "Half-moon crest", "the egg wearing its glowing half-moon crest and ember-slit eyes, its wings spread low "
+     "at its sides", ADULT_WINGS, winged(WING_LEVEL, CREST_EGG, ADULT_DARK)),
+]
+
+# the young: the same wings in its own materials (molten membranes 'k', dark crust bones 'O' and arms 'V', white-hot
+# edges), its obsidian shell ('1' near black at the foot to '5' violet at the top, 'g' its glint), its molten hide
+# ('M', 'm', 'r' under crust 'c'), round amber eyes ('w' glint, 'A' amber, 'e' pupil)
+YOUNG_WINGS = {"0": (24, 12, 16), "k": (226, 96, 18), "o": (196, 66, 14), "O": (66, 34, 40), "V": (100, 56, 60),
+               "r": (150, 40, 10), "l": (255, 150, 36), "L": (255, 206, 90), "y": (255, 240, 170),
+               "w": (255, 252, 230), "c": (34, 18, 26), "C": (64, 38, 50), "m": (214, 84, 16), "M": (244, 128, 26),
+               "1": (12, 8, 16), "2": (26, 18, 36), "3": (44, 30, 62), "4": (68, 50, 96), "5": (98, 74, 136),
+               "g": (150, 124, 190), "A": (255, 184, 40), "e": (14, 8, 12)}
+YOUNG_DARK = {"k": "o"}
+SHELL_EGG = at(4, [
+    ".......54.......",
+    "......5g44......",
+    ".....554443.....",
+    ".....54l433.....",
+    "....44lL4333....",
+    "....443lL332....",
+    "....3334l322....",
+    "....333lL222....",
+    "....2223l221....",
+    ".....22l211.....",
+    "......r11r......",
+])
+# split round its middle, shards flying off the top
+SPLIT_SHELL = at(0, [
+    "..5..........4..",
+    "....4.......5...",
+    ".......54.......",
+    "......5g44......",
+    ".....554443.....",
+    ".....544433.....",
+    "....yLlyLLyl....",
+    "....4Ll43l33....",
+    "....44l43332....",
+    "....3334l322....",
+    "....333lL222....",
+    "....2223l221....",
+    ".....22l211.....",
+    "......r11r......",
+])
+MOLTEN_EGG = at(4, [
+    ".......yL.......",
+    "......ywLM......",
+    ".....yLLcMm.....",
+    ".....LLcMMm.....",
+    "....LLMMMcmr....",
+    "....LcMMmcmr....",
+    "....MMcmmmrr....",
+    "....MMmmcrrc....",
+    "....mmmcrrcr....",
+    ".....mcrrcr.....",
+    "......rrcr......",
+])
+# the molten young itself, round amber eyes under the top of its shell, still on its head like a cap
+SHELL_CAP = at(3, [
+    ".......54.......",
+    "......5g44......",
+    ".....554443.....",
+    ".....45443L.....",
+    ".....4L3M3L.....",
+    "....MwAMMwAm....",
+    "....LAeMMAem....",
+    "....LMMcMMmm....",
+    "....MMMMcmmr....",
+    "....MmcMmmrr....",
+    ".....mmrrcr.....",
+    "......rrcr......",
+])
+
+EMBERYOUNG = [
+    ("Y6", "Molten wings", "its obsidian egg, near black at the foot and violet at the top, a glowing crack down it, "
+     "and the young's molten wings spread out past it, veined with dark crust", YOUNG_WINGS,
+     winged(WING_SPREAD, SHELL_EGG, YOUNG_DARK)),
+    ("Y7", "Bursting out", "its shell splitting round the middle, molten wings bursting out of the crack on both "
+     "sides, shards of shell flying", YOUNG_WINGS, winged(WING_BURST, SPLIT_SHELL, YOUNG_DARK)),
+    ("Y8", "Molten egg", "a molten egg under a cracked crust, its dark crust wings raised in a V behind it, veined "
+     "with glowing lava", YOUNG_WINGS, winged(recolor(WING_RAISED, {"k": "c", "O": "l", "V": "C"}), MOLTEN_EGG)),
+    ("Y9", "Wrapped in its wings", "its molten wings folded round its obsidian egg like a cloak, their hot edges "
+     "glowing at the front", YOUNG_WINGS, at(1, [
+         "..0..........0..",
+         "..V0........0V..",
+         ".0VO........OV0.",
+         ".VkO...54...OkV.",
+         ".VkkO.5g44.OkkV.",
+         ".VkkL554443LkkV.",
+         ".VkOk54l433kOkV.",
+         ".VkkL4lL433LkkV.",
+         ".VkOkL3lL3LkOkV.",
+         "..VkOkLl2LkOkV..",
+         "..VkkOkLLkOkkV..",
+         "...VkOkkkkOkV...",
+         "....LkOkkOkL....",
+         ".....LyLLyL....."])),
+    ("Y10", "Shell cap", "the molten young itself, round amber eyes peeking from under the top of its shell, still on "
+     "its head like a cap, and its dark crust wings spread at its sides", YOUNG_WINGS,
+     winged(recolor(WING_LEVEL, {"k": "c", "O": "r", "V": "C"}), SHELL_CAP)),
+]
+# the designs whose wings may (and must) reach out past the egg's outline
+WINGS_OUT = {d[0] for d in EMBERDACTYL + EMBERYOUNG}
+
 DESIGNS = {"huntsman": HUNTSMAN, "cinder_colossus": COLOSSUS, "rat_king": RAT_KING,
            "emberdactyl": EMBERDACTYL, "emberyoung": EMBERYOUNG}
 
 
 def check(boss, design):
-    """Every row 16 wide, every letter in the palette, nothing outside the egg but over its top."""
+    """Every row 16 wide, every letter in the palette, nothing outside the egg but over its top; a winged design
+    (WINGS_OUT) may reach out anywhere, and its wings must: past the egg's outline on both sides."""
     label, _name, _note, pal, rows = design
     problems = []
     if len(rows) != 16 or any(len(r) != 16 for r in rows):
         problems.append(f"{boss} {label}: not 16 x 16 ({[len(r) for r in rows]})")
         return problems
+    sides = set()
     for y, row in enumerate(rows):
         for x, ch in enumerate(row):
             if ch == ".":
@@ -545,7 +840,12 @@ def check(boss, design):
             if ch not in pal:
                 problems.append(f"{boss} {label}: '{ch}' at {x},{y} isn't in its palette")
             elif not inside(x, y) and y > OVER_TOP:
-                problems.append(f"{boss} {label}: {x},{y} is outside the egg")
+                if label in WINGS_OUT:
+                    sides.add("left" if x < 8 else "right")
+                else:
+                    problems.append(f"{boss} {label}: {x},{y} is outside the egg")
+    if label in WINGS_OUT and sides != {"left", "right"}:
+        problems.append(f"{boss} {label}: its wings don't reach out past the egg on both sides ({sorted(sides)})")
     return problems
 
 
@@ -601,7 +901,8 @@ def sheet(boss, designs):
     h = 16 * big + 290
     out = Image.new("RGBA", (w, h), (30, 33, 40, 255))
     d = ImageDraw.Draw(out)
-    d.text((20, 14), f"{TITLES[boss]}: spawn egg options", font=font(22), fill=(235, 238, 245))
+    d.text((20, 14), f"{TITLES[boss]}: spawn egg options{SUBTITLES.get(boss, '')}", font=font(22),
+           fill=(235, 238, 245))
     for i, design in enumerate(designs):
         label, name, note, _pal, _rows = design
         im = draw(design)

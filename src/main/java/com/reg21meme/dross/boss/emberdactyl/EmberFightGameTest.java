@@ -185,6 +185,20 @@ public final class EmberFightGameTest
                     {
                         throw new GameTestAssertException("the young's health is " + young[0].getMaxHealth());
                     }
+                    // the adult, killed 10 blocks up, came down and lies on the floor (not in the air, not in the ground)
+                    if (Math.abs(adult[0].getY() - run.centre.y) > 0.1D)
+                    {
+                        throw new GameTestAssertException("the dying adult lies " + String.format("%.2f", adult[0].getY() - run.centre.y)
+                                + " blocks off the floor");
+                    }
+                    if (!egg[0].getDesign().label().equals("E3E"))
+                    {
+                        throw new GameTestAssertException("the hatched egg looks like " + egg[0].getDesign().label() + ", not the empty E3E");
+                    }
+                    if (young[0].fightTarget() != run.player)
+                    {
+                        throw new GameTestAssertException("the young goes for " + young[0].fightTarget() + ", not the player who beat the adult");
+                    }
                     if (DrossAdvancements.has(run.player, DrossAdvancements.WINGS_CLIPPED))
                     {
                         throw new GameTestAssertException("\"Wings Clipped\" already, before the young was beaten");
@@ -199,6 +213,141 @@ public final class EmberFightGameTest
                     run.cleanUp();
                 }))
                 .thenSucceed();
+    }
+
+    /**
+     * The user's first fight: its wing buffet threw nobody (from its circle it was too high, and a hit that didn't count
+     * threw nothing): from 18 blocks up it swoops down and throws a cow that can't be hurt at all; its beak snap is five
+     * pecks, each one counting.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_buffet", timeoutTicks = 2_000_000)
+    public static void buffetThrowsAndBeakPecksFive(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 6600, -6600);
+        Cow[] cow = new Cow[1];
+        Emberdactyl[] adult = new Emberdactyl[1];
+        net.minecraft.world.entity.animal.IronGolem[] golem = new net.minecraft.world.entity.animal.IronGolem[1];
+        boolean[] pecking = {false};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.centre.x + 6.0D, run.centre.y, run.centre.z, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(-6.0D, 18.0D, 0.0D));
+                    adult[0].testMove(EmberBoss.Move.BUFFET, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("the buffet to throw the cow", () -> horizontal(cow[0].position(), run.centre) > 14.0D,
+                        () -> "the cow " + String.format("%.1f", horizontal(cow[0].position(), run.centre)) + " blocks out, its health "
+                                + cow[0].getHealth()))
+                .thenExecute(() -> run.guard(() -> {
+                    LOGGER.info("[ember test] the buffet threw a cow that can't be hurt {} blocks", String.format("%.1f",
+                            horizontal(cow[0].position(), run.centre)));
+                    adult[0].discard();
+                    cow[0].discard();
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre);
+                    adult[0].setYRot(-90.0F);
+                    adult[0].yBodyRot = -90.0F;
+                    adult[0].yHeadRot = -90.0F;
+                    golem[0] = EntityType.IRON_GOLEM.create(run.level);
+                    golem[0].moveTo(run.centre.x + 8.0D, run.centre.y, run.centre.z, 90.0F, 0.0F);
+                    golem[0].setNoAi(true);
+                    run.level.addFreshEntity(golem[0]);
+                    run.extras.add(golem[0]);
+                    adult[0].testMove(EmberBoss.Move.SNAP, golem[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("its five pecks", () -> {
+                    boolean now = adult[0].animation().equals("snap");
+                    pecking[0] |= now;
+                    return pecking[0] && !now;
+                }, () -> "the golem's health " + golem[0].getHealth()))
+                .thenExecute(() -> run.guard(() -> {
+                    float lost = golem[0].getMaxHealth() - golem[0].getHealth();
+                    float want = EmberTuning.SNAP_PECKS * EmberTuning.SNAP_DAMAGE;
+                    if (Math.abs(lost - want) > 0.01F)
+                    {
+                        throw new GameTestAssertException("the golem lost " + lost + " to its beak, not " + want + " (five pecks)");
+                    }
+                    LOGGER.info("[ember test] five pecks: {} lost", lost);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
+     * The user's first fight: its talon grab carried them through its volcano's side ("he tried to suffocate me"). Next
+     * to a stone pillar it grabs a cow, carries it up and lets go of it high over the floor; the cow is never inside a
+     * block on the way.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_grab", timeoutTicks = 2_000_000)
+    public static void grabNeverCarriesYouIntoTheGround(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 6800, -6400);
+        Cow[] cow = new Cow[1];
+        Emberdactyl[] adult = new Emberdactyl[1];
+        boolean[] caught = {false};
+        double[] highest = {0.0D};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int dx = 2; dx <= 6; dx++)
+                    {
+                        for (int dz = -6; dz <= 6; dz++)
+                        {
+                            for (int y = 1; y <= 14; y++)
+                            {
+                                run.level.setBlock(pos.set(run.x + dx, FLOOR_Y + y, run.z + dz), Blocks.STONE.defaultBlockState(),
+                                        Block.UPDATE_CLIENTS);
+                            }
+                        }
+                    }
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.centre.x, run.centre.y, run.centre.z, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    highest[0] = run.centre.y;
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(-6.0D, 2.0D, 0.0D));
+                    adult[0].testMove(EmberBoss.Move.GRAB, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("it to carry the cow off and let go", () -> {
+                    if (adult[0].isCarrying())
+                    {
+                        caught[0] = true;
+                        highest[0] = Math.max(highest[0], cow[0].getY());
+                        if (!run.level.noCollision(cow[0], cow[0].getBoundingBox().deflate(0.05D)))
+                        {
+                            run.giveUp("the carried cow is inside a block at " + cow[0].blockPosition().toShortString());
+                        }
+                    }
+                    else if (adult[0].fightTarget() == cow[0] && adult[0].animation().equals("grab") && !caught[0]
+                            && adult[0].tickCount > 200)
+                    {
+                        run.giveUp("it never caught the cow");
+                    }
+                    return caught[0] && !adult[0].isCarrying() || run.failure != null;
+                }, () -> "caught " + caught[0] + ", highest " + String.format("%.1f", highest[0] - run.centre.y)))
+                .thenExecute(() -> run.guard(() -> {
+                    double up = highest[0] - run.centre.y;
+                    if (up < EmberTuning.GRAB_CARRY_HEIGHT - 2.0D)
+                    {
+                        throw new GameTestAssertException("it let go of the cow only " + String.format("%.1f", up) + " blocks over the floor");
+                    }
+                    LOGGER.info("[ember test] grabbed beside a pillar, carried in open air and dropped from {} blocks up",
+                            String.format("%.1f", up));
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    private static double horizontal(Vec3 a, Vec3 b)
+    {
+        return Math.hypot(a.x - b.x, a.z - b.z);
     }
 
     // ---------------------------------------------------------------- the runner

@@ -19,8 +19,9 @@ import net.minecraft.world.phys.Vec3;
 /**
  * The Emberdactyl's egg in its nest (design E3B, obsidian with an ember glow at its foot). It can't be destroyed (the
  * user's rule; only {@code /kill}), pushed or moved. When the adult breaks apart in its death it {@link #hatch}es: it
- * splits open (design E3D, its lining all lava) with a burst of lava and flame, and the young reborn bursts out; the empty
- * shell stays in the nest.
+ * bursts open (design E3E, hatched: its top gone, the empty cup of its lower half molten inside, its shards round it;
+ * E3D, the showcase's cut-open egg, still shows the young curled up inside, which the user saw left behind in the nest
+ * after it had flown out) with a burst of lava and flame, and the young reborn bursts out; the empty shell stays.
  */
 public class EmberEgg extends FireCandidate
 {
@@ -36,13 +37,13 @@ public class EmberEgg extends FireCandidate
     /** True once it has split open. */
     public boolean isHatched()
     {
-        return this.getDesign().number() == EmberBoss.design("E3D");
+        return this.getDesign().number() == EmberBoss.design("E3E");
     }
 
     /** Splits open: the empty shell, lava and flames, the stone breaking. */
     public void hatch()
     {
-        this.setDesign(EmberBoss.design("E3D"));
+        this.setDesign(EmberBoss.design("E3E"));
         if (this.level() instanceof ServerLevel level)
         {
             Vec3 c = this.position().add(0.0D, 6.0D, 0.0D);

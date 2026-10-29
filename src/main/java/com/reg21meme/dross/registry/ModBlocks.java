@@ -39,7 +39,7 @@ public final class ModBlocks
     // Boss area: the Huntsman trophy (a miniature of the Wild Hunt in one of five poses; boss/huntsman/trophy/)
     public static final RegistryObject<Block> HUNTSMAN_TROPHY = BLOCKS.register("huntsman_trophy",
             HuntsmanTrophyBlock::new);
-    // Boss area: the Emberdactyl trophy (a miniature of it in one of fifteen poses to pick from; boss/emberdactyl/trophy/)
+    // Boss area: the Emberdactyl trophy (a miniature of it in one of five poses, the user's picks; boss/emberdactyl/trophy/)
     public static final RegistryObject<Block> EMBERDACTYL_TROPHY = BLOCKS.register("emberdactyl_trophy",
             com.reg21meme.dross.boss.emberdactyl.trophy.EmberTrophyBlock::new);
 

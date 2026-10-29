@@ -645,23 +645,26 @@ foot of its path.
 **The fight** (400 health): it perches on the crater's rim guarding its egg. Come within 60 blocks of the volcano's foot
 and it screeches (you hear it from far off), takes off and its boss bar appears. It fights mostly in the air, circling
 you, and never strays more than 100 blocks from its nest:
-- **Dive bomb** (7 hearts round where it crashes): then it lies stuck on the ground for 3 seconds, your chance to hit it
-  up close. On the ground it may snap its obsidian beak (7 hearts).
+- **Dive bomb** (7 hearts within 7 blocks of where it crashes, a ring of blasts and fire, everything thrown out and up):
+  then it lies stuck on the ground for 3 seconds, your chance to hit it up close. On the ground it may peck you with its
+  obsidian beak, five pecks in a row (4 hearts each).
 - **Fire tornadoes**: its wings whip up two (three at half health) that chase you, pull you in, burn you and throw you
   up into the sky.
 - **Strafing run**: low over you in a line, breathing fire (4 hearts and fire), leaving fire on the ground.
-- **Talon grab**: it carries you about 20 blocks up and drops you, wherever it is, its crater's lava included.
-- **Wing buffet** and **screech**: they throw you about 20 blocks.
+- **Talon grab**: it carries you up (always through open air, never through the ground) and drops you from about 20
+  blocks over the ground, wherever it is, its crater's lava included.
+- **Wing buffet** (it swoops down to you first) and **screech**: they throw you about 20 blocks.
 
 At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
-apart, its egg cracks open and its **young reborn** (175 health) bursts out: the same moves, just as hard, but 2.5 times
-as fast with almost no rest, and a dash straight through you. Beat the young (it hardens into obsidian) and everyone near
-gets the challenge advancement **Wings Clipped** and a trophy. It never comes back.
+apart, its egg bursts open and its **young reborn** (175 health) bursts out and comes straight for you: the same moves,
+just as hard, but 2.5 times as fast with almost no rest, and a dash straight through you. Dying, either one glides down to
+flat ground and lies there. Beat the young (it hardens into obsidian) and everyone near gets the challenge advancement
+**Wings Clipped** and a trophy (five poses, right-click to change). It never comes back.
 
 It also comes from its spawn eggs (the adult alone, hovering over where it was spawned; the young has its own) and
 `/dross boss summon emberdactyl` / `emberyoung`; `/dross boss arena emberdactyl` builds a volcano with both in front of
-you. Its boss bars, spawn eggs and trophy are still options to pick from: `/dross showcase bossbars emberdactyl`,
-`/dross showcase trophies emberdactyl`, and the egg sheets in `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/`.
+you. Its boss bar is a volcano between two burning wings (`/dross showcase bossbars emberdactyl`); its trophies:
+`/dross showcase trophies emberdactyl`.
 
 ## The Rage Wand
 
@@ -762,13 +765,13 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase frostfolk idle` / `walk` / `run` / `attack` / `horn` / `talk` | Plays that animation on every showcase Frostfolk nearby (attack: each one's own; horn: the horn-blower's). |
 | `/dross showcase mob_sounds rimefall` | Lists every Rimehorn, moose and Pond Skater sound in chat, each with a [play] button. |
 | `/dross showcase boss_designs cinder_wastes` | Builds a gallery of the fire servant candidates (fifteen possible bosses, each with its variations behind it), frozen, with signs and [go] buttons in chat. Use a flat world. |
-| `/dross showcase boss_designs emberdactyl` | Builds a gallery of the Emberdactyl (33 blocks across its wings), its young and its egg's four looks, then its volcano behind them (about a minute): lava lake, nest, lava cascades, a lit path up to a lookout with its hoard (empty chests and gold). The adult and the young move, fire falling from their wings as they fly: chat buttons play each of their animations (hover, fly, glide, dive, screech, gust, grab, snap, perch, walk, and its deaths: death, death_break, death_crumble); right-click one for its next. Use a flat world. |
+| `/dross showcase boss_designs emberdactyl` | Builds a gallery of the Emberdactyl (33 blocks across its wings), its young and its egg's five looks (the last one hatched), then its volcano behind them (about a minute): lava lake, nest, lava cascades, a lit path up to a lookout with its hoard (empty chests and gold). The adult and the young move, fire falling from their wings as they fly: chat buttons play each of their animations (hover, fly, glide, dive, screech, gust, grab, snap, perch, walk, death); right-click one for its next. Use a flat world. |
 | `/dross showcase boss_designs emberdactyl <animation>` | Plays one animation on the Emberdactyl and its young near you (with its sounds). |
 | `/dross showcase cinder_mobs` | Lines up the Cinder Wastes' mobs with signs: the Pallbearer and the Cinder Hermit in eight shells; chat buttons play their animations (idle, walk, swipe, slam, roar, snap, pinch, hide, peek, come_out, death). |
 | `/dross showcase cinder_mobs <animation>` | Plays one animation on the Cinder Wastes' mobs near you (with its sounds). |
 | `/dross showcase boss_sounds emberdactyl` | Lists the Emberdactyl's and its young's sounds (its screech, wingbeats, gust, dive...) with play buttons. |
-| `/dross showcase bossbars emberdactyl [1-4]` | Shows the Emberdactyl's 10 boss bar designs to pick from, 5 at a time (pages 1-2 the adult, 3-4 its young), for a minute. Lower the GUI scale to see all five. |
-| `/dross showcase trophies emberdactyl` | Places the 15 Emberdactyl trophy options in three rows with signs (right-click one to turn it through the poses). |
+| `/dross showcase bossbars emberdactyl` | Shows the Emberdactyl's boss bar (a volcano between two burning wings) for a minute, the adult's over its young's, draining and filling. |
+| `/dross showcase trophies emberdactyl` | Places the Emberdactyl's five trophies in a row on pedestals with signs (right-click one to turn it through the poses). |
 | `/dross showcase mob_sounds cinder_wastes` | Lists the Pallbearer's and the Cinder Hermit's sounds with play buttons. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |

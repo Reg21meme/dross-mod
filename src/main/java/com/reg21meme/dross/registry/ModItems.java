@@ -243,5 +243,10 @@ public final class ModItems
     public static final RegistryObject<Item> MOOSE_SKULL = ITEMS.register("moose_skull", () -> new BlockItem(ModBlocks.MOOSE_SKULL.get(), new Item.Properties()));
     public static final RegistryObject<Item> RIMEHORN_SKULL = ITEMS.register("rimehorn_skull", () -> new BlockItem(ModBlocks.RIMEHORN_SKULL.get(), new Item.Properties()));
 
+    // Quest area: advancement icons only (drawn by tools/icons/advancement_icons.py; not in any creative tab):
+    // "Wings Clipped" (the Emberdactyl) and "The Hunter Hunted" (the Huntsman) show these in the Dross tab
+    public static final RegistryObject<Item> WINGS_CLIPPED_ICON = ITEMS.register("wings_clipped_icon", () -> new Item(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> HUNTER_HUNTED_ICON = ITEMS.register("hunter_hunted_icon", () -> new Item(new Item.Properties().stacksTo(1)));
+
     private ModItems() {}
 }

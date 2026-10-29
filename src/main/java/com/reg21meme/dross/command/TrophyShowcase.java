@@ -39,9 +39,11 @@ import java.util.function.Predicate;
  *   <li>{@code /dross showcase trophies colossus} places the 5 Cinder Colossus trophies (the boss area's
  *       {@code boss.trophy.ColossusTrophies});</li>
  *   <li>{@code /dross showcase trophies ratking} places the 5 Rat King trophies (the boss area's
- *       {@code boss.ratking.trophy.RatKingTrophies}).</li>
- *   <li>{@code /dross showcase trophies emberdactyl} places the 15 Emberdactyl trophy candidates in three stepped rows of
- *       five (the boss area's {@code boss.emberdactyl.trophy.EmberdactylTrophies}; {@link #placeRows}).</li>
+ *       {@code boss.ratking.trophy.RatKingTrophies});</li>
+ *   <li>{@code /dross showcase trophies huntsman} places the 5 Huntsman trophies (the boss area's
+ *       {@code boss.huntsman.trophy.HuntsmanTrophies});</li>
+ *   <li>{@code /dross showcase trophies emberdactyl} places the 5 Emberdactyl trophies (the boss area's
+ *       {@code boss.emberdactyl.trophy.EmberdactylTrophies}).</li>
  * </ul>
  * A future boss adds one literal in {@code DrossCommand} and one small method here that turns its designs into
  * {@link Trophy} entries for {@link #placeRow}.
@@ -131,10 +133,7 @@ public final class TrophyShowcase
         return placeRow(context.getSource(), "Huntsman", trophies, state -> state.is(ModBlocks.HUNTSMAN_TROPHY.get()));
     }
 
-    /**
-     * Runs {@code /dross showcase trophies emberdactyl}: the 15 Emberdactyl trophy designs (candidates for the user to
-     * pick from), in rows of {@link #ROW_SIZE} ({@link #placeRows}).
-     */
+    /** Runs {@code /dross showcase trophies emberdactyl}: the 5 Emberdactyl trophy designs. */
     public static int placeEmberdactylTrophies(CommandContext<CommandSourceStack> context)
     {
         List<Trophy> trophies = new ArrayList<>();
@@ -142,7 +141,7 @@ public final class TrophyShowcase
         {
             trophies.add(new Trophy(design.number(), design.displayName(), design.look(), design::blockState));
         }
-        return placeRows(context.getSource(), "Emberdactyl", trophies,
+        return placeRow(context.getSource(), "Emberdactyl", trophies,
                 state -> state.is(ModBlocks.EMBERDACTYL_TROPHY.get()));
     }
 
@@ -244,102 +243,11 @@ public final class TrophyShowcase
         return placed;
     }
 
-    /** A boss with many designs (the Emberdactyl's 15) shows them in rows of this many ({@link #placeRows})... */
-    private static final int ROW_SIZE = 5;
-    /** ...each row this many blocks behind the one in front of it... */
-    private static final int ROW_GAP = 4;
-    /** ...and a step higher, standing on this (so the back rows show over the front ones). */
-    private static final Block STAND = Blocks.POLISHED_BLACKSTONE_BRICKS;
-
     /**
-     * Like {@link #placeRow}, for a boss with many designs: rows of {@link #ROW_SIZE}, No. 1 at the front left, each row
-     * {@link #ROW_GAP} blocks further back and one block higher than the one in front (its pedestals on a stand of
-     * {@link #STAND}), so every trophy can be seen from where the command was run. Running it again replaces them.
-     *
-     * @return how many trophies were placed
+     * Old showcases of many designs once stood their back rows' pedestals a step higher, on this: an old row is
+     * cleared with the stand under it ({@link #removeOldTrophies}).
      */
-    public static int placeRows(CommandSourceStack source, String boss, List<Trophy> trophies, Predicate<BlockState> isTrophy)
-    {
-        if (trophies.isEmpty())
-        {
-            source.sendFailure(Component.literal("The " + boss + " has no trophy designs to show."));
-            return 0;
-        }
-
-        ServerLevel level = source.getLevel();
-        Vec3 position = source.getPosition();
-        Direction look = Direction.fromYRot(source.getRotation().y);
-        Direction facing = look.getOpposite();
-        Direction right = look.getClockWise();
-        BlockPos origin = new BlockPos(Mth.floor(position.x), Showcases.groundY(level, position), Mth.floor(position.z));
-
-        // 1. An old showcase nearby goes first.
-        int removed = removeOldTrophies(level, origin, isTrophy);
-
-        // 2. A clear, flat floor under every row, a little past both ends and behind the last.
-        int rows = (trophies.size() + ROW_SIZE - 1) / ROW_SIZE;
-        int perRow = Math.min(ROW_SIZE, trophies.size());
-        int firstOffset = -((perRow - 1) * SPACING) / 2;
-        int lastOffset = firstOffset + (perRow - 1) * SPACING;
-        Showcases.clearFloor(level, origin, look, right, firstOffset - FLOOR_SIDE_MARGIN, lastOffset + FLOOR_SIDE_MARGIN,
-                AHEAD + (rows - 1) * ROW_GAP + FLOOR_BEHIND, CLEAR_HEIGHT + rows - 1, MAX_FILL);
-
-        // 3. Stands, pedestals, signs and trophies, row by row.
-        BlockState pedestalBlock = PEDESTAL.defaultBlockState();
-        BlockState standBlock = STAND.defaultBlockState();
-        List<Trophy> failed = new ArrayList<>();
-        for (int i = 0; i < trophies.size(); i++)
-        {
-            Trophy trophy = trophies.get(i);
-            int row = i / ROW_SIZE;
-            BlockPos ground = origin.relative(look, AHEAD + row * ROW_GAP).relative(right, firstOffset + (i % ROW_SIZE) * SPACING);
-            for (int step = 1; step <= row; step++)
-            {
-                level.setBlock(ground.above(step), standBlock, Block.UPDATE_ALL);
-            }
-            BlockPos pedestal = ground.above(row + 1);
-            level.setBlock(pedestal, pedestalBlock, Block.UPDATE_ALL);
-            BlockPos sign = pedestal.relative(facing);
-            if (!Showcases.placeWallSign(level, sign, facing,
-                    Component.literal(SIGN_NUMBER + trophy.number()), trophy.name(), Component.literal(trophy.look())))
-            {
-                LOGGER.warn("Trophy showcase: couldn't put the sign for {} No. {} at {}", boss, trophy.number(), sign.toShortString());
-            }
-            BlockPos at = pedestal.above();
-            BlockState state = trophy.block().apply(facing);
-            level.setBlock(at, state, Block.UPDATE_ALL);
-            if (!level.getBlockState(at).equals(state))
-            {
-                failed.add(trophy);
-                LOGGER.warn("Trophy showcase: couldn't place {} No. {} at {}", boss, trophy.number(), at.toShortString());
-            }
-        }
-
-        int placed = trophies.size() - failed.size();
-        LOGGER.info("Trophy showcase: placed {} of {} {} trophies for {} in {}, {} row(s) from {}, facing {}; removed {} old "
-                        + "showcase trophy(s)", placed, trophies.size(), boss, source.getTextName(), level.dimension().location(),
-                rows, origin.relative(look, AHEAD).toShortString(), facing.getName(), removed);
-        String removedNote = removed == 0 ? "no old showcase trophies nearby"
-                : "removed " + removed + " old showcase troph" + (removed == 1 ? "y" : "ies");
-        String summary = "Placed " + (failed.isEmpty() ? String.valueOf(placed) : placed + " of " + trophies.size())
-                + " " + boss + " trophies in " + rows + " rows of " + perRow + " in front of you, No. "
-                + trophies.get(0).number() + " at the front left (" + removedNote + "):";
-        source.sendSuccess(() -> Component.literal(summary), true);
-        for (Trophy trophy : trophies)
-        {
-            Component line = Component.literal(trophy.number() + ". ").append(trophy.name())
-                    .append(" (" + trophy.look().toLowerCase(Locale.ROOT) + ")");
-            if (failed.contains(trophy))
-            {
-                source.sendFailure(Component.empty().append(line).append(": couldn't place it, see the game log"));
-            }
-            else
-            {
-                source.sendSuccess(() -> line, false);
-            }
-        }
-        return placed;
-    }
+    private static final Block STAND = Blocks.POLISHED_BLACKSTONE_BRICKS;
 
     /**
      * Removes the old showcase trophies near {@code origin} (see {@link #findOldTrophies}), each with its pedestal and
@@ -358,7 +266,7 @@ public final class TrophyShowcase
             level.setBlock(signOf(level, trophy), air, Block.UPDATE_ALL);
             level.setBlock(trophy, air, Block.UPDATE_ALL);
             level.setBlock(pedestal, air, Block.UPDATE_ALL);
-            // (and the stand a back row's pedestal stood on, placeRows)
+            // (and the stand an old back row's pedestal stood on)
             for (BlockPos below = pedestal.below(); level.getBlockState(below).is(STAND); below = below.below())
             {
                 level.setBlock(below, air, Block.UPDATE_ALL);

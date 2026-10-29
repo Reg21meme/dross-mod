@@ -60,7 +60,7 @@ public class EmberTrophyItem extends BlockItem implements GeoItem
                 .withStyle(style -> style.withColor(TextColor.fromRgb(DrossColors.EMBERDACTYL_TROPHY_NAME)));
     }
 
-    /** "No. 1: The Sky That Burns", then the hint "Right-click to change its pose". */
+    /** "No. 1: Guardian of the Nest", then the hint "Right-click to change its pose". */
     @Override
     public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag)
     {

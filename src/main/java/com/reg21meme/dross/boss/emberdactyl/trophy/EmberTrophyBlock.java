@@ -47,13 +47,13 @@ import javax.annotation.Nullable;
 
 /**
  * The Emberdactyl trophy ({@code dross:emberdactyl_trophy}): a 1x1x1 decorative block, a miniature of the Emberdactyl in
- * one of fifteen designs ({@link #DESIGN}, see {@link EmberdactylTrophies}). It stands on the floor, facing {@link #FACING}: the player
+ * one of five designs ({@link #DESIGN}, see {@link EmberdactylTrophies}). It stands on the floor, facing {@link #FACING}: the player
  * who placed it. Its figure is drawn by its block entity ({@link EmberTrophyBlockEntity}, GeckoLib) as the boss is:
  * the solid parts cut out, the lava and embers glowing, its death's magma cracks glowing. Now and then an ember drifts
  * down from a wing tip, smoke rises from its volcano's crater or the burst egg, and lava pops out of the crater (just
  * particles, client only).
  * <p>
- * Right-clicking it (with an empty hand or holding anything, main hand) turns it to the next design: 1, 2 ... 15, then
+ * Right-clicking it (with an empty hand or holding anything, main hand) turns it to the next design: 1, 2 ... 5, then
  * 1 again, still facing the same way ({@link #use}).
  * <p>
  * It never burns, explosions don't break it, and any tool (or a bare hand) breaks it: it drops itself with its design
@@ -64,7 +64,7 @@ public class EmberTrophyBlock extends BaseEntityBlock
 {
     /** The way the figure faces. */
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
-    /** Its design (1 to 15). */
+    /** Its design (1 to 5). */
     public static final IntegerProperty DESIGN = IntegerProperty.create("design", 1, EmberTrophyModels.ALL.size());
 
     /** Each design's outline (its figure's box), for each direction: [design - 1][facing's 2D index]. */
@@ -135,7 +135,7 @@ public class EmberTrophyBlock extends BaseEntityBlock
     // ---------------------------------------------------------------- right-click: the next pose
 
     /**
-     * Right-click: the trophy turns to the next design (1, 2 ... 15, then 1 again), keeping the way it faces, with a
+     * Right-click: the trophy turns to the next design (1, 2 ... 5, then 1 again), keeping the way it faces, with a
      * quiet click, a crackle of embers and a small puff of them. The new block state carries everything: the block entity
      * draws the new pose on the next frame, and the outline changes with it.
      * <ul>

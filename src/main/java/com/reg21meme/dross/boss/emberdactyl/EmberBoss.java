@@ -132,6 +132,14 @@ public abstract class EmberBoss extends FireCandidate
     private boolean grounded;
     @Nullable
     private ServerBossEvent bar;
+    /** (the server's tick) when it last looked after its boss bar */
+    private long barTick;
+    /** Dying: where it comes down from and to, and how many ticks it glides before its death animation starts. */
+    @Nullable
+    private Vec3 fallFrom;
+    @Nullable
+    private Vec3 fallTo;
+    private int fallDelay;
 
     @SuppressWarnings("unchecked")
     protected EmberBoss(EntityType<? extends EmberBoss> type, Level level, Kind kind, int design, double[][] sizes,
@@ -223,6 +231,28 @@ public abstract class EmberBoss extends FireCandidate
     public RimefallBodyPart<EmberBoss>[] bodyParts()
     {
         return this.parts;
+    }
+
+    /** Whom it's fighting now (or null). */
+    @Nullable
+    public LivingEntity fightTarget()
+    {
+        return this.target;
+    }
+
+    /** True while it carries someone in its talons. */
+    public boolean isCarrying()
+    {
+        return this.carried != null;
+    }
+
+    /** (tests) Makes one of its moves at once, against {@code target}. */
+    void testMove(Move m, LivingEntity target)
+    {
+        this.phase = Phase.FIGHT;
+        this.target = target;
+        this.grounded = m == Move.SNAP;
+        this.start(m);
     }
 
     /** Starts it fighting at once (the young bursting from its egg), going for {@code target} if it's a fair one. */
@@ -700,33 +730,34 @@ public abstract class EmberBoss extends FireCandidate
         double d = Math.sqrt(Math.pow(this.target.getX() - this.getX(), 2) + Math.pow(this.target.getZ() - this.getZ(), 2));
         List<Move> moves = new ArrayList<>();
         List<Integer> weights = new ArrayList<>();
+        boolean young = this.dashes();
         if (d < CLOSE)
         {
-            add(moves, weights, Move.GRAB, 30);
-            add(moves, weights, Move.BUFFET, 25);
-            add(moves, weights, Move.DIVE, 20);
-            add(moves, weights, Move.SCREECH, 15);
-            if (this.dashes())
+            add(moves, weights, Move.GRAB, CLOSE_GRAB);
+            add(moves, weights, Move.BUFFET, CLOSE_BUFFET);
+            add(moves, weights, Move.DIVE, CLOSE_DIVE);
+            add(moves, weights, Move.SCREECH, young ? YOUNG_CLOSE_SCREECH : CLOSE_SCREECH);
+            if (young)
             {
-                add(moves, weights, Move.DASH, 25);
+                add(moves, weights, Move.DASH, CLOSE_DASH);
             }
         }
         else if (d < MID)
         {
-            add(moves, weights, Move.DIVE, 30);
-            add(moves, weights, Move.TORNADO, 25);
-            add(moves, weights, Move.STRAFE, 25);
-            add(moves, weights, Move.GRAB, 20);
-            if (this.dashes())
+            add(moves, weights, Move.DIVE, young ? YOUNG_MID_DIVE : MID_DIVE);
+            add(moves, weights, Move.TORNADO, young ? YOUNG_MID_TORNADO : MID_TORNADO);
+            add(moves, weights, Move.STRAFE, MID_STRAFE);
+            add(moves, weights, Move.GRAB, MID_GRAB);
+            if (young)
             {
-                add(moves, weights, Move.DASH, 20);
+                add(moves, weights, Move.DASH, MID_DASH);
             }
         }
         else
         {
-            add(moves, weights, Move.STRAFE, 40);
-            add(moves, weights, Move.TORNADO, 35);
-            add(moves, weights, Move.DIVE, 25);
+            add(moves, weights, Move.STRAFE, FAR_STRAFE);
+            add(moves, weights, Move.TORNADO, FAR_TORNADO);
+            add(moves, weights, Move.DIVE, FAR_DIVE);
         }
         int total = 0;
         for (int i = 0; i < moves.size(); i++)
@@ -806,7 +837,7 @@ public abstract class EmberBoss extends FireCandidate
             case SNAP ->
             {
                 this.playAnimation("snap");
-                this.ready.put(m, this.tickCount + this.cooldown(SNAP_COOLDOWN));
+                this.ready.put(m, this.tickCount + this.cooldown(SNAP_COOLDOWN) + this.length("snap") * SNAP_PECKS);
             }
             case BUFFET ->
             {
@@ -816,7 +847,7 @@ public abstract class EmberBoss extends FireCandidate
             case SCREECH ->
             {
                 this.playAnimation("screech");
-                this.ready.put(m, this.tickCount + this.cooldown(SCREECH_COOLDOWN));
+                this.ready.put(m, this.tickCount + (this.dashes() ? YOUNG_SCREECH_COOLDOWN : this.cooldown(SCREECH_COOLDOWN)));
             }
             case DASH ->
             {
@@ -895,27 +926,48 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
+    /** Its crash: a ring of blasts and fire round where it lands; everything within {@link EmberTuning#DIVE_RADIUS} hurt
+     *  and thrown out and up (thrown even if the hit didn't count: a player just hurt, or burning). */
     private void crash(Vec3 spot)
     {
+        double r = DIVE_RADIUS * this.kind.width() / ADULT.width() * 0.3D + DIVE_RADIUS * 0.7D;
         if (this.level() instanceof ServerLevel level)
         {
             level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, spot.x, spot.y + 1.0D, spot.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-            level.sendParticles(ParticleTypes.LAVA, spot.x, spot.y + 0.5D, spot.z, 40, DIVE_RADIUS * 0.6D, 0.3D, DIVE_RADIUS * 0.6D, 0.0D);
-            level.sendParticles(ParticleTypes.LARGE_SMOKE, spot.x, spot.y + 1.0D, spot.z, 40, DIVE_RADIUS * 0.6D, 0.6D, DIVE_RADIUS * 0.6D, 0.05D);
-            level.playSound(null, spot.x, spot.y, spot.z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, VOLUME, 0.6F);
+            for (int i = 0; i < DIVE_BLASTS; i++)
+            {
+                double a = Math.PI * 2.0D * i / DIVE_BLASTS + this.random.nextDouble() * 0.5D;
+                double d = r * (0.45D + this.random.nextDouble() * 0.4D);
+                level.sendParticles(ParticleTypes.EXPLOSION_EMITTER, spot.x + Math.cos(a) * d, spot.y + 0.8D, spot.z + Math.sin(a) * d,
+                        1, 0.0D, 0.0D, 0.0D, 0.0D);
+            }
+            level.sendParticles(ParticleTypes.LAVA, spot.x, spot.y + 0.5D, spot.z, 90, r * 0.6D, 0.4D, r * 0.6D, 0.0D);
+            level.sendParticles(ParticleTypes.FLAME, spot.x, spot.y + 0.6D, spot.z, 160, r * 0.7D, 0.3D, r * 0.7D, 0.12D);
+            level.sendParticles(ParticleTypes.LARGE_SMOKE, spot.x, spot.y + 1.5D, spot.z, 90, r * 0.7D, 1.2D, r * 0.7D, 0.06D);
+            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, spot.x, spot.y + 1.0D, spot.z, 30, r * 0.5D, 0.5D, r * 0.5D, 0.03D);
+            level.playSound(null, spot.x, spot.y, spot.z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, VOLUME * 1.6F, 0.5F);
+            level.playSound(null, spot.x, spot.y, spot.z, SoundEvents.DRAGON_FIREBALL_EXPLODE, SoundSource.HOSTILE, VOLUME, 0.6F);
+            for (int i = 0; i < DIVE_FIRES; i++)
+            {
+                double a = this.random.nextDouble() * Math.PI * 2.0D;
+                double d = r * (0.35D + this.random.nextDouble() * 0.6D);
+                double x = spot.x + Math.cos(a) * d;
+                double z = spot.z + Math.sin(a) * d;
+                LavaPools.placeFire(level, BlockPos.containing(x, this.groundAt(x, z), z), true, DIVE_FIRE_MIN, DIVE_FIRE_MAX);
+            }
         }
-        for (LivingEntity e : this.foesWithin(new AABB(spot, spot).inflate(DIVE_RADIUS, 3.0D, DIVE_RADIUS)))
+        for (LivingEntity e : this.foesWithin(new AABB(spot, spot).inflate(r, 4.0D, r)))
         {
-            if (e.distanceToSqr(spot) > (DIVE_RADIUS + 1.0D) * (DIVE_RADIUS + 1.0D))
+            Vec3 out = new Vec3(e.getX() - spot.x, 0.0D, e.getZ() - spot.z);
+            double d = out.length();
+            if (d > r + 1.0D || Math.abs(e.getY() - spot.y) > 4.0D)
             {
                 continue;
             }
-            if (e.hurt(this.damageSources().mobAttack(this), DIVE_DAMAGE))
-            {
-                Vec3 out = new Vec3(e.getX() - spot.x, 0.0D, e.getZ() - spot.z);
-                out = out.lengthSqr() < 0.01D ? new Vec3(1.0D, 0.0D, 0.0D) : out.normalize();
-                this.throwOut(e, out.scale(DIVE_THROW), DIVE_LIFT);
-            }
+            e.hurt(this.damageSources().mobAttack(this), DIVE_DAMAGE);
+            out = d < 0.1D ? this.facing() : out.scale(1.0D / d);
+            double k = 1.0D - (1.0D - DIVE_EDGE_SHARE) * Mth.clamp(d / r, 0.0D, 1.0D);
+            this.throwOut(e, out.scale(DIVE_THROW * k), DIVE_LIFT * k);
         }
     }
 
@@ -937,7 +989,7 @@ public abstract class EmberBoss extends FireCandidate
             {
                 this.start(Move.BUFFET);
             }
-            else if (d < SCREECH_RANGE && this.isReady(Move.SCREECH) && this.random.nextFloat() < 0.4F)
+            else if (d < SCREECH_RANGE && this.isReady(Move.SCREECH) && this.random.nextFloat() < (this.dashes() ? 0.1F : 0.4F))
             {
                 this.start(Move.SCREECH);
             }
@@ -1063,16 +1115,34 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
-    /** Talon grab: a swoop at its target; caught, it's carried high and dropped. */
+    /** Talon grab: a swoop at its target; caught, it's carried up and away and dropped from high over the ground. */
     private void grab()
     {
         int moment = this.at("grab", 0.395D);
         if (this.carried != null)
         {
-            // carrying: up and away (over its crater, if it has one)
-            Vec3 drop = this.dropSpot;
-            this.steer(drop, this.kind.fast() * 0.5D, 0.2D);
-            if (this.moveTick > moment + GRAB_CARRY_TICKS)
+            // carrying: first straight up until whoever it holds is clear over everything on its way, then across at
+            // that height, then down to the drop's height over the ground there (never through the ground: they hang
+            // in open air all the way)
+            double hang = this.carried.getBbHeight() + 0.5D;
+            double cruiseY = this.dropSpot.y + hang;
+            double across = Math.hypot(this.dropSpot.x - this.getX(), this.dropSpot.z - this.getZ());
+            Vec3 to;
+            if (!this.hitThisMove.contains(Marks.CLIMBED))
+            {
+                to = new Vec3(this.getX(), cruiseY, this.getZ());
+                if (this.getY() >= cruiseY - 1.0D)
+                {
+                    this.hitThisMove.add(Marks.CLIMBED);
+                }
+            }
+            else
+            {
+                to = new Vec3(this.dropSpot.x, cruiseY, this.dropSpot.z);
+            }
+            this.steer(to, this.kind.fast() * 0.5D, 0.25D);
+            this.loop("fly");
+            if (this.hitThisMove.contains(Marks.CLIMBED) && across < 2.0D || this.moveTick > moment + GRAB_CARRY_TICKS)
             {
                 this.release();
                 this.endMove();
@@ -1089,17 +1159,7 @@ public abstract class EmberBoss extends FireCandidate
                 {
                     this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE);
                     this.carried = this.target;
-                    Vec3 away;
-                    if (this.nest != null)
-                    {
-                        away = this.nest;
-                    }
-                    else
-                    {
-                        float a = this.random.nextFloat() * Mth.TWO_PI;
-                        away = this.position().add(Mth.cos(a) * 20.0D, 0.0D, Mth.sin(a) * 20.0D);
-                    }
-                    this.dropSpot = new Vec3(away.x, this.getY() + GRAB_CARRY_HEIGHT, away.z);
+                    this.dropSpot = this.dropFor(this.target);
                 }
             }
             return;
@@ -1127,17 +1187,82 @@ public abstract class EmberBoss extends FireCandidate
             this.release();
             return;
         }
-        double y = this.getY() - e.getBbHeight() - 0.5D;
+        Vec3 put = this.hangSpot(e);
         if (e instanceof ServerPlayer player)
         {
-            player.connection.teleport(this.getX(), y, this.getZ(), player.getYRot(), player.getXRot());
+            player.connection.teleport(put.x, put.y, put.z, player.getYRot(), player.getXRot());
         }
         else
         {
-            e.setPos(this.getX(), y, this.getZ());
+            e.setPos(put.x, put.y, put.z);
         }
         e.setDeltaMovement(Vec3.ZERO);
         e.fallDistance = 0.0F;
+    }
+
+    /** Where whoever it carries hangs this tick: under its talons, but only ever in open air (never moved into blocks:
+     *  higher up where its talons are lower than they can go, or left where they are). */
+    private Vec3 hangSpot(LivingEntity e)
+    {
+        Vec3 want = new Vec3(this.getX(), this.getY() - e.getBbHeight() - 0.5D, this.getZ());
+        if (this.isFree(e, want))
+        {
+            return want;
+        }
+        Vec3 at = e.position();
+        double base = Math.max(want.y, at.y);
+        for (int up = 0; up <= 4; up++)
+        {
+            Vec3 spot = new Vec3(want.x, base + up, want.z);
+            if (this.isFree(e, spot))
+            {
+                return spot;
+            }
+        }
+        Vec3 above = new Vec3(at.x, base, at.z);
+        return this.isFree(e, above) ? above : at;
+    }
+
+    private boolean isFree(LivingEntity e, Vec3 feet)
+    {
+        return this.level().noCollision(e, e.getBoundingBox().move(feet.subtract(e.position())).deflate(0.01D));
+    }
+
+    /** Where it drops whoever it caught: over its crater (anywhere in its lava lake or on its nest's pillar), or a
+     *  random way off; the height their feet are carried at: {@link EmberTuning#GRAB_CARRY_HEIGHT} over the ground
+     *  there, but never lower than {@link EmberTuning#GRAB_CLEARANCE} over the highest ground on the way (its crater's
+     *  rim...) or than they are now. */
+    private Vec3 dropFor(LivingEntity e)
+    {
+        Vec3 away;
+        if (this.nest != null)
+        {
+            double a = this.random.nextDouble() * Math.PI * 2.0D;
+            double r = Math.sqrt(this.random.nextDouble()) * GRAB_CRATER_SPREAD;
+            away = this.nest.add(Math.cos(a) * r, 0.0D, Math.sin(a) * r);
+        }
+        else
+        {
+            float a = this.random.nextFloat() * Mth.TWO_PI;
+            away = this.leashed(e.position().add(Mth.cos(a) * 20.0D, 0.0D, Mth.sin(a) * 20.0D));
+        }
+        double highest = e.getY();
+        Vec3 from = e.position();
+        double len = Math.hypot(away.x - from.x, away.z - from.z);
+        int steps = Math.max(1, (int) Math.ceil(len / 2.0D));
+        for (int i = 0; i <= steps; i++)
+        {
+            Vec3 p = from.lerp(away, (double) i / steps);
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dz = -1; dz <= 1; dz++)
+                {
+                    highest = Math.max(highest, this.groundAt(p.x + dx * 1.5D, p.z + dz * 1.5D));
+                }
+            }
+        }
+        double feet = Math.max(this.groundAt(away.x, away.z) + GRAB_CARRY_HEIGHT, highest + GRAB_CLEARANCE);
+        return new Vec3(away.x, feet, away.z);
     }
 
     private void release()
@@ -1150,15 +1275,24 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
-    /** Beak snap (on the ground): its bill lunges, hitting everything in front of it. */
+    /** Beak snap (on the ground): {@link EmberTuning#SNAP_PECKS} pecks one after another, its bill lunging at whatever's
+     *  in front of it, turning to its target between them. */
     private void snap()
     {
         this.setDeltaMovement(Vec3.ZERO);
-        if (this.moveTick < this.at("snap", 0.3D))
+        int peckLength = this.length("snap");
+        int peck = (this.moveTick - 1) / peckLength;
+        int peckTick = (this.moveTick - 1) % peckLength + 1;
+        if (peckTick == 1 && peck > 0)
+        {
+            this.playAnimation("snap");
+            this.hitThisMove.clear();
+        }
+        if (peckTick < this.at("snap", 0.3D))
         {
             this.turnTo(this.target.position().subtract(this.position()));
         }
-        if (this.moveTick == this.at("snap", 0.35D))
+        if (peckTick == this.at("snap", 0.35D))
         {
             double scale = this.kind.width() / ADULT.width();
             Vec3 face = this.facing();
@@ -1169,43 +1303,56 @@ public abstract class EmberBoss extends FireCandidate
                 double side = Math.abs(rel.x * face.z - rel.z * face.x);
                 if (along >= SNAP_FROM * scale && along <= SNAP_TO * scale && side <= SNAP_SIDE * scale)
                 {
+                    // (each peck counts, even straight after the last: a player just hurt is no safer)
+                    e.invulnerableTime = 0;
                     if (e.hurt(this.damageSources().mobAttack(this), SNAP_DAMAGE))
                     {
-                        this.throwOut(e, face.scale(0.8D), 0.3D);
+                        this.throwOut(e, face.scale(0.45D), 0.2D);
                     }
                 }
             }
         }
-        if (this.moveTick >= this.length("snap"))
+        if (this.moveTick >= peckLength * SNAP_PECKS)
         {
             this.afterGroundMove();
         }
     }
 
-    /** Wing buffet: one huge beat, everyone in front of it thrown about 20 blocks. */
+    /** Wing buffet: one huge beat, everyone in front of it thrown about 20 blocks. In the air it swoops down near its
+     *  target first, so the beat reaches it. */
     private void buffet()
     {
-        this.hold();
-        if (this.moveTick == this.at("gust", 0.5625D))
+        int beat = this.at("gust", 0.5625D);
+        if (!this.grounded && this.moveTick < beat && this.target != null)
+        {
+            Vec3 back = new Vec3(this.getX() - this.target.getX(), 0.0D, this.getZ() - this.target.getZ());
+            back = back.lengthSqr() < 0.01D ? this.facing().scale(-1.0D) : back.normalize();
+            Vec3 spot = this.target.position().add(back.scale(BUFFET_APPROACH)).add(0.0D, BUFFET_APPROACH_HEIGHT, 0.0D);
+            this.steer(this.overGround(spot, 2.0D), this.kind.fast(), 0.3D);
+            this.turnTo(this.target.position().subtract(this.position()));
+        }
+        else
+        {
+            this.hold();
+        }
+        if (this.moveTick == beat)
         {
             Vec3 face = this.facing();
-            for (LivingEntity e : this.foesWithin(this.getBoundingBox().inflate(BUFFET_RANGE, 8.0D, BUFFET_RANGE)))
+            for (LivingEntity e : this.foesWithin(this.getBoundingBox().inflate(BUFFET_RANGE, BUFFET_REACH_DOWN, BUFFET_RANGE)))
             {
                 Vec3 rel = new Vec3(e.getX() - this.getX(), 0.0D, e.getZ() - this.getZ());
                 double d = rel.length();
-                if (d > BUFFET_RANGE || d < 0.01D)
+                if (d > BUFFET_RANGE)
                 {
                     continue;
                 }
-                double angle = Math.toDegrees(Math.acos(Mth.clamp((rel.x * face.x + rel.z * face.z) / d, -1.0D, 1.0D)));
+                double angle = d < 0.01D ? 0.0D : Math.toDegrees(Math.acos(Mth.clamp((rel.x * face.x + rel.z * face.z) / d, -1.0D, 1.0D)));
                 if (angle > BUFFET_CONE && d > this.kind.width())
                 {
                     continue;
                 }
-                if (e.hurt(this.damageSources().mobAttack(this), BUFFET_DAMAGE))
-                {
-                    this.throwOut(e, rel.normalize().scale(THROW_20), THROW_20_LIFT);
-                }
+                e.hurt(this.damageSources().mobAttack(this), BUFFET_DAMAGE);
+                this.throwOut(e, (d < 0.01D ? face : rel.scale(1.0D / d)).scale(THROW_20), THROW_20_LIFT);
             }
             if (this.level() instanceof ServerLevel level)
             {
@@ -1343,7 +1490,9 @@ public abstract class EmberBoss extends FireCandidate
         if (this.bar == null)
         {
             this.bar = new ServerBossEvent(this.barName(), BossEvent.BossBarColor.RED, BossEvent.BossBarOverlay.PROGRESS);
+            LIVE_BARS.put(this.bar, this);
         }
+        this.barTick = level.getGameTime();
         this.bar.setProgress(this.getHealth() / this.getMaxHealth());
         if (this.tickCount % 10 != 0)
         {
@@ -1377,10 +1526,57 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
+    /** Its bar leaves a player's screen when it goes out of their sight too. */
+    @Override
+    public void stopSeenByPlayer(ServerPlayer player)
+    {
+        super.stopSeenByPlayer(player);
+        if (this.bar != null)
+        {
+            this.bar.removePlayer(player);
+        }
+    }
+
+    /** Every boss bar of an Emberdactyl or its young still in the world, and whose it is. */
+    private static final Map<ServerBossEvent, EmberBoss> LIVE_BARS = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * (the server, every second) Takes each bar off every screen it shouldn't be on: the player's gone further than
+     * {@link EmberTuning#BAR_RANGE}, to another dimension or logged out, or its boss is gone or isn't being looked after
+     * (its land not ticking: the user saw "Emberdactyl: The Sky That Burns" stuck on their screen far from any; its bar
+     * was only looked after while it ticked).
+     */
+    public static void sweepBars()
+    {
+        for (Map.Entry<ServerBossEvent, EmberBoss> entry : LIVE_BARS.entrySet())
+        {
+            ServerBossEvent bar = entry.getKey();
+            EmberBoss boss = entry.getValue();
+            if (boss.isRemoved())
+            {
+                bar.removeAllPlayers();
+                LIVE_BARS.remove(bar);
+                continue;
+            }
+            boolean ticking = boss.level().getGameTime() - boss.barTick <= 40L;
+            for (ServerPlayer p : List.copyOf(bar.getPlayers()))
+            {
+                if (!ticking || p.hasDisconnected() || p.level() != boss.level() || p.distanceToSqr(boss) > BAR_RANGE * BAR_RANGE)
+                {
+                    bar.removePlayer(p);
+                }
+            }
+        }
+    }
+
     @Override
     public void remove(RemovalReason reason)
     {
         this.dropBar();
+        if (this.bar != null)
+        {
+            LIVE_BARS.remove(this.bar);
+        }
         this.release();
         super.remove(reason);
     }
@@ -1402,21 +1598,107 @@ public abstract class EmberBoss extends FireCandidate
         this.phase = Phase.DYING;
         this.release();
         this.dropBar();
-        this.playAnimation("death");
+        this.planFall();
+        this.playAnimation(this.fallDelay > 0 ? "glide" : "death");
         this.onDeathStart(source);
     }
 
-    /** It lies there its whole death animation (it breaks apart, or hardens into obsidian), falling to the ground first. */
+    /**
+     * Where and how it comes down to die (the user's first fight: dying in the air it "seems to be falling from the
+     * floor ... glitches", lying over the steep volcano half of it sank into the rock). Its death animation screams with
+     * its body at its flying height, then drops it onto the ground ({@link Kind#deathFall}); so it glides down to the
+     * flattest ground near ({@link #restingSpot}) and gets there just as its body falls. Too far to get there in its
+     * scream, it glides down first and starts dying on the way. Dying on the ground it sinks by the difference
+     * between its standing pose and its death's first pose ({@link Kind#standLift}), so its body doesn't jump up, and
+     * rises back over its scream: it rears up as it screams, then falls.
+     */
+    private void planFall()
+    {
+        boolean standing = this.grounded || this.standing();
+        Vec3 from = this.position();
+        if (standing)
+        {
+            from = from.subtract(0.0D, this.kind.standLift(), 0.0D);
+            this.setPos(from.x, from.y, from.z);
+        }
+        Vec3 to = this.restingSpot(this.position(), standing ? Math.min(8.0D, this.kind.lieSearch()) : this.kind.lieSearch());
+        double needed = to.distanceTo(from) / DEATH_GLIDE;
+        this.fallFrom = from;
+        this.fallTo = to;
+        this.fallDelay = (int) Math.max(0.0D, Math.ceil(needed - this.kind.deathFall()));
+    }
+
+    /** The flattest ground within {@code search} blocks of {@code from} for it to lie on (its feet's spot: the highest
+     *  ground under it, so nothing of it sinks), a little nearer counting for a little more. */
+    private Vec3 restingSpot(Vec3 from, double search)
+    {
+        double r = this.kind.lieRadius();
+        Vec3 best = null;
+        double bestScore = Double.MAX_VALUE;
+        int reach = (int) Math.ceil(search / 2.0D);
+        for (int i = -reach; i <= reach; i++)
+        {
+            for (int j = -reach; j <= reach; j++)
+            {
+                double x = from.x + i * 2.0D;
+                double z = from.z + j * 2.0D;
+                double d = Math.hypot(x - from.x, z - from.z);
+                if (d > search || !this.level().hasChunksAt(BlockPos.containing(x - r, 0, z - r), BlockPos.containing(x + r, 0, z + r)))
+                {
+                    continue;
+                }
+                double lo = Double.MAX_VALUE;
+                double hi = -Double.MAX_VALUE;
+                for (int k = 0; k < 19; k++)
+                {
+                    double rr = k == 0 ? 0.0D : k <= 6 ? r * 0.5D : r;
+                    double a = Math.PI * 2.0D * k / (k <= 6 ? 6.0D : 12.0D);
+                    double h = this.groundAt(x + Math.cos(a) * rr, z + Math.sin(a) * rr);
+                    lo = Math.min(lo, h);
+                    hi = Math.max(hi, h);
+                }
+                BlockPos top = BlockPos.containing(x, this.groundAt(x, z) - 1.0D, z);
+                double score = hi - lo + d * 0.05D + (this.level().getFluidState(top).isEmpty() ? 0.0D : DEATH_FLUID_COST);
+                if (score < bestScore)
+                {
+                    bestScore = score;
+                    best = new Vec3(x, hi, z);
+                }
+            }
+        }
+        return best != null ? best : new Vec3(from.x, this.groundAt(from.x, from.z), from.z);
+    }
+
+    /** It comes down to where it'll lie (on the server; screens follow), then lies there its whole death animation (it
+     *  breaks apart, or hardens into obsidian). */
     @Override
     protected void tickDeath()
     {
         this.deathTime++;
-        double floor = this.groundAt(this.getX(), this.getZ());
-        if (this.getY() > floor)
+        if (this.level().isClientSide)
         {
-            this.setPos(this.getX(), Math.max(floor, this.getY() - 1.2D), this.getZ());
+            return;
         }
-        if (!this.level().isClientSide && this.deathTime > 0 && this.deathTick(this.deathTime))
+        if (this.fallFrom != null && this.fallTo != null)
+        {
+            int total = this.fallDelay + this.kind.deathFall();
+            double share = Mth.clamp((double) this.deathTime / Math.max(1, total), 0.0D, 1.0D);
+            double eased = share * share * (3.0D - 2.0D * share);
+            Vec3 at = this.fallFrom.lerp(this.fallTo, eased);
+            this.setDeltaMovement(Vec3.ZERO);
+            this.setPos(at.x, at.y, at.z);
+            Vec3 way = this.fallTo.subtract(this.fallFrom);
+            if (share < 1.0D && way.x * way.x + way.z * way.z > 4.0D)
+            {
+                this.turnTo(way);
+            }
+        }
+        if (this.fallDelay > 0 && this.deathTime == this.fallDelay)
+        {
+            this.playAnimation("death");
+        }
+        int dying = this.deathTime - this.fallDelay;
+        if (dying > 0 && this.deathTick(dying))
         {
             if (this.level() instanceof ServerLevel level)
             {
@@ -1506,5 +1788,7 @@ public abstract class EmberBoss extends FireCandidate
     {
         /** The strafing run has reached its line and is running along it. */
         static final UUID RUNNING = new UUID(0L, 1L);
+        /** Carrying, it has climbed high enough to fly across. */
+        static final UUID CLIMBED = new UUID(0L, 2L);
     }
 }

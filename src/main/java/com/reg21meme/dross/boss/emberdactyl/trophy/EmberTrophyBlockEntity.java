@@ -25,7 +25,7 @@ public class EmberTrophyBlockEntity extends BlockEntity implements GeoBlockEntit
         super(ModBlockEntities.EMBERDACTYL_TROPHY.get(), pos, state);
     }
 
-    /** Its design (1 to 15). */
+    /** Its design (1 to 5). */
     public int design()
     {
         BlockState state = this.getBlockState();

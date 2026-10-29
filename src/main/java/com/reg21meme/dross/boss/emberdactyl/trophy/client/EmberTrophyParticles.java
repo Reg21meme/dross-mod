@@ -26,7 +26,7 @@ import javax.annotation.Nullable;
  * often each happens is in {@link EmberdactylTrophies} ({@code *_CHANCE}); they're subtle, sized for the little figure:
  * <ul>
  *   <li>an ember drifting down from a wing tip now and then (the boss sheds fire from its wings as it flies);</li>
- *   <li>a wisp of smoke from its volcano's crater, the burst egg, or its body breaking in its death;</li>
+ *   <li>a wisp of smoke from its volcano's crater or the burst egg;</li>
  *   <li>a small lava pop out of the volcano's crater.</li>
  * </ul>
  * Nothing shows with the Particles option at Minimal.

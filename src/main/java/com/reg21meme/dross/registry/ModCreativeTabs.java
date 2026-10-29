@@ -126,7 +126,7 @@ public final class ModCreativeTabs
                         {
                             output.accept(design.stack());
                         }
-                        // Boss area: the Emberdactyl trophy, every design (fifteen for the user to pick from)
+                        // Boss area: the Emberdactyl trophy, every design (the five the user picked; the fight gives design EmberTrophies.DROP_DESIGN)
                         for (com.reg21meme.dross.boss.emberdactyl.trophy.EmberdactylTrophies.Design design
                                 : com.reg21meme.dross.boss.emberdactyl.trophy.EmberdactylTrophies.DESIGNS)
                         {

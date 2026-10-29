@@ -73,9 +73,7 @@ public final class DrossCommandGameTest
             "dross goto biome rimefall", "dross goto biome gravecrags",
             "dross goto lair colossus", "dross goto lair ratking", "dross goto lair emberdactyl", "dross boss summon emberdactyl", "dross boss summon emberyoung", "dross boss arena emberdactyl", "dross goto sewer", "dross goto lake",
             "dross showcase bossbars huntsman", "dross showcase bossbars huntsman angry",
-            "dross showcase bossbars emberdactyl", "dross showcase bossbars emberdactyl 1",
-            "dross showcase bossbars emberdactyl 2", "dross showcase bossbars emberdactyl 3",
-            "dross showcase bossbars emberdactyl 4",
+            "dross showcase bossbars emberdactyl",
             "dross showcase frostfolk_villages", "dross showcase frostfolk_igloos", "dross showcase frostfolk",
             "dross showcase boss_designs huntsman",
             "dross showcase boss_designs huntsman ride_gallop", "dross showcase boss_designs huntsman spear_combo",
@@ -94,10 +92,12 @@ public final class DrossCommandGameTest
             "dross boss summon ratking", "dross boss arena ratking", "dross boss summon huntsman", "dross boss arena huntsman",
             "dross boss summon colossus", "dross boss arena colossus",
     };
-    /** Unfinished or unknown commands, which must not run (the Nether Scar biome was removed on October 17, 2026). */
+    /** Unfinished or unknown commands, which must not run (the Nether Scar biome was removed on October 17, 2026; the
+     * Emberdactyl's boss bar pages went with its unpicked designs on October 29). */
     private static final String[] NOT_COMMANDS = {
             "dross goto biome", "dross goto biome not_a_biome", "dross goto biome dross:gravecrags", "dross goto biome nether_scar",
             "dross goto lair", "dross goto lair cinder_colossus", "dross goto colossus",
+            "dross showcase bossbars emberdactyl 1",
     };
 
     /** Where the trophy showcase is tried: far from spawn, the site and the other tests. */

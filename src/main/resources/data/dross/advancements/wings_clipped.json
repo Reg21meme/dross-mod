@@ -2,7 +2,7 @@
   "parent": "dross:entered_the_dross",
   "display": {
     "icon": {
-      "item": "dross:emberdactyl_spawn_egg"
+      "item": "dross:wings_clipped_icon"
     },
     "title": {
       "translate": "advancements.dross.wings_clipped.title"

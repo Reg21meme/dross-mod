@@ -12,6 +12,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -165,12 +166,17 @@ public class Emberdactyl extends EmberBoss
         {
             return;
         }
-        Vec3 out = this.nest.add(0.0D, 2.0D, 0.0D);
+        Vec3 out = this.nest.add(0.0D, 4.0D, 0.0D);
         young.moveTo(out.x, out.y, out.z, this.getYRot(), 0.0F);
         young.setHome(this.nest, this.nest, null, 0.0F, this.volcano);
         young.finalizeSpawn(level, level.getCurrentDifficultyAt(young.blockPosition()), MobSpawnType.EVENT, null, null);
         level.addFreshEntity(young);
-        young.startFighting(null);
+        // it goes straight for whoever beat its parent (the user: "the young one should be coming over to attack me"),
+        // else the nearest player
+        LivingEntity foe = this.getLastHurtByMob() instanceof Player p && !p.isCreative() && !p.isSpectator() ? p
+                : level.getNearestPlayer(this.getX(), this.getY(), this.getZ(), YOUNG.leash(), e -> e instanceof Player q
+                        && !q.isCreative() && !q.isSpectator());
+        young.startFighting(foe);
         if (this.volcano != 0L)
         {
             EmberVolcanoData.get(level.getServer()).setState(this.volcano, EmberVolcanoData.State.YOUNG);

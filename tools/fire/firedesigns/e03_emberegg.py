@@ -43,6 +43,10 @@ VARIANTS = (
     dict(letter="D", mood="cut open", size=33, shell=EMBER_FOOT, cut=True,
          note="D: B cut open: inside it all magma and lava (its inner wall molten, a pool of lava in its bottom), its "
               "young curled up in it; shards of shell on the cinders."),
+    dict(letter="E", mood="hatched", size=33, shell=EMBER_FOOT, cut=True, burst=True,
+         note="E: hatched (the game's egg once its young has burst out; the user's first fight: \"the youngest is "
+              "still in the egg when he broke out\"): B burst open all round, its top gone, the empty cup of its lower "
+              "half molten inside, its shards thrown out over the cinders."),
 )
 EGG_OBSIDIAN = F.palette("#030205", "#07050b", "#0f0b17", "#1a1326", "#271c38", "#3a2a52", "#5a4478", "#7a62a0")
 EGG_HEAT = F.palette("#1a0503", "#3a0904", "#621206", "#8e1e08", "#b8320c")
@@ -58,6 +62,9 @@ BED = 2.0              # units: it stands this high on its bed of cinders
 SLICES = 20
 RING_MIN, RING_MAX, RING_PIECE = 10, 18, 7.0   # each ring of the shell: this many plates, each about this long (units)
 CUT_HALF = math.radians(100.0)     # the cut-open egg is open this far round either side of its front
+BURST_LINE = 0.0       # hatched: broken off round a jagged line about this far up (share of its half-height)...
+BURST_TOP = 0.3        # ...and nothing of it above this
+BURST_SHARDS = 16      # its pieces round its foot
 _FIT = {}
 
 
@@ -122,10 +129,13 @@ def build(s, v):
     outer_half = half + SHELL
     cy = BED + outer_half
     cut = v.get("cut", False)
+    burst = v.get("burst", False)
     slices = [_slice_radius(R, outer_half, j) for j in range(SLICES)]
     for j, (y0, y1, ym, r_out) in enumerate(slices):
         p0 = np.array([0.0, cy + ym, 0.0])
         h = y1 - y0 + 0.5
+        if burst and ym > half * BURST_TOP:
+            continue            # (hatched: its top half is gone)
         if not cut or r_out < SHELL * 2.0 or ym < -half * 0.6:
             # a closed egg is solid, slice on slice (the cut-open one too, below its opening and at its tip)
             _disc(s, p0, r_out, h, "shell")
@@ -143,6 +153,8 @@ def build(s, v):
             off = abs(math.atan2(math.sin(a + math.pi / 2.0), math.cos(a + math.pi / 2.0)))
             if off < CUT_HALF and ym > half * (-0.1 + 0.16 * math.sin(5.0 * a) + 0.12 * math.sin(11.0 * a + 1.0)):
                 continue
+            if burst and ym > half * (BURST_LINE + 0.16 * math.sin(5.0 * a + 0.7) + 0.1 * math.sin(13.0 * a + 2.0)):
+                continue        # (hatched: broken off all round along a jagged line)
             rdir = np.array([math.cos(a), 0.0, math.sin(a)])
             tdir = np.array([-math.sin(a), 0.0, math.cos(a)])
             p = p0 + rdir * r_mid
@@ -158,6 +170,18 @@ def build(s, v):
         a = 2.0 * math.pi * k / 18
         p = np.array([math.cos(a) * (foot + 2.5), 1.5 + (k % 2), math.sin(a) * (foot + 2.5)])
         s.rbox(p, (7 + (k % 2) * 2, 3 + (k % 3), 6), "cinder", c=1)
+    if burst:
+        # hatched: a pool of lava in the empty cup, and its shell's pieces thrown out all round over the cinders
+        floor = -half * 0.6
+        s.blob((0.0, cy + floor + 1.0, 0.0), (_radius(R, half, floor) * 0.92, 1.5, _radius(R, half, floor) * 0.92),
+               "yolk", slices=1)
+        for k in range(BURST_SHARDS):
+            a = 2.0 * math.pi * (k + 0.37 * (k % 3)) / BURST_SHARDS
+            d = foot + 1.5 + (k * 7 % 5) * 1.0
+            p = np.array([math.cos(a) * d, BED + 0.5 + (k % 2) * 0.4, math.sin(a) * d])
+            s.plate(p, (0.25 * ((k % 3) - 1), 1.0, 0.25 * ((k % 2) * 2 - 1)), (math.cos(a), 0.0, math.sin(a)),
+                    6 + (k % 4) * 2, 4 + (k % 3) * 2, 2, "shard")
+        return
     if cut:
         # the young curled up inside (floating, as in an egg), turned as it was measured: point q goes to the egg's
         # middle + turn (q - centre) - mid; and pieces of the shell on the cinders in front
@@ -226,6 +250,6 @@ def materials(v):
         "yolk": F.lava(seed=1719, flow=0.4),
         "cinder": F.crust(F.BASALT, seed=1717, cracks=0.12, cell=3.0, ash_top=0.6),
     }
-    if v.get("cut"):
+    if v.get("cut") and not v.get("burst"):
         out.update({k: m for k, m in ED.materials(young=True).items() if k not in out})
     return out

@@ -32,9 +32,9 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>the Huntsman's ({@code boss.dross.huntsman.bar.<look>}; {@link HuntsmanBarArt}, the user's picks): the Wild
  *       Hunt (stage 1), the Huntsman and the Alpha Moose (stage 2), and those two angry (blood red, when the other has
  *       died); shown by {@code /dross showcase bossbars huntsman} until his fight is built.</li>
- *   <li>the Emberdactyl's ({@code boss.dross.emberdactyl.bar.adult} and {@code .young}, in design
- *       {@link EmberdactylBarArt#PICK}; the showcase's {@code boss.dross.emberdactyl.bar.design_<n>_<adult|young>}, ten
- *       candidate designs; {@link EmberdactylBarArt}), shown by {@code /dross showcase bossbars emberdactyl [page]}.</li>
+ *   <li>the Emberdactyl's ({@code boss.dross.emberdactyl.bar.adult} and {@code .young}; {@link EmberdactylBarArt}, the
+ *       user's pick, the Winged Volcano: a volcano on the middle of the bar, burning wings spread out from its ends,
+ *       the young's look hotter, its volcano erupting); also shown by {@code /dross showcase bossbars emberdactyl}.</li>
  * </ul>
  * Any other bar is left to Minecraft. Every colour comes from {@link DrossColors} (the "Boss" section).
  */
@@ -116,10 +116,9 @@ public final class DrossBossBars
     }
 
     /**
-     * An Emberdactyl bar ({@link EmberdactylBarArt}: the fight's adult or young look in the picked design, or a
-     * showcase design): the empty bar, the full bar cut off at the health, the decorations and the name, like the
-     * Huntsman's. Its name may stand higher than vanilla's, so it's moved down to keep the name on the screen; each design
-     * takes its own height.
+     * An Emberdactyl bar ({@link EmberdactylBarArt}: the adult's or the young's look): the empty bar, the full bar cut off
+     * at the health, the decorations and the name, like the Huntsman's. Its name stands higher than vanilla's (over the
+     * volcano), so it's moved down to keep the name on the screen, and it takes its own height.
      */
     private static void drawEmberdactyl(GuiGraphics g, int x, int barY, float progress, Component name,
                                         EmberdactylBarArt.Look look, boolean young)

@@ -68,15 +68,17 @@ until the user picks). An animation `anims.json` doesn't have yet just has its s
 `python tools/fire/sounds.py --only emberdactyl,pallbearer/roar` makes only those folders' (or those) sounds; a sound
 whose samples haven't changed is never written again (its fingerprint is in the Ogg's comment).
 
-**The Emberdactyl's boss bars** (`bossbars.py`, the designs in `emberbars.py`; the Huntsman's pixel tools,
-`tools/huntsman/barkit.py`): ten candidate designs (October 29, 2026), each in the adult's look ("Emberdactyl: The Sky
-That Burns": obsidian, a lava-orange fill) and its young reborn's ("... The Ember That Remains": the same design hotter,
-magma crust and a white-hot fill). `python tools/fire/bossbars.py` writes `textures/gui/emberdactyl_bar.png`, the
-generated `boss/client/EmberdactylBarArt.java` (each look's parts; `PICK`, the design the fight uses until the user
-picks: change `PICK` at the top of `bossbars.py` and run it again) and the previews in
-`boss-previews/cinder_wastes/emberdactyl/bossbars/` (`bars.png`, the showcase's four pages `page_<n>.png`,
-`index.html`); `--previews-only` leaves the game files alone, `--lang` prints the showcase bars' names for `en_us.json`.
-In the game: `/dross showcase bossbars emberdactyl [1-4]`.
+**The Emberdactyl's boss bar** (`bossbars.py`, the drawing in `emberbars.py`; the Huntsman's pixel tools,
+`tools/huntsman/barkit.py`): the user's pick of ten candidate designs (October 29, 2026), "combine the wings of 2 with
+the volcano of 3": the **Winged Volcano** (`winged_volcano`), design 3's volcano on the middle of the bar and design 2's
+burning wings spread out from its ends, in the adult's look ("Emberdactyl: The Sky That Burns": obsidian wings and
+rails, the volcano smoking, a lava-orange fill) and its young reborn's ("... The Ember That Remains": magma crust split
+by lava veins, the volcano erupting, a white-hot fill). The other designs were removed the same day.
+`python tools/fire/bossbars.py` writes `textures/gui/emberdactyl_bar.png`, the generated
+`boss/client/EmberdactylBarArt.java` (each look's parts: `ADULT`, `YOUNG`) and the previews in
+`boss-previews/cinder_wastes/emberdactyl/bossbars/` (`bars.png`, `index.html`); `--previews-only` leaves the game files
+alone. Every look must fit 240 x 34 GUI pixels (checked on every build; `EMBER_FLOOR` keeps the wings' falling embers
+inside it). In the game: `/dross showcase bossbars emberdactyl` (both looks stacked for a minute) or the fight.
 
 The volcano is built by the game, not here; its previews are drawn from the blocks the game really placed. First the
 probe (it builds the volcano on a flat plain in a test world and writes what you could see to

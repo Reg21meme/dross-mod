@@ -39,17 +39,27 @@ public final class EmberTuning
      * @param stuck       ticks it lies stuck on the ground after its dive (the melee window)
      * @param width       its body's hitbox width (blocks)...
      * @param height      ...and height, from its feet
+     * @param deathFall   the tick of its death animation its body starts falling to the ground (before it, it screams
+     *                    in the air): it glides down to where it'll lie by then
+     * @param standLift   how much higher its body is in its death's first pose than standing (blocks: its model's
+     *                    root, flying against perched), so one dying on the ground doesn't pop up
+     * @param lieRadius   the ground it lies on: the flattest spot within {@code lieSearch} blocks, measured this far
+     *                    round (blocks)
+     * @param lieSearch   ...searched this far round where it died
      */
     public record Kind(float health, double armor, double cruise, double fast, int pause, double cooldowns, double orbit,
-                       double orbitHeight, double leash, int tornadoes, float tornadoSize, int stuck, float width, float height)
+                       double orbitHeight, double leash, int tornadoes, float tornadoSize, int stuck, float width, float height,
+                       int deathFall, double standLift, double lieRadius, double lieSearch)
     {
     }
 
     public static final Kind ADULT = new Kind(ADULT_HEALTH, 10.0D, 0.55D, 1.4D, 30, 1.0D, 26.0D, 18.0D, 100.0D, 2, 1.0F, 60,
-            5.0F, 11.0F);
-    /** The young: 2.5 times as fast (the user, October 29), almost no rest, near its nest. */
-    public static final Kind YOUNG = new Kind(YOUNG_HEALTH, 6.0D, 0.55D * 2.5D, 1.4D * 2.5D, 4, 0.4D, 16.0D, 10.0D, 40.0D, 2,
-            0.65F, 24, 3.5F, 9.5F);
+            5.0F, 11.0F, 38, (8.0D + 48.313D) / 16.0D, 7.0D, 30.0D);
+    /** The young: 2.5 times as fast (the user, October 29), almost no rest. Its leash as long as the adult's and more
+     *  (the user's first fight: "its battle range needs to be longer": at 40 blocks from its nest it never reached a
+     *  player who'd beaten the adult further out). */
+    public static final Kind YOUNG = new Kind(YOUNG_HEALTH, 6.0D, 0.55D * 2.5D, 1.4D * 2.5D, 4, 0.4D, 16.0D, 10.0D, 130.0D, 2,
+            0.65F, 24, 3.5F, 9.5F, 23, (30.957D + 33.485D) / 16.0D, 4.5D, 20.0D);
 
     // ---- Waking ----
 
@@ -78,11 +88,20 @@ public final class EmberTuning
 
     // ---- The moves (the user's approved table, October 29; magma spit removed) ----
 
-    /** Dive bomb: 7 hearts within this many blocks of where it crashes, everything thrown out and up. */
+    /** Dive bomb: 7 hearts within this many blocks of where it crashes, everything thrown out and up (the user's first
+     *  fight: "make the explosion when he dives much bigger, like a 5-7 block radius with knockback and knock up"; it was
+     *  5 blocks, thrown 1.1 and lifted 0.7). Its throw is this strong in the middle, {@link #DIVE_EDGE_SHARE} of it at
+     *  the edge. */
     public static final float DIVE_DAMAGE = 14.0F;
-    public static final double DIVE_RADIUS = 5.0D;
-    public static final double DIVE_THROW = 1.1D;
-    public static final double DIVE_LIFT = 0.7D;
+    public static final double DIVE_RADIUS = 7.0D;
+    public static final double DIVE_THROW = 1.6D;
+    public static final double DIVE_LIFT = 0.95D;
+    public static final double DIVE_EDGE_SHARE = 0.6D;
+    /** The crash's blasts: this many explosions round where it lands, and this many patches of fire left burning. */
+    public static final int DIVE_BLASTS = 6;
+    public static final int DIVE_FIRES = 12;
+    public static final int DIVE_FIRE_MIN = 40;
+    public static final int DIVE_FIRE_MAX = 70;
     public static final int DIVE_COOLDOWN = 160;
 
     /** Fire tornadoes: 1.5 hearts a second and fire while you're in one; each lasts 8 s, drifts after its target, pulls
@@ -118,25 +137,39 @@ public final class EmberTuning
     public static final double STRAFE_SPEED = 0.95D;
     public static final int STRAFE_COOLDOWN = 200;
 
-    /** Talon grab: 3 hearts, then it carries you this high and drops you, anywhere (its crater's lava included). */
+    /** Talon grab: 3 hearts, then it carries you up and drops you from this high over the ground under the drop,
+     *  anywhere (its crater's lava included). Carried, you hang in open air: it first climbs until you're this many
+     *  blocks over the highest ground on its way, then flies across (the user's first fight: it had carried them
+     *  straight through its volcano's side, "he tried to suffocate me"); it lets go when it's there or after this long. */
     public static final float GRAB_DAMAGE = 6.0F;
     public static final double GRAB_REACH = 4.5D;
     public static final double GRAB_CARRY_HEIGHT = 20.0D;
-    public static final int GRAB_CARRY_TICKS = 50;
+    public static final double GRAB_CLEARANCE = 4.0D;
+    public static final int GRAB_CARRY_TICKS = 160;
+    /** Over its crater it drops you within this far of its nest. */
+    public static final double GRAB_CRATER_SPREAD = 8.0D;
     public static final int GRAB_COOLDOWN = 280;
 
-    /** Beak snap (on the ground): 7 hearts in front of it. */
-    public static final float SNAP_DAMAGE = 14.0F;
+    /** Beak snap (on the ground): this many pecks one after another (the user: "make sure it can do 5 beak pecks all at
+     *  once"), each this much in front of it (4 hearts a peck; it was one snap of 7). */
+    public static final int SNAP_PECKS = 5;
+    public static final float SNAP_DAMAGE = 8.0F;
     /** Its bill reaches from this far in front of it to this far, this far either side (blocks; the adult's). */
     public static final double SNAP_FROM = 3.0D;
     public static final double SNAP_TO = 15.0D;
     public static final double SNAP_SIDE = 4.0D;
     public static final int SNAP_COOLDOWN = 30;
 
-    /** Wing buffet: 4 hearts in a cone in front, throwing you about 20 blocks (the user). */
+    /** Wing buffet: 4 hearts in a cone in front, throwing you about 20 blocks (the user). In the air it first swoops
+     *  down to this far from its target, this high over it, so its beat reaches it (from its circle, 18 blocks up, it
+     *  missed everyone: the user's first fight, "it needs to push me back"). Everything in the cone is thrown, hurt or
+     *  not (a player on fire, just hurt, wasn't). */
     public static final float BUFFET_DAMAGE = 8.0F;
-    public static final double BUFFET_RANGE = 15.0D;
+    public static final double BUFFET_RANGE = 18.0D;
+    public static final double BUFFET_REACH_DOWN = 12.0D;
     public static final double BUFFET_CONE = 75.0D;
+    public static final double BUFFET_APPROACH = 9.0D;
+    public static final double BUFFET_APPROACH_HEIGHT = 4.0D;
     public static final double THROW_20 = 2.2D;
     public static final double THROW_20_LIFT = 0.55D;
     public static final int BUFFET_COOLDOWN = 120;
@@ -146,6 +179,9 @@ public final class EmberTuning
     public static final double SCREECH_RANGE = 20.0D;
     public static final int SCREECH_SLOWNESS_TICKS = 60;
     public static final int SCREECH_COOLDOWN = 300;
+    /** The young's screech comes back only after this long, not scaled by its short cooldowns (the user: it screeched
+     *  "a little too much"). */
+    public static final int YOUNG_SCREECH_COOLDOWN = 500;
 
     /** The young's dash: straight through you and on past, 5 hearts. */
     public static final float DASH_DAMAGE = 10.0F;
@@ -161,9 +197,17 @@ public final class EmberTuning
     /** It erupts only while a player is within this many blocks of its nest. */
     public static final double ERUPT_RANGE = 60.0D;
 
-    /** Which moves it picks, by how far its target is (along the ground): close, mid, far; and on the ground. */
+    /** Which moves it picks, by how far its target is (along the ground): close, mid, far; and on the ground. The
+     *  chances (out of each row's total; the young's dash and its quieter screech added): the user's approved table,
+     *  then (their first fight) the tornadoes 5 points more likely in both stages, taken from the row's biggest. */
     public static final double CLOSE = 16.0D;
     public static final double MID = 40.0D;
+    public static final int CLOSE_GRAB = 30, CLOSE_BUFFET = 25, CLOSE_DIVE = 20, CLOSE_SCREECH = 15, CLOSE_DASH = 25;
+    public static final int YOUNG_CLOSE_SCREECH = 5;
+    public static final int MID_DIVE = 25, MID_TORNADO = 30, MID_STRAFE = 25, MID_GRAB = 20, MID_DASH = 20;
+    /** (the young's mid row has its dash too: its tornado 6 points more, so it gains 5 of its share) */
+    public static final int YOUNG_MID_DIVE = 24, YOUNG_MID_TORNADO = 31;
+    public static final int FAR_STRAFE = 35, FAR_TORNADO = 40, FAR_DIVE = 25;
 
     // ---- Its death and the egg ----
 
@@ -173,6 +217,11 @@ public final class EmberTuning
     public static final int ADULT_REMOVE_TICKS = 200;
     /** The young stays an obsidian statue this long after it died. */
     public static final int YOUNG_STATUE_TICKS = 2400;
+    /** Dying, it glides down to where it'll lie at most this fast (blocks a tick); further away, it falls (its dive's
+     *  plunge) until it can reach it in its scream, then dies. */
+    public static final double DEATH_GLIDE = 1.1D;
+    /** Lying on a fluid's top (the crater's lava lake) counts as this many blocks of uneven ground. */
+    public static final double DEATH_FLUID_COST = 4.0D;
     /** Experience for each. */
     public static final int ADULT_XP = 50;
     public static final int YOUNG_XP = 50;

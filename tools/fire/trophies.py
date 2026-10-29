@@ -3,8 +3,11 @@ The Emberdactyl's trophies: 1x1x1 decorative blocks, each a miniature of the Emb
 scaled down to fit one block, no base) in one pose, like the Cinder Colossus's, the Rat King's and the Huntsman's. The
 user (October 29, 2026): "the only young trophy I want is of him bursting out of the egg, and then both the adult and
 the young together in a combo thing; give me 15 different trophies but mostly adult ones; maybe include the volcano as
-well". Fifteen designs to pick from (DESIGNS): eleven of the adult (two of them with its volcano), one of its young
-bursting out of its egg, three of the two together.
+well". Fifteen candidates were made (CANDIDATES): eleven of the adult (two of them with its volcano), one of its young
+bursting out of its egg, three of the two together. The user picked five (the same day, after playing its fight: "the
+5 trophies are 11 12 15 7 and 4"), which are the game's five designs (DESIGNS, renumbered in the order of its fight:
+1 Guardian of the Nest (candidate 11), 2 Into the Fire (4), 3 Obsidian Beak (7), 4 Reborn (12), 5 Twin Screech (15)).
+The candidates' previews are kept in the previews' candidates/ folder (`--candidates` draws them again).
 
 Each pose is a moment of their own animations (the game's own files, read back here: geo/entity/firemob/emberdactyla
 and emberyounga, animations/entity/firemob/emberdactyl and emberyoung, made by tools/fire/mobs.py), held as a GeckoLib
@@ -26,9 +29,11 @@ moves the trophy bone so the figure stands in the middle of the block, its lowes
 (FIT_SIDE, FIT_HEIGHT). Each is turned so a player standing in front of the placed trophy sees it from its best side
 (`turn`). Every design is checked: no part into another (the adult's feet may rest on its rock).
 
-  python tools/fire/trophies.py                  everything
+  python tools/fire/trophies.py                  everything (the game's five)
   python tools/fire/trophies.py --previews-only  the previews only (the game's files are left alone)
-  python tools/fire/trophies.py --only 3 12      only these designs' previews (nothing written to the game)
+  python tools/fire/trophies.py --only 3 5       only these designs' previews (nothing written to the game)
+  python tools/fire/trophies.py --candidates     the fifteen candidates' previews again, into candidates/ (nothing
+                                                 written to the game)
 
 Writes (src/main/resources/assets/dross/):
   geo/block/emberdactyl_trophy.geo.json, geo/item/emberdactyl_trophy.geo.json
@@ -41,7 +46,8 @@ Writes (src/main/resources/assets/dross/):
                      full-bright at the design's strength)
 and src/main/java/com/reg21meme/dross/boss/emberdactyl/trophy/EmberTrophyModels.java (generated: each design's scale,
 outline box, glow, cracks, light, the showcase sign's look and its particle spots), and the previews in
-boss-previews/cinder_wastes/emberdactyl/trophies/ (trophy_<n>_<key>.png, trophies.png, index.html). The lang keys
+boss-previews/cinder_wastes/emberdactyl/trophies/ (trophy_<n>_<key>.png, trophies.png, index.html; the candidates'
+in its candidates/ folder). The lang keys
 (block.dross.emberdactyl_trophy.design_<n>) are listed at the end of its run, to be added to en_us.json by hand.
 """
 import copy
@@ -76,6 +82,7 @@ ASSETS = os.path.join(ROOT, "src", "main", "resources", "assets", "dross")
 JAVA = os.path.join(ROOT, "src", "main", "java", "com", "reg21meme", "dross", "boss", "emberdactyl", "trophy",
                     "EmberTrophyModels.java")
 PREVIEW = os.path.join(ROOT, "boss-previews", "cinder_wastes", "emberdactyl", "trophies")
+CANDIDATES_PREVIEW = os.path.join(PREVIEW, "candidates")
 
 TOP = "trophy"            # the bone everything hangs from: it turns and centres the figure on its block
 FIT_SIDE = 0.92           # the figure's width and depth fill at most this much of the block (as the other trophies)...
@@ -429,7 +436,8 @@ def build_crag():
 RIM_Z = -(VOLC_CRATER + (VOLC_CREST - VOLC_CRATER) * 0.5)
 HEAD = ("head", "jaw", "bill", "crest")
 
-# The fifteen, in the order the user will see them. Each: number, file key, the showcase sign's look (at most 15
+# The fifteen candidates (kept as a record: the game has the user's five, DESIGNS below), with their own numbers. Each:
+# number, file key, the showcase sign's look (at most 15
 # characters), its name (the mod's are lang keys), what it shows, the turn on its block (degrees, + to its left; a player
 # in front of the placed trophy sees the figure's front at 0), and its parts, each:
 #   anim     (animation, seconds) of its own animations (the adult's and its young's), or none (a statue)
@@ -441,7 +449,7 @@ HEAD = ("head", "jaw", "bill", "crest")
 #   under    (a crag) whose feet it holds up; `offset` (x, z units) from right under them
 #   hide     bones not shown; `turns` {bone: (x, y, z) degrees} turned on top of its animation
 # and optionally `cracks` (the death's magma cracks' strength) and `light` (the block's light level).
-DESIGNS = (
+CANDIDATES = (
     dict(number=1, key="sky_that_burns", look="Screech", name="The Sky That Burns", turn=-40.0,
          blurb="Reared up on a spire of rock, wings flung up, screaming its kaiju scream",
          parts={ADULT: dict(anim=("screech", 1.4), feet=(0.0, 30.0, 0.0), crag=True), CRAG: dict(under=ADULT)}),
@@ -495,6 +503,31 @@ DESIGNS = (
          parts={ADULT: dict(anim=("screech", 1.4), feet=(70.0, 40.0, 30.0), crag=True), CRAG: dict(under=ADULT),
                 YOUNG: dict(anim=("screech", 0.9), feet=(-150.0, 0.0, -110.0))}),
 )
+
+# The user's five (candidate numbers; October 29, 2026: "the 5 trophies are 11 12 15 7 and 4"), in the game's order,
+# the order of its fight: game design 1 is candidate 11 (over its nest), 2 is 4 (the dive), 3 is 7 (the beak), 4 is 12
+# (its young reborn) and 5 is 15 (the two together). Right-clicking a placed trophy goes 1 > 2 > 3 > 4 > 5 > 1; beating
+# its young gives No. 1 (boss/emberdactyl/EmberTrophies.DROP_DESIGN).
+PICKED = (11, 4, 7, 12, 15)
+
+
+def game_designs():
+    """The five in the game, renumbered 1 to 5 (each keeps its candidate number as "candidate")."""
+    out = []
+    for number, candidate in enumerate(PICKED, start=1):
+        d = dict(next(c for c in CANDIDATES if c["number"] == candidate))
+        d["candidate"] = candidate
+        d["number"] = number
+        out.append(d)
+    return tuple(out)
+
+
+def candidate_designs():
+    """All fifteen candidates, with their own numbers (for the record's previews)."""
+    return tuple(dict(c, candidate=c["number"]) for c in CANDIDATES)
+
+
+DESIGNS = game_designs()
 TURNS = tuple(float(a) for a in range(-90, 91, 15))
 
 
@@ -799,10 +832,16 @@ def atlas(models):
     return at
 
 
-def merged_geo(models, at, kind):
+def used_parts(built):
+    """The parts some design shows, in PARTS's order (a part none of the game's designs uses, like the second crag of
+    the candidates' Flight of Embers, is left out of the game's model)."""
+    return tuple(p for p in PARTS if any(p in b["poses"] for b in built))
+
+
+def merged_geo(models, at, kind, parts=PARTS):
     """Every part's bones under TOP, each part under its own place bone, its texels where `at` puts them."""
     bones = [{"name": TOP, "pivot": [0, 0, 0]}]
-    for part in PARTS:
+    for part in parts:
         m = models[part][0]
         g = uvpack.to_json(m, (1.0, 1.0, 0.5))["minecraft:geometry"][0]
         du, dv = at[part]
@@ -835,13 +874,13 @@ def merged_textures(models, at):
     return out
 
 
-def held(built, models):
+def held(built, models, parts=PARTS):
     """Each design's pose as a held GeckoLib animation, its bones under their trophy names; the parts it doesn't show
     are hidden (their place bones scaled to 0)."""
     anims = {}
     for b in built:
         p = Pose()
-        for part in PARTS:
+        for part in parts:
             m = models[part][0]
             pose = b["poses"].get(part)
             if pose is None:
@@ -865,21 +904,22 @@ def held(built, models):
 
 def write(built, models):
     at = atlas(models)
+    parts = used_parts(built)
     for kind in ("block", "item"):
         folder = os.path.join(ASSETS, "geo", kind)
         os.makedirs(folder, exist_ok=True)
         with open(os.path.join(folder, f"{NAME}.geo.json"), "w", encoding="utf-8", newline="\n") as f:
-            json.dump(merged_geo(models, at, kind), f, separators=(",", ":"))
+            json.dump(merged_geo(models, at, kind, parts), f, separators=(",", ":"))
     folder = os.path.join(ASSETS, "animations", "block")
     os.makedirs(folder, exist_ok=True)
     with open(os.path.join(folder, f"{NAME}.animation.json"), "w", encoding="utf-8", newline="\n") as f:
-        json.dump(to_json(held(built, models), prefix=PREFIX), f, separators=(",", ":"))
+        json.dump(to_json(held(built, models, parts), prefix=PREFIX), f, separators=(",", ":"))
     folder = os.path.join(ASSETS, "textures", "block", NAME)
     os.makedirs(folder, exist_ok=True)
     textures = merged_textures(models, at)
     for key, suffix in LAYERS:
         textures[key].save(os.path.join(folder, f"{NAME}{suffix}.png"))
-    print(f"  texture atlas: {', '.join(f'{p} at {at[p]}' for p in PARTS)}")
+    print(f"  texture atlas: {', '.join(f'{p} at {at[p]}' for p in PARTS)}; in the model: {', '.join(parts)}")
 
 
 JAVA_TEXT = '''package com.reg21meme.dross.boss.emberdactyl.trophy;
@@ -898,8 +938,10 @@ import java.util.List;
  * emberdactyl_trophy.png}} (cut out), its {{@code _glow.png}} (full-bright, at {{@code glow}}) and {{@code _cracks.png}}
  * (full-bright, at {{@code cracks}}). The parts a design doesn't use are scaled to 0 by its pose.
  * <p>
- * Fifteen candidates for the user to pick from (previews in {{@code boss-previews/cinder_wastes/emberdactyl/trophies/}}).
- * Points are in the block (0 to 1) for a trophy facing north; the mod turns them for the other directions.
+ * The five are the user's pick of fifteen candidates ({{@code candidate}}: its number among them; previews in
+ * {{@code boss-previews/cinder_wastes/emberdactyl/trophies/}}, the candidates in its {{@code candidates/}} folder), in
+ * the order of its fight. Points are in the block (0 to 1) for a trophy facing north; the mod turns them for the other
+ * directions.
  */
 public final class EmberTrophyModels
 {{
@@ -911,7 +953,7 @@ public final class EmberTrophyModels
     {{
         /** An ember drifting down from a wing tip (towards the second point). */
         EMBER,
-        /** A wisp of smoke rising (from the volcano's crater, the burst egg, the breaking body). */
+        /** A wisp of smoke rising (from the volcano's crater or the burst egg). */
         SMOKE,
         /** A lava pop out of the volcano's crater. */
         LAVA
@@ -920,8 +962,9 @@ public final class EmberTrophyModels
     /**
      * One trophy design.
      *
-     * @param number the design's number (1 to {count})
-     * @param key    its file key
+     * @param number    the design's number (1 to {count})
+     * @param candidate its number among the fifteen candidates it was picked from
+     * @param key       its file key
      * @param look   a word or two about it, for the showcase sign's third line
      * @param scale  how much the models are scaled down
      * @param glow   the glow layer's strength (0 to 1)
@@ -931,8 +974,8 @@ public final class EmberTrophyModels
      * @param max    ...and highest corner
      * @param marks  where its particles come from
      */
-    public record Model(int number, String key, String look, float scale, float glow, float cracks, int light, Spot min,
-                        Spot max, List<Mark> marks)
+    public record Model(int number, int candidate, String key, String look, float scale, float glow, float cracks,
+                        int light, Spot min, Spot max, List<Mark> marks)
     {{
     }}
 
@@ -981,8 +1024,9 @@ def write_java(built):
         d = b["design"]
         lo, hi = b["shape"]
         mk = ",\n                            ".join(f"new Mark(Effect.{k}, {_spot(p)}, {_spot(q)})" for k, p, q in b["marks"])
-        rows.append(f"            // {d['number']}. {d['name']}: {_what(d)}\n"
-                    f"            new Model({d['number']}, \"{d['key']}\", \"{d['look']}\", {_f(b['scale'])}, {_f(GLOW)}, "
+        rows.append(f"            // {d['number']}. {d['name']} (candidate {d['candidate']}): {_what(d)}\n"
+                    f"            new Model({d['number']}, {d['candidate']}, \"{d['key']}\", \"{d['look']}\", "
+                    f"{_f(b['scale'])}, {_f(GLOW)}, "
                     f"{_f(d.get('cracks', 0.0))}, {d.get('light', LIGHT)},\n"
                     f"                    {_spot(lo)}, {_spot(hi)},\n"
                     f"                    List.of({mk}))")
@@ -1073,12 +1117,37 @@ def card(design, ims):
         x += im.width + 10
     d = ImageDraw.Draw(out)
     d.text((8, 4), f"No. {design['number']}  {design['name']}", font=V.font(24), fill=V.TEXT)
-    d.text((8, 36), design["blurb"], font=V.font(16, bold=False), fill=V.DIM)
+    d.text((8, 36), _blurb(design), font=V.font(16, bold=False), fill=V.DIM)
     return out
 
 
-def previews(built, models, only=None):
-    os.makedirs(PREVIEW, exist_ok=True)
+def _blurb(design):
+    """What it shows, and for one of the game's five the candidate it was."""
+    if design.get("candidate", design["number"]) == design["number"]:
+        return design["blurb"]
+    return f"{design['blurb']} (candidate {design['candidate']})"
+
+
+# The pages' titles and notes: the game's five, and the fifteen candidates (the record).
+SHEET_TITLE = "The Emberdactyl's trophies (the five in the game)"
+SHEET_NOTES = ("Each a 1x1x1 block holding a miniature of the Emberdactyl in one pose of its own animations, drawn in "
+               "its block's outline: as you see it standing in front of it once placed, from behind, and at night. "
+               "Right-click turns a placed trophy through them (1 > 2 > 3 > 4 > 5 > 1); beating its young gives each "
+               "victor No. 1. The user's pick of fifteen candidates: 1 is candidate 11, 2 is 4, 3 is 7, 4 is 12, 5 is 15.")
+SHEET_HTML = ("The five in the game, the user's pick of fifteen candidates (in <a href='candidates/index.html'>"
+              "candidates/</a>), in the order of its fight. In the game: <code>/dross showcase trophies "
+              "emberdactyl</code>.")
+CANDIDATES_TITLE = "The Emberdactyl's trophies (candidates: the user picked 11, 4, 7, 12 and 15)"
+CANDIDATES_NOTES = ("Each a 1x1x1 block holding a miniature of the Emberdactyl in one pose of its own animations, drawn "
+                    "in its block's outline: as you see it standing in front of it once placed, from behind, and at "
+                    "night. In the game: 11 > No. 1, 4 > 2, 7 > 3, 12 > 4, 15 > 5.")
+CANDIDATES_HTML = ("The fifteen candidates (eleven of the adult, two with its volcano; its young bursting out of its egg; "
+                   "three of the two together). The user picked 11, 4, 7, 12 and 15, the game's Nos. 1-5 "
+                   "(<a href='../index.html'>the five</a>).")
+
+
+def previews(built, models, only=None, out_dir=PREVIEW, title=SHEET_TITLE, notes=SHEET_NOTES, html=SHEET_HTML):
+    os.makedirs(out_dir, exist_ok=True)
     cards = []
     rows = []
     for b in built:
@@ -1093,39 +1162,35 @@ def previews(built, models, only=None):
         ims.append(picture(layers, poses, cube, side, VIEWS[0][0], VIEWS[0][1], night=True))
         c = card(d, ims)
         name = f"trophy_{d['number']:02d}_{d['key']}.png"
-        c.save(os.path.join(PREVIEW, name))
+        c.save(os.path.join(out_dir, name))
         cards.append(c)
         rows.append((d, name))
     if only:
         return
-    V.page("The Emberdactyl's trophies (fifteen to pick from)",
-           "Each a 1x1x1 block holding a miniature of the Emberdactyl in one pose of its own animations, drawn in its "
-           "block's outline: as you see it standing in front of it once placed, from behind, and at night. Right-click "
-           "turns a placed trophy through them (1 > 2 > ... > 15 > 1); beating its young gives each victor No. 1 until "
-           "the user picks.",
+    V.page(title, notes,
            [(f"Nos. {k + 1}-{min(k + 3, len(cards))}", V.grid(cards[k:k + 3], 3)) for k in range(0, len(cards), 3)],
-           os.path.join(PREVIEW, "trophies.png"), accent=ACCENT)
-    with open(os.path.join(PREVIEW, "index.html"), "w", encoding="utf-8", newline="\n") as f:
+           os.path.join(out_dir, "trophies.png"), accent=ACCENT)
+    with open(os.path.join(out_dir, "index.html"), "w", encoding="utf-8", newline="\n") as f:
         f.write("<!doctype html><meta charset=utf-8><title>Emberdactyl trophies</title>"
                 "<style>body{background:#1a1310;color:#f4ece4;font-family:Segoe UI,sans-serif;margin:24px}"
-                "img{max-width:100%;display:block;margin:8px 0 28px}h2{color:#ffa046;margin:0}</style>"
-                "<h1>The Emberdactyl's trophies</h1><p>Fifteen to pick from: eleven of the adult (two with its "
-                "volcano), its young bursting out of its egg, and three of the two together. In the game: "
-                "<code>/dross showcase trophies emberdactyl</code>.</p>")
+                "img{max-width:100%;display:block;margin:8px 0 28px}h2{color:#ffa046;margin:0}a{color:#ffa046}</style>"
+                f"<h1>{title}</h1><p>{html}</p>")
         for d, name in rows:
-            f.write(f"<h2>No. {d['number']} {d['name']}</h2><div>{d['blurb']}</div><img src='{name}' alt='{d['name']}'>")
+            f.write(f"<h2>No. {d['number']} {d['name']}</h2><div>{_blurb(d)}</div><img src='{name}' alt='{d['name']}'>")
 
 
 def main(argv):
     only = None
     if "--only" in argv:
         only = {int(a) for a in argv[argv.index("--only") + 1:] if a.isdigit()}
-    for d in DESIGNS:
+    candidates = "--candidates" in argv
+    designs = candidate_designs() if candidates else DESIGNS
+    for d in designs:
         if len(d["look"]) > MAX_LOOK or len(d["name"]) > 20:
             raise ValueError(f"trophy {d['name']}: its look '{d['look']}' or name won't fit on a sign line")
     models, anims = build()
     built = []
-    for d in DESIGNS:
+    for d in designs:
         if only and d["number"] not in only:
             continue
         t0 = time.time()
@@ -1135,6 +1200,10 @@ def main(argv):
               f"{s[0]:.2f} x {s[1]:.2f} x {s[2]:.2f} blocks ({time.time() - t0:.0f} s); "
               + ("; ".join(b["problems"]) if b["problems"] else "nothing into anything"))
         built.append(b)
+    if candidates:
+        previews(built, models, only, CANDIDATES_PREVIEW, CANDIDATES_TITLE, CANDIDATES_NOTES, CANDIDATES_HTML)
+        print(f"Done: {len(built)} Emberdactyl trophy candidates; previews in {CANDIDATES_PREVIEW}")
+        return
     if not only and "--previews-only" not in argv:
         write(built, models)
         write_java(built)

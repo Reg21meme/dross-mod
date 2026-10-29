@@ -50,7 +50,7 @@
 | World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; placing the **castle**, or its placeholder shrine, around a frame made of `portal-builder`'s frame block; the "leaking" dead plants and cracked blocks around it); `com.reg21meme.dross.command.*` (the `/dross` command root and its names (see rule 9); `/dross goto cathedral`, `/dross goto hub` and `/dross goto trader`; its `trader`, `quest` and `boss` subcommands call the villager, quest and boss areas' logic; `/dross showcase boss_designs colossus` (`command/GolemShowcase`) lines up the boss area's golem designs and drives their showcase controls (dormant, erupt, erupted, break, core, die, walk, idle); `/dross showcase trophies colossus`, `/dross showcase trophies ratking` and `/dross showcase trophies huntsman` (`command/TrophyShowcase`) place the boss area's trophy designs in a row; `/dross showcase boss_designs ratking` (`command/RatKingShowcase`) lines up the Rat King designs and plays their animations (sleep, wake, idle, walk, burrow, popup, rage, die); `/dross showcase rats` (`command/RatShowcase`) lines up his rats, regular and enraged (idle, run); `/dross showcase boss_sounds ratking` (`command/RatSoundShowcase`) lists his and the rats' sounds with play buttons; `/dross showcase boss_designs rimefall` (`command/RimefallShowcase`) builds a snowy gallery of the boss area's Rimefall candidates (the user's picks, bosses then regular mobs); `/dross showcase rimefall_mobs` (`command/RimefallMobShowcase`) lines up Rimefall's animals and plays their animations; `/dross showcase mob_sounds rimefall` (`command/RimefallMobSoundShowcase`) lists their sounds with play buttons; `/dross showcase bossbars huntsman` (the boss area's `HuntsmanBarShowcase`) shows the Huntsman's boss bars; `/dross showcase frostfolk_villages` (`command/HunterVillageShowcase`) builds the boss area's village designs and the Huntsman's lodge; `/dross showcase frostfolk_igloos` (`command/HunterIglooShowcase`) builds the boss area's igloo templates and decorations; `/dross boss summon ratking` and `/dross boss arena ratking` (the boss area's `BossCommands`, `RatKingArena`); `/dross boss summon huntsman` and `/dross boss arena huntsman` (the boss area's `BossCommands`, `HuntsmanArena`); `/dross boss arena bedrock` (the boss area's `BedrockArena`)); the two **shrine designs** the user picked, No. 1 Fallen Cathedral and No. 2 Shattered Spire (`world/shrine/`: `ShrineDesign` places one, `ShrineDesigns` is generated; templates in `data/dross/structures/shrine/`, made by the Python generator in `tools/shrines/`, previews in `shrine-previews/`); `GroundFit` reading the Dross ground tags `#dross:fit_surface` / `#dross:fit_soil`; `/dross goto biome <name>` (`command/GotoBiome`), `/dross goto lair colossus` and `/dross goto lair ratking` (`command/GotoLair`, the rat cave through `dimension/sewer/RatCaves` and `boss/ratking/lair/RatKingLair`), `/dross goto sewer` (`command/GotoSewer`, through `dimension/sewer/Sewers`), `/dross goto lake` (`command/GotoLake`, through `dimension/rimefall/RimefallAreas`), `/dross goto lair huntsman`, `/dross goto village` and the temporary `/dross locate villages` (`command/GotoVillage`, through `dimension/rimefall/RimefallVillages` and the boss area's `HuntsmanVillages`), `/dross showcase frostfolk` (`command/FrostfolkShowcase`, the boss area's Frostfolk, one of each calling, and their controls); `/dross showcase boss_designs cinder_wastes` (`command/FireShowcase`, the boss area's fire servant candidates in a gallery), `/dross showcase boss_designs emberdactyl` (the same, the Emberdactyl's looks, with the boss area's `EmberVolcano` going up behind them) and `/dross showcase cinder_mobs` (the same, the Cinder Wastes' mobs) |
 | Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, spawn logic, his hut (the Rift Chapel, `TraderHut.DESIGN`, drawn in `villager.hut`) and its path, his dialogue, tribute and key-material hand-ins (through Quest's progress API), giving the Dross Compass and the Rift Key, his shop, the Admin Sword (item and texture), the Dross Compass (and it setting its own target when in a player's inventory), the Admin Sword and Dross Compass entries in the "Dross" creative tab, spawn egg, `/dross goto trader` logic (`TraderCommands`); the **skins** (`villager/TraderSkins`: 1 Hooded Watcher, 2 The Archivist, 3 Ragged Seeker, 8 Blind Oracle; textures in `textures/entity/trader/`, drawn by `tools/skins/`, previews in `skin-previews/`); **the survivors** at the hub (`villager/Survivor*`, entity `dross:survivor`: the Blind Oracle and the Ragged Seeker) |
 | Enchantments | `enchant-builder` | `com.reg21meme.dross.enchant.*`; the Necromancy and Deathforged enchantments (`registry/ModEnchantments`); the soul system; summoning; the risen undead's behavior (and their entities/renderers if they need their own); Deathforged book drops; *when* `dross:rise` is granted (through `quest-builder`'s grant helper; the advancement JSON belongs to Quest); the enchanted books in the "Dross" creative tab. Design: see The plan, step 6; risen undead and Necromancy leave the survivors alone; iron golems, snow golems and tamed wolves leave the risen undead alone |
-| Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic. Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
+| Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic; the advancement icon items (`dross:wings_clipped_icon`, `hunter_hunted_icon`) and their tool `tools/icons/`. Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
 | Boss | `boss-builder` | `com.reg21meme.dross.boss.*`; the bosses and mini-bosses, starting with the **Cinder Colossus** golem: its entity (`boss/golem/CinderColossus`, `GolemAction`, `GolemAttributes`, the generated `GolemDesigns`), renderer and layers (`boss/golem/client/`), its entity type in `registry/ModEntities`, its design (the user's pick, **3G Saddleback**; model, animations and textures in `geo/`, `animations/` and `textures/entity/cinder_colossus/`, made by the Python generator in `tools/golems/`, previews in `boss-previews/cinder_wastes/cinder_colossus/`; the other candidates of rounds 1-3 archived in `tools/golems/designs/round1/`-`round3/` and `boss-previews/cinder_wastes/cinder_colossus/round1/`-`round3/`), the GeckoLib dependency, and the boss fights: the Colossus fight (`ColossusAttackGoal`, `ColossusStage`, every number in `ColossusTuning`), its minions (`GolemMinion`, `StoneGolem`, `LavaGolem`), projectiles (`ColossusRock`, `LavaBlob`), the temporary lava and fire blocks (`CinderLavaBlock`, `CinderFireBlock`, `LavaPools`; in `registry/ModBlocks`), its sounds (`registry/ModSounds`, `assets/dross/sounds.json`), its spawn egg and its minions' (stone golem, lava golem), the **trophies** (`boss/trophy/`: the `dross:colossus_trophy` block, its block entity (`registry/ModBlockEntities`) and item, their GeckoLib renderers and layers in `boss/trophy/client/`, the generated `TrophyModels`; made by `tools/golems/kit/trophies.py`, previews `boss-previews/cinder_wastes/cinder_colossus/trophies.png`) and the trophy drop, the custom boss bar (`boss/client/DrossBossBars`), the test commands' logic (`boss/BossCommands`, `boss/BossArena`, `boss/BedrockArena`; world-builder wires them into `/dross boss`), granting "Set in Stone" (through Quest's helper), and later boss progression (with Quest). Design: see The plan, step 8; the stone and lava golems as wild Cinder Wastes mobs (`WildGolemSpawns`, `WildLavaGolemTopUp`); **the Colossus lair** (`boss/lair/`: the lairs on the boss-site planner (`LairFinder`, `LairSetup`), built lazily near players (`LairPlacer`, `LairBuilder`), the volcano, the rise (no respawn), the `ColossusLair` API, previews `boss-previews/cinder_wastes/cinder_colossus/lair_*.png` from `tools/golems/lair_preview.py`); **the Rat King** (The plan, step 9: `boss/ratking/` (`RatKing`, `RatKingAction`, `Rat` for both kinds of rat, `RatKingEvents`, the generated `RatKingDesigns` and `RatDesigns`, `client/`), his and the rats' entity types and the `dross:zzz` particle (`registry/ModEntities`, `ModParticles`), the Python generator `tools/ratking/` and its previews `boss-previews/blightwood/rat_king/`, their original sounds (`tools/ratking/sounds.py`, `registry/ModSounds`, `assets/dross/sounds.json`, `assets/dross/sounds/rat_king|rat|enraged_rat/`), his and the rats' spawn eggs; **his fight** (`RatKingAttackGoal`, `RatKingBurrow`, every number in `RatKingTuning`, the poison ball and cloud `PlagueBall`, `PoisonCloud` (`registry/ModEntities`), his boss bar (the user's pick of nine designs: `tools/ratking/bossbars.py` makes `textures/gui/rat_king_bar.png` and the generated `boss/client/RatKingBarArt`; drawn by `DrossBossBars`), `boss/RatKingArena`, granting "Down the Drain" through Quest's helper); his **trophies** (`boss/ratking/trophy/`: the `dross:rat_king_trophy` block, block entity and item, `client/` renderers and layers, the generated `RatKingTrophyModels`, made by `tools/ratking/ratkit/trophies.py`, previews `boss-previews/blightwood/rat_king/trophies/`) and the trophy drop (shared with the Colossus: `boss/trophy/TrophyRewards`); `boss/BossChase` (both bosses steer straight at their target when the way is clear); his home in the rat caves (`boss/ratking/lair/`: asleep on the nest, never back once beaten, his snores at the grand entrance, the stronger cave Ravagers, the rats' spawn rules (dim light in the sewers); the caves themselves are Dimension's, step 11)); **the Rage Wand** (The plan, step 10: `boss/rage/`, the `dross:rage` effect in `registry/ModEffects`, its textures drawn by `tools/ragewand/draw.py`); **the Rimefall candidates** (The plan, step 13: `boss/rimefall/` (`RimefallCandidate`, the generated `RimefallDesigns`, `RimefallBlocks`, `client/` with the real-block layer), the entity type `dross:rimefall_candidate` in `registry/ModEntities`, the Python generator `tools/rimefall/` and its previews `boss-previews/rimefall/`); **Rimefall's animals** (The plan, step 14: `Rimehorn`, `Moose`, `PondSkater` and `PondSkaterPart`, `RimefallAnimals` (their spawn rules), `RimefallAnims`, every number in `RimefallMobTuning`, `client/RimefallMob*`, their entity types, sounds and spawn eggs; `tools/rimefall/mobs.py`, `rimemobs/`, `rimekit/mobkit.py` (their skeletons and animations) and `tools/rimefall/sounds.py`; previews `boss-previews/rimefall/mobs/`); **the Huntsman** (The plan, step 14 part 4: `boss/huntsman/` (his fight: `HuntFight`, `HuntStage`, `HuntGoal`, `WildHuntGoal`, `FootGoal`, `MooseGoal`, `HuntsmanPair`, `Bola`, `HuntSpear`, `SnaredEffect` (`dross:snared` in `registry/ModEffects`), `HuntsmanFightEvents`, every number in `HuntsmanTuning`; `boss/HuntsmanArena`; his spawn egg; granting "The Hunter Hunted" through Quest's helper; and `HuntsmanBarShowcase`), his boss bars (`boss/client/HuntsmanBarArt`, `textures/gui/huntsman_bar.png`), the hunter villages and his lodge (`boss/huntsman/village/`, `data/dross/structures/hunter_village/`; built in the world by `HunterVillageStructure`/`HunterVillagePiece`, `dross:huntsman_village` and `dross:hunter_village` in `registry/ModStructures`; him at home, `HuntsmanVillages`, `HuntsmanVillageData`), the hunter designs (`tools/rimefall/rimedesigns/d10_hunters.py`, `RimefallDesigns.HUNTERS`), the Frostfolk, Rimefall's villagers (`boss/frostfolk/`: `Frostfolk`, `FolkRole`, `FolkAnims`, `FolkEvents`, every number in `FolkTuning`, `client/`; their eleven entity types `dross:frostfolk_<calling>` and their three spawn eggs (`FrostfolkSpawnEggItem`: warrior, worker, elder), their voices; the model `tools/rimefall/rimemobs/frostfolk.py`, the preview `tools/huntsman/folk_preview.py`; never called hunters), his trophy candidates (`tools/rimefall/hunt_trophies.py`) and his trophies (`boss/huntsman/trophy/`: the `dross:huntsman_trophy` block, block entity and item, `client/` renderers and layer, the generated `HuntsmanTrophyModels`; made by `tools/huntsman/trophies.py`, previews `boss-previews/rimefall/huntsman/trophies/`) and their drop, the igloo templates and decorations (`HunterIglooDesigns`, `HunterIgloos`, `data/dross/structures/hunter_igloo/`, `hunter_decor/`; `tools/huntsman/igloos.py`, `igloo_designs/`), Rimefall's crops (`HunterCrops`, `HardyCropBlock`, `RimeberryBushBlock`: Frostroots, Snow Lichen, the two-block Rimeberry Bush, the Frostroot Crate and the Rimeberry Basket in `registry/ModBlocks`/`ModItems`; textures by `tools/huntsman/crops.py`), the villages' fires (`boss/huntsman/village/VillageFireBlock`: `dross:village_fire`, `village_soul_fire`), `boss/client/PartLayer` (a GeckoLib pass drawn only for the parts that show in it), the Moonsilver Spear and the Planted Moonsilver Spear (`boss/huntsman/spear/`), the mounted skulls and who drops them (`boss/huntsman/skull/`), the Python generators `tools/huntsman/` and the previews `boss-previews/rimefall/huntsman/`); the bosses' drawn
 spawn eggs (`tools/eggs/`, the picks' textures and the option sheets in each boss's `spawn_eggs/` preview folder);
 `BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made); **the fire servant candidates** (The plan, step 15: `boss/fire/` (`FireCandidate`, the generated `FireDesigns`, `client/`), the entity type `dross:fire_candidate` in `registry/ModEntities`, the Python generator `tools/fire/` and its previews `boss-previews/cinder_wastes/servants/`); **the Emberdactyl** (The plan, step 16: its looks, `FireDesigns.EMBERDACTYL` (`tools/fire/firekit/emberdactyl.py`, `firedesigns/eNN_*`, previews `boss-previews/cinder_wastes/emberdactyl/`), the fire mobs' skeletons and animations (`tools/fire/mobs.py`, `firemobs/`, the generated `boss/fire/FireAnims`, `geo|textures|animations/entity/firemob/`) and sounds (`tools/fire/sounds.py`, the generated `boss/fire/FireSounds`, `assets/dross/sounds/emberdactyl|emberyoung|pallbearer|hermit/`), and its volcano (`boss/emberdactyl/`: `EmberVolcano`, every number in `EmberVolcanoTuning`, the probe `EmberVolcanoProbeGameTest` and `tools/fire/volcano_preview.py`), its volcanoes in the Cinder Wastes (`VolcanoFinder` and `VolcanoSetup`, the planner's fit test; `VolcanoPlacer`, built near players; `EmberVolcanoData`; the API `EmberVolcanoes`; `/dross goto lair emberdactyl` is World site's `command/GotoVolcano`)); **the Cinder Wastes' mobs' looks** (`FireDesigns.CINDER_MOBS`, `firedesigns/mNN_*`, previews `boss-previews/cinder_wastes/mobs/`) |
@@ -228,7 +228,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
    8. **The Dross Compass** (Villager): a vanilla compass with lodestone tags, re-aimed every second while it's in a player's inventory. Moving the site later keeps compasses correct. It targets `PortalSite.getOpeningCenter` and spins in other dimensions.
    9. **The Dross advancement tab** (Quest): all Dross advancements move out of the vanilla Minecraft tab into their **own "Dross" tab**.
       - The tab has a root advancement with a background (the new frame texture). The root shows no toast and no chat message, and is granted silently when the player picks up a Weathered Letter, so **the tab stays hidden until then**.
-      - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Enter the Dross** (challenge, the main achievement), whose children are **Rise!** (challenge), **Set in Stone** (`set_in_stone`, challenge, obsidian icon: "Defeat the Cinder Colossus.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone, like "Rise!") and **Down the Drain** (`down_the_drain`, challenge, Rat King spawn egg icon: "End the Rat King's reign beneath Blightwood.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **The Hunter Hunted** (`the_hunter_hunted`, challenge, Huntsman spawn egg icon: "Bring down the Huntsman and his Alpha Moose.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone).
+      - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Enter the Dross** (challenge, the main achievement), whose children are **Rise!** (challenge), **Set in Stone** (`set_in_stone`, challenge, obsidian icon: "Defeat the Cinder Colossus.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone, like "Rise!") and **Down the Drain** (`down_the_drain`, challenge, Rat King spawn egg icon: "End the Rat King's reign beneath Blightwood.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **The Hunter Hunted** (`the_hunter_hunted`, challenge: "Bring down the Huntsman and his Alpha Moose.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **Wings Clipped** (`wings_clipped`, challenge, granted for beating the Emberdactyl's young, step 16). **Their icons** (the user, October 29: "change the advancement image of the Emberdactyl and the Huntsman to something more creative than just their spawn eggs"): drawn 16x16 icons on icon-only items (`dross:wings_clipped_icon`, `dross:hunter_hunted_icon` in `registry/ModItems`, in no creative tab), drawn by `tools/icons/advancement_icons.py` in three options each (sheets `boss-previews/cinder_wastes/emberdactyl/advancement_icon/options.png` and `boss-previews/rimefall/huntsman/advancement_icon/options.png`, each shown in the real challenge frame): W1 the clipped wing (an obsidian wing, its long finger sheared off on a glowing cut), W2 the broken wing, W3 pinned down (a sword through the wing); H1 pierced hood (his wolf hood and antlers, an ice-fletched arrow clean through it), H2 the Alpha's skull and his broken spear, H3 the hunter's trophy (his own hood mounted on a plaque); **W1 and H1 in the game until the user picks** (`PICKS`).
       - There is **no** "The Rift Reopened" advancement.
       - Quest owns every advancement JSON and a grant helper. Other areas call the helper when their event happens.
       - Quest's progress API grants "Proven Worthy" and "Keymaster" itself when those stages complete.
@@ -1431,7 +1431,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       `EmberTuning`): **the adult `dross:emberdactyl` (400 health) and its young reborn `dross:emberyoung` (175)**, built on
       the showcase's fire model (`EmberBoss extends FireCandidate`: its look, glow, wing fire, death cracks, synced
       animations and their sounds), alive: it flies (no gravity, straight at where it goes, kept over the ground, never
-      further than its leash from home: 100 blocks, the young 40), turns at most 9 degrees a tick.
+      further than its leash from home: 100 blocks, the young 130), turns at most 9 degrees a tick.
       - **At its volcano** (`EmberKeeper`, every 2 s, a player within 200 blocks, never on Peaceful): its egg
         (`dross:emberdactyl_egg`, `EmberEgg`: design E3B; can't be destroyed, only `/kill`) in the nest and the adult
         perched on the crater's rim opposite the lookout, facing the nest (`perch`); the fight's state saved with the
@@ -1444,62 +1444,103 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         110 blocks; "Emberdactyl: The Sky That Burns", the young's "...: The Ember That Remains"). With nobody to fight for
         15 s it goes back to resting (its health as it is: the boss-buff rules come later, the user's word).
       - **The moves** (`EmberBoss`; the user's approved numbers, in hearts; picked by its target's distance: under 16
-        blocks grab 30 / buffet 25 / dive 20 / screech 15 (the young: dash 25), 16-40 dive 30 / tornadoes 25 / strafe 25 /
-        grab 20 (dash 20), over 40 strafe 40 / tornadoes 35 / dive 25; a move on cooldown drops out): **dive bomb** 7
-        within 5 blocks, thrown out and up, then **stuck 3 s on the ground** (the melee window: there it may **beak snap**
-        7, wing buffet or screech, then takes off); **fire tornadoes** (`FireTornado`: the Firestorm candidate's model
+        blocks grab 30 / buffet 25 / dive 20 / screech 15 (the young: screech 5, dash 25), 16-40 dive 25 / tornadoes 30 /
+        strafe 25 / grab 20 (the young: dive 24, tornadoes 31, dash 20), over 40 strafe 35 / tornadoes 40 / dive 25 (the
+        tornadoes 5 points more likely in both stages since the user's first fight; `EmberTuning` `CLOSE_`/`MID_`/`FAR_*`);
+        a move on cooldown drops out): **dive bomb** 7 within 7 blocks (5 until the user's first fight: "make the explosion
+        when he dives much bigger, like a 5-7 block radius with knockback and knock-up"; the young's a little smaller), six
+        blasts and a dozen patches of fire round it, everything thrown out and up hard (`DIVE_THROW` 1.6, `DIVE_LIFT`
+        0.95, 60% of it at the edge; thrown even when the hit didn't count), then **stuck 3 s on the ground** (the melee
+        window: there it may **beak snap**: **five pecks** in a row (the user: "make sure it can do 5 beak pecks all at
+        once"), 4 hearts each, every one counting (it was one snap of 7), wing buffet or screech, then takes off);
+        **fire tornadoes** (`FireTornado`: the Firestorm candidate's model
         spinning, 2, 3 when enraged, smaller for the young; 8 s after its target, pulling you in, 1.5 a second and fire,
         **throwing you up into the sky** in its core: the user's request); **strafing run** 4 and fire, low along a line
         over you breathing fire, a trail of the Colossus's temporary fire under it (4-5 s); **talon grab** 3, carried
-        20 blocks up and dropped, anywhere (over its crater's lava when it has one: the user's "anywhere, lava
-        included"); **wing buffet** 4, a cone in front, thrown about 20 blocks; **screech** 1, slowed, everyone within 20
-        blocks thrown about 20 (the user's "20 blocks"); magma spit removed (the user). Ranged hits do full damage.
+        up and dropped from 20 blocks over the ground under the drop, anywhere (over its crater's lava when it has one:
+        the user's "anywhere, lava included"); carried, you're only ever in open air (the user's first fight: it carried
+        them through its volcano's side, "he tried to suffocate me ... do math related to the current ground and the
+        player's current height"): it climbs straight up until you're 4 blocks over the highest ground on its way
+        (`GRAB_CLEARANCE`), flies across, lets go over the spot, and you're never moved into a block (`hangSpot`);
+        **wing buffet** 4, a cone in front, thrown about 20 blocks: in the air it first swoops down to 9 blocks from you,
+        4 over you (`BUFFET_APPROACH`; from its circle, 18 up, it reached nobody: the user, "it needs to push me back"),
+        and it throws whoever's in the cone even when the hit didn't count (a player just hurt or burning wasn't thrown);
+        **screech** 1, slowed, everyone within 20 blocks thrown about 20 (the user's "20 blocks"; the young's comes back
+        only every 25 s and seldom from the ground: the user, it screeched "a little too much"); magma spit removed (the
+        user). Ranged hits do full damage.
+      - **Its death on the ground** (the user's first fight: dying in the air it "seems to be falling from the floor ...
+        glitches when they die"; over the steep volcano half of it sank into the rock): its death animation screams with
+        its body at flying height, then drops it onto the floor (1.9 s in, the young's 1.15 s: `Kind.deathFall`); it
+        glides down to the flattest ground within 30 blocks (the young 20) where its body fits (`restingSpot`: its feet
+        on the highest ground under it, lava counting as uneven) and gets there as its body falls; further than it can
+        glide in that time, it glides first (at most 1.1 blocks a tick) and starts dying on the way; dying on the ground
+        it starts lower by its death's first pose's lift (`Kind.standLift`) so it rears up as it screams rather than
+        jumping up. Screens follow the server (no falling on the client).
+      - **Its boss bar never sticks**: every second each bar leaves the screens of players who've gone further than 110
+        blocks, to another dimension or logged out, and all of them when its boss isn't being looked after (its land
+        not ticking: the user saw "The Sky That Burns" stuck on their screen far from any; `EmberBoss.sweepBars`), and
+        when it goes out of a player's sight.
       - **Half health (the adult)**: no new look or animation (the user): 20% faster, cooldowns and pauses 30% shorter,
         a third tornado, and its volcano erupts every 6 s, raining 3 lava bombs (the Colossus's `LavaBlob`, temporary
         lava pools) round the players near its nest.
       - **The young** (2.5 times as fast as the adult: the user's pick; almost no rest, cooldowns 0.4 times, its own
-        dash 5 straight through you; same damage per hit): when the adult breaks apart in its death (4.2 s in) its egg
-        cracks open (design E3D, lava and flames) and the young bursts out, fighting at once; from a spawn egg it hovers
-        over its spawn spot. Its death hardens it into an obsidian statue that stands 2 minutes.
+        dash 5 straight through you; same damage per hit; its leash 130 blocks from its nest, so it reaches whoever beat
+        the adult: the user, "the young one should be coming over to attack me ... make the younger one's battle range
+        longer"; it was 40): when the adult breaks apart in its death (4.2 s in) its egg bursts open (design **E3E,
+        hatched**: its top gone, the empty cup of its lower half molten inside, shards round it; it was E3D, the
+        showcase's cut-open egg with the young still curled up inside: the user, "the youngest is still in the egg when
+        he broke out") and the young bursts out and goes straight for the player who beat the adult (else the nearest);
+        from a spawn egg it hovers over its spawn spot. Its death hardens it into an obsidian statue that stands 2
+        minutes.
       - **"Wings Clipped"** (`dross:wings_clipped`, the user's name, Quest's JSON; the user: only for killing the young):
         to the player credited with the young's death and every player within 64 blocks, never for `/kill`; 50 XP each
-        boss. Its trophy: the user picks from the options first (`EmberTrophies.reward`).
-      - **Boss bars** (drawn by `boss/client/DrossBossBars` from `textures/gui/emberdactyl_bar.png` and the generated
-        `boss/client/EmberdactylBarArt`; `tools/fire/bossbars.py` with `emberbars.py`, reusing the Huntsman's `barkit.py`):
-        **10 designs** for the user to pick, each in the adult look and the young's hotter one (magma crust, lava veins):
-        1 Half-Moon Crest, 2 Burning Wings, 3 Volcano (erupting for the young), 4 Obsidian Bill, 5 Ember Egg (hatched for
-        the young), 6 Ember Gaze, 7 Blade Horns, 8 Molten Crust, 9 Talon Grip, 10 Firestorm; the fight shows design 1
-        (`EmberdactylBarArt.PICK`, `PICK` in `bossbars.py`) until the user picks. **`/dross showcase bossbars emberdactyl
-        [1-4]`** (`boss/fire/EmberdactylBarShowcase`): 5 bars a page for a minute (page 1 designs 1-5 adult, 2 designs 6-10
-        adult, 3 and 4 the same young), chat buttons for the other pages (at GUI scale 3 or more only 3-4 fit: lower it).
-        Previews `boss-previews/cinder_wastes/emberdactyl/bossbars/` (`bars.png`, `index.html`).
-      - **Trophy options** (the user: 15, mostly the adult, the only young-alone one bursting out of its egg, some of the
-        two together, maybe the volcano): `dross:emberdactyl_trophy` (`boss/emberdactyl/trophy/`: block with a `design`
-        state 1-15, block entity, item, `client/` renderers and particles, the generated `EmberTrophyModels`; the API
-        `EmberdactylTrophies`), made by `tools/fire/trophies.py` from the game's own adult and young models and
-        animations (the volcano, lava pool, rock spires and eggs built in Python); previews
-        `boss-previews/cinder_wastes/emberdactyl/trophies/` (`trophies.png`, `index.html`). 1 The Sky That Burns, 2 The
-        Downbeat, 3 Wide Glide, 4 Into the Fire, 5 Talons Out, 6 Gathering Storm, 7 Obsidian Beak, 8 At Rest, 9 The Last
-        Scream, 10 Lord of the Caldera (on its volcano's rim), 11 Guardian of the Nest (over its crater and egg), 12 Reborn
-        (the young bursting from its egg), 13 Under Its Wing, 14 Flight of Embers, 15 Twin Screech (the two together).
-        Right-click cycles 1 > ... > 15 > 1 like the others; embers off its wing tips, smoke and lava pops from the crater
-        or the burst egg. **`/dross showcase trophies emberdactyl`** (`command/TrophyShowcase.placeRows`): the 15 in three
-        rows of five on polished blackstone bricks, each row a block higher and further back. Beating the young gives each
-        victor design 1 (`EmberTrophies.DROP_DESIGN`, the shared `TrophyRewards`) until the user picks.
+        boss. Its trophy: design 1 (`EmberTrophies.reward`).
+      - **Its boss bar: the Winged Volcano** [the user's pick, October 29] (drawn by `boss/client/DrossBossBars` from
+        `textures/gui/emberdactyl_bar.png` and the generated `boss/client/EmberdactylBarArt`: `ADULT`, `YOUNG`;
+        `tools/fire/bossbars.py` with `emberbars.py`, reusing the Huntsman's `barkit.py`): of ten designs (each in the
+        adult's look and the young's hotter one) the user asked for "the wings of 2 with the volcano of 3 ... the boss
+        bar for each": design 3's volcano in the middle of the bar, design 2's burning wings (glowing scalloped edges,
+        falling embers) at its ends, on design 2's obsidian rails; the young's magma crust and lava veins, its volcano
+        erupting. The other designs (1 Half-Moon Crest, 4 Obsidian Bill, 5 Ember Egg, 6 Ember Gaze, 7 Blade Horns, 8
+        Molten Crust, 9 Talon Grip, 10 Firestorm, and 2 and 3 on their own), their pages and buttons were removed.
+        **`/dross showcase bossbars emberdactyl`** (`boss/fire/EmberdactylBarShowcase`): the adult's bar over the young's
+        for a minute, draining and filling. Preview `boss-previews/cinder_wastes/emberdactyl/bossbars/bars.png`
+        (`index.html`). Headless test `boss/fire/EmberdactylBarShowcaseGameTest`.
+      - **Its trophies** [the user's picks, October 29] (`dross:emberdactyl_trophy`, `boss/emberdactyl/trophy/`: block
+        with a `design` state, block entity, item, `client/` renderers and particles, the generated
+        `EmberTrophyModels`; the API `EmberdactylTrophies`; made by `tools/fire/trophies.py` from the game's own adult
+        and young models and animations, the volcano, lava pool, rock spire and eggs built in Python): of fifteen
+        candidates (previews kept in `boss-previews/cinder_wastes/emberdactyl/trophies/candidates/`, redrawn with
+        `trophies.py --candidates`) the user picked 11, 12, 15, 7 and 4, the game's five in the order of its fight:
+        **1 Guardian of the Nest** (over its crater and egg; light 7, the others 5), **2 Into the Fire** (its dive),
+        **3 Obsidian Beak** (its snap), **4 Reborn** (the young bursting from its egg), **5 Twin Screech** (the two
+        together). Right-click cycles 1 > 2 > 3 > 4 > 5 > 1 like the others; embers off its wing tips, smoke and lava pops
+        from the crater or the burst egg. **`/dross showcase trophies emberdactyl`** (`command/TrophyShowcase`): the five
+        in a row on pedestals with signs, like the other bosses'. Beating the young gives each victor No. 1
+        (`EmberTrophies.DROP_DESIGN`, the shared `TrophyRewards`). Previews
+        `boss-previews/cinder_wastes/emberdactyl/trophies/` (`trophies.png`, `index.html`).
       - **Hitboxes**: its body (5 x 11, the young 3.5 x 9.5) and 7 parts (`RimefallBodyPart`): head, neck, both wings,
         both wing tips, tail, measured from its model's poses, placed for flying or standing by its animation.
       - **Commands** (`EmberCommands`, World site wires them): `/dross boss summon emberdactyl` (30 blocks ahead, alone,
         its home there), `/dross boss summon emberyoung`, `/dross boss arena emberdactyl` (its volcano built on the land
         in front of you, all at once, its egg and the adult perched; a few seconds' freeze), and a button in the bedrock
         arena. Spawn eggs (`dross:emberdactyl_spawn_egg`, `emberyoung_spawn_egg`; the user: the adult's lies alone, no egg,
-        no young after; the young has its own), drawn by `tools/eggs/eggs.py` in 5 options each for the user to pick
-        (`boss-previews/cinder_wastes/emberdactyl/spawn_eggs/options.png`, `young_options.png`, each alone in
-        `spawn_eggs/textures/`): A1 crest and slit eye, A2 wings spread, A3 half-moon crown, A4 over its volcano, A5 its
-        eye; Y1 hatching, Y2 molten crust, Y3 wings out, Y4 molten head, Y5 peeking out. A1 and Y1 are in the game until
-        the user picks (`PICKS` in `eggs.py`).
+        no young after; the young has its own), drawn by `tools/eggs/eggs.py` in options for the user to pick. Round 1
+        (A1-A5, Y1-Y5: pictures on the egg; archived in `spawn_eggs/round1/`): the user, "none of these boss egg ideas
+        are good, maybe try to incorporate the wings outside". **Round 2, wings out** (`WINGS_OUT` in `eggs.py`: only
+        these may reach past vanilla's egg shape; their wings must on both sides): A6 wings spread, A7 wings raised in a
+        V, A8 wrapped in its wings, A9 wings of fire, A10 half-moon crest (a glossy violet obsidian egg, black wings with
+        ember edges); Y6 molten wings, Y7 bursting out, Y8 molten egg, Y9 wrapped in its wings, Y10 shell cap (the young
+        peeking out under its shell). Sheets `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/options.png`,
+        `young_options.png`, each alone in `spawn_eggs/textures/`; A6 and Y6 are in the game until the user picks
+        (`PICKS`).
       - Headless test `boss/emberdactyl/EmberFightGameTest` (it wakes for a player near and shows its bar, a wing blow
-        hurts it, enraged at half; a tornado burns a cow and throws it up; the adult beaten beside its egg: the egg
-        hatches and the young comes out; the young beaten: "Wings Clipped").
+        hurts it, enraged at half; a tornado burns a cow and throws it up; the adult beaten 10 blocks up beside its egg:
+        it comes down and lies on the floor, the egg hatches into the empty E3E and the young comes out going for the
+        player who beat it; the young beaten: "Wings Clipped"; `buffetThrowsAndBeakPecksFive`: from 18 up its buffet
+        swoops down and throws a cow that can't be hurt, its beak pecks an iron golem five times; and
+        `grabNeverCarriesYouIntoTheGround`: beside a stone pillar it grabs a cow, carries it in open air and lets go of
+        it 20 blocks up).
     - **The Cinder Wastes' mobs** (the user's picks of the servant candidates, as regular mobs that will spawn there;
       only their looks for now: `firedesigns/m01_pallbearer.py`, `m02_hermit.py`; previews
       `boss-previews/cinder_wastes/mobs/`): **M1A the Pallbearer** (11A as the user picked it, at his full 8.7 blocks:
@@ -1673,7 +1714,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         degrees and 3 units each way (the holes' dark and the bone round them overlap, so there its eyes may brush the
         edge by 1 unit, `SKULL_CLIP`).
     - **In the game** (the same frozen `dross:fire_candidate`, step 15; `FireDesigns.EMBERDACTYL`, `CINDER_MOBS`):
-      **`/dross showcase boss_designs emberdactyl`** (`command/FireShowcase`): the adult, the young and the egg's four
+      **`/dross showcase boss_designs emberdactyl`** (`command/FireShowcase`): the adult, the young and the egg's five
       looks facing you, signs, [go] buttons; then the volcano goes up behind them (about a minute), and once it stands the
       egg with more magma (E3B) lies in its nest and the adult (E1A) hovers over the crater, just clear of the egg's
       top, with chat buttons [volcano] (the whole cone from in front), [path] (its foot) and [crater] (the lookout over
@@ -1791,7 +1832,12 @@ nothing floating; the Pallbearer's roar 3 and death 3 (with the bells withering 
 hermit's eyes out on their stalks and apart, the skull's peek through its eye holes, round mouths for the brazier,
 geode and shard (not yet looked at in-game). Then the user's look at round 7 (October 28): the hermit's snap clear of
 its antennae, and its peek remade (the claw a door, the eyes out through the mouth at full size, never through the
-shell, looking left and right) (not yet looked at in-game). Then (October 29) the Emberdactyl in the world and its fight: its volcanoes on the planner (one per group of 3 Cinder Wastes patches, fitted to the land), its egg and its perch, the fight (400 health; dive bomb, fire tornadoes, strafing run, talon grab, wing buffet, screech, beak snap; faster at half health with the crater erupting), its young (175, 2.5 times as fast) hatching from the egg, "Wings Clipped", the commands, and the options to pick from: 10 boss bars, 5 spawn eggs each, 15 trophies (all checked headlessly; not yet tested in-game). The
+shell, looking left and right) (not yet looked at in-game). Then (October 29) the Emberdactyl in the world and its fight: its volcanoes on the planner (one per group of 3 Cinder Wastes patches, fitted to the land), its egg and its perch, the fight (400 health; dive bomb, fire tornadoes, strafing run, talon grab, wing buffet, screech, beak snap; faster at half health with the crater erupting), its young (175, 2.5 times as fast) hatching from the egg, "Wings Clipped", the commands, and the options to pick from: 10 boss bars, 5 spawn eggs each, 15 trophies (all checked headlessly; not yet tested in-game). Then, from the user's first
+fight the same day: its death glides down onto flat ground, the young hatching from an empty egg and coming straight
+for you with a longer leash, five beak pecks, the bigger dive blast, a talon grab that never carries you into blocks, a
+wing buffet that reaches you, the young screeching less, tornadoes more often, its boss bar never stuck on screen; the
+user's picks: the Winged Volcano boss bar and five trophies; new spawn egg options with the wings out; drawn advancement
+icons for "Wings Clipped" and "The Hunter Hunted" (all checked headlessly; not yet tested in-game). The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
@@ -2049,10 +2095,12 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   `/dross boss arena emberdactyl` builds a volcano in front of you with both (a few seconds' freeze);
   `/dross boss summon emberdactyl` / `emberyoung`. Watch: its hitboxes (wings, head, tail hurt it), its flight over
   hills (never inside the ground), the frame rate round it, the grab with a real player.
-- **The Emberdactyl's boss bars, eggs and trophies** (step 16, October 29): `/dross showcase bossbars emberdactyl 1-4`
-  (lower the GUI scale to see all 5 of a page) shows the 10 designs, adult and young; the spawn eggs in the tab are
-  options A1 and Y1 (the sheets `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/`); `/dross showcase trophies
-  emberdactyl` places the 15 trophy options (readable at that size? right-click cycles; in hand and in the tab).
+- **The Emberdactyl's boss bars, eggs and trophies** (step 16, October 29): `/dross showcase bossbars emberdactyl`
+  shows the Winged Volcano bar, the adult's over the young's (the user's pick: design 2's wings, design 3's volcano;
+  the fight's bars look the same); the spawn eggs in the tab are round 2's A6 and Y6, wings out past the egg (the sheets
+  `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/`: pick one of each); `/dross showcase trophies emberdactyl`
+  places the five picked trophies in a row (Guardian of the Nest, Into the Fire, Obsidian Beak, Reborn, Twin Screech;
+  right-click cycles; in hand and in the tab).
 - **The Cinder Wastes' mobs' animations** (step 16, October 27 overnight; checked headlessly): `/dross showcase
   cinder_mobs`: the Pallbearer and the eight hermit shells in a row (no knight's helm or charred stump), each idling;
   the Pallbearer's coffin fire and the brazier hermit's fire flicker and rise; his censers hang beside the coffin and

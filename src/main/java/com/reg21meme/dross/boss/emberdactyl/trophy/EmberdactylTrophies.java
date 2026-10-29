@@ -18,26 +18,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The Emberdactyl trophies: the fifteen designs of a 1x1x1 decorative block ({@code dross:emberdactyl_trophy}), each a
- * miniature of the Emberdactyl (its own models, scaled down, no base), for the user to pick from (October 29, 2026:
+ * The Emberdactyl trophies: the five designs of a 1x1x1 decorative block ({@code dross:emberdactyl_trophy}), each a
+ * miniature of the Emberdactyl (its own models, scaled down, no base). Fifteen candidates were made (October 29, 2026:
  * "the only young trophy I want is of him bursting out of the egg, and then both the adult and the young together in a
- * combo thing; give me 15 different trophies but mostly adult ones; maybe include the volcano as well"):
+ * combo thing; give me 15 different trophies but mostly adult ones; maybe include the volcano as well"), and the user
+ * picked five ("the 5 trophies are 11 12 15 7 and 4"), numbered in the order of its fight:
  * <ol>
- *   <li>The Sky That Burns: reared up on a spire of rock, wings flung up, screaming</li>
- *   <li>The Downbeat: hovering over a spire, its wings at the bottom of a beat</li>
- *   <li>Wide Glide: gliding off a spire on its full wingspan</li>
- *   <li>Into the Fire: plunging head first into a pool of lava</li>
- *   <li>Talons Out: landing on a spire, talons thrown forward</li>
- *   <li>Gathering Storm: its wings closed over its back before the gust</li>
- *   <li>Obsidian Beak: on the ground, its head drawn back to strike</li>
- *   <li>At Rest: perched on its legs and folded wings</li>
- *   <li>The Last Scream: its death, magma cracks splitting its hide</li>
- *   <li>Lord of the Caldera: alighting on the rim of its volcano</li>
- *   <li>Guardian of the Nest: hovering over its volcano, its egg in the nest</li>
- *   <li>Reborn: its young bursting out of the egg</li>
- *   <li>Under Its Wing: the adult reared up, its young perched before it</li>
- *   <li>Flight of Embers: the two taking flight together</li>
- *   <li>Twin Screech: the two screaming side by side</li>
+ *   <li>Guardian of the Nest: hovering over its volcano, its egg in the nest (candidate 11)</li>
+ *   <li>Into the Fire: plunging head first into a pool of lava (candidate 4)</li>
+ *   <li>Obsidian Beak: on the ground, its head drawn back to strike (candidate 7)</li>
+ *   <li>Reborn: its young bursting out of the egg (candidate 12)</li>
+ *   <li>Twin Screech: the adult and its young screaming side by side (candidate 15)</li>
  * </ol>
  * Right-clicking a placed trophy turns it to the next design ({@link #next}), so any trophy can show any of them. The
  * names are lang keys ({@link Design#nameKey}); the shapes come from their models ({@link EmberTrophyModels}, generated
@@ -57,7 +48,7 @@ public final class EmberdactylTrophies
     // ---------------------------------------------------------------- changing its pose (right-click)
 
     /**
-     * Right-clicking a placed trophy turns it to the next design (1, 2 ... 15, then 1 again), with a quiet click and a
+     * Right-clicking a placed trophy turns it to the next design (1, 2 ... 5, then 1 again), with a quiet click and a
      * soft crackle of embers. Players who can't build there (adventure mode) can't change it, so a map maker's display
      * stays as it is. This is the volume of the click (vanilla's stone button).
      */
@@ -83,12 +74,12 @@ public final class EmberdactylTrophies
 
     /** An ember drifting down from a wing tip. */
     public static final float EMBER_CHANCE = 0.2F;
-    /** A wisp of smoke from the volcano's crater, the burst egg or the breaking body. */
+    /** A wisp of smoke from the volcano's crater or the burst egg. */
     public static final float SMOKE_CHANCE = 0.2F;
     /** A lava pop out of the volcano's crater. */
     public static final float LAVA_CHANCE = 0.05F;
 
-    /** Lang keys: a design's name is this plus its number; the tooltip line is "No. 1: The Sky That Burns"; and the hint. */
+    /** Lang keys: a design's name is this plus its number; the tooltip line is "No. 1: Guardian of the Nest"; and the hint. */
     public static final String NAME_KEY = "block.dross.emberdactyl_trophy.design_";
     public static final String TOOLTIP_KEY = "block.dross.emberdactyl_trophy.tooltip";
     public static final String HINT_KEY = "block.dross.emberdactyl_trophy.hint";
@@ -103,7 +94,7 @@ public final class EmberdactylTrophies
      */
     public record Design(int number, EmberTrophyModels.Model model)
     {
-        /** Its lang key (the name: "The Sky That Burns"). */
+        /** Its lang key (the name: "Guardian of the Nest"). */
         public String nameKey()
         {
             return NAME_KEY + this.number;
@@ -115,7 +106,7 @@ public final class EmberdactylTrophies
             return Component.translatable(this.nameKey());
         }
 
-        /** A word or two about it, for the showcase sign ("Screech", "Volcano"...). */
+        /** A word or two about it, for the showcase sign ("Over its nest", "Dive"...). */
         public String look()
         {
             return this.model.look();
@@ -168,7 +159,7 @@ public final class EmberdactylTrophies
     {
     }
 
-    /** How many designs there are (15). */
+    /** How many designs there are (5). */
     public static int count()
     {
         return DESIGNS.size();
@@ -180,7 +171,7 @@ public final class EmberdactylTrophies
         return number >= 1 && number <= DESIGNS.size() ? DESIGNS.get(number - 1) : DESIGNS.get(0);
     }
 
-    /** The design after {@code number} when a trophy is right-clicked: 1, 2 ... 15, then 1 again. */
+    /** The design after {@code number} when a trophy is right-clicked: 1, 2 ... 5, then 1 again. */
     public static int next(int number)
     {
         return get(number).number() % count() + 1;

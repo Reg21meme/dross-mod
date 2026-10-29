@@ -106,9 +106,9 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>{@code /dross showcase bossbars huntsman [angry]}: shows the Huntsman's boss bars (the user's picks) on your
  *       screen for a minute, draining and filling (the fight's three bars, or the two angry looks), with a chat button
  *       for the other set ({@link HuntsmanBarShowcase}).</li>
- *   <li>{@code /dross showcase bossbars emberdactyl [<page>]}: shows five of the Emberdactyl's ten boss bar designs on
- *       your screen for a minute, pages 1-4 (designs 1-5 and 6-10, the adult's look, then the young's), with chat
- *       buttons for the other pages ({@link EmberdactylBarShowcase}).</li>
+ *   <li>{@code /dross showcase bossbars emberdactyl}: shows the Emberdactyl's boss bar (the user's pick, the Winged
+ *       Volcano) on your screen for a minute, draining and filling: the adult's look over its young reborn's
+ *       ({@link EmberdactylBarShowcase}).</li>
  *   <li>{@code /dross showcase trophies colossus}: places the 5 Cinder Colossus trophy designs in a row in front of
  *       you, each on a pedestal facing you with a sign giving its number and name ({@link TrophyShowcase}; the designs
  *       are the boss area's {@code ColossusTrophies}).</li>
@@ -116,9 +116,8 @@ import net.minecraftforge.fml.common.Mod;
  *       ({@link TrophyShowcase#placeRatKingTrophies}; the designs are the boss area's {@code RatKingTrophies}).</li>
  *   <li>{@code /dross showcase trophies huntsman}: places the 5 Huntsman trophy designs the same way
  *       ({@link TrophyShowcase#placeHuntsmanTrophies}; the designs are the boss area's {@code HuntsmanTrophies}).</li>
- *   <li>{@code /dross showcase trophies emberdactyl}: places the 15 Emberdactyl trophy candidates in three stepped rows
- *       of five ({@link TrophyShowcase#placeEmberdactylTrophies}; the designs are the boss area's
- *       {@code EmberdactylTrophies}).</li>
+ *   <li>{@code /dross showcase trophies emberdactyl}: places the 5 Emberdactyl trophy designs the same way
+ *       ({@link TrophyShowcase#placeEmberdactylTrophies}; the designs are the boss area's {@code EmberdactylTrophies}).</li>
  *   <li>{@code /dross boss summon colossus}: summons a fighting Cinder Colossus in front of you, facing you (not on
  *       Peaceful). From the boss area ({@link BossCommands#summonColossus}).</li>
  *   <li>{@code /dross boss arena colossus}: builds the placeholder Colossus arena round you, with a chat button that
@@ -371,21 +370,13 @@ public final class DrossCommand
     }
 
     /**
-     * {@code /dross showcase bossbars emberdactyl [<page>]}: shows five of the Emberdactyl's ten boss bar designs on your
-     * screen for a minute, draining and filling: page 1 (the default) designs 1-5 and page 2 designs 6-10 in the adult's
-     * look, pages 3 and 4 the same in the young reborn's ({@link EmberdactylBarShowcase}).
+     * {@code /dross showcase bossbars emberdactyl}: shows the Emberdactyl's boss bar (the user's pick) on your screen
+     * for a minute, draining and filling: the adult's look over its young reborn's ({@link EmberdactylBarShowcase}).
      */
     private static LiteralArgumentBuilder<CommandSourceStack> emberdactylBarShowcase()
     {
-        LiteralArgumentBuilder<CommandSourceStack> node = Commands.literal("emberdactyl")
-                .executes(context -> EmberdactylBarShowcase.show(context.getSource(), 1));
-        for (int page = 1; page <= EmberdactylBarShowcase.PAGES; page++)
-        {
-            int shown = page;
-            node.then(Commands.literal(Integer.toString(shown))
-                    .executes(context -> EmberdactylBarShowcase.show(context.getSource(), shown)));
-        }
-        return node;
+        return Commands.literal("emberdactyl")
+                .executes(context -> EmberdactylBarShowcase.show(context.getSource()));
     }
 
     /**

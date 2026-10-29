@@ -91,7 +91,13 @@ SETS = {
                                 ("volcano_back", "From behind (the lookout's side)"),
                                 ("volcano_night", "At night: only what glows"),
                                 ("volcano_map", "From above: the lava, the path (white), the egg (circled)"),
-                                ("volcano_crater", "The crater close up: the lava lake, the nest's pillar, the lookout"))),
+                                ("volcano_crater", "The crater close up: the lava lake, the nest's pillar, the lookout"),
+                                # one built on real land (the probe's volcanoOnLand, then volcano_preview.py ... volcano_land)
+                                ("volcano_land_front", "On real land, from its front"),
+                                ("volcano_land_back", "On real land, from behind"),
+                                ("volcano_land_night", "On real land, at night"),
+                                ("volcano_land_map", "On real land, from above"),
+                                ("volcano_land_crater", "On real land, its crater"))),
     "cinder_mobs": dict(files="m", prefix="M", folder="mobs", java="CINDER_MOBS",
                         command="/dross showcase cinder_mobs", title="The Cinder Wastes' mobs",
                         intro="The Pallbearer and the Cinder Hermit in its eight shells: the Cinder Wastes' regular "

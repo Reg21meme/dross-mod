@@ -25,7 +25,7 @@ import javax.annotation.Nullable;
  */
 public class EmberTrophyItemRenderer extends GeoItemRenderer<EmberTrophyItem>
 {
-    /** The GeckoLib animation instance ids the fifteen designs use (any numbers no real stack gets; not another trophy's). */
+    /** The GeckoLib animation instance ids the five designs use (any numbers no real stack gets; not another trophy's). */
     private static final long INSTANCE_ID_BASE = -7_300_000L;
 
     public EmberTrophyItemRenderer()

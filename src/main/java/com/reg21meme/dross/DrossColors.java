@@ -531,10 +531,6 @@ public final class DrossColors {
      * ember amber, the young reborn's brighter, hotter yellow. Used in boss/client/DrossBossBars. */
     public static final int EMBERDACTYL_BAR_NAME_ADULT = 0xFFD6A0;
     public static final int EMBERDACTYL_BAR_NAME_YOUNG = 0xFFF0B0;
-    /** The Emberdactyl's boss bar showcase: its chat buttons (the other pages, lava orange) and its gray hint line. Used in
-     * boss/fire/EmberdactylBarShowcase. */
-    public static final int EMBERDACTYL_BAR_BUTTON = 0xFFA040;
-    public static final int EMBERDACTYL_BAR_HINT = 0xAAAAAA;
 
     // ---------------------------------------------------------------- Helpers
 

@@ -2,7 +2,7 @@
   "parent": "dross:entered_the_dross",
   "display": {
     "icon": {
-      "item": "dross:huntsman_spawn_egg"
+      "item": "dross:hunter_hunted_icon"
     },
     "title": {
       "translate": "advancements.dross.the_hunter_hunted.title"

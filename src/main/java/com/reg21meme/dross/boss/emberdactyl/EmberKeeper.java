@@ -47,6 +47,10 @@ public final class EmberKeeper
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event)
     {
+        if (event.phase == TickEvent.Phase.END && event.getServer().getTickCount() % 20 == 0)
+        {
+            EmberBoss.sweepBars();
+        }
         if (event.phase != TickEvent.Phase.END || event.getServer().getTickCount() % KEEPER_CHECK_TICKS != 0)
         {
             return;
