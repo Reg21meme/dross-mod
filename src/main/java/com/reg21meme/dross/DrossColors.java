@@ -101,6 +101,12 @@ public final class DrossColors {
      */
     public static final int RIMEFALL_SHOWCASE_BUTTON = 0xA6D8F2;
 
+    /**
+     * The clickable [go] buttons of /dross showcase boss_designs cinder_wastes (the fire servant candidates). Ember
+     * orange, not the Dross blue: they serve the Fire Necromancer. Used in command/FireShowcase.
+     */
+    public static final int FIRE_SHOWCASE_BUTTON = 0xFF9A4A;
+
     /** In /dross locate villages (command/GotoVillage; its [go] buttons are the Boss section's HUNTER_VILLAGE_BUTTON),
      * the Huntsman's villages stand out: antler amber. */
     public static final int HUNTSMAN_VILLAGE_LABEL = 0xE0B060;
@@ -488,6 +494,14 @@ public final class DrossColors {
 
     /** Rage Wand: the gray hint line "Right-click to change team" in its tooltip. Used in boss/rage/RageWandItem. */
     public static final ChatFormatting RAGE_WAND_HINT = ChatFormatting.DARK_GRAY;
+
+    /**
+     * The Emberdactyl (the Fire Necromancer's pterosaur): the embers that fall from its wings as it flies (the user,
+     * October 27, 2026: "as he flies fire needs to fall from his wings like particles"), glowing orange, cooling to a
+     * dark red as they drift down. Used in boss/fire/client/EmberWingFire.
+     */
+    public static final int EMBERDACTYL_WING_EMBER = 0xFF8A26;
+    public static final int EMBERDACTYL_WING_EMBER_COOL = 0x6A1406;
 
     // ---------------------------------------------------------------- Helpers
 

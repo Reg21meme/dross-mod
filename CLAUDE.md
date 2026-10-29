@@ -33,7 +33,7 @@
 8. **Colors come from `DrossColors`.** Never hard-code a color in feature code (particles, glows, text styles, spawn eggs). If you need a new color, add a labeled constant in your area's section of `DrossColors`. Some older code still has hard-coded colors; move it onto `DrossColors` when you next change that code.
 9. **`/dross` command names** say what kind of thing a command is about and which one, so they stay clear as more bosses and places arrive (world-builder adds them to `command/DrossCommand`; if you need one, report it as "Needs from world site"):
    - `goto <place>`: teleports (`goto cathedral`, `goto hub`, `goto trader`, `goto sewer`, `goto lake`). A kind of place names its kind first: `goto biome <name>` (one per Dross biome) and `goto lair <boss>` (`goto lair colossus`, `goto lair ratking`).
-   - `showcase <kind> [<boss>]`: test showcases (`showcase boss_designs colossus`, `showcase boss_designs ratking`, `showcase boss_designs rimefall`, `showcase rats`, `showcase boss_sounds ratking`, `showcase trophies colossus`, `showcase trophies ratking`, `showcase trophies huntsman`, `showcase rimefall_mobs`, `showcase mob_sounds rimefall`, `showcase bossbars huntsman`, `showcase boss_sounds huntsman`, `showcase frostfolk_villages`, `showcase frostfolk_igloos`). A new boss adds one literal under each kind it has; a boss's minions get their own kind (`showcase rats`).
+   - `showcase <kind> [<boss>]`: test showcases (`showcase boss_designs colossus`, `showcase boss_designs ratking`, `showcase boss_designs rimefall`, `showcase boss_designs cinder_wastes`, `showcase boss_designs emberdactyl`, `showcase cinder_mobs`, `showcase boss_sounds emberdactyl`, `showcase mob_sounds cinder_wastes`, `showcase rats`, `showcase boss_sounds ratking`, `showcase trophies colossus`, `showcase trophies ratking`, `showcase trophies huntsman`, `showcase rimefall_mobs`, `showcase mob_sounds rimefall`, `showcase bossbars huntsman`, `showcase boss_sounds huntsman`, `showcase frostfolk_villages`, `showcase frostfolk_igloos`). A new boss adds one literal under each kind it has; a boss's minions get their own kind (`showcase rats`).
    - `goto lair huntsman` (the nearest Huntsman's village), `goto village [<x> <z>]` (the nearest hunter village) and,
      a test tool for now, `locate villages` (the 5 nearest, with [go] buttons); `showcase frostfolk` (the Frostfolk, Rimefall's
      villagers; never call them hunters).
@@ -47,13 +47,13 @@
 |---|---|---|
 | Dimension | `dimension-builder` | `com.reg21meme.dross.dimension.*`; `data/dross/dimension/`, `data/dross/dimension_type/`, `data/dross/worldgen/`; Dross mob equipment (skips risen undead; marks geared mobs for `DrossMobGear.hasDrossGear`); the hub's safe zone (no natural hostile spawns near `DrossHub.CENTER`); **the terrain** (Terrain v1): noise settings, density functions (`dross:hub_falloff`), the five biomes and their spawn lists, surface rules, world-generation features and their Java (`dimension/worldgen/`, `registry/ModFeatures`, `ModTreeDecorators`, `ModDensityFunctions`, `ModPlacementModifiers`), the 38 terrain blocks and 3 materials (`dimension/block/`) with their assets, tags, recipes and loot, `tools/terrain/` (the generators; `worldgen.py` holds every tuning number), `block-previews/`, `terrain-previews/`, the Dross sky/fog/light (`dimension/client/`), and `DrossBiomes` (biome keys, `findNearest`); **the sewers** (The plan, step 11: `dimension/sewer/` (the `dross:sewers` and `dross:rat_cave` structures, their maze planner and pieces, every number in `SewerTuning`, the `RatCaves` and `Sewers` API, the rat cave's spawn list `RatCaveSpawns`), `registry/ModStructures`, the underground `dross:sewers` biome and its depth climate `dross:climate/sewer_depth`, the rat spawn weights (`worldgen.py`, SEWERS section), Sewer Sludge (`dimension/block/SewerSludgeBlock`), the Blight Vent (`dimension/block/BlightVentBlock`), the `dross:not_near_sewer_entrance` placement filter, `tools/terrain/preview_sewers.py` and `terrain-previews/sewers/`); **Rimefall's big frozen lakes and its Rimehorn herds** (The plan, step 14: `dimension/rimefall/` (`RimefallAreas`, the plan per Rimefall patch; `RimefallLake`, `RimefallLakeStructure`, `RimefallLakePiece`, the `dross:rimefall_lake` structure in `registry/ModStructures`; `RimehornHerdFeature`, `dross:rimehorn_herd` in `registry/ModFeatures`; every number in `RimefallTuning`), the `dross:not_on_rimefall_lake` placement filter, Rimefall's and Silverwood's moose spawn weights (`worldgen.py`); where Rimefall's hunter villages go (`RimefallVillages`, the planner's `HUNTSMAN_VILLAGE` and `HUNTER_VILLAGE` uses, October 23)); **the boss-site planner** (The plan, step 12: `dimension/sites/` and its `dross:boss_site` structure placement in `registry/ModStructures`, `terrain-previews/boss_sites.png`; bosses plug their own fit tests into it) |
 | Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); the frame's ambient particles and sound; the **Rift Key** item and lighting a frame with it (replaces the netherite ingot); blocking portal lighting inside the Dross; the portal's look (texture, particles, screen overlay); teleporting; the **hub** at Dross 0,0 (`portal/DrossHub`: structure and exit portal); the frame's creative-only block item; the Rift Key and frame entries in the "Dross" creative tab; the arrival sequence (title, piano notes, and *when* `dross:entered_the_dross` is granted and the Guide Book is given, both through `quest-builder`'s API; the advancement JSON belongs to Quest); the hub fitted onto the terrain and built in the background after a new world starts (`portal/DrossHubBuilder`, `DrossHubPlacer`, its saved layout `DrossHubData`, `DrossHub.layout(server)` and `DrossHub.whenBuilt` for the survivors) and `DrossTeleporter.findSafeSpot` |
-| World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; placing the **castle**, or its placeholder shrine, around a frame made of `portal-builder`'s frame block; the "leaking" dead plants and cracked blocks around it); `com.reg21meme.dross.command.*` (the `/dross` command root and its names (see rule 9); `/dross goto cathedral`, `/dross goto hub` and `/dross goto trader`; its `trader`, `quest` and `boss` subcommands call the villager, quest and boss areas' logic; `/dross showcase boss_designs colossus` (`command/GolemShowcase`) lines up the boss area's golem designs and drives their showcase controls (dormant, erupt, erupted, break, core, die, walk, idle); `/dross showcase trophies colossus`, `/dross showcase trophies ratking` and `/dross showcase trophies huntsman` (`command/TrophyShowcase`) place the boss area's trophy designs in a row; `/dross showcase boss_designs ratking` (`command/RatKingShowcase`) lines up the Rat King designs and plays their animations (sleep, wake, idle, walk, burrow, popup, rage, die); `/dross showcase rats` (`command/RatShowcase`) lines up his rats, regular and enraged (idle, run); `/dross showcase boss_sounds ratking` (`command/RatSoundShowcase`) lists his and the rats' sounds with play buttons; `/dross showcase boss_designs rimefall` (`command/RimefallShowcase`) builds a snowy gallery of the boss area's Rimefall candidates (the user's picks, bosses then regular mobs); `/dross showcase rimefall_mobs` (`command/RimefallMobShowcase`) lines up Rimefall's animals and plays their animations; `/dross showcase mob_sounds rimefall` (`command/RimefallMobSoundShowcase`) lists their sounds with play buttons; `/dross showcase bossbars huntsman` (the boss area's `HuntsmanBarShowcase`) shows the Huntsman's boss bars; `/dross showcase frostfolk_villages` (`command/HunterVillageShowcase`) builds the boss area's village designs and the Huntsman's lodge; `/dross showcase frostfolk_igloos` (`command/HunterIglooShowcase`) builds the boss area's igloo templates and decorations; `/dross boss summon ratking` and `/dross boss arena ratking` (the boss area's `BossCommands`, `RatKingArena`); `/dross boss summon huntsman` and `/dross boss arena huntsman` (the boss area's `BossCommands`, `HuntsmanArena`); `/dross boss arena bedrock` (the boss area's `BedrockArena`)); the two **shrine designs** the user picked, No. 1 Fallen Cathedral and No. 2 Shattered Spire (`world/shrine/`: `ShrineDesign` places one, `ShrineDesigns` is generated; templates in `data/dross/structures/shrine/`, made by the Python generator in `tools/shrines/`, previews in `shrine-previews/`); `GroundFit` reading the Dross ground tags `#dross:fit_surface` / `#dross:fit_soil`; `/dross goto biome <name>` (`command/GotoBiome`), `/dross goto lair colossus` and `/dross goto lair ratking` (`command/GotoLair`, the rat cave through `dimension/sewer/RatCaves` and `boss/ratking/lair/RatKingLair`), `/dross goto sewer` (`command/GotoSewer`, through `dimension/sewer/Sewers`), `/dross goto lake` (`command/GotoLake`, through `dimension/rimefall/RimefallAreas`), `/dross goto lair huntsman`, `/dross goto village` and the temporary `/dross locate villages` (`command/GotoVillage`, through `dimension/rimefall/RimefallVillages` and the boss area's `HuntsmanVillages`), `/dross showcase frostfolk` (`command/FrostfolkShowcase`, the boss area's Frostfolk, one of each calling, and their controls) |
+| World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; placing the **castle**, or its placeholder shrine, around a frame made of `portal-builder`'s frame block; the "leaking" dead plants and cracked blocks around it); `com.reg21meme.dross.command.*` (the `/dross` command root and its names (see rule 9); `/dross goto cathedral`, `/dross goto hub` and `/dross goto trader`; its `trader`, `quest` and `boss` subcommands call the villager, quest and boss areas' logic; `/dross showcase boss_designs colossus` (`command/GolemShowcase`) lines up the boss area's golem designs and drives their showcase controls (dormant, erupt, erupted, break, core, die, walk, idle); `/dross showcase trophies colossus`, `/dross showcase trophies ratking` and `/dross showcase trophies huntsman` (`command/TrophyShowcase`) place the boss area's trophy designs in a row; `/dross showcase boss_designs ratking` (`command/RatKingShowcase`) lines up the Rat King designs and plays their animations (sleep, wake, idle, walk, burrow, popup, rage, die); `/dross showcase rats` (`command/RatShowcase`) lines up his rats, regular and enraged (idle, run); `/dross showcase boss_sounds ratking` (`command/RatSoundShowcase`) lists his and the rats' sounds with play buttons; `/dross showcase boss_designs rimefall` (`command/RimefallShowcase`) builds a snowy gallery of the boss area's Rimefall candidates (the user's picks, bosses then regular mobs); `/dross showcase rimefall_mobs` (`command/RimefallMobShowcase`) lines up Rimefall's animals and plays their animations; `/dross showcase mob_sounds rimefall` (`command/RimefallMobSoundShowcase`) lists their sounds with play buttons; `/dross showcase bossbars huntsman` (the boss area's `HuntsmanBarShowcase`) shows the Huntsman's boss bars; `/dross showcase frostfolk_villages` (`command/HunterVillageShowcase`) builds the boss area's village designs and the Huntsman's lodge; `/dross showcase frostfolk_igloos` (`command/HunterIglooShowcase`) builds the boss area's igloo templates and decorations; `/dross boss summon ratking` and `/dross boss arena ratking` (the boss area's `BossCommands`, `RatKingArena`); `/dross boss summon huntsman` and `/dross boss arena huntsman` (the boss area's `BossCommands`, `HuntsmanArena`); `/dross boss arena bedrock` (the boss area's `BedrockArena`)); the two **shrine designs** the user picked, No. 1 Fallen Cathedral and No. 2 Shattered Spire (`world/shrine/`: `ShrineDesign` places one, `ShrineDesigns` is generated; templates in `data/dross/structures/shrine/`, made by the Python generator in `tools/shrines/`, previews in `shrine-previews/`); `GroundFit` reading the Dross ground tags `#dross:fit_surface` / `#dross:fit_soil`; `/dross goto biome <name>` (`command/GotoBiome`), `/dross goto lair colossus` and `/dross goto lair ratking` (`command/GotoLair`, the rat cave through `dimension/sewer/RatCaves` and `boss/ratking/lair/RatKingLair`), `/dross goto sewer` (`command/GotoSewer`, through `dimension/sewer/Sewers`), `/dross goto lake` (`command/GotoLake`, through `dimension/rimefall/RimefallAreas`), `/dross goto lair huntsman`, `/dross goto village` and the temporary `/dross locate villages` (`command/GotoVillage`, through `dimension/rimefall/RimefallVillages` and the boss area's `HuntsmanVillages`), `/dross showcase frostfolk` (`command/FrostfolkShowcase`, the boss area's Frostfolk, one of each calling, and their controls); `/dross showcase boss_designs cinder_wastes` (`command/FireShowcase`, the boss area's fire servant candidates in a gallery), `/dross showcase boss_designs emberdactyl` (the same, the Emberdactyl's looks, with the boss area's `EmberVolcano` going up behind them) and `/dross showcase cinder_mobs` (the same, the Cinder Wastes' mobs) |
 | Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, spawn logic, his hut (the Rift Chapel, `TraderHut.DESIGN`, drawn in `villager.hut`) and its path, his dialogue, tribute and key-material hand-ins (through Quest's progress API), giving the Dross Compass and the Rift Key, his shop, the Admin Sword (item and texture), the Dross Compass (and it setting its own target when in a player's inventory), the Admin Sword and Dross Compass entries in the "Dross" creative tab, spawn egg, `/dross goto trader` logic (`TraderCommands`); the **skins** (`villager/TraderSkins`: 1 Hooded Watcher, 2 The Archivist, 3 Ragged Seeker, 8 Blind Oracle; textures in `textures/entity/trader/`, drawn by `tools/skins/`, previews in `skin-previews/`); **the survivors** at the hub (`villager/Survivor*`, entity `dross:survivor`: the Blind Oracle and the Ragged Seeker) |
 | Enchantments | `enchant-builder` | `com.reg21meme.dross.enchant.*`; the Necromancy and Deathforged enchantments (`registry/ModEnchantments`); the soul system; summoning; the risen undead's behavior (and their entities/renderers if they need their own); Deathforged book drops; *when* `dross:rise` is granted (through `quest-builder`'s grant helper; the advancement JSON belongs to Quest); the enchanted books in the "Dross" creative tab. Design: see The plan, step 6; risen undead and Necromancy leave the survivors alone; iron golems, snow golems and tamed wolves leave the risen undead alone |
 | Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic. Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
 | Boss | `boss-builder` | `com.reg21meme.dross.boss.*`; the bosses and mini-bosses, starting with the **Cinder Colossus** golem: its entity (`boss/golem/CinderColossus`, `GolemAction`, `GolemAttributes`, the generated `GolemDesigns`), renderer and layers (`boss/golem/client/`), its entity type in `registry/ModEntities`, its design (the user's pick, **3G Saddleback**; model, animations and textures in `geo/`, `animations/` and `textures/entity/cinder_colossus/`, made by the Python generator in `tools/golems/`, previews in `boss-previews/cinder_wastes/cinder_colossus/`; the other candidates of rounds 1-3 archived in `tools/golems/designs/round1/`-`round3/` and `boss-previews/cinder_wastes/cinder_colossus/round1/`-`round3/`), the GeckoLib dependency, and the boss fights: the Colossus fight (`ColossusAttackGoal`, `ColossusStage`, every number in `ColossusTuning`), its minions (`GolemMinion`, `StoneGolem`, `LavaGolem`), projectiles (`ColossusRock`, `LavaBlob`), the temporary lava and fire blocks (`CinderLavaBlock`, `CinderFireBlock`, `LavaPools`; in `registry/ModBlocks`), its sounds (`registry/ModSounds`, `assets/dross/sounds.json`), its spawn egg and its minions' (stone golem, lava golem), the **trophies** (`boss/trophy/`: the `dross:colossus_trophy` block, its block entity (`registry/ModBlockEntities`) and item, their GeckoLib renderers and layers in `boss/trophy/client/`, the generated `TrophyModels`; made by `tools/golems/kit/trophies.py`, previews `boss-previews/cinder_wastes/cinder_colossus/trophies.png`) and the trophy drop, the custom boss bar (`boss/client/DrossBossBars`), the test commands' logic (`boss/BossCommands`, `boss/BossArena`, `boss/BedrockArena`; world-builder wires them into `/dross boss`), granting "Set in Stone" (through Quest's helper), and later boss progression (with Quest). Design: see The plan, step 8; the stone and lava golems as wild Cinder Wastes mobs (`WildGolemSpawns`, `WildLavaGolemTopUp`); **the Colossus lair** (`boss/lair/`: the lairs on the boss-site planner (`LairFinder`, `LairSetup`), built lazily near players (`LairPlacer`, `LairBuilder`), the volcano, the rise (no respawn), the `ColossusLair` API, previews `boss-previews/cinder_wastes/cinder_colossus/lair_*.png` from `tools/golems/lair_preview.py`); **the Rat King** (The plan, step 9: `boss/ratking/` (`RatKing`, `RatKingAction`, `Rat` for both kinds of rat, `RatKingEvents`, the generated `RatKingDesigns` and `RatDesigns`, `client/`), his and the rats' entity types and the `dross:zzz` particle (`registry/ModEntities`, `ModParticles`), the Python generator `tools/ratking/` and its previews `boss-previews/blightwood/rat_king/`, their original sounds (`tools/ratking/sounds.py`, `registry/ModSounds`, `assets/dross/sounds.json`, `assets/dross/sounds/rat_king|rat|enraged_rat/`), his and the rats' spawn eggs; **his fight** (`RatKingAttackGoal`, `RatKingBurrow`, every number in `RatKingTuning`, the poison ball and cloud `PlagueBall`, `PoisonCloud` (`registry/ModEntities`), his boss bar (the user's pick of nine designs: `tools/ratking/bossbars.py` makes `textures/gui/rat_king_bar.png` and the generated `boss/client/RatKingBarArt`; drawn by `DrossBossBars`), `boss/RatKingArena`, granting "Down the Drain" through Quest's helper); his **trophies** (`boss/ratking/trophy/`: the `dross:rat_king_trophy` block, block entity and item, `client/` renderers and layers, the generated `RatKingTrophyModels`, made by `tools/ratking/ratkit/trophies.py`, previews `boss-previews/blightwood/rat_king/trophies/`) and the trophy drop (shared with the Colossus: `boss/trophy/TrophyRewards`); `boss/BossChase` (both bosses steer straight at their target when the way is clear); his home in the rat caves (`boss/ratking/lair/`: asleep on the nest, never back once beaten, his snores at the grand entrance, the stronger cave Ravagers, the rats' spawn rules (dim light in the sewers); the caves themselves are Dimension's, step 11)); **the Rage Wand** (The plan, step 10: `boss/rage/`, the `dross:rage` effect in `registry/ModEffects`, its textures drawn by `tools/ragewand/draw.py`); **the Rimefall candidates** (The plan, step 13: `boss/rimefall/` (`RimefallCandidate`, the generated `RimefallDesigns`, `RimefallBlocks`, `client/` with the real-block layer), the entity type `dross:rimefall_candidate` in `registry/ModEntities`, the Python generator `tools/rimefall/` and its previews `boss-previews/rimefall/`); **Rimefall's animals** (The plan, step 14: `Rimehorn`, `Moose`, `PondSkater` and `PondSkaterPart`, `RimefallAnimals` (their spawn rules), `RimefallAnims`, every number in `RimefallMobTuning`, `client/RimefallMob*`, their entity types, sounds and spawn eggs; `tools/rimefall/mobs.py`, `rimemobs/`, `rimekit/mobkit.py` (their skeletons and animations) and `tools/rimefall/sounds.py`; previews `boss-previews/rimefall/mobs/`); **the Huntsman** (The plan, step 14 part 4: `boss/huntsman/` (his fight: `HuntFight`, `HuntStage`, `HuntGoal`, `WildHuntGoal`, `FootGoal`, `MooseGoal`, `HuntsmanPair`, `Bola`, `HuntSpear`, `SnaredEffect` (`dross:snared` in `registry/ModEffects`), `HuntsmanFightEvents`, every number in `HuntsmanTuning`; `boss/HuntsmanArena`; his spawn egg; granting "The Hunter Hunted" through Quest's helper; and `HuntsmanBarShowcase`), his boss bars (`boss/client/HuntsmanBarArt`, `textures/gui/huntsman_bar.png`), the hunter villages and his lodge (`boss/huntsman/village/`, `data/dross/structures/hunter_village/`; built in the world by `HunterVillageStructure`/`HunterVillagePiece`, `dross:huntsman_village` and `dross:hunter_village` in `registry/ModStructures`; him at home, `HuntsmanVillages`, `HuntsmanVillageData`), the hunter designs (`tools/rimefall/rimedesigns/d10_hunters.py`, `RimefallDesigns.HUNTERS`), the Frostfolk, Rimefall's villagers (`boss/frostfolk/`: `Frostfolk`, `FolkRole`, `FolkAnims`, `FolkEvents`, every number in `FolkTuning`, `client/`; their eleven entity types `dross:frostfolk_<calling>` and their three spawn eggs (`FrostfolkSpawnEggItem`: warrior, worker, elder), their voices; the model `tools/rimefall/rimemobs/frostfolk.py`, the preview `tools/huntsman/folk_preview.py`; never called hunters), his trophy candidates (`tools/rimefall/hunt_trophies.py`) and his trophies (`boss/huntsman/trophy/`: the `dross:huntsman_trophy` block, block entity and item, `client/` renderers and layer, the generated `HuntsmanTrophyModels`; made by `tools/huntsman/trophies.py`, previews `boss-previews/rimefall/huntsman/trophies/`) and their drop, the igloo templates and decorations (`HunterIglooDesigns`, `HunterIgloos`, `data/dross/structures/hunter_igloo/`, `hunter_decor/`; `tools/huntsman/igloos.py`, `igloo_designs/`), Rimefall's crops (`HunterCrops`, `HardyCropBlock`, `RimeberryBushBlock`: Frostroots, Snow Lichen, the two-block Rimeberry Bush, the Frostroot Crate and the Rimeberry Basket in `registry/ModBlocks`/`ModItems`; textures by `tools/huntsman/crops.py`), the villages' fires (`boss/huntsman/village/VillageFireBlock`: `dross:village_fire`, `village_soul_fire`), `boss/client/PartLayer` (a GeckoLib pass drawn only for the parts that show in it), the Moonsilver Spear and the Planted Moonsilver Spear (`boss/huntsman/spear/`), the mounted skulls and who drops them (`boss/huntsman/skull/`), the Python generators `tools/huntsman/` and the previews `boss-previews/rimefall/huntsman/`); the bosses' drawn
 spawn eggs (`tools/eggs/`, the picks' textures and the option sheets in each boss's `spawn_eggs/` preview folder);
-`BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made) |
+`BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made); **the fire servant candidates** (The plan, step 15: `boss/fire/` (`FireCandidate`, the generated `FireDesigns`, `client/`), the entity type `dross:fire_candidate` in `registry/ModEntities`, the Python generator `tools/fire/` and its previews `boss-previews/cinder_wastes/servants/`); **the Emberdactyl** (The plan, step 16: its looks, `FireDesigns.EMBERDACTYL` (`tools/fire/firekit/emberdactyl.py`, `firedesigns/eNN_*`, previews `boss-previews/cinder_wastes/emberdactyl/`), the fire mobs' skeletons and animations (`tools/fire/mobs.py`, `firemobs/`, the generated `boss/fire/FireAnims`, `geo|textures|animations/entity/firemob/`) and sounds (`tools/fire/sounds.py`, the generated `boss/fire/FireSounds`, `assets/dross/sounds/emberdactyl|emberyoung|pallbearer|hermit/`), and its volcano (`boss/emberdactyl/`: `EmberVolcano`, every number in `EmberVolcanoTuning`, the probe `EmberVolcanoProbeGameTest` and `tools/fire/volcano_preview.py`)); **the Cinder Wastes' mobs' looks** (`FireDesigns.CINDER_MOBS`, `firedesigns/mNN_*`, previews `boss-previews/cinder_wastes/mobs/`) |
 | Testing | `mod-tester` | Nothing. Builds, runs and reads logs only; never edits feature code |
 
 Client-only code (renderers, particle providers, book screens) goes in a `client` subpackage of the area, for example `com.reg21meme.dross.villager.client`.
@@ -1169,6 +1169,432 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       - **`/dross goto lake`** (`command/GotoLake`): the shore of the nearest lake (from you in the Dross, from the hub elsewhere), on the side facing you, facing the lake.
       - **Headless tests** (`RimefallLakeGameTest`): Rimefall's 9 nearest patches each planned (a lake in every one with room, its shore inside the patch, 4-6 holes, 2-3 herds (1-2 in a small patch) well apart and off the lake, the same when planned again); the nearest lake generated (ice or open water over water in every lake column, nothing standing on it, the holes don't freeze, a solid wall round the water, Pond Skaters until its cap (1 or 2) are on it); a herd standing at the nearest herd spot.
 
+15. **The fire servant candidates** [built: the looks only, for the user to pick from; not yet looked at in-game by
+    the user] (Boss area, `boss/fire/`; the user's request, October 26, 2026, after brainstorming fire bosses with
+    their own way of starting the fight: "give me 15 example models of what different bosses can look like ... 15
+    bosses in a line, each original, then different variations behind them, 3-4 for each", models only, mixed sizes,
+    and "make creative decisions by yourself"). The Fire Necromancer has two open servant places (the Cinder Colossus is
+    the first; the boss-site planner keeps Cinder Wastes slots 1 and 2 free, step 12); the candidates avoid what's built
+    or planned (no golem, burrowing swarm, rider pair, serpent, lake ambusher, nothing hooded, robed or winged like the
+    Snow Angel). Fifteen bosses, each its original look (A) and three variations (B-D), 60 frozen models:
+    1 **Cinder Widow** (a charred-wood spider, glowing joints; obsidian, ash-silk brood, molten belly), 2 **Brimstone
+    Toad** (magma back; sulfur crown, throat sac, old horned), 3 **Slag Scarab** (a dung beetle rolling a slag ball;
+    horned pusher, molten ball, wings open), 4 **Heat Haze** (a gaunt figure of shimmering heat; sun-bleached
+    skeleton, dust devil, three copies), 5 **Wicker Effigy** (15 blocks of charred logs and wicker, a caged prisoner;
+    burning, half burnt, kneeling), 6 **Glasswright** (a blowpipe for a mouth; glass-backed, four-armed, glass shell),
+    7 **Lamplighter** (a lantern for a head, a charred tailcoat; brazier head, candelabra, stilts), 8 **Kilnmother**
+    (a living kiln, its door a mouth; bottle kiln, pottery-laden, brick fortress), 9 **Ashen Roc** (a bird of burning
+    feathers; on its nest, bald vulture, flame-plumed), 10 **Ashen Smith** (a giant blacksmith at his anvil; tongs
+    raised, molten blade, bellows-backed), 11 **Pallbearer** (the Pyre Procession: a skull under a top hat, a burning
+    coffin on its back; held overhead, coffin burst, pyre drummer), 12 **Starborn** (Cinderfall: a star-iron creature
+    climbing out of its meteor; standing free, still curled, crawling out), 13 **Cinder Hermit** (a hermit crab in a
+    toppled bronze bell; brazier, skull, urn shells), 14 **Firestorm** (a funnel of fire round a molten core; ash
+    storm, twin funnels, eye of the storm), 15 **Lanternwing** (a moth with glowing eyespots; wings folded,
+    glass-winged, lantern belly). Every idea's story (how its fight starts) is in its design's `BLURB`.
+    - **Made by** `tools/fire/` (its README): `build.py` (`--only`, `--quick`, `--board`, `--previews-only`), the fire
+      materials `firekit/fmats.py` (flames cut out like Minecraft's fire block), `firekit/parts.py`, the designs
+      `firedesigns/fNN_<id>.py`; it reuses the Rimefall kit (`tools/rimefall/rimekit`: per-face UVs, the floating-piece
+      and flicker checks, the previews). Previews `boss-previews/cinder_wastes/servants/` (`originals.png`,
+      `all_designs_1-3.png`, `lineup.png`, `index.html`, a sheet per look).
+    - **In the game**: `dross:fire_candidate` (`FireCandidate`, like the Rimefall candidates: frozen, only `/kill` hurts
+      it, its hitbox the design's measured size; right-click: its label, name and look), drawn in four passes (solid,
+      glow, see-through, see-through glow: `client/FireCandidateRenderer`). **`/dross showcase boss_designs
+      cinder_wastes`** (`command/FireShowcase`): the fifteen originals in a row facing you across a walkway (No. 1 on
+      the left), each boss's variations in a column behind its original, lanes between the columns, a sign before each
+      model, on blackstone; the chat has a line per boss with a button per look and an [overview]. Headless test
+      `boss/fire/FireShowcaseGameTest`.
+    - **The user's picks so far** (October 26, 2026): the Pallbearer (11A, his first look, at his full 8.7 blocks) and
+      the Cinder Hermit (with ten shells) as **regular Cinder Wastes mobs**, not servants (step 16); for a servant, an
+      idea of their own after talking it over: the Emberdactyl (step 16).
+    - **Next**: the user picks (or asks for changes); then the picks' animations and fights (`BOSS_GUIDE.md`).
+
+16. **The Emberdactyl and the Cinder Wastes' mobs** [built: round 3 of the looks with their animations and sounds,
+    the volcano with its hoard; round 3 not yet looked at in-game by the user] (Boss area, `boss/fire/`, `boss/emberdactyl/`; World site's `command/FireShowcase`;
+    the user's requests, October 26, 2026).
+    - **The Emberdactyl** (the user's name; "a Rodan-like boss"): one of the Fire Necromancer's servants, a volcanic
+      pterosaur. **The user's plan** (talked over first, "no coding nothing", then built): it lives on its own volcano,
+      which spawns naturally in the Cinder Wastes at the Cinder Colossus's rate (one in every group of 3 Cinder Wastes
+      patches, the boss-site planner, step 12; not built yet), and rests there guarding its egg in the nest; it
+      attacks you once you're within about **60 blocks** of the volcano or its egg; **300 health**; mostly in the air,
+      coming down to the ground for its melee attacks; its wings whip up fire tornadoes (the servant candidate
+      Firestorm's, No. 14); once you beat it, the egg cracks and its **young reborn** form (more agile, weaker: **150
+      health**) bursts out and fights on; **the egg can't be destroyed**; **no egg trophy**.
+    - **Round 1, its looks** (archived: `tools/fire/firedesigns/emberdactyl_round1/`,
+      `boss-previews/cinder_wastes/emberdactyl/round1/`): six designs of the adult,
+      each with its young reborn form (smaller, sleeker, brighter: the user's words), and the egg: **E1 cinder crest**
+      (a swept-back crest), **E2 caldera crown** (a crater on its head), **E3 obsidian blade** (a blade crest, spines
+      along its wings), **E4 ember sail** (a sail crest, a long tail with a flame), **E5 magma hide** (plates of crust,
+      lava dripping), **E6 ash wyrm** (a double crest, a long tail, ash-grey); each about 17.8 blocks across its raised
+      wings and 8.8 tall, its young about 4.5 tall; **E7 the egg** (about 3 blocks tall, on a ring of cinders): A
+      obsidian veined with lava, B a crust of magma split by bright cracks, C smoky see-through glass with the young
+      curled up inside, glowing. **The user's picks** (October 27, after looking in-game): **E3 obsidian blade**, keeping
+      its two blade horns and "the little thingy on its beak, the half circle thing" (the fin on its bill); the
+      **obsidian egg with "the magma aspect a little more"**; and the volcano and its lava as they are. And: **wings at
+      least 35 blocks across, "like a Rodan level"** (it was 17.8), shown at sizes to decide from (their answer: 35, 45
+      and 55); "its body ... much more like the volcano" (their answer: rocky, lava running down it, the volcano's size
+      kept); and "make the egg more realistic as well, like a baby thing has to fit in the egg".
+    - **Round 2** [built October 27, not yet looked at in-game] (`tools/fire/firekit/ptero.py`: `LOOKS`, `scale_for`,
+      `build_curled`; `firedesigns/e01_ember35.py` ... `e05_emberegg.py`; previews
+      `boss-previews/cinder_wastes/emberdactyl/`, `index.html`): **E1, E2, E3: the adult with wings 35, 45 and 55
+      blocks across** (about 17, 22.5 and 28 tall), each in three looks: **A obsidian blade** (round 1's E3 as picked),
+      **B half-moon crest** (its horns half as long again, the fin on its beak made a half moon standing on the bill
+      with a glowing rim), **C volcanic** (B, its body like its volcano: dark rock crusted over lava that shows through
+      in channels down its body, wing bones and wings, two little craters smoking on its back, basalt columns on its
+      shoulders, lava dripping off it); their textures a little coarser the bigger they are (`texture_density`, so a
+      giant's texture stays a sensible size). **E4 the young reborn**, the three looks at half the 45's wingspan (about
+      22 across). **E5 the egg** (`magma_obsidian` in `firekit/fmats.py`: obsidian broken into big plates, their
+      cracks glowing, some plates molten through): **built round its young curled up inside** (sitting on its haunches,
+      its head tucked down, its wings folded round it like a cloak, its legs tucked under, its tail coiled round its
+      feet, its horns still soft and folded back), the young measured and turned so its longest way runs up the egg,
+      and the smallest egg of an egg's shape (1.32 times as tall as it's wide, its top a little narrower) that holds
+      every corner of it with a little room: so it always fits. A a little magma, B more, C lots (for the 45: about 15
+      tall and 11.4 wide); D B cut open at the front, its young curled up inside (the volcanic look), the shell's
+      inside glowing, shards on the cinders; E and F the eggs for the 35 (about 12 tall) and the 55 (about 18).
+      Archived since round 3: `tools/fire/firedesigns/emberdactyl_round2/`, `boss-previews/cinder_wastes/emberdactyl/round2/`.
+    - **Round 3** [built October 27, overnight, not yet looked at in-game] (the user's look at round 2 in-game: "I like
+      the 2nd design" (B, the half-moon crest), "a wingspan of 33 best fits", "the current baby sizes also work", and
+      their notes; `tools/fire/firekit/emberdactyl.py`, `firedesigns/e01_emberdactyl.py`, `e02_emberyoung.py`,
+      `e03_emberegg.py`): **E1A the Emberdactyl**, 33 blocks across its wings (16.5 tall as it stands), its half moon
+      standing on its bill **all along it** ("not all of the semicircle thing is on his beak"), **slimmer** (80% of
+      round 2's girth, a deep keel of a chest, no pot belly: "he seems so chubby with the bear belly"), **rebuilt
+      wings** ("his wing is not good": a thinner membrane, four rows across each stretch, its trailing edge scalloped
+      between the bones, ribs running across it, small thorns swept back along the forearm, a hooked thumb claw) and
+      **less lava on its scales**; **E2A the young reborn** at round 2's size (22.5 across) with **more lava** on it;
+      **E3 the egg** with **less shell** (2 units thick, snug round its young curled up inside: about 13.4 tall and 10.4
+      wide), A a little magma, B more, C lots, D cut open. Every part on its own bone (`s.part`), so the same code builds
+      the statue and the animated mob.
+    - **Animations** [built October 27, overnight] (the user: "work on the animations"; `tools/fire/mobs.py`, the
+      modules `firemobs/emberdactyl.py`, `emberyoung.py`, `common.py`; the Rimefall animals' kit, legs and wing wrists
+      planted with the golem IK; every frame checked for clipping and the floor): **hover** (its idle: slow heavy beats
+      over its nest), **fly**, **glide**, **dive** (wings swept back, the plunge, a flare out), **screech** (it rears,
+      wings up, then throws its head forward and screams, its head and wings shaking), **gust** (wings drawn back, one
+      huge beat: the fire tornadoes' moment), **grab** (a swoop, legs forward, talons closing), **snap** (a beak lunge on
+      the ground), **perch** (on its legs and wrists, the wing fingers folded up its sides like a pterosaur's), **walk**,
+      **death** (a last scream, wings flailing, onto its belly, wings spread). **The young makes the same moves 1.6 times
+      as fast** (the user's stage 2 rule: "bam bam ... no rest"), higher off the ground in the air (its swept wings hang
+      lower). Previews: `boss-previews/cinder_wastes/emberdactyl/animations/` (a GIF of each, `index.html`).
+    - **Sounds** [built October 27, overnight] (`tools/fire/sounds.py`, all synthesized from scratch with the Rat King's
+      synthesizer): **its screech** (the user: "for his screech I want to copy Rodan"; the film's cry is the studio's, so
+      an original one in its spirit: a huge, high, piercing shriek with a fast warble and a metallic, ringing edge,
+      echoing as if across a valley), three versions to pick from (a long rising-falling shriek; a "kraa" bark then the
+      long "eeeaah"; a trilling, stuttering one), the young's higher and shorter; rattles and squawks, wingbeats, the
+      gust's whoosh and roar of flame, the dive's rising wind, the obsidian beak's snap, talons, hurt, death (a falling
+      scream, a croak, the crash), steps. Events `entity.emberdactyl.*`, `entity.emberyoung.*`; the page
+      `boss-previews/cinder_wastes/sounds/index.html` plays every version; **`/dross showcase boss_sounds emberdactyl`**
+      (`command/FireSoundShowcase`) lists them with [play] buttons. The showcase models play them at their animations'
+      moments (`FireSounds.CUES`: the screech at its scream, a wingbeat each beat, the gust...), quiet until a control or
+      a right-click starts an animation.
+    - **Round 4: the user's look at round 3 in-game** [built October 27, not yet looked at in-game] (the user's notes,
+      the same day; `firekit/emberdactyl.py`, `firemobs/emberdactyl.py`, the new `firemobs/wingfold.py`,
+      `firedesigns/e01-e03`, `tools/fire/sounds.py`):
+      - **Its screech, Rodan-like and kaiju-sized** ("again I want the scream to be Rodan-like ... make all the noises
+        deeper, a kaiju-level noise"): three new screeches, all synthesized (never a film's recording): a huge shriek of
+        five detuned voices with Rodan's fast warble (13-20 Hz) and a metallic ring, over a roaring throat two and three
+        octaves down, a sub-bass weight and a valley echo (cliffs at 0.38, 0.82 and 1.31 s, a 3 s tail): 1 a long
+        warbling shriek rising out of a growl, 2 a harsh "KRAAK!" then the long scream sliding down, 3 a stutter of
+        chopped bursts breaking into a long falling roar (about 5.5 s each with the echo). Every other sound of its
+        deeper and bigger too (wingbeats air whumps falling to 24 Hz, the gust, the dive, the snap, steps, the death),
+        the young's deeper than before but still higher and shorter than the adult's. The snap's clack and the death's
+        crash now land on their animations' moments. `sounds.py --only emberdactyl,emberyoung` rebuilds just these.
+      - **Its mouth** ("his teeth stay with his body and part of the inside of his mouth is out; remove that lava part
+        near his mouth, only keep his tongue"): the teeth are rooted in the bills' edges, 6 a side in the upper (on the
+        head), 5 in the lower (on the jaw), so each row opens with its jaw; the glowing lava lump in its throat is gone;
+        only a tapered tongue lies inside the lower jaw.
+      - **Its wings never through its body** ("when flying the back half of his wing intersects with his body"; "when
+        he walks part of his claw or his wing goes through his body"): each membrane starts where the arm leaves the
+        body, its root 3 units off the flank, and each stretch hangs on a bone of its own along its hinge; after every
+        frame is posed each stretch folds about its hinge by the least amount that keeps it out of the body, legs, tail,
+        neck, head and the floor, eased over time (`wingfold.py`); on the ground the membranes are furled up its arms
+        (`GROUND_FURL`), its wrists planted further out (`WRIST_OUT`), the dead pose's legs out behind it. The clipping
+        check now holds the membranes, arms and wing bones off its body and head: no clipping in any animation, adult or
+        young.
+      - **The young much more magma** ("not enough"): its hide, belly, wing bones, horns and brow lava under a thin
+        obsidian crust (wide glowing channels), its membranes fully veined with lava.
+      - **The egg mostly obsidian, its inside all lava** ("less magma ... mostly obsidian, a gradient, and the inside is
+        all magma and lava"): glassy obsidian from near-black at its foot to violet at its top (`shell_obsidian`), no
+        magma traces; E3A obsidian fade, E3B ember foot (a dim red glow fading up its lower part; in the nest), E3C faint
+        cracks, E3D cut open, its lining all lava and a pool of lava in its bottom.
+      - **Ten eye studies, Rodan-like** ("give me variations on his eyes, similar to Rodan"): **E1A1-E1A10**, the
+        adult's head and neck at full size (about 16 blocks wide), each with its own small, deep-set, glowing eye under
+        a heavy brow: 1 amber beads, 2 ember slit, 3 white-hot coal, 4 blood ember, 5 raptor gold, 6 pinpoints, 7 fire
+        rings, 8 spark eyes, 9 spiked brow, 10 lava tears (`EYE_STYLES`, `build_eye_study`); in the gallery in rows of 5
+        behind the rest (`FireShowcase` `STUDY_GAP`, `STUDIES_PER_ROW`), a chat line with a button for each. The adult
+        keeps its own eyes until the user picks.
+      - **Fire falling from its wings as it flies** ("fire needs to fall from his wings like particles, and later in
+        the battle actual fire"): 10 marker bones along each wing's trailing edge and its tip (`ember_l0-9`, `ember_r0-9`);
+        while it hovers, flies, glides, dives, gusts, grabs or screeches, each wing sheds flames, embers cooling from
+        orange to dark red as they fall (`DrossColors.EMBERDACTYL_WING_EMBER`, `_COOL`), now and then a drop of lava and
+        some smoke, carried along by the wing's own movement; the young sheds 1.7 times as much
+        (`client/EmberWingFire`, from GeckoLib's bone tracking; only within 160 blocks, none on Minimal particles). Real
+        fire in the fight comes with the fight.
+    - **Round 5: the user's look at round 4 in-game** [built October 27, not yet looked at in-game] (their notes and
+      answers the same day; the plan agreed first: "talk to me first before coding, then I will give approval"):
+      - **Its eyes: E1A2, the ember slit** ("E1A2 is the best eyes, the evil-looking ones"; `ADULT_EYE = "slit"` in
+        `firekit/emberdactyl.py`); **the young's plain round amber eyes** ("make the smaller eyes not evil and just
+        normal again", `YOUNG_EYE`). The ten studies are gone from the game, the gallery and its test (archived in
+        `firedesigns/emberdactyl_round3/e01_eye_studies.py`; `EYE_STYLES` and `build_eye_study` kept).
+      - **Its wings never cross each other** ("the wings clip through each other ... when he goes back to charge it
+        up"): `wingfold.crossings()` checks the left wing's membranes against the right's in every frame (and
+        `CLIP_PAIRS` the wings and arms against each other); the dive (`DIVE_SWEEP`, `DIVE_FOLD`) and the death's
+        flailing (`FLAIL`, `DEATH_RAISE`) were crossing and no longer do.
+      - **In the gust's wind-up its wings close together over its back** ("the back of the wings needs to be touching
+        each other at their own backs ... make his wings close up when he does the dust tornado attack"), touching but
+        never through each other (`GUST_CLOSED`), its neck and head bowed so its horns stay clear (`GUST_HEAD`), then the
+        one great beat opens them. Its eyes stay open (the user: closing them only in death).
+      - **The membranes nearest its body in flight** ("the parts of his wing closest to his body when he flies clip
+        through each other ... it just doesn't look natural ... those two parts spike up, make them smaller"): the inner
+        membrane narrower (`INNER_CHORD` 0.6), neighbouring stretches folding almost together (`COUPLE` 0.92) so the
+        wing bends as one surface, and in the screech the inner membranes drawn in along the arm as its wings rise
+        (`SCREECH_FURL`; they stuck up over its back like boards).
+      - **Sitting down** ("the geometry on the part of him that sits down looks messy, clean that up"): on the ground
+        (perch, walk, snap) the two inner membranes bunched in a band along the arm and the three outer ones folded
+        away, the bare wing finger folded up along its forearm (`GROUND_FURL`); no slivers of membrane left.
+      - **Three deaths for the adult, to pick from** ("for the big one, death: magma cracks and stuff, he closes his
+        eyes ... maybe consider making his body break up into pieces"; their answer: "give me options"): eyelids
+        (`lid_l`, `lid_r`, hidden behind its eyes until a death) and glowing magma cracks spreading over it (the
+        `_cracks` texture, drawn full-bright by `client/FireDeathLook`): **death** (5.0 s: it falls, its eyes close,
+        the cracks spread), **death_break** (6.2 s: then it shudders and breaks at 4.2 s: its wings split at their joints
+        and slide apart over the ground, eight pieces of crust burst out of its body, tumble and land flat; bones
+        `chunk_0`-`chunk_7`, hidden inside it until then), **death_crumble** (7.7 s: its wings crumple back, its neck
+        slumps, the crust heaves up and settles over its back as a heap of rock, the cracks cooling). Sounds: its death,
+        then the stone breaking (`entity.emberdactyl.break`, 2 versions) or crumbling (`.crumble`).
+      - **The young crystallizes into obsidian like the Colossus** ("when the little one dies make it crystallize into
+        obsidian like the Colossus"): its **death** (4.1 s): it falls, closes its eyes and hardens into an obsidian
+        statue that stays (the `_statue` texture fading in over its glow; `entity.emberyoung.harden`).
+      - **Its sounds** (their picks: "I like the hurt, talon crunch and the wing: keep both versions and alternate them;
+        the dive, alternate them; both versions of the tornado; all 3 of the rattle"; "for the bigger kaiju it needs to
+        be deeper"): every version of those is kept and played in turn (each model takes the next one each time; each
+        version also its own event `<event>.v<n>`, with a numbered button in `/dross showcase boss_sounds emberdactyl`);
+        **the young keeps the three screeches of round 4** (the user's "okay with the voice right now ... with the
+        younger one") and **the adult has three new ones an octave deeper**, a kaiju's (1 the long call: up out of a
+        growl, held and trilling, sinking into a roar; 2 two harsh barks, then the long scream; 3 a rattling throat-trill
+        breaking into a long, falling, growling roar).
+    - **Its volcano** (the user: "a tall, steep volcano with an open crater: a lava lake at the top and the nest on a
+      basalt pillar ... lava streams, smoke, scorched bones, and a climbable path ... make this one have much more lava,
+      like heaps of lava"; `boss/emberdactyl/EmberVolcano`, every number in `EmberVolcanoTuning`): 70 blocks tall, its
+      foot about 58 out (pushed in and out in lobes), the flanks steepening to a jagged crest 18 out with basalt
+      spires, ridges and a gully under each river; in the crater a **lava lake** (13.5 round, 4 deep, 13 under the rim)
+      and in its middle the **nest's basalt pillar** (6 out of the lake, a ring of bone blocks and charred logs round a
+      bowl of ash and magma, where the egg lies); **8 lava rivers** down the flanks, each a cascade of lava pools sunk
+      into its gully (a rock lip of magma and obsidian holding each pool over the next), a **lava pool at each river's
+      foot** with a field of cooled crust round it (lava showing through), and **26 lava pockets** between them: about
+      5,400 lava blocks in all; **every lava block has lava or something solid under it and on its four sides** (the
+      Colossus lairs' rule), so it's all still lava that never spills (worked out before anything's placed: a neighbour
+      that falls short is raised with rock to the lava's top, a lower pool's first row becomes the lip; the lava goes
+      in last, in one tick); a **path** winds up from its foot in front (where you stand) half way round the cone,
+      never climbing more than a block a step, to a **lookout** on the rim over the crater, lanterns on bone posts
+      beside it, lava kept 2 blocks off it; **signal fires** hidden in the crest (their smoke columns), 30 **cinder
+      vents** (smoke and embers), obsidian shards; **scorched bones**: two great ribcages half buried at its foot, bone
+      piles, skeleton and wither skulls; drifts of ash on its upper flanks; the ground round it re-laid as ash and
+      basalt out to 15 blocks past its foot, thinning out over the land beyond. Built a piece at a time (at most 40 ms
+      a tick, its chunks held by tickets; about 340,000 blocks, half a second of work in all). Since round 2 the nest's
+      pillar is wider (7.8 across its top) to hold the bigger egg, its ring of bones and logs just clear of it. **The
+      hoard** (the user, October 27: "add chests or gold at the top or ores and stuff"): two chests at the lookout, either
+      side of it, **empty for now** (the user, the same day after looking: "remove all the loot from the chests, I will
+      decide what to put in them later"; their loot table is gone), gold blocks, raw gold and gilded blackstone heaped
+      round the lookout (`HOARD_GOLD` 16),
+      gold in the nest's ring round the egg (`NEST_GOLD` 0.3) and Dross ores (gold, Moonsilver, Stormite) glinting in the
+      crater wall (`CRATER_ORES` 0.06). **The path made plain** ("make the path up a little more obvious"): paved with
+      polished blackstone bricks, **a border of pale bone blocks** along both edges (two pale lines up the dark cone by
+      day), **a shroomlight set into its middle every 3 blocks** (`PATH_LIGHT_EVERY`: a dotted line of light by night)
+      and lanterns on bone posts every 6 (`PATH_LANTERN_EVERY`, was 9). **For now only the
+      showcase builds it**; its place on the boss-site planner, the Emberdactyl's fight and its young come later.
+    - **The Cinder Wastes' mobs** (the user's picks of the servant candidates, as regular mobs that will spawn there;
+      only their looks for now: `firedesigns/m01_pallbearer.py`, `m02_hermit.py`; previews
+      `boss-previews/cinder_wastes/mobs/`): **M1A the Pallbearer** (11A as the user picked it, at his full 8.7 blocks:
+      the user, "the pall bearer stay full size") and **the Cinder Hermit in eight shells** (the user: "make 10 different
+      shells for the hermit crab"; then, October 27, of M2H and M2G: "pretty lazy, remove it, no need to add a
+      replacement"): M2A bronze bell, M2B iron brazier, M2C horned skull, M2D funerary urn, M2E magma conch, M2F crystal
+      geode, M2I giant lantern, M2J colossus shard (the letters kept as the user saw them; the knight's helm and the
+      charred stump are gone). **Their fire moves** (the user, October 27: "make his fire animated on his coffin", "make
+      the fire animated again for M2B"): a moving design's flames are painted again at 8 moments of their loop
+      (`fmats.FLAME_TIME`, `FLAME_FRAMES`: the flames' tongues rise 12 units a loop and the last frame runs straight on
+      into the first), `<model>_fire<k>.png` and `_glow`, and the game shows the frames in turn, 2 ticks each, every
+      model a little out of step (`FireAnims.FIRE`, `client/FireCandidateModel`): the Pallbearer's burning coffin and
+      the brazier's fire. **The Pallbearer's censers** (the user: "the bell for the pallbearer goes through the coffin")
+      hang from short iron arms out of the coffin's head-end corners, 18 units out from its middle (`f11_pallbearer`
+      `CENSER_OUT`, `CENSER_CHAIN` 20), clear of its widest part, swinging mostly to and fro (`CENSER_SIDEWAYS` 0.18);
+      the clipping check now holds them off the coffin, his body, arms and head (they used to hang from inside its
+      sides).
+      **Their animations** [built October 27, overnight] (the user: "make animations and stuff for the other mobs, the 2
+      mobs we decided on, and showcases for all of that"; `firemobs/pallbearer.py`, `hermit.py`, legs planted with the
+      IK): the Pallbearer's **idle** (bowed under the coffin, the censers swinging), **walk** (a slow funeral march),
+      **swipe** (a backhand), **slam** (the coffin heaved up and its weight brought down), **roar**, **death** (to his
+      knees, slumped); the Cinder Hermit's (one model per shell, the crab the same in all) **idle**, **walk**, **snap**
+      (the magma claw raised and slammed shut), **pinch** (two nips of the small claw), **hide** (folded up, all the way
+      into its shell, the shell settling), **peek** (antennae and eyes first; it stays peeking), **come_out**, **death**. **Its hide and peek
+      fitted to each shell** (the user, October 27: "the sides of the hide animation have to be fixed, where the entire
+      crab hides; peek as well, for each one": its legs and claws showed out of the shells' sides): it folds its legs
+      back along its body and its claws in before its face (the tightest folds found by a search, `LEG_TUCK`,
+      `BIG_TUCK`, `SMALL_TUCK`), curls up a little smaller and backs straight in through the shell's mouth, which
+      settles onto the ground; how far it backs in, how high and how much it curls up are worked out for each shell
+      (`HIDE` in `firemobs/hermit.py`, by `tools/fire/hermit_fit.py`: once in, nothing of it shows from any side, a ray
+      from every part of it every way but down meeting the shell, and nothing of it is behind the mouth but in line
+      with it); each model has its own animation file (`firemob/<model>.animation.json`, `FireAnims.Mob.perModel`).
+      Its peek: it comes back to the mouth with its eyes leaning out on their stalks, its antennae and eyes showing
+      first. Previews
+      `boss-previews/cinder_wastes/mobs/animations/`. **Their sounds**: the Pallbearer's groans, funeral drum, rattling
+      roar, swing, slam, hurt, death, steps; the hermit's clicks, its bronze bell's clang, the claw's snap, hiding, hurt,
+      death, steps (`entity.pallbearer.*`, `entity.hermit.*`; **`/dross showcase mob_sounds cinder_wastes`**).
+      **Round 5: the user's look in-game** [built October 27, not yet looked at in-game] (their notes the same day):
+      - **The Pallbearer's fire comes out of the coffin** ("his fire sits weirdly ... make it come out of the coffin
+        rather than sit on air or on the surface of the coffin"): its lid split in two along a glowing crack
+        (`f11_pallbearer.LID_CRACK`) with flames licking up out of it, and its head end burnt through, the fire pouring
+        out of the hole; no flames standing on the lid any more. The black sash's tail no longer reaches his thigh ("the
+        black thing in his leg clips weirdly"). **The swipe swings his whole arm from the shoulder** ("make him swipe his
+        arm, not his elbow"): raised out to his side, swept across in a backhand with his body twisting into it
+        (`SWIPE_*` in `firemobs/pallbearer.py`). No clipping in any of his animations now (his legs against his torso
+        newly checked; the roar's arms held further back, the slam's skull bowed less).
+      - **His roar and death, three versions each to pick from** ("his roar sounds generic and weird, give me a deeper
+        skeleton-esque evil roar ... an evil Halloween-esque death sound with his bells playing"; their answer: "give me
+        options"): roar 1 the crypt roar (the jaw creaks open, a deep hollow roar with a ghost a tritone over it), 2 the
+        death rattle (a gargling growl rising to a howl, teeth chattering, a hiss), 3 the demon choir (three hollow
+        voices out of tune, a whisper, the jaw creaking shut); death 1 the falling wail (a ghostly wail sinking away,
+        his censers clanging, the last toll), 2 the bells' dirge (three tolls each a quarter-tone flatter over a deep
+        moan), 3 the dying laugh (an evil cackle slowing and sinking, the collapse, the last toll); the showcase plays
+        1 until the user picks (`pick` in `tools/fire/sounds.py`; each version also its own event `<event>.v<n>`, with
+        a numbered button in `/dross showcase mob_sounds cinder_wastes`).
+      - **The bell (M2A) is a real bell** ("that doesn't look like a bell, change that up"; "this body doesn't fit
+        right"; "you can see the bell hermit crab while hiding"): a round bronze church bell, 12 boxes round
+        (`m02_hermit.bell`, `BELL_*`), its thick lip, flare, long waist and shoulder rounding into a domed crown with
+        its canon and hanging loop, two raised bands, the glowing crack; lying on its side tilted 14 degrees so it rests
+        on its lip and its shoulder; its mouth behind the crab's hips, so its legs come out of the mouth instead of
+        through the bell's sides; the dark inside fills its round mouth (level strips, `_mouth_strips`, their corners
+        hidden in the lip). The crab curls up to half its size to hide in it (`HIDE["bell"]`).
+      - **The lantern's glass is sooty** ("it's weird seeing his body ... through his shell while he hides"): smoked,
+        soot-black glass you can't see through, the flame glinting only through its cracks (`SOOT_GLASS`); and
+        `hermit_fit.py` now counts any shell material painted see-through (glass, the geode's crystals) as see-through,
+        so no shell can hide the crab behind clear glass.
+      - **The horned skull (M2C) has teeth** ("add more personality, like teeth to the skull"): fangs hanging from its
+        upper jaw round the crab's door (the long ones at its corners), broken stumps below, brow ridges over its
+        sockets and a glowing crack across its crown, all clear of the crab.
+      - **Peek and come out are two animations** ("make their eyes come out, look around, then make a separate come-out
+        animation"): **peek** (3.2 s) from hiding: up to the mouth, its antennae and eyes out first, looking one way and
+        the other, a twitch, and it stays there peeking; **come_out** (1.2 s) from there: it climbs out, its shell lifted
+        back up, and unfolds (the "Cinder Hermit climbs out" sound). Both fitted to each shell like the hide.
+      **Round 6: the user's look at round 5** [built October 28, not yet looked at in-game]:
+      - **Why the Pallbearer couldn't let go** (the user: "explain why the pallbearer can't let go of one hand to
+        sweep; he doesn't sweep with his whole arm still"): his arms are built bent double, the forearm folded back up
+        so the fist grips its strap at his chest (about 43 degrees between upper arm and forearm), and the swipe only
+        ever unbent the elbow back to that, so the folded arm swung with its fist still at his chest. Now the elbow
+        opens (`SWIPE_KEYS`: forearm turns that straighten it, and shoulder turns solved for where the straight arm
+        points, from the model's own pose matrices): his fist leaves the strap, his arm comes up across his chest, then
+        sweeps out straight and wide to his right (the blow), following through behind him. **The roar** flings both
+        arms open, out and up (`ROAR_ARM`, `ROAR_FORE`; "his arms go inside his body when he roars": the old pose swung
+        the folded arms back into his ribs, and the clipping check never held his arms off his body). The check now
+        holds his arms off his torso and the coffin too (`CLIP_PAIRS`): no clipping in any of his animations.
+      - **The hermit's antennae** ("the mustache goes through his big claw"): on bones of their own (`antenna_l`,
+        `antenna_r`), rising up and out over its claws (`f13_hermit.ANTENNA_PATH`), checked against both claws and its
+        eyes; laid back over its head and curled in as it folds up (`ANTENNAE_IN`).
+      - **Its peek shows only its eyes** ("for the peek I just want to see his eyes, not his claw and stuff"):
+        it stays folded in its hiding place and only its eyes slide forward on their stalks, out of the shell's mouth
+        (`PEEK_EYES`, `PEEK_RISE`; HIDE's P is now how far they slide), so its claws, antennae, legs and body never
+        show (`hermit_fit.py` checks them all hidden, `PEEK_HIDDEN`); come_out slides them back first. (Swinging its
+        claws back out of the way was tried: the crab had to shrink to a quarter of its size to fit.)
+      - **The skull's maw** ("the grey box in the middle of the skull's entrance"; the dark looking out of place): its
+        old muzzle stuck out through the dark from behind, a grey bar across the mouth; now an open maw: the upper jaw
+        jutting over it with the fangs, the lower jaw's edge under it, cheekbones either side (behind the crab's legs)
+        and the dark of its throat set back between them.
+      - **The urn's mouth** ("the black thing for the funerary urn" looked out of place: a square sticking out under
+        its narrow neck, which was above the crab): the urn lies fully on its side, its wide round neck and flared lip
+        at the crab's height (`URN_*`, built round like the bell), the dark filling its round mouth, a painted band.
+      - **Sounds**: the adult's screech is always version 1 (the user: "1 is the best easily"); its death cries in the
+        same deep voice (`DEEP`; "make sure his death pitch is as deep" as it); its rattle 2 deeper; **the young's
+        screech: a squawk, the very same squawk again, then the long scream** (round 4's screech 2 with its bark twice,
+        `ed_screech(barks=2)`; the user: "the first squawk repeated twice, so it's squawk, squawk, then main scream").
+      - **The Emberdactyl's deaths** ("make his wing lay down on the ground when he dies"; "his neck can not support
+        this, dead lol, basic physics"; "if he breaks then this stuff should be flying in the air"; the crumble
+        "sucks": the user chose to have it remade): dead means limp, worked out once from the model (`dead_pose` in
+        `firemobs/emberdactyl.py`): on its belly, its legs out behind, each wing laid flat on the ground, its neck
+        sloping down until its head rests on the ground (its turn searched so the horns lie as low as they can), its
+        tail down, everything resting just off the floor; the fall turns each bone the short way into it (adult and
+        young). **death_break** (6.6 s): at 4.2 s its wings' fingers and tips break off and are thrown up about 4
+        blocks, rolling over and landing flat further out, and its 8 crust chunks burst up about 4.5 blocks on
+        ballistic arcs, tumbling, each landing on clear ground. **death_crumble**, remade (8.9 s): the cracks spread,
+        each wing crumbles from its tip inward (tip, finger, hand, forearm, one every 0.35 s), its head caves in, then
+        its neck, its body sinks into a growing mound as its crust sloughs off and piles round it, ending as a low heap
+        of rubble as the cracks cool (`FireDeathLook`'s keys to match). No clipping, nothing under the floor.
+      - **The boss bars' names** (the user's pick of eight pairs, with a colon): **"Emberdactyl: The Sky That Burns"**
+        for the adult and **"Emberdactyl: The Ember That Remains"** for the young (lang keys
+        `boss.dross.emberdactyl.bar.adult`, `.young`, for its fight).
+      **Round 7: the user's look at round 6** [built October 28, not yet looked at in-game]:
+      - **The Emberdactyl's death: the break** (the user: "I prefer the break one ... stick to this one"; the plain death
+        and the crumble are gone, and the crumble's sound): its `death` (6.9 s) is the break; at 4.2 s its bill, jaw,
+        both blade horns and the half moon break off its head too (bones `bill`, `horn_l`, `horn_r`, `crest`, adult only)
+        and fly up about 6 blocks, tumbling, with its wings' pieces and then its 8 crust chunks; **nothing floats**
+        ("make sure those chunks don't float"): every piece comes to rest lying flat with its lowest point on the ground
+        (0.05 units off it, `REST_GAP`), checked on every build (`rest_check`), and the skull drops onto the ground once
+        its bill and jaw are gone. Its sound cues: the scream, then the stone breaking at the break.
+      - **The Pallbearer's sounds, the user's picks**: **roar 3, the demon choir**; **death 3, the dying laugh**, now with
+        his censer bells jangling through the laugh and, after the collapse and the toll, the bells withering away
+        (five rings, each fainter, slower and a little flatter) and a slow creak as the last one dies ("include the bells
+        with that, and the creaking at the end as the bells wither away"); **his footsteps much louder** ("make his foot,
+        like his walking, much louder": full volume, a firmer thump, a bony knock and crunching ash, its peaks squeezed
+        so the whole step comes up loud).
+      - **The hermit's peek: its eyes really out, apart** ("the peek needs to be out more, like he is physically
+        looking outside, with his eyes and the part that connects to his body"; "separate the eyes, not together"): its
+        eyes slide forward on their stalks until the stalks are out too, their roots still inside the shell's dark
+        (`hermit_fit.py`: the furthest slide that keeps the stalks' feet hidden), each eye a little out to its own side
+        (`PEEK_SPREAD`), the stalks splayed apart (the splay used to lean them together: its sign was wrong).
+      - **The skull's peek through its eye holes** ("make a custom one where he looks through the eye holes instead of
+        the centre"): its eyes come up inside the skull and peer out of its two sockets (`HIDE["skull"]["E"]`, aimed by
+        `hermit_fit.py` at the sockets' fronts; they turn only a little in them); its upper jaw lowered under the sockets
+        so they show, its inner fangs shorter.
+      - **Round mouths that fit the shells** (the geode's "black basalt bar thing" and the black boxes that "end
+        outside what a natural shell would look like", the shard's and "the iron brazier's"): each a round rim set into
+        the shell's front (`m02_hermit.round_mouth`: BELL_SIDES boxes round, sunk into the shell behind and standing a
+        little out in front) with the dark filling it: the brazier's of iron (its struts turned so none crosses it), the
+        geode's of its basalt rind, ringed with amber crystals, the shard's of obsidian.
+      **Round 8: the user's look at round 7** [built October 28, not yet looked at in-game] ("besides that everything
+      else is good"):
+      - **The snap clear of its antennae** ("his snaps still go through his tentacles"): as the claw rises its antennae
+        sweep back and out (`SNAP_ANTENNAE`) and come forward again after the blow; dying they flop out to its sides
+        (`DEATH_ANTENNAE`: they drooped into its big claw). The clipping check now tries every pair both ways
+        (`CLIP_PAIRS`): a thin antenna's few points can sit right inside a claw whose points never land in it, which is
+        how the snap slipped past it.
+      - **The peek: its eyes pop out through the mouth, never through the top of the shell, and look left and right**
+        ("I need the eyes to pop out in a way where they don't clip through the top of the shell ... not just to peep
+        out but also look left and right"): like a real hermit crab's, its big claw is the shell's door: it drops a
+        little (`D`, `D2`; the folded crab may sink `Y`), its eyes rise over it while still folded back (`H`), point
+        out ahead, drawn in small (`PEEK_AIM_SCALE`), slide out through the mouth (`P`; the skull's to its eye holes,
+        `E`), pop up to their full size past the rim (`R`, `O`, splayed apart), then look one way, the other and back
+        (4.1 s): both stalks swing to that side (`LX`) and turn (`LK`), standing up and turning about the point where
+        they leave the mouth (`F`), so they never sweep into its rim; come_out (2.45 s) takes them back in the same way,
+        the claw closes, and it climbs out. Each shell's settings are searched by `tools/fire/hermit_fit.py` (`HIDE`
+        in `firemobs/hermit.py`) under new rules: its eyes never seen outside the shell's openings (through its top or
+        sides), never into its rim in front of the mouth's dark, never into its claws or antennae (both ways), the
+        rest of it hidden, the stalks' roots inside (its eyes and claws may pass each other only deep in the shell,
+        out of sight). `mobs.py` runs the same check on every build of a hermit (`hermit.model_check`). Before, its
+        eyes lifted over the folded claw cut up to 5 units into the shell. As found: every shell's eyes out at the
+        crab's full eye size, looking 30-40 degrees each way and swinging 4-10 units to the side (the bell, urn, conch
+        and lantern the most); **the skull** (`hermit_fit.fit_skull`): its eyes slide straight to the middle of its
+        eye holes and stop just in front of them, a little smaller (`O` 0.5) and pointing straight out, looking 30
+        degrees and 3 units each way (the holes' dark and the bone round them overlap, so there its eyes may brush the
+        edge by 1 unit, `SKULL_CLIP`).
+    - **In the game** (the same frozen `dross:fire_candidate`, step 15; `FireDesigns.EMBERDACTYL`, `CINDER_MOBS`):
+      **`/dross showcase boss_designs emberdactyl`** (`command/FireShowcase`): the adult, the young and the egg's four
+      looks facing you, signs, [go] buttons; then the volcano goes up behind them (about a minute), and once it stands the
+      egg with more magma (E3B) lies in its nest and the adult (E1A) hovers over the crater, just clear of the egg's
+      top, with chat buttons [volcano] (the whole cone from in front), [path] (its foot) and [crater] (the lookout over
+      the nest). **The designs that move** (the adult, the young, the Pallbearer, the hermits; `FireDesigns`' `mob`)
+      wear their mob's skeleton and play its animations (`FireCandidate`: a synced animation and a count, a GeckoLib
+      controller; their idle until asked; `client/FireCandidateModel` reads `firemob/`); the chat has a button per
+      animation (**`/dross showcase boss_designs emberdactyl <animation>`**, **`/dross showcase cinder_mobs
+      <animation>`**: every one of that gallery's models within 220 blocks that has it plays it), and right-clicking one
+      plays its next. **`/dross showcase cinder_mobs`**: the Pallbearer and the eight hermits in a row. Headless tests
+      (`command/FireGalleriesGameTest`): the gallery's models each once, facing back; the volcano
+      built on a flat plain: every planned lava block still lava, a source, walled under and on all four sides, and 6
+      seconds later just as much lava and none flowing; its rim at its height; its path walkable from its foot to the
+      lookout, a block a step at most; the egg on the nest with its ring of bones and logs, the adult hovering where it
+      was put; the mobs in one row, each once, and their controls (all walk, the hermits hide); every moving design's
+      model, texture and animations in the mod at the lengths `FireAnims` says, every sound cue pointing at a real
+      sound (`fireAnimationsAreInTheMod`). Previews of the volcano itself (`volcano_front`, `_back`, `_night`,
+      `_map`, `_crater`.png) are drawn by `tools/fire/volcano_preview.py` from the blocks the game placed (the probe
+      `boss/emberdactyl/EmberVolcanoProbeGameTest`, its own GameTest namespace `dross_volcano`).
+    - **Next**: the user looks at round 3, its animations and sounds (picks a screech) and the volcano's hoard and path;
+      then its fight (a body that big needs several hitboxes, like the Alpha Moose's), its young, its volcano on the
+      planner and the mobs' behaviour (`BOSS_GUIDE.md`). The night's decisions: `tools/fire/NIGHT_REPORT_2026-10-27.md`.
+
 ## Terrain v1 [built, branch `terrain-v1`]
 The user's request and answers (October 2026), kept as a record. Built in stages on branch `terrain-v1`, each checked headlessly and committed; the user play-tested it twice and their feedback is built in. The full report, every choice made and the in-game checklist are in `TERRAIN_REPORT.md`; the design now lives in The plan (steps 1, 4, 5 and 8) and the Areas table.
 
@@ -1238,7 +1664,35 @@ keeping off walls; at most 3 passages in a cluster of igloos; the Alpha Moose's 
 in-game). Then: every other skull a bull's (the Alpha's only on his lodge's and barn's fronts), the Moonsilver Spear's
 enchantments (Sharpness or Smite, Impaling, Looting, Knockback, Channeling), and a moose mother keeping to her calf
 even when you hurt her (the user checked these in-game: "all good"). Then: no planted spear under a block (they stuck
-up through the igloos' snow; not yet looked at in-game). The README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
+up through the igloos' snow; not yet looked at in-game). Then (October 26, branch `fire-designs`, not committed until
+the user picks): the fifteen fire servant candidates with their variations (step 15; checked by a scripted in-game run),
+then the user's picks from them as Cinder Wastes mobs (the Pallbearer, the Cinder Hermit's shells) and their own
+servant idea, the Emberdactyl: six looks with their young, three eggs and its volcano (step 16; checked headlessly, not
+yet looked at in-game). Then (October 27) round 2 (the user's pick at 35, 45 and 55 blocks, a volcanic look, an egg
+sized round its young), which the user looked at in-game; then, overnight, round 3 (their pick, B, at 33 blocks,
+slimmer, new wings, its half moon along its bill, the young with more lava, a thinner egg), the animations of the
+Emberdactyl, its young, the Pallbearer and the Cinder Hermit with their showcase controls, their original sounds (an
+original Rodan-like screech in three versions), and the volcano's hoard and plainer path (checked headlessly, not yet
+looked at in-game). Then the user's look at round 3 (October 27): the Emberdactyl's Rodan-like kaiju screeches and
+deeper sounds, its mouth, its wings kept out of its body, the young's magma, the obsidian egg, ten eye studies and fire
+falling from its wings; the Pallbearer's coffin fire and the brazier's moving, his censers clear of the coffin; M2G and
+M2H gone; the hermit's hide and peek fitted to each shell; the hoard's chests empty (not yet looked at in-game). Then
+the user's look at round 4 (October 27): the Emberdactyl's ember-slit eyes (the young's plain), its wings closing over
+its back in the gust and never crossing, neater membranes in flight and on the ground, three death endings and the
+young's obsidian death, the sounds they liked played in turn and a deeper adult screech; the Pallbearer's fire out of
+his coffin, his whole-arm swipe and three roars and deaths to pick from; the hermit's real bell, toothy skull, sooty
+lantern glass and its peek split from its come_out (not yet looked at in-game). Then the user's look at round 5
+(October 27-28): the Emberdactyl's limp dead pose with its wings flat, death_break's pieces flying, death_crumble
+remade, its deeper death sound and rattle 2, screech 1 picked, the young's squawk-squawk-scream, the boss bar names;
+the Pallbearer's whole-arm swipe (his elbow opening) and open-armed roar; the hermit's antennae over its claws, an
+eyes-only peek, the skull's open maw and the urn's round mouth (not yet looked at in-game). Then (October 28) the
+user's picks of round 6: the Emberdactyl's break as its only death, with its bill, jaw, horns and crest flying off and
+nothing floating; the Pallbearer's roar 3 and death 3 (with the bells withering and a creak) and louder footsteps; the
+hermit's eyes out on their stalks and apart, the skull's peek through its eye holes, round mouths for the brazier,
+geode and shard (not yet looked at in-game). Then the user's look at round 7 (October 28): the hermit's snap clear of
+its antennae, and its peek remade (the claw a door, the eyes out through the mouth at full size, never through the
+shell, looking left and right) (not yet looked at in-game). The
+README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
 Run the agents **one at a time** (never in parallel). They add to the same shared files and their Gradle builds would collide. Run `mod-tester` after each step.
@@ -1442,6 +1896,65 @@ Built and passing the headless check, but not yet tested in-game. Check these du
 - **The Huntsman's and the Alpha Moose's animations** (step 14): `/dross showcase boss_designs huntsman`: him in the Alpha Moose's saddle, on foot, and the moose alone, matching `boss-previews/rimefall/mobs/` (`index.html`); riding: `ride_thrust` (arm back, then under the antlers and back out to the right: never through them), `ride_shoot` and `ride_rain` (the bow arm straight, arrows taken from the saddle's quiver, three at a time in the rain, real harmless arrows fly), `ride_horn` (held at his lips for the whole call), and with each of the moose's moves (`back_kick`, `antler_toss`, `stomp`, `eat`...) he moves with the saddle, never floating; his cloak always lies on the rump, no quiver poking through it; `rear` or `death` on the moose carrying him: he leaps off as it rears and lands on his feet beside it without sliding ([reset] puts him back); on foot: `aimed_shot`, `arrow_rain`, `backstep_shoot` (a leap back with a shot at its top, the landing three blocks back, the spear flying back to his hand), `horn_blow` (a 2.5 s goat horn placeholder, the horn at his lips as long as it sounds), `death` (the spear slips at once and topples clear in front of him, he falls on his back and stays down); the Alpha Moose's `death` (a loud bellow as it rears, down onto its side, resting on the snow, not floating; it stays down); his hood's pelt never cuts into his mantle when he turns his head; his eyes, the moose's eyes and the ice glow at night; nothing flickers.
 - **Rimefall picks** (step 13; superflat world, cheats on; the 13 models now, the description below is round 2's: also check the Huntsman three times (6A riding, 6A1 on foot, 6A2 the Alpha Moose alone), his wide grey bearskin cloak with its worn, ragged end (over the rump and hanging behind it riding, to his boots standing; fur outside, leather inside), his legs joined to his hips (thighs over the saddle, boots in the stirrups; standing, real legs), the horn across his belly, the bow across his back over the cloak, the Rimehorns at about 4.5 tall and 8 long; and the Aurora Eel's serpent eyes (a violet-teal-green gradient) and lids, its tail ending dark purple, its fins and length, the Fisher's mouth (nothing red poking out past its lips) and yellow eyes, the Huntsman 6A at about 7.7 blocks (6H's bone pauldrons and bearskin, the wolf face, the deer antlers, the ice spear resting in its leather cup on the saddle, the bow on his back, the quiver of arrows on the saddle), the tan reins running under the moose's eyes and outside its neck to his fists, the moose's antlers in one piece, the Rimehorns' coat of straight layers (nothing cutting through anything), their black eyes, the head running smoothly from neck to a short muzzle, the small horn on top of the head and the big one off the top of the nose, no solid strip under the skirt or the soldiers' capes (from below), nothing under the chin or throat, icicles touching the skirt and 7B's flat snow, the Snow Angel's clear ice spikes, the soldiers with no stray ice, and that nothing floats anywhere): `/dross showcase boss_designs rimefall` builds the snowy gallery (calcite walkway, no lights, packed ice posts with signs), the bosses first and then the regular mobs behind their own signs; all 23 stand there, each matching its picture in `boss-previews/rimefall/`; the Reaching Hand's fingers wear the Frostbitten Log's bark and its mound looks like Hoarfrost blocks; the Fisher's cabin is real blocks (spruce, glass, door, stairs, bricks) with warm windows, hanging on its line (5A) or on the ice in its jaws (5B), and its lanterns are lit; the see-through ice shows what's behind it (the Snow Angel's wings and halo, the eel's body and its glowing spine, the shark's lake ice, the Fisher's fangs, Rimehorn's horns); at night the eyes, halo, curtains, crystals and windows glow; nothing flickers and no face is missing (the models skip the faces nobody can see); the giants don't vanish when their feet leave the screen; each [go] button stands you facing that one; right-click shows its label, name, variant and height.
 
+- **The fire servant candidates** (step 15, October 26; checked by a scripted in-game run, not yet by the user): in a
+  superflat world, `/dross showcase boss_designs cinder_wastes` builds the gallery on blackstone (about 230 wide):
+  the fifteen originals in a row facing you across the walkway (No. 1 on the left), each one's three variations behind
+  it, a sign before each; each matches its picture in `boss-previews/cinder_wastes/servants/` (`index.html`); the chat's
+  letter buttons stand you by each model, [overview] above them all; flames look like Minecraft's fire and glow, glass
+  (the Widow's molten belly, the Lamplighter's lantern, the clearwing moth) shows what's behind it; at night lava,
+  embers, eyes and flames glow; right-click one: its label, name and look.
+- **The Emberdactyl's rounds 4 and 5** (step 16, October 27; checked headlessly): `/dross showcase boss_sounds
+  emberdactyl`: the adult's three screeches an octave deeper than the young's (pick one), a numbered button for each
+  version, and the rattles, wingbeats, gust, dive and talon crunch taking turns; the adult's eyes the ember slits, the
+  young's plain amber; screech: its teeth open with its jaws, only its tongue in its mouth; gust: its wings close
+  together over its back (touching, never through each other) before the big beat; fly, glide, hover, dive: the wings
+  never cross each other or go through its body, the inner membranes don't stick up; perch, walk, snap: the wings
+  neatly furled, no stray slivers; flames and embers falling from its wings as it flies; its three deaths (death,
+  death_break: its wings and crust breaking apart; death_crumble: a heap of rock), each closing its eyes as magma cracks
+  glow over it (pick one); the young's death hardening into an obsidian statue that stays; the eggs dark obsidian
+  fading to violet, the cut-open one all lava inside; no eye studies left; the hoard's chests empty. Round 6: dead, its
+  wings lie flat on the ground and its head rests on the ground (no neck holding it up); death_break's wing pieces and
+  crust chunks fly up into the air and land flat; death_crumble collapses into a heap of rubble, wing tips first;
+  the adult always screeches version 1, its death cry as deep as its screech, rattle 2 deeper; the young's screech is
+  squawk, squawk, scream. Round 7: its only death is the break (no death_break or death_crumble buttons): its bill,
+  jaw, horns and crest fly off too, and every piece ends lying flat on the ground, none hovering.
+- **The Emberdactyl's gallery and volcano** (step 16, round 3 of October 27, built overnight; checked headlessly, not
+  in-game; the user saw rounds 1 and 2): in a superflat world, `/dross showcase boss_designs emberdactyl`: the adult
+  (33 blocks across its wings), slimmer, its half moon along its whole bill, its new scalloped wings, the young with
+  more lava, the eggs with thinner shells, each matching `boss-previews/cinder_wastes/emberdactyl/` (`index.html`); the
+  adult and the young hover, beating their wings; each animation button (hover, fly, glide, dive, screech, gust, grab,
+  snap, perch, walk, death) plays on both, matching the GIFs in `animations/`, with its sound (the screech is loud and
+  carries); right-click one: its next animation; the giants drawn whole as they move (no wing vanishing at the edge of
+  the screen); the volcano goes up behind them without the game freezing; [path]: a road lined with pale bone blocks
+  and dotted with glowing shroomlights winds up the cone, easy to follow by day and night; at the lookout two chests
+  (empty) and heaps of gold; gold in the nest's ring round the egg, ores glinting in the crater wall; the lava
+  never spills or flows; the egg in the nest, the adult hovering over it. `/dross showcase boss_sounds emberdactyl`
+  plays each sound (pick a screech).
+- **The Cinder Wastes' mobs' animations** (step 16, October 27 overnight; checked headlessly): `/dross showcase
+  cinder_mobs`: the Pallbearer and the eight hermit shells in a row (no knight's helm or charred stump), each idling;
+  the Pallbearer's coffin fire and the brazier hermit's fire flicker and rise; his censers hang beside the coffin and
+  never swing through it; the buttons play walk, swipe, slam, roar, snap, pinch, hide, peek, come_out and death (each
+  on whoever has it), matching `boss-previews/cinder_wastes/mobs/animations/`; each hermit folds up and backs into its
+  own shell through its mouth until nothing of it shows from any side (nothing poking out of the sides); peek: its
+  antennae and eyes come out first and look one way and the other, and it stays peeking; come_out: it climbs out. Round
+  5: the Pallbearer's fire licks up out of a crack in his coffin's lid and its burnt-through head end (none standing on
+  the lid), the black sash clear of his thigh, his swipe a sweep of his whole arm from the shoulder; M2A a real round
+  bronze bell lying on its side (lip, waist, crown and loop), the crab's legs coming out of its mouth, not its sides,
+  and nothing of the crab showing when it hides; M2C's skull grinning with fangs; M2I's glass sooty (no crab seen through
+  it). `/dross showcase mob_sounds cinder_wastes` plays their sounds (the bell's clang, the funeral drum) and the
+  Pallbearer's three roars and three deaths (pick one of each). Round 6: the Pallbearer's swipe lets go of the strap
+  and sweeps his straight arm out wide; his roar flings both arms open, never into his body; the hermit's antennae
+  rise over its claws (never through the big claw); its peek shows only its eyes sliding out of the shell's mouth (no
+  claws or antennae), come_out slides them back and climbs out; the skull's mouth an open maw (jaws, fangs, cheekbones,
+  the dark set back: no grey bar); the urn lying on its side with a round mouth framing the dark. Round 7: the
+  Pallbearer roars with the demon choir and dies with the dying laugh, his bells jangling, fading one by one, a last
+  creak; his footsteps clearly louder; the hermit's peek: its eyes and their stalks out of the mouth, well apart; in
+  the skull it peers out of the two eye holes; the brazier, geode and shard each have a round rimmed mouth (iron,
+  basalt with crystals, obsidian), no black box sticking out past the shell. Round 8: snap: its antennae sweep back
+  out of the claw's way (never through it); hide, then peek on each shell: the claw drops a little, the eyes come out
+  of the mouth (never through the shell's top or rim), grow to full size, then swing and look clearly left, then right;
+  come_out takes them back in the same way.
+
 ## Known bugs
 Minor issues found during the early-game build. None block playing. Fix them when that area is next changed, and remove the line once fixed.
 - **A floating Rimefall tree on some seeds** (Dimension area, found October 18): in one fresh GameTest world the terrain check `featuresperbiome` failed with "rimefall site at -6688, 6192: 1 tree(s), fallen log(s), mushroom(s) or fungi hanging in the air, the first at -6659, 70, 6225"; the next fresh world passed (157 of 157), so it depends on the seed. Not looked into yet.
@@ -1452,12 +1965,24 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   failed with "the herd at [22, -34] has 3 Rimehorns (2 males); 6-8, the first two males, expected" (all the other
   tests passed): like the herd with none above, too little room round its spot on that seed.
 - **The rat cave's grand entrance not found, again** (October 23): the same failure as above in another fresh world,
-  "RatCaves.entrancesNear doesn't find the grand entrance at 44, 93, -572".
+  "RatCaves.entrancesNear doesn't find the grand entrance at 44, 93, -572"; and again on October 26 ("at -284, 93, 414").
+  Both times at y 93: worth a look.
 - **A Rimefall lake's shore wall with a gap on some seeds** (Dimension area, found October 23): in one fresh GameTest world `RimefallLakeGameTest.rimefallLakeIsBuilt` failed with "the Rimefall lake at 648, 81, 312 isn't right: the shore at 607, 81, 356 is Air (the water could get out)" (and 608, 80-81, 356); 204 of the other 205 tests passed. Not looked into yet.
 
+- **A Rimefall lake's shore wall with a gap, again** (October 26): in a fresh full run `rimefallLakeIsBuilt` failed
+  with "the Rimefall lake at -264, 81, 728 isn't right: the shore at -308, 80, 718 is Water (the water could get out)".
+- **A Colossus lair with lava open at its way in, on one seed** (Boss area, found October 26): in a fresh full run
+  `ColossusLairGameTest.lairsAreBuiltWhenAPlayerComesNear` failed with "the lair of group 2 isn't right: 2 lava
+  block(s) open to the gully or the apron in front of the mouth (e.g. lava in the way in at 1125, 62, 1751 (-4 above
+  the floor))"; every other test of that run passed but the lake above. Not looked into yet.
 - **A Rimefall plant that couldn't stay, on one seed** (Dimension area, found October 25): in one full fresh GameTest run
   `realchunksperbiome` failed with "rimefall site at 6560, 5952: 0 flowing or open lava fluid blocks, 1 plants that
   couldn't stay" (every other test passed); like the floating tree above, it depends on the seed. Not looked into yet.
+- **The terrain check sampling a Frostfolk village** (Dimension area, found October 27): in one full fresh GameTest run
+  (240 of 241 passed) `realchunksperbiome` failed with "rimefall site at 5824, 5920: only 97.5% of the top blocks are
+  its own" (spruce stairs, packed ice, lanterns, skulls...) "and 309 air blocks more than 8 under the ground": the
+  check's sample spot landed on a hunter village (its blocks and sunken courtyards), which it doesn't know about. The
+  check should skip a village's footprint, like it skips lakes. Not looked into yet.
 - **A village room read dark once** (Boss area, found October 24): in one full fresh GameTest run
   `HunterVillageShowcaseGameTest.villagesStandAndNeverMelt` failed with "sunken_warren_02: the room floor at -40689, 198,
   36958 has block light 0" (230 of 231 passed); the same templates passed in four other runs, so the light engine
@@ -1467,6 +1992,10 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   `HuntsmanFightGameTest.theyAttackAtOnce` failed with "waiting for both of them to be in a move at once (the moose
   plays idle, he plays ride_idle, stage WILD_HUNT)" after its 600 ticks; the run before, with the same Huntsman code,
   passed. Not looked into yet.
+- **The Huntsman's "a creative player isn't a foe" test once failed** (Boss area, found October 28): in one full fresh
+  GameTest run `HuntsmanFightGameTest.aFoeInSightStartsTheHunt` failed with "a player in creative mode isn't a foe: they
+  should stay calm, but they're WILD_HUNT" (239 of 241 passed); the next fresh run passed all 241. Probably a survival
+  test player (or a monster) of a neighbouring test came within his 30-block sight. Not looked into yet.
 - **The Huntsman's showcase test once saw his move not end** (Boss area, found October 23): in one full fresh GameTest run `HuntsmanShowcaseGameTest.huntsmanOnShow` failed with "after his spear combo he should stand (idle), but plays spear_combo" (210 of 211 passed); run on its own three times it passed every time, so it's a timing fluke under the full run's load (perhaps his land not ticking for a moment). Not looked into yet.
 
 **Built but not yet tested in-game** (no file exists yet to test them with):

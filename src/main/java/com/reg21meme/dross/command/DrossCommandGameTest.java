@@ -82,6 +82,11 @@ public final class DrossCommandGameTest
             "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",
             "dross showcase boss_designs ratking", "dross showcase rats", "dross showcase boss_sounds ratking",
             "dross showcase boss_designs rimefall", "dross showcase rimefall_mobs", "dross showcase mob_sounds rimefall",
+            "dross showcase boss_designs cinder_wastes",
+            "dross showcase boss_designs emberdactyl", "dross showcase cinder_mobs",
+            "dross showcase boss_designs emberdactyl screech", "dross showcase boss_designs emberdactyl hover",
+            "dross showcase cinder_mobs walk", "dross showcase cinder_mobs hide",
+            "dross showcase boss_sounds emberdactyl", "dross showcase mob_sounds cinder_wastes",
             "dross boss summon ratking", "dross boss arena ratking", "dross boss summon huntsman", "dross boss arena huntsman",
             "dross boss summon colossus", "dross boss arena colossus",
     };

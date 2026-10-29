@@ -80,6 +80,9 @@ import net.minecraftforge.fml.common.Mod;
  *       candidates (frozen models of the Ice Necromancer's possible servants), each with a numbered sign, and lists them
  *       in chat with a button that takes you to each ({@link RimefallShowcase}; the designs are the boss area's
  *       {@code RimefallDesigns}).</li>
+ *   <li>{@code /dross showcase boss_designs cinder_wastes}, {@code ... emberdactyl} and {@code /dross showcase
+ *       cinder_mobs}: galleries of the boss area's fire candidates (the fire servants; the Emberdactyl's looks with its
+ *       volcano going up behind them; the Cinder Wastes' mobs), with [go] buttons ({@link FireShowcase}).</li>
  *   <li>{@code /dross showcase rats}: spawns the Rat King's rats in a row in front of you, each on a pedestal with a
  *       sign: the Plague Rat, then the Plague Ravager (the enraged breed); {@code /dross showcase rats idle|run}
  *       switches their animation ({@link RatShowcase}; the designs are the boss area's {@code RatDesigns}).</li>
@@ -210,19 +213,30 @@ public final class DrossCommand
                                 .then(ratKingDesignShowcase())
                                 // The Rimefall boss candidates (22 frozen models in a gallery; RimefallShowcase).
                                 .then(Commands.literal("rimefall").executes(RimefallShowcase::buildGallery))
+                                // The fire servant candidates (fifteen bosses, each with its variations behind it;
+                                // FireShowcase).
+                                .then(Commands.literal("cinder_wastes").executes(FireShowcase::buildGallery))
+                                // The Emberdactyl's looks (the adult, its young, its eggs) and its volcano
+                                // (FireShowcase, with the boss area's EmberVolcano), and their animations.
+                                .then(emberdactylShowcase())
                                 // The Huntsman and his Alpha Moose and their animations (HuntsmanShowcase).
                                 .then(huntsmanDesignShowcase()))
                         // Boss area's Rat King's rats (regular and enraged), with their controls (RatShowcase).
                         .then(ratShowcase())
+                        // Boss area's Cinder Wastes mobs: the Pallbearer and the Cinder Hermit's eight shells (FireShowcase).
+                        .then(cinderMobShowcase())
                         // Boss area's Rimefall animals (Rimehorns, moose, a Pond Skater), with their controls
                         // (RimefallMobShowcase), and their sounds (RimefallMobSoundShowcase).
                         .then(rimefallMobShowcase())
                         .then(Commands.literal("mob_sounds")
-                                .then(Commands.literal("rimefall").executes(RimefallMobSoundShowcase::list)))
+                                .then(Commands.literal("rimefall").executes(RimefallMobSoundShowcase::list))
+                                // The Cinder Wastes' mobs' sounds (FireSoundShowcase).
+                                .then(Commands.literal("cinder_wastes").executes(FireSoundShowcase::cinderMobs)))
                         // Boss area's sounds, one literal per boss (RatSoundShowcase, HuntsmanSoundShowcase).
                         .then(Commands.literal("boss_sounds")
                                 .then(Commands.literal("ratking").executes(RatSoundShowcase::list))
-                                .then(Commands.literal("huntsman").executes(HuntsmanSoundShowcase::list)))
+                                .then(Commands.literal("huntsman").executes(HuntsmanSoundShowcase::list))
+                                .then(Commands.literal("emberdactyl").executes(FireSoundShowcase::emberdactyl)))
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))
@@ -278,6 +292,37 @@ public final class DrossCommand
             biome.then(Commands.literal(DrossBiomes.name(key)).executes(context -> GotoBiome.teleport(context.getSource(), key)));
         }
         return biome;
+    }
+
+    /**
+     * {@code /dross showcase boss_designs emberdactyl}: the Emberdactyl's gallery and its volcano;
+     * {@code ... emberdactyl <animation>} plays one of the adult's and the young's animations on them (one literal each;
+     * {@link FireShowcase}).
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> emberdactylShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> node = Commands.literal("emberdactyl")
+                .executes(FireShowcase::buildEmberdactyl);
+        for (String name : FireShowcase.emberdactylAnimations())
+        {
+            node.then(Commands.literal(name).executes(context -> FireShowcase.playEmberdactyl(context, name)));
+        }
+        return node;
+    }
+
+    /**
+     * {@code /dross showcase cinder_mobs}: the Cinder Wastes' mobs (the Pallbearer, the Cinder Hermit in its eight
+     * shells); {@code ... cinder_mobs <animation>} plays one of their animations (one literal each; {@link FireShowcase}).
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> cinderMobShowcase()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> node = Commands.literal("cinder_mobs")
+                .executes(FireShowcase::buildCinderMobs);
+        for (String name : FireShowcase.cinderMobAnimations())
+        {
+            node.then(Commands.literal(name).executes(context -> FireShowcase.playCinderMobs(context, name)));
+        }
+        return node;
     }
 
     /**

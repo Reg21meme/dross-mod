@@ -1,6 +1,7 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.fire.FireCandidate;
 import com.reg21meme.dross.boss.golem.CinderColossus;
 import com.reg21meme.dross.boss.golem.ColossusRock;
 import com.reg21meme.dross.boss.golem.LavaBlob;
@@ -142,6 +143,17 @@ public final class ModEntities
                     .fireImmune()
                     .clientTrackingRange(12)
                     .build("rimefall_candidate"));
+
+    /**
+     * Boss area: the fire servant candidates (October 26, 2026), frozen models of the Fire Necromancer's possible
+     * servants for /dross showcase boss_designs cinder_wastes. Their hitbox is set per design (FireCandidate).
+     */
+    public static final RegistryObject<EntityType<FireCandidate>> FIRE_CANDIDATE = ENTITY_TYPES.register("fire_candidate",
+            () -> EntityType.Builder.<FireCandidate>of(FireCandidate::new, MobCategory.MISC)
+                    .sized(2.0F, 2.6F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("fire_candidate"));
 
     /**
      * Boss area: Rimefall's animals (CLAUDE.md step 14), the only mobs that spawn there: the Rimehorn (a woolly rhino

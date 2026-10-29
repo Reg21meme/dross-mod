@@ -729,6 +729,13 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase frostfolk` | Lines up the eleven Frostfolk (the warriors in front, the workers and the elder behind), frozen, with signs. Right-click one and it talks to you. |
 | `/dross showcase frostfolk idle` / `walk` / `run` / `attack` / `horn` / `talk` | Plays that animation on every showcase Frostfolk nearby (attack: each one's own; horn: the horn-blower's). |
 | `/dross showcase mob_sounds rimefall` | Lists every Rimehorn, moose and Pond Skater sound in chat, each with a [play] button. |
+| `/dross showcase boss_designs cinder_wastes` | Builds a gallery of the fire servant candidates (fifteen possible bosses, each with its variations behind it), frozen, with signs and [go] buttons in chat. Use a flat world. |
+| `/dross showcase boss_designs emberdactyl` | Builds a gallery of the Emberdactyl (33 blocks across its wings), its young and its egg's four looks, then its volcano behind them (about a minute): lava lake, nest, lava cascades, a lit path up to a lookout with its hoard (empty chests and gold). The adult and the young move, fire falling from their wings as they fly: chat buttons play each of their animations (hover, fly, glide, dive, screech, gust, grab, snap, perch, walk, and its deaths: death, death_break, death_crumble); right-click one for its next. Use a flat world. |
+| `/dross showcase boss_designs emberdactyl <animation>` | Plays one animation on the Emberdactyl and its young near you (with its sounds). |
+| `/dross showcase cinder_mobs` | Lines up the Cinder Wastes' mobs with signs: the Pallbearer and the Cinder Hermit in eight shells; chat buttons play their animations (idle, walk, swipe, slam, roar, snap, pinch, hide, peek, come_out, death). |
+| `/dross showcase cinder_mobs <animation>` | Plays one animation on the Cinder Wastes' mobs near you (with its sounds). |
+| `/dross showcase boss_sounds emberdactyl` | Lists the Emberdactyl's and its young's sounds (its screech, wingbeats, gust, dive...) with play buttons. |
+| `/dross showcase mob_sounds cinder_wastes` | Lists the Pallbearer's and the Cinder Hermit's sounds with play buttons. |
 | `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
 | `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
 | `/dross boss summon ratking` | Summons a fighting Rat King, asleep, 14 blocks in front of you, facing you (not on Peaceful). |

@@ -1,0 +1,330 @@
+{
+ "emberdactyl": {
+  "idle": "hover",
+  "models": [
+   "emberdactyla"
+  ],
+  "anims": [
+   [
+    "hover",
+    2.2,
+    true
+   ],
+   [
+    "fly",
+    2.6,
+    true
+   ],
+   [
+    "glide",
+    4.8,
+    true
+   ],
+   [
+    "dive",
+    2.4,
+    false
+   ],
+   [
+    "screech",
+    2.8,
+    false
+   ],
+   [
+    "gust",
+    2.4,
+    false
+   ],
+   [
+    "grab",
+    1.9,
+    false
+   ],
+   [
+    "snap",
+    1.0,
+    false
+   ],
+   [
+    "perch",
+    4.0,
+    true
+   ],
+   [
+    "walk",
+    2.0,
+    true
+   ],
+   [
+    "death",
+    6.88,
+    false
+   ]
+  ],
+  "cues": {
+   "hover": {
+    "beat": 0.0
+   },
+   "dive": {
+    "pull": 1.55
+   },
+   "screech": {
+    "scream": 0.6
+   },
+   "gust": {
+    "gust": 1.35
+   },
+   "grab": {
+    "grab": 0.75
+   },
+   "snap": {
+    "hit": 0.5
+   },
+   "walk": {
+    "speed": 1.562
+   },
+   "death": {
+    "cry": 0.2,
+    "crash": 2.6,
+    "break": 4.2
+   }
+  },
+  "per_model": false,
+  "fire": {}
+ },
+ "emberyoung": {
+  "idle": "hover",
+  "models": [
+   "emberyounga"
+  ],
+  "anims": [
+   [
+    "hover",
+    1.375,
+    true
+   ],
+   [
+    "fly",
+    1.625,
+    true
+   ],
+   [
+    "glide",
+    3.0,
+    true
+   ],
+   [
+    "dive",
+    1.5,
+    false
+   ],
+   [
+    "screech",
+    1.75,
+    false
+   ],
+   [
+    "gust",
+    1.5,
+    false
+   ],
+   [
+    "grab",
+    1.187,
+    false
+   ],
+   [
+    "snap",
+    0.625,
+    false
+   ],
+   [
+    "perch",
+    2.5,
+    true
+   ],
+   [
+    "walk",
+    1.25,
+    true
+   ],
+   [
+    "death",
+    4.125,
+    false
+   ]
+  ],
+  "cues": {
+   "hover": {
+    "beat": 0.0
+   },
+   "dive": {
+    "pull": 0.969
+   },
+   "screech": {
+    "scream": 0.375
+   },
+   "gust": {
+    "gust": 0.844
+   },
+   "grab": {
+    "grab": 0.469
+   },
+   "snap": {
+    "hit": 0.312
+   },
+   "walk": {
+    "speed": 1.72
+   },
+   "death": {
+    "cry": 0.125,
+    "crash": 1.625,
+    "harden": 1.812
+   }
+  },
+  "per_model": false,
+  "fire": {}
+ },
+ "hermit": {
+  "idle": "idle",
+  "models": [
+   "mobhermita",
+   "mobhermitb",
+   "mobhermitc",
+   "mobhermitd",
+   "mobhermite",
+   "mobhermitf",
+   "mobhermiti",
+   "mobhermitj"
+  ],
+  "anims": [
+   [
+    "idle",
+    4.0,
+    true
+   ],
+   [
+    "walk",
+    1.0,
+    true
+   ],
+   [
+    "snap",
+    1.3,
+    false
+   ],
+   [
+    "pinch",
+    1.1,
+    false
+   ],
+   [
+    "hide",
+    1.2,
+    false
+   ],
+   [
+    "peek",
+    4.1,
+    false
+   ],
+   [
+    "come_out",
+    2.45,
+    false
+   ],
+   [
+    "death",
+    2.4,
+    false
+   ]
+  ],
+  "cues": {
+   "walk": {
+    "speed": 1.818
+   },
+   "snap": {
+    "hit": 0.62
+   },
+   "pinch": {
+    "hit": 0.35,
+    "hit2": 0.7
+   },
+   "hide": {
+    "shut": 0.9
+   },
+   "peek": {
+    "eyes": 1.0
+   },
+   "come_out": {
+    "out": 1.4
+   },
+   "death": {
+    "fall": 1.2
+   }
+  },
+  "per_model": true,
+  "fire": {
+   "mobhermitb": 8
+  }
+ },
+ "pallbearer": {
+  "idle": "idle",
+  "models": [
+   "mobpallbearera"
+  ],
+  "anims": [
+   [
+    "idle",
+    5.0,
+    true
+   ],
+   [
+    "walk",
+    2.6,
+    true
+   ],
+   [
+    "swipe",
+    1.7,
+    false
+   ],
+   [
+    "slam",
+    2.2,
+    false
+   ],
+   [
+    "roar",
+    2.6,
+    false
+   ],
+   [
+    "death",
+    3.6,
+    false
+   ]
+  ],
+  "cues": {
+   "walk": {
+    "speed": 1.008
+   },
+   "swipe": {
+    "hit": 0.85
+   },
+   "slam": {
+    "hit": 1.2
+   },
+   "roar": {
+    "roar": 0.45
+   },
+   "death": {
+    "fall": 1.9
+   }
+  },
+  "per_model": false,
+  "fire": {
+   "mobpallbearera": 8
+  }
+ }
+}
