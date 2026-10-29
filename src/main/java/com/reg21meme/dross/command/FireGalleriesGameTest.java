@@ -470,7 +470,7 @@ public final class FireGalleriesGameTest
     }
 
     /** Every lava block planned is a still lava source with lava or solid ground under it and on its four sides. */
-    private static void checkLava(ServerLevel level, EmberVolcano.Plan plan, String when)
+    static void checkLava(ServerLevel level, EmberVolcano.Plan plan, String when)
     {
         int[] missing = {0};
         int[] open = {0};
@@ -518,7 +518,7 @@ public final class FireGalleriesGameTest
     }
 
     /** No lava in the volcano's own columns but what it planned, and none of it flowing. */
-    private static void checkNoStrayLava(ServerLevel level, EmberVolcano.Plan plan)
+    static void checkNoStrayLava(ServerLevel level, EmberVolcano.Plan plan)
     {
         BoundingBox box = plan.box();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
@@ -556,7 +556,7 @@ public final class FireGalleriesGameTest
     }
 
     /** The rim stands about its planned height. */
-    private static void checkRim(ServerLevel level, EmberVolcano.Plan plan)
+    static void checkRim(ServerLevel level, EmberVolcano.Plan plan)
     {
         BlockPos ground = plan.ground();
         int highest = Integer.MIN_VALUE;
@@ -576,7 +576,7 @@ public final class FireGalleriesGameTest
     }
 
     /** The path from its foot to the lookout: ground under every step, room to walk, a block's climb at most. */
-    private static void checkPath(ServerLevel level, EmberVolcano.Plan plan)
+    static void checkPath(ServerLevel level, EmberVolcano.Plan plan)
     {
         List<BlockPos> line = plan.pathLine();
         BlockPos before = null;

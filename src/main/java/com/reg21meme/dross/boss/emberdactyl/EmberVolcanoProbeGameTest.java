@@ -83,6 +83,43 @@ public final class EmberVolcanoProbeGameTest
         helper.succeed();
     }
 
+    /**
+     * The volcano nearest the hub on the planner, built on the real Dross land where it stands (no flattening), written to
+     * {@code run/probe/ember_volcano_land.txt}: {@code python tools/fire/volcano_preview.py run/probe/ember_volcano_land.txt
+     * volcano_land} draws it.
+     */
+    @GameTest(template = EMPTY, batch = "dross_volcano_land", timeoutTicks = 20000)
+    public static void volcanoOnLand(GameTestHelper helper)
+    {
+        net.minecraft.server.MinecraftServer server = helper.getLevel().getServer();
+        ServerLevel dross = server.getLevel(com.reg21meme.dross.dimension.ModDimensions.DROSS_LEVEL);
+        com.reg21meme.dross.dimension.sites.Site site = com.reg21meme.dross.dimension.sites.BossSites.forLevel(dross)
+                .nearest(com.reg21meme.dross.dimension.sites.BossSites.EMBER_VOLCANO, BlockPos.ZERO, 100_000)
+                .orElseThrow(() -> new GameTestAssertException("no volcano site planned"));
+        EmberVolcano.Plan plan = EmberVolcanoes.replan(dross, site);
+        BoundingBox box = plan.box();
+        for (int cx = box.minX() >> 4; cx <= box.maxX() >> 4; cx++)
+        {
+            for (int cz = box.minZ() >> 4; cz <= box.maxZ() >> 4; cz++)
+            {
+                dross.getChunk(cx, cz);
+            }
+        }
+        long start = System.nanoTime();
+        plan.buildNow(dross);
+        LOGGER.info("[volcano probe] built the volcano of patch {} at {} on the land in {} ms ({} lava)", site.patch().number(),
+                plan.ground().toShortString(), (System.nanoTime() - start) / 1_000_000L, plan.lavaBlocks());
+        try
+        {
+            dump(dross, plan, Path.of("probe", "ember_volcano_land.txt"));
+        }
+        catch (IOException e)
+        {
+            throw new GameTestAssertException("couldn't write the probe: " + e);
+        }
+        helper.succeed();
+    }
+
     /** Makes the probe's spot a flat plain of grass first (like the superflat world the showcase is meant for), a little
      *  past everything the volcano may change, so the previews show the volcano and not the hills it was cut into. */
     private static void flatten(ServerLevel level, EmberVolcano.Plan plan)

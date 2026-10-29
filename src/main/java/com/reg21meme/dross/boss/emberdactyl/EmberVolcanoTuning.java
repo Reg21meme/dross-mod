@@ -177,5 +177,59 @@ public final class EmberVolcanoTuning
     /** The seed the showcase's volcano is shaped from (the same volcano every time). */
     public static final long SHOWCASE_SEED = 0x456D6265725F566FL;
 
+    // ---- On the real land (the Cinder Wastes; the user, October 29, 2026: "the spawning of the volcano") ----
+
+    /**
+     * Its ground level is this share of the way up the land's heights round its foot (0.5: the middle): the land on the
+     * high side runs into its flanks (re-laid as the volcano's rock), on the low side the ground round its foot steps
+     * down to the land. (0.1, nearly the lowest, left it half buried among higher land, its rim barely over it.)
+     */
+    public static final double LAND_BASE_SHARE = 0.5D;
+    /** Its path starts where the land just outside its foot is lowest, sampled this many ways round. */
+    public static final int FRONT_CHOICES = 72;
+    /** Where the land is lower than its ground, the ground round its foot steps down to it a block a step at most. */
+    public static final int SKIRT_STEP = 1;
+    /** How far the land's heights are read apart (blocks; between them they're blended: the volcano re-lays every
+     *  column it manages, so this only shapes how it meets the land). */
+    public static final int LAND_SAMPLE_STEP = 2;
+
+    // ---- Where it goes: one in every group of 3 Cinder Wastes patches (the boss-site planner) ----
+
+    /** Every column within this far of its middle must be Cinder Wastes (its foot, its apron and most of its fringe)... */
+    public static final int FIT_RADIUS = 84;
+    /** ...or this far, its smallest form (the roomiest free patch of a group where nothing else fits: its fringe and
+     *  some of its apron may reach into the next biome). */
+    public static final int RELAXED_FIT_RADIUS = 66;
+    /** The land under it (out to its widest foot) may rise at most this many blocks from its lowest tenth to its highest
+     *  tenth (the generator's quick heights)... */
+    public static final int MAX_RELIEF = 30;
+    /** ...or this much for its smallest form. */
+    public static final int RELAXED_MAX_RELIEF = 60;
+    /** The land round it (out to half again its foot's radius, three quarters of the way up its heights) may stand at most
+     *  this many blocks over its ground, so it rises out of the land and isn't half buried in a hollow (not for its
+     *  smallest form). */
+    public static final int MAX_SURROUND = 12;
+    /** The land's heights are sampled this far apart for the fit test (blocks). */
+    public static final int FIT_SAMPLE_STEP = 8;
+    /** The patch's deepest spots tried, this far apart (blocks). */
+    public static final int FINDER_SPOTS = 24;
+    public static final int FINDER_SPOT_SPACING = 24;
+
+    // ---- Building them near players (like the Colossus's lairs) ----
+
+    /** A volcano is built the first time a player in the Dross comes within this many blocks of its middle (it's 70 tall:
+     *  seen from far off). */
+    public static final int BUILD_RANGE = 384;
+    /** Who's near which volcano is checked this often (ticks). */
+    public static final int NEAR_CHECK_TICKS = 40;
+    /** At most this many volcanoes are loaded and built at a time. */
+    public static final int MAX_BUILDS_AT_ONCE = 1;
+    /** Its chunks (this far round its middle) are generated before it's built; it waits at most this long for them. */
+    public static final long LOAD_TIMEOUT_MILLIS = 180_000L;
+    /** Once built, its chunks stay loaded this many ticks (for their lighting). */
+    public static final int HOLD_AFTER_BUILD_TICKS = 100;
+    /** The first groups' volcano sites are worked out (in the background) when the world starts. */
+    public static final int WARM_UP_GROUPS = 3;
+
     private EmberVolcanoTuning() {}
 }

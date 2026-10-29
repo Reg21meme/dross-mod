@@ -90,6 +90,8 @@ public final class BossSitesTuning
     public static final long BOSS_PICK_SALT = 0x426F737350696B6BL;
     /** ...and with this before a patch's roll for a filler (a regular sewer in a Blightwood patch kept for a future boss). */
     public static final long FILLER_ROLL_SALT = 0x46696C6C6572526FL;
+    /** Mixed into the seed to pick a group's second boss's patch (the Cinder Wastes: the Emberdactyl's volcano). */
+    public static final long SECOND_PICK_SALT = 0x5365636F6E64426FL;
 
     // ---------------------------------------------------------------------------------------------
     // Where a use is tried inside a patch
@@ -122,6 +124,10 @@ public final class BossSitesTuning
     public static final int COLOSSUS_FIT_RADIUS = 64;
     /** ...or, in a group where no patch has that much room, within this radius (the roomiest patch). */
     public static final int COLOSSUS_RELAXED_FIT_RADIUS = 48;
+    /** The Emberdactyl volcano's stand-in fit test (until the boss area plugs in its own): the biome all round this far. */
+    public static final int EMBER_VOLCANO_FIT_RADIUS = 88;
+    /** The stand-in's smallest form. */
+    public static final int EMBER_VOLCANO_RELAXED_FIT_RADIUS = 60;
     /** The disc test samples rings this far apart, with samples this far apart round each ring. */
     public static final int DISC_SAMPLE_STEP = 8;
 }

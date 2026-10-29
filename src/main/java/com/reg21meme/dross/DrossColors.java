@@ -268,6 +268,8 @@ public final class DrossColors {
     public static final int PREVIEW_PATCH_LINE = 0xF2F2F2;
     /** Boss sites map: the patch with its group's current boss (the Colossus's lair, the Rat King's sewer), a gold ring. */
     public static final int PREVIEW_BOSS_SITE = 0xFFC83C;
+    /** Boss sites map: the patch with its group's second boss (the Emberdactyl's volcano in the Cinder Wastes), a lava-red ring. */
+    public static final int PREVIEW_SECOND_BOSS_SITE = 0xFF4A1E;
     /** Boss sites map: a regular sewer in a patch kept for a future boss (copper green). */
     public static final int PREVIEW_REGULAR_SEWER = 0x46D2A8;
     /** Boss sites map: a patch kept for a future boss whose roll came up but no sewer fits there (grey). */

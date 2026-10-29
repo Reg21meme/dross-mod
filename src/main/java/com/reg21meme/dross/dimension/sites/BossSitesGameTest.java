@@ -701,11 +701,12 @@ public final class BossSitesGameTest
                     drawnPatches++;
                     outline(img, land, n, oy, p, x0, z0, blight ? 2 : 1);
                     int[] at = toMap(new int[] {p.deepest().getX() - x0, oy + p.deepest().getZ() - z0}, oy);
-                    boolean boss = grp.slots().get(k) == 0;
+                    boolean second = grp.secondSite().isPresent() && grp.secondSite().get().patch().id() == p.id();
+                    boolean boss = grp.slots().get(k) == 0 || second;
                     Optional<Site> filler = grp.fillers().get(k);
-                    int ring = boss ? DrossColors.PREVIEW_BOSS_SITE : filler.isPresent() ? DrossColors.PREVIEW_REGULAR_SEWER
-                            : grp.rolled().get(k) ? DrossColors.PREVIEW_NO_FIT : -1;
-                    Optional<Site> site = boss ? grp.bossSite() : filler;
+                    int ring = second ? DrossColors.PREVIEW_SECOND_BOSS_SITE : boss ? DrossColors.PREVIEW_BOSS_SITE
+                            : filler.isPresent() ? DrossColors.PREVIEW_REGULAR_SEWER : grp.rolled().get(k) ? DrossColors.PREVIEW_NO_FIT : -1;
+                    Optional<Site> site = second ? grp.secondSite() : boss ? grp.bossSite() : filler;
                     if (site.isPresent())
                     {
                         int[] s = toMap(new int[] {site.get().pos().getX() - x0, oy + site.get().pos().getZ() - z0}, oy);

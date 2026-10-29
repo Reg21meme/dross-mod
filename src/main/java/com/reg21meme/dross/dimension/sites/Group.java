@@ -13,8 +13,11 @@ import net.minecraft.world.level.biome.Biome;
  * <ul>
  *   <li>slot 0: the biome's current boss (the Cinder Colossus, the Rat King): one patch picked by the world seed among the
  *       patches where its lair fits ({@link #bossSite});</li>
- *   <li>slots 1 and 2: kept free for the biome's two future bosses (the nearer of the two patches is slot 1). In Blightwood
- *       each may hold a regular sewer ({@link #filler}).</li>
+ *   <li>slot 1: the biome's second boss, if it has one (the Emberdactyl's volcano in the Cinder Wastes,
+ *       {@link #secondSite}), in one of the other patches where it fits, picked by the seed;</li>
+ *   <li>the other slots (1 and 2, or 2 with a second boss): kept free for the biome's future bosses (the nearer patch
+ *       first). In Blightwood and Rimefall each may hold a filler (a regular sewer, a regular hunter village,
+ *       {@link #filler}).</li>
  * </ul>
  * If no patch of the group fits the boss, the roomiest one gets the boss's smallest form ({@link Site#relaxed}); if not
  * even that fits, the group has no boss ({@link #bossSlotPatch} empty) and its patches take slots 1, 2 and 3 (none 0).
@@ -24,12 +27,13 @@ import net.minecraft.world.level.biome.Biome;
  * @param patches  its patches, nearest the hub first
  * @param slots    each patch's slot (in the order of {@code patches})
  * @param bossSite where the current boss goes (empty: no patch could hold it)
+ * @param secondSite where the second boss goes (empty: the biome has none, or no free patch could hold it)
  * @param rolled   for each patch, whether its filler roll came up ({@link BossSitesTuning#REGULAR_SEWER_CHANCE}); always
  *                 false for the boss's patch and in a biome without a filler
  * @param fillers  for each patch, its filler's site (empty: none rolled, none fits there, or the boss is there)
  */
-public record Group(ResourceKey<Biome> biome, int index, List<Patch> patches, List<Integer> slots, Optional<Site> bossSite, List<Boolean> rolled,
-                    List<Optional<Site>> fillers)
+public record Group(ResourceKey<Biome> biome, int index, List<Patch> patches, List<Integer> slots, Optional<Site> bossSite,
+                    Optional<Site> secondSite, List<Boolean> rolled, List<Optional<Site>> fillers)
 {
     /** The patch with this slot (0: the current boss; 1 and 2: kept for future bosses), if the group has it. */
     public Optional<Patch> slotPatch(int slot)
@@ -76,11 +80,12 @@ public record Group(ResourceKey<Biome> biome, int index, List<Patch> patches, Li
         return Optional.empty();
     }
 
-    /** Every site of the group (the boss's first, then the fillers'). */
+    /** Every site of the group (the boss's first, then the second boss's, then the fillers'). */
     public List<Site> sites()
     {
         List<Site> all = new ArrayList<>();
         this.bossSite.ifPresent(all::add);
+        this.secondSite.ifPresent(all::add);
         this.fillers.forEach(f -> f.ifPresent(all::add));
         return all;
     }

@@ -187,19 +187,21 @@ def map_view(blocks, marks, scale=4):
 
 def main():
     dump = Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_DUMP
+    # (a second argument names the pictures: volcano_land for the probe's volcano on the real land)
+    name = sys.argv[2] if len(sys.argv) > 2 else "volcano"
     blocks, marks = load(dump)
     OUT.mkdir(parents=True, exist_ok=True)
     # The probe builds it with its front (the path's foot) to the north: two quarter turns put the camera off its
     # north-west, none off its south-east.
-    iso(blocks, 2).save(OUT / "volcano_front.png")
-    iso(blocks, 0).save(OUT / "volcano_back.png")
-    iso(blocks, 2, night=True).save(OUT / "volcano_night.png")
-    map_view(blocks, marks).save(OUT / "volcano_map.png")
+    iso(blocks, 2).save(OUT / f"{name}_front.png")
+    iso(blocks, 0).save(OUT / f"{name}_back.png")
+    iso(blocks, 2, night=True).save(OUT / f"{name}_night.png")
+    map_view(blocks, marks).save(OUT / f"{name}_map.png")
     # the crater close up: everything within CRATER_VIEW blocks of the middle and near the rim's height
     egg_y = marks.get("egg", (0, 60, 0))[1]
     crater = {pos: name for pos, name in blocks.items()
               if pos[0] * pos[0] + pos[2] * pos[2] <= CRATER_VIEW * CRATER_VIEW and pos[1] >= egg_y - 16}
-    iso(crater, 2, k=9.0).save(OUT / "volcano_crater.png")
+    iso(crater, 2, k=9.0).save(OUT / f"{name}_crater.png")
     lava = sum(1 for name in blocks.values() if name == "minecraft:lava")
     print(f"{len(blocks)} blocks drawn ({lava} lava on show, {marks.get('lava', '?')} lava in all); "
           f"path of {len(marks['path'])} steps; previews in {OUT}")

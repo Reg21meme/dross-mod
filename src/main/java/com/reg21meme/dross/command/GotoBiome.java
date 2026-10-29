@@ -2,6 +2,9 @@ package com.reg21meme.dross.command;
 
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.boss.emberdactyl.EmberVolcano;
+import com.reg21meme.dross.boss.emberdactyl.EmberVolcanoData;
+import com.reg21meme.dross.boss.emberdactyl.EmberVolcanoes;
 import com.reg21meme.dross.boss.lair.ColossusLair;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.dimension.ModDimensions;
@@ -132,6 +135,11 @@ public final class GotoBiome
      * land this far round it: {@code LairTuning.LOAD_RADIUS}).
      */
     public static final int PLANNED_LAIR_REACH = 104;
+    /**
+     * Never land within this many blocks of an Emberdactyl volcano's middle, built or planned (its reach, the cone, the
+     * ground round it and its fringe, plus a little): not on its flanks, in its lava or where it's about to be built.
+     */
+    public static final int VOLCANO_CLEARANCE = EmberVolcano.REACH + 8;
     /** The lairs (built or planned) a landing keeps clear of are looked up within this many blocks of where it looks... */
     public static final int LAIR_ZONE_SEARCH = 512;
     /** ...again once it looks more than this many blocks (along X or Z) from where they were last looked up. */
@@ -331,6 +339,18 @@ public final class GotoBiome
             if (site.use() == BossSites.COLOSSUS_LAIR && ColossusLair.get(server, site).isEmpty())
             {
                 zones.add(new LairZone(site.pos().getX() + 0.5D, site.pos().getZ() + 0.5D, PLANNED_LAIR_REACH));
+            }
+            else if (site.use() == BossSites.EMBER_VOLCANO)
+            {
+                // (built or not: a built volcano stands round its planned spot)
+                zones.add(new LairZone(site.pos().getX() + 0.5D, site.pos().getZ() + 0.5D, VOLCANO_CLEARANCE));
+            }
+        }
+        for (EmberVolcanoData.Volcano volcano : EmberVolcanoes.all(server))
+        {
+            if (volcano.distanceTo(x, z) <= LAIR_ZONE_SEARCH + VOLCANO_CLEARANCE)
+            {
+                zones.add(new LairZone(volcano.ground().getX() + 0.5D, volcano.ground().getZ() + 0.5D, VOLCANO_CLEARANCE));
             }
         }
         return zones;

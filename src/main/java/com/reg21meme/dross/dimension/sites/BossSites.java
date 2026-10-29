@@ -119,6 +119,13 @@ public final class BossSites
      */
     public static final SiteUse COLOSSUS_LAIR = new SiteUse(id("colossus_lair"), DrossBiomes.CINDER_WASTES,
             discFinder(DrossBiomes.CINDER_WASTES, BossSitesTuning.COLOSSUS_FIT_RADIUS, BossSitesTuning.COLOSSUS_RELAXED_FIT_RADIUS));
+    /**
+     * The Emberdactyl's volcano (its nest and egg on a pillar in the crater's lava lake), the Cinder Wastes' second boss:
+     * in one of the two patches of every group the Colossus doesn't hold (the user, October 29, 2026: as often as the
+     * Colossus, never in its patch). Its fit test is a stand-in until the boss area plugs in its own ({@link #setFinder}).
+     */
+    public static final SiteUse EMBER_VOLCANO = new SiteUse(id("ember_volcano"), DrossBiomes.CINDER_WASTES,
+            discFinder(DrossBiomes.CINDER_WASTES, BossSitesTuning.EMBER_VOLCANO_FIT_RADIUS, BossSitesTuning.EMBER_VOLCANO_RELAXED_FIT_RADIUS));
     /** The Rat King's sewer (a network ending in his rat cave, with one grand entrance), in Blightwood patches. */
     public static final SiteUse RAT_KING_SEWER = new SiteUse(id("rat_king_sewer"), DrossBiomes.BLIGHTWOOD, SewerSites::findRatKingSewer);
     /** A regular sewer (3 pipes, rats only, no king), in the Blightwood patches kept for future bosses. */
@@ -140,16 +147,18 @@ public final class BossSites
             RimefallAreas::findHunterVillage);
 
     /** Every use, by id (the structure sets' placement JSON names one: {@code "use": "dross:rat_king_sewer"}). */
-    public static final List<SiteUse> USES = List.of(COLOSSUS_LAIR, RAT_KING_SEWER, REGULAR_SEWER, RIMEFALL_AREA,
+    public static final List<SiteUse> USES = List.of(COLOSSUS_LAIR, EMBER_VOLCANO, RAT_KING_SEWER, REGULAR_SEWER, RIMEFALL_AREA,
             HUNTSMAN_VILLAGE, HUNTER_VILLAGE);
 
     /**
      * A boss biome: its current boss (slot 0 of every group; null while its bosses haven't come yet: then every group's
-     * patches take slots 1, 2 and 3) and the filler for the two kept patches (or null).
+     * patches take slots 1, 2 and 3), its second boss (slot 1, in another patch of the group; or null) and the filler for
+     * the kept patches (or null).
      *
      * @param fillerChance the chance each kept patch gets the filler (if it fits)
      */
-    public record BossBiome(ResourceKey<Biome> biome, @Nullable SiteUse boss, @Nullable SiteUse filler, double fillerChance)
+    public record BossBiome(ResourceKey<Biome> biome, @Nullable SiteUse boss, @Nullable SiteUse second, @Nullable SiteUse filler,
+                            double fillerChance)
     {
     }
 
@@ -158,9 +167,9 @@ public final class BossSites
      * patches were planned only for their lakes and herds, {@link #RIMEFALL_AREA}), its filler a regular hunter village.
      */
     public static final List<BossBiome> BOSS_BIOMES = List.of(
-            new BossBiome(DrossBiomes.CINDER_WASTES, COLOSSUS_LAIR, null, 0.0D),
-            new BossBiome(DrossBiomes.BLIGHTWOOD, RAT_KING_SEWER, REGULAR_SEWER, BossSitesTuning.REGULAR_SEWER_CHANCE),
-            new BossBiome(DrossBiomes.RIMEFALL, HUNTSMAN_VILLAGE, HUNTER_VILLAGE, BossSitesTuning.HUNTER_VILLAGE_CHANCE));
+            new BossBiome(DrossBiomes.CINDER_WASTES, COLOSSUS_LAIR, EMBER_VOLCANO, null, 0.0D),
+            new BossBiome(DrossBiomes.BLIGHTWOOD, RAT_KING_SEWER, null, REGULAR_SEWER, BossSitesTuning.REGULAR_SEWER_CHANCE),
+            new BossBiome(DrossBiomes.RIMEFALL, HUNTSMAN_VILLAGE, null, HUNTER_VILLAGE, BossSitesTuning.HUNTER_VILLAGE_CHANCE));
 
     /** The per-patch uses of a biome (every patch of it gets one, where it fits). */
     private static List<SiteUse> perPatchUses(ResourceKey<Biome> biome)
@@ -665,19 +674,74 @@ public final class BossSites
                         config.biome().location().getPath(), index + 1, config.boss(), patches.size());
             }
         }
-        // the slots: the boss's patch is 0, the others 1 and 2 (nearest first)
+        // the second boss: one of the other patches where it fits, picked by the seed; if it fits in none, the roomiest of
+        // them gets its smallest form (if that fits)
+        int secondIndex = -1;
+        Optional<Site> secondSite = Optional.empty();
+        if (config.second() != null)
+        {
+            List<Integer> others = new ArrayList<>();
+            for (int i = 0; i < patches.size(); i++)
+            {
+                if (i != bossIndex)
+                {
+                    others.add(i);
+                }
+            }
+            PlannerThreads.runAll(others.size(), k -> fitIn(config.second(), patches.get(others.get(k)), false));
+            List<Integer> secondFitting = new ArrayList<>();
+            for (int i : others)
+            {
+                if (fitIn(config.second(), patches.get(i), false).isPresent())
+                {
+                    secondFitting.add(i);
+                }
+            }
+            if (!secondFitting.isEmpty())
+            {
+                long h = mix(seed() ^ BossSitesTuning.SECOND_PICK_SALT, config.biome().location().hashCode(), index);
+                secondIndex = secondFitting.get((int) Math.floorMod(h, (long) secondFitting.size()));
+                secondSite = fitIn(config.second(), patches.get(secondIndex), false);
+            }
+            else if (!others.isEmpty())
+            {
+                int roomiest = others.get(0);
+                for (int i : others)
+                {
+                    if (patches.get(i).depth() > patches.get(roomiest).depth())
+                    {
+                        roomiest = i;
+                    }
+                }
+                Optional<Site> small = fitIn(config.second(), patches.get(roomiest), true);
+                if (small.isPresent())
+                {
+                    secondIndex = roomiest;
+                    secondSite = small;
+                    LOGGER.info("[boss sites] {} group {}: no free patch has room for {} by its normal rules; the roomiest (patch {}, {} deep) "
+                            + "gets its smallest form", config.biome().location().getPath(), index + 1, config.second(),
+                            patches.get(roomiest).number(), Math.round(patches.get(roomiest).depth()));
+                }
+                else
+                {
+                    LOGGER.warn("[boss sites] {} group {}: {} fits in none of its free patches, not even in its smallest form",
+                            config.biome().location().getPath(), index + 1, config.second());
+                }
+            }
+        }
+        // the slots: the boss's patch is 0, the second boss's 1, the others the rest (nearest first)
         List<Integer> slots = new ArrayList<>();
-        int next = 1;
+        int next = secondIndex >= 0 ? 2 : 1;
         for (int i = 0; i < patches.size(); i++)
         {
-            slots.add(i == bossIndex ? 0 : next++);
+            slots.add(i == bossIndex ? 0 : i == secondIndex ? 1 : next++);
         }
         // the fillers in the kept patches (their fit tests side by side too)
         List<Boolean> rolled = new ArrayList<>();
         List<Patch> toFit = new ArrayList<>();
         for (int i = 0; i < patches.size(); i++)
         {
-            boolean roll = i != bossIndex && config.filler() != null && fillerRoll(patches.get(i)) < config.fillerChance();
+            boolean roll = i != bossIndex && i != secondIndex && config.filler() != null && fillerRoll(patches.get(i)) < config.fillerChance();
             rolled.add(roll);
             if (roll)
             {
@@ -690,12 +754,15 @@ public final class BossSites
         {
             fillers.add(rolled.get(i) ? fitIn(config.filler(), patches.get(i), false) : Optional.empty());
         }
-        Group group = new Group(config.biome(), index, List.copyOf(patches), List.copyOf(slots), bossSite, List.copyOf(rolled), List.copyOf(fillers));
+        Group group = new Group(config.biome(), index, List.copyOf(patches), List.copyOf(slots), bossSite, secondSite, List.copyOf(rolled),
+                List.copyOf(fillers));
         if (LOGGER.isDebugEnabled())
         {
-            LOGGER.debug("[boss sites] {} group {} planned in {} ms: patches {}, boss in {}, fillers {}", config.biome().location().getPath(), index + 1,
+            LOGGER.debug("[boss sites] {} group {} planned in {} ms: patches {}, boss in {}, second boss in {}, fillers {}",
+                    config.biome().location().getPath(), index + 1,
                     Util.getMillis() - started, patches.stream().map(p -> p.number() + " (" + Math.round(p.distance()) + ")").toList(),
                     bossSite.map(s -> "patch " + s.patch().number() + " at " + s.pos().toShortString()).orElse("none"),
+                    secondSite.map(s -> "patch " + s.patch().number() + " at " + s.pos().toShortString()).orElse("none"),
                     fillers.stream().map(f -> f.map(s -> s.pos().toShortString()).orElse("-")).toList());
         }
         return Optional.of(group);

@@ -71,7 +71,7 @@ public final class DrossCommandGameTest
             "dross goto cathedral", "dross goto hub", "dross goto trader",
             "dross goto biome silverwood_forest", "dross goto biome cinder_wastes", "dross goto biome blightwood",
             "dross goto biome rimefall", "dross goto biome gravecrags",
-            "dross goto lair colossus", "dross goto lair ratking", "dross goto sewer", "dross goto lake",
+            "dross goto lair colossus", "dross goto lair ratking", "dross goto lair emberdactyl", "dross goto sewer", "dross goto lake",
             "dross showcase bossbars huntsman", "dross showcase bossbars huntsman angry",
             "dross showcase frostfolk_villages", "dross showcase frostfolk_igloos", "dross showcase frostfolk",
             "dross showcase boss_designs huntsman",

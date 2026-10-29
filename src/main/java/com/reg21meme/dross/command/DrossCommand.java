@@ -176,6 +176,8 @@ public final class DrossCommand
                         .then(Commands.literal("lair")
                                 .then(Commands.literal("colossus").executes(context -> GotoLair.colossus(context.getSource())))
                                 .then(Commands.literal("ratking").executes(context -> GotoLair.ratKing(context.getSource())))
+                                // the nearest Emberdactyl volcano, its home in the Cinder Wastes (GotoVolcano)
+                                .then(Commands.literal("emberdactyl").executes(context -> GotoVolcano.emberdactyl(context.getSource())))
                                 // the nearest Huntsman's village, his home in Rimefall (GotoVillage)
                                 .then(Commands.literal("huntsman").executes(context -> GotoVillage.huntsman(context.getSource()))))
                         // The nearest hunter village in Rimefall, either kind; with x z, the one nearest that spot

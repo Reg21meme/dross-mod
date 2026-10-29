@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.IntBinaryOperator;
+import javax.annotation.Nullable;
 
 import static com.reg21meme.dross.boss.emberdactyl.EmberVolcanoTuning.*;
 
@@ -81,7 +83,21 @@ public final class EmberVolcano
      */
     public static Plan plan(BlockPos ground, Direction front, long seed)
     {
-        Plan plan = new Plan(ground, Math.atan2(front.getStepZ(), front.getStepX()), seed);
+        Plan plan = new Plan(ground, Math.atan2(front.getStepZ(), front.getStepX()), seed, null);
+        plan.shape();
+        return plan;
+    }
+
+    /**
+     * Plans a volcano on the real land round (x, z) (its home in the Cinder Wastes), shaped from {@code seed}.
+     * {@code landTop} gives a column's top ground block as a world height (the generator's own heights: any thread). Its
+     * ground level is chosen low on the land round its foot ({@link EmberVolcanoTuning#LAND_BASE_SHARE}) and its path
+     * starts where the land just outside its foot is lowest; where the land is higher than its flanks it runs on into them
+     * (re-laid as the volcano's rock), where it's lower the ground round its foot steps down to it a block at a time.
+     */
+    public static Plan planOnLand(int x, int z, IntBinaryOperator landTop, long seed)
+    {
+        Plan plan = new Plan(new BlockPos(x, 0, z), 0.0D, seed, landTop);
         plan.shape();
         return plan;
     }
@@ -94,9 +110,17 @@ public final class EmberVolcano
     /** The volcano worked out in full, column by column, before a block is placed. */
     public static final class Plan
     {
-        private final BlockPos ground;
-        private final double front;
+        private BlockPos ground;
+        private double front;
         private final long seed;
+        /** Where the real land's heights come from (null: the showcase's flat floor at its ground). */
+        @Nullable
+        private final IntBinaryOperator landTop;
+        /** The land's top block in each column, from its ground (all 0 on a flat floor). */
+        private final int[] land = new int[N * N];
+        /** The lowest and highest it changes, from its ground. */
+        private int lowest = -FOUNDATION;
+        private int highest = HEIGHT + CLEAR_ABOVE;
         private final double[] riverAngle = new double[RIVERS];
         private final double[] riverPhase = new double[RIVERS];
         private final double[] lobePhase = new double[3];
@@ -120,11 +144,12 @@ public final class EmberVolcano
         private int lavaBlocks;
         private PathPoint lookout;
 
-        private Plan(BlockPos ground, double front, long seed)
+        private Plan(BlockPos ground, double front, long seed, @Nullable IntBinaryOperator landTop)
         {
             this.ground = ground.immutable();
             this.front = front;
             this.seed = seed;
+            this.landTop = landTop;
         }
 
         // ---- What the showcase (and later the boss) needs ----
@@ -138,8 +163,8 @@ public final class EmberVolcano
         /** Every block it may change. */
         public BoundingBox box()
         {
-            return new BoundingBox(this.ground.getX() - EXT, this.ground.getY() - FOUNDATION, this.ground.getZ() - EXT,
-                    this.ground.getX() + EXT, this.ground.getY() + HEIGHT + CLEAR_ABOVE, this.ground.getZ() + EXT);
+            return new BoundingBox(this.ground.getX() - EXT, this.ground.getY() + this.lowest, this.ground.getZ() - EXT,
+                    this.ground.getX() + EXT, this.ground.getY() + this.highest, this.ground.getZ() + EXT);
         }
 
         /** Where the egg stands: the middle of the nest's top. */
@@ -269,9 +294,10 @@ public final class EmberVolcano
         private void shape()
         {
             Random random = new Random(this.seed);
+            double[] riverJitter = new double[RIVERS];
             for (int k = 0; k < RIVERS; k++)
             {
-                this.riverAngle[k] = this.front + RIVER_PHASE + 2.0D * Math.PI * k / RIVERS + (random.nextDouble() - 0.5D) * 0.3D;
+                riverJitter[k] = (random.nextDouble() - 0.5D) * 0.3D;
                 this.riverPhase[k] = random.nextDouble() * 2.0D * Math.PI;
             }
             for (int i = 0; i < this.lobePhase.length; i++)
@@ -282,17 +308,28 @@ public final class EmberVolcano
             {
                 this.jagPhase[i] = random.nextDouble() * 2.0D * Math.PI;
             }
+            if (this.landTop != null)
+            {
+                readLand();
+            }
+            for (int k = 0; k < RIVERS; k++)
+            {
+                this.riverAngle[k] = this.front + RIVER_PHASE + 2.0D * Math.PI * k / RIVERS + riverJitter[k];
+            }
             Arrays.fill(this.lava, NO_LAVA);
             Arrays.fill(this.pathHeight, Integer.MIN_VALUE);
             planPath();
             planLand();
             planLakeAndNest();
             markPath();
+            fitLand();
             planFootPools(random);
             planRivers();
             planPockets(random);
             contain();
+            skirt();
             measureLava();
+            measureHeights();
             planDecor(random);
             LOGGER.info("[ember volcano] planned at {}: {} lava blocks, a path of {} blocks up to the rim",
                     this.ground.toShortString(), this.lavaBlocks, Math.round(this.path.get(this.path.size() - 1).along()));
@@ -320,6 +357,259 @@ public final class EmberVolcano
         {
             double angle = Math.atan2(z, x);
             return smooth(Math.sqrt(x * x + z * z) / lobes(angle));
+        }
+
+        // ---- On the real land ----
+
+        /**
+         * Reads the land round it (every {@link EmberVolcanoTuning#LAND_SAMPLE_STEP} blocks, blended between), then picks its
+         * ground level (low on the land round its foot) and its front (where the land just outside its foot is lowest, so its
+         * path starts on the land).
+         */
+        private void readLand()
+        {
+            int cx = this.ground.getX();
+            int cz = this.ground.getZ();
+            int step = Math.max(1, LAND_SAMPLE_STEP);
+            int cells = Mth.ceil((double) (N - 1) / step);
+            int[][] samples = new int[cells + 1][cells + 1];
+            for (int a = 0; a <= cells; a++)
+            {
+                for (int b = 0; b <= cells; b++)
+                {
+                    samples[a][b] = this.landTop.applyAsInt(cx - EXT + Math.min(a * step, N - 1), cz - EXT + Math.min(b * step, N - 1));
+                }
+            }
+            int[] abs = new int[N * N];
+            for (int ix = 0; ix < N; ix++)
+            {
+                int a = Math.min(ix / step, cells - 1);
+                int a0 = a * step;
+                int a1 = Math.min((a + 1) * step, N - 1);
+                double fa = a1 == a0 ? 0.0D : (double) (ix - a0) / (a1 - a0);
+                for (int iz = 0; iz < N; iz++)
+                {
+                    int b = Math.min(iz / step, cells - 1);
+                    int b0 = b * step;
+                    int b1 = Math.min((b + 1) * step, N - 1);
+                    double fb = b1 == b0 ? 0.0D : (double) (iz - b0) / (b1 - b0);
+                    double h = samples[a][b] * (1.0D - fa) * (1.0D - fb) + samples[a + 1][b] * fa * (1.0D - fb)
+                            + samples[a][b + 1] * (1.0D - fa) * fb + samples[a + 1][b + 1] * fa * fb;
+                    abs[ix * N + iz] = (int) Math.round(h);
+                }
+            }
+            // its ground: low on the land round its foot
+            List<Integer> foot = new ArrayList<>();
+            for (int dx = -EXT; dx <= EXT; dx++)
+            {
+                for (int dz = -EXT; dz <= EXT; dz++)
+                {
+                    double rr = Math.sqrt(dx * dx + dz * dz) / lobes(Math.atan2(dz, dx));
+                    if (rr >= BASE_RADIUS * 0.97D && rr <= BASE_RADIUS * 1.06D)
+                    {
+                        foot.add(abs[idx(dx, dz)]);
+                    }
+                }
+            }
+            Collections.sort(foot);
+            int base = foot.get((int) Math.floor(LAND_BASE_SHARE * (foot.size() - 1)));
+            // its front: where the land just outside its foot is lowest
+            double bestAngle = 0.0D;
+            double bestHeight = Double.MAX_VALUE;
+            for (int c = 0; c < FRONT_CHOICES; c++)
+            {
+                double angle = 2.0D * Math.PI * c / FRONT_CHOICES;
+                double sum = 0.0D;
+                for (int out = 2; out <= 8; out += 2)
+                {
+                    double r = BASE_RADIUS * lobes(angle) + out;
+                    int dx = Mth.clamp((int) Math.floor(Math.cos(angle) * r + 0.5D), -EXT, EXT);
+                    int dz = Mth.clamp((int) Math.floor(Math.sin(angle) * r + 0.5D), -EXT, EXT);
+                    sum += abs[idx(dx, dz)];
+                }
+                if (sum < bestHeight - 1.0E-9D)
+                {
+                    bestHeight = sum;
+                    bestAngle = angle;
+                }
+            }
+            this.front = bestAngle;
+            this.ground = new BlockPos(cx, base, cz);
+            for (int i = 0; i < N * N; i++)
+            {
+                this.land[i] = abs[i] - base;
+            }
+        }
+
+        /** Where the land is higher than the cone or the ground round its foot, they rise to it (re-laid as its rock). */
+        private void fitLand()
+        {
+            for (int i = 0; i < N * N; i++)
+            {
+                if (this.kind[i] == CONE || this.kind[i] == APRON)
+                {
+                    this.top[i] = Math.max(this.top[i], this.land[i]);
+                }
+            }
+        }
+
+        /**
+         * Where the land is lower than its ground, the ground round its foot steps down to it, at most
+         * {@link EmberVolcanoTuning#SKIRT_STEP} a block, from everything that keeps its height (the cone, the path, the crust,
+         * the lips and every column holding or walling in lava): the apron is lowered towards the land, and as much of the
+         * fringe as the steps need is filled (and becomes apron). On a flat floor nothing changes.
+         */
+        private void skirt()
+        {
+            boolean[] soft = new boolean[N * N];
+            int[] support = new int[N * N];
+            for (int dx = -EXT; dx <= EXT; dx++)
+            {
+                for (int dz = -EXT; dz <= EXT; dz++)
+                {
+                    int i = idx(dx, dz);
+                    byte k = this.kind[i];
+                    soft[i] = (k == APRON || k == FRINGE) && this.lava[i] == NO_LAVA && !nextToLava(dx, dz);
+                    support[i] = soft[i] || k == OUTSIDE ? Integer.MIN_VALUE / 2 : this.top[i];
+                }
+            }
+            // the steps: a soft column is held up by its highest neighbour less a step (sweeps both ways until settled)
+            boolean changed = true;
+            for (int pass = 0; changed && pass < 4 * N; pass++)
+            {
+                changed = false;
+                for (int sweep = 0; sweep < 2; sweep++)
+                {
+                    for (int n = 0; n < N * N; n++)
+                    {
+                        int i = sweep == 0 ? n : N * N - 1 - n;
+                        if (!soft[i])
+                        {
+                            continue;
+                        }
+                        int dx = i / N - EXT;
+                        int dz = i % N - EXT;
+                        int best = support[i];
+                        for (int ox = -1; ox <= 1; ox++)
+                        {
+                            for (int oz = -1; oz <= 1; oz++)
+                            {
+                                if ((ox != 0 || oz != 0) && inGrid(dx + ox, dz + oz))
+                                {
+                                    best = Math.max(best, support[idx(dx + ox, dz + oz)] - SKIRT_STEP);
+                                }
+                            }
+                        }
+                        if (best > support[i])
+                        {
+                            support[i] = best;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            int[] height = new int[N * N];
+            for (int i = 0; i < N * N; i++)
+            {
+                if (soft[i])
+                {
+                    height[i] = this.kind[i] == APRON ? Math.min(this.top[i], Math.max(this.land[i], support[i]))
+                            : Math.max(this.land[i], support[i]);
+                }
+            }
+            // ...and among themselves: no soft column more than a step under a soft neighbour, so a natural ledge in the
+            // ground round its foot is filled into steps too (the way onto its path is a block's climb at most)
+            changed = true;
+            for (int pass = 0; changed && pass < 4 * N; pass++)
+            {
+                changed = false;
+                for (int sweep = 0; sweep < 2; sweep++)
+                {
+                    for (int n = 0; n < N * N; n++)
+                    {
+                        int i = sweep == 0 ? n : N * N - 1 - n;
+                        if (!soft[i])
+                        {
+                            continue;
+                        }
+                        int dx = i / N - EXT;
+                        int dz = i % N - EXT;
+                        for (int ox = -1; ox <= 1; ox++)
+                        {
+                            for (int oz = -1; oz <= 1; oz++)
+                            {
+                                int nx = dx + ox;
+                                int nz = dz + oz;
+                                if ((ox != 0 || oz != 0) && inGrid(nx, nz) && soft[idx(nx, nz)]
+                                        && height[idx(nx, nz)] - SKIRT_STEP > height[i])
+                                {
+                                    height[i] = height[idx(nx, nz)] - SKIRT_STEP;
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for (int i = 0; i < N * N; i++)
+            {
+                if (!soft[i])
+                {
+                    continue;
+                }
+                if (this.kind[i] == APRON)
+                {
+                    this.top[i] = height[i];
+                }
+                else if (height[i] > this.land[i])
+                {
+                    this.kind[i] = APRON;
+                    this.top[i] = height[i];
+                }
+            }
+        }
+
+        private boolean nextToLava(int dx, int dz)
+        {
+            for (Direction side : Direction.Plane.HORIZONTAL)
+            {
+                int nx = dx + side.getStepX();
+                int nz = dz + side.getStepZ();
+                if (inGrid(nx, nz) && this.lava[idx(nx, nz)] != NO_LAVA)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /** The lowest and highest heights it changes (for its box). */
+        private void measureHeights()
+        {
+            for (int i = 0; i < N * N; i++)
+            {
+                if (this.kind[i] == OUTSIDE)
+                {
+                    continue;
+                }
+                this.lowest = Math.min(this.lowest, Math.min(this.top[i], this.land[i]) - FOUNDATION);
+                this.highest = Math.max(this.highest, this.land[i]);
+            }
+        }
+
+        /** The top ground block it lays in a column it manages (the cone, the path, the ground round its foot), as a world
+         *  height; the land's elsewhere. */
+        public int groundY(int x, int z)
+        {
+            return manages(x, z) ? this.ground.getY() + this.top[idx(x - this.ground.getX(), z - this.ground.getZ())] : landY(x, z);
+        }
+
+        /** The land's top block in a column, as a world height (its ground on a flat floor). */
+        public int landY(int x, int z)
+        {
+            int dx = x - this.ground.getX();
+            int dz = z - this.ground.getZ();
+            return this.ground.getY() + (inGrid(dx, dz) ? this.land[idx(dx, dz)] : 0);
         }
 
         /**
@@ -655,7 +945,7 @@ public final class EmberVolcano
                         }
                         else if (d <= radius + wobble + CRUST_REACH * (0.55D + 0.45D * outward)
                                 + 1.5D * (2.0D * noise(dx / 2.5D, dz / 2.5D, 29) - 1.0D)
-                                && (this.kind[i] == APRON || this.kind[i] == CONE && this.top[i] <= 1)
+                                && (this.kind[i] == APRON || this.kind[i] == CONE) && this.top[i] <= 1
                                 && this.lava[i] == NO_LAVA && !this.nearPath[i])
                         {
                             this.kind[i] = CRUST;
@@ -1476,6 +1766,12 @@ public final class EmberVolcano
             return this.phase == Phase.DONE;
         }
 
+        /** How long it has worked so far (milliseconds, its own steps only). */
+        public long workMillis()
+        {
+            return this.busyNanos / 1_000_000L;
+        }
+
         /**
          * Does up to {@code budgetNanos} of work (the lava always all at once, on a tick of its own).
          *
@@ -1515,10 +1811,11 @@ public final class EmberVolcano
                     int x = ground.getX() + dx;
                     int z = ground.getZ() + dz;
                     int top = this.plan.top[i];
+                    int land = this.plan.land[i];
                     if (this.phase == Phase.CLEAR)
                     {
-                        int from = kind == FRINGE ? 1 : top + 1;
-                        for (int y = from; y <= clearTop; y++)
+                        int from = kind == FRINGE ? land + 1 : top + 1;
+                        for (int y = from, to = Math.max(clearTop, land); y <= to; y++)
                         {
                             pos.set(x, ground.getY() + y, z);
                             if (!this.level.getBlockState(pos).isAir())
@@ -1532,9 +1829,19 @@ public final class EmberVolcano
                     {
                         double outside = Math.hypot(dx, dz) - BASE_RADIUS * this.plan.lobes(Math.atan2(dz, dx));
                         double cover = 1.0D - (outside - APRON_OUT) / (FRINGE_OUT - APRON_OUT);
+                        // (any lava or water just under the land here is sealed: the ground beside it may have been lowered)
+                        for (int y = land - FOUNDATION; y <= land; y++)
+                        {
+                            pos.set(x, ground.getY() + y, z);
+                            if (!this.level.getFluidState(pos).isEmpty())
+                            {
+                                this.level.setBlock(pos, Blocks.BLACKSTONE.defaultBlockState(), FLAGS);
+                                this.placed++;
+                            }
+                        }
                         if (this.plan.hash(dx, dz, 71) < cover * 0.85D)
                         {
-                            pos.set(x, ground.getY(), z);
+                            pos.set(x, ground.getY() + land, z);
                             this.level.setBlock(pos, this.plan.hash(dx, dz, 73) < 0.75D ? ModBlocks.ASH.get().defaultBlockState()
                                     : Blocks.BLACKSTONE.defaultBlockState(), FLAGS);
                             this.placed++;
@@ -1542,7 +1849,8 @@ public final class EmberVolcano
                     }
                     else
                     {
-                        for (int y = -FOUNDATION; y <= top; y++)
+                        // (from under the land too: a natural lava pool dug into it is re-laid as rock)
+                        for (int y = Math.min(-FOUNDATION, land - FOUNDATION); y <= top; y++)
                         {
                             pos.set(x, ground.getY() + y, z);
                             this.level.setBlock(pos, this.plan.solid(dx, dz, top - y, y), FLAGS);
