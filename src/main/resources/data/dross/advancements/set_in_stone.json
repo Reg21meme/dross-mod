@@ -2,7 +2,7 @@
   "parent": "dross:entered_the_dross",
   "display": {
     "icon": {
-      "item": "minecraft:obsidian"
+      "item": "dross:set_in_stone_icon"
     },
     "title": {
       "translate": "advancements.dross.set_in_stone.title"

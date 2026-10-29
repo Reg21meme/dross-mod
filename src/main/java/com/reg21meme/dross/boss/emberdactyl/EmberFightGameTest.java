@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.quest.DrossAdvancements;
+import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -23,7 +24,9 @@ import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.monster.Zombie;
@@ -31,6 +34,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -218,7 +222,8 @@ public final class EmberFightGameTest
     /**
      * The user's first fight: its wing buffet threw nobody (from its circle it was too high, and a hit that didn't count
      * threw nothing): from 18 blocks up it swoops down and throws a cow that can't be hurt at all; its beak snap is five
-     * pecks, each one counting.
+     * pecks, each one counting, and (their second fight: "when you are directly under him his pecking attack doesn't
+     * really hit you") they hit a golem standing right under its chest too.
      */
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_buffet", timeoutTicks = 2_000_000)
     public static void buffetThrowsAndBeakPecksFive(GameTestHelper helper)
@@ -226,7 +231,7 @@ public final class EmberFightGameTest
         Run run = new Run(helper.getLevel(), 6600, -6600);
         Cow[] cow = new Cow[1];
         Emberdactyl[] adult = new Emberdactyl[1];
-        net.minecraft.world.entity.animal.IronGolem[] golem = new net.minecraft.world.entity.animal.IronGolem[1];
+        net.minecraft.world.entity.animal.IronGolem[] golem = new net.minecraft.world.entity.animal.IronGolem[2];
         boolean[] pecking = {false};
         helper.startSequence()
                 .thenWaitUntil(() -> run.guard(run::ready))
@@ -257,6 +262,11 @@ public final class EmberFightGameTest
                     golem[0].setNoAi(true);
                     run.level.addFreshEntity(golem[0]);
                     run.extras.add(golem[0]);
+                    golem[1] = EntityType.IRON_GOLEM.create(run.level);
+                    golem[1].moveTo(run.centre.x + 1.5D, run.centre.y, run.centre.z, 90.0F, 0.0F);
+                    golem[1].setNoAi(true);
+                    run.level.addFreshEntity(golem[1]);
+                    run.extras.add(golem[1]);
                     adult[0].testMove(EmberBoss.Move.SNAP, golem[0]);
                 }))
                 .thenWaitUntil(() -> run.waitFor("its five pecks", () -> {
@@ -265,31 +275,53 @@ public final class EmberFightGameTest
                     return pecking[0] && !now;
                 }, () -> "the golem's health " + golem[0].getHealth()))
                 .thenExecute(() -> run.guard(() -> {
-                    float lost = golem[0].getMaxHealth() - golem[0].getHealth();
-                    float want = EmberTuning.SNAP_PECKS * EmberTuning.SNAP_DAMAGE;
-                    if (Math.abs(lost - want) > 0.01F)
-                    {
-                        throw new GameTestAssertException("the golem lost " + lost + " to its beak, not " + want + " (five pecks)");
-                    }
-                    LOGGER.info("[ember test] five pecks: {} lost", lost);
+                    checkPecked(golem[0], "in front of it");
+                    // (it only pecks what it's fighting: now the golem right under its chest)
+                    pecking[0] = false;
+                    adult[0].testMove(EmberBoss.Move.SNAP, golem[1]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("its five pecks under its chest", () -> {
+                    boolean now = adult[0].animation().equals("snap");
+                    pecking[0] |= now;
+                    return pecking[0] && !now;
+                }, () -> "the golem's health " + golem[1].getHealth()))
+                .thenExecute(() -> run.guard(() -> {
+                    checkPecked(golem[1], "under its chest");
+                    LOGGER.info("[ember test] five pecks: {} lost in front of it and under its chest",
+                            EmberTuning.SNAP_PECKS * EmberTuning.SNAP_DAMAGE);
                     run.cleanUp();
                 }))
                 .thenSucceed();
     }
 
+    private static void checkPecked(LivingEntity golem, String where)
+    {
+        float want = EmberTuning.SNAP_PECKS * EmberTuning.SNAP_DAMAGE;
+        float lost = golem.getMaxHealth() - golem.getHealth();
+        if (Math.abs(lost - want) > 0.01F)
+        {
+            throw new GameTestAssertException("the golem " + where + " lost " + lost + " to its beak, not " + want + " (five pecks)");
+        }
+    }
+
     /**
-     * The user's first fight: its talon grab carried them through its volcano's side ("he tried to suffocate me"). Next
-     * to a stone pillar it grabs a cow, carries it up and lets go of it high over the floor; the cow is never inside a
-     * block on the way.
+     * The user's first fight: its talon grab carried them through its volcano's side ("he tried to suffocate me"); their
+     * second: "make it so he can't drop me from any more than where it does at max half of my health", "I want to be
+     * able to move around as he carries me ... it also looks very stuttery". Next to a stone pillar it grabs a cow: the
+     * cow rides it (hangs from its talons), is never inside a block on the way, is carried up over the pillar and let go
+     * no higher over the ground than a fall that takes half its health. Then a cow marked as dropped by it falls 30
+     * blocks and loses half its health, no more.
      */
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_grab", timeoutTicks = 2_000_000)
     public static void grabNeverCarriesYouIntoTheGround(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 6800, -6400);
         Cow[] cow = new Cow[1];
+        Cow[] faller = new Cow[1];
         Emberdactyl[] adult = new Emberdactyl[1];
         boolean[] caught = {false};
         double[] highest = {0.0D};
+        double[] letGo = {Double.NaN};
         helper.startSequence()
                 .thenWaitUntil(() -> run.guard(run::ready))
                 .thenExecute(() -> run.guard(() -> {
@@ -320,10 +352,19 @@ public final class EmberFightGameTest
                     {
                         caught[0] = true;
                         highest[0] = Math.max(highest[0], cow[0].getY());
+                        if (cow[0].getVehicle() != adult[0])
+                        {
+                            run.giveUp("the carried cow isn't riding it (it should hang from its talons)");
+                        }
                         if (!run.level.noCollision(cow[0], cow[0].getBoundingBox().deflate(0.05D)))
                         {
                             run.giveUp("the carried cow is inside a block at " + cow[0].blockPosition().toShortString());
                         }
+                    }
+                    else if (caught[0] && Double.isNaN(letGo[0]))
+                    {
+                        letGo[0] = cow[0].getY() - run.level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
+                                Mth.floor(cow[0].getX()), Mth.floor(cow[0].getZ()));
                     }
                     else if (adult[0].fightTarget() == cow[0] && adult[0].animation().equals("grab") && !caught[0]
                             && adult[0].tickCount > 200)
@@ -334,12 +375,98 @@ public final class EmberFightGameTest
                 }, () -> "caught " + caught[0] + ", highest " + String.format("%.1f", highest[0] - run.centre.y)))
                 .thenExecute(() -> run.guard(() -> {
                     double up = highest[0] - run.centre.y;
-                    if (up < EmberTuning.GRAB_CARRY_HEIGHT - 2.0D)
+                    if (up < EmberTuning.GRAB_DROP_MIN - 1.0D)
                     {
-                        throw new GameTestAssertException("it let go of the cow only " + String.format("%.1f", up) + " blocks over the floor");
+                        throw new GameTestAssertException("it carried the cow only " + String.format("%.1f", up) + " blocks up");
                     }
-                    LOGGER.info("[ember test] grabbed beside a pillar, carried in open air and dropped from {} blocks up",
-                            String.format("%.1f", up));
+                    // (its health 10: a fall of 3 + 5 blocks takes half of it)
+                    double most = 3.0D + Math.floor(cow[0].getHealth() * EmberTuning.GRAB_FALL_SHARE) + 1.5D;
+                    if (letGo[0] > most)
+                    {
+                        throw new GameTestAssertException("it let go of the cow " + String.format("%.1f", letGo[0])
+                                + " blocks over the ground (at most " + most + ")");
+                    }
+                    LOGGER.info("[ember test] grabbed beside a pillar, carried in open air (up to {} blocks), let go {} blocks over "
+                            + "the ground", String.format("%.1f", up), String.format("%.1f", letGo[0]));
+                    faller[0] = EntityType.COW.create(run.level);
+                    faller[0].moveTo(run.centre.x - 8.0D, run.centre.y + 30.0D, run.centre.z, 0.0F, 0.0F);
+                    run.level.addFreshEntity(faller[0]);
+                    run.extras.add(faller[0]);
+                    EmberBoss.markDropped(faller[0], run.level.getGameTime());
+                }))
+                .thenWaitUntil(() -> run.waitFor("the dropped cow to land", () -> faller[0].onGround() && faller[0].fallDistance == 0.0F,
+                        () -> "at " + String.format("%.1f", faller[0].getY() - run.centre.y)))
+                .thenExecute(() -> run.guard(() -> {
+                    float half = faller[0].getMaxHealth() * EmberTuning.GRAB_FALL_SHARE;
+                    if (!faller[0].isAlive() || faller[0].getHealth() < faller[0].getMaxHealth() - half - 0.01F)
+                    {
+                        throw new GameTestAssertException("a cow it dropped from 30 blocks up has " + faller[0].getHealth()
+                                + " health left (a fall after its grab takes half at most)");
+                    }
+                    LOGGER.info("[ember test] a cow it dropped fell 30 blocks and kept {} of {} health", faller[0].getHealth(),
+                            faller[0].getMaxHealth());
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
+     * The user's second fight: "when you're far away he shouldn't tornado ... instead make him do his fire glide thing
+     * then dive at you once he is closer"; and the young "whenever he flies he drops fire onto the ground". From 40
+     * blocks off its glide in drops fire on the floor under it and turns into its dive once it's close; then a young
+     * screeching in the air drops fire under itself.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_glide", timeoutTicks = 2_000_000)
+    public static void farGlideEndsInADiveAndTheYoungDropsFire(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7000, -6200);
+        Cow[] cow = new Cow[1];
+        EmberBoss[] boss = new EmberBoss[1];
+        double[] diveFrom = {Double.NaN};
+        int[] fires = {0};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.centre.x + 6.0D, run.centre.y, run.centre.z, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    cow[0].setNoAi(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    boss[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(-34.0D, 14.0D, 0.0D));
+                    boss[0].testMove(EmberBoss.Move.GLIDE, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("its glide to turn into a dive", () -> {
+                    if (boss[0].animation().equals("dive"))
+                    {
+                        diveFrom[0] = horizontal(boss[0].position(), cow[0].position());
+                        return true;
+                    }
+                    return false;
+                }, () -> boss[0].animation() + ", " + String.format("%.1f", horizontal(boss[0].position(), cow[0].position()))
+                        + " blocks off"))
+                .thenExecute(() -> run.guard(() -> {
+                    fires[0] = run.fires(-40, 8, -6, 6);
+                    if (fires[0] == 0)
+                    {
+                        throw new GameTestAssertException("its glide in dropped no fire on the floor under it");
+                    }
+                    if (diveFrom[0] > EmberTuning.GLIDE_DIVE_AT + 3.0D)
+                    {
+                        throw new GameTestAssertException("it dived from " + String.format("%.1f", diveFrom[0]) + " blocks off (at most "
+                                + EmberTuning.GLIDE_DIVE_AT + ")");
+                    }
+                    LOGGER.info("[ember test] glided in dropping fire ({} patches) and dived from {} blocks off", fires[0],
+                            String.format("%.1f", diveFrom[0]));
+                    boss[0].discard();
+                    boss[0] = run.spawn(ModEntities.EMBERYOUNG.get(), run.centre.add(0.0D, 10.0D, 24.0D));
+                    boss[0].testMove(EmberBoss.Move.SCREECH, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("the young to drop fire under itself", () -> run.fires(-4, 4, 20, 28) > 0,
+                        () -> boss[0].animation()))
+                .thenExecute(() -> run.guard(() -> {
+                    LOGGER.info("[ember test] the young dropped fire under itself in the air");
                     run.cleanUp();
                 }))
                 .thenSucceed();
@@ -487,6 +614,24 @@ public final class EmberFightGameTest
                     }
                 }
             }
+        }
+
+        /** Patches of its temporary fire on the floor, from x0 to x1 and z0 to z1 round the middle. */
+        int fires(int x0, int x1, int z0, int z1)
+        {
+            int count = 0;
+            BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+            for (int dx = x0; dx <= x1; dx++)
+            {
+                for (int dz = z0; dz <= z1; dz++)
+                {
+                    if (this.level.getBlockState(pos.set(this.x + dx, FLOOR_Y + 1, this.z + dz)).is(ModBlocks.CINDER_FIRE.get()))
+                    {
+                        count++;
+                    }
+                }
+            }
+            return count;
         }
 
         <T extends EmberBoss> T spawn(EntityType<T> type, Vec3 at)

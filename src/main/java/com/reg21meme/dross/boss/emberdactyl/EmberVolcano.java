@@ -74,6 +74,7 @@ public final class EmberVolcano
     private static final byte PATH = 6;
     private static final byte LIP = 7;
     private static final byte CRUST = 8;
+    private static final byte PERCH = 9;
 
     private EmberVolcano() {}
 
@@ -139,6 +140,12 @@ public final class EmberVolcano
         private final boolean[] pathEdge = new boolean[N * N];
         private final boolean[] pathLight = new boolean[N * N];
         private final Map<Long, BlockState> decor = new HashMap<>();
+        /** The Emberdactyl's perch: the room kept for its body and head (nothing stands there), and 2 round it (no lava). */
+        private final boolean[] perchClear = new boolean[N * N];
+        private final boolean[] perchNear = new boolean[N * N];
+        private double perchAngle;
+        private double perchRadius;
+        private int perchLevel;
         private int lakeLevel;
         private int nestTop;
         private int lavaBlocks;
@@ -201,6 +208,19 @@ public final class EmberVolcano
         public float lookoutYaw()
         {
             return yaw(-this.lookout.x(), -this.lookout.z());
+        }
+
+        /** Where the Emberdactyl perches: standing on its ledge on the rim, opposite the lookout. */
+        public Vec3 perch()
+        {
+            return new Vec3(this.ground.getX() + 0.5D + Math.cos(this.perchAngle) * this.perchRadius, this.ground.getY() + this.perchLevel + 1.0D,
+                    this.ground.getZ() + 0.5D + Math.sin(this.perchAngle) * this.perchRadius);
+        }
+
+        /** ...facing outwards, over the flank. */
+        public float perchYaw()
+        {
+            return yaw(Math.cos(this.perchAngle), Math.sin(this.perchAngle));
         }
 
         /** The path's line from its foot to the lookout, a block each, standing on it (on each column's own height: it
@@ -323,6 +343,7 @@ public final class EmberVolcano
             planLakeAndNest();
             markPath();
             fitLand();
+            planPerch();
             planFootPools(random);
             planRivers();
             planPockets(random);
@@ -593,7 +614,7 @@ public final class EmberVolcano
                     continue;
                 }
                 this.lowest = Math.min(this.lowest, Math.min(this.top[i], this.land[i]) - FOUNDATION);
-                this.highest = Math.max(this.highest, this.land[i]);
+                this.highest = Math.max(this.highest, Math.max(this.land[i], clearTo(i)));
             }
         }
 
@@ -882,6 +903,89 @@ public final class EmberVolcano
             }
         }
 
+        /**
+         * The Emberdactyl's perch (the user, October 29: "make his spot on the edge of the top of the volcano facing
+         * outwards"): a flat ledge of rock at the crest's height opposite the lookout, jutting out over the outer flank,
+         * and room kept clear for its perched body (the crest beside it cut down to the ledge) and for its neck and head
+         * held out in front of it: no spire, vent, lava or anything else in it.
+         */
+        private void planPerch()
+        {
+            this.perchAngle = this.notchAngle + Math.PI;
+            this.perchRadius = (RIM_RADIUS + PERCH_RIM_OUT) * lobes(this.perchAngle);
+            this.perchLevel = (int) Math.round(crest(this.perchAngle));
+            double fx = Math.cos(this.perchAngle);
+            double fz = Math.sin(this.perchAngle);
+            double px = fx * this.perchRadius;
+            double pz = fz * this.perchRadius;
+            int reach = Mth.ceil(Math.hypot(PERCH_HEAD_FRONT, PERCH_BODY_HALF_WIDTH)) + 1;
+            for (int dx = (int) Math.floor(px) - reach; dx <= (int) Math.floor(px) + reach; dx++)
+            {
+                for (int dz = (int) Math.floor(pz) - reach; dz <= (int) Math.floor(pz) + reach; dz++)
+                {
+                    if (!inGrid(dx, dz))
+                    {
+                        continue;
+                    }
+                    int i = idx(dx, dz);
+                    byte k = this.kind[i];
+                    if (k == PATH || k == NEST || k == OUTSIDE || k == FRINGE)
+                    {
+                        continue;
+                    }
+                    double ox = dx - px;
+                    double oz = dz - pz;
+                    double along = ox * fx + oz * fz;          // out from the crater: in front of it
+                    double across = Math.abs(oz * fx - ox * fz);
+                    if (across <= PERCH_LEDGE_HALF_WIDTH && along >= -PERCH_LEDGE_BACK && along <= PERCH_LEDGE_FRONT)
+                    {
+                        this.kind[i] = PERCH;
+                        this.top[i] = this.perchLevel;
+                        this.lava[i] = NO_LAVA;
+                    }
+                    else if (across <= PERCH_BODY_HALF_WIDTH && along >= -PERCH_BODY_BACK && along <= PERCH_BODY_FRONT)
+                    {
+                        this.top[i] = Math.min(this.top[i], this.perchLevel);
+                    }
+                    else if (across <= PERCH_HEAD_HALF_WIDTH && along > PERCH_BODY_FRONT && along <= PERCH_HEAD_FRONT)
+                    {
+                        this.top[i] = Math.min(this.top[i], this.perchLevel + PERCH_HEAD_LOW);
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                    this.perchClear[i] = true;
+                }
+            }
+            for (int dx = -EXT; dx <= EXT; dx++)
+            {
+                for (int dz = -EXT; dz <= EXT; dz++)
+                {
+                    if (!this.perchClear[idx(dx, dz)])
+                    {
+                        continue;
+                    }
+                    for (int ox = -2; ox <= 2; ox++)
+                    {
+                        for (int oz = -2; oz <= 2; oz++)
+                        {
+                            if (inGrid(dx + ox, dz + oz))
+                            {
+                                this.perchNear[idx(dx + ox, dz + oz)] = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /** How high the air is cleared over a column (from its ground): over the perch, high enough for its body. */
+        private int clearTo(int i)
+        {
+            return this.perchClear[i] ? Math.max(HEIGHT + CLEAR_ABOVE, this.perchLevel + PERCH_BODY_HEIGHT) : HEIGHT + CLEAR_ABOVE;
+        }
+
         /** Can lava go in this column: on the volcano (not the fringe), clear of the path and the plan's edge? */
         private boolean lavaAllowed(int dx, int dz)
         {
@@ -901,7 +1005,7 @@ public final class EmberVolcano
                 }
             }
             int i = idx(dx, dz);
-            return !this.nearPath[i] && this.kind[i] != NEST && this.kind[i] != PATH;
+            return !this.nearPath[i] && !this.perchNear[i] && this.kind[i] != NEST && this.kind[i] != PATH && this.kind[i] != PERCH;
         }
 
         private void setLava(int i, int level, int depth)
@@ -1183,7 +1287,8 @@ public final class EmberVolcano
             int i = idx(dx, dz);
             byte k = this.kind[i];
             return (k == CONE || k == APRON || k == CRATER || k == LIP || k == CRUST) && this.lava[i] == NO_LAVA
-                    && this.lavaNear[i] >= nearLava && !this.nearPath[i] && !this.decor.containsKey(key(dx, this.top[i] + 1, dz));
+                    && this.lavaNear[i] >= nearLava && !this.nearPath[i] && !this.perchClear[i]
+                    && !this.decor.containsKey(key(dx, this.top[i] + 1, dz));
         }
 
         private void put(int dx, int y, int dz, BlockState state)
@@ -1302,7 +1407,7 @@ public final class EmberVolcano
                 double a = this.riverAngle[k];
                 int dx = (int) Math.floor(Math.cos(a) * r - Math.sin(a) * wiggle + 0.5D);
                 int dz = (int) Math.floor(Math.sin(a) * r + Math.cos(a) * wiggle + 0.5D);
-                if (inGrid(dx, dz) && this.lava[idx(dx, dz)] == NO_LAVA && !this.nearPath[idx(dx, dz)])
+                if (inGrid(dx, dz) && this.lava[idx(dx, dz)] == NO_LAVA && !this.nearPath[idx(dx, dz)] && !this.perchClear[idx(dx, dz)])
                 {
                     put(dx, this.top[idx(dx, dz)], dz, vent);
                 }
@@ -1557,7 +1662,8 @@ public final class EmberVolcano
             }
             int i = idx(dx, dz);
             byte k = this.kind[i];
-            if (y <= this.top[i] || this.lava[i] != NO_LAVA || k == PATH || k == OUTSIDE || k == FRINGE || this.nearPath[i])
+            if (y <= this.top[i] || this.lava[i] != NO_LAVA || k == PATH || k == OUTSIDE || k == FRINGE || this.nearPath[i]
+                    || this.perchClear[i])
             {
                 return;
             }
@@ -1622,6 +1728,12 @@ public final class EmberVolcano
                 }
                 return r <= NEST_RING_INNER ? Blocks.MAGMA_BLOCK.defaultBlockState()
                         : roll < 0.6D ? Blocks.BASALT.defaultBlockState() : Blocks.BLACKSTONE.defaultBlockState();
+            }
+            if (k == PERCH)
+            {
+                // its ledge: worn smooth rock, scorched dark
+                return roll < 0.4D ? Blocks.SMOOTH_BASALT.defaultBlockState() : roll < 0.7D ? Blocks.BASALT.defaultBlockState()
+                        : roll < 0.9D ? Blocks.BLACKSTONE.defaultBlockState() : Blocks.POLISHED_BLACKSTONE.defaultBlockState();
             }
             if (k == LIP || k == CRUST || this.lavaNear[i] == 1)
             {
@@ -1789,7 +1901,6 @@ public final class EmberVolcano
             BlockPos ground = this.plan.ground;
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
             BlockState air = Blocks.AIR.defaultBlockState();
-            int clearTop = HEIGHT + CLEAR_ABOVE;
             while (this.phase != Phase.DONE && System.nanoTime() < end)
             {
                 if (this.phase == Phase.CLEAR || this.phase == Phase.GROUND)
@@ -1815,7 +1926,7 @@ public final class EmberVolcano
                     if (this.phase == Phase.CLEAR)
                     {
                         int from = kind == FRINGE ? land + 1 : top + 1;
-                        for (int y = from, to = Math.max(clearTop, land); y <= to; y++)
+                        for (int y = from, to = Math.max(this.plan.clearTo(i), land); y <= to; y++)
                         {
                             pos.set(x, ground.getY() + y, z);
                             if (!this.level.getBlockState(pos).isAir())

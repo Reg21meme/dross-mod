@@ -115,8 +115,8 @@ public final class FireDesigns
             new Design(63, "E3A", "emberegga", "Emberdactyl Egg", "obsidian fade", "emberdactyl", 3, 3, 0, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
             new Design(64, "E3B", "embereggb", "Emberdactyl Egg", "ember foot", "emberdactyl", 3, 3, 1, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
             new Design(65, "E3C", "embereggc", "Emberdactyl Egg", "faint cracks", "emberdactyl", 3, 3, 2, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
-            new Design(66, "E3D", "embereggd", "Emberdactyl Egg", "cut open", "emberdactyl", 3, 3, 3, 10.00F, 13.70F, 5.45F, 5.45F, 5.43F, 5.43F, 13.70F, 4.88F, true, false, false, ""),
-            new Design(67, "E3E", "emberegge", "Emberdactyl Egg", "hatched", "emberdactyl", 3, 3, 4, 10.00F, 7.59F, 5.32F, 5.45F, 5.43F, 5.43F, 7.59F, 4.85F, true, false, false, "")
+            new Design(66, "E3D", "embereggd", "Emberdactyl Egg", "cut open", "emberdactyl", 3, 3, 3, 10.00F, 13.72F, 5.45F, 5.45F, 5.43F, 5.43F, 13.72F, 4.88F, true, false, false, ""),
+            new Design(67, "E3E", "emberegge", "Emberdactyl Egg", "hatched", "emberdactyl", 3, 3, 4, 10.00F, 6.94F, 6.73F, 6.48F, 7.16F, 6.78F, 6.94F, 5.94F, true, false, false, "")
     );
 
     /** The Cinder Wastes' mobs: the Pallbearer, then the Cinder Hermit in each of its shells. */

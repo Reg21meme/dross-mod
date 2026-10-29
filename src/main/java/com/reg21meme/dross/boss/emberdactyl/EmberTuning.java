@@ -137,13 +137,24 @@ public final class EmberTuning
     public static final double STRAFE_SPEED = 0.95D;
     public static final int STRAFE_COOLDOWN = 200;
 
-    /** Talon grab: 3 hearts, then it carries you up and drops you from this high over the ground under the drop,
-     *  anywhere (its crater's lava included). Carried, you hang in open air: it first climbs until you're this many
-     *  blocks over the highest ground on its way, then flies across (the user's first fight: it had carried them
-     *  straight through its volcano's side, "he tried to suffocate me"); it lets go when it's there or after this long. */
+    /** Talon grab: 3 hearts, then it carries you up and drops you over the ground under the drop, anywhere (its crater
+     *  included). Carried, you hang from its talons as its passenger (your game moves you with it, smoothly, and you
+     *  look round as you like: the user's second fight, October 29, "I want to be able to move around as he carries me
+     *  ... it also looks very stuttery"; sneak and you struggle free and fall), always in open air: it first climbs
+     *  until you're {@link #GRAB_CLEARANCE} blocks over the highest ground on its way (the user's first fight: it had
+     *  carried them straight through its volcano's side, "he tried to suffocate me"), flies across, comes down to the
+     *  drop's height and lets go (or after {@link #GRAB_CARRY_TICKS}). The drop's height (the user, October 29: "make it
+     *  so he can't drop me from any more than where it does at max half of my health"): 3 blocks plus
+     *  {@link #GRAB_FALL_SHARE} of your health then (a fall's damage is a heart for every 2 blocks past the first 3),
+     *  between {@link #GRAB_DROP_MIN} and {@link #GRAB_CARRY_HEIGHT}; and when you land (let go, or struggled free) the
+     *  fall never takes more than that share of the health you have then. */
     public static final float GRAB_DAMAGE = 6.0F;
     public static final double GRAB_REACH = 4.5D;
     public static final double GRAB_CARRY_HEIGHT = 20.0D;
+    public static final double GRAB_DROP_MIN = 4.0D;
+    public static final float GRAB_FALL_SHARE = 0.5F;
+    /** ...its fall counts as the grab's for this long after it let go (then a fall is a fall). */
+    public static final int GRAB_FALL_GUARD_TICKS = 600;
     public static final double GRAB_CLEARANCE = 4.0D;
     public static final int GRAB_CARRY_TICKS = 160;
     /** Over its crater it drops you within this far of its nest. */
@@ -154,10 +165,15 @@ public final class EmberTuning
      *  once"), each this much in front of it (4 hearts a peck; it was one snap of 7). */
     public static final int SNAP_PECKS = 5;
     public static final float SNAP_DAMAGE = 8.0F;
-    /** Its bill reaches from this far in front of it to this far, this far either side (blocks; the adult's). */
-    public static final double SNAP_FROM = 3.0D;
+    /** Its bill reaches from under its chest (this far behind its feet: the user's second fight, "when you are directly
+     *  under him his pecking attack doesn't really hit you") to this far in front of it, this far either side, and each
+     *  peck splashes round where its bill strikes the ground (this far in front, this far round: "a small AoE instead
+     *  of a single block kind of thing") (blocks; the adult's, the young's scaled to its size). */
+    public static final double SNAP_FROM = -4.0D;
     public static final double SNAP_TO = 15.0D;
-    public static final double SNAP_SIDE = 4.0D;
+    public static final double SNAP_SIDE = 5.0D;
+    public static final double SNAP_STRIKE = 12.0D;
+    public static final double SNAP_SPLASH = 3.5D;
     public static final int SNAP_COOLDOWN = 30;
 
     /** Wing buffet: 4 hearts in a cone in front, throwing you about 20 blocks (the user). In the air it first swoops
@@ -207,7 +223,26 @@ public final class EmberTuning
     public static final int MID_DIVE = 25, MID_TORNADO = 30, MID_STRAFE = 25, MID_GRAB = 20, MID_DASH = 20;
     /** (the young's mid row has its dash too: its tornado 6 points more, so it gains 5 of its share) */
     public static final int YOUNG_MID_DIVE = 24, YOUNG_MID_TORNADO = 31;
-    public static final int FAR_STRAFE = 35, FAR_TORNADO = 40, FAR_DIVE = 25;
+    /** Far off (the user's second fight: "when you're far away he shouldn't tornado ... he always starts with a tornado
+     *  ... instead make him do his fire glide thing then dive at you once he is closer"): its glide in (75) or its
+     *  strafing run (25); no tornadoes. (It was strafe 35, tornado 40, dive 25.) */
+    public static final int FAR_GLIDE = 75, FAR_STRAFE = 25;
+
+    /** The glide in: from far off it glides at its target this high over the ground, fire dropping off it onto the
+     *  ground every this many ticks, and dives once it's this close (along the ground); it gives up after this long. */
+    public static final double GLIDE_HEIGHT = 12.0D;
+    public static final int GLIDE_FIRE_EVERY = 3;
+    public static final double GLIDE_DIVE_AT = 22.0D;
+    public static final int GLIDE_TICKS = 300;
+    public static final int GLIDE_COOLDOWN = 200;
+
+    /** The young drops fire onto the ground under it whenever it's in the air fighting (the user: "whenever he does his
+     *  glide animation he drops fire onto the ground, whenever he flies"): a patch every this many ticks, burning this
+     *  long, only where the ground is at most this far under it. */
+    public static final int YOUNG_FIRE_EVERY = 5;
+    public static final int YOUNG_FIRE_MIN = 50;
+    public static final int YOUNG_FIRE_MAX = 80;
+    public static final double YOUNG_FIRE_REACH = 40.0D;
 
     // ---- Its death and the egg ----
 

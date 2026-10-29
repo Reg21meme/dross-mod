@@ -247,7 +247,7 @@ Unlimited uses, no restocking, no XP.
 | **Dross Guide Book** | Given on your first arrival in the Dross, and sold by the trader. A readable 5-page guide to the dimension: endless night, the safe hub, the netherite-clad dead, and no way out but the hub. |
 | **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
-| **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon and the Wither) while still counting as your kill. Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
+| **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon, the Wither and every Dross boss, whatever stage it's in) while still counting as your kill (a boss's advancement and trophy too). Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
 | **Rage Wand** | A creative-only testing wand with five **teams** (blue, red, green, yellow, purple: right-click to switch; the crystal shows the colour). Hit a mob with it (no damage) to give it **Rage** and the wand's team: mobs of different teams fight each other, never their own team, and ignore players while an enemy team is near. Teams and Rage last forever, not even milk cures them. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and their minions join their team. See [The Rage Wand](#the-rage-wand). |
 | **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
 | **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
@@ -642,22 +642,24 @@ in its crater, the **egg** on a basalt pillar in the lake, rivers and pockets of
 never spills), and a lit path winding up to a lookout over the crater. `/dross goto lair emberdactyl` takes you to the
 foot of its path.
 
-**The fight** (400 health): it perches on the crater's rim guarding its egg. Come within 60 blocks of the volcano's foot
-and it screeches (you hear it from far off), takes off and its boss bar appears. It fights mostly in the air, circling
-you, and never strays more than 100 blocks from its nest:
+**The fight** (400 health): it perches on a rock ledge on the crater's rim, facing out, guarding its egg. Come within 60
+blocks of the volcano's foot and it screeches (you hear it from far off), takes off and its boss bar appears. It fights
+mostly in the air, circling you, and never strays more than 100 blocks from its nest:
+- **Glide in**: from far off it glides at you low, fire dropping off it onto the ground, and dives once it's close.
 - **Dive bomb** (7 hearts within 7 blocks of where it crashes, a ring of blasts and fire, everything thrown out and up):
   then it lies stuck on the ground for 3 seconds, your chance to hit it up close. On the ground it may peck you with its
-  obsidian beak, five pecks in a row (4 hearts each).
+  obsidian beak, five pecks in a row (4 hearts each), each one hitting a patch of ground (right under it too).
 - **Fire tornadoes**: its wings whip up two (three at half health) that chase you, pull you in, burn you and throw you
   up into the sky.
 - **Strafing run**: low over you in a line, breathing fire (4 hearts and fire), leaving fire on the ground.
-- **Talon grab**: it carries you up (always through open air, never through the ground) and drops you from about 20
-  blocks over the ground, wherever it is, its crater's lava included.
+- **Talon grab**: you hang from its talons (look round as you like; sneak to struggle free) as it carries you off,
+  always through open air, and drops you: never from higher than a fall that takes half your health.
 - **Wing buffet** (it swoops down to you first) and **screech**: they throw you about 20 blocks.
 
 At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
 apart, its egg bursts open and its **young reborn** (175 health) bursts out and comes straight for you: the same moves,
-just as hard, but 2.5 times as fast with almost no rest, and a dash straight through you. Dying, either one glides down to
+just as hard, but 2.5 times as fast with almost no rest, a dash straight through you, and fire dropping off it wherever
+it flies. Its egg lies broken apart in the nest, a bowl of lava with its pieces round it. Dying, either one glides down to
 flat ground and lies there. Beat the young (it hardens into obsidian) and everyone near gets the challenge advancement
 **Wings Clipped** and a trophy (five poses, right-click to change). It never comes back.
 

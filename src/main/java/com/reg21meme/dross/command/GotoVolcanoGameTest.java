@@ -227,6 +227,7 @@ public final class GotoVolcanoGameTest
             }
             FireGalleriesGameTest.checkLava(dross, plan, "as built");
             FireGalleriesGameTest.checkRim(dross, plan);
+            FireGalleriesGameTest.checkPerch(dross, plan);
             FireGalleriesGameTest.checkPath(dross, plan);
             checkWayOnto(volcano);
             LOGGER.info("[goto volcano test] the volcano at {} (ground y {}, rim y {}): {} lava blocks walled in, its path walkable "

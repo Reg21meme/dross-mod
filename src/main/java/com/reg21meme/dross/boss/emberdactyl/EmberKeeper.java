@@ -12,12 +12,15 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.living.LivingFallEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
@@ -27,7 +30,7 @@ import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
 /**
  * Brings each built volcano its egg and its Emberdactyl (the user's plan: it rests on its volcano guarding its egg), once a
  * player is within {@link EmberTuning#KEEPER_RANGE} blocks and the volcano's land has its entities loaded (never on
- * Peaceful): the egg in the nest, the adult perched on the crater's rim opposite the lookout, facing the nest. Its fight's
+ * Peaceful): the egg in the nest, the adult perched on its ledge on the crater's rim opposite the lookout, facing out. Its fight's
  * state is saved with the volcano ({@link EmberVolcanoData.State}):
  * <ul>
  *   <li>{@code WAITING}: nothing there yet: both come ({@code ADULT}).</li>
@@ -43,6 +46,27 @@ public final class EmberKeeper
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private EmberKeeper() {}
+
+    /** A fall after its talon grab never takes more than half of its victim's health ({@link EmberBoss#capGrabFall}). */
+    @SubscribeEvent
+    public static void onFall(LivingFallEvent event)
+    {
+        LivingEntity e = event.getEntity();
+        if (!e.level().isClientSide)
+        {
+            event.setDistance(EmberBoss.capGrabFall(e, event.getDistance(), event.getDamageMultiplier()));
+        }
+    }
+
+    /** A player carried off who logs out is let go first (a player's vehicle would otherwise leave with them). */
+    @SubscribeEvent
+    public static void onLogOut(PlayerEvent.PlayerLoggedOutEvent event)
+    {
+        if (event.getEntity().getVehicle() instanceof EmberBoss)
+        {
+            event.getEntity().stopRiding();
+        }
+    }
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event)
@@ -117,7 +141,7 @@ public final class EmberKeeper
             {
                 if (egg == null)
                 {
-                    egg = EmberEgg.lay(dross, nest, perch.yaw() + 180.0F, id);
+                    egg = EmberEgg.lay(dross, nest, perch.yaw(), id);
                 }
                 if (adult == null)
                 {
@@ -133,7 +157,7 @@ public final class EmberKeeper
                 }
                 if (egg == null)
                 {
-                    egg = EmberEgg.lay(dross, nest, perch.yaw() + 180.0F, id);
+                    egg = EmberEgg.lay(dross, nest, perch.yaw(), id);
                 }
                 if (egg != null && !egg.isHatched())
                 {
@@ -156,13 +180,18 @@ public final class EmberKeeper
         return list.isEmpty() ? null : list.get(0);
     }
 
-    /** Where the adult perches: on the crater's rim opposite the lookout, facing the nest. */
+    /** Where the adult perches: on its ledge on the crater's rim opposite the lookout, facing outwards. */
     record Perch(Vec3 spot, float yaw)
     {
     }
 
     static Perch perch(ServerLevel level, EmberVolcanoData.Volcano volcano)
     {
+        if (volcano.perch() != null)
+        {
+            return new Perch(volcano.perch(), volcano.perchYaw());
+        }
+        // (a volcano saved before it had a ledge: on the rim, facing the nest)
         Vec3 centre = new Vec3(volcano.ground().getX() + 0.5D, 0.0D, volcano.ground().getZ() + 0.5D);
         Vec3 away = new Vec3(centre.x - volcano.lookout().x, 0.0D, centre.z - volcano.lookout().z);
         away = away.lengthSqr() < 0.01D ? new Vec3(1.0D, 0.0D, 0.0D) : away.normalize();

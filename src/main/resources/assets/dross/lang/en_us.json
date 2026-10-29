@@ -423,6 +423,8 @@
   "advancements.dross.the_hunter_hunted.title": "The Hunter Hunted",
   "advancements.dross.the_hunter_hunted.description": "Bring down the Huntsman and his Alpha Moose.",
   "item.dross.hunter_hunted_icon": "The Hunter Hunted",
+  "item.dross.set_in_stone_icon": "Set in Stone",
+  "item.dross.down_the_drain_icon": "Down the Drain",
   "commands.dross.boss.summon_huntsman.success": "The Huntsman rides in %s blocks in front of you on his Alpha Moose. Hit either of them and the hunt begins.",
   "commands.dross.boss.summon_huntsman.peaceful": "The Huntsman can't be summoned on Peaceful difficulty.",
   "commands.dross.boss.summon_huntsman.failed": "Couldn't summon the Huntsman here.",

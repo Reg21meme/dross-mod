@@ -61,10 +61,12 @@ public final class EmberVolcanoData extends SavedData
      * @param egg         where its egg stands (the middle of the nest's top)
      * @param pathFoot    the foot of its path, standing on it, and the way up it
      * @param lookout     the lookout at the path's top, standing on it, and the way to the nest
+     * @param perch       where the Emberdactyl perches (on its ledge on the rim, standing on it) and the way it faces (out);
+     *                    null for a volcano saved before it had one
      * @param buildMillis how long building it took (work only)
      */
     public record Volcano(long id, int group, BlockPos ground, int rimY, int lakeY, Vec3 egg, Vec3 pathFoot, float pathFootYaw,
-                          Vec3 lookout, float lookoutYaw, long buildMillis)
+                          Vec3 lookout, float lookoutYaw, @Nullable Vec3 perch, float perchYaw, long buildMillis)
     {
         /** Blocks from (x, z) to its middle, along the ground. */
         public double distanceTo(double x, double z)
@@ -102,7 +104,7 @@ public final class EmberVolcanoData extends SavedData
     Volcano markBuilt(long id, int group, EmberVolcano.Plan plan, long buildMillis)
     {
         Volcano volcano = new Volcano(id, group, plan.ground(), plan.rimY(), plan.lakeY(), plan.eggFeet(), plan.pathFoot(),
-                plan.pathFootYaw(), plan.lookout(), plan.lookoutYaw(), buildMillis);
+                plan.pathFootYaw(), plan.lookout(), plan.lookoutYaw(), plan.perch(), plan.perchYaw(), buildMillis);
         this.volcanoes.put(id, volcano);
         setDirty();
         return volcano;
@@ -121,7 +123,8 @@ public final class EmberVolcanoData extends SavedData
             }
             data.volcanoes.put(id, new Volcano(id, v.getInt("Group"), new BlockPos(v.getInt("X"), v.getInt("Y"), v.getInt("Z")),
                     v.getInt("RimY"), v.getInt("LakeY"), vec(v, "Egg"), vec(v, "PathFoot"), v.getFloat("PathFootYaw"), vec(v, "Lookout"),
-                    v.getFloat("LookoutYaw"), v.getLong("BuildMillis")));
+                    v.getFloat("LookoutYaw"), v.contains("PerchX") ? vec(v, "Perch") : null, v.getFloat("PerchYaw"),
+                    v.getLong("BuildMillis")));
         }
         return data;
     }
@@ -145,6 +148,11 @@ public final class EmberVolcanoData extends SavedData
             v.putFloat("PathFootYaw", volcano.pathFootYaw());
             putVec(v, "Lookout", volcano.lookout());
             v.putFloat("LookoutYaw", volcano.lookoutYaw());
+            if (volcano.perch() != null)
+            {
+                putVec(v, "Perch", volcano.perch());
+                v.putFloat("PerchYaw", volcano.perchYaw());
+            }
             v.putLong("BuildMillis", volcano.buildMillis());
             v.putString("State", this.state(volcano.id()).name());
             list.add(v);

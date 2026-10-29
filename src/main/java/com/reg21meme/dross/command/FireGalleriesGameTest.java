@@ -132,6 +132,7 @@ public final class FireGalleriesGameTest
                     checkGallery(level, column, galleryEnd);
                     checkLava(level, plan[0], "as built");
                     checkRim(level, plan[0]);
+                    checkPerch(level, plan[0]);
                     checkPath(level, plan[0]);
                     checkNest(level, plan[0], column, galleryEnd);
                 })
@@ -572,6 +573,56 @@ public final class FireGalleriesGameTest
         {
             throw new GameTestAssertException("the volcano's top is at y " + highest + ", its rim should stand at about "
                     + plan.rimY());
+        }
+    }
+
+    /**
+     * The Emberdactyl's perch (the user's second fight: perched on the jagged rim, its body went through the rock): solid
+     * ledge under its feet, and nothing solid where its perched body reaches (measured from its model: 6.9 either side,
+     * 6 behind and 4 in front of its feet, 15.4 up) or its neck and head held out in front (4.8 either side, 5 to 15 in
+     * front, 8 to 14 up).
+     */
+    static void checkPerch(ServerLevel level, EmberVolcano.Plan plan)
+    {
+        Vec3 feet = plan.perch();
+        double yaw = Math.toRadians(plan.perchYaw());
+        double fx = -Math.sin(yaw);
+        double fz = Math.cos(yaw);
+        for (double along = -2.0D; along <= 2.0D; along += 1.0D)
+        {
+            for (double across = -6.0D; across <= 6.0D; across += 1.0D)
+            {
+                BlockPos under = BlockPos.containing(feet.x + fx * along - fz * across, feet.y - 0.5D, feet.z + fz * along + fx * across);
+                if (!Showcases.isSolidGround(level, under))
+                {
+                    throw new GameTestAssertException("the Emberdactyl's perch has no ledge under it at " + under.toShortString()
+                            + " (" + level.getBlockState(under) + ")");
+                }
+            }
+        }
+        checkClear(level, feet, fx, fz, -6.0D, 4.0D, 6.9D, 0.2D, 15.4D, "body");
+        checkClear(level, feet, fx, fz, 5.0D, 15.0D, 4.8D, 8.0D, 14.0D, "head");
+    }
+
+    private static void checkClear(ServerLevel level, Vec3 feet, double fx, double fz, double from, double to, double side, double low,
+            double high, String what)
+    {
+        for (double along = from; along <= to; along += 0.5D)
+        {
+            for (double across = -side; across <= side; across += 0.5D)
+            {
+                for (double up = low; up <= high; up += 0.5D)
+                {
+                    BlockPos pos = BlockPos.containing(feet.x + fx * along - fz * across, feet.y + up, feet.z + fz * along + fx * across);
+                    if (!level.getBlockState(pos).getCollisionShape(level, pos).isEmpty())
+                    {
+                        throw new GameTestAssertException("the perched Emberdactyl's " + what + " would be inside "
+                                + level.getBlockState(pos) + " at " + pos.toShortString() + " (" + String.format("%.1f", along)
+                                + " in front of its feet, " + String.format("%.1f", across) + " to its side, "
+                                + String.format("%.1f", up) + " up)");
+                    }
+                }
+            }
         }
     }
 

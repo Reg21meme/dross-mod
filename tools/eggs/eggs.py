@@ -6,16 +6,19 @@ vanilla's own egg shape (SHAPE) so they sit well beside the other eggs, and thei
 
 Each design is pixel art written out as rows of letters (the design's palette says what each letter is; '.' is empty).
 A design may reach over the egg's top (ears, a crown, volcano peaks, antlers) but nowhere else outside it, except the
-winged designs (WINGS_OUT: the Emberdactyl's and its young's round 2), whose wings spread out past the egg on both
-sides (the user, October 29, 2026, of round 1: "none of these boss egg ideas are good, maybe try to incorporate the
-wings outside or something").
+winged designs (WINGS_OUT: the Emberdactyl's and its young's rounds 2 and 3), whose wings spread out past the egg on
+both sides (the user, October 29, 2026, of round 1: "none of these boss egg ideas are good, maybe try to incorporate the
+wings outside or something"; of round 2: "the wings are cool the A7 one now i want the bird features and Y8 for young
+but again i want bird features").
 
   python tools/eggs/eggs.py      the option sheets (boss-previews/<biome>/<boss>/spawn_eggs/options.png) and the
                                  picked eggs' textures (src/main/resources/assets/dross/textures/item/<boss>_spawn_egg.png)
 
 The Emberdactyl and its young (emberdactyl, emberyoung) share one folder, boss-previews/cinder_wastes/emberdactyl/
 spawn_eggs/: options.png and young_options.png, and every option's texture on its own in textures/<label>.png. Round 1
-(A1-A5, Y1-Y5, a picture on the egg) is kept as a record in spawn_eggs/round1/; round 2 (A6-A10, Y6-Y10) is drawn now.
+(A1-A5, Y1-Y5, a picture on the egg) is kept as a record in spawn_eggs/round1/, round 2 (A6-A10, Y6-Y10, the wings out
+past the egg) in spawn_eggs/round2/; round 3 (A11-A13, Y11-Y13: A7's and Y8's wings with the bird's head and face) is
+drawn now.
 
 A picked egg's item model is item/generated on its texture, and its two tints in DrossColors are white.
 """
@@ -38,12 +41,13 @@ TITLES = {"huntsman": "The Huntsman", "cinder_colossus": "The Cinder Colossus", 
 # the user's picks (October 23, 2026: "C1 is good for dormant shell"; R1 with its crown centred; "h2" for the
 # Huntsman, his hood with its fangs)
 PICKS = {"huntsman": "H2", "cinder_colossus": "C1", "rat_king": "R1",
-         # not picked yet (October 29, 2026): round 2's first option of each stands in until the user picks
-         "emberdactyl": "A6", "emberyoung": "Y6"}
+         # not picked yet (October 29, 2026): round 3's first option of each stands in until the user picks
+         "emberdactyl": "A11", "emberyoung": "Y11"}
 # the option sheet's file name, when it isn't options.png (the young's sheet shares the adult's folder)
 SHEET_FILES = {"emberyoung": "young_options.png"}
 # what follows the sheet's title, when there's more to say
-SUBTITLES = {"emberdactyl": ", round 2: wings out", "emberyoung": ", round 2: wings out"}
+SUBTITLES = {"emberdactyl": ", round 3: A7's wings with its bird features",
+             "emberyoung": ", round 3: Y8's molten egg with its bird features"}
 # bosses whose every option is also saved as its own texture (<folder>/textures/<label>.png), so swapping the pick is
 # a file copy (or PICKS changed and the tool run again)
 OPTION_TEXTURES = ("emberdactyl", "emberyoung")
@@ -538,7 +542,8 @@ EMBERYOUNG_ROUND1 = [
 # ---------------------------------------------------------------- round 2 of the Emberdactyl's eggs (October 29,
 # 2026): the egg with its wings spread out past the egg's outline, bat-like pterosaur wings (a thumb claw at the wrist,
 # finger bones, a scalloped trailing edge), so the item reads as "an egg with wings" at a glance. Each wing is drawn
-# as the left half (8 wide) and mirrored; the egg goes in front of it.
+# as the left half (8 wide) and mirrored; the egg goes in front of it. Round 2 is kept as a record and no longer drawn
+# (its sheets and textures are in spawn_eggs/round2/); round 3 (further down) builds on its A7 and Y8.
 
 
 def at(top, rows, width=16):
@@ -692,7 +697,7 @@ CREST_EGG = at(1, [
     "......rrrr......",
 ])
 
-EMBERDACTYL = [
+EMBERDACTYL_ROUND2 = [
     ("A6", "Wings spread", "its glossy obsidian egg with lava spots, and its black wings spread out past the egg on "
      "both sides: thumb claws, finger bones, scalloped edges glowing ember orange", ADULT_WINGS,
      winged(WING_SPREAD, SPOTTED_EGG, ADULT_DARK)),
@@ -789,7 +794,7 @@ SHELL_CAP = at(3, [
     "......rrcr......",
 ])
 
-EMBERYOUNG = [
+EMBERYOUNG_ROUND2 = [
     ("Y6", "Molten wings", "its obsidian egg, near black at the foot and violet at the top, a glowing crack down it, "
      "and the young's molten wings spread out past it, veined with dark crust", YOUNG_WINGS,
      winged(WING_SPREAD, SHELL_EGG, YOUNG_DARK)),
@@ -817,8 +822,120 @@ EMBERYOUNG = [
      "its head like a cap, and its dark crust wings spread at its sides", YOUNG_WINGS,
      winged(recolor(WING_LEVEL, {"k": "c", "O": "r", "V": "C"}), SHELL_CAP)),
 ]
+
+# ---------------------------------------------------------------- round 3 of the Emberdactyl's eggs (October 29,
+# 2026; the user: "for the eggs i want the wings are cool the A7 one now i want the bird features and Y8 for young but
+# again i want bird features"): A7's wings raised in a V, or Y8's molten egg and its crust wings, with the bird's own
+# features on it. The adult: its head in profile (its long bill with the half moon standing along it, a glowing rim
+# round a dark disc, two blade horns swept back, an ember-slit eye), glossy violet obsidian against its black wings so
+# it stands out. The young: plain round amber eyes in dark crust rims (friendly, never slits), a small beak, little
+# horns and a little half moon, everything molten.
+YOUNG_RAISED = recolor(WING_RAISED, {"k": "c", "O": "l", "V": "C"})          # Y8's crust wings
+
+
+def rows16(rows):
+    """Rows from the top down, the rest empty (16 rows in all)."""
+    return list(rows) + ["." * 16] * (16 - len(rows))
+
+
+# the adult's head in profile, facing left, perched on the egg (rows 0-6), A7's egg under it
+PERCHED_HEAD = rows16([
+    "...LyL.....vg...",
+    "..LrrrL...vO....",
+    "..LrkrL..OVO....",
+    ".kvvvvvvvVyO....",
+    "0vvvvvvvVVlk....",
+    ".kOrrrrOOVk.....",
+    "......gwgO......",
+] + LOW_EGG[7:15])
+# facing right, its beak gaping in a screech, its throat glowing
+SCREECHING_HEAD = rows16([
+    "...gv....LyL....",
+    "....Ov..LrrrL...",
+    "....OVO.LrkrLvg.",
+    "....OyVvvvvvvvv.",
+    "....klVVlLLLyy..",
+    ".....kVOOOVlLy..",
+    "......OwgvOVVvg.",
+] + LOW_EGG[7:15])
+# bursting out of the egg: the top of the shell broken off (shards flying), lava welling at the jagged rim
+HATCHING_HEAD = rows16([
+    "...LyL..........",
+    "..LrrrL.......g.",
+    "..LrkrL..OVO.gv.",
+    ".kvvvvvvvVyO....",
+    "0vvvvvvvVVlk..v.",
+    ".kOrrrrOOVk.....",
+    ".....kOVVO......",
+    "....v.LOOL.v....",
+    "....LLlrrlLL....",
+    "....vlrlrlVO....",
+] + LOW_EGG[10:15])
+
+EMBERDACTYL = [
+    ("A11", "Perched head", "A7's wings raised in a V, and its head in profile on top of the egg: the long obsidian "
+     "bill with its glowing half moon standing along it, its blade horns swept back, an ember-slit eye", ADULT_WINGS,
+     winged(WING_RAISED, PERCHED_HEAD, ADULT_DARK)),
+    ("A12", "Screech", "A7's raised wings, its head turned the other way and its bill gaping in a screech, the throat "
+     "glowing, the half moon on its upper bill", ADULT_WINGS, winged(WING_RAISED, SCREECHING_HEAD, ADULT_DARK)),
+    ("A13", "Breaking out", "A7's raised wings, its head and long bill bursting out of the top of the egg, the shell "
+     "broken off in shards, lava welling at the jagged rim", ADULT_WINGS,
+     winged(WING_RAISED, HATCHING_HEAD, ADULT_DARK)),
+]
+
+# the young: Y8's molten egg is its face: round amber eyes, a small dark beak, little horns and a half moon on top
+MOLTEN_FACE = rows16([
+    "................",
+    "................",
+    "................",
+    ".....C.yy.C.....",
+    "......cLlc......",
+    "......yLMM......",
+    ".....yLMMMm.....",
+    ".....ccMMcc.....",
+    "....cAwMMAwc....",
+    "....cAACcAAc....",
+    "....McmCcmcr....",
+    "....MMmmcrrc....",
+    "....mmmcrrcr....",
+    ".....mcrrcr.....",
+    "......rrcr......",
+])
+# its head in profile on top of the molten egg: a short glowing bill, its little half moon, a round amber eye
+MOLTEN_PROFILE = rows16([
+    "...yLy.....C....",
+    "..yrrry...cC....",
+    "..yrcry..cMc....",
+    "..cyLLLLMMwAc...",
+    ".yLLLLLLMMAec...",
+    "..ccccccMMMc....",
+    "......cmMMc.....",
+] + MOLTEN_EGG[7:15])
+# its head popping up out of the broken top of the molten egg, lava at the jagged rim
+MOLTEN_HATCHING = rows16([
+    "................",
+    ".....C.yy.C.....",
+    "......cLlc......",
+    ".....cMMMMc.....",
+    "....cAwMMAwc....",
+    "....cAACcAAc....",
+    ".....cmCcmc.....",
+    "....LyLclyLl....",
+    "....lMlMMcml....",
+] + MOLTEN_EGG[9:15])
+
+EMBERYOUNG = [
+    ("Y11", "Molten face", "Y8's molten egg and crust wings, the egg its face: round amber eyes in dark crust rims, a "
+     "small dark beak, little horns and its little half moon on top", YOUNG_WINGS, winged(YOUNG_RAISED, MOLTEN_FACE)),
+    ("Y12", "Head in profile", "Y8's crust wings, and the young's head in profile on top of its molten egg: a short "
+     "glowing bill with its little half moon, a round amber eye, a little horn", YOUNG_WINGS,
+     winged(YOUNG_RAISED, MOLTEN_PROFILE)),
+    ("Y13", "Popping out", "Y8's crust wings, the young's face popping up out of the broken top of its molten egg: "
+     "round amber eyes, little horns and half moon, lava at the jagged rim", YOUNG_WINGS,
+     winged(YOUNG_RAISED, MOLTEN_HATCHING)),
+]
 # the designs whose wings may (and must) reach out past the egg's outline
-WINGS_OUT = {d[0] for d in EMBERDACTYL + EMBERYOUNG}
+WINGS_OUT = {d[0] for d in EMBERDACTYL_ROUND2 + EMBERYOUNG_ROUND2 + EMBERDACTYL + EMBERYOUNG}
 
 DESIGNS = {"huntsman": HUNTSMAN, "cinder_colossus": COLOSSUS, "rat_king": RAT_KING,
            "emberdactyl": EMBERDACTYL, "emberyoung": EMBERYOUNG}
@@ -897,12 +1014,14 @@ def font(size):
 
 def sheet(boss, designs):
     big, cell = 12, 16 * 12 + 40
-    w = len(designs) * cell + 40
+    title = f"{TITLES[boss]}: spawn egg options{SUBTITLES.get(boss, '')}"
+    # wide enough for the title too (a sheet of only three options is narrower than a long title)
+    w = max(len(designs) * cell + 40, int(ImageDraw.Draw(Image.new("RGBA", (1, 1))).textlength(title, font=font(22)))
+            + 40)
     h = 16 * big + 290
     out = Image.new("RGBA", (w, h), (30, 33, 40, 255))
     d = ImageDraw.Draw(out)
-    d.text((20, 14), f"{TITLES[boss]}: spawn egg options{SUBTITLES.get(boss, '')}", font=font(22),
-           fill=(235, 238, 245))
+    d.text((20, 14), title, font=font(22), fill=(235, 238, 245))
     for i, design in enumerate(designs):
         label, name, note, _pal, _rows = design
         im = draw(design)

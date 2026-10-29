@@ -3,11 +3,16 @@ The bosses' advancement icons (the user, October 29, 2026: "change the advanceme
 Huntsman to something more creative than just their spawn eggs"). An advancement shows a 16x16 item, so each icon is a
 small picture of the deed, drawn as pixel art (rows of letters, '.' empty; each design's palette says what a letter
 is), shaded like vanilla's items (a dark outline, light from the top left). In the game they're icon-only items
-(dross:wings_clipped_icon, dross:hunter_hunted_icon: not in any creative tab) that the advancements' JSONs point at.
+(dross:wings_clipped_icon, dross:hunter_hunted_icon, dross:set_in_stone_icon, dross:down_the_drain_icon: not in any
+creative tab) that the advancements' JSONs point at. Then (the same day): the Huntsman's eyes crossed out (H4, H5),
+and the Cinder Colossus's "Set in Stone" (S1-S3; it was plain obsidian) and the Rat King's "Down the Drain" (D1-D3;
+it was his spawn egg) drawn too.
 
   python tools/icons/advancement_icons.py   the option sheets (boss-previews/cinder_wastes/emberdactyl/
                                             advancement_icon/options.png, boss-previews/rimefall/huntsman/
-                                            advancement_icon/options.png), every option's texture on its own
+                                            advancement_icon/options.png, boss-previews/cinder_wastes/
+                                            cinder_colossus/advancement_icon/options.png, boss-previews/blightwood/
+                                            rat_king/advancement_icon/options.png), every option's texture on its own
                                             (<that folder>/textures/<label>.png) and the picked icons' textures
                                             (src/main/resources/assets/dross/textures/item/<icon>.png)
 
@@ -29,13 +34,19 @@ FRAME_TEXTURE = os.path.join(ROOT, "src", "main", "resources", "assets", "dross"
 JAR = os.path.join(os.path.expanduser("~"), ".gradle", "caches", "forge_gradle", "minecraft_repo", "versions", "1.20.1",
                    "client-extra.jar")
 
-ICONS = {"wings_clipped": "wings_clipped_icon", "hunter_hunted": "hunter_hunted_icon"}     # the item each one is
+ICONS = {"wings_clipped": "wings_clipped_icon", "hunter_hunted": "hunter_hunted_icon",      # the item each one is
+         "set_in_stone": "set_in_stone_icon", "down_the_drain": "down_the_drain_icon"}
 PREVIEWS = {"wings_clipped": os.path.join(ROOT, "boss-previews", "cinder_wastes", "emberdactyl", "advancement_icon"),
-            "hunter_hunted": os.path.join(ROOT, "boss-previews", "rimefall", "huntsman", "advancement_icon")}
+            "hunter_hunted": os.path.join(ROOT, "boss-previews", "rimefall", "huntsman", "advancement_icon"),
+            "set_in_stone": os.path.join(ROOT, "boss-previews", "cinder_wastes", "cinder_colossus", "advancement_icon"),
+            "down_the_drain": os.path.join(ROOT, "boss-previews", "blightwood", "rat_king", "advancement_icon")}
 TITLES = {"wings_clipped": "Wings Clipped (beat the Emberdactyl and its young reborn)",
-          "hunter_hunted": "The Hunter Hunted (bring down the Huntsman and his Alpha Moose)"}
-# not picked yet (October 29, 2026): option 1 of each stands in until the user picks
-PICKS = {"wings_clipped": "W1", "hunter_hunted": "H1"}
+          "hunter_hunted": "The Hunter Hunted (bring down the Huntsman and his Alpha Moose)",
+          "set_in_stone": "Set in Stone (defeat the Cinder Colossus)",
+          "down_the_drain": "Down the Drain (end the Rat King's reign beneath Blightwood)"}
+# not picked yet (October 29, 2026): option 1 of each stands in until the user picks, but the Huntsman's H4 (the
+# user: "for the huntsman achievement make it so that like his eyes are crossed out died")
+PICKS = {"wings_clipped": "W1", "hunter_hunted": "H4", "set_in_stone": "S1", "down_the_drain": "D1"}
 
 # ---------------------------------------------------------------- the Emberdactyl: its obsidian hide (black to violet,
 # lit from the top left), its scalloped membrane, lava and embers (the Fire Necromancer's colours, never the Dross blue)
@@ -298,6 +309,31 @@ SNAPPED_SPEAR = stack(MOOSE_SKULL, [
     "........ssS.....",
     ".......SS......."])
 
+# H4, H5 (the user, October 29, 2026: "make it so that like his eyes are crossed out died"): his glowing blue eyes
+# crossed out, a cartoon X of dead white for each, in his black face (rows 10-12, under the hood's fangs)
+DEAD = {"X": (210, 214, 222)}
+X_EYES = {(5, 10): "k", (6, 10): "k", (9, 10): "k", (10, 10): "k",
+          (4, 10): "X", (6, 10): "X", (5, 11): "X", (4, 12): "X", (6, 12): "X",
+          (9, 10): "X", (11, 10): "X", (10, 11): "X", (9, 12): "X", (11, 12): "X"}
+# his hood and antlers alone (H1 without the arrow)
+BARE_HOOD = stack(ANTLERS, [
+    "................",
+    "................",
+    "....1......1....",
+    "....2p....p2....",
+    "....2p2f32p2....",
+    "....2n344fn2....",
+    "....23344332....",
+    "...1234nn4321...",
+    "...122k44k221...",
+    "..12kka33akk21..",
+    "..12keEkkEek21..",
+    "..12kkkkkkkk21..",
+    "...1kkkkkkkk1...",
+    "...KkkkkkkkkK...",
+    "....KkkkkkkK....",
+    "......KKKK......"])
+
 HUNTED = [
     ("H1", "Pierced hood", "his wolf hood under his antlers, an ice-fletched arrow clean through it: the fletching "
      "out of one side, the head out of the other", HUNT, PIERCED_HOOD),
@@ -305,8 +341,162 @@ HUNTED = [
      "hung with icicles, and his ice spear snapped in two under it", {**BONE, **SHAFT, **ICE}, SNAPPED_SPEAR),
     ("H3", "The hunter's trophy", "his own hood and antlers mounted on a wooden plaque like one of his trophies, its "
      "eyes gone dark", {**HOOD, **ANTLER, **WOOD}, MOUNTED_HOOD),
+    ("H4", "Pierced and crossed out", "H1, the arrow clean through his wolf hood, and his glowing blue eyes crossed "
+     "out: dead", {**HUNT, **DEAD}, put(PIERCED_HOOD, X_EYES)),
+    ("H5", "Crossed out", "his wolf hood under his antlers with no arrow, his eyes crossed out: dead",
+     {**HUNT, **DEAD}, put(BARE_HOOD, X_EYES)),
 ]
-DESIGNS = {"wings_clipped": WINGS, "hunter_hunted": HUNTED}
+
+
+# ---------------------------------------------------------------- Set in Stone: the Cinder Colossus (the user, October
+# 29, 2026: "make custom advancement for the colossus as well not just obsidian"). Its scorched stone, obsidian
+# (violet black, glossy), the last of its lava; fire colours only, never the Dross blue
+COLOSSUS = {"k": (14, 10, 16), "x": (4, 2, 6), "2": (48, 42, 40), "3": (70, 62, 58), "4": (96, 86, 80),
+            "5": (126, 114, 106), "o": (24, 16, 34), "O": (46, 32, 64), "V": (76, 56, 106), "g": (140, 116, 180),
+            "r": (110, 30, 12), "l": (200, 72, 14), "L": (255, 150, 30), "y": (255, 226, 120),
+            "s": (150, 146, 150), "S": (104, 100, 106), "t": (196, 192, 196)}
+
+# S1: its cracked three-eyed face cooling: the brow still scorched stone, its three eyes dimming to a last red, the
+# cooling front a crack of fading lava, its jaw and beard of shards gone to obsidian, its horns
+COOLING_FACE = [
+    ".k............k.",
+    ".kO..........Ok.",
+    "..kO.kkkkkk.Ok..",
+    "..kOk445544kOk..",
+    "..k4554rr5545k..",
+    "..k4443ll3444k..",
+    "..kkkkk33kkkkk..",
+    "..k3krl33lrk3k..",
+    "..k33l3443l33k..",
+    "..kVOOlOOlOOVk..",
+    "..kOkkkkkkkkOk..",
+    "..kOVrOOOOrVOk..",
+    "...kOgkOOkVOk...",
+    "...kOkVkkOkOk...",
+    "....k.kVk.k.k...",
+    ".......k........"]
+# S2: its fist turned to obsidian, knuckles up, a last glow in the cracks between its fingers
+OBSIDIAN_FIST = [
+    "................",
+    "....kkk.kkk.....",
+    "...kVgVkVgVkkk..",
+    "..kkOVOkOVOkVgk.",
+    ".kVgkOOkOOlkOVOk",
+    ".kOVkOlkOOOkOOOk",
+    ".kOOkOOkOrOkOOok",
+    ".kOOOkOkOOokOook",
+    ".kOVgVVVVgOkook.",
+    ".kOOOOOOOOOOlok.",
+    "..kOOOlOOOOOook.",
+    "..kOOOOrOOOook..",
+    "...kOOOOOOOok...",
+    "....kOOOOOok....",
+    "....kVOOOOOk....",
+    "....kkkkkkkk...."]
+# S3: its twin volcanoes gone cold, obsidian lit from the left, an ember in one crater, a wisp of smoke from the other
+COLD_VOLCANOES = [
+    "............t...",
+    "...........s....",
+    "............S...",
+    "...........s....",
+    "..........kxk...",
+    "..krk.....kVok..",
+    "..kVok...kVgook.",
+    ".kVgook..kVOook.",
+    ".kVOlok.kVOOoook",
+    "kVgOoookVOOOlook",
+    "kOOOoooVVgOOoook",
+    "kOOroooVOOOOoook",
+    "kOOOooVVOOOOorok",
+    "kOOOooVOOOrOoook",
+    "kkkkkkkkkkkkkkkk",
+    "................"]
+
+SET_IN_STONE = [
+    ("S1", "Cooling face", "its cracked three-eyed face cooling: the brow still scorched stone, its eyes dimming to a "
+     "last red, a crack of fading lava, its jaw and beard of shards gone to obsidian", COLOSSUS, COOLING_FACE),
+    ("S2", "Obsidian fist", "its great fist turned to obsidian, knuckles up, a last glow in the cracks", COLOSSUS,
+     OBSIDIAN_FIST),
+    ("S3", "Cold volcanoes", "its twin volcanoes gone cold as obsidian, an ember left in one crater, a wisp of smoke "
+     "from the other", COLOSSUS, COLD_VOLCANOES),
+]
+
+
+# ---------------------------------------------------------------- Down the Drain: the Rat King (the user, October 29,
+# 2026: "for the rat king change it up for his"). His grey-green fur, pink ears and nose, gold crown with its green gem,
+# his staff's green orb, an iron sewer grate over murky water
+RAT = {"k": (16, 16, 14), "1": (40, 46, 36), "2": (60, 70, 54), "3": (86, 98, 76), "4": (116, 128, 100),
+       "5": (150, 160, 132), "P": (218, 130, 146), "p": (166, 92, 106), "G": (250, 204, 70), "g": (186, 132, 30),
+       "d": (120, 82, 18), "h": (130, 236, 96), "H": (70, 186, 62), "q": (196, 255, 160), "W": (176, 178, 170),
+       "w": (236, 236, 228), "B": (226, 216, 186), "i": (54, 56, 60), "I": (96, 98, 104), "j": (140, 142, 148),
+       "x": (6, 8, 6), "m": (60, 72, 34), "s": (60, 40, 26), "S": (96, 66, 40), "t": (132, 94, 58),
+       "X": (236, 236, 228)}
+
+# D1: his gold crown, its green gem glinting, slipping down between the bars of a sewer grate
+CROWN_IN_DRAIN = [
+    "...k...k...k....",
+    "..kGk.kGk.kGk.q.",
+    "..kGGkGhGkGGk...",
+    "..kGGGGGGGGGk...",
+    "..kgGgGhqGgGk...",
+    ".iikGGGhGGGkii..",
+    ".iIjGIgIgIGjIji.",
+    ".ixIgxgxgxgIxIi.",
+    ".iIjIdIdIdIjIji.",
+    ".imImIxIxImImIi.",
+    ".iIjIjIjIjIjIji.",
+    ".ixIxImIxIxImIi.",
+    ".iIjIjIjIjIjIji.",
+    ".imIxIxImIxIxIi.",
+    ".iiiiiiiiiiiiii.",
+    "................"]
+# D2: his face, belly up and dead: cartoon X eyes, tongue out, whiskers drooping, his crown knocked askew
+DEAD_KING = [
+    "...........G....",
+    ".........GgGG...",
+    "..kk....GhGg.kk.",
+    ".kPPk..dgggdkPPk",
+    ".kPpk3333333kpPk",
+    "..k3344444443k..",
+    ".k33X3X44X3X33k.",
+    ".k334X4444X433k.",
+    ".k33X3X44X3X33k.",
+    "k3444444444444k.",
+    "kWW3444PP4443WWk",
+    ".k3W344PP443W3k.",
+    "..k33344443333k.",
+    "...k333PP333k...",
+    "....kk3Pp3kk....",
+    "......kkkk......"]
+# D3: his staff snapped in two over a sewer grate, splinters at the break, its green orb still glowing in its claw
+SNAPPED_STAFF = [
+    "............hH..",
+    "...........HqhH.",
+    "..........HhqhH.",
+    "...........HhH..",
+    "..........tS....",
+    ".........tS.....",
+    "........BtS.....",
+    "....s..B.B......",
+    ".itSiiiiiiiiii..",
+    ".iStIjIjIjIjIji.",
+    ".ixSxIxImIxIxIi.",
+    ".iIjIjIjIjIjIji.",
+    ".ixIxImIxIxIxIi.",
+    ".iIjIjIjIjIjIji.",
+    ".iiiiiiiiiiiiii.",
+    "................"]
+
+DOWN_THE_DRAIN = [
+    ("D1", "Crown down the drain", "his gold crown, its green gem glinting, slipping down between the bars of a sewer "
+     "grate", RAT, CROWN_IN_DRAIN),
+    ("D2", "Belly up", "his face, dead: cartoon X eyes, tongue out, whiskers drooping, his crown knocked askew", RAT,
+     DEAD_KING),
+    ("D3", "The broken staff", "his staff snapped in two over a sewer grate, splinters at the break, its green orb still "
+     "glowing in its claw", RAT, SNAPPED_STAFF),
+]
+DESIGNS = {"wings_clipped": WINGS, "hunter_hunted": HUNTED, "set_in_stone": SET_IN_STONE,
+           "down_the_drain": DOWN_THE_DRAIN}
 
 
 # ---------------------------------------------------------------- drawing, the sheets

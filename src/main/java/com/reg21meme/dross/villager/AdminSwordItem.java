@@ -50,8 +50,13 @@ public class AdminSwordItem extends SwordItem
             }
             else if (living.isAlive())
             {
-                // Still alive (the Wither while it's spawning, invulnerable mobs, a totem of undying...): /kill it.
-                living.kill();
+                // Still alive (a boss holding at the end of a stage or changing stage, the Wither while it's spawning,
+                // invulnerable mobs, a totem of undying...): it dies anyway, by the player's hand, so a boss's
+                // advancement, trophy and XP still come (the user, October 29: "the admin sword should still give me
+                // the achievements for the boss fights"; it was /kill, which never gives them).
+                living.setLastHurtByPlayer(player);
+                living.setHealth(0.0F);
+                living.die(player.damageSources().playerAttack(player));
             }
         }
         return true;

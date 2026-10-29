@@ -159,6 +159,28 @@ public final class EmberVolcanoTuning
     /** Ash lies in drifts (ash layers) on this share of the upper flanks. */
     public static final double ASH_DRIFTS = 0.16D;
 
+    // ---- The Emberdactyl's perch (the user, October 29: "make his spot on the edge of the top of the volcano facing
+    //      outwards"; perched on the jagged crest, its body went through the rock) ----
+
+    /** Its feet stand this far out past the crest (measured in lobes, like the crest), opposite the lookout, facing out. */
+    public static final double PERCH_RIM_OUT = 1.0D;
+    /** The flat ledge it stands on, at the crest's height there: this far either side of its feet, behind them (towards
+     *  the crater) and in front of them (blocks). It juts out over the outer flank, rock all the way down. */
+    public static final double PERCH_LEDGE_HALF_WIDTH = 7.5D;
+    public static final double PERCH_LEDGE_BACK = 3.5D;
+    public static final double PERCH_LEDGE_FRONT = 3.5D;
+    /** Room kept clear for its body, cut down to the ledge (its perched model reaches 6.9 either side, 6 behind, 4 in
+     *  front and 15.4 up), and how high the air is cleared over it. */
+    public static final double PERCH_BODY_HALF_WIDTH = 8.5D;
+    public static final double PERCH_BODY_BACK = 7.5D;
+    public static final double PERCH_BODY_FRONT = 5.5D;
+    public static final int PERCH_BODY_HEIGHT = 18;
+    /** ...and for its neck and head, held out in front of it (4.8 either side, out to 15 in front, from 8 over its
+     *  feet): nothing over this many blocks above the ledge there. */
+    public static final double PERCH_HEAD_HALF_WIDTH = 6.0D;
+    public static final double PERCH_HEAD_FRONT = 17.0D;
+    public static final int PERCH_HEAD_LOW = 6;
+
     // ---- The ground round it ----
 
     /** Past the cone's foot the ground is re-laid as ash and basalt out to this far past it; beyond that, out to the

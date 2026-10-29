@@ -113,7 +113,7 @@ public final class EmberCommands
                 (System.nanoTime() - started) / 1_000_000L);
         Vec3 nest = plan.eggFeet();
         EmberKeeper.Perch perch = perch(level, plan);
-        EmberEgg.lay(level, nest, perch.yaw() + 180.0F, 0L);
+        EmberEgg.lay(level, nest, perch.yaw(), 0L);
         if (level.getDifficulty() != Difficulty.PEACEFUL)
         {
             Emberdactyl adult = ModEntities.EMBERDACTYL.get().create(level);
@@ -137,15 +137,9 @@ public final class EmberCommands
         return 1;
     }
 
-    /** Its perch on a volcano planned here (on the rim opposite the lookout, facing the nest). */
+    /** Its perch on a volcano planned here (on its ledge on the rim opposite the lookout, facing outwards). */
     static EmberKeeper.Perch perch(ServerLevel level, EmberVolcano.Plan plan)
     {
-        Vec3 centre = new Vec3(plan.ground().getX() + 0.5D, 0.0D, plan.ground().getZ() + 0.5D);
-        Vec3 away = new Vec3(centre.x - plan.lookout().x, 0.0D, centre.z - plan.lookout().z);
-        away = away.lengthSqr() < 0.01D ? new Vec3(1.0D, 0.0D, 0.0D) : away.normalize();
-        Vec3 spot = centre.add(away.scale(EmberTuning.PERCH_OUT));
-        double y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(spot.x), Mth.floor(spot.z));
-        float yaw = (float) (Mth.atan2(-away.z, -away.x) * Mth.RAD_TO_DEG) - 90.0F;
-        return new EmberKeeper.Perch(new Vec3(spot.x, y, spot.z), yaw);
+        return new EmberKeeper.Perch(plan.perch(), plan.perchYaw());
     }
 }

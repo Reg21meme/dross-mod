@@ -247,6 +247,10 @@ public final class ModItems
     // "Wings Clipped" (the Emberdactyl) and "The Hunter Hunted" (the Huntsman) show these in the Dross tab
     public static final RegistryObject<Item> WINGS_CLIPPED_ICON = ITEMS.register("wings_clipped_icon", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> HUNTER_HUNTED_ICON = ITEMS.register("hunter_hunted_icon", () -> new Item(new Item.Properties().stacksTo(1)));
+    // ...and "Set in Stone" (the Cinder Colossus) and "Down the Drain" (the Rat King): the user, October 29, "make custom
+    // advancement for the colossus as well, not just obsidian; also for the rat king change it up"
+    public static final RegistryObject<Item> SET_IN_STONE_ICON = ITEMS.register("set_in_stone_icon", () -> new Item(new Item.Properties().stacksTo(1)));
+    public static final RegistryObject<Item> DOWN_THE_DRAIN_ICON = ITEMS.register("down_the_drain_icon", () -> new Item(new Item.Properties().stacksTo(1)));
 
     private ModItems() {}
 }

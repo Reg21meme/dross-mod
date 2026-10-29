@@ -83,13 +83,15 @@ public abstract class EmberBoss extends FireCandidate
     /** Its moves. */
     protected enum Move
     {
-        NONE, DIVE, STUCK, TORNADO, STRAFE, GRAB, SNAP, BUFFET, SCREECH, DASH, TAKE_OFF
+        NONE, DIVE, STUCK, TORNADO, STRAFE, GRAB, SNAP, BUFFET, SCREECH, DASH, TAKE_OFF, GLIDE
     }
 
     private static final String TAG_HOME = "Home";
     private static final String TAG_NEST = "Nest";
     private static final String TAG_PERCH = "Perch";
     private static final String TAG_PERCH_YAW = "PerchYaw";
+    /** (on whoever it let go: when, so their fall is capped) */
+    private static final String TAG_DROPPED = "DrossEmberDropped";
     private static final String TAG_VOLCANO = "Volcano";
     private static final String TAG_ENRAGED = "Enraged";
     private static final String TAG_PHASE = "Phase";
@@ -128,6 +130,8 @@ public abstract class EmberBoss extends FireCandidate
     private LivingEntity carried;
     @Nullable
     private Vec3 dropSpot;
+    /** The height (feet) it lets go of whoever it carries at, over the ground under the drop. */
+    private double dropLevel;
     private final Set<UUID> hitThisMove = new HashSet<>();
     private boolean grounded;
     @Nullable
@@ -526,6 +530,10 @@ public abstract class EmberBoss extends FireCandidate
             {
             }
         }
+        if (this.phase == Phase.FIGHT && this.dashes() && !this.grounded && this.tickCount % YOUNG_FIRE_EVERY == 0)
+        {
+            this.dropFire(YOUNG_FIRE_MIN, YOUNG_FIRE_MAX);   // the young: fire off it wherever it flies
+        }
         this.carry();
         // never in the ground
         double floor = this.groundAt(this.getX(), this.getZ());
@@ -698,6 +706,7 @@ public abstract class EmberBoss extends FireCandidate
             case SCREECH -> this.screech();
             case DASH -> this.dash();
             case TAKE_OFF -> this.takeOff();
+            case GLIDE -> this.glideIn();
             default -> this.endMove();
         }
     }
@@ -755,9 +764,8 @@ public abstract class EmberBoss extends FireCandidate
         }
         else
         {
+            add(moves, weights, Move.GLIDE, FAR_GLIDE);
             add(moves, weights, Move.STRAFE, FAR_STRAFE);
-            add(moves, weights, Move.TORNADO, FAR_TORNADO);
-            add(moves, weights, Move.DIVE, FAR_DIVE);
         }
         int total = 0;
         for (int i = 0; i < moves.size(); i++)
@@ -869,6 +877,11 @@ public abstract class EmberBoss extends FireCandidate
             {
                 this.grounded = false;
                 this.playAnimation("fly");
+            }
+            case GLIDE ->
+            {
+                this.playAnimation("glide");
+                this.ready.put(m, this.tickCount + this.cooldown(GLIDE_COOLDOWN));
             }
             default ->
             {
@@ -1082,6 +1095,50 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
+    /** The glide in (from far off): it glides at its target, low, fire dropping off it onto the ground, and once it's
+     *  close it dives (the user's second fight: "make him do his fire glide thing then dive at you once he is closer"). */
+    private void glideIn()
+    {
+        double d = Math.hypot(this.target.getX() - this.getX(), this.target.getZ() - this.getZ());
+        if (d <= GLIDE_DIVE_AT)
+        {
+            this.start(Move.DIVE);
+            return;
+        }
+        if (this.moveTick > GLIDE_TICKS)
+        {
+            this.endMove();
+            return;
+        }
+        Vec3 to = this.leashed(this.target.position());
+        double low = Math.max(this.groundAt(to.x, to.z), this.groundAt(this.getX(), this.getZ())) + GLIDE_HEIGHT;
+        this.steer(new Vec3(to.x, low, to.z), this.kind.fast(), ACCELERATION * 2.0D);
+        this.loop("glide");
+        if (this.moveTick % GLIDE_FIRE_EVERY == 0)
+        {
+            this.dropFire(STRAFE_TRAIL_MIN, STRAFE_TRAIL_MAX);
+        }
+    }
+
+    /** A patch of fire dropping off it onto the ground under it (a little to one side or the other), with falling
+     *  embers; only where the ground is near enough under it. */
+    private void dropFire(int min, int max)
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        double x = this.getX() + (this.random.nextDouble() - 0.5D) * this.kind.width();
+        double z = this.getZ() + (this.random.nextDouble() - 0.5D) * this.kind.width();
+        double ground = this.groundAt(x, z);
+        if (this.getY() - ground > YOUNG_FIRE_REACH)
+        {
+            return;
+        }
+        LavaPools.placeFire(level, BlockPos.containing(x, ground, z), true, min, max);
+        level.sendParticles(ParticleTypes.FALLING_LAVA, x, this.getY() + 1.0D, z, 3, 0.6D, 0.4D, 0.6D, 0.0D);
+    }
+
     /** Its fire breath under it: fire on the ground, and anyone in it burnt. */
     private void breathe()
     {
@@ -1115,19 +1172,21 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
-    /** Talon grab: a swoop at its target; caught, it's carried up and away and dropped from high over the ground. */
+    /** Talon grab: a swoop at its target; caught, it hangs from its talons (its passenger), is carried up and away and
+     *  dropped over the ground, never from higher than a fall it lives through with half its health. */
     private void grab()
     {
         int moment = this.at("grab", 0.395D);
         if (this.carried != null)
         {
             // carrying: first straight up until whoever it holds is clear over everything on its way, then across at
-            // that height, then down to the drop's height over the ground there (never through the ground: they hang
-            // in open air all the way)
+            // that height, then down to the drop's height over the ground there, and it lets go (never through the
+            // ground: they hang in open air all the way)
             double hang = this.carried.getBbHeight() + 0.5D;
             double cruiseY = this.dropSpot.y + hang;
             double across = Math.hypot(this.dropSpot.x - this.getX(), this.dropSpot.z - this.getZ());
             Vec3 to;
+            boolean there = false;
             if (!this.hitThisMove.contains(Marks.CLIMBED))
             {
                 to = new Vec3(this.getX(), cruiseY, this.getZ());
@@ -1136,13 +1195,18 @@ public abstract class EmberBoss extends FireCandidate
                     this.hitThisMove.add(Marks.CLIMBED);
                 }
             }
-            else
+            else if (across >= 2.0D)
             {
                 to = new Vec3(this.dropSpot.x, cruiseY, this.dropSpot.z);
             }
+            else
+            {
+                to = new Vec3(this.dropSpot.x, this.dropLevel + hang, this.dropSpot.z);
+                there = this.getY() <= this.dropLevel + hang + 0.75D;
+            }
             this.steer(to, this.kind.fast() * 0.5D, 0.25D);
             this.loop("fly");
-            if (this.hitThisMove.contains(Marks.CLIMBED) && across < 2.0D || this.moveTick > moment + GRAB_CARRY_TICKS)
+            if (there || this.moveTick > moment + GRAB_CARRY_TICKS)
             {
                 this.release();
                 this.endMove();
@@ -1158,8 +1222,14 @@ public abstract class EmberBoss extends FireCandidate
                 if (this.target.distanceToSqr(this) <= GRAB_REACH * GRAB_REACH && this.canFight(this.target))
                 {
                     this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE);
-                    this.carried = this.target;
-                    this.dropSpot = this.dropFor(this.target);
+                    if (this.target.isAlive())
+                    {
+                        this.dropSpot = this.dropFor(this.target);
+                        if (this.target.startRiding(this, true))
+                        {
+                            this.carried = this.target;
+                        }
+                    }
                 }
             }
             return;
@@ -1174,35 +1244,117 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
-    /** Whoever it carries hangs under its talons. */
+    /** Whoever it carries rides it (positioned under its talons by {@link #positionRider}); one that struggled free
+     *  (sneaked off), died or left is let go. Anything else riding it (a mob saved riding it) gets off. */
     private void carry()
     {
+        for (Entity passenger : this.getPassengers())
+        {
+            if (passenger != this.carried)
+            {
+                passenger.stopRiding();
+            }
+        }
         if (this.carried == null)
         {
             return;
         }
         LivingEntity e = this.carried;
-        if (!e.isAlive() || e.level() != this.level() || this.move != Move.GRAB)
+        if (!e.isAlive() || e.level() != this.level() || this.move != Move.GRAB || e.getVehicle() != this)
         {
             this.release();
             return;
         }
-        Vec3 put = this.hangSpot(e);
-        if (e instanceof ServerPlayer player)
-        {
-            player.connection.teleport(put.x, put.y, put.z, player.getYRot(), player.getXRot());
-        }
-        else
-        {
-            e.setPos(put.x, put.y, put.z);
-        }
-        e.setDeltaMovement(Vec3.ZERO);
         e.fallDistance = 0.0F;
+    }
+
+    /** Whoever it carries hangs under its talons: worked out the same way on the server and on each screen, so they move
+     *  with it smoothly, and they look round as they like. */
+    @Override
+    protected void positionRider(Entity passenger, MoveFunction move)
+    {
+        if (this.hasPassenger(passenger))
+        {
+            Vec3 at = this.hangSpot(passenger);
+            move.accept(passenger, at.x, at.y, at.z);
+        }
+    }
+
+    /** They hang from its talons (not sitting, as on a horse). */
+    @Override
+    public boolean shouldRiderSit()
+    {
+        return false;
+    }
+
+    /** Let go, they fall from where they hang (not from on top of it). */
+    @Override
+    public Vec3 getDismountLocationForPassenger(LivingEntity passenger)
+    {
+        return passenger.position();
+    }
+
+    /** Nothing gets on it by itself, and nothing it carries steers it or shows its health in place of their own. */
+    @Override
+    protected boolean canAddPassenger(Entity passenger)
+    {
+        return false;
+    }
+
+    @Nullable
+    @Override
+    public LivingEntity getControllingPassenger()
+    {
+        return null;
+    }
+
+    @Override
+    public boolean showVehicleHealth()
+    {
+        return false;
+    }
+
+    @Override
+    protected void removePassenger(Entity passenger)
+    {
+        super.removePassenger(passenger);
+        if (!this.level().isClientSide && passenger instanceof LivingEntity e)
+        {
+            markDropped(e, this.level().getGameTime());
+        }
+    }
+
+    /** Marks a fall as the grab's: when it lands, see {@link #capGrabFall}. */
+    static void markDropped(LivingEntity e, long gameTime)
+    {
+        e.getPersistentData().putLong(TAG_DROPPED, gameTime);
+    }
+
+    /**
+     * The fall of whoever it let go (or who struggled free) never takes more than {@link EmberTuning#GRAB_FALL_SHARE} of
+     * the health they have when they land (the user, October 29: "make it so he can't drop me from any more than where
+     * it does at max half of my health"): the fall's distance is cut to match. Returns the distance to use.
+     */
+    static float capGrabFall(LivingEntity e, float distance, float multiplier)
+    {
+        CompoundTag data = e.getPersistentData();
+        if (!data.contains(TAG_DROPPED))
+        {
+            return distance;
+        }
+        long since = e.level().getGameTime() - data.getLong(TAG_DROPPED);
+        data.remove(TAG_DROPPED);
+        if (since < 0L || since > GRAB_FALL_GUARD_TICKS)
+        {
+            return distance;
+        }
+        float most = (float) Math.floor(e.getHealth() * GRAB_FALL_SHARE);
+        return Math.min(distance, 3.0F + most / Math.max(0.01F, multiplier));
     }
 
     /** Where whoever it carries hangs this tick: under its talons, but only ever in open air (never moved into blocks:
      *  higher up where its talons are lower than they can go, or left where they are). */
-    private Vec3 hangSpot(LivingEntity e)
+    private Vec3 hangSpot(Entity e)
     {
         Vec3 want = new Vec3(this.getX(), this.getY() - e.getBbHeight() - 0.5D, this.getZ());
         if (this.isFree(e, want))
@@ -1223,15 +1375,17 @@ public abstract class EmberBoss extends FireCandidate
         return this.isFree(e, above) ? above : at;
     }
 
-    private boolean isFree(LivingEntity e, Vec3 feet)
+    private boolean isFree(Entity e, Vec3 feet)
     {
         return this.level().noCollision(e, e.getBoundingBox().move(feet.subtract(e.position())).deflate(0.01D));
     }
 
     /** Where it drops whoever it caught: over its crater (anywhere in its lava lake or on its nest's pillar), or a
-     *  random way off; the height their feet are carried at: {@link EmberTuning#GRAB_CARRY_HEIGHT} over the ground
-     *  there, but never lower than {@link EmberTuning#GRAB_CLEARANCE} over the highest ground on the way (its crater's
-     *  rim...) or than they are now. */
+     *  random way off; the height their feet are carried at (returned) never lower than {@link EmberTuning#GRAB_CLEARANCE}
+     *  over the highest ground on the way (its crater's rim...) or than they are now; and the height it lets go at
+     *  ({@link #dropLevel}): 3 blocks plus {@link EmberTuning#GRAB_FALL_SHARE} of their health over the ground there (a
+     *  fall they live through with that share of it), {@link EmberTuning#GRAB_DROP_MIN} to
+     *  {@link EmberTuning#GRAB_CARRY_HEIGHT}. */
     private Vec3 dropFor(LivingEntity e)
     {
         Vec3 away;
@@ -1261,17 +1415,25 @@ public abstract class EmberBoss extends FireCandidate
                 }
             }
         }
-        double feet = Math.max(this.groundAt(away.x, away.z) + GRAB_CARRY_HEIGHT, highest + GRAB_CLEARANCE);
+        double fall = Mth.clamp(3.0D + Math.floor(e.getHealth() * GRAB_FALL_SHARE), GRAB_DROP_MIN, GRAB_CARRY_HEIGHT);
+        this.dropLevel = this.groundAt(away.x, away.z) + fall;
+        double feet = Math.max(this.dropLevel, highest + GRAB_CLEARANCE);
         return new Vec3(away.x, feet, away.z);
     }
 
+    /** Lets go of whoever it carries: they fall from where they hang (their fall capped: {@link #capGrabFall}). */
     private void release()
     {
         if (this.carried != null)
         {
-            this.carried.setDeltaMovement(this.getDeltaMovement().scale(0.5D));
-            this.carried.hurtMarked = true;
+            LivingEntity e = this.carried;
             this.carried = null;
+            if (e.getVehicle() == this)
+            {
+                e.stopRiding();
+            }
+            e.setDeltaMovement(this.getDeltaMovement().scale(0.5D));
+            e.hurtMarked = true;
         }
     }
 
@@ -1296,12 +1458,26 @@ public abstract class EmberBoss extends FireCandidate
         {
             double scale = this.kind.width() / ADULT.width();
             Vec3 face = this.facing();
+            Vec3 strike = this.position().add(face.scale(SNAP_STRIKE * scale));
+            strike = new Vec3(strike.x, this.groundAt(strike.x, strike.z), strike.z);
+            if (this.level() instanceof ServerLevel level)
+            {
+                // its bill striking the ground: a burst of rock and embers round the spot
+                double r = SNAP_SPLASH * scale;
+                level.sendParticles(ParticleTypes.EXPLOSION, strike.x, strike.y + 0.5D, strike.z, 2, r * 0.3D, 0.1D, r * 0.3D, 0.0D);
+                level.sendParticles(ParticleTypes.LAVA, strike.x, strike.y + 0.3D, strike.z, 8, r * 0.4D, 0.1D, r * 0.4D, 0.0D);
+                level.sendParticles(ParticleTypes.LARGE_SMOKE, strike.x, strike.y + 0.5D, strike.z, 10, r * 0.5D, 0.2D, r * 0.5D, 0.02D);
+            }
             for (LivingEntity e : this.foesWithin(this.getBoundingBox().inflate(SNAP_TO * scale, 6.0D, SNAP_TO * scale)))
             {
                 Vec3 rel = e.position().subtract(this.position());
                 double along = rel.x * face.x + rel.z * face.z;
                 double side = Math.abs(rel.x * face.z - rel.z * face.x);
-                if (along >= SNAP_FROM * scale && along <= SNAP_TO * scale && side <= SNAP_SIDE * scale)
+                // in front of it from under its chest out to its bill's reach, or within its splash round the strike
+                boolean inLine = along >= SNAP_FROM * scale && along <= SNAP_TO * scale && side <= SNAP_SIDE * scale;
+                boolean inSplash = Math.hypot(e.getX() - strike.x, e.getZ() - strike.z) <= SNAP_SPLASH * scale
+                        && Math.abs(e.getY() - strike.y) <= 4.0D;
+                if (inLine || inSplash)
                 {
                     // (each peck counts, even straight after the last: a player just hurt is no safer)
                     e.invulnerableTime = 0;
