@@ -5,6 +5,8 @@ import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.golem.CinderColossus;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.huntsman.HuntsmanPair;
+import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.boss.rage.RageTeam;
 import com.reg21meme.dross.boss.ratking.RatKing;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.commands.CommandSourceStack;
@@ -18,10 +20,17 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 
 import javax.annotation.Nullable;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The boss area's test commands. The {@code /dross} command itself belongs to world-builder, which calls these:
@@ -30,7 +39,9 @@ import javax.annotation.Nullable;
  *   <li>{@code /dross boss arena colossus}: {@link #buildArena};</li>
  *   <li>{@code /dross boss summon ratking}: {@link #summonRatKing};</li>
  *   <li>{@code /dross boss arena ratking}: {@link #buildRatKingArena};</li>
- *   <li>{@code /dross boss arena bedrock}: {@link #buildBedrockArena} (any boss: a spawn-proof test arena).</li>
+ *   <li>{@code /dross boss arena bedrock [teams]}: {@link #buildBedrockArena} (any boss: a spawn-proof, roofed test arena,
+ *       divided into a section for each team); {@code ... bedrock open|close}: {@link #bedrockWalls} (the walls between
+ *       its sections); {@code ... bedrock team_up}: {@link #bedrockTeamUp} (everyone in a section onto its team).</li>
  * </ul>
  * Both use the command's position, rotation and dimension, so they also work from command blocks and the console
  * ({@code execute positioned ... rotated ... run dross boss arena colossus}). They need cheats, like the rest of /dross.
@@ -288,27 +299,60 @@ public final class BossCommands
         return Math.max(1, result.changed());
     }
 
+    /** The command that opens (or closes) the walls between the bedrock arena's sections, and the one that puts
+     *  everyone in each section on its team (the arena's chat buttons run them). */
+    public static final String BEDROCK_OPEN_COMMAND = "/dross boss arena bedrock open";
+    public static final String BEDROCK_CLOSE_COMMAND = "/dross boss arena bedrock close";
+    public static final String BEDROCK_TEAM_UP_COMMAND = "/dross boss arena bedrock team_up";
+    /** The open, close and team-up buttons find the arena you're in, or the nearest within this many blocks. */
+    private static final double BEDROCK_FIND_RANGE = 160.0D;
+
     /**
-     * {@code /dross boss arena bedrock}: builds the bedrock test arena ({@link BedrockArena}) round you, its floor where
-     * you stand: bedrock walled in and lit with glowstone, where nothing spawns by itself. You stay in its middle; the
-     * chat message has a button for each boss.
+     * {@code /dross boss arena bedrock [teams]}: builds the bedrock test arena round you ({@link BedrockArena}: roofed,
+     * nothing spawns in it), divided into {@code teams} sections (1: none) by walls, each with its team's glass in the
+     * middle of its floor. Its chat message has a button for each section (it takes you to its middle), buttons to open
+     * and close the walls between them and to put everyone in each section on its team, and a summon button for each
+     * boss.
      *
-     * @return how many blocks were changed (at least 1)
+     * @return how many blocks it changed (at least 1)
      */
-    public static int buildBedrockArena(CommandSourceStack source)
+    public static int buildBedrockArena(CommandSourceStack source, int teams)
     {
         ServerLevel level = source.getLevel();
         BlockPos floor = BossArena.floorUnder(level, BlockPos.containing(source.getPosition()));
-        RatKingArena.Result result = BedrockArena.build(level, floor);
-        LOGGER.info("Built the bedrock test arena for {} round {} in {} ({} blocks changed, {} block entities left alone)",
-                source.getTextName(), floor.toShortString(), level.dimension().location(), result.changed(),
-                result.keptBlockEntities());
-        MutableComponent message = Component.translatable("commands.dross.boss.arena_bedrock.success", BedrockArena.SIZE);
+        RatKingArena.Result result = BedrockArena.build(level, floor, teams);
+        BedrockArenaData.get(level).add(new BedrockArenaData.Arena(floor, teams));
+        LOGGER.info("Built the bedrock test arena for {} round {} in {} for {} team(s) ({} blocks changed, {} block entities "
+                + "left alone)", source.getTextName(), floor.toShortString(), level.dimension().location(), teams,
+                result.changed(), result.keptBlockEntities());
+        MutableComponent message = Component.translatable("commands.dross.boss.arena_bedrock.success", BedrockArena.SIZE,
+                BedrockArena.ROOF_HEIGHT);
         if (result.keptBlockEntities() > 0)
         {
             message.append(" ").append(Component.translatable("commands.dross.boss.arena.kept", result.keptBlockEntities()));
         }
-        message.append(" ").append(summonButton("commands.dross.boss.arena.summon_button", DrossColors.BOSS_COMMAND_BUTTON,
+        List<BedrockArena.Section> sections = BedrockArena.sections(teams);
+        if (sections.size() > 1)
+        {
+            message.append("\n").append(Component.translatable("commands.dross.boss.arena_bedrock.sections", sections.size()));
+            for (BedrockArena.Section s : sections)
+            {
+                String go = "/tp @s " + (floor.getX() + s.middle()) + " " + (floor.getY() + 1) + " " + floor.getZ();
+                message.append(" ").append(Component.literal("[").append(s.team().displayName()).append("]")
+                        .withStyle(style -> style.withColor(s.team().color())
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, go))
+                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                        Component.translatable("commands.dross.boss.arena_bedrock.go_hover",
+                                                s.team().displayName())))));
+            }
+            message.append("\n").append(summonButton("commands.dross.boss.arena_bedrock.team_up_button",
+                    DrossColors.BEDROCK_ARENA_BUTTON, BEDROCK_TEAM_UP_COMMAND));
+            message.append(" ").append(summonButton("commands.dross.boss.arena_bedrock.open_button",
+                    DrossColors.BEDROCK_ARENA_BUTTON, BEDROCK_OPEN_COMMAND));
+            message.append(" ").append(summonButton("commands.dross.boss.arena_bedrock.close_button",
+                    DrossColors.BEDROCK_ARENA_BUTTON, BEDROCK_CLOSE_COMMAND));
+        }
+        message.append("\n").append(summonButton("commands.dross.boss.arena.summon_button", DrossColors.BOSS_COMMAND_BUTTON,
                 SUMMON_COMMAND));
         message.append(" ").append(summonButton("commands.dross.boss.arena_ratking.summon_button",
                 DrossColors.RAT_KING_COMMAND_BUTTON, SUMMON_RAT_KING_COMMAND));
@@ -318,6 +362,107 @@ public final class BossCommands
                 DrossColors.EMBERDACTYL_COMMAND_BUTTON, com.reg21meme.dross.boss.emberdactyl.EmberCommands.SUMMON_COMMAND));
         source.sendSuccess(() -> message, true);
         return Math.max(1, result.changed());
+    }
+
+    /** The bedrock arena the command is run in (or the nearest), or null with a failure message sent. */
+    @Nullable
+    private static BedrockArenaData.Arena bedrockArena(CommandSourceStack source)
+    {
+        BedrockArenaData.Arena arena = BedrockArenaData.get(source.getLevel()).find(BlockPos.containing(source.getPosition()),
+                BEDROCK_FIND_RANGE);
+        if (arena == null)
+        {
+            source.sendFailure(Component.translatable("commands.dross.boss.arena_bedrock.none"));
+            return null;
+        }
+        if (arena.teams() < 2)
+        {
+            source.sendFailure(Component.translatable("commands.dross.boss.arena_bedrock.one_team"));
+            return null;
+        }
+        return arena;
+    }
+
+    /**
+     * {@code /dross boss arena bedrock open|close}: opens the walls between the bedrock arena's sections (the teams meet)
+     * or puts them back.
+     *
+     * @return how many blocks changed (at least 1), or 0 if there's no arena with walls here
+     */
+    public static int bedrockWalls(CommandSourceStack source, boolean open)
+    {
+        BedrockArenaData.Arena arena = bedrockArena(source);
+        if (arena == null)
+        {
+            return 0;
+        }
+        int changed = BedrockArena.setDividers(source.getLevel(), arena.floor(), arena.teams(), open);
+        source.sendSuccess(() -> Component.translatable(open ? "commands.dross.boss.arena_bedrock.opened"
+                : "commands.dross.boss.arena_bedrock.closed", arena.teams()), true);
+        return Math.max(1, changed);
+    }
+
+    /**
+     * {@code /dross boss arena bedrock team_up}: every mob and every player (not a spectator) in each of the bedrock
+     * arena's sections goes onto that section's team (mobs raged as by the Rage Wand, {@link Rage#enrage}; players by
+     * {@link Rage#setPlayerTeam}). Mobs the wand can't rage are left as they are.
+     *
+     * @return how many went onto a team, or 0
+     */
+    public static int bedrockTeamUp(CommandSourceStack source)
+    {
+        BedrockArenaData.Arena arena = bedrockArena(source);
+        if (arena == null)
+        {
+            return 0;
+        }
+        ServerLevel level = source.getLevel();
+        BlockPos floor = arena.floor();
+        Map<RageTeam, Integer> counts = new EnumMap<>(RageTeam.class);
+        int total = 0;
+        for (BedrockArena.Section s : BedrockArena.sections(arena.teams()))
+        {
+            AABB box = new AABB(floor.getX() + s.from(), floor.getY() + 1, floor.getZ() - BedrockArena.RADIUS,
+                    floor.getX() + s.to() + 1, floor.getY() + BedrockArena.ROOF_HEIGHT, floor.getZ() + BedrockArena.RADIUS + 1);
+            for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, box,
+                    e -> e.isAlive() && !e.isSpectator() && box.contains(e.position())))
+            {
+                boolean joined = false;
+                if (e instanceof Player player)
+                {
+                    Rage.setPlayerTeam(player, s.team());
+                    joined = true;
+                }
+                else if (e instanceof Mob mob)
+                {
+                    joined = Rage.enrage(mob, s.team());
+                }
+                if (joined)
+                {
+                    counts.merge(s.team(), 1, Integer::sum);
+                    total++;
+                }
+            }
+        }
+        if (total == 0)
+        {
+            source.sendFailure(Component.translatable("commands.dross.boss.arena_bedrock.nobody"));
+            return 0;
+        }
+        MutableComponent list = Component.empty();
+        boolean first = true;
+        for (Map.Entry<RageTeam, Integer> e : counts.entrySet())
+        {
+            if (!first)
+            {
+                list.append(", ");
+            }
+            first = false;
+            list.append(e.getKey().displayName()).append(" " + e.getValue());
+        }
+        int n = total;
+        source.sendSuccess(() -> Component.translatable("commands.dross.boss.arena_bedrock.teamed", n, list), true);
+        return total;
     }
 
     /** A chat button ({@code key}'s text in {@code color}) that runs {@code command}. */

@@ -690,7 +690,16 @@ can't be cured, not even with milk.
   and the moose's charges; raging an Emberdactyl or its young wakes it, and the adult and the young raged on two
   teams fight each other in the air (talons, buffets, screeches, tornadoes). Their golems
   or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
-- It won't rage players, showcase mobs, the Ender Dragon, the trader or the hub's survivors.
+- It won't rage showcase mobs, the Ender Dragon or the hub's survivors. The **trader** can be raged: he headbutts,
+  and beaten down to half his health he teleports home and heals as always.
+- **Players on teams:** `/dross rage team <targets> <colour>` puts players and mobs on a team (`@s` for yourself, a
+  player's name, `@a`, or `@e[type=zombie,distance=..10]`...; mobs get the Rage as from the wand), and
+  `/dross rage clear <targets>` takes them off. Hitting another player with the wand puts them on its team. A player
+  on a team fights with it: the other teams' raged mobs come for you (in survival: mobs never attack a player in
+  creative), your own team's never do, and nothing you and your teammates do hurts each other. You keep your team when
+  you die.
+- **Seeing the teams:** while you hold the wand, every raged mob and every player on a team round you gives off
+  sparks of its team's colour.
 
 ---
 
@@ -785,7 +794,11 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross boss summon emberdactyl` / `emberyoung` | Summons the Emberdactyl (or its young) 30 (18) blocks in front of you, hovering over that spot, alone (not on Peaceful). |
 | `/dross boss arena emberdactyl` | Builds an Emberdactyl volcano on the land in front of you, with its egg in the nest and the Emberdactyl perched on the rim (a few seconds' freeze). |
 | `/dross boss arena huntsman` | Builds the Huntsman's placeholder arena round you (a 41-block round floor of snow and packed ice, with lantern posts), with a chat button to summon him. |
-| `/dross boss arena bedrock` | Builds a test arena for any boss round you: a 61-block square bedrock floor with glowstone set in it, bedrock walls 8 high with glowstone bands, where nothing spawns by itself; chat buttons summon each boss. |
+| `/dross boss arena bedrock [teams]` | Builds a test arena for any boss round you: an 89-block square bedrock floor with glowstone set in it, bedrock walls up to a bedrock roof 48 blocks up (room for the Emberdactyl), where nothing spawns by itself. With a number from 2 to 5 it's divided into that many equal sections by walls 12 high, one for each Rage Wand team, its colour of glass in the middle of each floor. Chat buttons take you to each section, put everyone in each section on its team, open and close the walls between them, and summon each boss. |
+| `/dross boss arena bedrock open` / `close` | Opens (or closes again) the walls between the bedrock arena's sections, so the teams meet. |
+| `/dross boss arena bedrock team_up` | Puts every mob and player in each of the bedrock arena's sections on that section's team (the Rage Wand's Rage). |
+| `/dross rage team <targets> <team>` | Puts players and mobs on one of the Rage Wand's teams (blue, red, green, yellow or purple): `@s`, a player's name, `@e[...]`. Players on a team fight alongside their team's raged mobs and against the others. |
+| `/dross rage clear <targets>` | Takes players and mobs off their teams (a mob's Rage goes too). |
 
 ---
 

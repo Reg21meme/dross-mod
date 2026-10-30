@@ -31,7 +31,9 @@ import java.util.List;
  *       switches. Raged mobs fight the raged mobs of the other teams, never their own, for ever.</li>
  * </ul>
  * Its hit never hurts anything: no damage and no knockback, on a mob, a player or anything else (the attack is
- * cancelled, in creative and in survival). Players can't be raged. Like a sword, it doesn't break blocks in creative.
+ * cancelled, in creative and in survival). Players can't be raged, but its hit puts another player on its team
+ * ({@link Rage#setPlayerTeam}; {@code /dross rage team} puts anyone on one, yourself too). Holding it, you see every
+ * team round you clearly ({@link RageEvents}). Like a sword, it doesn't break blocks in creative.
  */
 public class RageWandItem extends Item
 {
@@ -68,6 +70,12 @@ public class RageWandItem extends Item
         if (!player.level().isClientSide && target instanceof Mob mob)
         {
             Rage.enrage(mob, teamOf(stack));
+        }
+        else if (!player.level().isClientSide && target instanceof Player other)
+        {
+            Rage.setPlayerTeam(other, teamOf(stack));       // another player: onto the wand's team (they can't be raged)
+            player.displayClientMessage(Component.translatable("dross.command.rage.team.player", other.getDisplayName(),
+                    teamOf(stack).displayName()), true);
         }
         return true;
     }

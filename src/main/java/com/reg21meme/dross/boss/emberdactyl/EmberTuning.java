@@ -300,6 +300,15 @@ public final class EmberTuning
     public static final double DEATH_GLIDE = 1.1D;
     /** Lying on a fluid's top (the crater's lava lake) counts as this many blocks of uneven ground. */
     public static final double DEATH_FLUID_COST = 4.0D;
+    /** Where it lies to die is never higher than this over the ground under it when it died (the user, October 30:
+     *  "why does it fly up sometimes when I deal the final blow": it went for the flattest ground near, up a ledge or a
+     *  hill as soon as down). */
+    public static final double DEATH_MAX_RISE = 1.0D;
+    /** The adult's body breaks apart, its pieces landing up to about this far from its middle (blocks): the ground
+     *  out there counts too, each block it lies under the body counting this much (pieces flung over a drop rested in
+     *  the air: "his body falls apart mid-air"). */
+    public static final double DEATH_BREAK_REACH = 22.0D;
+    public static final double DEATH_BREAK_DROP_COST = 0.5D;
     /** Experience for each. */
     public static final int ADULT_XP = 50;
     public static final int YOUNG_XP = 50;

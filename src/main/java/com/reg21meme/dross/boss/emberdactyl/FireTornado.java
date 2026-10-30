@@ -146,7 +146,7 @@ public class FireTornado extends Entity implements GeoEntity
         double speed = TORNADO_SPEED * (this.getSize() < 1.0F ? 1.5D : 1.0D);
         Vec3 step = this.heading.scale(speed);
         this.move(MoverType.SELF, step);
-        double ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(this.getX()), Mth.floor(this.getZ()));
+        double ground = EmberBoss.groundUnder(level, this.getX(), this.getY(), this.getZ());   // (under a roof too)
         this.setPos(this.getX(), ground, this.getZ());
         // its fire
         float size = this.getSize();

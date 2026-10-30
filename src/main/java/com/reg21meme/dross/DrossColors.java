@@ -335,6 +335,9 @@ public final class DrossColors {
 
     /** The "[Summon the Cinder Colossus]" button in /dross boss arena colossus's chat message. Used in boss/BossCommands. */
     public static final int BOSS_COMMAND_BUTTON = 0xFFA328;
+    /** The bedrock arena's own buttons ([Open the walls], [Close the walls], [Team up by section]): pale stone. Used in
+     *  boss/BossCommands. (Its section buttons are in their teams' colours, RAGE_TEAM_*.) */
+    public static final int BEDROCK_ARENA_BUTTON = 0xD4D4CF;
 
     /** Stone Golem spawn egg base: grey stone. Used in registry/ModItems. */
     public static final int STONE_GOLEM_EGG_BASE = 0x4E4A47;

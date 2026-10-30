@@ -2,7 +2,7 @@ package com.reg21meme.dross.boss.rage;
 
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.registry.ModEffects;
-import com.reg21meme.dross.villager.DrossTrader;
+
 import com.reg21meme.dross.villager.Survivor;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
@@ -16,6 +16,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.monster.warden.Warden;
+import net.minecraft.world.entity.player.Player;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -38,6 +39,12 @@ import java.util.List;
  *       a mob with no attack of its own (cows, pigs, villagers...) headbutts ({@link RageHeadbuttGoal}).</li>
  * </ul>
  * A mob given the Rage some other way (a command) has no team: it fights nobody and nobody fights it.
+ * <p><b>Players on a team</b> (the user, October 30: "assign @ player name or @s ... the player's colour so they can
+ * fight alongside or against mobs"): {@code /dross rage team <targets> <team>} (or the wand's hit on another player)
+ * puts a player on a team ({@link #setPlayerTeam}; saved on them, kept when they die). They can't have the Rage itself,
+ * but they're in the fight ({@link #inFight}): the raged mobs of other teams go for them like any enemy (in survival or
+ * adventure: Minecraft's mobs never attack a player in creative), their own team's never do, and their blows don't hurt
+ * their teammates (nor theirs them).
  * Everything here is server side (a mob's effects aren't sent to the clients).
  */
 public final class Rage
@@ -55,7 +62,19 @@ public final class Rage
         return entity instanceof LivingEntity living && living.hasEffect(ModEffects.RAGE.get());
     }
 
-    /** The team a mob is on (saved with it), or null if none. */
+    /** True if this is a player on a team (not a spectator): in the fight, though players can't have the Rage. */
+    public static boolean isTeamPlayer(@Nullable Entity entity)
+    {
+        return entity instanceof Player player && !player.isSpectator() && teamOf(player) != null;
+    }
+
+    /** True if it's in the Rage's fight: a raged mob, or a player on a team. */
+    public static boolean inFight(@Nullable Entity entity)
+    {
+        return isRaged(entity) || isTeamPlayer(entity);
+    }
+
+    /** The team a mob (or a player) is on (saved with it), or null if none. */
     @Nullable
     public static RageTeam teamOf(@Nullable Entity entity)
     {
@@ -63,13 +82,14 @@ public final class Rage
     }
 
     /**
-     * True if the Rage has made these two enemies: both raged, on two different teams. The bosses' blows and projectiles
+     * True if the Rage has made these two enemies: both in the fight (raged, or a player on a team), on two different
+     * teams. The bosses' blows and projectiles
      * use this so they can hit a raged enemy of their own kind (another boss, or golems and rats of another team), which
      * they never do otherwise.
      */
     public static boolean areEnemies(@Nullable Entity a, @Nullable Entity b)
     {
-        if (a == null || b == null || a == b || !isRaged(a) || !isRaged(b))
+        if (a == null || b == null || a == b || !inFight(a) || !inFight(b))
         {
             return false;
         }
@@ -78,10 +98,10 @@ public final class Rage
         return ta != null && tb != null && ta != tb;
     }
 
-    /** True if these two are raged on the same team: they never fight each other. */
+    /** True if these two are on the same team (raged mobs, or players on a team): they never fight each other. */
     public static boolean areTeammates(@Nullable Entity a, @Nullable Entity b)
     {
-        if (a == null || b == null || a == b || !isRaged(a) || !isRaged(b))
+        if (a == null || b == null || a == b || !inFight(a) || !inFight(b))
         {
             return false;
         }
@@ -91,13 +111,15 @@ public final class Rage
 
     /**
      * True if the wand can rage this mob. Not: a mob with no AI (the frozen showcase bosses, rats and traders), the
-     * Ender Dragon (it flies by its own phases and never fights mobs), the Dross trader or the hub's survivors (they
-     * can never die, so their fight would never end). (The Wither can't have any effect at all, so it can't either.)
+     * Ender Dragon (it flies by its own phases and never fights mobs) or the hub's survivors (they can never die, so
+     * their fight would never end). (The Wither can't have any effect at all, so it can't either.) The Dross trader
+     * can (the user, October 30: "I want to be able to affect the trader with the Rage Wand"; until then he was left out
+     * with the survivors): he headbutts like a wandering trader, and beaten down to half his health he teleports home
+     * and heals as always, which ends his fight.
      */
     public static boolean canBeRaged(Mob mob)
     {
-        return mob.isAlive() && !mob.isNoAi() && !(mob instanceof EnderDragon) && !(mob instanceof DrossTrader)
-                && !(mob instanceof Survivor);
+        return mob.isAlive() && !mob.isNoAi() && !(mob instanceof EnderDragon) && !(mob instanceof Survivor);
     }
 
     // ---------------------------------------------------------------- raging
@@ -183,6 +205,38 @@ public final class Rage
     {
         mob.getPersistentData().putString(TAG_TEAM, team.id());
         settleTeam(mob);
+    }
+
+    /**
+     * Puts a player on a team (null: off any team), saved on them: a puff of the team's colour round them, and the raged
+     * mobs near that are now their teammates let go of them at once ({@link #forget}).
+     */
+    public static void setPlayerTeam(Player player, @Nullable RageTeam team)
+    {
+        if (team == null)
+        {
+            player.getPersistentData().remove(TAG_TEAM);
+            return;
+        }
+        player.getPersistentData().putString(TAG_TEAM, team.id());
+        if (player.level() instanceof ServerLevel level)
+        {
+            teamParticles(level, player, team, RageTuning.RAGE_BURST_PARTICLES);
+            level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.RAVAGER_ROAR, SoundSource.PLAYERS,
+                    RageTuning.RAGE_SOUND_VOLUME * 0.5F, RageTuning.RAGE_SOUND_PITCH);
+            for (Mob mob : level.getEntitiesOfClass(Mob.class, player.getBoundingBox().inflate(RageTuning.SETTLE_RANGE),
+                    mob -> areTeammates(mob, player)))
+            {
+                forget(mob, player);
+            }
+        }
+    }
+
+    /** Takes a mob out of the fight: its Rage and its team gone (it's its old self again). */
+    public static void calm(Mob mob)
+    {
+        mob.removeEffect(ModEffects.RAGE.get());
+        RageAi.uninstall(mob);
     }
 
     /** The Rage as the wand gives it: for ever, its swirl hidden (the mob shows its team's colour instead), its icon shown. */
@@ -290,9 +344,14 @@ public final class Rage
 
     // ---------------------------------------------------------------- enemies
 
-    /** True if {@code other} is an enemy that's in the fight: alive, with its AI (not a frozen showcase mob), raged on another team. */
+    /** True if {@code other} is an enemy that's in the fight: alive, with its AI (not a frozen showcase mob), raged on
+     *  another team; or a player on another team (in survival or adventure: mobs never attack a player in creative). */
     static boolean isLiveEnemy(Mob mob, @Nullable Entity other)
     {
+        if (other instanceof Player player)
+        {
+            return player.isAlive() && !player.isCreative() && !player.isSpectator() && areEnemies(mob, player);
+        }
         return other instanceof Mob enemy && enemy != mob && enemy.isAlive() && !enemy.isNoAi() && areEnemies(mob, enemy);
     }
 
@@ -302,10 +361,11 @@ public final class Rage
         return other.level() == mob.level() && other.distanceToSqr(mob) <= RageTuning.RAGE_RANGE * RageTuning.RAGE_RANGE;
     }
 
-    /** Its enemies within {@link RageTuning#RAGE_RANGE} blocks (also ones it can't target right now, like a Rat King under the ground). */
-    static List<Mob> enemiesNear(Mob mob)
+    /** Its enemies within {@link RageTuning#RAGE_RANGE} blocks (also ones it can't target right now, like a Rat King
+     *  under the ground), players on other teams among them. */
+    static List<LivingEntity> enemiesNear(Mob mob)
     {
-        return mob.level().getEntitiesOfClass(Mob.class, mob.getBoundingBox().inflate(RageTuning.RAGE_RANGE),
+        return mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(RageTuning.RAGE_RANGE),
                 other -> isLiveEnemy(mob, other) && inRange(mob, other));
     }
 
@@ -324,18 +384,18 @@ public final class Rage
     /** The nearest raged enemy a raged mob can go for now (another team, in range, not under the ground), or null: for
      * a boss that picks its own target (the Huntsman and his Alpha Moose). Server side. */
     @Nullable
-    public static Mob nearestEnemy(Mob mob)
+    public static LivingEntity nearestEnemy(Mob mob)
     {
         return isRaged(mob) && teamOf(mob) != null ? nearestTarget(mob, null) : null;
     }
 
     /** The nearest enemy it can go for now (never {@code skip}), or null. */
     @Nullable
-    static Mob nearestTarget(Mob mob, @Nullable Entity skip)
+    static LivingEntity nearestTarget(Mob mob, @Nullable Entity skip)
     {
-        Mob best = null;
+        LivingEntity best = null;
         double bestDistance = Double.MAX_VALUE;
-        for (Mob enemy : enemiesNear(mob))
+        for (LivingEntity enemy : enemiesNear(mob))
         {
             if (enemy == skip || !enemy.canBeSeenAsEnemy())
             {
@@ -354,7 +414,7 @@ public final class Rage
     // ---------------------------------------------------------------- looks
 
     /** Dust in its team's colour over its head (so the teams can be told apart). */
-    static void teamParticles(ServerLevel level, Mob mob, RageTeam team, int count)
+    static void teamParticles(ServerLevel level, LivingEntity mob, RageTeam team, int count)
     {
         double spread = mob.getBbWidth() * RageTuning.PARTICLE_SPREAD;
         DustParticleOptions dust = new DustParticleOptions(DrossColors.vector(team.color()), RageTuning.TEAM_PARTICLE_SIZE);

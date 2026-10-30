@@ -1,11 +1,17 @@
 package com.reg21meme.dross.boss.rage;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.registry.ModEffects;
+import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
@@ -23,8 +29,12 @@ import net.minecraftforge.fml.common.Mod;
  *       player (even one that hits it), not a mob that isn't in the fight. This catches what its own goals and
  *       Minecraft's rules try to set (a target it already had before the two became teammates is dropped when they
  *       do: {@link Rage#settleTeam}, and {@link RageAi}'s safety net);</li>
- *   <li>a raged mob's hits (blows, arrows, explosions) never hurt a raged mob of its own team;</li>
- *   <li>players can't have the Rage (not even with {@code /effect}).</li>
+ *   <li>a raged mob's hits (blows, arrows, explosions) never hurt a raged mob of its own team, nor a player on it, and
+ *       a player on a team never hurts their own team's;</li>
+ *   <li>players can't have the Rage (not even with {@code /effect}), but can be on a team ({@link Rage#setPlayerTeam}),
+ *       which they keep when they die;</li>
+ *   <li>a player on a team gives off a few specks of its colour now and then like a raged mob, and a player holding the
+ *       wand sees every team round them clearly ({@link #showTeams}).</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -68,9 +78,61 @@ public final class RageEvents
             return;
         }
         Entity attacker = event.getSource().getEntity();
-        if (attacker instanceof Mob && Rage.areTeammates(attacker, victim))
+        if (Rage.areTeammates(attacker, victim))
         {
-            event.setCanceled(true); // no friendly fire within a team
+            event.setCanceled(true); // no friendly fire within a team (players on it too)
+        }
+    }
+
+    /** A player keeps their team when they die (the copy that respawns is a new player). */
+    @SubscribeEvent
+    public static void onClone(PlayerEvent.Clone event)
+    {
+        RageTeam team = Rage.teamOf(event.getOriginal());
+        if (team != null)
+        {
+            event.getEntity().getPersistentData().putString(Rage.TAG_TEAM, team.id());
+        }
+    }
+
+    @SubscribeEvent
+    public static void onPlayerTick(TickEvent.PlayerTickEvent event)
+    {
+        if (event.phase != TickEvent.Phase.END || !(event.player instanceof ServerPlayer player)
+                || !(player.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        RageTeam team = Rage.teamOf(player);
+        if (team != null && !player.isSpectator() && (player.tickCount + player.getId()) % RageTuning.RAGE_PARTICLE_EVERY == 0)
+        {
+            Rage.teamParticles(level, player, team, RageTuning.RAGE_PARTICLES);
+        }
+        if (player.tickCount % RageTuning.WAND_SHOW_EVERY == 0 && (player.getMainHandItem().getItem() instanceof RageWandItem
+                || player.getOffhandItem().getItem() instanceof RageWandItem))
+        {
+            showTeams(level, player);
+        }
+    }
+
+    /** Holding the wand: every raged mob and every other player on a team near gives off its team's colour all over
+     *  its body, which only this player sees ({@link RageTuning#WAND_SHOW_RANGE}). */
+    private static void showTeams(ServerLevel level, ServerPlayer viewer)
+    {
+        double r = RageTuning.WAND_SHOW_RANGE;
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, viewer.getBoundingBox().inflate(r),
+                e -> e != viewer && e.isAlive() && Rage.inFight(e) && e.distanceToSqr(viewer) <= r * r))
+        {
+            RageTeam team = Rage.teamOf(e);
+            if (team == null)
+            {
+                continue;
+            }
+            DustParticleOptions dust = new DustParticleOptions(DrossColors.vector(team.color()), RageTuning.WAND_SHOW_SIZE);
+            double w = e.getBbWidth() * 0.5D;
+            double h = e.getBbHeight() * 0.5D;
+            level.sendParticles(viewer, dust, true, e.getX(), e.getY() + h, e.getZ(), RageTuning.WAND_SHOW_PARTICLES,
+                    w, h, w, 0.0D);
         }
     }
 

@@ -14,7 +14,8 @@ from the boss with the number of hits, how fast it flies in the sky, animations 
   snap     (once)  on the ground: its head lunges down and the beak snaps shut ("hit")
   perch    (loop)  standing on its legs, its wrists on the ground, wings half open at its sides, looking round
   walk     (loop)  walking on its legs and wrists, the diagonal pairs together
-  death    (once)  a last scream, wings flailing, then it crashes onto its belly, wings spread on the ground
+  death    (once)  a last scream, wings flailing, then it crashes onto its belly, wings spread on the ground, and
+                   breaks apart: its head's and wings' pieces, its arms, neck, legs and tail, its crust (the adult's)
 
 Its legs and wrists are planted with the golem kit's IK when it's on the ground.
 """
@@ -781,6 +782,38 @@ REST_GAP = 0.05               # units a broken piece rests above the ground (the
 REST_MAX = 0.15               # ... and the build warns if one rests higher than this
 
 
+SETTLE_TILT = 40.0            # degrees a thrown piece may tip from lying along its flattest plane, to rest as low as it can
+SETTLE_STEP = 5.0
+
+
+def settle_turn(pts, solid, flat, along):
+    """The turn (from where it lay) that lays these points (GeckoLib space) lowest, its `solid` ones (a mask: its bones,
+    not its membranes) touching the ground: `flat` (its flattest plane level), or `flat` with it rolled over along its
+    length (face up), each tipped up to SETTLE_TILT either way about the level axes, whichever leaves its points lowest
+    on average (a wing piece's thumb claw would otherwise prop it up off the ground) with its membranes clear of the
+    ground (wingfold.FLOOR: lower, wingfold would fold them up off it like a sail)."""
+    q = pts - pts.mean(axis=0)
+    soft = ~solid
+    clear = (wingfold.FLOOR + 0.1 - REST_GAP) / 16.0
+    best = None
+    tilts = [math.radians(a) for a in np.arange(-SETTLE_TILT, SETTLE_TILT + 1e-6, SETTLE_STEP)]
+    for flip in (0.0, math.pi):
+        F = flat @ geo.axis_angle(along, flip)
+        qf = q @ F.T
+        for a in tilts:
+            Ra = geo.axis_angle(np.array([1.0, 0.0, 0.0]), a)
+            for b in tilts:
+                R = Ra @ geo.axis_angle(np.array([0.0, 0.0, 1.0]), b)
+                y = qf @ R[1]
+                base = float(y[solid].min())
+                short = max(0.0, base + clear - float(y[soft].min())) if soft.any() else 0.0
+                score = (float(y.mean()) - base + 100.0 * short
+                         + 1e-3 * (abs(a) + abs(b) + flip))                       # (ties: the least turn)
+                if best is None or score < best[0]:
+                    best = (score, R @ F)
+    return best[1]
+
+
 def piece_points(m, mats, bones):
     """Points all over these bones' own boxes in a pose (GeckoLib space)."""
     from kit.clipping import _box_frame
@@ -789,46 +822,100 @@ def piece_points(m, mats, bones):
 
 
 class Toss:
-    """A bone and all it carries (a wing's broken-off finger or tip, a horn, the bill, the jaw) thrown from where it
-    lies (`M0`: its world matrix in the still pose) up on a ballistic arc, rolling over once along its length and
-    turning `yaw` degrees, to land lying flat (its longest way level, its thinnest upright) with its middle at `land`
-    (a level point, GeckoLib space), its lowest point REST_GAP over the ground."""
+    """A bone and all it carries (a wing's broken-off finger or tip, a horn, the bill, the jaw; its tail, a leg, its
+    neck with its skull, a wing's arm) thrown from where it lies (`M0`: its world matrix in the still pose) up on a
+    ballistic arc, rolling over `roll` times along its length and turning `yaw` degrees, to land lying flat (its
+    longest way level, its thinnest upright) with its middle at `land` (a level point, GeckoLib space), its lowest
+    point REST_GAP over the ground. `carry`: the bones it carries that count for how it lies (a leg's shin and foot);
+    `ride`: those that only come along (a wing piece's membrane, which wingfold folds out of the way). `bend`: (the
+    pose it lies in, {a bone it carries: its turn (Bedrock angles) once it's straightened}): those bones turn to it as
+    it tumbles, so it lands straightened (a wing's arm lands as one flat piece, not propped up on its hand where it
+    sloped down from its shoulder). `settle`: it lands turned the way that lays it lowest (settle_turn: a wing piece
+    face down or face up, whichever lets it lie flat rather than propped up on its thumb claw)."""
 
-    def __init__(self, m, bone, M0, mats, land, yaw, start, length, arc=WING_TOSS_ARC):
+    def __init__(self, m, bone, M0, mats, land, yaw, start, length, arc=WING_TOSS_ARC, carry=(), ride=(), roll=1.0,
+                 bend=None, settle=False):
+        import copy
         from scipy.spatial.transform import Rotation
         self.name, self.M0, self.start, self.length = bone, M0, start, length
+        self.m, self.bones, self.ride, self.roll, self.bend, self.shapes = m, [bone, *carry], list(ride), roll, None, {}
         self.rest = np.array(m[bone].rotation, dtype=float)
         self.piv = geo.gecko(m[bone].pivot)
-        pts = piece_points(m, mats, [bone])
+        if bend is not None:
+            pose, to = bend
+            self.bend = (copy.deepcopy(pose), {b: (list(pose[b][0]), list(v), np.array(m[b].rotation, dtype=float))
+                                               for b, v in to.items()})
+            mats = self.bent_mats(1.0)
+        pts = piece_points(m, mats, self.bones)
+        everything = piece_points(m, mats, self.bones + self.ride)
+        self.hom = np.column_stack([everything, np.ones(len(everything))]).T    # (all of it as it lands, for at())
         self.c0 = pts.mean(axis=0)
-        axes = np.linalg.svd(pts - self.c0, full_matrices=False)[2]     # (its longest, middle, thinnest ways)
+        axes = np.linalg.svd(everything - everything.mean(axis=0), full_matrices=False)[2]  # (longest, middle, thinnest)
         up = np.array([0.0, 1.0, 0.0])
         e3 = axes[2] if axes[2] @ up >= 0.0 else -axes[2]
         e1 = axes[0] - (axes[0] @ e3) * e3
         e1 /= np.linalg.norm(e1)
         lie = np.array([e1[0], 0.0, e1[2]]) / max(1e-6, math.hypot(e1[0], e1[2]))
         self.flat = np.column_stack([lie, np.cross(up, lie), up]) @ np.column_stack([e1, np.cross(e3, e1), e3]).T
+        if settle:
+            self.flat = settle_turn(everything, np.arange(len(everything)) < len(pts), self.flat, e1)
         self.flat_vec = Rotation.from_matrix(self.flat).as_rotvec()
         self.along = e1
         self.yaw, self.arc, self.prev = math.radians(yaw), arc * SCL / 16.0, None
-        end = geo.axis_angle(up, self.yaw) @ self.flat
-        low = float(((pts - self.c0) @ end.T)[:, 1].min())
+        low = float(((pts - self.c0) @ self.turn(1.0).T)[:, 1].min())
         self.c1 = np.array([land[0], REST_GAP / 16.0 - low, land[2]])
 
     def turn(self, r):
         return (geo.axis_angle(np.array([0.0, 1.0, 0.0]), self.yaw * r) @ geo.axis_angle(
             self.flat_vec / max(1e-9, np.linalg.norm(self.flat_vec)), np.linalg.norm(self.flat_vec) * r)
-            @ geo.axis_angle(self.along, 2.0 * math.pi * r))
+            @ geo.axis_angle(self.along, 2.0 * math.pi * self.roll * r))
 
     def world(self, t):
         return self.move(t) @ self.M0
+
+    def progress(self, t):
+        """How far it has tumbled (and straightened) by time `t` (0 to 1): up off the ground first, then tumbling."""
+        u = min(1.0, max(0.0, (t - self.start) / self.length))
+        return k(u, [(0.0, 0.0), (0.15, 0.0), (0.9, 1.0, "out"), (1.0, 1.0)])
+
+    def bent_turns(self, w):
+        """{bone: its turn (Bedrock angles on top of its rest turn)} part way (w, 0..1) to straightened."""
+        return {b: list(np.array(blend_rot(list(rest + np.array(a)), list(rest + np.array(z)), w)) - rest)
+                for b, (a, z, rest) in self.bend[1].items()}
+
+    def bent_mats(self, w):
+        """Every bone's world matrix, it lying where it lay with its bones part way (w) to straightened."""
+        import copy
+        q = copy.deepcopy(self.bend[0])
+        for b, turn in self.bent_turns(w).items():
+            q.get3(b)[0] = turn
+        return self.m.pose_matrices(q.as_geo())
+
+    def shape(self, t):
+        """Its points (homogeneous, GeckoLib space) where it lay, bent as it is by time `t`."""
+        w = self.progress(t)
+        if self.bend is None or w >= 1.0:
+            return self.hom
+        w = round(w, 2)
+        if w not in self.shapes:
+            pts = piece_points(self.m, self.bent_mats(w), self.bones + self.ride)
+            self.shapes[w] = np.column_stack([pts, np.ones(len(pts))]).T
+        return self.shapes[w]
+
+    def at(self, t):
+        """Points all over it (and all it carries) at time `t` (GeckoLib space)."""
+        return (self.move(t) @ self.shape(t))[:3].T
+
+    def flat_points(self):
+        """Its points as it lies at the end, round its landing's middle (GeckoLib space, add c1)."""
+        return (self.hom[:3].T - self.c0) @ self.turn(1.0).T
 
     def move(self, t):
         """How it has been moved by time `t` (a world matrix: where it lay to where it is)."""
         u = min(1.0, max(0.0, (t - self.start) / self.length))
         if u <= 0.0:
             return np.eye(4)
-        R = self.turn(k(u, [(0.0, 0.0), (0.15, 0.0), (0.9, 1.0, "out"), (1.0, 1.0)]))   # (up off it, then tumbling)
+        R = self.turn(self.progress(t))
         c = self.c0 + (self.c1 - self.c0) * u
         c[1] += 4.0 * self.arc * u * (1.0 - u)
         T4 = np.eye(4)
@@ -845,60 +932,121 @@ class Toss:
         self.prev = full
         gp = L[:3, 3] - self.piv + L[:3, :3] @ self.piv
         p[self.name] = [[full[i] - self.rest[i] for i in range(3)], list(geo.bedrock(gp)), [1.0, 1.0, 1.0]]
+        if self.bend is not None:
+            for b, turn in self.bent_turns(self.progress(t)).items():
+                p.get3(b)[0] = turn
 
 
 HEAD_PIECES = (("bill", 20.0), ("jaw", -40.0), ("horn_l", 55.0), ("horn_r", -65.0), ("crest", 100.0))  # (bone, turn)
-HEAD_DROP = 0.35              # seconds its skull takes to drop onto the ground once its bill and jaw are gone
 HEAD_TOSS = (96.0, 1.3)       # units the head's pieces fly up (about 6 blocks: its horns are long) and seconds in the air
 CHUNK_AFTER = 0.3             # seconds after the burst the crust follows (once the horns are up and away)
+# Then the rest of its body comes apart, one piece after another (the user, October 30: "the leftover parts of its body
+# should fall apart as well"); only its torso stays where it lay. Each piece: its bone (a wing's arm with its forearm,
+# hand and their membranes; its neck with its skull; a leg with its shin and foot; its tail), units thrown out (away
+# from its middle, a leg out to its own side too), its turn as it lands (degrees), seconds after the burst it leaves.
+BODY_TOSS = (("arm", 20.0, 8.0, 0.10), ("neck", 30.0, -50.0, 0.16), ("leg", 30.0, 70.0, 0.22),
+             ("tail", 34.0, 40.0, 0.28))
+BODY_TOSS_ARC = 48.0          # units they fly up (3 blocks: they're heavier than the wing's pieces)
+# seconds they're in the air: an arm lands before the finger thrown off its hand, its neck before the head's pieces
+# (a piece that has landed while the one it hangs from still flies would jitter on the ground: the baked keys)
+BODY_TOSS_FLIGHT = 1.0
+FLIGHT_FLOOR = 1.0            # units everything of a flying piece keeps over the ground (wingfold folds a lower membrane)
+LEG_SPREAD = 0.8              # a leg's throw turned out to its own side (0: straight back with the tail)
+PLACE_REACH = 24.0            # blocks round where it's thrown that a piece may land (the nearest free spot)
+PLACE_GAP = 2.0               # units kept between the pieces lying on the ground, and flying past each other (pieces
+                              # that start nearer, half the gap they start with)
+PLACE_NEAR = 0.75             # units: pieces this close as they break off (joined: its neck and its body), and pieces
+PLACE_NEAR_FROM = 0.5         # the clipping check doesn't hold apart, are kept apart from this share of the flight
+PLACE_FROM = 0.1              # ... the others from this share
 
 
-def land_spot(m, toss, mats, flat, solid):
-    """Moves `toss`'s landing to the nearest level spot round where its piece lies where it lands flat on bare
-    ground (none of `flat`'s level points under it) and its flight there passes through none of `solid`'s points
-    (from a fifth of the way: it starts among them). Returns its footprint there (level points)."""
-    pts = piece_points(m, mats, [toss.name])
-    hom = np.column_stack([pts, np.ones(len(pts))]).T
-    rel = (pts - toss.c0) @ toss.turn(1.0).T
-    gap = 2.0 / 16.0
-    foot = None
-    for dist in np.arange(0.0, 24.0, 0.5):
-        for ang in np.arange(0.0, 360.0, 20.0):
-            toss.c1[0] = toss.c0[0] + dist * math.cos(math.radians(ang))
-            toss.c1[2] = toss.c0[2] + dist * math.sin(math.radians(ang))
-            foot = (rel + toss.c1)[:, [0, 2]]
-            if any(flat.query_ball_point(foot, gap)):
+def carried(m, bone, apart):
+    """The bones with boxes that `bone` carries (all its children's children), but those in `apart` (thrown off on
+    their own) and all they carry, and its crust's pieces."""
+    out = []
+    for child in m[bone].children:
+        if child.name in apart or child.name.startswith("chunk_"):
+            continue
+        if child.cubes:
+            out.append(child.name)
+        out += carried(m, child.name, apart)
+    return out
+
+
+def clear_flight(toss, rolls=None):
+    """Picks the way `toss` tumbles (`rolls`, tried in turn: by default rolling over once either way along its length,
+    then not at all) and, if need be, a higher arc, so nothing of it (its membranes too: a wing's rolling arm swept
+    them under the ground) comes nearer the ground than FLIGHT_FLOOR on its way (while it tumbles: it starts lying
+    there, and lands as it lies). Returns whether it found one."""
+    base, roll = toss.arc, toss.roll
+    times = [toss.start + toss.length * u for u in np.arange(0.15, 0.91, 0.05)]
+    for lift in (1.0, 1.25, 1.5, 2.0):
+        for r in rolls or (roll, -roll, 0.0):
+            toss.roll, toss.arc = r, base * lift
+            if min(float(toss.at(t)[:, 1].min()) for t in times) * 16.0 >= FLIGHT_FLOOR:
+                return True
+    toss.roll, toss.arc = roll, base
+    return False
+
+
+def place(toss, aim, others, still, reach=PLACE_REACH):
+    """Moves `toss`'s landing to the free spot nearest `aim` (a level point, GeckoLib space): where it lies flat it
+    covers none of the ground under the `others` (thrown pieces, where they end up) or `still` (points of what stays
+    put), and on its way it passes through none of them, each where it is at that moment (PLACE_GAP apart, or half
+    the gap they start with), at least none the clipping check holds it apart from (CLIP_PAIRS; the others, and pieces
+    joined as they break off, from PLACE_NEAR_FROM of its flight). Returns whether it found one."""
+    from scipy.spatial import cKDTree
+    gap, near = PLACE_GAP / 16.0, PLACE_NEAR / 16.0
+    end = max([toss.start + toss.length] + [o.start + o.length for o in others])
+    ground = np.concatenate([still] + [o.at(end) for o in others])
+    ground = cKDTree(ground[:, [0, 2]])
+    mine = toss.at(toss.start)
+    kinds = {clip_group(b) for b in toss.bones + toss.ride}
+    groups = [(still, None)] + [(None, o) for o in others]
+    apart = [float(cKDTree(pts if o is None else o.at(toss.start)).query(mine)[0].min()) for pts, o in groups]
+    held = [any((a, b) in CLIP_PAIRS or (b, a) in CLIP_PAIRS for a in kinds
+                for b in ({"torso"} if o is None else {clip_group(x) for x in o.bones + o.ride})) for _g, o in groups]
+    checks = []                                             # (a time, [(the others there then, how far to keep)])
+    for u in np.arange(PLACE_FROM, 1.0001, 0.05):
+        t = toss.start + toss.length * u
+        trees = {}
+        for (g, o), d0, strict in zip(groups, apart, held):
+            if (d0 >= near and strict) or u >= PLACE_NEAR_FROM:
+                trees.setdefault(min(gap, 0.5 * d0) if d0 >= near else gap, []).append(g if o is None else o.at(t))
+        if trees:
+            checks.append((t, [(cKDTree(np.concatenate(v)), keep) for keep, v in trees.items()]))
+    flat = toss.flat_points()
+    for dist in np.arange(0.0, reach, 0.5):
+        for ang in np.arange(0.0, 360.0, 20.0) if dist > 0.0 else (0.0,):
+            toss.c1[0] = aim[0] + dist * math.cos(math.radians(ang))
+            toss.c1[2] = aim[2] + dist * math.sin(math.radians(ang))
+            if (ground.query((flat + toss.c1)[:, [0, 2]], distance_upper_bound=gap)[0] < np.inf).any():
                 continue
-            if solid is not None and any(any(solid.query_ball_point((toss.move(toss.start + toss.length * u) @ hom)[:3].T,
-                                                                    gap)) for u in np.arange(0.05, 1.01, 0.05)):
+            if any((tree.query(pts, distance_upper_bound=keep)[0] < np.inf).any()
+                   for t, trees in checks for pts in [toss.at(t)] for tree, keep in trees):
                 continue
-            return foot
-    return foot
+            return True
+    toss.c1[0], toss.c1[2] = aim[0], aim[2]
+    return False
 
 
-def skull_drop(rig, still):
-    """Degrees its neck lowers once the bill and jaw are gone, so its skull rests on the ground (not on nothing)."""
-    import copy
-    m = rig.m
-    best = 0.0
-    for v in np.arange(1.0, 60.0, 1.0):
-        q = copy.deepcopy(still)
-        q.rot("neck", v, 0.0, 0.0)
-        if lowest_of(m, m.pose_matrices(q.as_geo()), ("neck", "head", "lid_l", "lid_r")) < DEAD_GAP:
-            break
-        best = v
-    return best
-
-
-def break_spots(m, M, mats, grow=1.0):
+def break_spots(m, M, mats, grow=1.0, movers=(), starts=None):
     """Where each piece of crust lands as the body breaks apart (its middle, Bedrock units) and its turn: the nearest
-    bare ground (clear of the wings, legs, tail, neck, head and the other pieces) that it can fly to on its arc without
-    passing through its wings, its neck or its head."""
+    bare ground (clear of everything lying there at the end and the other pieces) that it can fly to on its arc without
+    passing through its wings, its neck or its head, or (`movers`: the thrown pieces, each leaving its body at
+    `starts[n]`) through any thrown piece where it is at that moment."""
     from scipy.spatial import cKDTree
     flat = cKDTree(posed_points(m, mats)[:, [0, 2]])
     near = ("wing_l", "wing_r", "arm_l", "arm_r", "membrane_l", "membrane_r", "head")
-    solid = cKDTree(posed_points(m, mats, keep=lambda name: clip_group(name) in near))
+    moving = {b for mv in movers for b in mv.bones} | {name for mv in movers for name in carried(m, mv.name, ())}
+    still = posed_points(m, mats, keep=lambda name: clip_group(name) in near and name not in moving)
+    solid = cKDTree(still) if len(still) else None
     arc = CHUNK_ARC * SCL
+    us = np.arange(0.15, 1.0, 0.05)
+
+    def bedrock(g):
+        return np.stack([-g[:, 0] * 16.0, g[:, 1] * 16.0, g[:, 2] * 16.0], axis=1)
+
     out, taken = [], []
     for n in range(len(E.CHUNKS)):
         w0 = geo.bedrock(Flight(m, n, M, (0.0, 0.0, 0.0), 0.0, 0.0, 1.0).w0)
@@ -906,6 +1054,8 @@ def break_spots(m, M, mats, grow=1.0):
         size = np.array(cube.size) * grow
         r = 0.5 * float(np.linalg.norm(size)) + 2.0
         rest = (cube.size[1] / 2.0 + cube.inflate) * grow + REST_GAP     # (its middle's height lying flat, touching)
+        flying = [cKDTree(bedrock(np.concatenate([mv.at(starts[n] + T(CHUNK_FLIGHT) * u) for mv in movers])))
+                  for u in us] if movers else []
         spot = None
         for dist in np.arange(2.0, 30.0, 0.5) * r:
             for ang in np.arange(0.0, 360.0, 15.0) + 7.5 * n:
@@ -914,9 +1064,10 @@ def break_spots(m, M, mats, grow=1.0):
                 land = np.array([x, rest, z])
                 if flat.query_ball_point((x, z), r) or any(math.hypot(x - a, z - b) < r + c for a, b, c in taken):
                     continue
-                path = [w0 + (land - w0) * u + np.array([0.0, 4.0 * arc * u * (1.0 - u), 0.0])
-                        for u in np.arange(0.15, 1.0, 0.05)]
-                if any(solid.query_ball_point(q, r) for q in path):
+                path = [w0 + (land - w0) * u + np.array([0.0, 4.0 * arc * u * (1.0 - u), 0.0]) for u in us]
+                if solid is not None and any(solid.query_ball_point(q, r) for q in path):
+                    continue
+                if any(tree.query_ball_point(q, r) for q, tree in zip(path, flying)):
                     continue
                 spot = (x, z)
                 break
@@ -935,54 +1086,101 @@ def shut_eyes(t, crash):
 def death(rig):
     """Its death (the user's pick of three: "I prefer the break one"): it screams, falls and lies limp, magma cracks
     spreading over it (client/FireDeathLook.java), closes its eyes and shudders, then bursts: its bill, jaw, horns and
-    half moon break off its head, each wing's finger and tip break off, and the crust of its body bursts off in
-    pieces; all fly up on ballistic arcs, tumbling, and land lying flat on bare ground, touching it (the user: "make
-    sure those chunks don't float"); its skull drops onto the ground. The last pose stays."""
-    from scipy.spatial import cKDTree
+    half moon break off its head and each wing's finger and tip break off; then the rest of it comes apart, one piece
+    after another (the user, October 30): each wing's arm (with its forearm and hand), its neck with its skull, each
+    leg and its tail, and the crust of its body bursts off in pieces; all fly up on ballistic arcs, tumbling, and land
+    lying flat on bare ground, touching it (the user: "make sure those chunks don't float"), clear of each other. Only
+    its torso stays where it lay. The last pose stays."""
+    import copy
     m = rig.m
     crash, brk, toss = T(CRASH), T(BREAK_AT), T(WING_TOSS_FLIGHT)
     L = max(brk + T(CHUNK_AFTER) + T(CHUNK_STAGGER) * len(E.CHUNKS) + T(CHUNK_FLIGHT), brk + toss,
-            brk + T(0.03) * len(HEAD_PIECES) + T(HEAD_TOSS[1])) + T(0.8)
+            brk + T(0.03) * len(HEAD_PIECES) + T(HEAD_TOSS[1]),
+            brk + T(max(b[3] for b in BODY_TOSS) + 0.03) + T(BODY_TOSS_FLIGHT)) + T(0.8)
     still = Pose()
     fall_pose(rig, still, L)
+    close_eyes(still, 1.0)                                   # (shut by the burst: its eyelids go with its skull)
     mats0 = m.pose_matrices(still.as_geo())                  # (as it lies when it bursts)
-    drop = skull_drop(rig, still)
-    still.rot("neck", drop, 0.0, 0.0)
-    mats = m.pose_matrices(still.as_geo())                   # (as it lies at the end)
-    centre = (mats0["body"] @ np.append(geo.gecko(m["body"].pivot), 1.0))[:3]
-    tosses = []                                              # (its Toss, its parent: a bone's name or a Toss)
+
+    def at_rest(bone):
+        return (mats0[bone] @ np.append(geo.gecko(m[bone].pivot), 1.0))[:3]
+
+    def level(v):
+        v = np.array([v[0], 0.0, v[2]])
+        return v / max(1e-9, float(np.linalg.norm(v)))
+
+    centre = at_rest("body")
+    apart = ({f"{b}_{side}" for b in ("finger", "tip") for side, _s in SIDES} | {name for name, _t in HEAD_PIECES}
+             | {f"{kind}_{side}" if kind in ("arm", "leg") else kind for kind, *_r in BODY_TOSS for side, _s in SIDES})
+    tosses = []                                              # (its Toss, its parent bone's name)
     for side, sign in SIDES:
-        for b, parent in (("finger", f"hand_{side}"), ("tip", None)):
+        for b in ("finger", "tip"):
             bone = f"{b}_{side}"
             c0 = piece_points(m, mats0, [bone]).mean(axis=0)
-            away = np.array([c0[0] - centre[0], 0.0, c0[2] - centre[2]])
-            away /= np.linalg.norm(away)
             out, turn = WING_TOSS[b]
-            tosses.append((Toss(m, bone, mats0[bone], mats0, c0 + away * out * SCL / 16.0, sign * turn, brk, toss),
-                           parent or tosses[-1][0]))
-    gone = {t.name for t, _p in tosses} | {name for name, _t in HEAD_PIECES}
-    keep = (lambda name: name not in gone and not name.startswith("chunk_") and m[name].cubes)
-    foot = [piece_points(m, mats, [b.name])[:, [0, 2]] for b in m.bones if keep(b.name)]
-    foot += [(piece_points(m, mats0, [t.name]) - t.c0) @ t.turn(1.0).T[:, [0, 2]] + t.c1[[0, 2]] for t, _p in tosses]
-    near = ("wing_l", "wing_r", "arm_l", "arm_r", "membrane_l", "membrane_r")
-    solid = cKDTree(piece_points(m, mats, [b.name for b in m.bones if keep(b.name) and clip_group(b.name) in near]))
+            ts = Toss(m, bone, mats0[bone], mats0, c0 + level(c0 - centre) * out * SCL / 16.0, sign * turn, brk, toss,
+                      ride=carried(m, bone, apart), settle=True)
+            if not clear_flight(ts):
+                print(f"  {ID}: its {bone} can't fly clear of the ground")
+            tosses.append((ts, m[bone].parent.name))
+    moving = apart | {b for name in apart for b in carried(m, name, apart)}
+    still_pts = piece_points(m, mats0, [b.name for b in m.bones if b.cubes and b.name not in moving
+                                        and not b.name.startswith("chunk_")])
+    for kind, out, turn, after in BODY_TOSS:
+        for n, (side, sign) in enumerate(SIDES if kind in ("arm", "leg") else (("", 1.0),)):
+            bone = f"{kind}_{side}" if side else kind
+            bend = None
+            if kind == "arm":                               # (its forearm and hand straighten out from its arm)
+                flat = copy.deepcopy(still)
+                lay_wing(rig, flat, side, 0.0)
+                bend = (still, {b: flat[b][0] for b in (f"fore_{side}", f"hand_{side}")})
+            inner = carried(m, bone, apart)
+            ts = Toss(m, bone, mats0[bone], mats0, (0.0, 0.0, 0.0), sign * turn, brk + T(after + 0.03 * n),
+                      T(BODY_TOSS_FLIGHT), arc=BODY_TOSS_ARC, carry=[b for b in inner if not b.startswith("mem_")],
+                      ride=[b for b in inner if b.startswith("mem_")], bend=bend, settle=True)
+            # (a wing's arm, a plate 8 blocks across, only turns over as it settles: rolling, it swept everything near)
+            if not clear_flight(ts, (0.0, 1.0, -1.0) if kind == "arm" else None):
+                print(f"  {ID}: its {bone} can't fly clear of the ground")
+            away = level(ts.c0 - centre)
+            if kind == "leg":
+                away = level(away + LEG_SPREAD * level(at_rest(f"arm_{side}") - centre))
+            if not place(ts, ts.c0 + away * out * SCL / 16.0, [o for o, _p in tosses], still_pts):
+                print(f"  {ID}: no clear landing for its {bone} (it lands where it's thrown)")
+            tosses.append((ts, m[bone].parent.name))
     for i, (name, turn) in enumerate(HEAD_PIECES):
-        t = Toss(m, name, mats0[name], mats0, mats0[name][:3, 3], turn, brk + T(0.03) * i, T(HEAD_TOSS[1]),
-                 arc=HEAD_TOSS[0])
-        foot.append(land_spot(m, t, mats0, cKDTree(np.concatenate(foot)), solid))
-        tosses.append((t, "head"))
+        ts = Toss(m, name, mats0[name], mats0, (0.0, 0.0, 0.0), turn, brk + T(0.03) * i, T(HEAD_TOSS[1]),
+                  arc=HEAD_TOSS[0], ride=carried(m, name, apart))
+        if not place(ts, ts.c0, [o for o, _p in tosses], still_pts):
+            print(f"  {ID}: no clear landing for its {name} (it lands where it was)")
+        tosses.append((ts, m[name].parent.name))
+    # each piece's parent as it flies: a thrown piece, or a bone (its body, or one a thrown piece carries, like the
+    # hand on its arm or the skull on its neck: where it is once the pieces it hangs from have been set)
+    thrown = {ts.name: ts for ts, _p in tosses}
+    tosses = [(ts, thrown.get(p) or p) for ts, p in tosses]
+
+    def depth(bone):
+        n, b = 0, m[bone].parent
+        while b is not None:
+            n += b.name in thrown
+            b = b.parent
+        return n
+
+    levels = [[(ts, p) for ts, p in tosses if depth(ts.name) == d] for d in sorted({depth(ts.name) for ts, _p in tosses})]
 
     def throw(p, t):
-        now = m.pose_matrices(p.as_geo())
-        for ts, parent in tosses:
-            ts.apply(p, t, parent.world(t) if isinstance(parent, Toss) else now[parent])
+        for level in levels:
+            now = m.pose_matrices(p.as_geo())
+            for ts, parent in level:
+                ts.apply(p, t, now[parent] if isinstance(parent, str) else parent.world(t))
 
     throw(still, L)
     for ts, _p in tosses:
         ts.prev = None
     mats = m.pose_matrices(still.as_geo())
-    flights = [Flight(m, n, mats["body"], land, yaw, brk + T(CHUNK_AFTER) + T(CHUNK_STAGGER) * n, T(CHUNK_FLIGHT),
-                      grow=BREAK_GROW) for n, (land, yaw) in enumerate(break_spots(m, mats["body"], mats, BREAK_GROW))]
+    starts = [brk + T(CHUNK_AFTER) + T(CHUNK_STAGGER) * n for n in range(len(E.CHUNKS))]
+    spots = break_spots(m, mats["body"], mats, BREAK_GROW, movers=[ts for ts, _p in tosses], starts=starts)
+    flights = [Flight(m, n, mats["body"], land, yaw, starts[n], T(CHUNK_FLIGHT), grow=BREAK_GROW)
+               for n, (land, yaw) in enumerate(spots)]
 
     def frame(t):
         p = Pose()
@@ -990,7 +1188,6 @@ def death(rig):
         close_eyes(p, shut_eyes(t, crash))
         shudder = k(t, [(0.0, 0.0), (crash + T(1.0), 0.0), (brk - T(0.1), 1.0, "in"), (brk, 0.0), (L, 0.0)])
         p.rot("body", 0.0, 0.0, 1.6 * shudder * wave(t, T(0.09)))
-        p.rot("neck", drop * k(t, [(0.0, 0.0), (brk, 0.0), (brk + T(HEAD_DROP), 1.0, "in"), (L, 1.0)]), 0.0, 0.0)
         throw(p, t)
         for f in flights:
             f.apply(p, t)
@@ -998,17 +1195,19 @@ def death(rig):
 
     a = wingfold.record(rig, "death", L, frame, loop=False)
     a.meta.update({"cry": T(0.2), "crash": crash, "break": brk})
-    rest_check(m, a, [ts.name for ts, _p in tosses] + [f"chunk_{n}" for n in range(len(E.CHUNKS))])
+    rest_check(m, a, [ts.bones for ts, _p in tosses] + [f"chunk_{n}" for n in range(len(E.CHUNKS))])
     return a
 
 
 def rest_check(m, a, bones):
-    """Warns (in the build's output) of any broken piece resting off the ground, or under it, at the end."""
+    """Warns (in the build's output) of any broken piece resting off the ground, or under it, at the end (a piece: a
+    bone, or the bones that make it up together, like a leg's thigh, shin and foot)."""
     mats = m.pose_matrices(a.sample(a.length))
-    for bone in bones:
-        h = lowest_of(m, mats, [bone])
+    for piece in bones:
+        piece = [piece] if isinstance(piece, str) else list(piece)
+        h = lowest_of(m, mats, piece)
         if not -0.05 <= h <= REST_MAX:
-            print(f"  {ID}: FLOAT {bone} rests {h:.2f} units {'over' if h > 0 else 'under'} the ground "
+            print(f"  {ID}: FLOAT {piece[0]} rests {h:.2f} units {'over' if h > 0 else 'under'} the ground "
                   f"(at most {REST_MAX})")
 
 

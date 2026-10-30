@@ -80,7 +80,7 @@ public final class RageTuning
     /** The small angry growl when the wand rages a mob (a ravager's roar, quieter and pitched up). */
     public static final float RAGE_SOUND_VOLUME = 0.6F;
     public static final float RAGE_SOUND_PITCH = 1.6F;
-    /** When the wand can't rage a mob (a frozen showcase mob, the trader...): a dull click and a puff of smoke. */
+    /** When the wand can't rage a mob (a frozen showcase mob, a survivor at the hub...): a dull click and a puff of smoke. */
     public static final float FIZZLE_VOLUME = 0.6F;
     public static final float FIZZLE_PITCH = 1.4F;
     public static final int FIZZLE_SMOKE = 6;
@@ -90,6 +90,17 @@ public final class RageTuning
     /** Right-clicking with the wand moves it to the next team: a small click (a stone button, pitched up). */
     public static final float TEAM_CLICK_VOLUME = 0.5F;
     public static final float TEAM_CLICK_PITCH = 1.6F;
+
+    // ---------------------------------------------------------------- seeing the teams with the wand
+
+    /** Holding the wand (either hand), you see the teams more easily (the user, October 30: "particles come out from
+     *  mobs when you hold the Rage Wand, to see what team they are on more easily"): every this many ticks, every raged
+     *  mob and every player on a team within this many blocks gives off this many specks of its team's colour all over
+     *  its body, this big; only the player holding the wand sees them. */
+    public static final int WAND_SHOW_EVERY = 4;
+    public static final double WAND_SHOW_RANGE = 64.0D;
+    public static final int WAND_SHOW_PARTICLES = 5;
+    public static final float WAND_SHOW_SIZE = 1.8F;
 
     private RageTuning() {}
 }

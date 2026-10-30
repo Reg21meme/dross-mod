@@ -38,6 +38,8 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 
 import java.util.HashMap;
 import java.util.List;
+import com.mojang.logging.LogUtils;
+import org.slf4j.Logger;
 import java.util.Map;
 
 /**
@@ -55,6 +57,7 @@ import java.util.Map;
 @PrefixGameTestTemplate(false)
 public final class HuntsmanFightGameTest
 {
+    private static final Logger LOGGER = LogUtils.getLogger();
     private static final String ARENA = ColossusGameTest.ARENA;
     private static final BlockPos MIDDLE = ColossusGameTest.MIDDLE;
     private static final int WAIT = ColossusGameTest.ARENA_WAIT_TICKS;
@@ -165,10 +168,20 @@ public final class HuntsmanFightGameTest
         helper.runAfterDelay(40, () ->
         {
             boolean calm = h.stage() == HuntStage.CALM && m.stage() == HuntStage.CALM && h.getVehicle() == m;
+            // (the tests run side by side in one world: a survival player or a monster of a test next door within his
+            // sight starts the hunt as it should, and then this one can't tell; it failed so three times, October 2026)
+            double r = HuntsmanTuning.SPOT_RANGE + 4.0D;
+            List<LivingEntity> foes = level.getEntitiesOfClass(LivingEntity.class, h.getBoundingBox().inflate(r),
+                    e -> HuntFight.isFoe(h, e) && e.distanceToSqr(h) <= r * r);
             clear(h, m);
-            if (!calm)
+            if (!calm && foes.isEmpty())
             {
                 throw new GameTestAssertException("left alone they should stay calm, him in the saddle");
+            }
+            if (!calm)
+            {
+                LOGGER.info("[huntsman test] a foe of another test came within his sight ({}): the egg's calm can't be "
+                        + "checked this time", foes.get(0));
             }
             helper.succeed();
         });

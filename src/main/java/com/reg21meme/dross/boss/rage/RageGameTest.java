@@ -545,6 +545,78 @@ public final class RageGameTest
                 .thenSucceed();
     }
 
+    /**
+     * The user, October 30: "assign @ a player name or @s ... the player's colour so they can fight alongside or against
+     * mobs". {@code /dross rage team <player> red} puts a survival player on Red: a raged Blue zombie near goes for him, a
+     * raged Red zombie never does, and neither he nor his teammate can hurt the other; {@code /dross rage clear} takes
+     * him off. The Dross trader can be raged now ("I want to be able to affect the trader with the Rage Wand").
+     */
+    @GameTest(template = ARENA, batch = "dross_rage_player_teams", timeoutTicks = ARENA_WAIT_TICKS + FIGHT_WAIT_TICKS + 100)
+    public static void playersFightOnTeams(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::playersFightOnTeams))
+        {
+            return;
+        }
+        ServerPlayer player = joinPlayer(helper, "rage-team-player", MIDDLE.offset(-6, 0, 0), 0.0F);
+        player.setGameMode(GameType.SURVIVAL);
+        net.minecraft.commands.CommandSourceStack console = helper.getLevel().getServer().createCommandSourceStack()
+                .withPermission(4).withSuppressedOutput();
+        helper.getLevel().getServer().getCommands().performPrefixedCommand(console, "dross rage team rage-team-player red");
+        if (Rage.teamOf(player) != RageTeam.RED || !Rage.isTeamPlayer(player))
+        {
+            leaveAll(List.of(player));
+            helper.fail("/dross rage team <player> red should put the player on Red, but he's on " + Rage.teamOf(player));
+            return;
+        }
+        Zombie enemy = tough(zombie(helper, MIDDLE.offset(-3, 0, 0)));
+        Zombie mate = tough(zombie(helper, MIDDLE.offset(-6, 0, 6)));
+        Rage.enrage(enemy, RageTeam.BLUE);
+        Rage.enrage(mate, RageTeam.RED);
+        // no friendly fire, either way
+        float health = player.getHealth();
+        mate.doHurtTarget(player);
+        float mateHealth = mate.getHealth();
+        player.attack(mate);
+        if (player.getHealth() < health - HEALTH_TOLERANCE || mate.getHealth() < mateHealth - HEALTH_TOLERANCE)
+        {
+            leaveAll(List.of(player));
+            helper.fail("a player and a raged mob on one team hurt each other (player " + health + " -> " + player.getHealth()
+                    + ", zombie " + mateHealth + " -> " + mate.getHealth() + ")");
+            return;
+        }
+        boolean[] enemyWent = {false};
+        List<Entity> spawned = List.of(enemy, mate);
+        helper.startSequence()
+                .thenExecuteFor(FIGHT_WAIT_TICKS, () -> {
+                    if (mate.getTarget() == player)
+                    {
+                        helper.fail("the raged Red zombie went for the player on Red");
+                    }
+                    enemyWent[0] |= enemy.getTarget() == player;
+                    player.setHealth(player.getMaxHealth());
+                })
+                .thenExecute(() -> {
+                    helper.getLevel().getServer().getCommands().performPrefixedCommand(console, "dross rage clear rage-team-player");
+                    boolean cleared = Rage.teamOf(player) == null;
+                    leaveAll(List.of(player));
+                    discard(spawned);
+                    if (!enemyWent[0])
+                    {
+                        helper.fail("the raged Blue zombie never went for the player on Red");
+                    }
+                    if (!cleared)
+                    {
+                        helper.fail("/dross rage clear should take the player off his team");
+                    }
+                    if (!Rage.canBeRaged(ModEntities.TRADER.get().create(helper.getLevel())))
+                    {
+                        helper.fail("the Dross trader should be one the Rage Wand can rage");
+                    }
+                })
+                .thenSucceed();
+    }
+
     // ---------------------------------------------------------------------------------------------
     // The wand, and no cure
     // ---------------------------------------------------------------------------------------------

@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -49,6 +50,8 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -470,10 +473,51 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         this.calculateEntityAnimation(true);
     }
 
-    /** The ground's height (the feet of something standing on it) at x, z. */
+    /** The ground's height (the feet of something standing on it) at x, z, for it at its own height ({@link #groundUnder}). */
     protected double groundAt(double x, double z)
     {
-        return this.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(x), Mth.floor(z));
+        return groundUnder(this.level(), x, this.getY(), z);
+    }
+
+    /**
+     * The ground's height (the feet of something standing on it) at x, z for something at height {@code y}: the top of
+     * the column (Minecraft's height map: what blocks movement, leaves aside), unless there's a roof over {@code y} (the
+     * bedrock test arena's: the user, October 30, "a roof tall enough to fit the Emberdactyl"; the height map is the
+     * roof's top there, and it flew up through it): then the floor under {@code y}, or, inside something solid there (a
+     * wall it flies through, a hill it dips into), the top of that.
+     */
+    public static double groundUnder(Level level, double x, double y, double z)
+    {
+        int bx = Mth.floor(x);
+        int bz = Mth.floor(z);
+        int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, bx, bz);
+        int from = Mth.floor(y) + 2;
+        if (from >= top)
+        {
+            return top;                        // (open sky over it: almost always)
+        }
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(bx, from, bz);
+        if (blocks(level, pos))
+        {
+            while (pos.getY() < top && blocks(level, pos))
+            {
+                pos.move(Direction.UP);
+            }
+            return pos.getY();
+        }
+        int bottom = level.getMinBuildHeight();
+        while (pos.getY() > bottom && !blocks(level, pos.below()))
+        {
+            pos.move(Direction.DOWN);
+        }
+        return pos.getY();
+    }
+
+    /** What Minecraft's MOTION_BLOCKING_NO_LEAVES height map counts: a block that stops movement, or a fluid, not leaves. */
+    private static boolean blocks(Level level, BlockPos pos)
+    {
+        BlockState state = level.getBlockState(pos);
+        return (state.blocksMotion() || !state.getFluidState().isEmpty()) && !(state.getBlock() instanceof LeavesBlock);
     }
 
     private double speedScale()
@@ -2024,10 +2068,22 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     }
 
     /** The flattest ground within {@code search} blocks of {@code from} for it to lie on (its feet's spot: the highest
-     *  ground under it, so nothing of it sinks), a little nearer counting for a little more. */
+     *  ground under it, so nothing of it sinks), a little nearer counting for a little more; never higher than
+     *  {@link EmberTuning#DEATH_MAX_RISE} over the top of the ground under its body now (it comes down to die, never
+     *  up), and for the
+     *  adult, whose pieces fly out as it breaks apart, the ground they land on counting too (how far under the body it
+     *  drops away, out to {@link EmberTuning#DEATH_BREAK_REACH}). */
     private Vec3 restingSpot(Vec3 from, double search)
     {
         double r = this.kind.lieRadius();
+        double ceiling = -Double.MAX_VALUE;     // (the top of the ground under its body where it died: always allowed)
+        for (int k = 0; k < 19; k++)
+        {
+            double rr = k == 0 ? 0.0D : k <= 6 ? r * 0.5D : r;
+            double a = Math.PI * 2.0D * k / (k <= 6 ? 6.0D : 12.0D);
+            ceiling = Math.max(ceiling, this.groundAt(from.x + Math.cos(a) * rr, from.z + Math.sin(a) * rr));
+        }
+        ceiling += DEATH_MAX_RISE;
         Vec3 best = null;
         double bestScore = Double.MAX_VALUE;
         int reach = (int) Math.ceil(search / 2.0D);
@@ -2052,8 +2108,23 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                     lo = Math.min(lo, h);
                     hi = Math.max(hi, h);
                 }
+                if (hi > ceiling)
+                {
+                    continue;
+                }
+                double drop = 0.0D;
+                if (!this.dashes())
+                {
+                    for (int k = 0; k < 16; k++)
+                    {
+                        double a = Math.PI * 2.0D * k / 16.0D;
+                        drop = Math.max(drop, hi - this.groundAt(x + Math.cos(a) * DEATH_BREAK_REACH,
+                                z + Math.sin(a) * DEATH_BREAK_REACH));
+                    }
+                }
                 BlockPos top = BlockPos.containing(x, this.groundAt(x, z) - 1.0D, z);
-                double score = hi - lo + d * 0.05D + (this.level().getFluidState(top).isEmpty() ? 0.0D : DEATH_FLUID_COST);
+                double score = hi - lo + d * 0.05D + drop * DEATH_BREAK_DROP_COST
+                        + (this.level().getFluidState(top).isEmpty() ? 0.0D : DEATH_FLUID_COST);
                 if (score < bestScore)
                 {
                     bestScore = score;

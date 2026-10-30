@@ -86,7 +86,7 @@ public final class EmberCommands
         Vec3 at = source.getPosition().add(look.scale(distance));
         ServerLevel level = source.getLevel();
         level.getChunkAt(BlockPos.containing(at));
-        double y = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(at.x), Mth.floor(at.z));
+        double y = EmberBoss.groundUnder(level, at.x, source.getPosition().y, at.z);   // (the floor, under a roof too)
         return new Vec3(Mth.floor(at.x) + 0.5D, y, Mth.floor(at.z) + 0.5D);
     }
 
