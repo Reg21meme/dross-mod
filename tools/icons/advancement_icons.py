@@ -316,9 +316,12 @@ DEAD = {"X": (210, 214, 222)}
 X_EYES = {(5, 10): "k", (6, 10): "k", (9, 10): "k", (10, 10): "k",
           (4, 10): "X", (6, 10): "X", (5, 11): "X", (4, 12): "X", (6, 12): "X",
           (9, 10): "X", (11, 10): "X", (10, 11): "X", (9, 12): "X", (11, 12): "X"}
-# the mounted hood's (H3: its face narrower and higher on the plaque, its dark eyes at 5,10 and 10,10: each X over one)
-MOUNTED_X_EYES = {(4, 9): "X", (6, 9): "X", (5, 10): "X", (4, 11): "X", (6, 11): "X",
-                  (9, 9): "X", (11, 9): "X", (10, 10): "X", (9, 11): "X", (11, 11): "X"}
+# the mounted hood's (H3: its face narrower and higher on the plaque, its eyes at 5,10 and 10,10 gone dark). Its X's
+# are half the size of H4's (the user, October 30: "make the X smaller for the Huntsman's dead eyes"): a 16-pixel icon
+# has no smaller X than 3 x 3 pixels, so H3 is drawn at 32 x 32 (Minecraft shows it at the same size, with twice the
+# detail) and each X is 3 x 3 of those finer pixels, over its eye (FINE, in 32 x 32 pixels)
+MOUNTED_DEAD_EYES = {(5, 10): "k", (10, 10): "k"}
+MOUNTED_FINE_X = {(x0 + dx, 20 + dy): "X" for x0 in (9, 20) for dx, dy in ((0, 0), (2, 0), (1, 1), (0, 2), (2, 2))}
 # his hood and antlers alone (H1 without the arrow)
 BARE_HOOD = stack(ANTLERS, [
     "................",
@@ -345,7 +348,7 @@ HUNTED = [
      "hung with icicles, and his ice spear snapped in two under it", {**BONE, **SHAFT, **ICE}, SNAPPED_SPEAR),
     ("H3", "The hunter's trophy", "his own hood and antlers mounted on a wooden plaque like one of his trophies, his "
      "eyes crossed out: dead (the user's pick, October 30: \"use H3 ... just cross his eyes out\")",
-     {**HOOD, **ANTLER, **WOOD, **DEAD}, put(MOUNTED_HOOD, MOUNTED_X_EYES)),
+     {**HOOD, **ANTLER, **WOOD, **DEAD}, put(MOUNTED_HOOD, MOUNTED_DEAD_EYES)),
     ("H4", "Pierced and crossed out", "H1, the arrow clean through his wolf hood, and his glowing blue eyes crossed "
      "out: dead", {**HUNT, **DEAD}, put(PIERCED_HOOD, X_EYES)),
     ("H5", "Crossed out", "his wolf hood under his antlers with no arrow, his eyes crossed out: dead",
@@ -598,6 +601,8 @@ DOWN_THE_DRAIN = [
     ("D3", "The broken staff", "his staff snapped in two over a sewer grate, splinters at the break, its green orb still "
      "glowing in its claw", RAT, SNAPPED_STAFF),
 ]
+# Fine pixels drawn over an option at 32 x 32 (its 16 x 16 rows doubled first), by its label: {(x, y): letter}
+FINE = {"H3": MOUNTED_FINE_X}
 DESIGNS = {"wings_clipped": WINGS, "hunter_hunted": HUNTED, "set_in_stone": SET_IN_STONE,
            "down_the_drain": DOWN_THE_DRAIN}
 
@@ -614,13 +619,20 @@ def check(name, design):
 
 
 def draw(design):
-    _label, _name, _note, pal, rows = design
+    """The icon: 16 x 16, or 32 x 32 for an option with fine pixels (FINE)."""
+    label, _name, _note, pal, rows = design
     im = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
     px = im.load()
     for y, row in enumerate(rows):
         for x, ch in enumerate(row):
             if ch != ".":
                 px[x, y] = tuple(pal[ch]) + (255,)
+    if label not in FINE:
+        return im
+    im = im.resize((32, 32), Image.NEAREST)
+    px = im.load()
+    for (x, y), ch in FINE[label].items():
+        px[x, y] = tuple(pal[ch]) + (255,)
     return im
 
 
@@ -632,8 +644,9 @@ def slot(im, scale):
     d.line([(0, 0), (0, 17)], fill=(55, 55, 55, 255))
     d.line([(0, 17), (17, 17)], fill=(255, 255, 255, 255))
     d.line([(17, 0), (17, 17)], fill=(255, 255, 255, 255))
-    s.alpha_composite(im, (1, 1))
-    return s.resize((18 * scale, 18 * scale), Image.NEAREST)
+    s = s.resize((18 * scale, 18 * scale), Image.NEAREST)
+    s.alpha_composite(im.resize((16 * scale, 16 * scale), Image.NEAREST), (scale, scale))
+    return s
 
 
 def frames():
@@ -659,8 +672,9 @@ def in_frame(im, frame, scale):
         pass
     if frame is not None:
         back.alpha_composite(frame, (4, 4))
-    back.alpha_composite(im, (9, 9))
-    return back.resize((34 * scale, 34 * scale), Image.NEAREST)
+    back = back.resize((34 * scale, 34 * scale), Image.NEAREST)
+    back.alpha_composite(im.resize((16 * scale, 16 * scale), Image.NEAREST), (9 * scale, 9 * scale))
+    return back
 
 
 def font(size):

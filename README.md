@@ -653,14 +653,14 @@ mostly in the air, circling you, and never strays more than 100 blocks from its 
 - **Fire tornadoes**: its wings whip up two (three at half health) that chase you, pull you in, burn you and throw you
   up into the sky.
 - **Strafing run**: low over you in a line, breathing fire (4 hearts and fire), leaving fire on the ground.
-- **Talon grab**: you hang from its talons (look round as you like; sneak to struggle free) as it carries you off,
-  always through open air, and drops you: never from higher than a fall that takes half your health.
+- **Talon grab**: you hang from its talons (look round as you like; sneak to struggle free) as it carries you up,
+  always through open air, and drops you close to where it caught you: never from higher than a fall that takes half your health.
 - **Wing buffet** (it swoops down to you first) and **screech**: they throw you about 20 blocks.
 
 At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
 apart, its egg bursts open and its **young reborn** (175 health) bursts out and comes straight for you: the same moves,
-just as hard, but 2.5 times as fast with almost no rest, a dash straight through you, and fire dropping off it wherever
-it flies. Its egg lies broken apart in the nest, a bowl of lava with its pieces round it. Dying, either one glides down to
+just as hard, but 2.5 times as fast with almost no rest, a dash straight through you, and a solid trail of fire about 5
+blocks wide on the ground wherever it flies. Its egg lies broken apart in the nest, a bowl of lava with its pieces round it. Dying, either one glides down to
 flat ground and lies there. Beat the young (it hardens into obsidian) and everyone near gets the challenge advancement
 **Wings Clipped** and a trophy (five poses, right-click to change). It never comes back.
 

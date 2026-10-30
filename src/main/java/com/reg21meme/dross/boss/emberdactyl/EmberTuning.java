@@ -137,8 +137,10 @@ public final class EmberTuning
     public static final double STRAFE_SPEED = 0.95D;
     public static final int STRAFE_COOLDOWN = 200;
 
-    /** Talon grab: 3 hearts, then it carries you up and drops you over the ground under the drop, anywhere (its crater
-     *  included). Carried, you hang from its talons as its passenger (your game moves you with it, smoothly, and you
+    /** Talon grab: 3 hearts, then it carries you up and drops you near where it caught you (within
+     *  {@link #GRAB_DRIFT}; the user, October 30: "why does he bring me up to the volcano, just drop me when we are
+     *  fighting on the ground, no need to do that": until then one with a nest always took you over its crater, and
+     *  one without 20 blocks off). Carried, you hang from its talons as its passenger (your game moves you with it, smoothly, and you
      *  look round as you like: the user's second fight, October 29, "I want to be able to move around as he carries me
      *  ... it also looks very stuttery"; sneak and you struggle free and fall), always in open air: it first climbs
      *  until you're {@link #GRAB_CLEARANCE} blocks over the highest ground on its way (the user's first fight: it had
@@ -157,8 +159,8 @@ public final class EmberTuning
     public static final int GRAB_FALL_GUARD_TICKS = 600;
     public static final double GRAB_CLEARANCE = 4.0D;
     public static final int GRAB_CARRY_TICKS = 160;
-    /** Over its crater it drops you within this far of its nest. */
-    public static final double GRAB_CRATER_SPREAD = 8.0D;
+    /** It drops you at most this many blocks (along the ground) from where it caught you. */
+    public static final double GRAB_DRIFT = 6.0D;
     public static final int GRAB_COOLDOWN = 280;
 
     /** Beak snap (on the ground): this many pecks one after another (the user: "make sure it can do 5 beak pecks all at
@@ -271,12 +273,19 @@ public final class EmberTuning
     public static final int GLIDE_COOLDOWN = 200;
 
     /** The young drops fire onto the ground under it whenever it's in the air fighting (the user: "whenever he does his
-     *  glide animation he drops fire onto the ground, whenever he flies"): a patch every this many ticks, burning this
-     *  long, only where the ground is at most this far under it. */
-    public static final int YOUNG_FIRE_EVERY = 5;
-    public static final int YOUNG_FIRE_MIN = 50;
-    public static final int YOUNG_FIRE_MAX = 80;
+     *  glide animation he drops fire onto the ground, whenever he flies"; then, October 30, "much more aggressive ...
+     *  not just 1 fire every couple blocks"): a solid trail, a row of fire across its path every this many blocks it
+     *  flies, this many blocks either side of its middle (5 wide), and hovering in place a patch under it every this
+     *  many ticks; burning this long (ticks), only where the ground is at most this far under it. A jump of more than
+     *  this many blocks (a teleport) starts a new trail rather than filling the gap. (Until October 30 one patch every
+     *  5 ticks, 50-80 ticks long: at its speed the patches came several blocks apart.) */
+    public static final double YOUNG_TRAIL_STEP = 1.0D;
+    public static final int YOUNG_TRAIL_HALF_WIDTH = 2;
+    public static final int YOUNG_FIRE_EVERY = 3;
+    public static final int YOUNG_FIRE_MIN = 70;
+    public static final int YOUNG_FIRE_MAX = 110;
     public static final double YOUNG_FIRE_REACH = 40.0D;
+    public static final double YOUNG_TRAIL_JUMP = 12.0D;
 
     // ---- Its death and the egg ----
 

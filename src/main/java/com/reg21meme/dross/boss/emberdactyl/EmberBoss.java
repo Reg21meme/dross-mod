@@ -146,6 +146,9 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     /** The height (feet) it lets go of whoever it carries at, over the ground under the drop. */
     private double dropLevel;
     private final Set<UUID> hitThisMove = new HashSet<>();
+    /** The young's fire trail: the spot (along the ground) it last laid fire at. */
+    @Nullable
+    private Vec3 trailFrom;
     private boolean grounded;
     @Nullable
     private ServerBossEvent bar;
@@ -609,9 +612,13 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             {
             }
         }
-        if (this.phase == Phase.FIGHT && this.dashes() && !this.grounded && this.tickCount % YOUNG_FIRE_EVERY == 0)
+        if (this.phase == Phase.FIGHT && this.dashes() && !this.grounded)
         {
-            this.dropFire(YOUNG_FIRE_MIN, YOUNG_FIRE_MAX);   // the young: fire off it wherever it flies
+            this.fireTrail();   // the young: a band of fire under it wherever it flies
+        }
+        else
+        {
+            this.trailFrom = null;
         }
         this.carry();
         // never in the ground
@@ -1247,6 +1254,69 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
     }
 
+    /** The young's fire trail (the user, October 30: "much more aggressive ... not just 1 fire every couple blocks,
+     *  always fire when he glides"): every block of ground it passes over gets a band of fire across its path,
+     *  {@code YOUNG_TRAIL_HALF_WIDTH} blocks either side, laid along the line from where it last laid fire; hovering
+     *  in place, a patch under it every {@code YOUNG_FIRE_EVERY} ticks; fire falling off it all the while. Only where
+     *  the ground is near enough under it. */
+    private void fireTrail()
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return;
+        }
+        Vec3 here = new Vec3(this.getX(), 0.0D, this.getZ());
+        if (this.trailFrom == null || this.trailFrom.distanceTo(here) > YOUNG_TRAIL_JUMP)
+        {
+            this.trailFrom = here;
+            this.fireBand(level, here, new Vec3(Mth.cos(this.getYRot() * Mth.DEG_TO_RAD), 0.0D,
+                    Mth.sin(this.getYRot() * Mth.DEG_TO_RAD)));
+        }
+        double gone = this.trailFrom.distanceTo(here);
+        if (gone >= YOUNG_TRAIL_STEP)
+        {
+            Vec3 along = here.subtract(this.trailFrom).normalize();
+            Vec3 across = new Vec3(-along.z, 0.0D, along.x);
+            int steps = (int) (gone / YOUNG_TRAIL_STEP);
+            for (int i = 1; i <= steps; i++)
+            {
+                this.fireBand(level, this.trailFrom.add(along.scale(i * YOUNG_TRAIL_STEP)), across);
+            }
+            this.trailFrom = this.trailFrom.add(along.scale(steps * YOUNG_TRAIL_STEP));
+        }
+        else if (this.tickCount % YOUNG_FIRE_EVERY == 0)
+        {
+            this.dropFire(YOUNG_FIRE_MIN, YOUNG_FIRE_MAX);
+        }
+        double ground = this.groundAt(this.getX(), this.getZ());
+        if (this.getY() - ground <= YOUNG_FIRE_REACH)
+        {
+            level.sendParticles(ParticleTypes.FLAME, this.getX(), this.getY() + 0.5D, this.getZ(), 4, 0.8D,
+                    (this.getY() - ground) * 0.3D, 0.8D, 0.02D);
+            if (this.tickCount % 2 == 0)
+            {
+                level.sendParticles(ParticleTypes.FALLING_LAVA, this.getX(), this.getY() + 0.5D, this.getZ(), 2, 0.8D,
+                        0.3D, 0.8D, 0.0D);
+            }
+        }
+    }
+
+    /** One row of the young's trail: fire on the ground at {@code at} and {@code YOUNG_TRAIL_HALF_WIDTH} blocks either
+     *  side of it along {@code across}, where the ground is near enough under it. */
+    private void fireBand(ServerLevel level, Vec3 at, Vec3 across)
+    {
+        for (int k = -YOUNG_TRAIL_HALF_WIDTH; k <= YOUNG_TRAIL_HALF_WIDTH; k++)
+        {
+            double x = at.x + across.x * k;
+            double z = at.z + across.z * k;
+            double ground = this.groundAt(x, z);
+            if (this.getY() - ground <= YOUNG_FIRE_REACH)
+            {
+                LavaPools.placeFire(level, BlockPos.containing(x, ground, z), true, YOUNG_FIRE_MIN, YOUNG_FIRE_MAX);
+            }
+        }
+    }
+
     /** A patch of fire dropping off it onto the ground under it (a little to one side or the other), with falling
      *  embers; only where the ground is near enough under it. */
     private void dropFire(int min, int max)
@@ -1300,7 +1370,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     }
 
     /** Talon grab: a swoop at its target; caught, it hangs from its talons (its passenger), is carried up and away and
-     *  dropped over the ground, never from higher than a fall it lives through with half its health. */
+     *  dropped near where it was caught, never from higher than a fall it lives through with half its health. */
     private void grab()
     {
         int moment = this.at("grab", 0.395D);
@@ -1525,26 +1595,18 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         return this.level().noCollision(e, e.getBoundingBox().move(feet.subtract(e.position())).deflate(0.01D));
     }
 
-    /** Where it drops whoever it caught: over its crater (anywhere in its lava lake or on its nest's pillar), or a
-     *  random way off; the height their feet are carried at (returned) never lower than {@link EmberTuning#GRAB_CLEARANCE}
+    /** Where it drops whoever it caught: near where it caught them, up to {@link EmberTuning#GRAB_DRIFT} blocks off
+     *  (the user, October 30: "why does he bring me up to the volcano, just drop me when we are fighting on the
+     *  ground"; until then one with a nest always carried them off over its crater); the height their feet are carried at (returned) never lower than {@link EmberTuning#GRAB_CLEARANCE}
      *  over the highest ground on the way (its crater's rim...) or than they are now; and the height it lets go at
      *  ({@link #dropLevel}): 3 blocks plus {@link EmberTuning#GRAB_FALL_SHARE} of their health over the ground there (a
      *  fall they live through with that share of it), {@link EmberTuning#GRAB_DROP_MIN} to
      *  {@link EmberTuning#GRAB_CARRY_HEIGHT}. */
     private Vec3 dropFor(LivingEntity e)
     {
-        Vec3 away;
-        if (this.nest != null)
-        {
-            double a = this.random.nextDouble() * Math.PI * 2.0D;
-            double r = Math.sqrt(this.random.nextDouble()) * GRAB_CRATER_SPREAD;
-            away = this.nest.add(Math.cos(a) * r, 0.0D, Math.sin(a) * r);
-        }
-        else
-        {
-            float a = this.random.nextFloat() * Mth.TWO_PI;
-            away = this.leashed(e.position().add(Mth.cos(a) * 20.0D, 0.0D, Mth.sin(a) * 20.0D));
-        }
+        float a = this.random.nextFloat() * Mth.TWO_PI;
+        double r = this.random.nextDouble() * GRAB_DRIFT;
+        Vec3 away = this.leashed(e.position().add(Mth.cos(a) * r, 0.0D, Mth.sin(a) * r));
         double highest = e.getY();
         Vec3 from = e.position();
         double len = Math.hypot(away.x - from.x, away.z - from.z);
