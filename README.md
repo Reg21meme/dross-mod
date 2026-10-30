@@ -1,844 +1,846 @@
-# Dross
-
-A Minecraft Forge mod that adds **the Dross**: a dangerous dimension of endless night, with its own forests, wastes and mountains, reached through an electric blue rift portal. Getting there takes a quest. You find an old letter in the Nether, prove yourself to a strange villager, and have him forge the key that opens the rift. The mod also adds two necromancy enchantments that raise the undead to fight for you.
-
-The Dross is a **mid-to-late game** place. You reach it after surviving the Nether, the deep dark, the ocean and the End, not after beating every boss. There is one way in (the portal at the Fallen Cathedral) and one way out (the hub's portal).
-
-| | |
-|---|---|
-| Minecraft | 1.20.1 |
-| Forge | 47.4.10 |
-| Java | 17 |
-| Mod ID | `dross` |
-| Version | 0.1.0 |
-| Needs | [GeckoLib](https://www.curseforge.com/minecraft/mc-mods/geckolib) 4.8.4 or newer (for Forge 1.20.1) |
-
----
-
-## The story
-
-How a player moves through the mod, from a normal survival world to the Dross.
-
-1. **Normal survival.** Nothing from the mod is needed at first. Somewhere 3,000–10,000 blocks from spawn, the **Fallen Cathedral** already stands in ruins around an unlit blue portal frame, and the land around it is dying. An old villager, the **Dross Trader**, lives in a small stone chapel at the edge of a village near spawn.
-2. **The Weathered Letter.** Every Nether Fortress and Bastion Remnant chest holds a Weathered Letter. It's a 4-page letter from an unnamed friend:
-   - Blue portals from the Dross have been spilling into the world. "We" closed them, but the Dross is pressing to break through again.
-   - An old villager, the writer's friend, is looking for someone strong enough to fight back.
-   - It gives a rough location for him: a direction from where the world began, and coordinates rounded to 50 blocks.
-   - It tells the reader to say an old friend sent them about the rift.
-
-   Picking up the letter opens the **Dross** advancement tab.
-3. **Meeting the trader.** The first time you right-click him, he doubts you're strong enough and sends you for three tributes, one each from the Nether's fortresses, the deep dark's cities and the End. After that, each right-click reminds you what's still missing. His trading screen stays closed until the quest is done.
-4. **The three tributes** (any order). Right-click him while holding the full amount: **1 wither skeleton skull**, **3 echo shards** and **15 end stone**. If you hold too few, he tells you how many to bring. If you hold more, he takes exactly what he needs. Once all three are in, he gives you the **Dross Compass**, which points at the cathedral's portal. He says he knows how to forge a key but needs materials. *Advancement: Proven Worthy.*
-5. **The key materials** (any order, same rules): **1 trident**, **1 Heart of the Sea** and **8 amethyst shards**. He forges the **Rift Key**, tells you to be careful what you let out, and mentions he has books that can help in there. *Advancement: Keymaster.* His shop opens for you.
-6. **Opening the rift.** Follow the compass to the Fallen Cathedral and throw the Rift Key into the frame's opening. The key is used up and the portal lights, staying open for everyone, permanently.
-7. **The Dross.** Stepping through takes you to the **Shattered Spire**, the hub at Dross 0,0. The words "The Dross" fade in over four low piano notes. *Advancement: Enter the Dross*, the main achievement. On your first arrival you also get the **Dross Guide Book**. Two survivors, the Blind Oracle and the Ragged Seeker, keep watch at the spire.
-8. **Exploring.** Round the hub lies the Silverwood Forest; further out are the Cinder Wastes, Blightwood, Rimefall and the Gravecrags' peaks. Somewhere in the Cinder Wastes a volcano holds the **Cinder Colossus**. *Advancement: Set in Stone.*
-9. **Necromancy.** The trader sells the Necromancy and Deathforged enchanted books, and Deathforged books also drop in the Dross. Raising your first undead earns *Rise!*
-
-**Lost items:**
-- If you lose the compass, the trader gives you a new one for free.
-- If you lose the Rift Key, you bring the key materials again. Until you've entered the Dross, he reminds you that he can forge another.
-- The Rift Key is fireproof and never despawns.
-
----
-
-## The Dross (the dimension)
-
-- **Dimension ID:** `dross:dross`, shown in game as **"The Dross"**.
-- **Terrain:** real land, surface only (no caves, except Blightwood's sewers, below): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and snow-capped mountain peaks (about y 230-260) in the Gravecrags. It's Minecraft's own terrain generator, set up in data files (`data/dross/dimension/`, `dimension_type/`, `worldgen/`) written by `tools/terrain/worldgen.py`, where every tuning number lives.
-- **Five biomes**, regions about 600-670 blocks across:
-  - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds.
-  - **Cinder Wastes**: ash, basalt and magma, enclosed lava pools, basalt spires, charred trees, Emberweed and Cinder Vents. Home of the Cinder Colossus's volcano.
-  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog. No zombies, skeletons or endermen: the mobs here are rats (Plague Rats, and about 1 in 5 Plague Ravagers) and the odd witch (7 in 100). Underneath are **the sewers** (below).
-  - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds, and one **big frozen lake** in every Rimefall area. Its only mobs are its own animals: Rimehorn herds, moose and Pond Skaters (below).
-  - **The Gravecrags**: the mountains, Cragstone cliffs with glowing Storm Lichen and Crag Thistles, snow on the peaks. Never near the hub.
-  - (There was a sixth, the **Nether Scar**, until October 17, 2026; it was removed and its land went to the biomes round it. Its four blocks are kept as building blocks: see the blocks below.)
-- **Ores** under every biome, in Duskstone (the Dross's stone): coal, gold (drops nuggets), **Moonsilver** (Raw Moonsilver, smelted into Moonsilver Ingots) and **Stormite** (glowing Stormite Shards; needs an iron pickaxe). Moonsilver and Stormite are for gear that comes later.
-- **Sky and fog:** each biome has its own night fog, sky and water colours, particles and ambient sounds, with a blue glow over the night sky and no clouds.
-- **Old worlds:** not supported while the mod is unpublished (the old flat Dross and its biome are gone). Start a new world.
-- **Time:** permanent night (fixed at time 18000). The sun never rises.
-- **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only the Cinder Colossus's **stone golems** spawn there, with **lava golems** (about 1 in 5, always next to lava). Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
-  - **Zombies** spawn in full netherite armor with a netherite sword.
-  - **Skeletons** spawn in full netherite armor and keep their bows.
-  - None of it is enchanted, and none of it drops when they die.
-  - These geared mobs are the only source of dropped Deathforged books (see Enchantments).
-- **No other way out:** no portal can be lit inside the Dross. The Rift Key does nothing there, and flint and steel or fire can't light a nether portal there either. The hub's portal is the only exit.
-- **Safe zone:** no hostile mobs spawn naturally within 48 blocks of the hub center. Mobs can still walk in from the dark.
-
-### The sewers under Blightwood
-
-The Dross's only underground places. **Where they go:** Blightwood's patches are taken nearest the hub first, in
-groups of 3. In every group, one patch has **the Rat King's sewer**, and each of the other two has a **regular sewer**
-half the time. That repeats outwards forever, so there are many of both, never two in one patch.
-
-**A regular sewer** has:
-
-- **3 pipe entrances:** big green copper pipes, like Mario pipes, standing out of the ground with steps up to the
-  rim. Jump in: you drop 34-58 blocks down a copper shaft into a deep pool of **murky green sewer water** that breaks
-  your fall. A ladder up the inside wall takes you back out.
-- **A maze of tunnels:** wide brick tunnels with a water channel down the middle, narrow side tunnels with cobwebs,
-  pillared rooms, rough natural caves, loops and dead ends. It's dark down there, with a little glow lichen on the
-  walls.
-- **Sewer Sludge** in patches on the floors: a murky brownish-green mud that slows you down (less than soul sand).
-- **Only rats spawn** in the sewers, 3 enraged Plague Ravagers to every 2 Plague Rats. The green water, thick fog and
-  dripping come from the sewers' own underground biome, "The Sewers".
-
-**The Rat King's sewer** looks different:
-
-- **One grand entrance:** a huge copper pipe whose rim is shaped like his crown (bright copper points tipped with
-  glowing green Blight Vents, bright copper bands, tattered red banners; no gold blocks). Round it the ground is poisoned: dead plants, sludge puddles, bones, rat nests of old
-  carpet, cobwebs and gnawed fences. **Blight Vents** in and round the pipe glow poison green and puff spores, so it
-  stands out at night.
-- **The royal road:** the tunnel from the entrance to his cave has red banners, green candles, bones and scattered
-  gold. There's no carpet, so it doesn't show you the way through the maze.
-- **The rat cave:** a domed chamber about 40 blocks across, lit by green candles and glow lichen, copper pipes on its
-  walls and ceiling pouring into drains, sludge patches all over its floor, and in the middle the **Rat King's nest**
-  of piled carpets, surrounded by his hoard of gold (about 70% Dross gold ore, 30% gold blocks). He's **asleep there
-  when you arrive** and wakes as you come near, like in his fight. Plague Ravagers that spawn in the rat cave are
-  tougher than usual (1.5 times the health and bite).
-
-`/dross goto lair ratking` takes you to the nearest rat cave and `/dross goto sewer` to the nearest regular sewer
-(Minecraft's `/locate` can't find them). Sewers only appear in newly generated chunks.
-
-### Rimefall's animals and lakes
-
-- **The big lakes:** every Rimefall area has one big frozen lake, about 100 blocks across (a smaller one, about 64,
-  where there's no room), in its flattest spot: a sheet of ice over dark water, deeper in the middle, with 4-6
-  **open holes** you can fall into (they never freeze over), and a gentle snowy shore. Nothing grows on the ice.
-  `/dross goto lake` takes you to the nearest one's shore. They only appear in newly generated land.
-- **Rimehorns:** woolly rhinos about 4.5 blocks tall and 8 long, in herds of 6-8 (2 frosted males, the rest dark
-  brown females). Each Rimefall area has 2 herds, sometimes 3 (a small area 1, sometimes 2), placed when the land is made, away from
-  the lake. They're **neutral**: hurt one and its herd comes for you, head on, but gives up after about half a minute
-  or 24 blocks (a hurt calf runs off). Up close it **flicks** you up into the air with its horn; further off (or when
-  you shoot it from afar) it **rushes** you in a quick, low dash. Its face, snout and rump can be hit, not just its
-  middle (so can a moose's head). Feed **Frostbloom**
-  to a male and a female and they make a calf, which grows up in 35 minutes and **never attacks you**, even when its
-  herd is angry. No drops yet.
-- **Moose:** about 3.8 blocks tall, alone, in Rimefall and now and then in the Silverwood Forest (never round the
-  hub). Neutral: hit one and it charges and rams you, throwing you back (a bull hits harder than a cow). A **mother**
-  with her calf goes for you if you come within about 6 blocks of her or the calf, but never chases you more than 10
-  blocks from her calf. No drops yet.
-- **Pond Skaters:** hostile long-legged skaters that spawn on ice at night: at most 1 or 2 on a big lake (lakes differ), at
-  most 1 on any other patch of ice at least 20 blocks across, none on smaller ice. As fast as a spider off the ice and very fast on it;
-  they rear up and stab with their beak. Their legs have hitboxes of their own. Besides players they go for the
-  Frostfolk, the Huntsman, his Alpha Moose, moose and Rimehorns (which fight back).
-- Every one of their sounds is original (`/dross showcase mob_sounds rimefall`). Spawn eggs for all three are in the
-  Dross tab, and `/dross showcase rimefall_mobs` lines them up with animation buttons.
-
----
-
-## The portal
-
-### The frame
-- **Dross Portal Frame** (`dross:dross_portal_frame`): dark stone with glowing electric blue cracks.
-- It can't be crafted, mined or blown up, and it drops nothing. It has a block item for testing, only in the creative Dross tab (or with `/give`).
-- Every frame block "leaks" the Dross: drifting blue particles and a low ambient hum, even when the frame is unlit.
-- Flint and steel does nothing to it, and normal obsidian portals stay purple nether portals.
-
-### Lighting it with the Rift Key
-- Throw (Q) a **Rift Key** into the empty middle of a complete frame, along X or Z. The key is used up and the frame fills with the **Dross Portal** (`dross:dross_portal`).
-- If the frame is already lit, the key pops back out instead of being used, and it won't drift into the portal.
-- A netherite ingot doesn't light anything.
-
-### Look
-Electric blue portal texture, blue particles, and a blue swirl over your screen while you stand inside.
-
-### Travel
-- Every Dross portal in the Overworld leads to the **hub** (the Shattered Spire at Dross 0,0).
-- The hub's exit portal always leads back to the **Fallen Cathedral's** portal, wherever you came in.
-- All entities can use it. Nothing is ever placed inside blocks or above a drop.
-
----
-
-## The Fallen Cathedral (the portal site)
-
-The cathedral is the only way into the Dross, and it's built once per world.
-
-- **Where:** a random spot **3,000–10,000 blocks from world spawn**, chosen when a new world starts and saved with the world.
-  - **Allowed biomes:** plains, sunflower plains, desert, taiga (including old growth and snowy taiga), forest, flower forest, birch forest, dark forest, snowy plains and ice spikes.
-  - **Avoided:** ocean, river, beach, swamp, water near the footprint, and villages.
-  - The natural ground under it must be nearly flat to begin with: 5 blocks of variation or less, with a few small dips allowed.
-  - The search runs in the background using the world generator's own maths, then the best spot is checked in the real world. If nothing passes, the rules relax step by step, so every world gets a site. It takes about a minute after a new world starts.
-  - When it's built, a chat message gives its location. You see the message again each time you join the world.
-- **What:** a huge ruined cathedral, 61 × 87 blocks. Its heart is an unlit, unbreakable portal frame with a 3 × 5 opening, facing south. Glowing blue cracks, broken frame shards and dead ground show the Dross leaking out.
-- **Fitting into the land:**
-  - The footprint is levelled by cutting or filling a few blocks, with no big foundations.
-  - Around it the ground steps back down to the natural terrain **one block at a time**, so there are no cliffs or dirt walls.
-  - New ground keeps the local top layer (grass, sand, snow...).
-  - Only trees that touch the cathedral or the reshaped ground are removed, always whole, so there are no floating leaves. The rest of the forest is left alone.
-- **The leak:** within about 16 blocks, flowers and grass die or disappear, some grass turns to coarse dirt, and stone bricks crack.
-- **Fallback:** if the cathedral can't be built, a small ruined stone-brick shrine around a 4 × 5 frame is built instead.
-
-The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size). The compass, `/dross goto cathedral` and the hub's exit portal all use it.
-
----
-
-## The hub: the Shattered Spire
-
-- Built once per world at **Dross 0,0**: a tall, broken spire, levelled into the forest. It's built in the background a few seconds after a new world starts, so creating the world doesn't wait for it (going through a portal sooner finishes it on the spot). The ground round it steps back to the natural land at most 1 block at a time (no cliffs or dirt walls), and only trees touching it are removed, each one whole.
-- Its portal frame is lit as the **exit portal**, facing south.
-- You arrive inside the spire's hall, on the top step in front of the exit portal, facing the gate.
-- **Arrival sequence**, every time you come through the portal:
-  - After 1 second, the title **"The Dross"** fades in, in electric blue.
-  - Four piano notes play, "dun, dun, DUN, dunnn" (E, D, C#, then a low F#). Only you hear them.
-  - Two seconds after the last note, you get the *Enter the Dross* advancement.
-  - On your **first arrival only**, you get the **Dross Guide Book** (dropped at your feet if your inventory is full).
-- **Fallback:** if the spire can't be built, an 11 × 11 platform with a lit 4 × 5 exit portal is built instead.
-
-### The survivors
-Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the Dross skins drawn for the trader's villager model (8 and 3).
-- They start on the dais beside the arrival step and walk together in and around the spire and out of its gate, never more than 20 blocks outside its walls.
-- Right-click one and he says his next line in chat.
-- Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them, and Necromancy never raises undead from hitting them.
-- No trades.
-
----
-
-## The Dross Trader
-
-An old villager (`dross:dross_trader`) who knows about the rift. He wears an original electric blue skin, **The Archivist**: a bald scholar with glowing spectacles and a blue book.
-
-### Where he lives
-- He spawns **once per world**, in his own **Rift Chapel** at the edge of the nearest village to world spawn that has room for it.
-- **Finding a village:** he checks the 5 nearest villages within 1,000 blocks first. If none has room, he tries the next 5, widening the search 1,000 blocks at a time up to 5,000. The log says which village was picked and why.
-- **No usable village:** if none is found (for example with Generate Structures off), the chapel goes on the nearest flat spot near spawn, with its door facing spawn.
-- When he spawns, a chat message gives his chapel's location. You see the message again each time you join the world.
-- **The Rift Chapel** (9 wide, 13 deep, 18 tall):
-  - **Outside:** deepslate and stone brick walls with lapis, buttresses, tall blue windows, a blue rose window over the dark oak door, and a steep roof. On top are an open belfry with a soul lantern and a spire with a copper lightning rod.
-  - **Inside:** pews, blue banners and soul lanterns. Behind the altar is a broken piece of a real Dross portal frame, which leaks and hums but can't be lit.
-- **Placement:**
-  - The chapel sits right next to the village's houses without touching any of them. Its door faces the nearest street.
-  - A 3-wide path in the village's own path material (dirt path, or smooth sandstone in desert villages) leads from the door to that street.
-  - Small bumps under it are levelled, up to 3 blocks each way.
-  - The lightning rod draws natural lightning within 128 blocks to the spire, which keeps it away from the village.
-
-### Behavior
-- **Wandering:** he wanders within 50 blocks of his chapel and opens his door.
-- **Teleporting home:** he teleports back to the chapel aisle (with blue enderman-style particles and sound) if any of these happen:
-  - he gets more than 50 blocks away;
-  - he falls more than 4 blocks;
-  - he ends up underground.
-
-  If he's riding something, he gets off first.
-- **Can't die:** he can be hurt and knocked back, but at half health he teleports home and heals fully. He can't use portals.
-- **Glow:** while any player is within his 50-block area, he glows electric blue, visible through walls.
-- **Spawn egg:** "Dross Trader Spawn Egg" (creative tab). An egg trader treats the spot he was placed as his home, with the same rules.
-
-### Shop
-His shop opens only for players who have completed the quest.
-
-| Offer | Price |
-|---|---|
-| Necromancy book (lowest level) | 32 emeralds + 1 book |
-| Deathforged I book | 24 emeralds + 1 book |
-| Dross Guide Book (only for players with *Enter the Dross*) | 3 books |
-
-Unlimited uses, no restocking, no XP.
-
----
-
-## Items
-
-| Item | What it does |
-|---|---|
-| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in every Nether Fortress and Bastion Remnant chest (added with a global loot modifier, so other mods' loot still works). It points to the trader with a rough location and rewrites itself with his real location once he has spawned. |
-| **Dross Compass** | Given by the trader after the three tributes. Points at the Fallen Cathedral's portal and re-aims itself every second, so it stays correct. Spins in other dimensions. |
-| **Rift Key** | Forged by the trader from the key materials. A crystal key with a blue heart. Throw it into a Dross frame to light the portal (it's used up). Fireproof, never despawns. |
-| **Dross Guide Book** | Given on your first arrival in the Dross, and sold by the trader. A readable 5-page guide to the dimension: endless night, the safe hub, the netherite-clad dead, and no way out but the hub. |
-| **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
-| **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
-| **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon, the Wither and every Dross boss, whatever stage it's in) while still counting as your kill (a boss's advancement and trophy too). Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
-| **Rage Wand** | A creative-only testing wand with five **teams** (blue, red, green, yellow, purple: right-click to switch; the crystal shows the colour). Hit a mob with it (no damage) to give it **Rage** and the wand's team: mobs of different teams fight each other, never their own team, and ignore players while an enemy team is near. Teams and Rage last forever, not even milk cures them. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and their minions join their team. See [The Rage Wand](#the-rage-wand). |
-| **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
-| **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
-| **Huntsman Trophy** | A one-block miniature of the Huntsman and his Alpha Moose in one of five poses: Riding Down, Rain of Arrows, The Rearing, The Rearing Shot and The Parting Shot (the tooltip names it). Right-click a placed one to change its pose. Beating the pair gives one to every player who helped. Fireproof, never despawns (see [The Huntsman](#the-huntsman)). |
-| **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
-| **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent (from the old Nether Scar: building blocks now, they no longer generate); Cragstone, Storm Lichen, Crag Thistle); and from Blightwood's sewers **Sewer Sludge** (it slows you down, less than soul sand) and the **Blight Vent** (glows poison green and puffs spores). |
-| **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores. Raw Moonsilver smelts into an ingot, and the ingot makes the Moonsilver Spear; Stormite is for gear that comes later. |
-| **Moonsilver Spear** | The Huntsman's spear, for players: two sticks on a diagonal with a Moonsilver Ingot at the top right. It stabs for 8, and held back and let go it's thrown like a trident (8) and flies back to you. Whatever it hits is frozen for 4 seconds (frost, shaking, slowed). 500 uses, repaired with Moonsilver Ingots. Enchantments: Sharpness or Smite, Impaling (for its throw, on anything), Looting, Knockback, Channeling, Unbreaking, Mending. |
-| **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
-| **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
-
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
-
----
-
-## Enchantments
-
-Both are **swords only** and **treasure enchantments**. They never come from the enchanting table, loot chests, fishing or normal librarians.
-
-### Necromancy (I–V)
-*"Hits have a chance to raise the undead to fight for you."*
-
-| Level | Chance per hit | Max alive | Soul capacity | Undead it can raise |
-|---|---|---|---|---|
-| I | 15% | 1 | 25 | zombie, skeleton |
-| II | 20% | 2 | 50 | zombie, skeleton |
-| III | 25% | 4 | 100 | + husk, stray, drowned |
-| IV | 30% | 6 | 250 | + chicken jockey, spider jockey, skeleton horseman |
-| V (admin, testing) | 100% | 10 | infinite | same as IV |
-
-- **Which hits count:** only a melee hit with the sword in your main hand, on the main target of the swing. Sweep hits never count. Hitting a player, the trader, the hub's survivors or your own risen undead never raises any.
-- **How many rise:**
-  - If none of yours are alive, a successful hit raises the full max. Otherwise it raises half the max, rounded up, never going over the max.
-  - Each one costs **1 soul**. Jockeys and horsemen cost 2.
-  - The type is random from what your level unlocks.
-- **Souls:**
-  - Killing any zombie or skeleton (or a variant) with the sword stores 1 soul, up to the level's capacity, and a blue wisp flies from the mob into your hand. Risen undead give no souls.
-  - Souls are stored **on the sword**, so each sword has its own count. The tooltip shows "Souls: X / Y" in gold ("Souls: ∞" at level V, which never spends souls).
-
-### The risen undead
-- **Real vanilla mobs:** they're normal zombies, skeletons and so on, owned by you, and they fight as a **pack**.
-- **Choosing a target**, in order:
-  1. anything attacking or targeting you;
-  2. whatever you hit in the last 5 seconds;
-  3. anything that hurt them;
-  4. any fight another of your risen undead is in.
-
-  Otherwise they follow you. Once fighting, they stick with their target until it dies, then help allies before coming back to you.
-- **Who they leave alone:** they never hurt players, the trader, the hub's survivors, villagers, wandering traders or each other. Your own hits never hurt them.
-- **Mobs fight back:** any mob they damage turns on them, even other undead.
-- **Your allies leave them alone:** iron golems (village or player-built), snow golems and tamed wolves (anyone's) never target, chase or hurt your risen undead, and drop any fight with one within half a second. A golem still spots a real monster standing behind them. Your risen undead never pick a golem or a wolf on their own (not even when a zombie the golem is fighting calls nearby zombies for help), but they still defend you from one that attacks you and join in when you hit one (it just won't hit back). The only exception is the Rage Wand: raged on different teams, they fight.
-- **Risen drowned** fight on land, day or night.
-- **How long they last:** they crumble into blue particles after **60 seconds**, or early if you log out, die or change dimension.
-- **What they never do:** drop items, give XP, pick things up, use portals or convert into other mobs. Normal burning rules apply.
-- **Peaceful:** on Peaceful, Necromancy does nothing.
-
-### Deathforged (I–X)
-*"Your risen undead come armored. Higher levels forge stronger gear."* Does nothing without Necromancy on the same sword.
-
-| Level | Armor (all types) | Sword (zombie types) |
-|---|---|---|
-| — (none) | none | none |
-| I | Leather | none |
-| II | Leather | Wooden |
-| III | Gold | Gold |
-| IV | Chainmail | Stone |
-| V | Iron | Stone |
-| VI | Iron | Iron |
-| VII | Diamond | Iron |
-| VIII | Diamond | Diamond |
-| IX | Netherite | Netherite |
-| X | Netherite | Netherite, plus Strength I and Speed I for their whole life |
-
-- **Nothing is enchanted**, and none of the gear drops.
-- **Skeleton types** (skeletons, strays, the riders of spider jockeys and horsemen) always hold a plain bow instead of a sword.
-- **Mounts** (chickens, spiders, horses) get no gear.
-- Level X's effects show no swirling particles, and they don't glow.
-
-### Anvil rules
-- **Deathforged I–V** combine like vanilla enchantments (I + I → II … IV + IV → V), up to V. Levels VI–X can't be combined, but a single VI–X book can go onto a sword without Deathforged.
-- **Necromancy never levels up at an anvil.** Two Necromancy swords can be combined: the result keeps the higher level, and the souls from both swords add up, capped at its capacity.
-- **Not allowed:**
-  - Necromancy with Smite.
-  - A combine that changes nothing.
-
-### Getting them
-- **From the trader**, after the quest: Necromancy (lowest level) and Deathforged I.
-- **As drops in the Dross:** Deathforged books drop only from the netherite-clad zombies and skeletons of the Dross, when a player hit them recently. The chance is 5% per kill, plus 1% per Looting level. Higher levels are rarer (weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1).
-
----
-
-## The Cinder Colossus (mini-boss)
-
-A golem mini-boss that serves the Fire Necromancer: a huge, gorilla-like brute about 5.5 blocks tall, hunched over and
-walking on its knuckles, with fists bigger than its legs, a cracked face, a layered jaw (an outer jaw and an inner
-one behind it), horns and spikes, and **volcanoes on its back**. After three rounds of designs, the user picked
-**3G Saddleback**, a variation of Old Calderon (No. 3 of the first five designs): two great volcanoes grow out of its
-back and merge into one saddle of rock, big obsidian spikes stand in the saddle and down its lower back, it has horns,
-spikes pointing up off its shoulders and a beard of obsidian shards, all in dark scorched stone. Its volcanoes erupt
-out along their own angle, and its craters always hold glowing lava. Previews are in `boss-previews/cinder_wastes/cinder_colossus/`
-(`all_golems.png`, `01_saddleback_sheet.png`, the fight page `01_saddleback_fight.png` and `minions.png`; the other
-candidates are in `boss-previews/cinder_wastes/cinder_colossus/round1/` to `round3/`).
-
-It lives in its **lair**, a volcano in the Cinder Wastes (below). For testing you can also get one from the
-**Cinder Colossus Spawn Egg** (Dross creative tab) or `/dross boss summon colossus`, and `/dross boss arena colossus` builds a
-placeholder arena to fight it in: a round floor of red nether bricks, 31 blocks across, with a low wall (four gaps)
-and lights set in the floor.
-
-### The lair
-- **Where:** there are many lairs, one in **every group of 3 Cinder Wastes patches**: the 3 patches nearest the hub
-  hold one lair, the next 3 nearest another, and so on outwards forever (never two in one patch; the other two patches
-  of each group are kept for future fire bosses). A lair is built in the background the first time you come within
-  about 384 blocks of it, a little at a time (at most about 40 ms of work each game tick, so the game never stutters).
-  `/dross goto lair colossus` takes you to the nearest one's entrance (building it first if it isn't yet; never onto a
-  half-built volcano).
-- **Outside:** a volcano rising about 40 blocks over its arena, with a jagged crater that smokes and throws embers, lava
-  streams and pools round its foot (they never spread, and neither do natural lava pools on its flanks), and a big cave
-  mouth with obsidian teeth. The way in never steps more than 1 block: on steep land a rock ramp leads to the mouth.
-- **Inside:** a domed cavern about 41 blocks across under the crater, with an obsidian and magma floor, lava glowing
-  through sealed fissures below it, and obsidian stalactites. No lava can be reached from the floor, and nothing
-  spawns inside by itself.
-- **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). Once it's beaten, that
-  lair stays empty for good: no respawn.
-- Previews: `boss-previews/cinder_wastes/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
-
-### The fight
-It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
-within 40 blocks. The fight has three stages:
-1. **Shell** (down to 70% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
-   second; 2 in the Cracking stage and 2.8 in the Lava Core stage). It swipes at you up close, tears rocks
-   out of the ground and throws them (they shatter; they never place a block), raises both fists for a moment and
-   slams the ground (the shockwave hurts and throws you about 20 blocks), and charges on all fours, head first, from up
-   to 32 blocks away, running all the way to where you stood half a second before it set off.
-2. **Cracking** (70% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
-   and its shell starts breaking up, plates knocked loose and lava glowing through, more with every hit. A bit faster
-   and more aggressive. Its volcanoes also spit **lava blobs** that land near you (never on you) and leave small pools
-   of lava for 20-40 seconds, and it pounds the ground to raise **three stone golems** (left, right, in front of it). As it enters this stage,
-   **four stone golems** climb out at once, and from now on its charge leaves a short **trail of fire**.
-3. **Lava Core** (35% to 0%; lava red): its shell bursts off (it can't be hurt while it does). Faster and angrier:
-   **every hit sets you on fire**, its charge leaves a longer **trail of fire**, it stops throwing rocks, and it raises
-   **lava golems**, which blow up a few seconds later unless you kill them first. Its lobs now spit **four** lava
-   blobs instead of two. As it enters this stage its volcanoes spew **four lava blobs** round you.
-
-**Its damage** (in hearts, Shell / Cracking / Lava Core, on Normal with no armour): swipe 6.5 / 7.5 / 8, charge
-6 / 6.5 / 7, slam 3.5 / 4 / 5, thrown rock 4.5 / 5.2 / none, a lava blob landing right on you 3.5 / 3.9 (it lands
-near you, never aimed at you). In the Lava Core every hit also sets you on fire for 5 seconds.
-
-**The roar:** the first time it's hurt, and at both stage changes, it roars and a ring of dust throws every player
-within 15 blocks back about 15 blocks. The first one does no damage; the eruption's roar takes 1 heart and the
-shell bursting's 2.
-
-**How it picks a move:** by how far away you are (close, mid, far, very far) and its stage, with the chances in
-`ColossusTuning` (the user's table): up close it swipes and slams, further out it charges, throws and lobs, and very
-far away it mostly charges.
-
-**Against Necromancy:** with your risen undead nearby it raises one golem for every two of them (never more than 6),
-its golems go for the risen undead first, and when three or more of them crowd it, it slams more often.
-
-It's a slow stone brute, so it can't be beaten easily from afar: **arrows and other projectiles** (tridents,
-fireballs, snowballs, your risen skeletons' arrows) deal only **50%** of their damage in the Shell stage, **35%** in
-Cracking and **15%** in the Lava Core. You can tell: they clink off the stone with a few sparks, and in the Lava Core
-they hiss and burn up in a puff of smoke. Melee hits are never reduced, and its minions take full damage from
-anything. The minions are quick on their feet: stone golems walk about 3 blocks a second and lava golems about 4.6
-(a player walks 4.3 and sprints 5.6). **Pickaxes crack the shell:** in the Shell and Cracking stages a pickaxe hit
-(any pickaxe, modded ones too) does **twice** its damage; in the Lava Core it's a normal hit. The Colossus keeps facing
-the player it's fighting nearly all the time, except while it gallops.
-
-A big hit never skips a stage: its health stops at 70% and at 35%. When it dies it screams, sinks down and **cools
-into an obsidian statue**, which stands for 2 minutes and then crumbles; its minions crumble with it. It drops 50
-experience. The player who killed it, and everyone within 40 blocks, get the challenge advancement **"Set in Stone"**
-and **a trophy each** (below). Removed with `/kill`, it gives neither.
-
-Its lava pools and fire trail are the mod's own blocks, not real lava and fire: they never spread, can't be picked up
-with a bucket, never make cobblestone or obsidian, never replace anything but air (or, with the mob griefing rule on,
-grass, flowers and thin snow), never touch chests or other blocks with contents, and clear themselves away, even if
-the area is unloaded and loaded again. Nothing in the fight breaks blocks. Its sounds are vanilla stone, iron golem,
-ravager and lava sounds pitched down: deep rumbles and grinding stone.
-
-All its numbers (health, damage, speeds, cooldowns, ranges, move chances, the roar, minion counts, pool size and time,
-the stage thresholds, the trophy design it drops, the wild golems' spawning) are labeled constants in `boss/golem/ColossusTuning.java` and `ColossusStage.java`.
-
-### The trophies
-The **Cinder Colossus Trophy** (`dross:colossus_trophy`) is a decorative block: a miniature of the boss, its own model
-scaled down to fit one block (about a sixth of its size), with no base or pedestal. It has five designs, each a
-different pose and look (previews: `boss-previews/cinder_wastes/cinder_colossus/trophies.png`), and every trophy can show any of them:
-
-| No. | Name | Pose | Look |
-|---|---|---|---|
-| 1 | Volcano's Wrath | the volcano lob, lava spurting from both craters | erupted (lava over the shell) |
-| 2 | Molten Charge | mid-gallop on all fours, head first | lava core |
-| 3 | The Roar | reared up roaring, both fists raised high | erupted |
-| 4 | Earthshaker | the ground slam, as its fists hit | cracking (plates loose, bright cracks) |
-| 5 | Dormant Shell | crouched in its shell, head bowed | dormant (dim) |
-
-- Its lava cracks glow softly, and the lava keeps **flowing down its body**: bright bands of fresh lava slide down the
-  streams over and over. Now and then **lava drips** off it and its craters smoke (just particles: nothing catches
-  fire). It gives off a little light (more for the lava ones).
-- Place it **on the floor** (it needs a block under it) and it **faces you**.
-- **Right-click it to change its pose:** each click turns it to the next design (1, 2, 3, 4, 5, then 1 again), still
-  facing the same way, with a quiet stone click and a little puff of ember dust. An empty hand or any item works (main
-  hand); holding a block, you change the pose instead of placing the block, so **sneak** to place a block against it.
-  In adventure mode it can't be changed. The tooltip says "Right-click to change its pose".
-- Any tool, or a bare hand, breaks it, and it drops itself with the design it's showing. It never burns and explosions can't break it.
-- **The drop:** when the Colossus is beaten, every player within its boss bar's range (40 blocks), plus the player who
-  killed it, gets **their own trophy**, straight into their inventory. If their inventory is full, it's dropped one
-  block in front of them instead (at their feet if a wall is there), and a player who's dead at that moment finds it
-  where they died. A dropped trophy can only be picked up by its player, never despawns, and fire, lava, explosions
-  and cactus can't destroy it. It drops as **design 1** (`DROP_DESIGN` in
-  `ColossusTuning`); since any trophy can be turned to any pose, there's no single final design to pick.
-- **`/dross showcase trophies colossus`** puts all five side by side on pedestals, each with a sign (they can be right-clicked
-  too). The creative Dross tab has all five too.
-- The figures are made by `tools/golems` (`kit/trophies.py`) from the boss's own model, poses and textures; the mod's
-  code is in `boss/trophy`.
-
-### The showcase
-`/dross showcase boss_designs colossus` spawns it frozen (it never fights) so you can look at it and play its
-animations: the dormant shell, the eruption, the shell breaking off, the lava core's endless eruption, the walk and the death.
-
----
-
-## The Rat King
-
-The Rat King is one of the Plague Necromancer's three servants: a lean, sly giant rat standing upright, 3 to 4 blocks
-tall, with a staff, a crown and a red cape. **His look, sounds, fight and trophies are built** and play-tested. After two rounds
-of designs the user picked **Gnawrick, build 1C**: sewer grey-green, broad shoulders and a wide chest, a cocked
-three-point crown, a ragged moth-eaten cape, and a twisted staff whose green claw holds a glowing green orb.
-
-He sleeps curled up on the ground (with floating Zzz and snores), wakes up and picks up his staff, stands, walks on
-tiptoe, burrows into the ground (the dirt mound is where his head went in) and pops back up out of it, flies into a
-rage (stomping, pumping his fist in the air, red eyes, steam out of his ears with a choo-choo train whistle, smashing
-his staff into the ground) and dies a silly death (flat on his back, tongue out, X eyes). His staff never goes through
-him, his ears or the floor. His rats: the **Plague Rat** and the bigger, enraged **Plague Ravager**, each with an idle
-and a run. All three have spawn eggs in the Dross tab.
-
-All their sounds are original (made by `tools/ratking/sounds.py`, nothing from Minecraft), including several versions of
-each attack sound for the fight, to pick from later.
-
-**The fight** (every number is in `RatKingTuning`):
-- **Asleep:** he starts curled up asleep. Come within 12 blocks (8 if you sneak) or hit him and he wakes (that hit does
-  no damage, and he can't be hurt while he gets up). Then his boss bar appears: a rusty sewer pipe with a rat peeking
-  over it (the user's pick of nine designs), shown within 40 blocks.
-- **200 health**, armour 6, quick on his feet (about 4.7 blocks a second, 6.2 in his Rage; you walk at 4.3). He keeps
-  facing you.
-- **Staff sweep** up close: 4.5 blocks in front of him, 9 damage (11 in his Rage), with a strong knockback, about
-  every second.
-- **Spear charge** from 5 to 24 blocks: he crouches for 0.4 s with his staff levelled like a spear, then dashes at
-  9 blocks a second (11 in his Rage) to where you were standing. If he catches you it's 6 damage (8) and straight into
-  a sweep; if you dodge, he skids and needs half a second to turn round.
-- **Poison shot** from 5 to 24 blocks, now and then: a clumpy plague ball that bursts into a small poison cloud (a
-  steady Poison I while you stand in it); in his Rage, a fan of three.
-- **How often:** at 5-16 blocks he charges 60%, throws poison 25% and runs in 15% (Rage: 60 / 35 / 5); at 16-24
-  blocks charge 40, poison 30, run in 30 (Rage: 35 / 35 / 30); up close always the sweep.
-- **Burrow:** every 25 health he loses (at 175, 150 and 125 of his 200), he digs and dives into the ground. While he
-  tunnels towards you (a dirt trail moves over the ground) he can't be hurt, and his rats burst out of the ground round
-  you: **10, then 12, then 14** Plague Rats, however many of his rats are already about. Then he pops straight up
-  4 blocks from you, facing you, without knocking you back.
-- **Rage** at half health, 100 (he can't be hurt while it plays): stomping, red eyes, steam and the train whistle.
-  Then he's faster and hits harder, throws three balls at once, and burrows three more times (at 75, 50 and 25),
-  calling **8, then 9, then 10 Plague Ravagers**, whose bites poison for 2.5 seconds.
-- **Death:** a silly death; his rats crumble, he vanishes after 10 seconds; no drops except a trophy (below). The advancement **Down the Drain**
-  ("End the Rat King's reign beneath Blightwood.") goes to whoever killed him and everyone within 40 blocks.
-- His rats: summoned ones attack you and crumble when he dies. A wild Plague Rat (spawn egg) never attacks; a wild
-  Plague Ravager does.
-- `/dross boss arena ratking` builds a round dirt arena round you with a chat button to summon him;
-  `/dross boss summon ratking` summons him asleep 14 blocks in front of you. His spawn egg makes a sleeping one too.
-- **Trophies:** beating him gives everyone who helped a **Rat King Trophy**, a one-block miniature of him (his orb
-  glows). It comes as *Belly Up*; right-click a placed one to change its pose: 1 Fast Asleep, 2 Tantrum, 3 Ground
-  Pound, 4 Pop Goes the King, 5 Belly Up (the user's five picks from ten). It works like the Colossus trophy: it goes
-  straight into your inventory (or drops in front of you, kept for you), and it's fireproof and never despawns.
-  `/dross showcase trophies ratking` places all five in a row.
-
-- `/dross showcase boss_designs ratking` spawns him frozen with a sign; the chat buttons (or
-  `/dross showcase boss_designs ratking sleep|wake|idle|walk|burrow|popup|rage|charge|die`) play an animation, and
-  right-clicking him plays his next one (sneak + right-click: he dies).
-- `/dross showcase rats` puts the two rats on pedestals; `idle` / `run` switch them.
-- `/dross showcase boss_sounds ratking` lists every sound with a button that plays it.
-- Previews: `boss-previews/blightwood/rat_king/` (the rats in `rats/`, the sounds in `sounds/`: open `index.html` to listen;
-  the earlier rounds in `round1/` and `round2/`). They're made by `tools/ratking/`.
-
----
-
-## The Huntsman
-
-One of the Ice Necromancer's three servants: a hunter in a wolf-head hood with a stag's antlers, riding his **Alpha
-Moose**. He lives in **his own hunter village** in Rimefall (below): walk near it and he and the moose are already riding
-their patrol round it, a loop just outside its lights, calm. He also comes from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`, and
-`/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice, lantern posts round
-the edge) with a chat button to summon him.
-
-- **His villages.** Rimefall's areas come in groups of three, nearest the hub first and on out forever: in every group
-  one area has the Huntsman's village (his lodge, the Alpha Moose's barn, 26 or 29 igloos), and each of the other two
-  has a regular hunter village half the time (15-20 igloos round sunken courtyards). A village sits on the flattest
-  ground of its area, never on or next to the big lake, and each part of it on its own ground: each courtyard with its
-  igloos at its own height, the lanes between them climbing with a stair at each step, every decoration on solid
-  ground, and the land between the parts left as it was (its trees and hills). Only the animals in its pens are tame
-  (one that gets out is wild), and no moose or Pond Skaters spawn by themselves inside a village. A moose skull with
-  its antlers stands on a tall post either side of every village's way in. Beat
-  him (both of them) and his village stays without him for good; on Peaceful he never comes. They only appear in newly
-  generated land.
-
-- **He spots you.** The fight starts, and he lets out a wolf's howl and then blows his hunting horn, when he or the
-  moose sees a foe within 30
-  blocks: a player (not in creative or spectator), a hostile mob (he hunts those too) or, raged with the Rage Wand, a
-  mob of another team. A hit starts it too.
-- **Stage 1, The Wild Hunt** (one bar of 250 for both; hitting either of them takes it down). The two attack at the
-  same time, each on its own timer. From the saddle he uses whatever fits where you are: right next to the moose mostly
-  his spear, two bow shots wherever you are (ahead past the moose's head, to either side, or back over his shoulder;
-  his arrows lead you as you run, and every one frosts and slows you), the Horn of the Hunt ahead (a cone of icy wind
-  that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed; at once if you run away from him)
-  and the **arrow rain** anywhere (his arrows shoot up out of his bow and vanish high up, then 48 streak down out of
-  the sky close round you with no warning, steering after you as they fall: half a heart each, and you take several). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
-  cracks across the snow up close, charges (6.5 hearts) and circles you further out, and kicks anyone behind it (4.5).
-- **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
-  neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he
-  rides, the two are drawn as one model, so he moves exactly with the moose; they become two at the split.)
-- **Stage 2:** on foot (about 4 blocks to the top of his hood) he uses spear combos, a leaping strike, a thrown spear
-  (it comes back to his hand), an aimed shot after a frost glint (it freezes you for a moment), a backstep and shot (he
-  leaps back three blocks, shooting at the top of the leap, and is ready again as he lands), the arrow rain, the bola,
-  the horn, and whenever those are all cooling down, a quick shot (2 hearts), so at range he keeps shooting.
-  The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow: where they end a
-  clump of small spikes of clear ice bursts up, then a big one 1.5 blocks tall under you that throws you up, slows and
-  frosts you. The moose goes for the closest player, he goes for the furthest. He likes to keep his
-  distance: when you come close he backs off, at range he circles you, far off he closes in, and he keeps out of the
-  moose's way.
-- **Kill one** and the other gets angry: its bar turns blood red, and it's faster and hits harder.
-- **Kill both:** the advancement **The Hunter Hunted** for whoever got the last kill and everyone within 40 blocks,
-  and each of them gets a **Huntsman Trophy** (No. 1, Riding Down), straight into their inventory. Removed with `/kill`,
-  they give neither.
-- **Trophies:** a one-block miniature of the Wild Hunt in five poses (the user's picks): 1 Riding Down, 2 Rain of Arrows,
-  3 The Rearing, 4 The Rearing Shot (the moose rearing, him turned in the saddle with his bow drawn level back over its
-  rump), 5 The Parting Shot (the
-  moose's ice slam, the clear ice bursting up, as he leaps off its back shooting). It works like the other trophies:
-  right-click a placed one to change its pose. Made by `tools/huntsman/trophies.py` (previews in
-  `boss-previews/rimefall/huntsman/trophies/`); `/dross showcase trophies huntsman` places all five in a row.
-  The Alpha Moose drops its skull (a block you can mount: see the items below) every time it dies.
-- **The Rage Wand:** raging either of them rages both, on the same team.
-- **Running away** from his village's pair: they chase you up to about 60 blocks past their patrol loop, and no further:
-  there they stand and shoot (the arrow rain too) while you're within about 40 blocks. Get further than that out there,
-  or leave Rimefall, and they let you go and walk back home, still hurt: they never vanish, so you can come back and
-  finish the fight. They don't start a fight with a player standing outside Rimefall.
-- **Stay away** (no one within 64 blocks for 3 minutes) and the fight is broken off: both are back at full health (even
-  one you'd killed), him in the saddle, calm (a village's pair back home on their patrol).
-- His thrown spear is drawn with the Moonsilver Spear's model, made big.
-- **His sounds** are original (made from scratch, like the Rat King's): the user picked which of a few versions each
-  one plays. His horn is a goat horn, and his grunts, hurt and death sounds are being picked.
-- `/dross showcase boss_designs huntsman` shows him riding, on foot and the moose alone, with a button for every
-  animation; `/dross showcase bossbars huntsman` shows his boss bars; `/dross showcase boss_sounds huntsman` lists
-  every version of his and the moose's sounds with a button that plays it.
-
-### The Frostfolk
-
-Rimefall's villagers: eleven callings, about 2 blocks tall, built like a pillager, each in a blue hood of its own style
-with no face under it, only darkness and two glowing blue eyes, gloved, in simple clothes, carrying its own tools in
-its fist (long ones stood upright, short ones held out ahead like a Minecraft tool), with its own voice. Three spawn eggs (Frostfolk Warrior, Worker and Elder) each bring a calling
-of that kind at random. They live in Rimefall's villages, 1.2 to 1.4 for every bed (a regular village 15 to 35, the
-Huntsman's 64 and 65): the elder in the meeting hall, a worker at each workplace (the butcher in the Cookhouse, the tanner in the
-Tannery, the fisher in the Ice-Fishing Hut, a farmer in each farm, a herder in the Storehouse and the barn, the archer
-in the Workshop), at most 2 warriors in each Barracks and the rest on guard in the courtyards, one or two horn-blowers, the rest in their homes and round the courtyards'
-fires. Each wanders within 24 blocks of where it started and walks back there after a fight (angry, it chases you
-anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
-
-- **Warriors:** the spearman (a peaked hood, a wolf pelt, spear and round shield, 30 health), the axeman (a fur-trimmed
-  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, his bow carried level in his fist and a brown quiver with ice fletchings on his back, 25;
-  he keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
-  his village turns on someone he blows his horn and everyone near gets Speed and Strength for 30 seconds).
-- **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
-  Frostroot), the butcher (a cleaver and an apron), the herder (fur ear flaps, a crook), the fisher (a wide-brimmed
-  oilskin hood, a rod with a fish on its hook) and the tanner (a fringed capelet and a roll of hide on his back; nothing in his hands).
-- **The elder** (50 health): a small white scar over one eye (that eye gone), a long white beard, a sword of ice in its
-  sheath on his back, drawn when he fights. He's the one to talk to.
-- **Calm** they wander and hum. Right-click one and it talks to you in chat (the elder has the most to say).
-- **Hit one** and it fights you back until you're about 16 blocks from it. **Kill one** (it tips over like any mob):
-  every horn-blower blows his horn and every one of them within 96 blocks rushes you, until you've left their village
-  (80 blocks from where each lives). Hit the elder and he stays angry until you've been away (48 blocks off) for 10
-  minutes.
-- They hunt Pond Skaters, and Pond Skaters hunt them; hurt by one, a villager fights back and the others near come to
-  help.
-- To keep a village smooth, they're drawn only within 40 blocks, and the villages' fires (Village Fire, a campfire to
-  look at) give only a wisp of smoke now and then.
-- `/dross showcase frostfolk` lines up one of each (the warriors in front, the workers and the elder behind) with signs;
-  right-click one to hear it talk, and the chat's buttons play their animations. Previews:
-  `boss-previews/rimefall/frostfolk/` (made by `tools/rimefall/mobs.py frostfolk` and `tools/huntsman/folk_preview.py`).
-
----
-
-## The Emberdactyl
-
-A giant volcanic pterosaur, 33 blocks across its wings, one of the Fire Necromancer's servants. It lives on its own
-**volcano** in the Cinder Wastes: one in every group of three Cinder Wastes areas, never where a Cinder Colossus lair is,
-built (in the background) the first time you come within about 384 blocks. The volcano is 70 blocks tall, with a lava lake
-in its crater, the **egg** on a basalt pillar in the lake, rivers and pockets of lava down its flanks (all still lava that
-never spills), and a lit path winding up to a lookout over the crater. `/dross goto lair emberdactyl` takes you to the
-foot of its path.
-
-**The fight** (400 health): it perches on a rock ledge on the crater's rim, facing out, guarding its egg. Come within 60
-blocks of the volcano's foot and it screeches (you hear it from far off), takes off and its boss bar appears. It fights
-mostly in the air, circling you, and never strays more than 100 blocks from its nest:
-- **Glide in**: from far off it glides at you low, fire dropping off it onto the ground, and dives once it's close.
-- **Dive bomb** (7 hearts within 7 blocks of where it crashes, a ring of blasts and fire, everything thrown out and up):
-  then it lies stuck on the ground for 3 seconds, your chance to hit it up close. On the ground it may peck you with its
-  obsidian beak, five pecks in a row (4 hearts each), each one hitting a patch of ground (right under it too).
-- **Fire tornadoes**: its wings whip up two (three at half health) that chase you, pull you in, burn you and throw you
-  up into the sky.
-- **Strafing run**: low over you in a line, breathing fire (4 hearts and fire), leaving fire on the ground.
-- **Talon grab**: you hang from its talons (look round as you like; sneak to struggle free) as it carries you off,
-  always through open air, and drops you: never from higher than a fall that takes half your health.
-- **Wing buffet** (it swoops down to you first) and **screech**: they throw you about 20 blocks.
-
-At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
-apart, its egg bursts open and its **young reborn** (175 health) bursts out and comes straight for you: the same moves,
-just as hard, but 2.5 times as fast with almost no rest, a dash straight through you, and fire dropping off it wherever
-it flies. Its egg lies broken apart in the nest, a bowl of lava with its pieces round it. Dying, either one glides down to
-flat ground and lies there. Beat the young (it hardens into obsidian) and everyone near gets the challenge advancement
-**Wings Clipped** and a trophy (five poses, right-click to change). It never comes back.
-
-It also comes from its spawn eggs (the adult alone, hovering over where it was spawned; the young has its own) and
-`/dross boss summon emberdactyl` / `emberyoung`; `/dross boss arena emberdactyl` builds a volcano with both in front of
-you. Its boss bar is a volcano between two burning wings (`/dross showcase bossbars emberdactyl`); its trophies:
-`/dross showcase trophies emberdactyl`.
-
-## The Rage Wand
-
-A creative-only testing tool in the Dross tab (after the Admin Sword), with five **teams**: **right-click** to switch
-the wand between Blue, Red, Green, Yellow and Purple (its crystal changes colour and the team name shows above your
-hotbar). Hitting a mob with it does no damage; it gives the mob **Rage** and the wand's team (dust in the team's
-colour floats over it). Hit it again with another colour and it switches team. Rage and teams never wear off and
-can't be cured, not even with milk.
-
-- Raged mobs **never fight their own team**: they never target, chase or swing at a teammate, and the team beats
-  natural enmity (a blue iron golem and a blue zombie, or a blue pillager and a blue iron golem, leave each other
-  alone). If two mobs were already fighting when the second one joins the first's team, both stop at once. Each goes
-  for the nearest raged mob of another team within 40 blocks, and while an enemy team is near they **ignore players**,
-  even ones who hit them. With no enemy near they behave normally towards everything but their own team, and keep
-  their team, so the winners stay ready for the next fight.
-- No new animations: every mob uses its own attacks (zombies swing, skeletons shoot, creepers explode, golems smash).
-  Animals with no attack of their own (cows, pigs, sheep, chickens, villagers...) **headbutt** for 1 heart.
-- **Bosses** work too, each with its own moves: raging the Cinder Colossus makes it fight; raging the sleeping Rat
-  King wakes him; raging the Huntsman or his moose rages both, and the Wild Hunt fights with its spear, arrows, horn
-  and the moose's charges. Their golems
-  or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
-- It won't rage players, showcase mobs, the Ender Dragon, the trader or the hub's survivors.
-
----
-
-## Advancements
-
-All Dross advancements live in their own **Dross** tab, which stays hidden until you pick up a Weathered Letter.
-
-| Advancement | How | Notes |
-|---|---|---|
-| Dross (tab root) | Pick up a Weathered Letter | Silent, opens the tab |
-| A Weathered Letter | Pick up a Weathered Letter | |
-| Proven Worthy | Bring the trader his three tributes | |
-| Keymaster | Have the trader forge the Rift Key | |
-| **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
-| Rise! | Raise the undead with Necromancy | Challenge |
-| Set in Stone | Defeat the Cinder Colossus | Challenge, under *Enter the Dross*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
-| Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Enter the Dross*. Goes to the player who killed him and everyone within 40 blocks when he dies |
-| The Hunter Hunted | Bring down the Huntsman and his Alpha Moose | Challenge, under *Enter the Dross*. Goes to the player with the last kill and everyone within 40 blocks |
-| Wings Clipped | Bring down the Emberdactyl and the young reborn from its egg | Challenge, under *Enter the Dross*. Goes to the player who kills the young and everyone within 64 blocks |
-
----
-
-## The look
-
-The Dross's color is **electric blue**: main `#2E6BFF`, deep cobalt `#0B2A9E`, highlight `#7FA8FF`. It's used for:
-- the portal, its particles and screen swirl;
-- the frame's cracks;
-- the trader's glow and particles;
-- the risen undead's wisps and puffs;
-- the arrival title.
-
-Every color lives in one place, `DrossColors.java`.
-
----
-
-## Commands
-
-All need cheats (operator level 2). Each name says what kind of thing it's about and which one, so the list stays
-clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<boss>]`, `boss <action> <boss>`,
-`trader <action>` and `quest <action>`.
-
-| Command | What it does |
-|---|---|
-| `/dross goto cathedral` | Teleports you in front of the Fallen Cathedral's frame, facing it. Before the site is built, it says so instead. |
-| `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross. |
-| `/dross goto trader` | Teleports you to the trader, even if his area isn't loaded. |
-| `/dross goto biome <name>` | Teleports you to safe ground in the nearest example of a Dross biome: `silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall` or `gravecrags`. |
-| `/dross goto lair colossus` | Teleports you to the nearest Cinder Colossus lair's entrance. If it isn't built yet, it says so, builds it, and teleports you once it's ready. |
-| `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
-| `/dross goto lake` | Teleports you to the shore of the nearest of Rimefall's big frozen lakes, facing it. |
-| `/dross goto lair huntsman` | Teleports you to the way into the nearest Huntsman's village, facing in, and says whether he's at home or beaten. |
-| `/dross goto lair emberdactyl` | Teleports you to the foot of the path up the nearest Emberdactyl volcano (one in every group of 3 Cinder Wastes areas), building it first if it isn't yet. Within 60 blocks of its foot, the Emberdactyl wakes. |
-| `/dross goto village` | Teleports you to the way into the nearest hunter village (either kind). `/dross goto village <x> <z>`: the one nearest that spot. |
-| `/dross locate villages` | A test tool for now: lists the 5 nearest hunter villages (which kind, where, how far, how many igloos), each with a [go] button. |
-| `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
-| `/dross trader sendhome` | Sends the trader home. |
-| `/dross quest status` | Shows your quest progress. |
-| `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*, *Set in Stone* and *Down the Drain*). |
-| `/dross quest complete` | Finishes the quest for you. |
-| `/dross showcase boss_designs colossus` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
-| `/dross showcase boss_designs colossus dormant` / `erupted` / `core` | Puts every showcase golem nearby into that stage. |
-| `/dross showcase boss_designs colossus erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
-| `/dross showcase boss_designs colossus walk` / `idle` | Knuckle-walking on the spot / standing. |
-| `/dross showcase trophies colossus` | Places the five Cinder Colossus trophy designs in a row in front of you, each on a pedestal facing you with a sign giving its number and name. Running it again replaces the row. |
-| `/dross showcase trophies ratking` | Places the Rat King's five trophy designs in a row in front of you, each on a pedestal facing you with a sign. Running it again replaces the row. |
-| `/dross showcase trophies huntsman` | Places the Huntsman's five trophy designs in a row in front of you the same way. |
-| `/dross showcase boss_designs ratking` | Spawns the Rat King (Gnawrick 1C) frozen, with signs and clickable animation buttons in chat. Right-click one to play his next animation; sneak + right-click: he dies. |
-| `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
-| `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
-| `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
-| `/dross showcase boss_sounds huntsman` | Lists every Huntsman and Alpha Moose sound in chat, with a numbered button for each version (hover to see what it is). |
-| `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
-| `/dross showcase rimefall_mobs` | Lines up Rimefall's animals, frozen, on ice pedestals with signs: a male, a female and a calf Rimehorn, a bull, a cow and a calf moose, and a Pond Skater. Right-click one to play its next animation. |
-| `/dross showcase rimefall_mobs idle` / `walk` / `run` / `charge` / `eat` / `attack` | Plays that animation on every showcase animal nearby (attack: the Rimehorn's horn flick, the moose's ram, the Pond Skater's stab). |
-| `/dross showcase frostfolk` | Lines up the eleven Frostfolk (the warriors in front, the workers and the elder behind), frozen, with signs. Right-click one and it talks to you. |
-| `/dross showcase frostfolk idle` / `walk` / `run` / `attack` / `horn` / `talk` | Plays that animation on every showcase Frostfolk nearby (attack: each one's own; horn: the horn-blower's). |
-| `/dross showcase mob_sounds rimefall` | Lists every Rimehorn, moose and Pond Skater sound in chat, each with a [play] button. |
-| `/dross showcase boss_designs cinder_wastes` | Builds a gallery of the fire servant candidates (fifteen possible bosses, each with its variations behind it), frozen, with signs and [go] buttons in chat. Use a flat world. |
-| `/dross showcase boss_designs emberdactyl` | Builds a gallery of the Emberdactyl (33 blocks across its wings), its young and its egg's five looks (the last one hatched), then its volcano behind them (about a minute): lava lake, nest, lava cascades, a lit path up to a lookout with its hoard (empty chests and gold). The adult and the young move, fire falling from their wings as they fly: chat buttons play each of their animations (hover, fly, glide, dive, screech, gust, grab, snap, perch, walk, death); right-click one for its next. Use a flat world. |
-| `/dross showcase boss_designs emberdactyl <animation>` | Plays one animation on the Emberdactyl and its young near you (with its sounds). |
-| `/dross showcase cinder_mobs` | Lines up the Cinder Wastes' mobs with signs: the Pallbearer and the Cinder Hermit in eight shells; chat buttons play their animations (idle, walk, swipe, slam, roar, snap, pinch, hide, peek, come_out, death). |
-| `/dross showcase cinder_mobs <animation>` | Plays one animation on the Cinder Wastes' mobs near you (with its sounds). |
-| `/dross showcase boss_sounds emberdactyl` | Lists the Emberdactyl's and its young's sounds (its screech, wingbeats, gust, dive...) with play buttons. |
-| `/dross showcase bossbars emberdactyl` | Shows the Emberdactyl's boss bar (a volcano between two burning wings) for a minute, the adult's over its young's, draining and filling. |
-| `/dross showcase trophies emberdactyl` | Places the Emberdactyl's five trophies in a row on pedestals with signs (right-click one to turn it through the poses). |
-| `/dross showcase mob_sounds cinder_wastes` | Lists the Pallbearer's and the Cinder Hermit's sounds with play buttons. |
-| `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
-| `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
-| `/dross boss summon ratking` | Summons a fighting Rat King, asleep, 14 blocks in front of you, facing you (not on Peaceful). |
-| `/dross boss arena ratking` | Builds the Rat King's placeholder arena round you (a 31-block round floor of dirt and coarse dirt), with a chat button to summon him. |
-| `/dross boss summon huntsman` | Summons the Huntsman riding his Alpha Moose 16 blocks in front of you, calm until hit (not on Peaceful). |
-| `/dross boss summon emberdactyl` / `emberyoung` | Summons the Emberdactyl (or its young) 30 (18) blocks in front of you, hovering over that spot, alone (not on Peaceful). |
-| `/dross boss arena emberdactyl` | Builds an Emberdactyl volcano on the land in front of you, with its egg in the nest and the Emberdactyl perched on the rim (a few seconds' freeze). |
-| `/dross boss arena huntsman` | Builds the Huntsman's placeholder arena round you (a 41-block round floor of snow and packed ice, with lantern posts), with a chat button to summon him. |
-| `/dross boss arena bedrock` | Builds a test arena for any boss round you: a 61-block square bedrock floor with glowstone set in it, bedrock walls 8 high with glowstone bands, where nothing spawns by itself; chat buttons summon each boss. |
-
----
-
-## Building and running
-
-From the project folder, on Windows:
-
-| Task | Command |
-|---|---|
-| Build the mod jar (`build/libs/dross-<version>.jar`) | `.\gradlew.bat build --console=plain` |
-| Run the game with the mod | `.\gradlew.bat runClient --console=plain` |
-| Run the automated in-game checks | `.\gradlew.bat runGameTestServer --console=plain` |
-| The same checks in a brand-new world | `.\gradlew.bat runGameTestServer -PgameTestWorld=world_check_1 --console=plain` (pick a folder name under `run/` that doesn't exist yet) |
-
-- **Logs:** `run/logs/latest.log`. **Crash reports:** `run/crash-reports/`.
-- **Commands in-game:** create the world with **Allow Cheats: ON** to use the commands.
-- **First-time setup:** if it fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, re-run the same command.
-
-### Tools (Python)
-- **`tools/shrines/`:** generates the two grand shrine designs, the Fallen Cathedral and the Shattered Spire (the user's picks from ten; the other eight were removed).
-  - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
-  - See `tools/shrines/README.md`.
-- **`tools/skins/`:** draws the 4 villager-model skins (`textures/entity/trader/`: 1 Hooded Watcher, kept for later; 2 The Archivist, the trader; 3 Ragged Seeker and 8 Blind Oracle, the survivors) and renders the front and back previews in `skin-previews/`.
-- **`tools/terrain/`:** the Dross's terrain and blocks.
-  - `worldgen.py` writes all the terrain data files (noise, biomes, ground cover, features, ores, spawn lists); every tuning number is a labeled constant at its top.
-  - `draw_blocks.py` draws the terrain blocks' textures and `block_data.py` writes their models, block states, loot, tags and recipes; previews go to `block-previews/`.
-  - Top-down maps of a generated area are in `terrain-previews/`.
-  - See `tools/terrain/README.md` (and `TERRAIN_DESIGN.md` for the design).
-- **`tools/golems/`:** generates the Cinder Colossus designs and its trophies.
-  - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/cinder_wastes/cinder_colossus/`, and writes `GolemDesigns.java`.
-  - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/cinder_wastes/cinder_colossus/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
-  - `lair_preview.py` renders the lair previews (`boss-previews/cinder_wastes/cinder_colossus/lair_*.png`).
-  - See `tools/golems/README.md`.
-- **`tools/ratking/`:** generates the Rat King design candidates and his rats (models, animations, textures, the Zzz
-  particle, `RatKingDesigns.java` and `RatDesigns.java`) and renders the previews in `boss-previews/blightwood/rat_king/`; its
-  `sounds.py` makes all their sounds from scratch. It reuses the golem kit. See `tools/ratking/README.md`.
-- **Making a new boss:** follow `BOSS_GUIDE.md` (the whole process, from design candidates to the user's pick).
-  Every boss's previews go in its own folder under `boss-previews/`.
-
----
-
-## Project layout
-
-Base package: `com.reg21meme.dross`. Client-only code is in each area's `client` subpackage.
-
-| Package | What's in it |
-|---|---|
-| `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators and the hub falloff (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
-| `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (fitted onto the terrain), the arrival sequence |
-| `world` | The portal site: location search, the Fallen Cathedral, ground fitting, the leak (`world/shrine` holds the shrine designs) |
-| `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
-| `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
-| `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
-| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss` |
-| `command` | The `/dross` command and its showcases |
-| `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, world generation features, tree decorators, density functions, placement modifiers, the creative tab |
-
-Mod metadata is in `src/main/resources/META-INF/mods.toml`, filled from `gradle.properties`. All player-facing text is in `assets/dross/lang/en_us.json`.
+# Dross
+
+A Minecraft Forge mod that adds **the Dross**: a dangerous dimension of endless night, with its own forests, wastes and mountains, reached through an electric blue rift portal. Getting there takes a quest. You find an old letter in the Nether, prove yourself to a strange villager, and have him forge the key that opens the rift. The mod also adds two necromancy enchantments that raise the undead to fight for you.
+
+The Dross is a **mid-to-late game** place. You reach it after surviving the Nether, the deep dark, the ocean and the End, not after beating every boss. There is one way in (the portal at the Fallen Cathedral) and one way out (the hub's portal).
+
+| | |
+|---|---|
+| Minecraft | 1.20.1 |
+| Forge | 47.4.10 |
+| Java | 17 |
+| Mod ID | `dross` |
+| Version | 0.1.0 |
+| Needs | [GeckoLib](https://www.curseforge.com/minecraft/mc-mods/geckolib) 4.8.4 or newer (for Forge 1.20.1) |
+
+---
+
+## The story
+
+How a player moves through the mod, from a normal survival world to the Dross.
+
+1. **Normal survival.** Nothing from the mod is needed at first. Somewhere 3,000–10,000 blocks from spawn, the **Fallen Cathedral** already stands in ruins around an unlit blue portal frame, and the land around it is dying. An old villager, the **Dross Trader**, lives in a small stone chapel at the edge of a village near spawn.
+2. **The Weathered Letter.** Every Nether Fortress and Bastion Remnant chest holds a Weathered Letter. It's a 4-page letter from an unnamed friend:
+   - Blue portals from the Dross have been spilling into the world. "We" closed them, but the Dross is pressing to break through again.
+   - An old villager, the writer's friend, is looking for someone strong enough to fight back.
+   - It gives a rough location for him: a direction from where the world began, and coordinates rounded to 50 blocks.
+   - It tells the reader to say an old friend sent them about the rift.
+
+   Picking up the letter opens the **Dross** advancement tab.
+3. **Meeting the trader.** The first time you right-click him, he doubts you're strong enough and sends you for three tributes, one each from the Nether's fortresses, the deep dark's cities and the End. After that, each right-click reminds you what's still missing. His trading screen stays closed until the quest is done.
+4. **The three tributes** (any order). Right-click him while holding the full amount: **1 wither skeleton skull**, **3 echo shards** and **15 end stone**. If you hold too few, he tells you how many to bring. If you hold more, he takes exactly what he needs. Once all three are in, he gives you the **Dross Compass**, which points at the cathedral's portal. He says he knows how to forge a key but needs materials. *Advancement: Proven Worthy.*
+5. **The key materials** (any order, same rules): **1 trident**, **1 Heart of the Sea** and **8 amethyst shards**. He forges the **Rift Key**, tells you to be careful what you let out, and mentions he has books that can help in there. *Advancement: Keymaster.* His shop opens for you.
+6. **Opening the rift.** Follow the compass to the Fallen Cathedral and throw the Rift Key into the frame's opening. The key is used up and the portal lights, staying open for everyone, permanently.
+7. **The Dross.** Stepping through takes you to the **Shattered Spire**, the hub at Dross 0,0. The words "The Dross" fade in over four low piano notes. *Advancement: Enter the Dross*, the main achievement. On your first arrival you also get the **Dross Guide Book**. Two survivors, the Blind Oracle and the Ragged Seeker, keep watch at the spire.
+8. **Exploring.** Round the hub lies the Silverwood Forest; further out are the Cinder Wastes, Blightwood, Rimefall and the Gravecrags' peaks. Somewhere in the Cinder Wastes a volcano holds the **Cinder Colossus**. *Advancement: Set in Stone.*
+9. **Necromancy.** The trader sells the Necromancy and Deathforged enchanted books, and Deathforged books also drop in the Dross. Raising your first undead earns *Rise!*
+
+**Lost items:**
+- If you lose the compass, the trader gives you a new one for free.
+- If you lose the Rift Key, you bring the key materials again. Until you've entered the Dross, he reminds you that he can forge another.
+- The Rift Key is fireproof and never despawns.
+
+---
+
+## The Dross (the dimension)
+
+- **Dimension ID:** `dross:dross`, shown in game as **"The Dross"**.
+- **Terrain:** real land, surface only (no caves, except Blightwood's sewers, below): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and snow-capped mountain peaks (about y 230-260) in the Gravecrags. It's Minecraft's own terrain generator, set up in data files (`data/dross/dimension/`, `dimension_type/`, `worldgen/`) written by `tools/terrain/worldgen.py`, where every tuning number lives.
+- **Five biomes**, regions about 600-670 blocks across:
+  - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds.
+  - **Cinder Wastes**: ash, basalt and magma, enclosed lava pools, basalt spires, charred trees, Emberweed and Cinder Vents. Home of the Cinder Colossus's volcano.
+  - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog. No zombies, skeletons or endermen: the mobs here are rats (Plague Rats, and about 1 in 5 Plague Ravagers) and the odd witch (7 in 100). Underneath are **the sewers** (below).
+  - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds, and one **big frozen lake** in every Rimefall area. Its only mobs are its own animals: Rimehorn herds, moose and Pond Skaters (below).
+  - **The Gravecrags**: the mountains, Cragstone cliffs with glowing Storm Lichen and Crag Thistles, snow on the peaks. Never near the hub.
+  - (There was a sixth, the **Nether Scar**, until October 17, 2026; it was removed and its land went to the biomes round it. Its four blocks are kept as building blocks: see the blocks below.)
+- **Ores** under every biome, in Duskstone (the Dross's stone): coal, gold (drops nuggets), **Moonsilver** (Raw Moonsilver, smelted into Moonsilver Ingots) and **Stormite** (glowing Stormite Shards; needs an iron pickaxe). Moonsilver and Stormite are for gear that comes later.
+- **Sky and fog:** each biome has its own night fog, sky and water colours, particles and ambient sounds, with a blue glow over the night sky and no clouds.
+- **Old worlds:** not supported while the mod is unpublished (the old flat Dross and its biome are gone). Start a new world.
+- **Time:** permanent night (fixed at time 18000). The sun never rises.
+- **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only the Cinder Colossus's **stone golems** spawn there, with **lava golems** (about 1 in 5, always next to lava). Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
+  - **Zombies** spawn in full netherite armor with a netherite sword.
+  - **Skeletons** spawn in full netherite armor and keep their bows.
+  - None of it is enchanted, and none of it drops when they die.
+  - These geared mobs are the only source of dropped Deathforged books (see Enchantments).
+- **No other way out:** no portal can be lit inside the Dross. The Rift Key does nothing there, and flint and steel or fire can't light a nether portal there either. The hub's portal is the only exit.
+- **Safe zone:** no hostile mobs spawn naturally within 48 blocks of the hub center. Mobs can still walk in from the dark.
+
+### The sewers under Blightwood
+
+The Dross's only underground places. **Where they go:** Blightwood's patches are taken nearest the hub first, in
+groups of 3. In every group, one patch has **the Rat King's sewer**, and each of the other two has a **regular sewer**
+half the time. That repeats outwards forever, so there are many of both, never two in one patch.
+
+**A regular sewer** has:
+
+- **3 pipe entrances:** big green copper pipes, like Mario pipes, standing out of the ground with steps up to the
+  rim. Jump in: you drop 34-58 blocks down a copper shaft into a deep pool of **murky green sewer water** that breaks
+  your fall. A ladder up the inside wall takes you back out.
+- **A maze of tunnels:** wide brick tunnels with a water channel down the middle, narrow side tunnels with cobwebs,
+  pillared rooms, rough natural caves, loops and dead ends. It's dark down there, with a little glow lichen on the
+  walls.
+- **Sewer Sludge** in patches on the floors: a murky brownish-green mud that slows you down (less than soul sand).
+- **Only rats spawn** in the sewers, 3 enraged Plague Ravagers to every 2 Plague Rats. The green water, thick fog and
+  dripping come from the sewers' own underground biome, "The Sewers".
+
+**The Rat King's sewer** looks different:
+
+- **One grand entrance:** a huge copper pipe whose rim is shaped like his crown (bright copper points tipped with
+  glowing green Blight Vents, bright copper bands, tattered red banners; no gold blocks). Round it the ground is poisoned: dead plants, sludge puddles, bones, rat nests of old
+  carpet, cobwebs and gnawed fences. **Blight Vents** in and round the pipe glow poison green and puff spores, so it
+  stands out at night.
+- **The royal road:** the tunnel from the entrance to his cave has red banners, green candles, bones and scattered
+  gold. There's no carpet, so it doesn't show you the way through the maze.
+- **The rat cave:** a domed chamber about 40 blocks across, lit by green candles and glow lichen, copper pipes on its
+  walls and ceiling pouring into drains, sludge patches all over its floor, and in the middle the **Rat King's nest**
+  of piled carpets, surrounded by his hoard of gold (about 70% Dross gold ore, 30% gold blocks). He's **asleep there
+  when you arrive** and wakes as you come near, like in his fight. Plague Ravagers that spawn in the rat cave are
+  tougher than usual (1.5 times the health and bite).
+
+`/dross goto lair ratking` takes you to the nearest rat cave and `/dross goto sewer` to the nearest regular sewer
+(Minecraft's `/locate` can't find them). Sewers only appear in newly generated chunks.
+
+### Rimefall's animals and lakes
+
+- **The big lakes:** every Rimefall area has one big frozen lake, about 100 blocks across (a smaller one, about 64,
+  where there's no room), in its flattest spot: a sheet of ice over dark water, deeper in the middle, with 4-6
+  **open holes** you can fall into (they never freeze over), and a gentle snowy shore. Nothing grows on the ice.
+  `/dross goto lake` takes you to the nearest one's shore. They only appear in newly generated land.
+- **Rimehorns:** woolly rhinos about 4.5 blocks tall and 8 long, in herds of 6-8 (2 frosted males, the rest dark
+  brown females). Each Rimefall area has 2 herds, sometimes 3 (a small area 1, sometimes 2), placed when the land is made, away from
+  the lake. They're **neutral**: hurt one and its herd comes for you, head on, but gives up after about half a minute
+  or 24 blocks (a hurt calf runs off). Up close it **flicks** you up into the air with its horn; further off (or when
+  you shoot it from afar) it **rushes** you in a quick, low dash. Its face, snout and rump can be hit, not just its
+  middle (so can a moose's head). Feed **Frostbloom**
+  to a male and a female and they make a calf, which grows up in 35 minutes and **never attacks you**, even when its
+  herd is angry. No drops yet.
+- **Moose:** about 3.8 blocks tall, alone, in Rimefall and now and then in the Silverwood Forest (never round the
+  hub). Neutral: hit one and it charges and rams you, throwing you back (a bull hits harder than a cow). A **mother**
+  with her calf goes for you if you come within about 6 blocks of her or the calf, but never chases you more than 10
+  blocks from her calf. No drops yet.
+- **Pond Skaters:** hostile long-legged skaters that spawn on ice at night: at most 1 or 2 on a big lake (lakes differ), at
+  most 1 on any other patch of ice at least 20 blocks across, none on smaller ice. As fast as a spider off the ice and very fast on it;
+  they rear up and stab with their beak. Their legs have hitboxes of their own. Besides players they go for the
+  Frostfolk, the Huntsman, his Alpha Moose, moose and Rimehorns (which fight back).
+- Every one of their sounds is original (`/dross showcase mob_sounds rimefall`). Spawn eggs for all three are in the
+  Dross tab, and `/dross showcase rimefall_mobs` lines them up with animation buttons.
+
+---
+
+## The portal
+
+### The frame
+- **Dross Portal Frame** (`dross:dross_portal_frame`): dark stone with glowing electric blue cracks.
+- It can't be crafted, mined or blown up, and it drops nothing. It has a block item for testing, only in the creative Dross tab (or with `/give`).
+- Every frame block "leaks" the Dross: drifting blue particles and a low ambient hum, even when the frame is unlit.
+- Flint and steel does nothing to it, and normal obsidian portals stay purple nether portals.
+
+### Lighting it with the Rift Key
+- Throw (Q) a **Rift Key** into the empty middle of a complete frame, along X or Z. The key is used up and the frame fills with the **Dross Portal** (`dross:dross_portal`).
+- If the frame is already lit, the key pops back out instead of being used, and it won't drift into the portal.
+- A netherite ingot doesn't light anything.
+
+### Look
+Electric blue portal texture, blue particles, and a blue swirl over your screen while you stand inside.
+
+### Travel
+- Every Dross portal in the Overworld leads to the **hub** (the Shattered Spire at Dross 0,0).
+- The hub's exit portal always leads back to the **Fallen Cathedral's** portal, wherever you came in.
+- All entities can use it. Nothing is ever placed inside blocks or above a drop.
+
+---
+
+## The Fallen Cathedral (the portal site)
+
+The cathedral is the only way into the Dross, and it's built once per world.
+
+- **Where:** a random spot **3,000–10,000 blocks from world spawn**, chosen when a new world starts and saved with the world.
+  - **Allowed biomes:** plains, sunflower plains, desert, taiga (including old growth and snowy taiga), forest, flower forest, birch forest, dark forest, snowy plains and ice spikes.
+  - **Avoided:** ocean, river, beach, swamp, water near the footprint, and villages.
+  - The natural ground under it must be nearly flat to begin with: 5 blocks of variation or less, with a few small dips allowed.
+  - The search runs in the background using the world generator's own maths, then the best spot is checked in the real world. If nothing passes, the rules relax step by step, so every world gets a site. It takes about a minute after a new world starts.
+  - When it's built, a chat message gives its location. You see the message again each time you join the world.
+- **What:** a huge ruined cathedral, 61 × 87 blocks. Its heart is an unlit, unbreakable portal frame with a 3 × 5 opening, facing south. Glowing blue cracks, broken frame shards and dead ground show the Dross leaking out.
+- **Fitting into the land:**
+  - The footprint is levelled by cutting or filling a few blocks, with no big foundations.
+  - Around it the ground steps back down to the natural terrain **one block at a time**, so there are no cliffs or dirt walls.
+  - New ground keeps the local top layer (grass, sand, snow...).
+  - Only trees that touch the cathedral or the reshaped ground are removed, always whole, so there are no floating leaves. The rest of the forest is left alone.
+- **The leak:** within about 16 blocks, flowers and grass die or disappear, some grass turns to coarse dirt, and stone bricks crack.
+- **Fallback:** if the cathedral can't be built, a small ruined stone-brick shrine around a 4 × 5 frame is built instead.
+
+The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size). The compass, `/dross goto cathedral` and the hub's exit portal all use it.
+
+---
+
+## The hub: the Shattered Spire
+
+- Built once per world at **Dross 0,0**: a tall, broken spire, levelled into the forest. It's built in the background a few seconds after a new world starts, so creating the world doesn't wait for it (going through a portal sooner finishes it on the spot). The ground round it steps back to the natural land at most 1 block at a time (no cliffs or dirt walls), and only trees touching it are removed, each one whole.
+- Its portal frame is lit as the **exit portal**, facing south.
+- You arrive inside the spire's hall, on the top step in front of the exit portal, facing the gate.
+- **Arrival sequence**, every time you come through the portal:
+  - After 1 second, the title **"The Dross"** fades in, in electric blue.
+  - Four piano notes play, "dun, dun, DUN, dunnn" (E, D, C#, then a low F#). Only you hear them.
+  - Two seconds after the last note, you get the *Enter the Dross* advancement.
+  - On your **first arrival only**, you get the **Dross Guide Book** (dropped at your feet if your inventory is full).
+- **Fallback:** if the spire can't be built, an 11 × 11 platform with a lit 4 × 5 exit portal is built instead.
+
+### The survivors
+Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the Dross skins drawn for the trader's villager model (8 and 3).
+- They start on the dais beside the arrival step and walk together in and around the spire and out of its gate, never more than 20 blocks outside its walls.
+- Right-click one and he says his next line in chat.
+- Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them, and Necromancy never raises undead from hitting them.
+- No trades.
+
+---
+
+## The Dross Trader
+
+An old villager (`dross:dross_trader`) who knows about the rift. He wears an original electric blue skin, **The Archivist**: a bald scholar with glowing spectacles and a blue book.
+
+### Where he lives
+- He spawns **once per world**, in his own **Rift Chapel** at the edge of the nearest village to world spawn that has room for it.
+- **Finding a village:** he checks the 5 nearest villages within 1,000 blocks first. If none has room, he tries the next 5, widening the search 1,000 blocks at a time up to 5,000. The log says which village was picked and why.
+- **No usable village:** if none is found (for example with Generate Structures off), the chapel goes on the nearest flat spot near spawn, with its door facing spawn.
+- When he spawns, a chat message gives his chapel's location. You see the message again each time you join the world.
+- **The Rift Chapel** (9 wide, 13 deep, 18 tall):
+  - **Outside:** deepslate and stone brick walls with lapis, buttresses, tall blue windows, a blue rose window over the dark oak door, and a steep roof. On top are an open belfry with a soul lantern and a spire with a copper lightning rod.
+  - **Inside:** pews, blue banners and soul lanterns. Behind the altar is a broken piece of a real Dross portal frame, which leaks and hums but can't be lit.
+- **Placement:**
+  - The chapel sits right next to the village's houses without touching any of them. Its door faces the nearest street.
+  - A 3-wide path in the village's own path material (dirt path, or smooth sandstone in desert villages) leads from the door to that street.
+  - Small bumps under it are levelled, up to 3 blocks each way.
+  - The lightning rod draws natural lightning within 128 blocks to the spire, which keeps it away from the village.
+
+### Behavior
+- **Wandering:** he wanders within 50 blocks of his chapel and opens his door.
+- **Teleporting home:** he teleports back to the chapel aisle (with blue enderman-style particles and sound) if any of these happen:
+  - he gets more than 50 blocks away;
+  - he falls more than 4 blocks;
+  - he ends up underground.
+
+  If he's riding something, he gets off first.
+- **Can't die:** he can be hurt and knocked back, but at half health he teleports home and heals fully. He can't use portals.
+- **Glow:** while any player is within his 50-block area, he glows electric blue, visible through walls.
+- **Spawn egg:** "Dross Trader Spawn Egg" (creative tab). An egg trader treats the spot he was placed as his home, with the same rules.
+
+### Shop
+His shop opens only for players who have completed the quest.
+
+| Offer | Price |
+|---|---|
+| Necromancy book (lowest level) | 32 emeralds + 1 book |
+| Deathforged I book | 24 emeralds + 1 book |
+| Dross Guide Book (only for players with *Enter the Dross*) | 3 books |
+
+Unlimited uses, no restocking, no XP.
+
+---
+
+## Items
+
+| Item | What it does |
+|---|---|
+| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in every Nether Fortress and Bastion Remnant chest (added with a global loot modifier, so other mods' loot still works). It points to the trader with a rough location and rewrites itself with his real location once he has spawned. |
+| **Dross Compass** | Given by the trader after the three tributes. Points at the Fallen Cathedral's portal and re-aims itself every second, so it stays correct. Spins in other dimensions. |
+| **Rift Key** | Forged by the trader from the key materials. A crystal key with a blue heart. Throw it into a Dross frame to light the portal (it's used up). Fireproof, never despawns. |
+| **Dross Guide Book** | Given on your first arrival in the Dross, and sold by the trader. A readable 5-page guide to the dimension: endless night, the safe hub, the netherite-clad dead, and no way out but the hub. |
+| **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
+| **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
+| **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon, the Wither and every Dross boss, whatever stage it's in) while still counting as your kill (a boss's advancement and trophy too). Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
+| **Rage Wand** | A creative-only testing wand with five **teams** (blue, red, green, yellow, purple: right-click to switch; the crystal shows the colour). Hit a mob with it (no damage) to give it **Rage** and the wand's team: mobs of different teams fight each other, never their own team, and ignore players while an enemy team is near. Teams and Rage last forever, not even milk cures them. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and their minions join their team. See [The Rage Wand](#the-rage-wand). |
+| **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
+| **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
+| **Huntsman Trophy** | A one-block miniature of the Huntsman and his Alpha Moose in one of five poses: Riding Down, Rain of Arrows, The Rearing, The Rearing Shot and The Parting Shot (the tooltip names it). Right-click a placed one to change its pose. Beating the pair gives one to every player who helped. Fireproof, never despawns (see [The Huntsman](#the-huntsman)). |
+| **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
+| **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent (from the old Nether Scar: building blocks now, they no longer generate); Cragstone, Storm Lichen, Crag Thistle); and from Blightwood's sewers **Sewer Sludge** (it slows you down, less than soul sand) and the **Blight Vent** (glows poison green and puffs spores). |
+| **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores. Raw Moonsilver smelts into an ingot, and the ingot makes the Moonsilver Spear; Stormite is for gear that comes later. |
+| **Moonsilver Spear** | The Huntsman's spear, for players: two sticks on a diagonal with a Moonsilver Ingot at the top right. It stabs for 8, and held back and let go it's thrown like a trident (8) and flies back to you. Whatever it hits is frozen for 4 seconds (frost, shaking, slowed). 500 uses, repaired with Moonsilver Ingots. Enchantments: Sharpness or Smite, Impaling (for its throw, on anything), Looting, Knockback, Channeling, Unbreaking, Mending. |
+| **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
+| **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
+
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+
+---
+
+## Enchantments
+
+Both are **swords only** and **treasure enchantments**. They never come from the enchanting table, loot chests, fishing or normal librarians.
+
+### Necromancy (I–V)
+*"Hits have a chance to raise the undead to fight for you."*
+
+| Level | Chance per hit | Max alive | Soul capacity | Undead it can raise |
+|---|---|---|---|---|
+| I | 15% | 1 | 25 | zombie, skeleton |
+| II | 20% | 2 | 50 | zombie, skeleton |
+| III | 25% | 4 | 100 | + husk, stray, drowned |
+| IV | 30% | 6 | 250 | + chicken jockey, spider jockey, skeleton horseman |
+| V (admin, testing) | 100% | 10 | infinite | same as IV |
+
+- **Which hits count:** only a melee hit with the sword in your main hand, on the main target of the swing. Sweep hits never count. Hitting a player, the trader, the hub's survivors or your own risen undead never raises any.
+- **How many rise:**
+  - If none of yours are alive, a successful hit raises the full max. Otherwise it raises half the max, rounded up, never going over the max.
+  - Each one costs **1 soul**. Jockeys and horsemen cost 2.
+  - The type is random from what your level unlocks.
+- **Souls:**
+  - Killing any zombie or skeleton (or a variant) with the sword stores 1 soul, up to the level's capacity, and a blue wisp flies from the mob into your hand. Risen undead give no souls.
+  - Souls are stored **on the sword**, so each sword has its own count. The tooltip shows "Souls: X / Y" in gold ("Souls: ∞" at level V, which never spends souls).
+
+### The risen undead
+- **Real vanilla mobs:** they're normal zombies, skeletons and so on, owned by you, and they fight as a **pack**.
+- **Choosing a target**, in order:
+  1. anything attacking or targeting you;
+  2. whatever you hit in the last 5 seconds;
+  3. anything that hurt them;
+  4. any fight another of your risen undead is in.
+
+  Otherwise they follow you. Once fighting, they stick with their target until it dies, then help allies before coming back to you.
+- **Who they leave alone:** they never hurt players, the trader, the hub's survivors, villagers, wandering traders or each other. Your own hits never hurt them.
+- **Mobs fight back:** any mob they damage turns on them, even other undead.
+- **Your allies leave them alone:** iron golems (village or player-built), snow golems and tamed wolves (anyone's) never target, chase or hurt your risen undead, and drop any fight with one within half a second. A golem still spots a real monster standing behind them. Your risen undead never pick a golem or a wolf on their own (not even when a zombie the golem is fighting calls nearby zombies for help), but they still defend you from one that attacks you and join in when you hit one (it just won't hit back). The only exception is the Rage Wand: raged on different teams, they fight.
+- **Risen drowned** fight on land, day or night.
+- **How long they last:** they crumble into blue particles after **60 seconds**, or early if you log out, die or change dimension.
+- **What they never do:** drop items, give XP, pick things up, use portals or convert into other mobs. Normal burning rules apply.
+- **Peaceful:** on Peaceful, Necromancy does nothing.
+
+### Deathforged (I–X)
+*"Your risen undead come armored. Higher levels forge stronger gear."* Does nothing without Necromancy on the same sword.
+
+| Level | Armor (all types) | Sword (zombie types) |
+|---|---|---|
+| — (none) | none | none |
+| I | Leather | none |
+| II | Leather | Wooden |
+| III | Gold | Gold |
+| IV | Chainmail | Stone |
+| V | Iron | Stone |
+| VI | Iron | Iron |
+| VII | Diamond | Iron |
+| VIII | Diamond | Diamond |
+| IX | Netherite | Netherite |
+| X | Netherite | Netherite, plus Strength I and Speed I for their whole life |
+
+- **Nothing is enchanted**, and none of the gear drops.
+- **Skeleton types** (skeletons, strays, the riders of spider jockeys and horsemen) always hold a plain bow instead of a sword.
+- **Mounts** (chickens, spiders, horses) get no gear.
+- Level X's effects show no swirling particles, and they don't glow.
+
+### Anvil rules
+- **Deathforged I–V** combine like vanilla enchantments (I + I → II … IV + IV → V), up to V. Levels VI–X can't be combined, but a single VI–X book can go onto a sword without Deathforged.
+- **Necromancy never levels up at an anvil.** Two Necromancy swords can be combined: the result keeps the higher level, and the souls from both swords add up, capped at its capacity.
+- **Not allowed:**
+  - Necromancy with Smite.
+  - A combine that changes nothing.
+
+### Getting them
+- **From the trader**, after the quest: Necromancy (lowest level) and Deathforged I.
+- **As drops in the Dross:** Deathforged books drop only from the netherite-clad zombies and skeletons of the Dross, when a player hit them recently. The chance is 5% per kill, plus 1% per Looting level. Higher levels are rarer (weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1).
+
+---
+
+## The Cinder Colossus (mini-boss)
+
+A golem mini-boss that serves the Fire Necromancer: a huge, gorilla-like brute about 5.5 blocks tall, hunched over and
+walking on its knuckles, with fists bigger than its legs, a cracked face, a layered jaw (an outer jaw and an inner
+one behind it), horns and spikes, and **volcanoes on its back**. After three rounds of designs, the user picked
+**3G Saddleback**, a variation of Old Calderon (No. 3 of the first five designs): two great volcanoes grow out of its
+back and merge into one saddle of rock, big obsidian spikes stand in the saddle and down its lower back, it has horns,
+spikes pointing up off its shoulders and a beard of obsidian shards, all in dark scorched stone. Its volcanoes erupt
+out along their own angle, and its craters always hold glowing lava. Previews are in `boss-previews/cinder_wastes/cinder_colossus/`
+(`all_golems.png`, `01_saddleback_sheet.png`, the fight page `01_saddleback_fight.png` and `minions.png`; the other
+candidates are in `boss-previews/cinder_wastes/cinder_colossus/round1/` to `round3/`).
+
+It lives in its **lair**, a volcano in the Cinder Wastes (below). For testing you can also get one from the
+**Cinder Colossus Spawn Egg** (Dross creative tab) or `/dross boss summon colossus`, and `/dross boss arena colossus` builds a
+placeholder arena to fight it in: a round floor of red nether bricks, 31 blocks across, with a low wall (four gaps)
+and lights set in the floor.
+
+### The lair
+- **Where:** there are many lairs, one in **every group of 3 Cinder Wastes patches**: the 3 patches nearest the hub
+  hold one lair, the next 3 nearest another, and so on outwards forever (never two in one patch; the other two patches
+  of each group are kept for future fire bosses). A lair is built in the background the first time you come within
+  about 384 blocks of it, a little at a time (at most about 40 ms of work each game tick, so the game never stutters).
+  `/dross goto lair colossus` takes you to the nearest one's entrance (building it first if it isn't yet; never onto a
+  half-built volcano).
+- **Outside:** a volcano rising about 40 blocks over its arena, with a jagged crater that smokes and throws embers, lava
+  streams and pools round its foot (they never spread, and neither do natural lava pools on its flanks), and a big cave
+  mouth with obsidian teeth. The way in never steps more than 1 block: on steep land a rock ramp leads to the mouth.
+- **Inside:** a domed cavern about 41 blocks across under the crater, with an obsidian and magma floor, lava glowing
+  through sealed fissures below it, and obsidian stalactites. No lava can be reached from the floor, and nothing
+  spawns inside by itself.
+- **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). Once it's beaten, that
+  lair stays empty for good: no respawn.
+- Previews: `boss-previews/cinder_wastes/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
+
+### The fight
+It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
+within 40 blocks. The fight has three stages:
+1. **Shell** (down to 70% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
+   second; 2 in the Cracking stage and 2.8 in the Lava Core stage). It swipes at you up close, tears rocks
+   out of the ground and throws them (they shatter; they never place a block), raises both fists for a moment and
+   slams the ground (the shockwave hurts and throws you about 20 blocks), and charges on all fours, head first, from up
+   to 32 blocks away, running all the way to where you stood half a second before it set off.
+2. **Cracking** (70% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
+   and its shell starts breaking up, plates knocked loose and lava glowing through, more with every hit. A bit faster
+   and more aggressive. Its volcanoes also spit **lava blobs** that land near you (never on you) and leave small pools
+   of lava for 20-40 seconds, and it pounds the ground to raise **three stone golems** (left, right, in front of it). As it enters this stage,
+   **four stone golems** climb out at once, and from now on its charge leaves a short **trail of fire**.
+3. **Lava Core** (35% to 0%; lava red): its shell bursts off (it can't be hurt while it does). Faster and angrier:
+   **every hit sets you on fire**, its charge leaves a longer **trail of fire**, it stops throwing rocks, and it raises
+   **lava golems**, which blow up a few seconds later unless you kill them first. Its lobs now spit **four** lava
+   blobs instead of two. As it enters this stage its volcanoes spew **four lava blobs** round you.
+
+**Its damage** (in hearts, Shell / Cracking / Lava Core, on Normal with no armour): swipe 6.5 / 7.5 / 8, charge
+6 / 6.5 / 7, slam 3.5 / 4 / 5, thrown rock 4.5 / 5.2 / none, a lava blob landing right on you 3.5 / 3.9 (it lands
+near you, never aimed at you). In the Lava Core every hit also sets you on fire for 5 seconds.
+
+**The roar:** the first time it's hurt, and at both stage changes, it roars and a ring of dust throws every player
+within 15 blocks back about 15 blocks. The first one does no damage; the eruption's roar takes 1 heart and the
+shell bursting's 2.
+
+**How it picks a move:** by how far away you are (close, mid, far, very far) and its stage, with the chances in
+`ColossusTuning` (the user's table): up close it swipes and slams, further out it charges, throws and lobs, and very
+far away it mostly charges.
+
+**Against Necromancy:** with your risen undead nearby it raises one golem for every two of them (never more than 6),
+its golems go for the risen undead first, and when three or more of them crowd it, it slams more often.
+
+It's a slow stone brute, so it can't be beaten easily from afar: **arrows and other projectiles** (tridents,
+fireballs, snowballs, your risen skeletons' arrows) deal only **50%** of their damage in the Shell stage, **35%** in
+Cracking and **15%** in the Lava Core. You can tell: they clink off the stone with a few sparks, and in the Lava Core
+they hiss and burn up in a puff of smoke. Melee hits are never reduced, and its minions take full damage from
+anything. The minions are quick on their feet: stone golems walk about 3 blocks a second and lava golems about 4.6
+(a player walks 4.3 and sprints 5.6). **Pickaxes crack the shell:** in the Shell and Cracking stages a pickaxe hit
+(any pickaxe, modded ones too) does **twice** its damage; in the Lava Core it's a normal hit. The Colossus keeps facing
+the player it's fighting nearly all the time, except while it gallops.
+
+A big hit never skips a stage: its health stops at 70% and at 35%. When it dies it screams, sinks down and **cools
+into an obsidian statue**, which stands for 2 minutes and then crumbles; its minions crumble with it. It drops 50
+experience. The player who killed it, and everyone within 40 blocks, get the challenge advancement **"Set in Stone"**
+and **a trophy each** (below). Removed with `/kill`, it gives neither.
+
+Its lava pools and fire trail are the mod's own blocks, not real lava and fire: they never spread, can't be picked up
+with a bucket, never make cobblestone or obsidian, never replace anything but air (or, with the mob griefing rule on,
+grass, flowers and thin snow), never touch chests or other blocks with contents, and clear themselves away, even if
+the area is unloaded and loaded again. Nothing in the fight breaks blocks. Its sounds are vanilla stone, iron golem,
+ravager and lava sounds pitched down: deep rumbles and grinding stone.
+
+All its numbers (health, damage, speeds, cooldowns, ranges, move chances, the roar, minion counts, pool size and time,
+the stage thresholds, the trophy design it drops, the wild golems' spawning) are labeled constants in `boss/golem/ColossusTuning.java` and `ColossusStage.java`.
+
+### The trophies
+The **Cinder Colossus Trophy** (`dross:colossus_trophy`) is a decorative block: a miniature of the boss, its own model
+scaled down to fit one block (about a sixth of its size), with no base or pedestal. It has five designs, each a
+different pose and look (previews: `boss-previews/cinder_wastes/cinder_colossus/trophies.png`), and every trophy can show any of them:
+
+| No. | Name | Pose | Look |
+|---|---|---|---|
+| 1 | Volcano's Wrath | the volcano lob, lava spurting from both craters | erupted (lava over the shell) |
+| 2 | Molten Charge | mid-gallop on all fours, head first | lava core |
+| 3 | The Roar | reared up roaring, both fists raised high | erupted |
+| 4 | Earthshaker | the ground slam, as its fists hit | cracking (plates loose, bright cracks) |
+| 5 | Dormant Shell | crouched in its shell, head bowed | dormant (dim) |
+
+- Its lava cracks glow softly, and the lava keeps **flowing down its body**: bright bands of fresh lava slide down the
+  streams over and over. Now and then **lava drips** off it and its craters smoke (just particles: nothing catches
+  fire). It gives off a little light (more for the lava ones).
+- Place it **on the floor** (it needs a block under it) and it **faces you**.
+- **Right-click it to change its pose:** each click turns it to the next design (1, 2, 3, 4, 5, then 1 again), still
+  facing the same way, with a quiet stone click and a little puff of ember dust. An empty hand or any item works (main
+  hand); holding a block, you change the pose instead of placing the block, so **sneak** to place a block against it.
+  In adventure mode it can't be changed. The tooltip says "Right-click to change its pose".
+- Any tool, or a bare hand, breaks it, and it drops itself with the design it's showing. It never burns and explosions can't break it.
+- **The drop:** when the Colossus is beaten, every player within its boss bar's range (40 blocks), plus the player who
+  killed it, gets **their own trophy**, straight into their inventory. If their inventory is full, it's dropped one
+  block in front of them instead (at their feet if a wall is there), and a player who's dead at that moment finds it
+  where they died. A dropped trophy can only be picked up by its player, never despawns, and fire, lava, explosions
+  and cactus can't destroy it. It drops as **design 1** (`DROP_DESIGN` in
+  `ColossusTuning`); since any trophy can be turned to any pose, there's no single final design to pick.
+- **`/dross showcase trophies colossus`** puts all five side by side on pedestals, each with a sign (they can be right-clicked
+  too). The creative Dross tab has all five too.
+- The figures are made by `tools/golems` (`kit/trophies.py`) from the boss's own model, poses and textures; the mod's
+  code is in `boss/trophy`.
+
+### The showcase
+`/dross showcase boss_designs colossus` spawns it frozen (it never fights) so you can look at it and play its
+animations: the dormant shell, the eruption, the shell breaking off, the lava core's endless eruption, the walk and the death.
+
+---
+
+## The Rat King
+
+The Rat King is one of the Plague Necromancer's three servants: a lean, sly giant rat standing upright, 3 to 4 blocks
+tall, with a staff, a crown and a red cape. **His look, sounds, fight and trophies are built** and play-tested. After two rounds
+of designs the user picked **Gnawrick, build 1C**: sewer grey-green, broad shoulders and a wide chest, a cocked
+three-point crown, a ragged moth-eaten cape, and a twisted staff whose green claw holds a glowing green orb.
+
+He sleeps curled up on the ground (with floating Zzz and snores), wakes up and picks up his staff, stands, walks on
+tiptoe, burrows into the ground (the dirt mound is where his head went in) and pops back up out of it, flies into a
+rage (stomping, pumping his fist in the air, red eyes, steam out of his ears with a choo-choo train whistle, smashing
+his staff into the ground) and dies a silly death (flat on his back, tongue out, X eyes). His staff never goes through
+him, his ears or the floor. His rats: the **Plague Rat** and the bigger, enraged **Plague Ravager**, each with an idle
+and a run. All three have spawn eggs in the Dross tab.
+
+All their sounds are original (made by `tools/ratking/sounds.py`, nothing from Minecraft), including several versions of
+each attack sound for the fight, to pick from later.
+
+**The fight** (every number is in `RatKingTuning`):
+- **Asleep:** he starts curled up asleep. Come within 12 blocks (8 if you sneak) or hit him and he wakes (that hit does
+  no damage, and he can't be hurt while he gets up). Then his boss bar appears: a rusty sewer pipe with a rat peeking
+  over it (the user's pick of nine designs), shown within 40 blocks.
+- **200 health**, armour 6, quick on his feet (about 4.7 blocks a second, 6.2 in his Rage; you walk at 4.3). He keeps
+  facing you.
+- **Staff sweep** up close: 4.5 blocks in front of him, 9 damage (11 in his Rage), with a strong knockback, about
+  every second.
+- **Spear charge** from 5 to 24 blocks: he crouches for 0.4 s with his staff levelled like a spear, then dashes at
+  9 blocks a second (11 in his Rage) to where you were standing. If he catches you it's 6 damage (8) and straight into
+  a sweep; if you dodge, he skids and needs half a second to turn round.
+- **Poison shot** from 5 to 24 blocks, now and then: a clumpy plague ball that bursts into a small poison cloud (a
+  steady Poison I while you stand in it); in his Rage, a fan of three.
+- **How often:** at 5-16 blocks he charges 60%, throws poison 25% and runs in 15% (Rage: 60 / 35 / 5); at 16-24
+  blocks charge 40, poison 30, run in 30 (Rage: 35 / 35 / 30); up close always the sweep.
+- **Burrow:** every 25 health he loses (at 175, 150 and 125 of his 200), he digs and dives into the ground. While he
+  tunnels towards you (a dirt trail moves over the ground) he can't be hurt, and his rats burst out of the ground round
+  you: **10, then 12, then 14** Plague Rats, however many of his rats are already about. Then he pops straight up
+  4 blocks from you, facing you, without knocking you back.
+- **Rage** at half health, 100 (he can't be hurt while it plays): stomping, red eyes, steam and the train whistle.
+  Then he's faster and hits harder, throws three balls at once, and burrows three more times (at 75, 50 and 25),
+  calling **8, then 9, then 10 Plague Ravagers**, whose bites poison for 2.5 seconds.
+- **Death:** a silly death; his rats crumble, he vanishes after 10 seconds; no drops except a trophy (below). The advancement **Down the Drain**
+  ("End the Rat King's reign beneath Blightwood.") goes to whoever killed him and everyone within 40 blocks.
+- His rats: summoned ones attack you and crumble when he dies. A wild Plague Rat (spawn egg) never attacks; a wild
+  Plague Ravager does.
+- `/dross boss arena ratking` builds a round dirt arena round you with a chat button to summon him;
+  `/dross boss summon ratking` summons him asleep 14 blocks in front of you. His spawn egg makes a sleeping one too.
+- **Trophies:** beating him gives everyone who helped a **Rat King Trophy**, a one-block miniature of him (his orb
+  glows). It comes as *Belly Up*; right-click a placed one to change its pose: 1 Fast Asleep, 2 Tantrum, 3 Ground
+  Pound, 4 Pop Goes the King, 5 Belly Up (the user's five picks from ten). It works like the Colossus trophy: it goes
+  straight into your inventory (or drops in front of you, kept for you), and it's fireproof and never despawns.
+  `/dross showcase trophies ratking` places all five in a row.
+
+- `/dross showcase boss_designs ratking` spawns him frozen with a sign; the chat buttons (or
+  `/dross showcase boss_designs ratking sleep|wake|idle|walk|burrow|popup|rage|charge|die`) play an animation, and
+  right-clicking him plays his next one (sneak + right-click: he dies).
+- `/dross showcase rats` puts the two rats on pedestals; `idle` / `run` switch them.
+- `/dross showcase boss_sounds ratking` lists every sound with a button that plays it.
+- Previews: `boss-previews/blightwood/rat_king/` (the rats in `rats/`, the sounds in `sounds/`: open `index.html` to listen;
+  the earlier rounds in `round1/` and `round2/`). They're made by `tools/ratking/`.
+
+---
+
+## The Huntsman
+
+One of the Ice Necromancer's three servants: a hunter in a wolf-head hood with a stag's antlers, riding his **Alpha
+Moose**. He lives in **his own hunter village** in Rimefall (below): walk near it and he and the moose are already riding
+their patrol round it, a loop just outside its lights, calm. He also comes from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`, and
+`/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice, lantern posts round
+the edge) with a chat button to summon him.
+
+- **His villages.** Rimefall's areas come in groups of three, nearest the hub first and on out forever: in every group
+  one area has the Huntsman's village (his lodge, the Alpha Moose's barn, 26 or 29 igloos), and each of the other two
+  has a regular hunter village half the time (15-20 igloos round sunken courtyards). A village sits on the flattest
+  ground of its area, never on or next to the big lake, and each part of it on its own ground: each courtyard with its
+  igloos at its own height, the lanes between them climbing with a stair at each step, every decoration on solid
+  ground, and the land between the parts left as it was (its trees and hills). Only the animals in its pens are tame
+  (one that gets out is wild), and no moose or Pond Skaters spawn by themselves inside a village. A moose skull with
+  its antlers stands on a tall post either side of every village's way in. Beat
+  him (both of them) and his village stays without him for good; on Peaceful he never comes. They only appear in newly
+  generated land.
+
+- **He spots you.** The fight starts, and he lets out a wolf's howl and then blows his hunting horn, when he or the
+  moose sees a foe within 30
+  blocks: a player (not in creative or spectator), a hostile mob (he hunts those too) or, raged with the Rage Wand, a
+  mob of another team. A hit starts it too.
+- **Stage 1, The Wild Hunt** (one bar of 250 for both; hitting either of them takes it down). The two attack at the
+  same time, each on its own timer. From the saddle he uses whatever fits where you are: right next to the moose mostly
+  his spear, two bow shots wherever you are (ahead past the moose's head, to either side, or back over his shoulder;
+  his arrows lead you as you run, and every one frosts and slows you), the Horn of the Hunt ahead (a cone of icy wind
+  that pushes you away and slows you), a **bola** (held still 2 seconds, then slowed; at once if you run away from him)
+  and the **arrow rain** anywhere (his arrows shoot up out of his bow and vanish high up, then 48 streak down out of
+  the sky close round you with no warning, steering after you as they fall: half a heart each, and you take several). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
+  cracks across the snow up close, charges (6.5 hearts) and circles you further out, and kicks anyone behind it (4.5).
+- **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
+  neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he
+  rides, the two are drawn as one model, so he moves exactly with the moose; they become two at the split.)
+- **Stage 2:** on foot (about 4 blocks to the top of his hood) he uses spear combos, a leaping strike, a thrown spear
+  (it comes back to his hand), an aimed shot after a frost glint (it freezes you for a moment), a backstep and shot (he
+  leaps back three blocks, shooting at the top of the leap, and is ready again as he lands), the arrow rain, the bola,
+  the horn, and whenever those are all cooling down, a quick shot (2 hearts), so at range he keeps shooting.
+  The moose rams, tosses you high, stomps, bellows, charges, kicks, and stamps cracks across the snow: where they end a
+  clump of small spikes of clear ice bursts up, then a big one 1.5 blocks tall under you that throws you up, slows and
+  frosts you. The moose goes for the closest player, he goes for the furthest. He likes to keep his
+  distance: when you come close he backs off, at range he circles you, far off he closes in, and he keeps out of the
+  moose's way.
+- **Kill one** and the other gets angry: its bar turns blood red, and it's faster and hits harder.
+- **Kill both:** the advancement **The Hunter Hunted** for whoever got the last kill and everyone within 40 blocks,
+  and each of them gets a **Huntsman Trophy** (No. 1, Riding Down), straight into their inventory. Removed with `/kill`,
+  they give neither.
+- **Trophies:** a one-block miniature of the Wild Hunt in five poses (the user's picks): 1 Riding Down, 2 Rain of Arrows,
+  3 The Rearing, 4 The Rearing Shot (the moose rearing, him turned in the saddle with his bow drawn level back over its
+  rump), 5 The Parting Shot (the
+  moose's ice slam, the clear ice bursting up, as he leaps off its back shooting). It works like the other trophies:
+  right-click a placed one to change its pose. Made by `tools/huntsman/trophies.py` (previews in
+  `boss-previews/rimefall/huntsman/trophies/`); `/dross showcase trophies huntsman` places all five in a row.
+  The Alpha Moose drops its skull (a block you can mount: see the items below) every time it dies.
+- **The Rage Wand:** raging either of them rages both, on the same team.
+- **Running away** from his village's pair: they chase you up to about 60 blocks past their patrol loop, and no further:
+  there they stand and shoot (the arrow rain too) while you're within about 40 blocks. Get further than that out there,
+  or leave Rimefall, and they let you go and walk back home, still hurt: they never vanish, so you can come back and
+  finish the fight. They don't start a fight with a player standing outside Rimefall.
+- **Stay away** (no one within 64 blocks for 3 minutes) and the fight is broken off: both are back at full health (even
+  one you'd killed), him in the saddle, calm (a village's pair back home on their patrol).
+- His thrown spear is drawn with the Moonsilver Spear's model, made big.
+- **His sounds** are original (made from scratch, like the Rat King's): the user picked which of a few versions each
+  one plays. His horn is a goat horn, and his grunts, hurt and death sounds are being picked.
+- `/dross showcase boss_designs huntsman` shows him riding, on foot and the moose alone, with a button for every
+  animation; `/dross showcase bossbars huntsman` shows his boss bars; `/dross showcase boss_sounds huntsman` lists
+  every version of his and the moose's sounds with a button that plays it.
+
+### The Frostfolk
+
+Rimefall's villagers: eleven callings, about 2 blocks tall, built like a pillager, each in a blue hood of its own style
+with no face under it, only darkness and two glowing blue eyes, gloved, in simple clothes, carrying its own tools in
+its fist (long ones stood upright, short ones held out ahead like a Minecraft tool), with its own voice. Three spawn eggs (Frostfolk Warrior, Worker and Elder) each bring a calling
+of that kind at random. They live in Rimefall's villages, 1.2 to 1.4 for every bed (a regular village 15 to 35, the
+Huntsman's 64 and 65): the elder in the meeting hall, a worker at each workplace (the butcher in the Cookhouse, the tanner in the
+Tannery, the fisher in the Ice-Fishing Hut, a farmer in each farm, a herder in the Storehouse and the barn, the archer
+in the Workshop), at most 2 warriors in each Barracks and the rest on guard in the courtyards, one or two horn-blowers, the rest in their homes and round the courtyards'
+fires. Each wanders within 24 blocks of where it started and walks back there after a fight (angry, it chases you
+anywhere). The Huntsman's blows never hurt them. They also come from their spawn eggs.
+
+- **Warriors:** the spearman (a peaked hood, a wolf pelt, spear and round shield, 30 health), the axeman (a fur-trimmed
+  hood, an axe of ice, 28), the pikeman (a tall pointed hood, a long spear, 28), the archer (a deep cowl, his bow carried level in his fist and a brown quiver with ice fletchings on his back, 25;
+  he keeps his distance and shoots) and the horn-blower (a hood with wolf's ears, a spear and the village's flag, 26; when
+  his village turns on someone he blows his horn and everyone near gets Speed and Strength for 30 seconds).
+- **Workers** (20 health, fighting with their tools): the farmer (a Rimehorn's horns on his hood, a hoe and a basket of
+  Frostroot), the butcher (a cleaver and an apron), the herder (fur ear flaps, a crook), the fisher (a wide-brimmed
+  oilskin hood, a rod with a fish on its hook) and the tanner (a fringed capelet and a roll of hide on his back; nothing in his hands).
+- **The elder** (50 health): a small white scar over one eye (that eye gone), a long white beard, a sword of ice in its
+  sheath on his back, drawn when he fights. He's the one to talk to.
+- **Calm** they wander and hum. Right-click one and it talks to you in chat (the elder has the most to say).
+- **Hit one** and it fights you back until you're about 16 blocks from it. **Kill one** (it tips over like any mob):
+  every horn-blower blows his horn and every one of them within 96 blocks rushes you, until you've left their village
+  (80 blocks from where each lives). Hit the elder and he stays angry until you've been away (48 blocks off) for 10
+  minutes.
+- They hunt Pond Skaters, and Pond Skaters hunt them; hurt by one, a villager fights back and the others near come to
+  help.
+- To keep a village smooth, they're drawn only within 40 blocks, and the villages' fires (Village Fire, a campfire to
+  look at) give only a wisp of smoke now and then.
+- `/dross showcase frostfolk` lines up one of each (the warriors in front, the workers and the elder behind) with signs;
+  right-click one to hear it talk, and the chat's buttons play their animations. Previews:
+  `boss-previews/rimefall/frostfolk/` (made by `tools/rimefall/mobs.py frostfolk` and `tools/huntsman/folk_preview.py`).
+
+---
+
+## The Emberdactyl
+
+A giant volcanic pterosaur, 33 blocks across its wings, one of the Fire Necromancer's servants. It lives on its own
+**volcano** in the Cinder Wastes: one in every group of three Cinder Wastes areas, never where a Cinder Colossus lair is,
+built (in the background) the first time you come within about 384 blocks. The volcano is 70 blocks tall, with a lava lake
+in its crater, the **egg** on a basalt pillar in the lake, rivers and pockets of lava down its flanks (all still lava that
+never spills), and a lit path winding up to a lookout over the crater. `/dross goto lair emberdactyl` takes you to the
+foot of its path.
+
+**The fight** (400 health): it perches on a rock ledge on the crater's rim, facing out, guarding its egg. Come within 60
+blocks of the volcano's foot and it screeches (you hear it from far off), takes off and its boss bar appears. It fights
+mostly in the air, circling you, and never strays more than 100 blocks from its nest:
+- **Glide in**: from far off it glides at you low, fire dropping off it onto the ground, and dives once it's close.
+- **Dive bomb** (7 hearts within 7 blocks of where it crashes, a ring of blasts and fire, everything thrown out and up):
+  then it lies stuck on the ground for 3 seconds, your chance to hit it up close. On the ground it may peck you with its
+  obsidian beak, five pecks in a row (4 hearts each), each one hitting everything within 5 blocks of where its beak
+  strikes the ground (about 14 blocks in front of its feet) and everything between there and under its chest.
+- **Fire tornadoes**: its wings whip up two (three at half health) that chase you, pull you in, burn you and throw you
+  up into the sky.
+- **Strafing run**: low over you in a line, breathing fire (4 hearts and fire), leaving fire on the ground.
+- **Talon grab**: you hang from its talons (look round as you like; sneak to struggle free) as it carries you off,
+  always through open air, and drops you: never from higher than a fall that takes half your health.
+- **Wing buffet** (it swoops down to you first) and **screech**: they throw you about 20 blocks.
+
+At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
+apart, its egg bursts open and its **young reborn** (175 health) bursts out and comes straight for you: the same moves,
+just as hard, but 2.5 times as fast with almost no rest, a dash straight through you, and fire dropping off it wherever
+it flies. Its egg lies broken apart in the nest, a bowl of lava with its pieces round it. Dying, either one glides down to
+flat ground and lies there. Beat the young (it hardens into obsidian) and everyone near gets the challenge advancement
+**Wings Clipped** and a trophy (five poses, right-click to change). It never comes back.
+
+It also comes from its spawn eggs (the adult alone; the young has its own) and `/dross boss summon emberdactyl` /
+`emberyoung`: those fight from the moment they appear; `/dross boss arena emberdactyl` builds a volcano with both in front of
+you. Its boss bar is a volcano between two burning wings (`/dross showcase bossbars emberdactyl`); its trophies:
+`/dross showcase trophies emberdactyl`.
+
+## The Rage Wand
+
+A creative-only testing tool in the Dross tab (after the Admin Sword), with five **teams**: **right-click** to switch
+the wand between Blue, Red, Green, Yellow and Purple (its crystal changes colour and the team name shows above your
+hotbar). Hitting a mob with it does no damage; it gives the mob **Rage** and the wand's team (dust in the team's
+colour floats over it). Hit it again with another colour and it switches team. Rage and teams never wear off and
+can't be cured, not even with milk.
+
+- Raged mobs **never fight their own team**: they never target, chase or swing at a teammate, and the team beats
+  natural enmity (a blue iron golem and a blue zombie, or a blue pillager and a blue iron golem, leave each other
+  alone). If two mobs were already fighting when the second one joins the first's team, both stop at once. Each goes
+  for the nearest raged mob of another team within 40 blocks, and while an enemy team is near they **ignore players**,
+  even ones who hit them. With no enemy near they behave normally towards everything but their own team, and keep
+  their team, so the winners stay ready for the next fight.
+- No new animations: every mob uses its own attacks (zombies swing, skeletons shoot, creepers explode, golems smash).
+  Animals with no attack of their own (cows, pigs, sheep, chickens, villagers...) **headbutt** for 1 heart.
+- **Bosses** work too, each with its own moves: raging the Cinder Colossus makes it fight; raging the sleeping Rat
+  King wakes him; raging the Huntsman or his moose rages both, and the Wild Hunt fights with its spear, arrows, horn
+  and the moose's charges; raging an Emberdactyl or its young wakes it, and the adult and the young raged on two
+  teams fight each other in the air (talons, buffets, screeches, tornadoes). Their golems
+  or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
+- It won't rage players, showcase mobs, the Ender Dragon, the trader or the hub's survivors.
+
+---
+
+## Advancements
+
+All Dross advancements live in their own **Dross** tab, which stays hidden until you pick up a Weathered Letter.
+
+| Advancement | How | Notes |
+|---|---|---|
+| Dross (tab root) | Pick up a Weathered Letter | Silent, opens the tab |
+| A Weathered Letter | Pick up a Weathered Letter | |
+| Proven Worthy | Bring the trader his three tributes | |
+| Keymaster | Have the trader forge the Rift Key | |
+| **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
+| Rise! | Raise the undead with Necromancy | Challenge |
+| Set in Stone | Defeat the Cinder Colossus | Challenge, under *Enter the Dross*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
+| Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Enter the Dross*. Goes to the player who killed him and everyone within 40 blocks when he dies |
+| The Hunter Hunted | Bring down the Huntsman and his Alpha Moose | Challenge, under *Enter the Dross*. Goes to the player with the last kill and everyone within 40 blocks |
+| Wings Clipped | Bring down the Emberdactyl and the young reborn from its egg | Challenge, under *Enter the Dross*. Goes to the player who kills the young and everyone within 64 blocks |
+
+---
+
+## The look
+
+The Dross's color is **electric blue**: main `#2E6BFF`, deep cobalt `#0B2A9E`, highlight `#7FA8FF`. It's used for:
+- the portal, its particles and screen swirl;
+- the frame's cracks;
+- the trader's glow and particles;
+- the risen undead's wisps and puffs;
+- the arrival title.
+
+Every color lives in one place, `DrossColors.java`.
+
+---
+
+## Commands
+
+All need cheats (operator level 2). Each name says what kind of thing it's about and which one, so the list stays
+clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<boss>]`, `boss <action> <boss>`,
+`trader <action>` and `quest <action>`.
+
+| Command | What it does |
+|---|---|
+| `/dross goto cathedral` | Teleports you in front of the Fallen Cathedral's frame, facing it. Before the site is built, it says so instead. |
+| `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross. |
+| `/dross goto trader` | Teleports you to the trader, even if his area isn't loaded. |
+| `/dross goto biome <name>` | Teleports you to safe ground in the nearest example of a Dross biome: `silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall` or `gravecrags`. |
+| `/dross goto lair colossus` | Teleports you to the nearest Cinder Colossus lair's entrance. If it isn't built yet, it says so, builds it, and teleports you once it's ready. |
+| `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
+| `/dross goto lake` | Teleports you to the shore of the nearest of Rimefall's big frozen lakes, facing it. |
+| `/dross goto lair huntsman` | Teleports you to the way into the nearest Huntsman's village, facing in, and says whether he's at home or beaten. |
+| `/dross goto lair emberdactyl` | Teleports you to the foot of the path up the nearest Emberdactyl volcano (one in every group of 3 Cinder Wastes areas), building it first if it isn't yet. Within 60 blocks of its foot, the Emberdactyl wakes. |
+| `/dross goto village` | Teleports you to the way into the nearest hunter village (either kind). `/dross goto village <x> <z>`: the one nearest that spot. |
+| `/dross locate villages` | A test tool for now: lists the 5 nearest hunter villages (which kind, where, how far, how many igloos), each with a [go] button. |
+| `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
+| `/dross trader sendhome` | Sends the trader home. |
+| `/dross quest status` | Shows your quest progress. |
+| `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*, *Set in Stone* and *Down the Drain*). |
+| `/dross quest complete` | Finishes the quest for you. |
+| `/dross showcase boss_designs colossus` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
+| `/dross showcase boss_designs colossus dormant` / `erupted` / `core` | Puts every showcase golem nearby into that stage. |
+| `/dross showcase boss_designs colossus erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
+| `/dross showcase boss_designs colossus walk` / `idle` | Knuckle-walking on the spot / standing. |
+| `/dross showcase trophies colossus` | Places the five Cinder Colossus trophy designs in a row in front of you, each on a pedestal facing you with a sign giving its number and name. Running it again replaces the row. |
+| `/dross showcase trophies ratking` | Places the Rat King's five trophy designs in a row in front of you, each on a pedestal facing you with a sign. Running it again replaces the row. |
+| `/dross showcase trophies huntsman` | Places the Huntsman's five trophy designs in a row in front of you the same way. |
+| `/dross showcase boss_designs ratking` | Spawns the Rat King (Gnawrick 1C) frozen, with signs and clickable animation buttons in chat. Right-click one to play his next animation; sneak + right-click: he dies. |
+| `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
+| `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
+| `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
+| `/dross showcase boss_sounds huntsman` | Lists every Huntsman and Alpha Moose sound in chat, with a numbered button for each version (hover to see what it is). |
+| `/dross showcase rats idle` / `run` | Every showcase rat nearby idles / runs on the spot. |
+| `/dross showcase rimefall_mobs` | Lines up Rimefall's animals, frozen, on ice pedestals with signs: a male, a female and a calf Rimehorn, a bull, a cow and a calf moose, and a Pond Skater. Right-click one to play its next animation. |
+| `/dross showcase rimefall_mobs idle` / `walk` / `run` / `charge` / `eat` / `attack` | Plays that animation on every showcase animal nearby (attack: the Rimehorn's horn flick, the moose's ram, the Pond Skater's stab). |
+| `/dross showcase frostfolk` | Lines up the eleven Frostfolk (the warriors in front, the workers and the elder behind), frozen, with signs. Right-click one and it talks to you. |
+| `/dross showcase frostfolk idle` / `walk` / `run` / `attack` / `horn` / `talk` | Plays that animation on every showcase Frostfolk nearby (attack: each one's own; horn: the horn-blower's). |
+| `/dross showcase mob_sounds rimefall` | Lists every Rimehorn, moose and Pond Skater sound in chat, each with a [play] button. |
+| `/dross showcase boss_designs cinder_wastes` | Builds a gallery of the fire servant candidates (fifteen possible bosses, each with its variations behind it), frozen, with signs and [go] buttons in chat. Use a flat world. |
+| `/dross showcase boss_designs emberdactyl` | Builds a gallery of the Emberdactyl (33 blocks across its wings), its young and its egg's five looks (the last one hatched), then its volcano behind them (about a minute): lava lake, nest, lava cascades, a lit path up to a lookout with its hoard (empty chests and gold). The adult and the young move, fire falling from their wings as they fly: chat buttons play each of their animations (hover, fly, glide, dive, screech, gust, grab, snap, perch, walk, death); right-click one for its next. Use a flat world. |
+| `/dross showcase boss_designs emberdactyl <animation>` | Plays one animation on the Emberdactyl and its young near you (with its sounds). |
+| `/dross showcase cinder_mobs` | Lines up the Cinder Wastes' mobs with signs: the Pallbearer and the Cinder Hermit in eight shells; chat buttons play their animations (idle, walk, swipe, slam, roar, snap, pinch, hide, peek, come_out, death). |
+| `/dross showcase cinder_mobs <animation>` | Plays one animation on the Cinder Wastes' mobs near you (with its sounds). |
+| `/dross showcase boss_sounds emberdactyl` | Lists the Emberdactyl's and its young's sounds (its screech, wingbeats, gust, dive...) with play buttons. |
+| `/dross showcase bossbars emberdactyl` | Shows the Emberdactyl's boss bar (a volcano between two burning wings) for a minute, the adult's over its young's, draining and filling. |
+| `/dross showcase trophies emberdactyl` | Places the Emberdactyl's five trophies in a row on pedestals with signs (right-click one to turn it through the poses). |
+| `/dross showcase mob_sounds cinder_wastes` | Lists the Pallbearer's and the Cinder Hermit's sounds with play buttons. |
+| `/dross boss summon colossus` | Summons a fighting Cinder Colossus 10 blocks in front of you, facing you (not on Peaceful). |
+| `/dross boss arena colossus` | Builds a placeholder boss arena round you (a 31-block round floor of nether bricks, with a low wall and lights), with a chat button to summon the Colossus. |
+| `/dross boss summon ratking` | Summons a fighting Rat King, asleep, 14 blocks in front of you, facing you (not on Peaceful). |
+| `/dross boss arena ratking` | Builds the Rat King's placeholder arena round you (a 31-block round floor of dirt and coarse dirt), with a chat button to summon him. |
+| `/dross boss summon huntsman` | Summons the Huntsman riding his Alpha Moose 16 blocks in front of you, calm until hit (not on Peaceful). |
+| `/dross boss summon emberdactyl` / `emberyoung` | Summons the Emberdactyl (or its young) 30 (18) blocks in front of you, hovering over that spot, alone (not on Peaceful). |
+| `/dross boss arena emberdactyl` | Builds an Emberdactyl volcano on the land in front of you, with its egg in the nest and the Emberdactyl perched on the rim (a few seconds' freeze). |
+| `/dross boss arena huntsman` | Builds the Huntsman's placeholder arena round you (a 41-block round floor of snow and packed ice, with lantern posts), with a chat button to summon him. |
+| `/dross boss arena bedrock` | Builds a test arena for any boss round you: a 61-block square bedrock floor with glowstone set in it, bedrock walls 8 high with glowstone bands, where nothing spawns by itself; chat buttons summon each boss. |
+
+---
+
+## Building and running
+
+From the project folder, on Windows:
+
+| Task | Command |
+|---|---|
+| Build the mod jar (`build/libs/dross-<version>.jar`) | `.\gradlew.bat build --console=plain` |
+| Run the game with the mod | `.\gradlew.bat runClient --console=plain` |
+| Run the automated in-game checks | `.\gradlew.bat runGameTestServer --console=plain` |
+| The same checks in a brand-new world | `.\gradlew.bat runGameTestServer -PgameTestWorld=world_check_1 --console=plain` (pick a folder name under `run/` that doesn't exist yet) |
+
+- **Logs:** `run/logs/latest.log`. **Crash reports:** `run/crash-reports/`.
+- **Commands in-game:** create the world with **Allow Cheats: ON** to use the commands.
+- **First-time setup:** if it fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, re-run the same command.
+
+### Tools (Python)
+- **`tools/shrines/`:** generates the two grand shrine designs, the Fallen Cathedral and the Shattered Spire (the user's picks from ten; the other eight were removed).
+  - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
+  - See `tools/shrines/README.md`.
+- **`tools/skins/`:** draws the 4 villager-model skins (`textures/entity/trader/`: 1 Hooded Watcher, kept for later; 2 The Archivist, the trader; 3 Ragged Seeker and 8 Blind Oracle, the survivors) and renders the front and back previews in `skin-previews/`.
+- **`tools/terrain/`:** the Dross's terrain and blocks.
+  - `worldgen.py` writes all the terrain data files (noise, biomes, ground cover, features, ores, spawn lists); every tuning number is a labeled constant at its top.
+  - `draw_blocks.py` draws the terrain blocks' textures and `block_data.py` writes their models, block states, loot, tags and recipes; previews go to `block-previews/`.
+  - Top-down maps of a generated area are in `terrain-previews/`.
+  - See `tools/terrain/README.md` (and `TERRAIN_DESIGN.md` for the design).
+- **`tools/golems/`:** generates the Cinder Colossus designs and its trophies.
+  - It writes their GeckoLib models, animations and textures (`geo/`, `animations/`, `textures/entity/cinder_colossus/`), renders the previews in `boss-previews/cinder_wastes/cinder_colossus/`, and writes `GolemDesigns.java`.
+  - The trophies: `geo/block/` and `geo/item/colossus_trophy.geo.json`, `animations/block/colossus_trophy.animation.json`, `textures/block/colossus_trophy/`, `boss-previews/cinder_wastes/cinder_colossus/trophies.png` and `TrophyModels.java` (`python tools/golems/build.py --trophies-only` rebuilds just them).
+  - `lair_preview.py` renders the lair previews (`boss-previews/cinder_wastes/cinder_colossus/lair_*.png`).
+  - See `tools/golems/README.md`.
+- **`tools/ratking/`:** generates the Rat King design candidates and his rats (models, animations, textures, the Zzz
+  particle, `RatKingDesigns.java` and `RatDesigns.java`) and renders the previews in `boss-previews/blightwood/rat_king/`; its
+  `sounds.py` makes all their sounds from scratch. It reuses the golem kit. See `tools/ratking/README.md`.
+- **Making a new boss:** follow `BOSS_GUIDE.md` (the whole process, from design candidates to the user's pick).
+  Every boss's previews go in its own folder under `boss-previews/`.
+
+---
+
+## Project layout
+
+Base package: `com.reg21meme.dross`. Client-only code is in each area's `client` subpackage.
+
+| Package | What's in it |
+|---|---|
+| `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators and the hub falloff (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
+| `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (fitted onto the terrain), the arrival sequence |
+| `world` | The portal site: location search, the Fallen Cathedral, ground fitting, the leak (`world/shrine` holds the shrine designs) |
+| `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
+| `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
+| `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
+| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss` |
+| `command` | The `/dross` command and its showcases |
+| `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, world generation features, tree decorators, density functions, placement modifiers, the creative tab |
+
+Mod metadata is in `src/main/resources/META-INF/mods.toml`, filled from `gradle.properties`. All player-facing text is in `assets/dross/lang/en_us.json`.

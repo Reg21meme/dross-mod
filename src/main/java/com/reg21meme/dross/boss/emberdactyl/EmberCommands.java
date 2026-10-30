@@ -70,6 +70,7 @@ public final class EmberCommands
         boss.setYBodyRot(yaw);
         boss.setHome(ground, null, null, 0.0F, 0L);
         boss.finalizeSpawn(level, level.getCurrentDifficultyAt(boss.blockPosition()), MobSpawnType.COMMAND, null, null);
+        boss.makeHostile();   // (like a spawn egg's: it fights from the moment it comes)
         level.addFreshEntity(boss);
         LOGGER.info("Summoned the {} for {} at {}", type.getDescription().getString(), source.getTextName(),
                 BlockPos.containing(ground).toShortString());

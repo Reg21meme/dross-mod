@@ -41,7 +41,7 @@ public final class FireAnims
     }
 
     public static final Mob EMBERDACTYL = new Mob("emberdactyl", "hover", false, List.of(
-            new Anim("hover", 2.200F, true),
+            new Anim("hover", 4.400F, true),
             new Anim("fly", 2.600F, true),
             new Anim("glide", 4.800F, true),
             new Anim("dive", 2.400F, false),
@@ -49,11 +49,11 @@ public final class FireAnims
             new Anim("gust", 2.400F, false),
             new Anim("grab", 1.900F, false),
             new Anim("snap", 1.000F, false),
-            new Anim("perch", 4.000F, true),
+            new Anim("perch", 10.000F, true),
             new Anim("walk", 2.000F, true),
             new Anim("death", 6.880F, false)));
     public static final Mob EMBERYOUNG = new Mob("emberyoung", "hover", false, List.of(
-            new Anim("hover", 1.375F, true),
+            new Anim("hover", 2.750F, true),
             new Anim("fly", 1.625F, true),
             new Anim("glide", 3.000F, true),
             new Anim("dive", 1.500F, false),
@@ -61,7 +61,7 @@ public final class FireAnims
             new Anim("gust", 1.500F, false),
             new Anim("grab", 1.187F, false),
             new Anim("snap", 0.625F, false),
-            new Anim("perch", 2.500F, true),
+            new Anim("perch", 6.250F, true),
             new Anim("walk", 1.250F, true),
             new Anim("death", 4.125F, false)));
     public static final Mob HERMIT = new Mob("hermit", "idle", true, List.of(

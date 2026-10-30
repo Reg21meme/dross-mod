@@ -1022,7 +1022,8 @@ EVENTS = [
 # writes them to anims.json; or (a moment, the seconds to use if it has none, and how far before it to start)). A loop's
 # cues play every time round. An animation mobs.py hasn't made yet is left out (with a note) until it has.
 CUES = {
-    ("emberdactyl", "hover"): [(0.3, "entity.emberdactyl.flap")],
+    # (the hover is two beats long since October 30: a flap on each)
+    ("emberdactyl", "hover"): [(0.3, "entity.emberdactyl.flap"), (2.5, "entity.emberdactyl.flap")],
     ("emberdactyl", "fly"): [(0.4, "entity.emberdactyl.flap")],
     ("emberdactyl", "dive"): [(0.1, "entity.emberdactyl.dive")],
     ("emberdactyl", "screech"): [("scream", "entity.emberdactyl.screech")],
@@ -1033,7 +1034,7 @@ CUES = {
     # its death (the user's pick of three, October 28: it breaks apart): the scream and fall, then (its big crack 1 s
     # into the sound) the stone breaking
     ("emberdactyl", "death"): [("cry", "entity.emberdactyl.death"), (("break", 3.4, 1.0), "entity.emberdactyl.break")],
-    ("emberyoung", "hover"): [(0.2, "entity.emberyoung.flap")],
+    ("emberyoung", "hover"): [(0.2, "entity.emberyoung.flap"), (1.575, "entity.emberyoung.flap")],
     ("emberyoung", "fly"): [(0.25, "entity.emberyoung.flap")],
     ("emberyoung", "dive"): [(0.05, "entity.emberdactyl.dive")],
     ("emberyoung", "screech"): [("scream", "entity.emberyoung.screech")],

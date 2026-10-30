@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.emberdactyl;
 
+import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.registry.ModEntities;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,8 @@ public class FireTornado extends Entity implements GeoEntity
     /** Its hitbox at size 1. */
     private static final float WIDTH = 3.0F;
     private static final float HEIGHT = 7.0F;
+    /** How high over it it catches a raged Emberdactyl of its owner's enemies (blocks): they fight in the air. */
+    private static final double SKY_REACH = 30.0D;
 
     private final AnimatableInstanceCache cache = GeckoLibUtil.createInstanceCache(this);
     @Nullable
@@ -160,9 +163,13 @@ public class FireTornado extends Entity implements GeoEntity
         // what it catches
         double pull = TORNADO_PULL_RANGE * size;
         Entity owner = this.ownerId == null ? null : level.getEntity(this.ownerId);
-        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, this.getBoundingBox().inflate(pull, 2.0D, pull),
-                e -> e.isAlive() && !(e instanceof EmberBoss) && !(e instanceof EmberEgg)
-                        && !(e instanceof Player p && (p.isCreative() || p.isSpectator()))))
+        // (a raged Emberdactyl of another team is caught however high it flies over it: the fire reaches up for it)
+        AABB reach = this.getBoundingBox().inflate(pull, 2.0D, pull).expandTowards(0.0D, SKY_REACH, 0.0D);
+        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class, reach,
+                e -> e.isAlive() && !Rage.areTeammates(owner, e)
+                        && (Rage.areEnemies(owner, e) || !(e instanceof EmberBoss) && !(e instanceof EmberEgg)
+                        && e.getY() <= this.getY() + HEIGHT * size + 2.0D
+                        && !(e instanceof Player p && (p.isCreative() || p.isSpectator())))))
         {
             Vec3 in = new Vec3(this.getX() - e.getX(), 0.0D, this.getZ() - e.getZ());
             double d = in.length();

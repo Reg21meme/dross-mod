@@ -41,8 +41,8 @@ TITLES = {"huntsman": "The Huntsman", "cinder_colossus": "The Cinder Colossus", 
 # the user's picks (October 23, 2026: "C1 is good for dormant shell"; R1 with its crown centred; "h2" for the
 # Huntsman, his hood with its fangs)
 PICKS = {"huntsman": "H2", "cinder_colossus": "C1", "rat_king": "R1",
-         # not picked yet (October 29, 2026): round 3's first option of each stands in until the user picks
-         "emberdactyl": "A11", "emberyoung": "Y11"}
+         # the user's picks of round 3 (October 30, 2026: "A11 and Y12 are good")
+         "emberdactyl": "A11", "emberyoung": "Y12"}
 # the option sheet's file name, when it isn't options.png (the young's sheet shares the adult's folder)
 SHEET_FILES = {"emberyoung": "young_options.png"}
 # what follows the sheet's title, when there's more to say

@@ -46,7 +46,8 @@ TITLES = {"wings_clipped": "Wings Clipped (beat the Emberdactyl and its young re
           "down_the_drain": "Down the Drain (end the Rat King's reign beneath Blightwood)"}
 # not picked yet (October 29, 2026): option 1 of each stands in until the user picks, but the Huntsman's H4 (the
 # user: "for the huntsman achievement make it so that like his eyes are crossed out died")
-PICKS = {"wings_clipped": "W1", "hunter_hunted": "H4", "set_in_stone": "S1", "down_the_drain": "D1"}
+# (the user's picks, October 30: H3 with crossed-out eyes, D1; Set in Stone S4 until they pick from round 2)
+PICKS = {"wings_clipped": "W1", "hunter_hunted": "H3", "set_in_stone": "S4", "down_the_drain": "D1"}
 
 # ---------------------------------------------------------------- the Emberdactyl: its obsidian hide (black to violet,
 # lit from the top left), its scalloped membrane, lava and embers (the Fire Necromancer's colours, never the Dross blue)
@@ -315,6 +316,9 @@ DEAD = {"X": (210, 214, 222)}
 X_EYES = {(5, 10): "k", (6, 10): "k", (9, 10): "k", (10, 10): "k",
           (4, 10): "X", (6, 10): "X", (5, 11): "X", (4, 12): "X", (6, 12): "X",
           (9, 10): "X", (11, 10): "X", (10, 11): "X", (9, 12): "X", (11, 12): "X"}
+# the mounted hood's (H3: its face narrower and higher on the plaque, its dark eyes at 5,10 and 10,10: each X over one)
+MOUNTED_X_EYES = {(4, 9): "X", (6, 9): "X", (5, 10): "X", (4, 11): "X", (6, 11): "X",
+                  (9, 9): "X", (11, 9): "X", (10, 10): "X", (9, 11): "X", (11, 11): "X"}
 # his hood and antlers alone (H1 without the arrow)
 BARE_HOOD = stack(ANTLERS, [
     "................",
@@ -339,8 +343,9 @@ HUNTED = [
      "out of one side, the head out of the other", HUNT, PIERCED_HOOD),
     ("H2", "The Alpha's skull, the broken spear", "the Alpha Moose's bone skull front on, its great palm antlers "
      "hung with icicles, and his ice spear snapped in two under it", {**BONE, **SHAFT, **ICE}, SNAPPED_SPEAR),
-    ("H3", "The hunter's trophy", "his own hood and antlers mounted on a wooden plaque like one of his trophies, its "
-     "eyes gone dark", {**HOOD, **ANTLER, **WOOD}, MOUNTED_HOOD),
+    ("H3", "The hunter's trophy", "his own hood and antlers mounted on a wooden plaque like one of his trophies, his "
+     "eyes crossed out: dead (the user's pick, October 30: \"use H3 ... just cross his eyes out\")",
+     {**HOOD, **ANTLER, **WOOD, **DEAD}, put(MOUNTED_HOOD, MOUNTED_X_EYES)),
     ("H4", "Pierced and crossed out", "H1, the arrow clean through his wolf hood, and his glowing blue eyes crossed "
      "out: dead", {**HUNT, **DEAD}, put(PIERCED_HOOD, X_EYES)),
     ("H5", "Crossed out", "his wolf hood under his antlers with no arrow, his eyes crossed out: dead",
@@ -412,13 +417,111 @@ COLD_VOLCANOES = [
     "kkkkkkkkkkkkkkkk",
     "................"]
 
-SET_IN_STONE = [
+# (round 1: the user, October 30, 2026, "I don't like any of the colossus options": kept here, out of the sheet; their
+# sheet and textures are in boss-previews/cinder_wastes/cinder_colossus/advancement_icon/round1/)
+SET_IN_STONE_ROUND1 = [
     ("S1", "Cooling face", "its cracked three-eyed face cooling: the brow still scorched stone, its eyes dimming to a "
      "last red, a crack of fading lava, its jaw and beard of shards gone to obsidian", COLOSSUS, COOLING_FACE),
     ("S2", "Obsidian fist", "its great fist turned to obsidian, knuckles up, a last glow in the cracks", COLOSSUS,
      OBSIDIAN_FIST),
     ("S3", "Cold volcanoes", "its twin volcanoes gone cold as obsidian, an ember left in one crater, a wisp of smoke "
      "from the other", COLOSSUS, COLD_VOLCANOES),
+]
+
+# Round 2 (October 30): bolder shapes. Its obsidian and lava, with steel, gold and wood for your weapons.
+COLD = {**COLOSSUS, "a": (40, 42, 50), "b": (112, 118, 130), "c": (178, 184, 196), "d": (236, 240, 246),
+        "e": (58, 36, 22), "f": (98, 64, 38), "F": (140, 96, 58), "G": (232, 186, 60), "n": (150, 104, 24)}
+
+# S4: the sword in the stone ("Set in Stone"): your sword plunged into a boulder of its obsidian, the cut glowing
+# where the blade went in, the lava cracks running out from it fading
+SWORD_IN_STONE = [
+    ".......kk.......",
+    "......kGGk......",
+    "......kfek......",
+    "......kfek......",
+    "..kkkkkfekkkkk..",
+    "..kGGGGGGGGGnnk.",
+    "..kkkkkcbkkkkkk.",
+    "......kcbk......",
+    "....kkkdbkkk....",
+    "..kkVggcbVOOkk..",
+    ".kVgVOOlrOOOOok.",
+    ".kgVOOrlLlOOOok.",
+    "kVOOOrOOOrlOOook",
+    "kVOOrOOOOOrOoook",
+    "kOOOOOOOOOOooook",
+    ".kkkkkkkkkkkkkk."]
+
+
+# S5: the obsidian statue: the Colossus itself cooled for good, side on, hunched on its knuckles, the volcano on its
+# back (a last ember in its crater), its horn, a dark red eye, on a plinth of scorched stone
+def _statue():
+    body = bevel(spans({1: [(5, 6)], 2: [(4, 7)], 3: [(4, 7)], 4: [(2, 9), (12, 12)], 5: [(1, 10), (12, 13)],
+                        6: [(1, 14)], 7: [(1, 14)], 8: [(1, 14)], 9: [(1, 4), (8, 13)], 10: [(2, 4), (9, 12)],
+                        11: [(2, 4), (9, 12)], 12: [(1, 5), (8, 13)]}), "k", "o", "O", "V")
+    plinth = bevel(spans({13: [(0, 15)], 14: [(0, 15)], 15: [(0, 15)]}), "k", "3", "4", "5")
+    return put(stack(plinth, body), {(5, 1): "l", (6, 1): "L", (5, 2): "r", (6, 2): "l",       # the ember in its crater
+                                     (13, 7): "l", (12, 7): "r",                                   # its eye
+                                     (3, 5): "g", (4, 4): "g", (5, 3): "g", (7, 5): "g",           # glints on its back
+                                     (6, 7): "r", (10, 10): "r", (3, 10): "r"})                    # last cracks
+
+
+# S6: its heart gone cold: the lava core it burned with, half crusted over in obsidian, the last of it glowing through
+def _cold_heart():
+    rows = blank()
+    for y in range(16):
+        for x in range(16):
+            d = ((x - 7.5) ** 2 + (y - 7.5) ** 2) ** 0.5
+            if d > 7.3:
+                continue
+            if d > 6.4:
+                rows[y][x] = "k"
+            elif x + y + (2 if (x * 7 + y * 3) % 5 == 0 else 0) > 17:
+                # still molten: hotter towards its middle, cracked by dark seams
+                seam = (x - y) % 4 == 0 or (x + 2 * y) % 7 == 0
+                rows[y][x] = "r" if seam else ("y" if d < 3.0 else "L" if d < 4.6 else "l")
+            else:
+                rows[y][x] = "V" if x + y < 7 else ("O" if x + y < 13 else "o")
+    rows = ["".join(r) for r in rows]
+    return put(rows, {(4, 3): "g", (3, 4): "g", (5, 2): "g", (3, 5): "V"})
+
+
+# S7: the pickaxe in the shell: a plate of its shell lying cracked, your pickaxe's point buried in it, lava glowing up
+# through the split (pickaxes crack its shell twice as fast)
+def _pick_in_shell():
+    rock = bevel(spans({10: [(1, 14)], **{y: [(0, 15)] for y in range(11, 15)}, 15: [(1, 14)]}), "k", "o", "O", "V")
+    g = [list(r) for r in rock]
+    handle = [(2, 1), (3, 2), (4, 3), (5, 4), (6, 5), (7, 6), (8, 7)]
+    head = [(13, 4), (12, 5), (11, 6), (10, 7), (9, 8), (8, 9), (7, 10)]
+    shape = set(handle) | {(x + 1, y) for x, y in handle} | set(head) | {(x, y + 1) for x, y in head[:-1]}
+    for x, y in shape:                                 # its outline, over the air only
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if 0 <= x + dx < 16 and 0 <= y + dy < 16 and g[y + dy][x + dx] == "." and (x + dx, y + dy) not in shape:
+                    g[y + dy][x + dx] = "k"
+    for x, y in handle:
+        g[y][x] = "F"
+        g[y][x + 1] = "e"
+    for i, (x, y) in enumerate(head):
+        g[y][x] = "d" if i == 0 else "c"
+        if i < len(head) - 1:
+            g[y + 1][x] = "b" if i else "c"
+    g[10][7] = "a"                                     # its point going in, and the split glowing round it
+    for (x, y), ch in {(6, 11): "L", (7, 11): "l", (5, 11): "l", (6, 12): "l", (4, 12): "r", (8, 12): "r",
+                       (9, 13): "r", (3, 13): "r", (2, 11): "g", (1, 12): "V"}.items():
+        g[y][x] = ch
+    return ["".join(r) for r in g]
+
+
+SET_IN_STONE = [
+    ("S4", "Sword in the stone", "Set in Stone: your sword plunged into a boulder of its obsidian, the cut glowing "
+     "where the blade went in, lava cracks running out from it and fading", COLD, SWORD_IN_STONE),
+    ("S5", "The obsidian statue", "the Colossus itself cooled for good, side on, hunched on its knuckles, the volcano on "
+     "its back with a last ember, its horn and a dark red eye, on a plinth of scorched stone", COLD, _statue()),
+    ("S6", "Heart gone cold", "the lava core it burned with, half crusted over in obsidian, the last of it glowing "
+     "through the cracks", COLD, _cold_heart()),
+    ("S7", "Pickaxe in the shell", "your pickaxe's point buried in a cracked plate of its shell, lava glowing up "
+     "through the split (pickaxes crack its shell twice as fast)", COLD, _pick_in_shell()),
 ]
 
 

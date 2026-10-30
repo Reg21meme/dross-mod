@@ -165,16 +165,29 @@ public final class EmberTuning
      *  once"), each this much in front of it (4 hearts a peck; it was one snap of 7). */
     public static final int SNAP_PECKS = 5;
     public static final float SNAP_DAMAGE = 8.0F;
-    /** Its bill reaches from under its chest (this far behind its feet: the user's second fight, "when you are directly
-     *  under him his pecking attack doesn't really hit you") to this far in front of it, this far either side, and each
-     *  peck splashes round where its bill strikes the ground (this far in front, this far round: "a small AoE instead
-     *  of a single block kind of thing") (blocks; the adult's, the young's scaled to its size). */
+    /** Each peck lands when its bill strikes the ground, this share of the way through the snap (the animation's "hit":
+     *  until October 30 it landed at 0.35, while the adult's bill was still 11 blocks up). Its bill strikes this far in
+     *  front of its feet (measured from the models: the adult's 14.4 blocks, the young's 10.5; it was 12 for the adult
+     *  and 8.4 for the young), and the peck hurts everything round that spot within this far (the user's third look:
+     *  "the peck does AoE damage ... I was in front of the beak and it does no damage to me"; it reached only 15 blocks
+     *  ahead, so standing just past the tip was safe), and everything in front of it from under its chest (this far
+     *  behind its feet) out to the strike, this far either side (blocks; the young's splash and width at its own
+     *  scale). */
+    public static final double SNAP_HIT_SHARE = 0.5D;
     public static final double SNAP_FROM = -4.0D;
-    public static final double SNAP_TO = 15.0D;
     public static final double SNAP_SIDE = 5.0D;
-    public static final double SNAP_STRIKE = 12.0D;
-    public static final double SNAP_SPLASH = 3.5D;
+    public static final double SNAP_STRIKE = 14.4D;
+    public static final double YOUNG_SNAP_STRIKE = 10.5D;
+    public static final double SNAP_SPLASH = 5.0D;
+    /** (how far up or down from the strike's ground the splash reaches) */
+    public static final double SNAP_SPLASH_HEIGHT = 5.0D;
     public static final int SNAP_COOLDOWN = 30;
+    /** Lying stuck after a dive with its target near, the chance it pecks (else its buffet, its screech, or it takes off;
+     *  the user's third look: peck more: 0.6 until then). The adult's chance to screech there (0.4 until then: "the 1st
+     *  stage screeches too much"), the young's. */
+    public static final float STUCK_SNAP_CHANCE = 0.85F;
+    public static final float STUCK_SCREECH_CHANCE = 0.08F;
+    public static final float YOUNG_STUCK_SCREECH_CHANCE = 0.1F;
 
     /** Wing buffet: 4 hearts in a cone in front, throwing you about 20 blocks (the user). In the air it first swoops
      *  down to this far from its target, this high over it, so its beat reaches it (from its circle, 18 blocks up, it
@@ -194,7 +207,8 @@ public final class EmberTuning
     public static final float SCREECH_DAMAGE = 2.0F;
     public static final double SCREECH_RANGE = 20.0D;
     public static final int SCREECH_SLOWNESS_TICKS = 60;
-    public static final int SCREECH_COOLDOWN = 300;
+    /** (the adult's: 30 s, 15 s until the user's third look, "the 1st stage screeches too much") */
+    public static final int SCREECH_COOLDOWN = 600;
     /** The young's screech comes back only after this long, not scaled by its short cooldowns (the user: it screeched
      *  "a little too much"). */
     public static final int YOUNG_SCREECH_COOLDOWN = 500;
@@ -214,15 +228,35 @@ public final class EmberTuning
     public static final double ERUPT_RANGE = 60.0D;
 
     /** Which moves it picks, by how far its target is (along the ground): close, mid, far; and on the ground. The
-     *  chances (out of each row's total; the young's dash and its quieter screech added): the user's approved table,
-     *  then (their first fight) the tornadoes 5 points more likely in both stages, taken from the row's biggest. */
+     *  chances (out of each row's total): the user's approved table, then (their first fight) the tornadoes 5 points
+     *  more likely in both stages, taken from the row's biggest; then (their third look, the adult only: "the 1st stage
+     *  screeches too much, make it do other attacks like tornado more and peck more or dive more") the adult's close row
+     *  grab 25, buffet 15, dive 35 (each dive ends in its pecks), tornado 20, screech 5 (it was grab 30, buffet 25, dive
+     *  20, screech 15, no tornado), its mid row dive 32, tornado 38, strafe 18, grab 12 (it was 25, 30, 25, 20). The
+     *  young's rows as they were (its dash and quieter screech). */
     public static final double CLOSE = 16.0D;
     public static final double MID = 40.0D;
-    public static final int CLOSE_GRAB = 30, CLOSE_BUFFET = 25, CLOSE_DIVE = 20, CLOSE_SCREECH = 15, CLOSE_DASH = 25;
-    public static final int YOUNG_CLOSE_SCREECH = 5;
-    public static final int MID_DIVE = 25, MID_TORNADO = 30, MID_STRAFE = 25, MID_GRAB = 20, MID_DASH = 20;
-    /** (the young's mid row has its dash too: its tornado 6 points more, so it gains 5 of its share) */
-    public static final int YOUNG_MID_DIVE = 24, YOUNG_MID_TORNADO = 31;
+    public static final int CLOSE_GRAB = 25, CLOSE_BUFFET = 15, CLOSE_DIVE = 35, CLOSE_TORNADO = 20, CLOSE_SCREECH = 5;
+    public static final int MID_DIVE = 32, MID_TORNADO = 38, MID_STRAFE = 18, MID_GRAB = 12;
+    public static final int YOUNG_CLOSE_GRAB = 30, YOUNG_CLOSE_BUFFET = 25, YOUNG_CLOSE_DIVE = 20, YOUNG_CLOSE_SCREECH = 5;
+    public static final int CLOSE_DASH = 25;
+    public static final int YOUNG_MID_DIVE = 24, YOUNG_MID_TORNADO = 31, YOUNG_MID_STRAFE = 25, YOUNG_MID_GRAB = 20;
+    public static final int MID_DASH = 20;
+    /** Against another Emberdactyl raged on another team (the Rage Wand: the user's third look, "I used the rage wand on
+     *  the adult then ... the younger one, nothing seems to happen between the two"), a fight in the air: its talon
+     *  strike (the grab's swoop, its talons raking it, no carrying), buffet, screech and tornadoes (and the young's dash);
+     *  its dive only onto one lying stuck on the ground, and no strafing run. The talon strike reaches this much past
+     *  their two bodies' half widths, and throws its target this hard. */
+    public static final int DUEL_STRIKE = 35, DUEL_BUFFET = 20, DUEL_SCREECH = 10, DUEL_TORNADO = 15, DUEL_DIVE = 30,
+            DUEL_DASH = 25;
+    public static final double DUEL_STRIKE_REACH = 4.0D;
+    public static final double DUEL_STRIKE_THROW = 0.8D;
+
+    /** Its flight's loops by its speed (hover, glide, fly): it changes over only this share past the speed at the line
+     *  and stays at least this long (ticks) after a change (until October 30 a speed near the line flicked it between
+     *  them every tick, each change starting the loop again: the user saw its head snap back as it flew). */
+    public static final double FLIGHT_LOOP_MARGIN = 0.25D;
+    public static final int FLIGHT_LOOP_HOLD = 30;
     /** Far off (the user's second fight: "when you're far away he shouldn't tornado ... he always starts with a tornado
      *  ... instead make him do his fire glide thing then dive at you once he is closer"): its glide in (75) or its
      *  strafing run (25); no tornadoes. (It was strafe 35, tornado 40, dive 25.) */

@@ -257,8 +257,10 @@ public final class EmberFightGameTest
                     adult[0].setYRot(-90.0F);
                     adult[0].yBodyRot = -90.0F;
                     adult[0].yHeadRot = -90.0F;
+                    // (the first golem stands just past the tip of its beak: the user's third look, "I was in front
+                    // of the beak and it does no damage to me")
                     golem[0] = EntityType.IRON_GOLEM.create(run.level);
-                    golem[0].moveTo(run.centre.x + 8.0D, run.centre.y, run.centre.z, 90.0F, 0.0F);
+                    golem[0].moveTo(run.centre.x + EmberTuning.SNAP_STRIKE + 2.5D, run.centre.y, run.centre.z, 90.0F, 0.0F);
                     golem[0].setNoAi(true);
                     run.level.addFreshEntity(golem[0]);
                     run.extras.add(golem[0]);
@@ -275,7 +277,7 @@ public final class EmberFightGameTest
                     return pecking[0] && !now;
                 }, () -> "the golem's health " + golem[0].getHealth()))
                 .thenExecute(() -> run.guard(() -> {
-                    checkPecked(golem[0], "in front of it");
+                    checkPecked(golem[0], "just past the tip of its beak");
                     // (it only pecks what it's fighting: now the golem right under its chest)
                     pecking[0] = false;
                     adult[0].testMove(EmberBoss.Move.SNAP, golem[1]);
@@ -289,6 +291,88 @@ public final class EmberFightGameTest
                     checkPecked(golem[1], "under its chest");
                     LOGGER.info("[ember test] five pecks: {} lost in front of it and under its chest",
                             EmberTuning.SNAP_PECKS * EmberTuning.SNAP_DAMAGE);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
+     * The user's third look: "I used the rage wand on the adult then ... the younger one, nothing seems to happen between
+     * the two". The adult raged Red and the young Blue, with nobody else near: both wake and each hurts the other.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_rage", timeoutTicks = 2_000_000)
+    public static void ragedTheyFightEachOther(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7200, -6400);
+        Emberdactyl[] adult = new Emberdactyl[1];
+        EmberYoung[] young = new EmberYoung[1];
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(-12.0D, 14.0D, 0.0D));
+                    young[0] = run.spawn(ModEntities.EMBERYOUNG.get(), run.centre.add(12.0D, 14.0D, 0.0D));
+                    if (!com.reg21meme.dross.boss.rage.Rage.enrage(adult[0], com.reg21meme.dross.boss.rage.RageTeam.RED)
+                            || !com.reg21meme.dross.boss.rage.Rage.enrage(young[0], com.reg21meme.dross.boss.rage.RageTeam.BLUE))
+                    {
+                        throw new GameTestAssertException("the Rage Wand couldn't rage them");
+                    }
+                }))
+                .thenIdle(3)
+                .thenExecute(() -> run.guard(() -> {
+                    if (!adult[0].isFighting() || !young[0].isFighting())
+                    {
+                        throw new GameTestAssertException("raged, they should wake (the adult fighting " + adult[0].isFighting()
+                                + ", the young " + young[0].isFighting() + ")");
+                    }
+                }))
+                .thenWaitUntil(() -> run.waitFor("each to hurt the other", () -> adult[0].getHealth() < adult[0].getMaxHealth()
+                                && young[0].getHealth() < young[0].getMaxHealth(),
+                        () -> "the adult " + adult[0].getHealth() + " going for " + adult[0].fightTarget() + ", the young "
+                                + young[0].getHealth() + " going for " + young[0].fightTarget()))
+                .thenExecute(() -> run.guard(() -> {
+                    LOGGER.info("[ember test] raged on two teams the adult ({}) and the young ({}) fought each other",
+                            adult[0].getHealth(), young[0].getHealth());
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /** The user's third look: "when I use their spawn egg make them insta hostile as soon as the two spawn". With nobody
+     *  near, one from a spawn egg fights at once and never goes back to resting. */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_egg", timeoutTicks = 2_000_000)
+    public static void spawnEggOnesFightAtOnce(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7200, -6600);
+        EmberBoss[] boss = new EmberBoss[2];
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    boss[0] = ModEntities.EMBERDACTYL.get().spawn(run.level, BlockPos.containing(run.centre.add(-10.0D, 8.0D, 0.0D)),
+                            MobSpawnType.SPAWN_EGG);
+                    boss[1] = ModEntities.EMBERYOUNG.get().spawn(run.level, BlockPos.containing(run.centre.add(10.0D, 8.0D, 0.0D)),
+                            MobSpawnType.SPAWN_EGG);
+                    if (boss[0] == null || boss[1] == null)
+                    {
+                        throw new GameTestAssertException("the spawn eggs' Emberdactyls didn't come");
+                    }
+                    run.extras.add(boss[0]);
+                    run.extras.add(boss[1]);
+                    if (!boss[0].isFighting() || !boss[1].isFighting())
+                    {
+                        throw new GameTestAssertException("from a spawn egg they should fight at once (the adult " + boss[0].isFighting()
+                                + ", the young " + boss[1].isFighting() + ")");
+                    }
+                }))
+                .thenIdle(EmberTuning.GIVE_UP_TICKS + 100)
+                .thenExecute(() -> run.guard(() -> {
+                    if (!boss[0].isFighting() || !boss[1].isFighting())
+                    {
+                        throw new GameTestAssertException("with nobody to fight they went back to resting (the adult "
+                                + boss[0].isFighting() + ", the young " + boss[1].isFighting() + ")");
+                    }
+                    LOGGER.info("[ember test] from spawn eggs both fight at once and stay fighting");
                     run.cleanUp();
                 }))
                 .thenSucceed();

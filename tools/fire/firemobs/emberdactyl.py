@@ -218,20 +218,27 @@ def dangle(p, t, period, swing=8.0, back=0.0):
         p.rot(f"foot_{side}", 10.0 + 0.6 * swing * wave(t, period, 0.4), 0.0, 0.0)
 
 
+HOVER_BEATS = 2      # wing beats in one hover loop: its slow look to one side and back takes the whole loop
+
+
 def hover(rig):
-    L = T(2.2)
+    # The loop is two beats long, so its head's slow sway (one look each way a loop) ends where it began: until the
+    # user's third look (October 30) the loop was one beat long and the sway two, so every loop its head jumped 19
+    # degrees back to the other side ("the head ... snaps back when he flies").
+    B = T(2.2)
+    L = HOVER_BEATS * B
 
     def frame(t):
         p = Pose()
-        push = beat(p, (t / L) % 1.0)
-        rise = k((t / L) % 1.0, [(0.0, -3.0), (0.4, 7.0), (0.75, 2.0), (1.0, -3.0)])
+        push = beat(p, (t / B) % 1.0)
+        rise = k((t / B) % 1.0, [(0.0, -3.0), (0.4, 7.0), (0.75, 2.0), (1.0, -3.0)])
         p.pos("root", 0.0, (AIR + rise) * SCL, 0.0)
         p.rot("body", -6.0 - 3.0 * push, 0.0, 0.0)
-        p.rot("neck", 4.0 + 3.0 * push, 6.0 * wave(t, 2 * L), 0.0)
-        p.rot("head", 2.0 * wave(t, L, 0.3), 10.0 * wave(t, 2 * L, 0.2), 4.0 * wave(t, 2 * L, 0.5))
-        p.rot("jaw", 2.0 + 2.0 * max(0.0, wave(t, 2 * L, 0.6)), 0.0, 0.0)
-        p.rot("tail", 6.0 * push, 5.0 * wave(t, 2 * L), 0.0)
-        dangle(p, t, L, 7.0)
+        p.rot("neck", 4.0 + 3.0 * push, 5.0 * wave(t, L), 0.0)
+        p.rot("head", 2.0 * wave(t, B, 0.3), 7.0 * wave(t, L, -0.08), 3.0 * wave(t, L, 0.17))
+        p.rot("jaw", 2.0 + 2.0 * max(0.0, wave(t, L, 0.6)), 0.0, 0.0)
+        p.rot("tail", 6.0 * push, 5.0 * wave(t, L, 0.5), 0.0)
+        dangle(p, t, B, 7.0)
         return p
 
     a = wingfold.record(rig, "hover", L, frame)
@@ -248,8 +255,10 @@ def fly(rig):
         p.pos("root", 0.0, (AIR + 6.0 * push) * SCL, 0.0)
         p.rot("body", 18.0 + 2.0 * push, 0.0, 0.0)
         p.rot("neck", -6.0 - 2.0 * push, 0.0, 0.0)
-        p.rot("head", -8.0 + 2.0 * wave(t, L), 4.0 * wave(t, 2 * L), 0.0)
-        p.rot("tail", -10.0 + 4.0 * push, 4.0 * wave(t, 2 * L), 0.0)
+        # (its head's and tail's sway once a loop: a sway twice the loop's length turned back on itself at every loop's
+        # end, a jolt the user saw as its head snapping back)
+        p.rot("head", -8.0 + 2.0 * wave(t, L), 3.0 * wave(t, L, 0.25), 0.0)
+        p.rot("tail", -10.0 + 4.0 * push, 4.0 * wave(t, L, 0.5), 0.0)
         dangle(p, t, L, 3.0, back=62.0)
         return p
 
@@ -444,19 +453,27 @@ def stance(rig, p, t, breathe=0.0):
         p.rot(f"tip_{side}", 0.0, -sign * 20.0, sign * 24.0)
 
 
+PERCH_LOOK = 9.0     # degrees its head turns each way as it looks round from its perch (and its neck 0.6 of that)
+
+
 def perch(rig):
-    L = T(4.0)
+    # A slow watch over its land (the user's third look: on its volcano "his head is very snappy": it swung its head
+    # 24 degrees side to side without a pause every 4 seconds): it turns its head one way, eased in and out, holds
+    # there, turns back to the front, holds, then the other way, over 10 seconds; its breathing and tail slower too.
+    L = T(10.0)
+    look_keys = [(0.0, 0.0), (0.12, 0.0), (0.27, 1.0), (0.42, 1.0), (0.55, 0.0), (0.62, 0.0),     # (each eased out
+                 (0.77, -1.0), (0.9, -1.0), (1.0, 0.0)]                                              # and in)
 
     def frame(t):
         p = Pose()
-        stance(rig, p, t, breathe=1.2 * wave(t, L / 2.0))
-        look = wave(t, L)
-        p.rot("neck", 2.0 * wave(t, L / 2.0), 10.0 * look, 0.0)
-        p.rot("head", 4.0 * wave(t, L / 2.0, 0.3), 14.0 * look, 6.0 * wave(t, L, 0.25))
-        p.rot("jaw", 3.0 * max(0.0, wave(t, L, 0.6)), 0.0, 0.0)
-        p.rot("tail", 0.0, 6.0 * wave(t, L, 0.5), 0.0)
+        stance(rig, p, t, breathe=1.0 * wave(t, L / 3.0))
+        look = k((t / L) % 1.0, look_keys)
+        p.rot("neck", 1.5 * wave(t, L / 3.0), 0.6 * PERCH_LOOK * look, 0.0)
+        p.rot("head", 2.0 * wave(t, L / 3.0, 0.3), PERCH_LOOK * look, 2.0 * look)
+        p.rot("jaw", 2.0 * max(0.0, wave(t, L / 2.0, 0.6)), 0.0, 0.0)
+        p.rot("tail", 0.0, 5.0 * wave(t, L / 2.0, 0.5), 0.0)
         for side, sign in SIDES:
-            p.rot(f"finger_{side}", 0.0, 0.0, sign * 2.0 * wave(t, L / 2.0, 0.2))
+            p.rot(f"finger_{side}", 0.0, 0.0, sign * 2.0 * wave(t, L / 3.0, 0.2))
         rig.plant(p)
         return p
 

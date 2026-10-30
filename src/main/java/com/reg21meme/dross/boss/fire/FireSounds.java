@@ -77,6 +77,7 @@ public final class FireSounds
 
     public static final List<Cue> CUES = List.of(
             new Cue("emberdactyl", "hover", 6, "entity.emberdactyl.flap"),
+            new Cue("emberdactyl", "hover", 50, "entity.emberdactyl.flap"),
             new Cue("emberdactyl", "fly", 8, "entity.emberdactyl.flap"),
             new Cue("emberdactyl", "dive", 2, "entity.emberdactyl.dive"),
             new Cue("emberdactyl", "screech", 12, "entity.emberdactyl.screech"),
@@ -88,6 +89,7 @@ public final class FireSounds
             new Cue("emberdactyl", "death", 4, "entity.emberdactyl.death"),
             new Cue("emberdactyl", "death", 64, "entity.emberdactyl.break"),
             new Cue("emberyoung", "hover", 4, "entity.emberyoung.flap"),
+            new Cue("emberyoung", "hover", 32, "entity.emberyoung.flap"),
             new Cue("emberyoung", "fly", 5, "entity.emberyoung.flap"),
             new Cue("emberyoung", "dive", 1, "entity.emberdactyl.dive"),
             new Cue("emberyoung", "screech", 8, "entity.emberyoung.screech"),

@@ -228,7 +228,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
    8. **The Dross Compass** (Villager): a vanilla compass with lodestone tags, re-aimed every second while it's in a player's inventory. Moving the site later keeps compasses correct. It targets `PortalSite.getOpeningCenter` and spins in other dimensions.
    9. **The Dross advancement tab** (Quest): all Dross advancements move out of the vanilla Minecraft tab into their **own "Dross" tab**.
       - The tab has a root advancement with a background (the new frame texture). The root shows no toast and no chat message, and is granted silently when the player picks up a Weathered Letter, so **the tab stays hidden until then**.
-      - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Enter the Dross** (challenge, the main achievement), whose children are **Rise!** (challenge), **Set in Stone** (`set_in_stone`, challenge, a drawn icon: "Defeat the Cinder Colossus.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone, like "Rise!") and **Down the Drain** (`down_the_drain`, challenge, a drawn icon: "End the Rat King's reign beneath Blightwood.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **The Hunter Hunted** (`the_hunter_hunted`, challenge: "Bring down the Huntsman and his Alpha Moose.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **Wings Clipped** (`wings_clipped`, challenge, granted for beating the Emberdactyl's young, step 16). **Their icons** (the user, October 29: "change the advancement image of the Emberdactyl and the Huntsman to something more creative than just their spawn eggs"; then, after their second fight: "make custom advancement for the colossus as well, not just obsidian; also for the rat king change it up"): drawn 16x16 icons on icon-only items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon` in `registry/ModItems`, in no creative tab), drawn by `tools/icons/advancement_icons.py` in options (sheets `boss-previews/<biome>/<boss>/advancement_icon/options.png`, each shown in the real challenge frame): W1 the clipped wing (an obsidian wing, its long finger sheared off on a glowing cut), W2 the broken wing, W3 pinned down (a sword through the wing); H1 pierced hood (his wolf hood and antlers, an ice-fletched arrow clean through it), H2 the Alpha's skull and his broken spear, H3 the hunter's trophy (his own hood mounted on a plaque), **H4 pierced and crossed out** (H1 with his glowing eyes crossed out, dead: the user, "make it so his eyes are crossed out, died"), H5 crossed out (no arrow); S1 the Colossus's cooling face (its cracked three-eyed face going to obsidian, its eyes dimming), S2 its obsidian fist, S3 its cold volcanoes; D1 his crown down the drain (slipping between a sewer grate's bars), D2 belly up (his X-eyed face, crown askew), D3 his broken staff over a grate; **W1, H4, S1 and D1 in the game until the user picks** (`PICKS`).
+      - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Enter the Dross** (challenge, the main achievement), whose children are **Rise!** (challenge), **Set in Stone** (`set_in_stone`, challenge, a drawn icon: "Defeat the Cinder Colossus.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone, like "Rise!") and **Down the Drain** (`down_the_drain`, challenge, a drawn icon: "End the Rat King's reign beneath Blightwood.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **The Hunter Hunted** (`the_hunter_hunted`, challenge: "Bring down the Huntsman and his Alpha Moose.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **Wings Clipped** (`wings_clipped`, challenge, granted for beating the Emberdactyl's young, step 16). **Their icons** (the user, October 29: "change the advancement image of the Emberdactyl and the Huntsman to something more creative than just their spawn eggs"; then, after their second fight: "make custom advancement for the colossus as well, not just obsidian; also for the rat king change it up"): drawn 16x16 icons on icon-only items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon` in `registry/ModItems`, in no creative tab), drawn by `tools/icons/advancement_icons.py` in options (sheets `boss-previews/<biome>/<boss>/advancement_icon/options.png`, each shown in the real challenge frame): W1 the clipped wing (an obsidian wing, its long finger sheared off on a glowing cut), W2 the broken wing, W3 pinned down (a sword through the wing); H1 pierced hood (his wolf hood and antlers, an ice-fletched arrow clean through it), H2 the Alpha's skull and his broken spear, H3 the hunter's trophy (his own hood mounted on a plaque), **H4 pierced and crossed out** (H1 with his glowing eyes crossed out, dead: the user, "make it so his eyes are crossed out, died"), H5 crossed out (no arrow); S1 the Colossus's cooling face (its cracked three-eyed face going to obsidian, its eyes dimming), S2 its obsidian fist, S3 its cold volcanoes; D1 his crown down the drain (slipping between a sewer grate's bars), D2 belly up (his X-eyed face, crown askew), D3 his broken staff over a grate. **The user's picks** (October 30): **D1** ("I like the rat king one"), **H3 with his eyes crossed out** ("use H3 for the Huntsman, just cross his eyes out": his hood mounted on its plaque, a cartoon X over each eye); none of S1-S3 ("I don't like any of the colossus options": archived in `advancement_icon/round1/`), so round 2: **S4 sword in the stone** (your sword plunged into a boulder of its obsidian, the cut glowing: "Set in Stone"), S5 the obsidian statue (the Colossus side on, cooled for good on a plinth), S6 heart gone cold (its lava core half crusted in obsidian), S7 pickaxe in the shell; **W1 and S4 in the game until the user picks** (`PICKS`).
       - There is **no** "The Rift Reopened" advancement.
       - Quest owns every advancement JSON and a grant helper. Other areas call the helper when their event happens.
       - Quest's progress API grants "Proven Worthy" and "Keymaster" itself when those stages complete.
@@ -349,7 +349,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
     - **Hitting a mob** with it never damages or knocks it back; it gives the mob **Rage** (`dross:rage`, `RageEffect` in `registry/ModEffects`: infinite, no cure, milk doesn't remove it, its swirl hidden) **and the wand's team**; hitting it again with another colour switches its team (red, then purple, makes it purple). A short growl and a burst of team-coloured dust, and a puff of it over the mob every second while it lasts (no glowing outline: "not for now"). Players can't be raged. It refuses (a click and a puff of smoke) mobs with no AI (showcase entities), the Ender Dragon, the Dross trader and the hub's survivors (they can never die, so their fight would never end).
     - **Team fights:** a raged mob **never targets, chases or hits its own team** (friendly blows do no damage either). **The team beats natural enmity** (the user, October 17): an iron golem and a zombie, or a pillager and an iron golem or villager, on one team leave each other alone. When a mob joins or switches team (the wand's hit, a boss's minions joining or moving with it, a reload), it and every raged teammate within 48 blocks (`SETTLE_RANGE`) drop each other at once (`Rage.settleTeam`: the target and the target goal that picked it, a neutral mob's anger, a warden's anger, hurt-by and last-hurt, the brain's attack target, anger, hurt-by and walk target, and the chase), so a fight two mobs started before they were teammates (one coloured a few seconds after the other) ends the moment they are; as a safety net every raged mob checks every 10 ticks (`TEAMMATE_CHECK_TICKS`) that it holds nothing against a teammate and that no target goal of its own is stuck on a refused target. (Until October 17 a target held from before was never dropped: a blue golem and a blue zombie kept chasing and swinging at each other, harmlessly, until another team's mob came.) It goes for the nearest raged mob of **another team** within **40 blocks** (`RAGE_RANGE`), the next nearest when that one dies; while it has an enemy-team mob near it ignores players, even one who hits it; with none near it behaves normally towards everything except its own team (players, mobs that aren't raged). **Teams are permanent** (the user: "they stay their team forever: this is a creative-only test item"): the Rage and the team never wear off, and they survive a reload. A Rage given by `/effect` has no team and fights nobody. (Until October 16 it was a free-for-all and the last one standing calmed down after 10 s.)
     - **The user's rule: no new animations**, "all old Minecraft principles apply": every mob fights with its own vanilla attack and walk (zombies swing, skeletons shoot, creepers explode, golems smash; neutral mobs get angry; slimes and magma cubes hurt by touch). Mobs with no attack of their own (cows, pigs, sheep, chickens, villagers, horses, llamas, snow golems, wandering traders; also rabbits, goats and frogs) **headbutt**: 2 damage (1 heart) every second within reach. Brain-driven mobs (piglins, hoglins, zoglins, axolotls; villagers, camels, sniffers, allays) are best effort; **the warden** gets more care (`RageAi.wardenAttack`; the user's bug of October 18: a raged warden ignored a raged Rat King of another team, even when he hit it after his burrow): its brain roars before it fights, its roar only starts while it has no attack target, and it stays "about to roar" while it has a roar target, so a roar target picked just before the Rage set its attack target (the king coming out of the ground) left it standing still for ever; now a roar already going is turned on its enemy and finishes, any other roar target is dropped, and its anger at its enemy is raised again whenever it falls under "angry" (Minecraft drops a target the warden isn't angry at); a roar target on a teammate is dropped like its other grudges; bats and squid can't chase; ghasts and phantoms are untested.
-    - **Bosses** (`RageLeader`): raging the Cinder Colossus makes an idle one fight; raging a sleeping Rat King wakes him. They fight raged mobs with their own moves (their blows, rocks, lava, plague balls and clouds hit raged enemies). Their minions already alive, and every golem or rat they summon while raged, **join their team** (re-raging a boss moves its minions to the new team; a minion hit separately with another colour joins that team instead): they fight the other teams and never their master or their own team.
+    - **Bosses** (`RageLeader`): raging the Cinder Colossus makes an idle one fight; raging a sleeping Rat King wakes him; raging an Emberdactyl (the adult or its young) wakes it, and raged on two teams the adult and the young fight each other in the air (step 16). They fight raged mobs with their own moves (their blows, rocks, lava, plague balls and clouds hit raged enemies). Their minions already alive, and every golem or rat they summon while raged, **join their team** (re-raging a boss moves its minions to the new team; a minion hit separately with another colour joins that team instead): they fight the other teams and never their master or their own team.
     - **Headless tests** (`RageGameTest`): cycling the team by use; a mob taking the wand's team and switching on a re-hit; two teams fighting, never their own team (teammate blows do no damage); a blue iron golem and a blue zombie calm side by side for 10 s (no target, anger or hurt-by against each other, no damage); the golem turning blue and fighting the zombie, then the zombie turning blue: both let go within 10 ticks and stay calm, and a hurt-by slipped in behind the Rage's back is dropped within 10 ticks (the safety net); a red iron golem coming: both blues go for it, and once it's gone they stay calm with each other for 5 s; a blue pillager and a blue iron golem calm for 10 s; the last team standing keeping its Rage and team; raged zombies ignore a player; the wand does no damage and its Rage is infinite; milk doesn't cure it; a raged pig headbutts a raged cow for 2; a raged villager headbutts; a raged Colossus's golems and a raged Rat King's rats join their teams; the Rage and the team survive a save and load; a raged warden whose brain has just picked its enemy to roar at still fights and hits it (`ragedWardenFightsAfterItsRoar`), and a raged warden hits a raged Rat King of another team again after his burrow (`ragedWardenFightsTheRatKingAfterHisBurrow`).
 11. **The sewers under Blightwood and the rat cave** [built, not yet tested in-game] (Dimension area, `dimension/sewer/`; the Rat King's part is the Boss area's, `boss/ratking/lair/`; the user's requests, October 2026): the Dross's first underground areas, kept to the sewers. New worlds only (the mod isn't published, so no old-world support).
     - **Where they go** (the boss-site planner, step 12): Blightwood's patches are taken nearest the hub first, in groups of 3; in every group **one patch gets the Rat King's sewer** (the network with his rat cave), and **each of the other two gets a regular sewer with a 1 in 2 chance** (`REGULAR_SEWER_CHANCE` 0.5, a seeded roll), if one fits; never more than one network in a patch. Both are structures placed by the planner (`dross:boss_site` placement, `structure_set/sewers.json` and `rat_cave.json`), so `/locate` can't find them: use `/dross goto sewer`, `/dross goto lair ratking` or the API. A maze shrinks to fit its patch (`MAZE_FILL` 0.8 of the room, at least `NODES_SMALLEST` 16 junctions; a group's roomiest patch gets the smallest form if nothing else fits). `SewerPlanner` seeds its randomness from the world seed and the chunk only, so the planner's fit test and the generated network are identical.
@@ -1266,10 +1266,15 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
     - **Animations** [built October 27, overnight] (the user: "work on the animations"; `tools/fire/mobs.py`, the
       modules `firemobs/emberdactyl.py`, `emberyoung.py`, `common.py`; the Rimefall animals' kit, legs and wing wrists
       planted with the golem IK; every frame checked for clipping and the floor): **hover** (its idle: slow heavy beats
-      over its nest), **fly**, **glide**, **dive** (wings swept back, the plunge, a flare out), **screech** (it rears,
+      over its nest; since the user's third look, October 30, two beats a loop with one slow look each way: its head's
+      sway had been twice the loop's length, so its head jumped 19 degrees back at every loop, "the head ... snaps
+      back"; the fly loop's head and tail sway had the same seam), **fly**, **glide**, **dive** (wings swept back, the plunge, a flare out), **screech** (it rears,
       wings up, then throws its head forward and screams, its head and wings shaking), **gust** (wings drawn back, one
       huge beat: the fire tornadoes' moment), **grab** (a swoop, legs forward, talons closing), **snap** (a beak lunge on
-      the ground), **perch** (on its legs and wrists, the wing fingers folded up its sides like a pterosaur's), **walk**,
+      the ground), **perch** (on its legs and wrists, the wing fingers folded up its sides like a pterosaur's; since
+      October 30 a slow watch over its land, 10 s: its head turns one way, eased, holds, back to the front, holds, the
+      other way, 9 degrees (it swung 24 degrees side to side without a pause every 4 s: "his head is very snappy"),
+      `PERCH_LOOK`), **walk**,
       **death** (a last scream, wings flailing, onto its belly, wings spread). **The young makes the same moves 1.6 times
       as fast** (the user's stage 2 rule: "bam bam ... no rest"), higher off the ground in the air (its swept wings hang
       lower). Previews: `boss-previews/cinder_wastes/emberdactyl/animations/` (a GIF of each, `index.html`).
@@ -1443,14 +1448,22 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         volcano (`EmberVolcanoData.State`: WAITING, ADULT, YOUNG, BEATEN; a missing one, removed without dying, comes
         again; beaten, never again).
       - **Waking**: a player (not creative or a spectator) within 60 blocks of its volcano's foot (`NOTICE_RANGE` +
-        `VOLCANO_FOOT`; one from a spawn egg: within 60 of where it was spawned, where it hovers, circling, when calm:
-        the user, "it will just fly over where it was spawned"), or a hit: its screech, heard from afar (volume 12: 192
+        `VOLCANO_FOOT`), a raged enemy near (the Rage Wand, below), or a hit; **one from a spawn egg or
+        `/dross boss summon` fights from the moment it comes and never goes back to resting** (`makeHostile`, saved as
+        `Hostile`; the user's third look: "when I use their spawn egg make them insta hostile as soon as the two
+        spawn"; until then it hovered calm over where it was spawned until a player came within 60): its screech, heard from afar (volume 12: 192
         blocks; the user's "make sure its screech can be heard from afar"), lifting off, and its boss bar (players within
         110 blocks; "Emberdactyl: The Sky That Burns", the young's "...: The Ember That Remains"). With nobody to fight for
-        15 s it goes back to resting (its health as it is: the boss-buff rules come later, the user's word).
+        15 s it goes back to resting (its health as it is: the boss-buff rules come later, the user's word). Its flight's
+        loops (hover, glide, fly) change by its speed with a margin and a 1.5 s hold (`FLIGHT_LOOP_*`): a speed near
+        the line flicked them every tick, each change starting the loop again.
       - **The moves** (`EmberBoss`; the user's approved numbers, in hearts; picked by its target's distance: under 16
         blocks grab 30 / buffet 25 / dive 20 / screech 15 (the young: screech 5, dash 25), 16-40 dive 25 / tornadoes 30 /
-        strafe 25 / grab 20 (the young: dive 24, tornadoes 31, dash 20), over 40 **glide in** 75 / strafe 25 (the tornadoes
+        strafe 25 / grab 20 (the young: dive 24, tornadoes 31, dash 20); since the user's third look (October 30: "the
+        1st stage screeches too much, make it do other attacks like tornado more and peck more or dive more") the
+        adult's close row grab 25 / buffet 15 / dive 35 / tornadoes 20 / screech 5 and its mid row dive 32 / tornadoes
+        38 / strafe 18 / grab 12, its screech back only every 30 s (15 before), and lying stuck it pecks 85% of the time
+        (60) and screeches 8% (40) (`STUCK_*`; the young's as they were), over 40 **glide in** 75 / strafe 25 (the tornadoes
         5 points more likely in both stages since the user's first fight; far off no tornadoes since their second: "he
         always starts with a tornado even when you're far away ... instead make him do his fire glide thing then dive at
         you once he is closer"; it was strafe 35 / tornadoes 40 / dive 25; `EmberTuning` `CLOSE_`/`MID_`/`FAR_*`); a move
@@ -1460,10 +1473,14 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         blasts and a dozen patches of fire round it, everything thrown out and up hard (`DIVE_THROW` 1.6, `DIVE_LIFT`
         0.95, 60% of it at the edge; thrown even when the hit didn't count), then **stuck 3 s on the ground** (the melee
         window: there it may **beak snap**: **five pecks** in a row (the user: "make sure it can do 5 beak pecks all at
-        once"), 4 hearts each, every one counting (it was one snap of 7), each hitting everything from under its chest
-        (4 behind its feet) out to 15 in front, 5 either side, and splashing 3.5 round where its bill strikes the ground
-        (with rock and embers; the user's second fight: "when you are directly under him his pecking attack doesn't really
-        hit you ... a small AoE instead of a single block"; `SNAP_*`), wing buffet or screech, then takes off);
+        once"), 4 hearts each, every one counting (it was one snap of 7), each landing as its bill strikes the ground
+        (half way through the snap, `SNAP_HIT_SHARE`; until the user's third look it landed at 0.35, the bill still 11
+        blocks up), **everything within 5 blocks of where its bill strikes** (14.4 blocks in front of its feet, the
+        young's 10.5: measured from the models; the hitbox counts, not only the feet) and everything in front of it from
+        under its chest (4 behind its feet) out to there, 5 either side, with rock, embers and a burst of basalt (the
+        user's second fight: "when you are directly under him his pecking attack doesn't really hit you ... a small AoE";
+        their third look: "I was in front of the beak and it does no damage to me": it reached 15 blocks, so just past
+        the tip was safe; `SNAP_*`), wing buffet or screech, then takes off);
         **fire tornadoes** (`FireTornado`: the Firestorm candidate's model
         spinning, 2, 3 when enraged, smaller for the young; 8 s after its target, pulling you in, 1.5 a second and fire,
         **throwing you up into the sky** in its core: the user's request); **strafing run** 4 and fire, low along a line
@@ -1489,6 +1506,13 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         user). Ranged hits do full damage. **The young drops fire wherever it flies** (the user's second fight: "whenever
         he does his glide animation he drops fire onto the ground, whenever he flies"): fighting in the air, a patch of
         temporary fire every 5 ticks on the ground under it, if that's within 40 blocks (`YOUNG_FIRE_*`).
+      - **The Rage Wand** (the user's third look: "I used the rage wand on the adult then ... the younger one, nothing
+        seems to happen between the two"; it was no `RageLeader`, so the Rage gave it its headbutt, and its moves hurt
+        only players): raged, it wakes and goes for the nearest raged mob of another team before any player; its blows,
+        fire and tornadoes hurt raged enemies (a tornado reaches 30 blocks up for one flying over it), never its own team.
+        Against another Emberdactyl it fights in the air: its talon strike (the grab's swoop, raking it without carrying
+        it: too big), buffet, screech, tornadoes and the young's dash, its dive only onto one lying stuck (`DUEL_*`), both
+        circling over the ground under each other (circling each other's heads they'd climb for ever).
       - **Its death on the ground** (the user's first fight: dying in the air it "seems to be falling from the floor ...
         glitches when they die"; over the steep volcano half of it sank into the rock): its death animation screams with
         its body at flying height, then drops it onto the floor (1.9 s in, the young's 1.15 s: `Kind.deathFall`); it
@@ -1563,7 +1587,8 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         egg: the long bill with its half moon along it, its blade horns, an ember-slit eye), A12 screech (its bill
         gaping, the throat glowing), A13 breaking out (its head and bill bursting out of the egg's top); Y11 molten face
         (Y8's molten egg and crust wings, its face: round amber eyes, a small beak, little horns and half moon), Y12 head
-        in profile, Y13 popping out. **A11 and Y11 are in the game until the user picks** (`PICKS`).
+        in profile, Y13 popping out. **The user's picks** (October 30: "A11 and Y12 are good"): **A11** for the adult,
+        **Y12** (the young's head in profile on its molten egg) for the young.
       - Headless test `boss/emberdactyl/EmberFightGameTest` (it wakes for a player near and shows its bar, a wing blow
         hurts it, enraged at half; a tornado burns a cow and throws it up; the adult beaten 10 blocks up beside its egg:
         it comes down and lies on the floor, the egg hatches into the empty E3E and the young comes out going for the
@@ -1873,7 +1898,12 @@ stutter, the drop never taking more than half your health), a fire glide and div
 young dropping fire wherever it flies, pecks that hit under it and splash round the strike, the hatched egg broken apart
 into a lava-filled bowl, petals and pieces, the Admin Sword's kills counting for every boss's advancement and trophy,
 new spawn egg options with its bird features (A11-A13, Y11-Y13) and drawn icons for "Set in Stone", "Down the Drain"
-and the Huntsman's crossed-out eyes (all checked headlessly; not yet tested in-game). The
+and the Huntsman's crossed-out eyes (all checked headlessly; not yet tested in-game). Then, from the user's third
+look (October 30): the peck landing as its bill strikes and hitting round its tip, the adult screeching far less
+(more dives, pecks and tornadoes), the Rage Wand setting the adult and the young on each other, spawn-egg and
+summoned ones fighting at once, the idle head no longer snapping (hover and fly loops' seams, a slow perch); the
+picks: eggs A11 and Y12, icons D1 and H3 with crossed-out eyes, and four new Colossus icons, S4-S7 (all checked
+headlessly; not yet tested in-game). The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
 ### Early-game build [built]
@@ -2140,11 +2170,18 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   flies; the hatched egg lies broken apart in the nest: a low bowl full of lava, pieces of shell splayed out round its
   rim and lying round its foot, no black inside. The Admin Sword kills a Colossus, Rat King, Huntsman pair or
   Emberdactyl young in any stage and you get its advancement and trophy. The advancement icons in the Dross tab: the
-  Colossus's cooling face, the Rat King's crown down the drain, the Huntsman's hood with its eyes crossed out.
+  sword in the stone (Set in Stone), the Rat King's crown down the drain, the Huntsman's mounted hood with its eyes
+  crossed out.
+- **The Emberdactyl's third look fixes** (step 16, October 30): stand a few blocks past the tip of its beak while it
+  pecks: each peck hurts you (a burst of rock and embers round where its bill strikes); the adult screeches seldom and
+  dives, pecks and sends tornadoes more; from their spawn eggs (or `/dross boss summon`) both screech and fight at once,
+  even with nobody near; rage the adult one colour and the young another: they fight each other in the air (talons,
+  buffets, screeches, tornadoes reaching up for them); hovering, gliding and on its perch its head moves slowly with
+  no snap back; its eggs are A11 and Y12.
 - **The Emberdactyl's boss bars, eggs and trophies** (step 16, October 29): `/dross showcase bossbars emberdactyl`
   shows the Winged Volcano bar, the adult's over the young's (the user's pick: design 2's wings, design 3's volcano;
-  the fight's bars look the same); the spawn eggs in the tab are round 3's A11 and Y11, A7's and Y8's wings with its bird features (the sheets
-  `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/`: pick one of each); `/dross showcase trophies emberdactyl`
+  the fight's bars look the same); the spawn eggs in the tab are the user's picks, A11 and Y12 (the sheets
+  `boss-previews/cinder_wastes/emberdactyl/spawn_eggs/`); `/dross showcase trophies emberdactyl`
   places the five picked trophies in a row (Guardian of the Nest, Into the Fire, Obsidian Beak, Reborn, Twin Screech;
   right-click cycles; in hand and in the tab).
 - **The Cinder Wastes' mobs' animations** (step 16, October 27 overnight; checked headlessly): `/dross showcase
@@ -2223,7 +2260,8 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - **The Huntsman left calm once went into the Wild Hunt** (Boss area, found October 29): in one full fresh GameTest run
   `HuntsmanFightGameTest.eggBringsHimInTheSaddleCalm` failed with "left alone they should stay calm, him in the saddle"
   (247 of 249 passed); the next fresh run passed all 249. Like the creative-player test above, probably a foe of a
-  neighbouring test within his 30-block sight. Not looked into yet.
+  neighbouring test within his 30-block sight. Again on October 30 (250 of 251; the next fresh run passed all 251):
+  worth a look.
 - **A Colossus lair with a patchy obsidian floor, on one seed** (Boss area, found October 29): in the same run
   `ColossusLairGameTest.lairsAreBuiltWhenAPlayerComesNear` failed with "the lair of group 2 isn't right: only 522 of the
   floor's 1313 blocks are obsidian"; the next fresh run passed. Not looked into yet.

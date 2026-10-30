@@ -5,6 +5,8 @@ import com.reg21meme.dross.boss.fire.FireAnims;
 import com.reg21meme.dross.boss.fire.FireCandidate;
 import com.reg21meme.dross.boss.fire.FireDesigns;
 import com.reg21meme.dross.boss.golem.LavaPools;
+import com.reg21meme.dross.boss.rage.Rage;
+import com.reg21meme.dross.boss.rage.RageLeader;
 import com.reg21meme.dross.boss.rimefall.RimefallBodyPart;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -15,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -45,6 +48,7 @@ import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -67,12 +71,16 @@ import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
  *       (after its dive bomb it lies stuck a few seconds: the window to hit it up close). Moves: dive bomb, fire
  *       tornadoes, strafing run, talon grab, wing buffet, screech; on the ground: beak snap, wing buffet, screech; the
  *       young also a dash. Never further than its leash from home.</li>
- *   <li>With nobody to fight for {@link EmberTuning#GIVE_UP_TICKS} ticks it goes back to resting.</li>
+ *   <li>With nobody to fight for {@link EmberTuning#GIVE_UP_TICKS} ticks it goes back to resting (but one from a spawn
+ *       egg or a summon command, which fights from the moment it comes: the user's third look, "make them insta
+ *       hostile as soon as the two spawn in").</li>
+ *   <li>The Rage Wand ({@link RageLeader}): raged, it wakes and goes for the nearest raged mob of another team before
+ *       any player (another Emberdactyl too: a fight in the air), and never hurts its own team.</li>
  * </ul>
  * Its hitboxes: its body (its own), and its head, neck, tail and wings ({@link RimefallBodyPart}s: hitting any hurts it),
  * placed for flying or for standing by its animation.
  */
-public abstract class EmberBoss extends FireCandidate
+public abstract class EmberBoss extends FireCandidate implements RageLeader
 {
     /** Where it is in its life. */
     protected enum Phase
@@ -95,6 +103,7 @@ public abstract class EmberBoss extends FireCandidate
     private static final String TAG_VOLCANO = "Volcano";
     private static final String TAG_ENRAGED = "Enraged";
     private static final String TAG_PHASE = "Phase";
+    private static final String TAG_HOSTILE = "Hostile";
     /** Parts' sizes (width, height) and spots (its own left +x, up from its feet, its front -z), flying and standing:
      *  head, neck, left wing, right wing, left wing tip, right wing tip, tail (measured from its model's poses). */
     private final double[][] flySpots;
@@ -115,6 +124,10 @@ public abstract class EmberBoss extends FireCandidate
     /** The built volcano it belongs to (its patch's id), or 0. */
     protected long volcano;
     protected boolean enraged;
+    /** From a spawn egg or a summon command: it fights from the moment it comes and never goes back to resting. */
+    private boolean hostile;
+    /** (its tick) when its flight's loop last changed by its speed */
+    private int flightLoopSince = -1000;
     @Nullable
     private LivingEntity target;
     private int noTargetTicks;
@@ -268,6 +281,16 @@ public abstract class EmberBoss extends FireCandidate
         this.moveTick = 0;
     }
 
+    /** Makes it fight from now on, never going back to resting (a spawn egg's, a summon command's), and wakes it. */
+    public void makeHostile()
+    {
+        this.hostile = true;
+        if (this.phase == Phase.REST)
+        {
+            this.startFighting(null);
+        }
+    }
+
     @Nullable
     @Override
     public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType reason,
@@ -277,7 +300,35 @@ public abstract class EmberBoss extends FireCandidate
         {
             this.home = this.position();
         }
-        return super.finalizeSpawn(level, difficulty, reason, data, tag);
+        SpawnGroupData out = super.finalizeSpawn(level, difficulty, reason, data, tag);
+        if (reason == MobSpawnType.SPAWN_EGG)
+        {
+            this.makeHostile();
+        }
+        return out;
+    }
+
+    // ---------------------------------------------------------------- the Rage Wand
+
+    /** It has no followers (the young comes out of its own egg, on its own team). */
+    @Override
+    public List<? extends net.minecraft.world.entity.Mob> rageFollowers()
+    {
+        return List.of();
+    }
+
+    /** Raged, it wakes up and goes for the nearest raged enemy (or whoever comes). */
+    @Override
+    public void onRaged()
+    {
+        if (this.phase == Phase.REST)
+        {
+            this.startFighting(Rage.nearestEnemy(this));
+        }
+        else if (this.target != null && Rage.areTeammates(this, this.target))
+        {
+            this.target = null;
+        }
     }
 
     // ---------------------------------------------------------------- its hitboxes
@@ -492,6 +543,34 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
+    /** Its flight's loop by its speed: {@code fast} over {@code threshold} (blocks a tick), else {@code slow}; with a
+     *  margin either side and a hold after each change, so a speed near the line doesn't flick it from one to the other
+     *  (each change starts the loop again: its head snapped back; the user's third look). */
+    private void flightLoop(String fast, String slow, double threshold)
+    {
+        String now = this.animation();
+        double speed = this.getDeltaMovement().length();
+        String want;
+        if (now.equals(fast))
+        {
+            want = speed < threshold * (1.0D - FLIGHT_LOOP_MARGIN) ? slow : fast;
+        }
+        else if (now.equals(slow))
+        {
+            want = speed > threshold * (1.0D + FLIGHT_LOOP_MARGIN) ? fast : slow;
+        }
+        else
+        {
+            want = speed > threshold ? fast : slow;
+        }
+        if (!want.equals(now) && (this.tickCount - this.flightLoopSince >= FLIGHT_LOOP_HOLD
+                || !now.equals(fast) && !now.equals(slow)))
+        {
+            this.flightLoopSince = this.tickCount;
+            this.playAnimation(want);
+        }
+    }
+
     /** The length of one of its animations (ticks). */
     protected int length(String anim)
     {
@@ -544,10 +623,15 @@ public abstract class EmberBoss extends FireCandidate
         }
     }
 
-    /** A player it could fight: alive, not creative or a spectator, near enough its home. */
+    /** A player it could fight: alive, not creative or a spectator, near enough its home (or a raged enemy, never a
+     *  teammate or its own kind otherwise). */
     protected boolean canFight(LivingEntity e)
     {
-        if (e == null || !e.isAlive() || e.level() != this.level() || e == this)
+        if (e == null || !e.isAlive() || e.level() != this.level() || e == this || Rage.areTeammates(this, e))
+        {
+            return false;
+        }
+        if ((e instanceof EmberBoss || e instanceof FireCandidate) && !Rage.areEnemies(this, e))
         {
             return false;
         }
@@ -621,7 +705,7 @@ public abstract class EmberBoss extends FireCandidate
             Vec3 spot = this.home.add(Math.cos(this.orbitAngle) * CALM_CIRCLE, 0.0D, Math.sin(this.orbitAngle) * CALM_CIRCLE);
             spot = new Vec3(spot.x, this.groundAt(this.home.x, this.home.z) + CALM_HOVER, spot.z);
             this.steer(this.overGround(spot, MIN_CLEARANCE), this.kind.cruise() * 0.4D, 0.08D);
-            this.loop(this.getDeltaMovement().length() > 0.2D ? "glide" : "hover");
+            this.flightLoop("glide", "hover", 0.2D);
         }
         if (this.tickCount % 10 == 0)
         {
@@ -630,6 +714,10 @@ public abstract class EmberBoss extends FireCandidate
             if (p != null)
             {
                 this.startFighting(p);
+            }
+            else if (Rage.hasEnemyNear(this))
+            {
+                this.startFighting(Rage.nearestEnemy(this));   // raged, a raged enemy near wakes it
             }
         }
     }
@@ -655,6 +743,19 @@ public abstract class EmberBoss extends FireCandidate
 
     private void fight()
     {
+        // raged: a raged enemy of another team before anyone else (its own team never)
+        if (Rage.isRaged(this) && !Rage.areEnemies(this, this.target))
+        {
+            LivingEntity enemy = Rage.nearestEnemy(this);
+            if (enemy != null && this.canFight(enemy))
+            {
+                if (this.move != Move.NONE && this.move != Move.STUCK)
+                {
+                    this.endMove();
+                }
+                this.target = enemy;
+            }
+        }
         // whom it goes for: its target while it's fair, else the nearest player near its home, else whatever hurt it
         if (this.target == null || !this.canFight(this.target))
         {
@@ -668,7 +769,7 @@ public abstract class EmberBoss extends FireCandidate
         }
         if (this.target == null)
         {
-            if (++this.noTargetTicks > GIVE_UP_TICKS && this.move == Move.NONE)
+            if (++this.noTargetTicks > GIVE_UP_TICKS && this.move == Move.NONE && !this.hostile)
             {
                 this.phase = Phase.REST;
                 this.noTargetTicks = 0;
@@ -686,7 +787,11 @@ public abstract class EmberBoss extends FireCandidate
         this.noTargetTicks = 0;
         if (this.move == Move.NONE)
         {
-            this.circle(this.target.position());
+            // round its target, over the ground under it (a flying one too: two Emberdactyls circling each other's
+            // heads would climb for ever)
+            Vec3 at = this.target.position();
+            double ground = this.groundAt(at.x, at.z);
+            this.circle(at.y - ground > 3.0D ? new Vec3(at.x, ground, at.z) : at);
             if (--this.pause <= 0)
             {
                 this.pick();
@@ -720,7 +825,7 @@ public abstract class EmberBoss extends FireCandidate
                 Math.sin(this.orbitAngle) * this.kind.orbit());
         spot = this.overGround(this.leashed(spot), MIN_CLEARANCE);
         this.steer(spot, this.kind.cruise(), ACCELERATION);
-        this.loop(this.getDeltaMovement().length() > 0.3D ? "fly" : "hover");
+        this.flightLoop("fly", "hover", 0.3D);
     }
 
     private boolean isReady(Move m)
@@ -740,23 +845,44 @@ public abstract class EmberBoss extends FireCandidate
         List<Move> moves = new ArrayList<>();
         List<Integer> weights = new ArrayList<>();
         boolean young = this.dashes();
-        if (d < CLOSE)
+        if (this.target instanceof EmberBoss other)
         {
-            add(moves, weights, Move.GRAB, CLOSE_GRAB);
-            add(moves, weights, Move.BUFFET, CLOSE_BUFFET);
-            add(moves, weights, Move.DIVE, CLOSE_DIVE);
+            // a fight in the air with another Emberdactyl (the Rage Wand): its talons, wings, voice and tornadoes; its
+            // dive only onto one lying stuck on the ground
+            add(moves, weights, Move.GRAB, DUEL_STRIKE);
+            add(moves, weights, Move.BUFFET, DUEL_BUFFET);
+            add(moves, weights, Move.SCREECH, DUEL_SCREECH);
+            add(moves, weights, Move.TORNADO, DUEL_TORNADO);
+            if (other.grounded)
+            {
+                add(moves, weights, Move.DIVE, DUEL_DIVE);
+            }
+            if (young)
+            {
+                add(moves, weights, Move.DASH, DUEL_DASH);
+            }
+        }
+        else if (d < CLOSE)
+        {
+            add(moves, weights, Move.GRAB, young ? YOUNG_CLOSE_GRAB : CLOSE_GRAB);
+            add(moves, weights, Move.BUFFET, young ? YOUNG_CLOSE_BUFFET : CLOSE_BUFFET);
+            add(moves, weights, Move.DIVE, young ? YOUNG_CLOSE_DIVE : CLOSE_DIVE);
             add(moves, weights, Move.SCREECH, young ? YOUNG_CLOSE_SCREECH : CLOSE_SCREECH);
             if (young)
             {
                 add(moves, weights, Move.DASH, CLOSE_DASH);
+            }
+            else
+            {
+                add(moves, weights, Move.TORNADO, CLOSE_TORNADO);
             }
         }
         else if (d < MID)
         {
             add(moves, weights, Move.DIVE, young ? YOUNG_MID_DIVE : MID_DIVE);
             add(moves, weights, Move.TORNADO, young ? YOUNG_MID_TORNADO : MID_TORNADO);
-            add(moves, weights, Move.STRAFE, MID_STRAFE);
-            add(moves, weights, Move.GRAB, MID_GRAB);
+            add(moves, weights, Move.STRAFE, young ? YOUNG_MID_STRAFE : MID_STRAFE);
+            add(moves, weights, Move.GRAB, young ? YOUNG_MID_GRAB : MID_GRAB);
             if (young)
             {
                 add(moves, weights, Move.DASH, MID_DASH);
@@ -994,7 +1120,7 @@ public abstract class EmberBoss extends FireCandidate
         {
             // its bill and wings if its target is near, then up again
             double d = this.target.distanceTo(this);
-            if (d < CLOSE && this.isReady(Move.SNAP) && this.random.nextFloat() < 0.6F)
+            if (d < CLOSE && this.isReady(Move.SNAP) && this.random.nextFloat() < STUCK_SNAP_CHANCE)
             {
                 this.start(Move.SNAP);
             }
@@ -1002,7 +1128,8 @@ public abstract class EmberBoss extends FireCandidate
             {
                 this.start(Move.BUFFET);
             }
-            else if (d < SCREECH_RANGE && this.isReady(Move.SCREECH) && this.random.nextFloat() < (this.dashes() ? 0.1F : 0.4F))
+            else if (d < SCREECH_RANGE && this.isReady(Move.SCREECH)
+                    && this.random.nextFloat() < (this.dashes() ? YOUNG_STUCK_SCREECH_CHANCE : STUCK_SCREECH_CHANCE))
             {
                 this.start(Move.SCREECH);
             }
@@ -1219,7 +1346,19 @@ public abstract class EmberBoss extends FireCandidate
             this.steer(aim, this.kind.fast(), 0.35D);
             if (this.moveTick == moment)
             {
-                if (this.target.distanceToSqr(this) <= GRAB_REACH * GRAB_REACH && this.canFight(this.target))
+                if (!carriable(this.target))
+                {
+                    // too big to carry (another Emberdactyl): its talons rake it as it swoops past
+                    double reach = (this.getBbWidth() + this.target.getBbWidth()) * 0.5D + DUEL_STRIKE_REACH;
+                    if (this.target.distanceToSqr(this) <= reach * reach && this.canFight(this.target)
+                            && this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE))
+                    {
+                        Vec3 away = this.target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
+                        this.throwOut(this.target, (away.lengthSqr() < 0.01D ? this.facing() : away.normalize())
+                                .scale(DUEL_STRIKE_THROW), 0.3D);
+                    }
+                }
+                else if (this.target.distanceToSqr(this) <= GRAB_REACH * GRAB_REACH && this.canFight(this.target))
                 {
                     this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE);
                     if (this.target.isAlive())
@@ -1242,6 +1381,12 @@ public abstract class EmberBoss extends FireCandidate
         {
             this.steer(this.position().add(0.0D, 0.8D, 0.0D), this.kind.cruise(), 0.2D);
         }
+    }
+
+    /** True if its talons can carry it off: a player, or anything no bigger than an iron golem (not another Emberdactyl). */
+    private static boolean carriable(LivingEntity e)
+    {
+        return e instanceof Player || !(e instanceof EmberBoss) && e.getBbWidth() <= 2.0D && e.getBbHeight() <= 3.5D;
     }
 
     /** Whoever it carries rides it (positioned under its talons by {@link #positionRider}); one that struggled free
@@ -1450,33 +1595,43 @@ public abstract class EmberBoss extends FireCandidate
             this.playAnimation("snap");
             this.hitThisMove.clear();
         }
-        if (peckTick < this.at("snap", 0.3D))
+        int hit = this.at("snap", SNAP_HIT_SHARE);
+        if (peckTick < hit - 2)
         {
             this.turnTo(this.target.position().subtract(this.position()));
         }
-        if (peckTick == this.at("snap", 0.35D))
+        if (peckTick == hit)
         {
             double scale = this.kind.width() / ADULT.width();
+            double reach = this.dashes() ? YOUNG_SNAP_STRIKE : SNAP_STRIKE;
+            double splash = SNAP_SPLASH * (this.dashes() ? Math.max(0.75D, scale) : 1.0D);
             Vec3 face = this.facing();
-            Vec3 strike = this.position().add(face.scale(SNAP_STRIKE * scale));
+            Vec3 strike = this.position().add(face.scale(reach));
             strike = new Vec3(strike.x, this.groundAt(strike.x, strike.z), strike.z);
             if (this.level() instanceof ServerLevel level)
             {
                 // its bill striking the ground: a burst of rock and embers round the spot
-                double r = SNAP_SPLASH * scale;
-                level.sendParticles(ParticleTypes.EXPLOSION, strike.x, strike.y + 0.5D, strike.z, 2, r * 0.3D, 0.1D, r * 0.3D, 0.0D);
-                level.sendParticles(ParticleTypes.LAVA, strike.x, strike.y + 0.3D, strike.z, 8, r * 0.4D, 0.1D, r * 0.4D, 0.0D);
-                level.sendParticles(ParticleTypes.LARGE_SMOKE, strike.x, strike.y + 0.5D, strike.z, 10, r * 0.5D, 0.2D, r * 0.5D, 0.02D);
+                level.sendParticles(ParticleTypes.EXPLOSION, strike.x, strike.y + 0.5D, strike.z, 3, splash * 0.3D, 0.1D, splash * 0.3D, 0.0D);
+                level.sendParticles(ParticleTypes.LAVA, strike.x, strike.y + 0.3D, strike.z, 10, splash * 0.4D, 0.1D, splash * 0.4D, 0.0D);
+                level.sendParticles(ParticleTypes.LARGE_SMOKE, strike.x, strike.y + 0.5D, strike.z, 14, splash * 0.5D, 0.2D, splash * 0.5D, 0.02D);
+                level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.BASALT.defaultBlockState()),
+                        strike.x, strike.y + 0.3D, strike.z, 30, splash * 0.4D, 0.2D, splash * 0.4D, 0.15D);
             }
-            for (LivingEntity e : this.foesWithin(this.getBoundingBox().inflate(SNAP_TO * scale, 6.0D, SNAP_TO * scale)))
+            AABB around = this.getBoundingBox().minmax(new AABB(strike, strike)).inflate(splash + 1.0D, SNAP_SPLASH_HEIGHT, splash + 1.0D);
+            for (LivingEntity e : this.foesWithin(around))
             {
                 Vec3 rel = e.position().subtract(this.position());
                 double along = rel.x * face.x + rel.z * face.z;
                 double side = Math.abs(rel.x * face.z - rel.z * face.x);
-                // in front of it from under its chest out to its bill's reach, or within its splash round the strike
-                boolean inLine = along >= SNAP_FROM * scale && along <= SNAP_TO * scale && side <= SNAP_SIDE * scale;
-                boolean inSplash = Math.hypot(e.getX() - strike.x, e.getZ() - strike.z) <= SNAP_SPLASH * scale
-                        && Math.abs(e.getY() - strike.y) <= 4.0D;
+                // round where its bill strikes the ground (its hitbox, not only its feet: a player standing just past
+                // the tip is hit), or in front of it from under its chest out to the strike
+                AABB body = e.getBoundingBox();
+                double dx = Math.max(0.0D, Math.max(body.minX - strike.x, strike.x - body.maxX));
+                double dz = Math.max(0.0D, Math.max(body.minZ - strike.z, strike.z - body.maxZ));
+                boolean inSplash = Math.hypot(dx, dz) <= splash
+                        && body.maxY >= strike.y - SNAP_SPLASH_HEIGHT && body.minY <= strike.y + SNAP_SPLASH_HEIGHT;
+                boolean inLine = along >= SNAP_FROM * scale && along <= reach && side <= SNAP_SIDE * scale + e.getBbWidth() * 0.5D
+                        && body.minY <= this.getY() + this.getBbHeight();
                 if (inLine || inSplash)
                 {
                     // (each peck counts, even straight after the last: a player just hurt is no safer)
@@ -1613,12 +1768,14 @@ public abstract class EmberBoss extends FireCandidate
         return new Vec3(-Mth.sin(yaw), 0.0D, Mth.cos(yaw));
     }
 
-    /** Living things in the box it may hurt: players it could fight and anything that's hurt it (not its kin or its egg). */
+    /** Living things in the box it may hurt: players it could fight, anything that's hurt it or it's going for (not its
+     *  kin or its egg), and any raged mob of another team (another Emberdactyl too); never its own team. */
     protected List<LivingEntity> foesWithin(AABB box)
     {
-        return this.level().getEntitiesOfClass(LivingEntity.class, box, e -> e != this && !(e instanceof EmberBoss)
-                && !(e instanceof FireCandidate) && e.isAlive()
-                && (e instanceof Player p ? !p.isCreative() && !p.isSpectator() : e == this.getLastHurtByMob() || e == this.target));
+        return this.level().getEntitiesOfClass(LivingEntity.class, box, e -> e != this && e.isAlive()
+                && !Rage.areTeammates(this, e)
+                && (Rage.areEnemies(this, e) || !(e instanceof EmberBoss) && !(e instanceof FireCandidate)
+                && (e instanceof Player p ? !p.isCreative() && !p.isSpectator() : e == this.getLastHurtByMob() || e == this.target)));
     }
 
     /** Throws something: its push along the ground and up (a player's client is told). */
@@ -1911,6 +2068,7 @@ public abstract class EmberBoss extends FireCandidate
         }
         tag.putLong(TAG_VOLCANO, this.volcano);
         tag.putBoolean(TAG_ENRAGED, this.enraged);
+        tag.putBoolean(TAG_HOSTILE, this.hostile);
         tag.putString(TAG_PHASE, this.phase == Phase.FIGHT || this.phase == Phase.WAKE ? "fight" : "rest");
     }
 
@@ -1924,6 +2082,7 @@ public abstract class EmberBoss extends FireCandidate
         this.perchYaw = tag.getFloat(TAG_PERCH_YAW);
         this.volcano = tag.getLong(TAG_VOLCANO);
         this.enraged = tag.getBoolean(TAG_ENRAGED);
+        this.hostile = tag.getBoolean(TAG_HOSTILE);
         this.phase = "fight".equals(tag.getString(TAG_PHASE)) ? Phase.FIGHT : Phase.REST;
         this.setDesign(this.designNumber());
         this.refreshDimensions();
