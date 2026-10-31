@@ -1,0 +1,12 @@
+{
+  "structures": [
+    {
+      "structure": "dross:hermit_cave",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:hermit_cave",
+    "salt": 1031202601
+  }
+}

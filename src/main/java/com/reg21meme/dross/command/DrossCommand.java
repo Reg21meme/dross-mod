@@ -210,7 +210,10 @@ public final class DrossCommand
                         .then(Commands.literal("sewer").executes(context -> GotoSewer.teleport(context.getSource())))
                         // The nearest of Rimefall's big frozen lakes (the logic lives in GotoLake; the lakes are the
                         // dimension area's RimefallAreas).
-                        .then(Commands.literal("lake").executes(context -> GotoLake.teleport(context.getSource()))))
+                        .then(Commands.literal("lake").executes(context -> GotoLake.teleport(context.getSource())))
+                        // The nearest hermit crab cave in the Cinder Wastes (the logic lives in GotoHermitCave; the
+                        // caves are the boss area's HermitCaveSites).
+                        .then(Commands.literal("hermit_cave").executes(context -> GotoHermitCave.teleport(context.getSource()))))
                 // Villager area's test commands: trader <action> (the logic lives in TraderCommands).
                 .then(Commands.literal("trader")
                         .requires(source -> source.hasPermission(2))
@@ -271,7 +274,9 @@ public final class DrossCommand
                         // Boss area's Frostfolk igloos and decorations, one template each (HunterIglooShowcase).
                         .then(Commands.literal("frostfolk_igloos").executes(HunterIglooShowcase::run))
                         // Boss area's Frostfolk, Rimefall's villagers, one of each calling (FrostfolkShowcase).
-                        .then(frostfolkShowcase()))
+                        .then(frostfolkShowcase())
+                        // Boss area's hermit crab caves, the Cinder Hermit's seven dens (HermitCaveShowcase).
+                        .then(Commands.literal("hermit_caves").executes(HermitCaveShowcase::run)))
                 // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
                 // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).
                 .then(Commands.literal("locate")

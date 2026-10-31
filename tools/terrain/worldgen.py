@@ -2023,6 +2023,21 @@ def hunter_village_structures():
                       "placement": {"type": "dross:boss_site", "use": use, "salt": salt}}
     return structures, sets, {"replace": False, "values": ["dross:rimefall"]}
 
+
+# The Cinder Hermit's small caves (the boss area's boss/fire/cave; the user, October 31, 2026: "1-2 caves per Cinder
+# Wastes area"): where boss/fire/cave/HermitCaveSites plans them (one or two in every Cinder Wastes patch, clear of its
+# Colossus lair and Emberdactyl volcano), through the boss area's own placement, dross:hermit_cave. Built in the
+# "surface structures" step, after the Cinder Wastes' lava pools, spires and vents, before their trees and plants.
+HERMIT_CAVE_SALT = 1031202601           # (under 2^31: Minecraft reads a salt as an int)
+
+
+def hermit_cave_structures():
+    structure = {"type": "dross:hermit_cave", "biomes": "#dross:has_structure/hermit_cave", "spawn_overrides": {},
+                 "step": "surface_structures", "terrain_adaptation": "none"}
+    structure_set = {"structures": [{"structure": "dross:hermit_cave", "weight": 1}],
+                     "placement": {"type": "dross:hermit_cave", "salt": HERMIT_CAVE_SALT}}
+    return structure, structure_set, {"replace": False, "values": ["dross:cinder_wastes"]}
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2186,6 +2201,10 @@ def main():
     for name, js in village_sets.items():
         write_json("structure_set", name, js)
     write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "hunter_village.json"), village_biomes)
+    cave, cave_set, cave_biomes = hermit_cave_structures()
+    write_json("structure", "hermit_cave", cave)
+    write_json("structure_set", "hermit_cave", cave_set)
+    write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "hermit_cave.json"), cave_biomes)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())

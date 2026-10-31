@@ -534,6 +534,10 @@ public final class DrossColors {
      * ember amber, the young reborn's brighter, hotter yellow. Used in boss/client/DrossBossBars. */
     public static final int EMBERDACTYL_BAR_NAME_ADULT = 0xFFD6A0;
     public static final int EMBERDACTYL_BAR_NAME_YOUNG = 0xFFF0B0;
+    /** /dross showcase hermit_caves and /dross goto hermit_cave (the Cinder Hermit's caves): the [go] buttons in ember
+     * orange, the [overview] button a pale ash white. Used in command/HermitCaveShowcase. */
+    public static final int HERMIT_CAVE_BUTTON = 0xFFA45A;
+    public static final int HERMIT_CAVE_OVERVIEW_BUTTON = 0xEFE4DA;
 
     // ---------------------------------------------------------------- Helpers
 

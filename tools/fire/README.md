@@ -179,3 +179,34 @@ a little magma, more, lots, cut open). Rounds 1 and 2 are archived in `firedesig
 M1A the Pallbearer (the servants' 11A, as the user picked it); M2A-M2J the Cinder Hermit in ten shells: bronze bell,
 iron brazier, horned skull, funerary urn, magma conch, crystal geode, knight's helm, charred stump, giant lantern,
 colossus shard.
+
+## The hermit crab caves (October 31, 2026)
+
+The Cinder Hermit's small dens (the user: "a new structure called a hermit crab cave ... nothing huge, maybe 10 blocks
+or so deep"; all of them in a showcase, 1-2 in every Cinder Wastes area). Not models: block templates, like the hunter
+igloos (`tools/huntsman/igloos.py`), drawn on the shrine kit's voxel grid with the villages' kit (its template writer,
+walking and light checks).
+
+```
+python tools/fire/hermit_caves.py                 # every cave: templates, previews, the Java table
+python tools/fire/hermit_caves.py sinkhole_den    # only these (the Java table is left alone)
+python tools/fire/hermit_caves.py --no-nbt        # previews only
+```
+
+- `cavekit.py`: the kit. A design carves its open space, fills solid features into it, then `line()` walls it in with
+  its own stone (every cell at or under the ground next to it), so its lava is walled in by the template's own blocks
+  wherever it's placed; then pools (`pool()`: lava flush with the floor, a bed under it, a lip where a side was open),
+  lights (`auto_light()`: shroomlights set into the walls, or a lantern from the ceiling, until every floor is lit) and
+  props. Its checks fail the build: every lava block has lava or a solid full block under it and on its four sides;
+  nothing floats; every small thing has its support; every floor cell under the ground can be walked to from the way in
+  (up 1, down 1-2) and has block light 1 or more; every crab spot has a free box 7 wide, 6 tall and 7 deep (the Cinder
+  Hermit is about 6.3 x 4-5.3 x 6.3) over a floor.
+- `cavedesigns/c1_sinkhole_den.py` ... `c7_steam_burrows.py`: the seven (Sinkhole Den, Lava Tide Pools, Shell Midden,
+  Collapsed Lava Tube, Basalt Geode, Bone Reef, Steam Vent Burrows). Each template is 29 x 29, its ground block at layer
+  12 (its floor 10 down), 7 layers over the ground, its way in at the south.
+
+It writes `src/main/resources/data/dross/structures/hermit_cave/<id>.nbt`, the generated
+`boss/fire/cave/HermitCaveDesigns.java` (sizes, way in, crab spots, darkest floor cell, lava count) and the previews in
+`boss-previews/cinder_wastes/mobs/hermit_caves/` (each from outside, cut open two ways with its crab spots' corners in
+orange glass, from above with its roof off; `all_caves.png`, `index.html`). In the game: `/dross showcase hermit_caves`;
+in the world `boss/fire/cave/HermitCaveSites` plans them and `/dross goto hermit_cave` visits the nearest.

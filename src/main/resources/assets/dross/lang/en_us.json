@@ -594,5 +594,9 @@
   "subtitles.dross.hermit.step": "Legs tap",
   "subtitles.dross.emberdactyl.break": "Stone breaks apart",
   "subtitles.dross.emberyoung.harden": "Obsidian hardens",
-  "subtitles.dross.hermit.emerge": "Cinder Hermit climbs out"
+  "subtitles.dross.hermit.emerge": "Cinder Hermit climbs out",
+  "commands.dross.goto.hermit_cave.no_dross": "The Dross dimension isn't loaded, so there's no hermit crab cave to go to.",
+  "commands.dross.goto.hermit_cave.not_found": "Found no hermit crab cave in the Cinder Wastes (within 12,000 blocks).",
+  "commands.dross.goto.hermit_cave.stopped": "Something stopped you from going to the Dross.",
+  "commands.dross.goto.hermit_cave.success": "Teleported to the way into a hermit crab cave, the %s, at %s, %s, %s."
 }
