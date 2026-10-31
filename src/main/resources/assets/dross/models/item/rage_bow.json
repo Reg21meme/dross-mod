@@ -1,0 +1,29 @@
+{
+  "parent": "minecraft:item/bow",
+  "textures": {
+    "layer0": "dross:item/rage_bow",
+    "layer1": "dross:item/rage_bow_glow"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "pulling": 1
+      },
+      "model": "dross:item/rage_bow_pulling_0"
+    },
+    {
+      "predicate": {
+        "pulling": 1,
+        "pull": 0.65
+      },
+      "model": "dross:item/rage_bow_pulling_1"
+    },
+    {
+      "predicate": {
+        "pulling": 1,
+        "pull": 0.9
+      },
+      "model": "dross:item/rage_bow_pulling_2"
+    }
+  ]
+}

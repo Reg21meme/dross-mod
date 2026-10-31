@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.rage;
 
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.boss.BedrockArenaData;
 import com.reg21meme.dross.registry.ModEffects;
 
 import com.reg21meme.dross.villager.Survivor;
@@ -370,10 +371,32 @@ public final class Rage
         return other instanceof Mob enemy && enemy != mob && enemy.isAlive() && !enemy.isNoAi() && areEnemies(mob, enemy);
     }
 
-    /** True if it's close enough for a raged mob to care ({@link RageTuning#RAGE_RANGE}). */
+    /** True if it's close enough for a raged mob to care ({@link RageTuning#RAGE_RANGE}), or anywhere in the bedrock
+     *  test arena the mob is in. */
     static boolean inRange(Mob mob, Entity other)
     {
-        return other.level() == mob.level() && other.distanceToSqr(mob) <= RageTuning.RAGE_RANGE * RageTuning.RAGE_RANGE;
+        if (other.level() != mob.level())
+        {
+            return false;
+        }
+        if (other.distanceToSqr(mob) <= RageTuning.RAGE_RANGE * RageTuning.RAGE_RANGE)
+        {
+            return true;
+        }
+        BedrockArenaData.Arena arena = arenaOf(mob);
+        return arena != null && arena.contains(other.blockPosition());
+    }
+
+    /**
+     * The bedrock test arena a mob is in, or null. In one, a raged mob sees every raged enemy in the whole arena (the
+     * user, October 31: "in the arena mobs have infinite vision of other raged mobs on the other side of the arena",
+     * since two teams at its far ends are further apart than {@link RageTuning#RAGE_RANGE}); still only ones it can see
+     * (with the walls between its sections closed, each keeps to its own).
+     */
+    @Nullable
+    static BedrockArenaData.Arena arenaOf(Mob mob)
+    {
+        return mob.level() instanceof ServerLevel level ? BedrockArenaData.get(level).find(mob.blockPosition(), 0.0D) : null;
     }
 
     /** Its enemies within {@link RageTuning#RAGE_RANGE} blocks that it can see (also ones it can't target right now,
@@ -384,7 +407,8 @@ public final class Rage
      *  walls, its huge body often half in one.) */
     static List<LivingEntity> enemiesNear(Mob mob)
     {
-        return mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(RageTuning.RAGE_RANGE),
+        double reach = arenaOf(mob) != null ? RageTuning.ARENA_RAGE_RANGE : RageTuning.RAGE_RANGE;
+        return mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(reach),
                 other -> isLiveEnemy(mob, other) && inRange(mob, other)
                         && (!other.canBeSeenAsEnemy() || mob instanceof EnderDragon || mob.hasLineOfSight(other)));
     }

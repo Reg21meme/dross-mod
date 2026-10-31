@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:item/bow",
+  "textures": {
+    "layer0": "dross:item/rage_bow_pulling_0",
+    "layer1": "dross:item/rage_bow_pulling_0_glow"
+  }
+}

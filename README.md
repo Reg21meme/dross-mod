@@ -700,6 +700,10 @@ can't be cured, not even with milk.
   its fireballs at them; with nobody to fight it circles over where you raged it.
 - A raged **Ender Dragon** or **warden** shows a plain health bar at the top of the screen to players within 96
   blocks.
+- **Many at once:** sneak + right-click with the wand casts a **Rage Burst**: every mob within 8 blocks of what you're
+  looking at joins the wand's team. The **Rage Bow** (creative only, no arrows needed) does the same where its arrows
+  land (5 blocks round); sneak + right-click changes its team.
+- In the **bedrock test arena**, raged mobs find raged enemies anywhere in it (once they can see them).
 - It won't rage showcase mobs or the hub's survivors. The **trader** can be raged: he headbutts,
   and beaten down to half his health he teleports home and heals as always.
 - **Players on teams:** `/dross rage team <targets> <colour>` puts players and mobs on a team (`@s` for yourself, a

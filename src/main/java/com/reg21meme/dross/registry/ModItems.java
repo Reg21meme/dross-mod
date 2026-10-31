@@ -6,6 +6,7 @@ import com.reg21meme.dross.boss.frostfolk.FolkRole;
 import com.reg21meme.dross.boss.frostfolk.FrostfolkSpawnEggItem;
 import com.reg21meme.dross.boss.huntsman.spear.MoonsilverSpearItem;
 import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyItem;
+import com.reg21meme.dross.boss.rage.RageBowItem;
 import com.reg21meme.dross.boss.rage.RageWandItem;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyItem;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyItem;
@@ -251,6 +252,9 @@ public final class ModItems
     // advancement for the colossus as well, not just obsidian; also for the rat king change it up"
     public static final RegistryObject<Item> SET_IN_STONE_ICON = ITEMS.register("set_in_stone_icon", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> DOWN_THE_DRAIN_ICON = ITEMS.register("down_the_drain_icon", () -> new Item(new Item.Properties().stacksTo(1)));
+
+    // Boss area: the Rage Bow (its arrows rage every mob round where they land; the user, October 31)
+    public static final RegistryObject<Item> RAGE_BOW = ITEMS.register("rage_bow", RageBowItem::new);
 
     private ModItems() {}
 }

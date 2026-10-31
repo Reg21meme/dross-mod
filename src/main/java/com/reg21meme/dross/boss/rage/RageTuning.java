@@ -33,6 +33,12 @@ public final class RageTuning
      */
     public static final double MIN_FOLLOW_RANGE = RAGE_RANGE + 8.0D;
     /**
+     * In the bedrock test arena a raged mob sees raged enemies anywhere in it (the user, October 31: its far ends are
+     * 89 blocks apart): it searches this far (corner to corner, floor to roof) and tracks and finds paths this far.
+     */
+    public static final double ARENA_RAGE_RANGE = 136.0D;
+    public static final double ARENA_FOLLOW_RANGE = ARENA_RAGE_RANGE;
+    /**
      * When a mob joins or switches team, every raged mob of that team this close (blocks) lets go of it, and it of them
      * (the user, October 17: team colour beats natural enmity). As far as a raged mob can track a target.
      */
@@ -118,6 +124,25 @@ public final class RageTuning
     public static final double DRAGON_CIRCLE_RADIUS = 24.0D;
     public static final double DRAGON_CIRCLE_UP = 14.0D;
     public static final double DRAGON_CIRCLE_STEP = 1.0D;
+
+    // ---------------------------------------------------------------- many at once (the user, October 31)
+
+    /** The Rage Wand's burst (sneak + right-click): every mob this far round the spot you look at (up to
+     *  {@link #WAND_BURST_REACH} blocks away) is raged onto the wand's team; then the wand waits this long (ticks). */
+    public static final double WAND_BURST_RADIUS = 8.0D;
+    public static final double WAND_BURST_REACH = 48.0D;
+    public static final int WAND_BURST_COOLDOWN = 20;
+    /** Where a Rage Bow's arrow lands, every mob this far round it is raged onto the bow's team. */
+    public static final double BOW_BURST_RADIUS = 5.0D;
+    /** The burst's look: the dust rings' points, its size, the puff in the middle, its roar. */
+    public static final int BURST_RING_POINTS = 48;
+    public static final float BURST_DUST_SIZE = 1.6F;
+    public static final int BURST_CENTRE_PARTICLES = 30;
+    public static final float BURST_VOLUME = 0.8F;
+    public static final float BURST_PITCH = 1.4F;
+    /** The wand's beam to the burst (dust every this many blocks) and a bow arrow's trail. */
+    public static final double BEAM_STEP = 0.8D;
+    public static final float ARROW_TRAIL_SIZE = 1.0F;
 
     // ---------------------------------------------------------------- the dragon's and the warden's bars
 

@@ -192,7 +192,8 @@ public final class RageAi
         AttributeInstance follow = mob.getAttribute(Attributes.FOLLOW_RANGE);
         if (follow != null && follow.getModifier(FOLLOW_RANGE_ID) == null)
         {
-            double extra = RageTuning.MIN_FOLLOW_RANGE - follow.getValue();
+            double want = Rage.arenaOf(mob) != null ? RageTuning.ARENA_FOLLOW_RANGE : RageTuning.MIN_FOLLOW_RANGE;
+            double extra = want - follow.getValue();
             if (extra > 0.0D)
             {
                 follow.addTransientModifier(new AttributeModifier(FOLLOW_RANGE_ID, FOLLOW_RANGE_NAME, extra,

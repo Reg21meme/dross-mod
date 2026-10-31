@@ -1,7 +1,9 @@
 package com.reg21meme.dross.boss.rage.client;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.rage.RageBowItem;
 import com.reg21meme.dross.boss.rage.RageWandItem;
+import net.minecraftforge.client.event.RegisterColorHandlersEvent;
 import com.reg21meme.dross.registry.ModItems;
 import net.minecraft.client.renderer.item.ItemProperties;
 import net.minecraft.resources.ResourceLocation;
@@ -26,7 +28,22 @@ public final class RageWandClient
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event)
     {
-        event.enqueueWork(() -> ItemProperties.register(ModItems.RAGE_WAND.get(), TEAM_PROPERTY,
-                (stack, level, entity, seed) -> RageWandItem.teamOf(stack).modelValue()));
+        event.enqueueWork(() -> {
+            ItemProperties.register(ModItems.RAGE_WAND.get(), TEAM_PROPERTY,
+                    (stack, level, entity, seed) -> RageWandItem.teamOf(stack).modelValue());
+            // the Rage Bow drawn back, like Minecraft's bow (its own "pull" and "pulling", which Minecraft gives only its bow)
+            ItemProperties.register(ModItems.RAGE_BOW.get(), new ResourceLocation("pull"), (stack, level, entity, seed) ->
+                    entity == null || entity.getUseItem() != stack ? 0.0F
+                            : (stack.getUseDuration() - entity.getUseItemRemainingTicks()) / 20.0F);
+            ItemProperties.register(ModItems.RAGE_BOW.get(), new ResourceLocation("pulling"), (stack, level, entity, seed) ->
+                    entity != null && entity.isUsingItem() && entity.getUseItem() == stack ? 1.0F : 0.0F);
+        });
+    }
+
+    /** The Rage Bow's second layer (its string, its crystal, its arrow's head) in its team's colour. */
+    @SubscribeEvent
+    public static void onItemColors(RegisterColorHandlersEvent.Item event)
+    {
+        event.register((stack, tint) -> tint == 1 ? 0xFF000000 | RageBowItem.teamOf(stack).color() : -1, ModItems.RAGE_BOW.get());
     }
 }

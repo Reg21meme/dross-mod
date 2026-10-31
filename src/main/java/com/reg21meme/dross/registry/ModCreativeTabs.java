@@ -161,6 +161,8 @@ public final class ModCreativeTabs
                         output.accept(ModItems.RAGE_WAND.get());
                         // Boss area: the Moonsilver Spear
                         output.accept(ModItems.MOONSILVER_SPEAR.get());
+                        // Boss area: the Rage Bow (its arrows rage every mob round where they land)
+                        output.accept(ModItems.RAGE_BOW.get());
 
                         // 6. Enchanted books
                         // Enchantments area: a book for every level of Necromancy (I-V), then Deathforged (I-X).

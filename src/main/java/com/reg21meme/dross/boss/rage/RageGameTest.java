@@ -744,6 +744,36 @@ public final class RageGameTest
         helper.succeed();
     }
 
+    /** The Rage Burst (the wand's sneak + right-click, the bow's arrows): every mob in its radius onto its team at once,
+     *  none outside it (the user, October 31: raging one by one is slow). */
+    @GameTest(template = ARENA, batch = "dross_rage_burst", timeoutTicks = ARENA_WAIT_TICKS + 100)
+    public static void burstRagesEveryMobAround(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::burstRagesEveryMobAround))
+        {
+            return;
+        }
+        List<Zombie> near = List.of(zombie(helper, MIDDLE.offset(2, 0, 0)), zombie(helper, MIDDLE.offset(-2, 0, 1)),
+                zombie(helper, MIDDLE.offset(0, 0, -3)));
+        Zombie far = zombie(helper, MIDDLE.offset(9, 0, 0));
+        Vec3 at = Vec3.atBottomCenterOf(helper.absolutePos(MIDDLE));
+        int raged = RageBurst.burst(helper.getLevel(), at, 5.0D, RageTeam.GREEN, null);
+        for (Zombie z : near)
+        {
+            if (!Rage.isRaged(z) || Rage.teamOf(z) != RageTeam.GREEN)
+            {
+                helper.fail("a zombie inside the burst wasn't raged onto Green");
+            }
+        }
+        if (raged != near.size() || Rage.isRaged(far))
+        {
+            helper.fail("the burst raged " + raged + " (3 expected) and the one 9 blocks off is " + (Rage.isRaged(far) ? "raged" : "calm"));
+        }
+        discard(near);
+        discard(List.of(far));
+        helper.succeed();
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Headbutts
     // ---------------------------------------------------------------------------------------------
