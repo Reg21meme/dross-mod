@@ -1,6 +1,9 @@
 package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.fire.cave.HermitCavePiece;
+import com.reg21meme.dross.boss.fire.cave.HermitCavePlacement;
+import com.reg21meme.dross.boss.fire.cave.HermitCaveStructure;
 import com.reg21meme.dross.boss.huntsman.village.HunterDecorFilter;
 import com.reg21meme.dross.boss.huntsman.village.HunterTerrace;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillagePiece;
@@ -76,6 +79,15 @@ public final class ModStructures
     // Boss area: dross:hunter_terrace, puts each part of a hunter village on its own ground (boss/huntsman/village)
     public static final RegistryObject<StructureProcessorType<HunterTerrace>> HUNTER_TERRACE = STRUCTURE_PROCESSORS.register("hunter_terrace",
             () -> () -> HunterTerrace.CODEC);
+
+    // Boss area: dross:hermit_cave, the Cinder Hermit's small caves in the Cinder Wastes (boss/fire/cave): the structure,
+    // its one piece (a template), and its placement (only in the chunks boss/fire/cave/HermitCaveSites planned a cave)
+    public static final RegistryObject<StructureType<HermitCaveStructure>> HERMIT_CAVE = STRUCTURE_TYPES.register("hermit_cave",
+            () -> () -> HermitCaveStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> HERMIT_CAVE_PIECE = STRUCTURE_PIECES.register("hermit_cave",
+            () -> (StructurePieceType.StructureTemplateType) HermitCavePiece::new);
+    public static final RegistryObject<StructurePlacementType<HermitCavePlacement>> HERMIT_CAVE_PLACEMENT = STRUCTURE_PLACEMENTS.register("hermit_cave",
+            () -> () -> HermitCavePlacement.CODEC);
 
     private ModStructures() {}
 }

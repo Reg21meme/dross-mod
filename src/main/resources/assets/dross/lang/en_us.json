@@ -600,5 +600,9 @@
   "item.dross.rage_bow.tooltip.hint": "Sneak + right-click to change team",
   "item.dross.rage_bow.team_changed": "Rage Bow: %s team",
   "item.dross.rage_wand.tooltip.burst": "Sneak + right-click: Rage Burst on every mob round where you look",
-  "item.dross.rage_wand.burst": "Rage Burst: %s raged onto %s"
+  "item.dross.rage_wand.burst": "Rage Burst: %s raged onto %s",
+  "commands.dross.goto.hermit_cave.no_dross": "The Dross dimension isn't loaded, so there's no hermit crab cave to go to.",
+  "commands.dross.goto.hermit_cave.not_found": "Found no hermit crab cave in the Cinder Wastes (within 12,000 blocks).",
+  "commands.dross.goto.hermit_cave.stopped": "Something stopped you from going to the Dross.",
+  "commands.dross.goto.hermit_cave.success": "Teleported to the way into a hermit crab cave, the %s, at %s, %s, %s."
 }

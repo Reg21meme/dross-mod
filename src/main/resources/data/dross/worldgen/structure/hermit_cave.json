@@ -1,0 +1,7 @@
+{
+  "type": "dross:hermit_cave",
+  "biomes": "#dross:has_structure/hermit_cave",
+  "spawn_overrides": {},
+  "step": "surface_structures",
+  "terrain_adaptation": "none"
+}
