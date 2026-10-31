@@ -961,7 +961,26 @@ public final class RageGameTest
                                 MemoryModuleType.ROAR_TARGET).orElse(null) + ")");
                     }
                 })
-                .thenExecute(() -> discard(spawned))
+                .thenExecute(() -> {
+                    // raged, it shows a plain boss bar of its health (the user, October 31); a zombie never does
+                    var bar = RageBars.barOf(warden);
+                    if (bar == null || Math.abs(bar.getProgress() - warden.getHealth() / warden.getMaxHealth()) > 0.01F)
+                    {
+                        throw new GameTestAssertException("a raged warden should show a boss bar of its health, but has "
+                                + (bar == null ? "none" : "one at " + bar.getProgress()));
+                    }
+                    if (RageBars.barOf(enemy) != null)
+                    {
+                        throw new GameTestAssertException("a raged zombie shouldn't have a boss bar");
+                    }
+                    discard(spawned);
+                })
+                .thenWaitUntil(() -> {
+                    if (RageBars.barOf(warden) != null)
+                    {
+                        throw new GameTestAssertException("the warden is gone, but its boss bar is still up");
+                    }
+                })
                 .thenSucceed();
     }
 

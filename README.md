@@ -660,11 +660,11 @@ mostly in the air, circling you, and never strays more than 100 blocks from its 
   drops you, the fall never takes more than half your health.
 - **Wing buffet** (it swoops down to you first): it throws you about 25 blocks. **Screech**: about 20 blocks.
 
-It can't fly through blocks: walls, hills and roofs stop it, and it rises over what's in its way.
+It can't fly through blocks: walls, hills and roofs stop it (its wings too), and it rises over what's in its way.
 
 At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
 apart, its egg bursts open and its **young reborn** (175 health) bursts out and comes straight for you: the same moves,
-just as hard, but 2.5 times as fast with almost no rest, a dash straight through you, and a solid trail of fire about 5
+just as hard, but 2.5 times as fast with almost no rest, a dash straight through you, and a solid trail of fire 2
 blocks wide on the ground wherever it flies. Its egg lies broken apart in the nest, a bowl of lava with its pieces round it. Dying, either one glides down to
 flat ground and lies there. Beat the young (it hardens into obsidian) and everyone near gets the challenge advancement
 **Wings Clipped** and a trophy (five poses, right-click to change). It never comes back.
@@ -697,7 +697,9 @@ can't be cured, not even with milk.
   teams fight each other in the air (talons, buffets, screeches, tornadoes). Their golems
   or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
 - The **Wither** fights with its skulls, and the **Ender Dragon** charges through its enemies, swings round and spits
-  its fireballs at them.
+  its fireballs at them; with nobody to fight it circles over where you raged it.
+- A raged **Ender Dragon** or **warden** shows a plain health bar at the top of the screen to players within 96
+  blocks.
 - It won't rage showcase mobs or the hub's survivors. The **trader** can be raged: he headbutts,
   and beaten down to half his health he teleports home and heals as always.
 - **Players on teams:** `/dross rage team <targets> <colour>` puts players and mobs on a team (`@s` for yourself, a

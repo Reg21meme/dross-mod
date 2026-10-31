@@ -380,12 +380,13 @@ public final class Rage
      *  like a Rat King under the ground, without seeing them), players on other teams among them. One behind a wall
      *  doesn't count until it's seen (the user, October 30: in the bedrock arena's sections, with the walls between
      *  them closed, the Huntsman "seems to be attacking nothing": he went for an enemy on the wall's far side); one it's
-     *  already fighting it keeps after round a corner ({@link #isTargetable}). */
+     *  already fighting it keeps after round a corner ({@link #isTargetable}). (Not the Ender Dragon: it flies through
+     *  walls, its huge body often half in one.) */
     static List<LivingEntity> enemiesNear(Mob mob)
     {
         return mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(RageTuning.RAGE_RANGE),
                 other -> isLiveEnemy(mob, other) && inRange(mob, other)
-                        && (!other.canBeSeenAsEnemy() || mob.hasLineOfSight(other)));
+                        && (!other.canBeSeenAsEnemy() || mob instanceof EnderDragon || mob.hasLineOfSight(other)));
     }
 
     /** True if a raged mob has any enemy within {@link RageTuning#RAGE_RANGE} blocks: it ignores players then. */

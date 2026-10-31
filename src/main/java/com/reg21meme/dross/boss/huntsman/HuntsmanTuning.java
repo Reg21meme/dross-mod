@@ -61,6 +61,9 @@ public final class HuntsmanTuning
     public static final double FOLLOW_RANGE = 48.0D;
     /** A mob this close going for either of them is dealt with first (a boss's minions: the user, October 25, 2026). */
     public static final double DEFEND_RANGE = 10.0D;
+    /** A mob neither of them can see is no foe of theirs (a hostile mob in a cave under them), but one they're already
+     *  fighting they follow round a corner while it's this close (the user, October 30). */
+    public static final double KEEP_UNSEEN_RANGE = 16.0D;
     /** With no player this close for {@link #BREAK_OFF_TICKS} (3 minutes: the user, October 24, 2026, "if you are gone
      * for 3+ minutes then he goes back to full health"; 30 s before) the fight is broken off: both come back at full
      * health, the dead one too, the Huntsman back in the saddle (the user: "you can't kill one of them, come back all

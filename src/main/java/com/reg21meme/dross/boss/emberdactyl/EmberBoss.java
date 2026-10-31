@@ -29,6 +29,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.BossEvent;
 import net.minecraft.world.DifficultyInstance;
@@ -396,8 +397,11 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     @Override
     public boolean isInvulnerableTo(DamageSource source)
     {
+        // (fire never: its own fire trail and tornadoes, lava; the user, October 30: "now the Emberdactyl takes damage
+        // from its own fires": since blocks stop it, it stands in what it lays, and this skipped the game's own rule for
+        // a fire-immune mob)
         if (source.is(DamageTypes.FALL) || source.is(DamageTypes.IN_WALL) || source.is(DamageTypes.DROWN)
-                || source.is(DamageTypes.CRAMMING) || source.is(DamageTypes.FLY_INTO_WALL))
+                || source.is(DamageTypes.CRAMMING) || source.is(DamageTypes.FLY_INTO_WALL) || source.is(DamageTypeTags.IS_FIRE))
         {
             return true;
         }
@@ -476,13 +480,94 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             this.setDeltaMovement(Vec3.ZERO);
         }
-        this.move(MoverType.SELF, this.getDeltaMovement());
-        if (this.horizontalCollision && !this.isDeadOrDying())
+        Vec3 want = this.getDeltaMovement();
+        Vec3 go = this.isDeadOrDying() ? want : this.wingsClip(want);
+        boolean wingBlocked = Math.abs(go.x - want.x) > 1.0E-7D || Math.abs(go.z - want.z) > 1.0E-7D;
+        if (go != want)
+        {
+            this.setDeltaMovement(go);  // (a wing against a wall stops that way, like its body)
+        }
+        this.move(MoverType.SELF, go);
+        if ((this.horizontalCollision || wingBlocked) && !this.isDeadOrDying())
         {
             Vec3 v = this.getDeltaMovement();
             this.setDeltaMovement(v.x, Math.max(v.y, CLIMB_ON_BUMP), v.z);
         }
         this.calculateEntityAnimation(true);
+    }
+
+    /** Its wings' hitboxes (its parts: the two wings, then the two wing tips). */
+    private static final int[] WINGS = {2, 3, 4, 5};
+
+    /**
+     * Its wings are solid too (the user, October 31: "make it so the wings count for the Emberdactyls like a physical
+     * box ... those can't also clip through walls"): {@code move} cut short so none of its wings' hitboxes runs into a
+     * block, as Minecraft does for its body. A wing already inside a block (it came down beside a hill) can still move
+     * out of it.
+     */
+    private Vec3 wingsClip(Vec3 move)
+    {
+        if (move.lengthSqr() < 1.0E-10D)
+        {
+            return move;
+        }
+        Vec3 at = this.position();
+        for (int i : WINGS)
+        {
+            if (i < this.parts.length)
+            {
+                move = Entity.collideBoundingBox(this, move, this.partBoxAt(i, at, this.yBodyRot), this.level(), List.of());
+            }
+        }
+        return move;
+    }
+
+    /** Where one of its parts' hitboxes is with it at {@code at} facing {@code yawDeg} (as {@link RimefallBodyPart#place}
+     *  puts it). */
+    private AABB partBoxAt(int i, Vec3 at, float yawDeg)
+    {
+        double[] spot = (this.standing() ? this.groundSpots : this.flySpots)[i];
+        float yaw = yawDeg * Mth.DEG_TO_RAD;
+        double cos = Mth.cos(yaw);
+        double sin = Mth.sin(yaw);
+        double x = at.x + spot[0] * cos + spot[2] * sin;
+        double y = at.y + spot[1];
+        double z = at.z + spot[0] * sin - spot[2] * cos;
+        double w = this.parts[i].getBbWidth() * 0.5D;
+        return new AABB(x - w, y, z - w, x + w, y + this.parts[i].getBbHeight(), z + w);
+    }
+
+    /**
+     * Whether it can turn to {@code yaw} without swinging a wing into a block (one already in a block may turn on, to
+     * get out). When it can't, it's pushed a little away from what's in the way, so it has room to turn next time.
+     */
+    private boolean wingsCanTurn(float yaw)
+    {
+        if (this.isDeadOrDying() || this.isPassenger())
+        {
+            return true;
+        }
+        Vec3 at = this.position();
+        Vec3 away = Vec3.ZERO;
+        for (int i : WINGS)
+        {
+            if (i >= this.parts.length)
+            {
+                continue;
+            }
+            AABB then = this.partBoxAt(i, at, yaw).deflate(0.01D);
+            if (!this.level().noCollision(this, then) && this.level().noCollision(this, this.partBoxAt(i, at, this.yBodyRot).deflate(0.01D)))
+            {
+                Vec3 c = then.getCenter();
+                away = away.add(at.x - c.x, 0.0D, at.z - c.z);
+            }
+        }
+        if (away.lengthSqr() < 1.0E-8D)
+        {
+            return true;
+        }
+        this.setDeltaMovement(this.getDeltaMovement().add(away.normalize().scale(WING_NUDGE)));
+        return false;
     }
 
     /** It doesn't shove what's beside it (it never did while it flew through everything). */
@@ -571,6 +656,15 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
         float want = (float) (Mth.atan2(dir.z, dir.x) * Mth.RAD_TO_DEG) - 90.0F;
         float yaw = Mth.approachDegrees(this.getYRot(), want, TURN * (float) this.speedScale() * (this.dashes() ? 2.0F : 1.0F));
+        if (!this.wingsCanTurn(yaw))
+        {
+            float half = Mth.approachDegrees(this.getYRot(), yaw, Math.abs(Mth.wrapDegrees(yaw - this.getYRot())) * 0.5F);
+            if (!this.wingsCanTurn(half))
+            {
+                return;                 // a wing would swing into a wall: it waits (pushed a little away from it)
+            }
+            yaw = half;
+        }
         this.setYRot(yaw);
         this.yBodyRot = yaw;
         this.yHeadRot = yaw;
@@ -683,9 +777,11 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             this.trailFrom = null;
         }
         this.carry();
-        // never in the ground
+        // never in the ground, not even a little (blocks stop it, but Minecraft lets something already inside a block
+        // move on through it: half a block into the bedrock arena's 1-block floor it sank through it; the user, October
+        // 30, "the Emberdactyl clips through the floor, through the bedrock")
         double floor = this.groundAt(this.getX(), this.getZ());
-        if (this.getY() < floor - 0.5D)
+        if (this.getY() < floor - FLOOR_EMBED)
         {
             this.setPos(this.getX(), floor, this.getZ());
             this.setDeltaMovement(this.getDeltaMovement().multiply(1.0D, 0.0D, 1.0D));
@@ -1319,7 +1415,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
 
     /** The young's fire trail (the user, October 30: "much more aggressive ... not just 1 fire every couple blocks,
      *  always fire when he glides"): every block of ground it passes over gets a band of fire across its path,
-     *  {@code YOUNG_TRAIL_HALF_WIDTH} blocks either side, laid along the line from where it last laid fire; hovering
+     *  {@code YOUNG_TRAIL_WIDTH} blocks wide, laid along the line from where it last laid fire; hovering
      *  in place, a patch under it every {@code YOUNG_FIRE_EVERY} ticks; fire falling off it all the while. Only where
      *  the ground is near enough under it. */
     private void fireTrail()
@@ -1364,14 +1460,15 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
     }
 
-    /** One row of the young's trail: fire on the ground at {@code at} and {@code YOUNG_TRAIL_HALF_WIDTH} blocks either
+    /** One row of the young's trail: fire on the ground {@code YOUNG_TRAIL_WIDTH} blocks wide across {@code at} (either
      *  side of it along {@code across}, where the ground is near enough under it. */
     private void fireBand(ServerLevel level, Vec3 at, Vec3 across)
     {
-        for (int k = -YOUNG_TRAIL_HALF_WIDTH; k <= YOUNG_TRAIL_HALF_WIDTH; k++)
+        for (int k = 0; k < YOUNG_TRAIL_WIDTH; k++)
         {
-            double x = at.x + across.x * k;
-            double z = at.z + across.z * k;
+            double off = k - (YOUNG_TRAIL_WIDTH - 1) * 0.5D;
+            double x = at.x + across.x * off;
+            double z = at.z + across.z * off;
             double ground = this.groundAt(x, z);
             if (this.getY() - ground <= YOUNG_FIRE_REACH)
             {
@@ -1607,7 +1704,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                         continue;
                     }
                     Vec3 spot = aim.add(dx, dy, dz);
-                    if (this.level().noCollision(this, this.getBoundingBox().move(spot.subtract(this.position())).deflate(0.01D)))
+                    if (this.fitsAt(spot))
                     {
                         best = spot;
                         bestD = d;
@@ -1616,6 +1713,23 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             }
         }
         return best;
+    }
+
+    /** Whether its body and its wings (solid since October 31) fit at {@code spot}, facing as it does. */
+    private boolean fitsAt(Vec3 spot)
+    {
+        if (!this.level().noCollision(this, this.getBoundingBox().move(spot.subtract(this.position())).deflate(0.01D)))
+        {
+            return false;
+        }
+        for (int i : WINGS)
+        {
+            if (i < this.parts.length && !this.level().noCollision(this, this.partBoxAt(i, spot, this.yBodyRot).deflate(0.01D)))
+            {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** True if its talons can carry it off: a player, or anything no bigger than an iron golem (not another Emberdactyl). */

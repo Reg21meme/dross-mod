@@ -12,6 +12,7 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingChangeTargetEvent;
 import net.minecraftforge.event.entity.living.LivingEvent;
@@ -34,7 +35,8 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>players can't have the Rage (not even with {@code /effect}), but can be on a team ({@link Rage#setPlayerTeam}),
  *       which they keep when they die;</li>
  *   <li>a player on a team gives off a few specks of its colour now and then like a raged mob, and a player holding the
- *       wand sees every team round them clearly ({@link #showTeams}).</li>
+ *       wand sees every team round them clearly ({@link #showTeams});</li>
+ *   <li>a raged Ender Dragon or warden shows a plain boss bar ({@link RageBars}).</li>
  * </ul>
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -45,10 +47,29 @@ public final class RageEvents
     @SubscribeEvent
     public static void onLivingTick(LivingEvent.LivingTickEvent event)
     {
-        if (event.getEntity() instanceof Mob mob && !mob.level().isClientSide)
+        if (event.getEntity() instanceof Mob mob && mob.level() instanceof ServerLevel level)
         {
             RageAi.tick(mob);
+            if (RageBars.wants(mob) && mob.isAlive() && Rage.isRaged(mob))
+            {
+                RageBars.tick(mob, level); // a raged dragon's or warden's plain boss bar
+            }
         }
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event)
+    {
+        if (event.phase == TickEvent.Phase.END)
+        {
+            RageBars.sweep();
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerStopping(ServerStoppingEvent event)
+    {
+        RageBars.clear();
     }
 
     @SubscribeEvent

@@ -1,5 +1,7 @@
 package com.reg21meme.dross.boss.rage;
 
+import net.minecraft.world.BossEvent;
+
 /**
  * Every number of the Rage Wand and its Rage (the user's request: a creative-only test tool that makes mobs fight each
  * other, in teams). Ticks are game ticks (20 a second). The Rage and a mob's team never wear off (the user, October 16:
@@ -111,4 +113,22 @@ public final class RageTuning
     public static final double DRAGON_PASS_UP = 12.0D;
     public static final int DRAGON_FIREBALL_EVERY = 70;
     public static final double DRAGON_FIREBALL_RANGE = 64.0D;
+    /** With no enemy near it circles this far round where it was raged, this high over it, this far round (radians) a
+     *  leg at a time. */
+    public static final double DRAGON_CIRCLE_RADIUS = 24.0D;
+    public static final double DRAGON_CIRCLE_UP = 14.0D;
+    public static final double DRAGON_CIRCLE_STEP = 1.0D;
+
+    // ---------------------------------------------------------------- the dragon's and the warden's bars
+
+    /** A raged Ender Dragon or warden shows Minecraft's plain boss bar to players this close (blocks; the user,
+     *  October 31: "basic is fine"). */
+    public static final double BAR_RANGE = 96.0D;
+    /** Who sees it is checked this often (ticks). */
+    public static final int BAR_PLAYERS_EVERY = 10;
+    /** A bar whose mob hasn't ticked for this long (ticks: unloaded, its land not ticking) leaves every screen. */
+    public static final long BAR_STALE_TICKS = 20L;
+    /** The dragon's bar in its own pink (as in the End), the warden's blue. */
+    public static final BossEvent.BossBarColor BAR_COLOR_DRAGON = BossEvent.BossBarColor.PINK;
+    public static final BossEvent.BossBarColor BAR_COLOR_WARDEN = BossEvent.BossBarColor.BLUE;
 }

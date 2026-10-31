@@ -17,18 +17,26 @@ import java.util.WeakHashMap;
  * middle), so a raged one with an enemy of another team near is flown at it here, with its own moves: it charges
  * through it (its head and neck hurt what they hit, its wings knock it aside, as in the End), flies on past and up, turns
  * and charges again, and between passes spits its fireball (its lingering cloud) at it when it can see it. With no enemy
- * near, it's left to its own phases. Server side.
+ * near it circles over where it was raged (its own phases would take it away to the world's middle). It finds its
+ * enemies through walls (it flies through them). Server side.
  */
 final class RageDragon
 {
     /** Each dragon's fight: whom it's after, whether its next flight is a charge (else a pass on and up), its next
-     *  fireball's tick. */
+     *  fireball's tick, where it was raged (it keeps round there) and how far round that spot it has circled. */
     private static final class Fight
     {
         @Nullable
         LivingEntity target;
         boolean charge = true;
         int nextFireball;
+        final Vec3 home;
+        double circle;
+
+        Fight(Vec3 home)
+        {
+            this.home = home;
+        }
     }
 
     private static final Map<EnderDragon, Fight> FIGHTS = new WeakHashMap<>();
@@ -44,7 +52,7 @@ final class RageDragon
             FIGHTS.remove(dragon);
             return;
         }
-        Fight fight = FIGHTS.computeIfAbsent(dragon, d -> new Fight());
+        Fight fight = FIGHTS.computeIfAbsent(dragon, d -> new Fight(d.position()));
         if (!Rage.isTargetable(dragon, fight.target))
         {
             fight.target = Rage.nearestTarget(dragon, null);
@@ -53,7 +61,18 @@ final class RageDragon
         LivingEntity target = fight.target;
         if (target == null)
         {
-            return;                          // nobody to fight: its own phases
+            // nobody to fight: it circles over where it was raged, waiting (its own phases, away from the End, take it
+            // off round the world's middle, 0 0, and far from its enemies: the user, October 30, "the Ender Dragon
+            // doesn't attack anyone")
+            if (dragon.getPhaseManager().getCurrentPhase().getPhase() != EnderDragonPhase.CHARGING_PLAYER)
+            {
+                fight.circle += RageTuning.DRAGON_CIRCLE_STEP;
+                Vec3 to = fight.home.add(Math.cos(fight.circle) * RageTuning.DRAGON_CIRCLE_RADIUS, RageTuning.DRAGON_CIRCLE_UP,
+                        Math.sin(fight.circle) * RageTuning.DRAGON_CIRCLE_RADIUS);
+                dragon.getPhaseManager().setPhase(EnderDragonPhase.CHARGING_PLAYER);
+                dragon.getPhaseManager().getPhase(EnderDragonPhase.CHARGING_PLAYER).setTarget(to);
+            }
+            return;
         }
         // a charge (or a pass) ends by itself (its phase goes back to holding its pattern): the next one
         if (dragon.getPhaseManager().getCurrentPhase().getPhase() != EnderDragonPhase.CHARGING_PLAYER)
@@ -61,7 +80,7 @@ final class RageDragon
             Vec3 to;
             if (fight.charge)
             {
-                to = target.position().add(0.0D, target.getBbHeight() * 0.5D, 0.0D);
+                to = target.position();      // (its feet, as the dragon's own charge at a player)
             }
             else
             {

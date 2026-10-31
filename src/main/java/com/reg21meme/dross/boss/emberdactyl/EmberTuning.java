@@ -272,7 +272,12 @@ public final class EmberTuning
     public static final double DUEL_STRIKE_REACH = 4.0D;
     public static final double DUEL_STRIKE_THROW = 0.8D;
 
-    /** When a wall stops it, it rises at least this fast (blocks a tick) to get over it. */
+    /** When a wall stops it, it rises at least this fast (blocks a tick) to get over it. It's never let further than
+     *  this into the ground under it (blocks): pushed back up at once. */
+    public static final double FLOOR_EMBED = 0.01D;
+    /** Its wings are solid (the user, October 31): when turning would swing one into a block it doesn't turn, and is
+     *  pushed this fast (blocks a tick) away from what's in the way, to make room. */
+    public static final double WING_NUDGE = 0.08D;
     public static final double CLIMB_ON_BUMP = 0.35D;
 
     /** Its flight's loops by its speed (hover, glide, fly): it changes over only this share past the speed at the line
@@ -296,12 +301,13 @@ public final class EmberTuning
     /** The young drops fire onto the ground under it whenever it's in the air fighting (the user: "whenever he does his
      *  glide animation he drops fire onto the ground, whenever he flies"; then, October 30, "much more aggressive ...
      *  not just 1 fire every couple blocks"): a solid trail, a row of fire across its path every this many blocks it
-     *  flies, this many blocks either side of its middle (5 wide), and hovering in place a patch under it every this
+     *  flies, this many blocks wide (the user, the same day: "a little too much fire, maybe only 2 fires wide"; it was
+     *  5), and hovering in place a patch under it every this
      *  many ticks; burning this long (ticks), only where the ground is at most this far under it. A jump of more than
      *  this many blocks (a teleport) starts a new trail rather than filling the gap. (Until October 30 one patch every
      *  5 ticks, 50-80 ticks long: at its speed the patches came several blocks apart.) */
     public static final double YOUNG_TRAIL_STEP = 1.0D;
-    public static final int YOUNG_TRAIL_HALF_WIDTH = 2;
+    public static final int YOUNG_TRAIL_WIDTH = 2;
     public static final int YOUNG_FIRE_EVERY = 3;
     public static final int YOUNG_FIRE_MIN = 70;
     public static final int YOUNG_FIRE_MAX = 110;

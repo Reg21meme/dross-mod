@@ -925,7 +925,7 @@ public final class HuntFight
                 e -> isFoe(mob, e)))
         {
             double d = e.distanceToSqr(mob);
-            if (d > range * range || behindWall(mob, e))
+            if (d > range * range || unseen(mob, e))
             {
                 continue;
             }
@@ -965,12 +965,18 @@ public final class HuntFight
         return null;
     }
 
-    /** A Rage enemy it hasn't seen yet (behind a wall: the bedrock arena's walls between its sections, closed) isn't
-     *  one to go for until it's seen (the user, October 30: he "seems to be attacking nothing"); one it's already
-     *  fighting it keeps. */
-    private static boolean behindWall(HuntMob mob, LivingEntity e)
+    /** A mob (not a player) neither of them can see isn't one to go for: a hostile mob in a cave under them, or a Rage
+     *  enemy behind a wall (the bedrock arena's walls between its sections, closed); the user, October 30: they're
+     *  "attacking literally nothing ... it is going for mobs that are underground". One it's already fighting it follows
+     *  round a corner while it's within {@link HuntsmanTuning#KEEP_UNSEEN_RANGE}. A player on another Rage team the
+     *  same, but a player otherwise always counts (his arrow rain finds them). */
+    private static boolean unseen(HuntMob mob, LivingEntity e)
     {
-        if (!Rage.areEnemies(mob, e) || e == mob.getTarget())
+        if (e instanceof Player && !Rage.areEnemies(mob, e))
+        {
+            return false;
+        }
+        if (e == mob.getTarget() && e.distanceToSqr(mob) <= HuntsmanTuning.KEEP_UNSEEN_RANGE * HuntsmanTuning.KEEP_UNSEEN_RANGE)
         {
             return false;
         }
