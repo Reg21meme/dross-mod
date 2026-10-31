@@ -925,7 +925,7 @@ public final class HuntFight
                 e -> isFoe(mob, e)))
         {
             double d = e.distanceToSqr(mob);
-            if (d > range * range)
+            if (d > range * range || behindWall(mob, e))
             {
                 continue;
             }
@@ -954,7 +954,8 @@ public final class HuntFight
         for (HuntMob m : new HuntMob[] {mob, partner(mob)})
         {
             LivingEntity last = m != null ? m.getLastHurtByMob() : null;
-            if (last != null && last.isAlive() && !last.isSpectator() && !isPartner(mob, last)
+            // (never a player in creative: the user, October 30, "he even seems to attack me in creative")
+            if (last != null && last.isAlive() && last.canBeSeenAsEnemy() && !isPartner(mob, last)
                     && !Rage.areTeammates(mob, last) && last.distanceToSqr(mob) <= range * range
                     && !(last instanceof Player p && gotAway(mob, p)))
             {
@@ -962,6 +963,19 @@ public final class HuntFight
             }
         }
         return null;
+    }
+
+    /** A Rage enemy it hasn't seen yet (behind a wall: the bedrock arena's walls between its sections, closed) isn't
+     *  one to go for until it's seen (the user, October 30: he "seems to be attacking nothing"); one it's already
+     *  fighting it keeps. */
+    private static boolean behindWall(HuntMob mob, LivingEntity e)
+    {
+        if (!Rage.areEnemies(mob, e) || e == mob.getTarget())
+        {
+            return false;
+        }
+        HuntMob partner = partner(mob);
+        return !mob.hasLineOfSight(e) && !(partner != null && partner.isAlive() && partner.hasLineOfSight(e));
     }
 
     /**

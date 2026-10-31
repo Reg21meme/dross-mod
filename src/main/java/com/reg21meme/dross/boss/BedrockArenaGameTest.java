@@ -131,16 +131,13 @@ public final class BedrockArenaGameTest
         {
             helper.fail("the arena shouldn't reach past its walls");
         }
-        // the Emberdactyl's ground under the roof is the floor (not the roof's top), and over a wall it's the wall's top
+        // the Emberdactyl's ground under the roof is the floor (not the roof's top)
         int s0 = sections.get(0).middle();
         double under = EmberBoss.groundUnder(level, absFloor.getX() + s0 + 0.5D, absFloor.getY() + 20.0D, absFloor.getZ() + 0.5D);
-        double overWall = EmberBoss.groundUnder(level, absFloor.getX() + dividers.get(0) + 0.5D, absFloor.getY() + 5.0D,
-                absFloor.getZ() + 0.5D);
-        if (under != absFloor.getY() + 1 || overWall != absFloor.getY() + BedrockArena.DIVIDER_HEIGHT + 1)
+        if (under != absFloor.getY() + 1)
         {
             helper.fail("under the roof the Emberdactyl's ground should be the floor (" + (absFloor.getY() + 1) + ", got " + under
-                    + ") and over a wall between sections that wall's top (" + (absFloor.getY() + BedrockArena.DIVIDER_HEIGHT + 1)
-                    + ", got " + overWall + ")");
+                    + ")");
         }
         // the walls between the sections open, and close again
         BedrockArena.setDividers(level, absFloor, teams, true);

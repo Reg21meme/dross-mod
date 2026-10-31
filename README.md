@@ -473,7 +473,8 @@ animations: the dormant shell, the eruption, the shell breaking off, the lava co
 The Rat King is one of the Plague Necromancer's three servants: a lean, sly giant rat standing upright, 3 to 4 blocks
 tall, with a staff, a crown and a red cape. **His look, sounds, fight and trophies are built** and play-tested. After two rounds
 of designs the user picked **Gnawrick, build 1C**: sewer grey-green, broad shoulders and a wide chest, a cocked
-three-point crown, a ragged moth-eaten cape, and a twisted staff whose green claw holds a glowing green orb.
+three-point crown, a ragged moth-eaten cape, and a twisted staff whose green claw holds a glowing green orb. Fire and
+lava never hurt him.
 
 He sleeps curled up on the ground (with floating Zzz and snores), wakes up and picks up his staff, stands, walks on
 tiptoe, burrows into the ground (the dirt mound is where his head went in) and pops back up out of it, flies into a
@@ -653,9 +654,13 @@ mostly in the air, circling you, and never strays more than 100 blocks from its 
 - **Fire tornadoes**: its wings whip up two (three at half health) that chase you, pull you in, burn you and throw you
   up into the sky.
 - **Strafing run**: low over you in a line, breathing fire (4 hearts and fire), leaving fire on the ground.
-- **Talon grab**: you hang from its talons (look round as you like; sneak to struggle free) as it carries you up,
-  always through open air, and drops you close to where it caught you: never from higher than a fall that takes half your health.
-- **Wing buffet** (it swoops down to you first) and **screech**: they throw you about 20 blocks.
+- **Talon grab**: it flies in close, then swoops onto you and catches you (it never swoops when it can't reach you).
+  You hang from its talons (look round as you like; sneak to struggle free) as it carries you up, always through open
+  air, holds you a moment and drops you close to where it caught you (the young drops you higher). However high it
+  drops you, the fall never takes more than half your health.
+- **Wing buffet** (it swoops down to you first): it throws you about 25 blocks. **Screech**: about 20 blocks.
+
+It can't fly through blocks: walls, hills and roofs stop it, and it rises over what's in its way.
 
 At half health it gets faster and its volcano starts raining lava bombs round the crater. When it dies its body breaks
 apart, its egg bursts open and its **young reborn** (175 health) bursts out and comes straight for you: the same moves,
@@ -680,7 +685,8 @@ can't be cured, not even with milk.
 - Raged mobs **never fight their own team**: they never target, chase or swing at a teammate, and the team beats
   natural enmity (a blue iron golem and a blue zombie, or a blue pillager and a blue iron golem, leave each other
   alone). If two mobs were already fighting when the second one joins the first's team, both stop at once. Each goes
-  for the nearest raged mob of another team within 40 blocks, and while an enemy team is near they **ignore players**,
+  for the nearest raged mob of another team within 40 blocks that it can see (never one behind a wall it hasn't seen),
+  and while an enemy team is near they **ignore players**,
   even ones who hit them. With no enemy near they behave normally towards everything but their own team, and keep
   their team, so the winners stay ready for the next fight.
 - No new animations: every mob uses its own attacks (zombies swing, skeletons shoot, creepers explode, golems smash).
@@ -690,13 +696,15 @@ can't be cured, not even with milk.
   and the moose's charges; raging an Emberdactyl or its young wakes it, and the adult and the young raged on two
   teams fight each other in the air (talons, buffets, screeches, tornadoes). Their golems
   or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
-- It won't rage showcase mobs, the Ender Dragon or the hub's survivors. The **trader** can be raged: he headbutts,
+- The **Wither** fights with its skulls, and the **Ender Dragon** charges through its enemies, swings round and spits
+  its fireballs at them.
+- It won't rage showcase mobs or the hub's survivors. The **trader** can be raged: he headbutts,
   and beaten down to half his health he teleports home and heals as always.
 - **Players on teams:** `/dross rage team <targets> <colour>` puts players and mobs on a team (`@s` for yourself, a
   player's name, `@a`, or `@e[type=zombie,distance=..10]`...; mobs get the Rage as from the wand), and
   `/dross rage clear <targets>` takes them off. Hitting another player with the wand puts them on its team. A player
-  on a team fights with it: the other teams' raged mobs come for you (in survival: mobs never attack a player in
-  creative), your own team's never do, and nothing you and your teammates do hurts each other. You keep your team when
+  on a team fights with it: the other teams' raged mobs come for you (in survival or adventure: in creative or
+  spectator mode you're nobody's enemy, whatever your team), your own team's never do, and nothing you and your teammates do hurts each other. You keep your team when
   you die.
 - **Seeing the teams:** while you hold the wand, every raged mob and every player on a team round you gives off
   sparks of its team's colour.
@@ -794,7 +802,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross boss summon emberdactyl` / `emberyoung` | Summons the Emberdactyl (or its young) 30 (18) blocks in front of you, hovering over that spot, alone (not on Peaceful). |
 | `/dross boss arena emberdactyl` | Builds an Emberdactyl volcano on the land in front of you, with its egg in the nest and the Emberdactyl perched on the rim (a few seconds' freeze). |
 | `/dross boss arena huntsman` | Builds the Huntsman's placeholder arena round you (a 41-block round floor of snow and packed ice, with lantern posts), with a chat button to summon him. |
-| `/dross boss arena bedrock [teams]` | Builds a test arena for any boss round you: an 89-block square bedrock floor with glowstone set in it, bedrock walls up to a bedrock roof 48 blocks up (room for the Emberdactyl), where nothing spawns by itself. With a number from 2 to 5 it's divided into that many equal sections by walls 12 high, one for each Rage Wand team, its colour of glass in the middle of each floor. Chat buttons take you to each section, put everyone in each section on its team, open and close the walls between them, and summon each boss. |
+| `/dross boss arena bedrock [teams]` | Builds a test arena for any boss round you: an 89-block square bedrock floor with glowstone set in it, bedrock walls up to a bedrock roof 48 blocks up (room for the Emberdactyl), where nothing spawns by itself. With a number from 2 to 5 it's divided into that many equal sections by walls up to the roof, one for each Rage Wand team, its colour of glass in the middle of each floor. Chat buttons take you to each section, put everyone in each section on its team, open and close the walls between them, and summon each boss. |
 | `/dross boss arena bedrock open` / `close` | Opens (or closes again) the walls between the bedrock arena's sections, so the teams meet. |
 | `/dross boss arena bedrock team_up` | Puts every mob and player in each of the bedrock arena's sections on that section's team (the Rage Wand's Rage). |
 | `/dross rage team <targets> <team>` | Puts players and mobs on one of the Rage Wand's teams (blue, red, green, yellow or purple): `@s`, a player's name, `@e[...]`. Players on a team fight alongside their team's raged mobs and against the others. |

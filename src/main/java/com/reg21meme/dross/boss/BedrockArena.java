@@ -23,8 +23,9 @@ import java.util.List;
  * groups depending on the number, so 2 means 1 wall, 3 2 walls". So it's 89 across (the Emberdactyl circles 26 blocks
  * round its target, its wings reaching 16.5 past that; it was 61) and roofed 48 up (it circles 18 over its target, 11
  * tall), and with {@code teams} of 2 to {@link #MAX_TEAMS} it's divided along x into that many equal sections
- * ({@link #sections}: as equal as whole blocks allow, never more than a block apart) by bedrock walls
- * {@link #DIVIDER_HEIGHT} high: no walking mob gets over them, a flying one can (they stop well under the roof). Each
+ * ({@link #sections}: as equal as whole blocks allow, never more than a block apart) by bedrock walls up to the roof
+ * ({@link #DIVIDER_HEIGHT}; the user, October 30: "the walls need to go all the way up the roof as well": they stood 12
+ * high, and a flyer went over them). Each
  * section has a patch of its team's stained glass in the middle of its floor (the Rage Wand's teams in order: Blue, Red,
  * Green, Yellow, Purple). The walls between the sections can be opened and closed ({@link #setDividers}).
  */
@@ -37,8 +38,8 @@ public final class BedrockArena
     public static final int ROOF_HEIGHT = 48;
     /** At most this many teams (sections): the Rage Wand's five. */
     public static final int MAX_TEAMS = RageTeam.values().length;
-    /** The walls between the sections stand this many blocks over the floor. */
-    public static final int DIVIDER_HEIGHT = 12;
+    /** The walls between the sections stand this many blocks over the floor: up to the roof. */
+    public static final int DIVIDER_HEIGHT = ROOF_HEIGHT - 1;
     /** A glowstone in the floor (and the roof) every this many blocks along x and z (so its floor is lit 8 or more everywhere). */
     public static final int FLOOR_LIGHT_EVERY = 7;
     /** Each section's patch of its team's glass reaches this far from its middle (5 x 5). */
@@ -46,7 +47,6 @@ public final class BedrockArena
     /** Glowstone in the walls: every this many blocks along them, at these heights over the floor. */
     private static final int WALL_LIGHT_EVERY = 4;
     private static final int[] WALL_LIGHT_HEIGHTS = {2, 6, 14, 22, 30, 38, 46};
-    private static final int[] DIVIDER_LIGHT_HEIGHTS = {2, 6, 10};
     private static final int FLAGS = Block.UPDATE_CLIENTS;
 
     /** One team's section: its columns from {@code from} to {@code to} (x from the middle, both in), for {@code team}. */
@@ -213,7 +213,7 @@ public final class BedrockArena
     /** A wall between sections: bedrock with glowstone bands. */
     private static BlockState dividerBlock(int dz, int dy)
     {
-        return dz % WALL_LIGHT_EVERY == 0 && lightAt(DIVIDER_LIGHT_HEIGHTS, dy) ? Blocks.GLOWSTONE.defaultBlockState()
+        return dz % WALL_LIGHT_EVERY == 0 && lightAt(WALL_LIGHT_HEIGHTS, dy) ? Blocks.GLOWSTONE.defaultBlockState()
                 : Blocks.BEDROCK.defaultBlockState();
     }
 

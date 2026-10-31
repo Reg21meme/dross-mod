@@ -162,6 +162,22 @@ public final class EmberTuning
     /** It drops you at most this many blocks (along the ground) from where it caught you. */
     public static final double GRAB_DRIFT = 6.0D;
     public static final int GRAB_COOLDOWN = 280;
+    /** ...and this much higher than that (the young this much: the user, October 30, "he drops me a little too early,
+     *  make sure that in the 2nd stage he definitely drops me a little higher"; the fall still never takes more than
+     *  {@link #GRAB_FALL_SHARE} of your health), holding you there this many ticks before it lets go. */
+    public static final double GRAB_DROP_EXTRA = 4.0D;
+    public static final double YOUNG_GRAB_DROP_EXTRA = 8.0D;
+    public static final int GRAB_HOLD_TICKS = 12;
+    /** Its swoop starts only once it's within this share of what it flies (at its fast speed) by the moment its talons
+     *  close; it closes in for at most this many ticks first (else no swoop); the swoop flies no faster than this many
+     *  times its fast speed; and held up, it still catches within this many ticks after its talons close. */
+    public static final double GRAB_SWOOP_SHARE = 0.85D;
+    public static final int GRAB_APPROACH_TICKS = 80;
+    public static final double GRAB_SWOOP_FASTEST = 1.4D;
+    public static final int GRAB_CATCH_GRACE = 8;
+    /** Where its body doesn't fit right over its target (beside a wall: blocks stop it), it catches from the nearest
+     *  spot that fits within this many blocks off (and within its reach). */
+    public static final int GRAB_SPOT_SEARCH = 3;
 
     /** Beak snap (on the ground): this many pecks one after another (the user: "make sure it can do 5 beak pecks all at
      *  once"), each this much in front of it (4 hearts a peck; it was one snap of 7). */
@@ -191,10 +207,11 @@ public final class EmberTuning
     public static final float STUCK_SCREECH_CHANCE = 0.08F;
     public static final float YOUNG_STUCK_SCREECH_CHANCE = 0.1F;
 
-    /** Wing buffet: 4 hearts in a cone in front, throwing you about 20 blocks (the user). In the air it first swoops
-     *  down to this far from its target, this high over it, so its beat reaches it (from its circle, 18 blocks up, it
-     *  missed everyone: the user's first fight, "it needs to push me back"). Everything in the cone is thrown, hurt or
-     *  not (a player on fire, just hurt, wasn't). */
+    /** Wing buffet: 4 hearts in a cone in front, throwing you about 25 blocks ({@link #BUFFET_THROW}; the user, October
+     *  30: "when he does the wing flap make it knock me back 5 more blocks": it was {@link #THROW_20}, about 20). In the
+     *  air it first swoops down to this far from its target, this high over it, so its beat reaches it (from its circle,
+     *  18 blocks up, it missed everyone: the user's first fight, "it needs to push me back"). Everything in the cone is
+     *  thrown, hurt or not (a player on fire, just hurt, wasn't). */
     public static final float BUFFET_DAMAGE = 8.0F;
     public static final double BUFFET_RANGE = 18.0D;
     public static final double BUFFET_REACH_DOWN = 12.0D;
@@ -203,6 +220,7 @@ public final class EmberTuning
     public static final double BUFFET_APPROACH_HEIGHT = 4.0D;
     public static final double THROW_20 = 2.2D;
     public static final double THROW_20_LIFT = 0.55D;
+    public static final double BUFFET_THROW = 2.85D;
     public static final int BUFFET_COOLDOWN = 120;
 
     /** Screech: 1 heart, slowness, and everyone within this many blocks thrown about 20 blocks (the user). */
@@ -253,6 +271,9 @@ public final class EmberTuning
             DUEL_DASH = 25;
     public static final double DUEL_STRIKE_REACH = 4.0D;
     public static final double DUEL_STRIKE_THROW = 0.8D;
+
+    /** When a wall stops it, it rises at least this fast (blocks a tick) to get over it. */
+    public static final double CLIMB_ON_BUMP = 0.35D;
 
     /** Its flight's loops by its speed (hover, glide, fly): it changes over only this share past the speed at the line
      *  and stays at least this long (ticks) after a change (until October 30 a speed near the line flicked it between

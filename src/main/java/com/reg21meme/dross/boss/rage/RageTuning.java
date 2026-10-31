@@ -103,4 +103,12 @@ public final class RageTuning
     public static final float WAND_SHOW_SIZE = 1.8F;
 
     private RageTuning() {}
+
+    /** A raged Ender Dragon ({@code RageDragon}): after each charge through its enemy it flies on this far past it and
+     *  this high, then turns and charges again; it spits a fireball at it every this many ticks when it can see it within
+     *  this many blocks. */
+    public static final double DRAGON_PASS_PAST = 30.0D;
+    public static final double DRAGON_PASS_UP = 12.0D;
+    public static final int DRAGON_FIREBALL_EVERY = 70;
+    public static final double DRAGON_FIREBALL_RANGE = 64.0D;
 }

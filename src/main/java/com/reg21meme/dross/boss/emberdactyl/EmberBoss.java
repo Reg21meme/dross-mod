@@ -148,6 +148,11 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     private Vec3 dropSpot;
     /** The height (feet) it lets go of whoever it carries at, over the ground under the drop. */
     private double dropLevel;
+    /** (its move's tick) when its grab's swoop started, and when it came to the drop's height; where it swoops to */
+    private int swoopFrom;
+    @Nullable
+    private Vec3 swoopSpot;
+    private int dropTick;
     private final Set<UUID> hitThisMove = new HashSet<>();
     /** The young's fire trail: the spot (along the ground) it last laid fire at. */
     @Nullable
@@ -173,7 +178,8 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         this.setNoAi(false);
         this.setSilent(false);
         this.setNoGravity(true);
-        this.noPhysics = true;
+        // (it flew through blocks until October 30: the user saw the young "clip through walls", and both go up through
+        // the bedrock arena's roof, where, inside it, they took its top for the ground; now blocks stop it like any mob)
         this.setDesign(design);
         this.flySpots = flySpots;
         this.groundSpots = groundSpots;
@@ -461,7 +467,8 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
 
     // ---------------------------------------------------------------- moving (it flies)
 
-    /** It moves exactly as fast as it's told, through the air, no friction and no falling. */
+    /** It moves exactly as fast as it's told, through the air, no friction and no falling; blocks stop it (never
+     *  through a wall, a roof or a hill), and when a wall stops it it rises to get over it. */
     @Override
     public void travel(Vec3 input)
     {
@@ -470,7 +477,18 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             this.setDeltaMovement(Vec3.ZERO);
         }
         this.move(MoverType.SELF, this.getDeltaMovement());
+        if (this.horizontalCollision && !this.isDeadOrDying())
+        {
+            Vec3 v = this.getDeltaMovement();
+            this.setDeltaMovement(v.x, Math.max(v.y, CLIMB_ON_BUMP), v.z);
+        }
         this.calculateEntityAnimation(true);
+    }
+
+    /** It doesn't shove what's beside it (it never did while it flew through everything). */
+    @Override
+    protected void pushEntities()
+    {
     }
 
     /** The ground's height (the feet of something standing on it) at x, z, for it at its own height ({@link #groundUnder}). */
@@ -1016,7 +1034,8 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             }
             case GRAB ->
             {
-                this.playAnimation("grab");
+                this.swoopFrom = 0;          // (its swoop's animation starts when it's in reach: grab())
+                this.loop("fly");
                 this.ready.put(m, this.tickCount + this.cooldown(GRAB_COOLDOWN));
             }
             case SNAP ->
@@ -1413,16 +1432,22 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
     }
 
-    /** Talon grab: a swoop at its target; caught, it hangs from its talons (its passenger), is carried up and away and
-     *  dropped near where it was caught, never from higher than a fall it lives through with half its health. */
+    /** Talon grab: it closes in until its swoop can reach its target, then swoops and catches it; caught, it hangs from
+     *  its talons (its passenger), is carried up and away and dropped near where it was caught. It never swoops where it
+     *  can't catch (the user, October 30: its talons closing on nothing over their head, "remove this weird grab attack
+     *  that doesn't grab me into the sky": it swooped from wherever it was, at a fixed speed, and missed when it was too
+     *  far or too high): the swoop starts only within reach ({@link EmberTuning#GRAB_SWOOP_SHARE} of what it flies by
+     *  the moment its talons close) and with room for it where it catches, and flies exactly onto its target over the
+     *  ticks it has left; one that can't get in reach soon enough ({@link EmberTuning#GRAB_APPROACH_TICKS}) doesn't
+     *  swoop at all. */
     private void grab()
     {
         int moment = this.at("grab", 0.395D);
         if (this.carried != null)
         {
             // carrying: first straight up until whoever it holds is clear over everything on its way, then across at
-            // that height, then down to the drop's height over the ground there, and it lets go (never through the
-            // ground: they hang in open air all the way)
+            // that height, then down to the drop's height over the ground there, a moment's hold, and it lets go (never
+            // through the ground: they hang in open air all the way)
             double hang = this.carried.getBbHeight() + 0.5D;
             double cruiseY = this.dropSpot.y + hang;
             double across = Math.hypot(this.dropSpot.x - this.getX(), this.dropSpot.z - this.getZ());
@@ -1431,7 +1456,8 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             if (!this.hitThisMove.contains(Marks.CLIMBED))
             {
                 to = new Vec3(this.getX(), cruiseY, this.getZ());
-                if (this.getY() >= cruiseY - 1.0D)
+                // (or as high as it goes: a roof over it)
+                if (this.getY() >= cruiseY - 1.0D || this.verticalCollision && !this.verticalCollisionBelow)
                 {
                     this.hitThisMove.add(Marks.CLIMBED);
                 }
@@ -1443,58 +1469,153 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             else
             {
                 to = new Vec3(this.dropSpot.x, this.dropLevel + hang, this.dropSpot.z);
-                there = this.getY() <= this.dropLevel + hang + 0.75D;
+                there = this.getY() <= this.dropLevel + hang + 0.75D || this.verticalCollision;
             }
             this.steer(to, this.kind.fast() * 0.5D, 0.25D);
             this.loop("fly");
-            if (there || this.moveTick > moment + GRAB_CARRY_TICKS)
+            if (there && this.hitThisMove.add(Marks.AT_DROP))
+            {
+                this.dropTick = this.moveTick;
+            }
+            if (this.hitThisMove.contains(Marks.AT_DROP) && this.moveTick >= this.dropTick + GRAB_HOLD_TICKS
+                    || this.moveTick > this.swoopFrom + moment + GRAB_CARRY_TICKS)
             {
                 this.release();
                 this.endMove();
             }
             return;
         }
-        if (this.moveTick <= moment)
+        boolean carriable = carriable(this.target);
+        if (!this.hitThisMove.contains(Marks.SWOOP))
         {
-            Vec3 aim = this.target.position().add(0.0D, 1.0D, 0.0D);
-            this.steer(aim, this.kind.fast(), 0.35D);
-            if (this.moveTick == moment)
+            // closing in, flying (no swoop yet), until its swoop reaches
+            Vec3 spot = carriable ? this.grabSpot(this.target) : this.target.position().add(0.0D, 1.0D, 0.0D);
+            Vec3 aim = spot != null ? spot : this.grabAim(this.target);
+            double reach = this.kind.fast() * this.speedScale() * moment * GRAB_SWOOP_SHARE;
+            if (spot != null && this.position().distanceTo(aim) <= reach)
             {
-                if (!carriable(this.target))
+                this.swoopSpot = spot;
+                this.hitThisMove.add(Marks.SWOOP);
+                this.swoopFrom = this.moveTick;
+                this.playAnimation("grab");
+            }
+            else if (this.moveTick > GRAB_APPROACH_TICKS)
+            {
+                this.endMove();              // (it couldn't get close enough, or there's no room for it: no swoop)
+                return;
+            }
+            else
+            {
+                this.steer(this.overGround(aim, MIN_CLEARANCE), this.kind.fast(), 0.35D);
+                this.loop("fly");
+                return;
+            }
+        }
+        int t = this.moveTick - this.swoopFrom;
+        if (!carriable)
+        {
+            // too big to carry (another Emberdactyl): its talons rake it as it swoops past
+            if (t <= moment)
+            {
+                this.steer(this.target.position().add(0.0D, 1.0D, 0.0D), this.kind.fast(), 0.35D);
+            }
+            if (t == moment)
+            {
+                double reach = (this.getBbWidth() + this.target.getBbWidth()) * 0.5D + DUEL_STRIKE_REACH;
+                if (this.target.distanceToSqr(this) <= reach * reach && this.canFight(this.target)
+                        && this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE))
                 {
-                    // too big to carry (another Emberdactyl): its talons rake it as it swoops past
-                    double reach = (this.getBbWidth() + this.target.getBbWidth()) * 0.5D + DUEL_STRIKE_REACH;
-                    if (this.target.distanceToSqr(this) <= reach * reach && this.canFight(this.target)
-                            && this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE))
-                    {
-                        Vec3 away = this.target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
-                        this.throwOut(this.target, (away.lengthSqr() < 0.01D ? this.facing() : away.normalize())
-                                .scale(DUEL_STRIKE_THROW), 0.3D);
-                    }
+                    Vec3 away = this.target.position().subtract(this.position()).multiply(1.0D, 0.0D, 1.0D);
+                    this.throwOut(this.target, (away.lengthSqr() < 0.01D ? this.facing() : away.normalize())
+                            .scale(DUEL_STRIKE_THROW), 0.3D);
                 }
-                else if (this.target.distanceToSqr(this) <= GRAB_REACH * GRAB_REACH && this.canFight(this.target))
+            }
+            if (t > moment)
+            {
+                this.steer(this.position().add(0.0D, 0.8D, 0.0D), this.kind.cruise(), 0.2D);
+                if (t > moment + 10)
                 {
-                    this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE);
-                    if (this.target.isAlive())
-                    {
-                        this.dropSpot = this.dropFor(this.target);
-                        if (this.target.startRiding(this, true))
-                        {
-                            this.carried = this.target;
-                        }
-                    }
+                    this.endMove();
                 }
             }
             return;
         }
-        if (this.moveTick > moment + 10)
+        // the swoop: exactly onto its target over the ticks it has left (it catches it as its talons close, or, held
+        // up a moment, the moment it's there)
+        Vec3 now = this.grabSpot(this.target);
+        if (now != null)
         {
-            this.endMove();   // (missed)
+            this.swoopSpot = now;
+        }
+        Vec3 aim = this.swoopSpot;
+        Vec3 to = aim.subtract(this.position());
+        double most = this.kind.fast() * this.speedScale() * GRAB_SWOOP_FASTEST;
+        Vec3 v = to.scale(1.0D / Math.max(1, moment - t + 1));
+        this.setDeltaMovement(v.length() > most ? v.normalize().scale(most) : v);
+        if (to.x * to.x + to.z * to.z > 0.25D)
+        {
+            this.turnTo(to);
         }
         else
         {
-            this.steer(this.position().add(0.0D, 0.8D, 0.0D), this.kind.cruise(), 0.2D);
+            this.turnTo(this.target.position().subtract(this.position()));
         }
+        if (t >= moment && this.position().distanceTo(this.grabAim(this.target)) <= GRAB_REACH && this.canFight(this.target))
+        {
+            this.target.hurt(this.damageSources().mobAttack(this), GRAB_DAMAGE);
+            if (this.target.isAlive())
+            {
+                this.dropSpot = this.dropFor(this.target);
+                if (this.target.startRiding(this, true))
+                {
+                    this.carried = this.target;
+                    return;
+                }
+            }
+            this.endMove();
+        }
+        else if (t > moment + GRAB_CATCH_GRACE)
+        {
+            this.endMove();                  // (it got away: a wall in the way, an ender pearl...)
+        }
+    }
+
+    /** Where its feet go to catch something: just over its head (it hangs there from its talons). */
+    private Vec3 grabAim(LivingEntity e)
+    {
+        return e.position().add(0.0D, e.getBbHeight() + 0.5D, 0.0D);
+    }
+
+    /** The nearest spot round {@link #grabAim} where its body fits (blocks stop it now: beside a wall it catches from a
+     *  little off to the side or higher, within {@link EmberTuning#GRAB_REACH}), or null if there's none. */
+    @Nullable
+    private Vec3 grabSpot(LivingEntity e)
+    {
+        Vec3 aim = this.grabAim(e);
+        Vec3 best = null;
+        double bestD = Double.MAX_VALUE;
+        int r = GRAB_SPOT_SEARCH;
+        for (int dy = 0; dy <= r; dy++)
+        {
+            for (int dx = -r; dx <= r; dx++)
+            {
+                for (int dz = -r; dz <= r; dz++)
+                {
+                    double d = dx * dx + dy * dy + dz * dz;
+                    if (d >= bestD || d > Mth.square(GRAB_REACH - 0.5D))
+                    {
+                        continue;
+                    }
+                    Vec3 spot = aim.add(dx, dy, dz);
+                    if (this.level().noCollision(this, this.getBoundingBox().move(spot.subtract(this.position())).deflate(0.01D)))
+                    {
+                        best = spot;
+                        bestD = d;
+                    }
+                }
+            }
+        }
+        return best;
     }
 
     /** True if its talons can carry it off: a player, or anything no bigger than an iron golem (not another Emberdactyl). */
@@ -1666,7 +1787,8 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 }
             }
         }
-        double fall = Mth.clamp(3.0D + Math.floor(e.getHealth() * GRAB_FALL_SHARE), GRAB_DROP_MIN, GRAB_CARRY_HEIGHT);
+        double fall = Mth.clamp(3.0D + Math.floor(e.getHealth() * GRAB_FALL_SHARE), GRAB_DROP_MIN, GRAB_CARRY_HEIGHT)
+                + (this.dashes() ? YOUNG_GRAB_DROP_EXTRA : GRAB_DROP_EXTRA);
         this.dropLevel = this.groundAt(away.x, away.z) + fall;
         double feet = Math.max(this.dropLevel, highest + GRAB_CLEARANCE);
         return new Vec3(away.x, feet, away.z);
@@ -1755,7 +1877,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
     }
 
-    /** Wing buffet: one huge beat, everyone in front of it thrown about 20 blocks. In the air it swoops down near its
+    /** Wing buffet: one huge beat, everyone in front of it thrown about 25 blocks. In the air it swoops down near its
      *  target first, so the beat reaches it. */
     private void buffet()
     {
@@ -1789,7 +1911,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                     continue;
                 }
                 e.hurt(this.damageSources().mobAttack(this), BUFFET_DAMAGE);
-                this.throwOut(e, (d < 0.01D ? face : rel.scale(1.0D / d)).scale(THROW_20), THROW_20_LIFT);
+                this.throwOut(e, (d < 0.01D ? face : rel.scale(1.0D / d)).scale(BUFFET_THROW), THROW_20_LIFT);
             }
             if (this.level() instanceof ServerLevel level)
             {
@@ -2258,5 +2380,9 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         static final UUID RUNNING = new UUID(0L, 1L);
         /** Carrying, it has climbed high enough to fly across. */
         static final UUID CLIMBED = new UUID(0L, 2L);
+        /** Its grab's swoop has started (it was close enough). */
+        static final UUID SWOOP = new UUID(0L, 3L);
+        /** Carrying, it has come to the drop's height (it holds a moment, then lets go). */
+        static final UUID AT_DROP = new UUID(0L, 4L);
     }
 }

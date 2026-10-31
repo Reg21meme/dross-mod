@@ -705,18 +705,21 @@ def worn_hide(pal, inner=None, seed=61, strand=2.4, frost_amount=0.25, ragged=0.
 
 
 @_factory(True)
-def eye_plain(pal=HORN_DARK, seed=47):
-    """An ordinary dark animal eye (no glow): glossy, with one bright glint near its top front corner. Only on a face
-    at least 2 units across both ways: on a smaller one the glint would be the whole eye (the user, October 30, of the
-    wild moose's 1-unit eyes: "its left eye seems to be covered": one eye came out all pale, the other dark)."""
+def eye_plain(pal=HORN_DARK, seed=47, small="dark"):
+    """An ordinary dark animal eye (no glow): glossy, with one bright glint near its top front corner. On a face under
+    2 units across the glint would be the whole eye, so there it's all one or the other, the same on both eyes:
+    `small` "dark" (no glint) or "white" (the whole eye the glint's white). (The user, October 30, of the wild moose's
+    1-unit eyes: "its left eye seems to be covered": the glint, picked by noise, made one eye all white and left the
+    other dark; then both dark, and: "make the moose eyes white".)"""
 
     def paint(tx):
         q, size = _box_frame(tx)
         k = 1.0 + (noise.fbm(tx.Pw, 1.0, 1, seed) - 0.5) * 0.8
         col = pick(pal, k)
         across = np.where(np.abs(tx.N) > 0.5, np.inf, size).min(axis=1)     # the face's smaller width
-        glint = ((q[:, 1] > size[:, 1] - 1.0) & (np.abs(tx.N[:, 1]) < 0.5) & (_speck(tx.P, seed + 1) < 0.45)
-                 & (across >= 2.0))
+        tiny = across < 2.0
+        glint = ((q[:, 1] > size[:, 1] - 1.0) & (np.abs(tx.N[:, 1]) < 0.5)
+                 & np.where(tiny, small == "white", _speck(tx.P, seed + 1) < 0.45))
         col = np.where(glint[:, None], np.array([214.0, 222.0, 230.0]), col)
         return _out(tx, col)
 

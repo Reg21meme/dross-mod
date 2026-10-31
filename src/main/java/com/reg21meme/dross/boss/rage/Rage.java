@@ -13,8 +13,9 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
+import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.player.Player;
 
@@ -85,17 +86,24 @@ public final class Rage
      * True if the Rage has made these two enemies: both in the fight (raged, or a player on a team), on two different
      * teams. The bosses' blows and projectiles
      * use this so they can hit a raged enemy of their own kind (another boss, or golems and rats of another team), which
-     * they never do otherwise.
+     * they never do otherwise. A player in creative or spectator mode is nobody's enemy, whatever their team (the user,
+     * October 30: the Huntsman "even seems to attack me in creative"; a creative player on a team was his foe).
      */
     public static boolean areEnemies(@Nullable Entity a, @Nullable Entity b)
     {
-        if (a == null || b == null || a == b || !inFight(a) || !inFight(b))
+        if (a == null || b == null || a == b || !inFight(a) || !inFight(b) || untouchable(a) || untouchable(b))
         {
             return false;
         }
         RageTeam ta = teamOf(a);
         RageTeam tb = teamOf(b);
         return ta != null && tb != null && ta != tb;
+    }
+
+    /** A player in creative or spectator mode: out of every fight. */
+    private static boolean untouchable(Entity e)
+    {
+        return e instanceof Player player && (player.isCreative() || player.isSpectator());
     }
 
     /** True if these two are on the same team (raged mobs, or players on a team): they never fight each other. */
@@ -110,16 +118,19 @@ public final class Rage
     }
 
     /**
-     * True if the wand can rage this mob. Not: a mob with no AI (the frozen showcase bosses, rats and traders), the
-     * Ender Dragon (it flies by its own phases and never fights mobs) or the hub's survivors (they can never die, so
-     * their fight would never end). (The Wither can't have any effect at all, so it can't either.) The Dross trader
+     * True if the wand can rage this mob. Not: a mob with no AI (the frozen showcase bosses, rats and traders) or the
+     * hub's survivors (they can never die, so their fight would never end). The Wither and the Ender Dragon can (the
+     * user, October 30: "can't use the rage wand on the Wither, change that, also with the Ender Dragon"; the dragon was
+     * refused, and both refuse every effect, so the Rage goes on them by force ({@link #enrage}); and raged, the Wither
+     * was given the headbutt in place of its skulls): the Wither fights with its skulls, the
+     * dragon with its charges and fireballs ({@link RageDragon}). The Dross trader
      * can (the user, October 30: "I want to be able to affect the trader with the Rage Wand"; until then he was left out
      * with the survivors): he headbutts like a wandering trader, and beaten down to half his health he teleports home
      * and heals as always, which ends his fight.
      */
     public static boolean canBeRaged(Mob mob)
     {
-        return mob.isAlive() && !mob.isNoAi() && !(mob instanceof EnderDragon) && !(mob instanceof Survivor);
+        return mob.isAlive() && !mob.isNoAi() && !(mob instanceof Survivor);
     }
 
     // ---------------------------------------------------------------- raging
@@ -143,9 +154,13 @@ public final class Rage
             fizzle(level, mob);
             return false;
         }
-        if (!isRaged(mob) && (!mob.addEffect(rageEffect()) || !isRaged(mob)))
+        if (!isRaged(mob) && !mob.addEffect(rageEffect()) && (mob instanceof WitherBoss || mob instanceof EnderDragon))
         {
-            fizzle(level, mob); // something refused it (the Wither refuses every effect)
+            mob.forceAddEffect(rageEffect(), null); // (they refuse every effect: the Rage goes on them anyway)
+        }
+        if (!isRaged(mob))
+        {
+            fizzle(level, mob); // something refused it
             return false;
         }
         setTeam(mob, team);
@@ -361,12 +376,16 @@ public final class Rage
         return other.level() == mob.level() && other.distanceToSqr(mob) <= RageTuning.RAGE_RANGE * RageTuning.RAGE_RANGE;
     }
 
-    /** Its enemies within {@link RageTuning#RAGE_RANGE} blocks (also ones it can't target right now, like a Rat King
-     *  under the ground), players on other teams among them. */
+    /** Its enemies within {@link RageTuning#RAGE_RANGE} blocks that it can see (also ones it can't target right now,
+     *  like a Rat King under the ground, without seeing them), players on other teams among them. One behind a wall
+     *  doesn't count until it's seen (the user, October 30: in the bedrock arena's sections, with the walls between
+     *  them closed, the Huntsman "seems to be attacking nothing": he went for an enemy on the wall's far side); one it's
+     *  already fighting it keeps after round a corner ({@link #isTargetable}). */
     static List<LivingEntity> enemiesNear(Mob mob)
     {
         return mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(RageTuning.RAGE_RANGE),
-                other -> isLiveEnemy(mob, other) && inRange(mob, other));
+                other -> isLiveEnemy(mob, other) && inRange(mob, other)
+                        && (!other.canBeSeenAsEnemy() || mob.hasLineOfSight(other)));
     }
 
     /** True if a raged mob has any enemy within {@link RageTuning#RAGE_RANGE} blocks: it ignores players then. */

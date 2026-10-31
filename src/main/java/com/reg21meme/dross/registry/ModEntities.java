@@ -106,6 +106,7 @@ public final class ModEntities
     public static final RegistryObject<EntityType<RatKing>> RAT_KING = ENTITY_TYPES.register("rat_king",
             () -> EntityType.Builder.<RatKing>of(RatKing::new, MobCategory.MONSTER)
                     .sized(1.2F, 3.4F)
+                    .fireImmune()   // (fire and lava never hurt him: the user, October 30)
                     .clientTrackingRange(10)
                     .build("rat_king"));
 

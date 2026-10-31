@@ -692,7 +692,7 @@ def materials(v):
         "leg2": M.fur(M.MOOSE_LEG if moose else M.ELK, seed=1606, strand=2.0, frost_amount=fr(0.3)),
         "muzzle": M.skin(M.HORN_DARK, seed=1607, mottle=0.8, frost_amount=fr(0.1)),
         "hoof": M.claw(),
-        "eye": M.eye_plain() if v.get("wild") else M.eye(M.GLOW, pupil=False),     # (a wild moose's: plain)
+        "eye": M.eye_plain(small="white") if v.get("wild") else M.eye(M.GLOW, pupil=False),   # (a wild moose's: plain white)
         "eyesocket": M.glowing(M.GLOW, seed=1609, idx=3.8),
         "mouth": M.mouth(),
         "teeth": M.teeth(),

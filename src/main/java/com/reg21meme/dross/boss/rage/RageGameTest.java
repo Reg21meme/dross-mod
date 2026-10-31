@@ -32,6 +32,9 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.animal.Cow;
 import net.minecraft.world.entity.animal.IronGolem;
 import net.minecraft.world.entity.animal.Pig;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.enderdragon.phases.EnderDragonPhase;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.monster.Pillager;
 import net.minecraft.world.entity.monster.Zombie;
 import net.minecraft.world.entity.monster.warden.Warden;
@@ -597,6 +600,13 @@ public final class RageGameTest
                     player.setHealth(player.getMaxHealth());
                 })
                 .thenExecute(() -> {
+                    // in creative he's nobody's enemy, whatever his team (the Huntsman went for a creative player)
+                    player.setGameMode(GameType.CREATIVE);
+                    if (Rage.areEnemies(enemy, player))
+                    {
+                        helper.fail("a player in creative mode on Red should be nobody's enemy, but the raged Blue zombie's");
+                    }
+                    player.setGameMode(GameType.SURVIVAL);
                     helper.getLevel().getServer().getCommands().performPrefixedCommand(console, "dross rage clear rage-team-player");
                     boolean cleared = Rage.teamOf(player) == null;
                     leaveAll(List.of(player));
@@ -612,6 +622,33 @@ public final class RageGameTest
                     if (!Rage.canBeRaged(ModEntities.TRADER.get().create(helper.getLevel())))
                     {
                         helper.fail("the Dross trader should be one the Rage Wand can rage");
+                    }
+                    // the Wither and the Ender Dragon can be raged and fight with their own moves (never the headbutt):
+                    // the dragon, with a raged enemy near, charges at it (neither is added to the world: no skulls, no
+                    // dragon breaking the arena)
+                    ServerLevel level = helper.getLevel();
+                    Zombie foe = tough(zombie(helper, MIDDLE.offset(4, 0, 4)));
+                    Rage.enrage(foe, RageTeam.BLUE);
+                    WitherBoss wither = EntityType.WITHER.create(level);
+                    EnderDragon dragon = EntityType.ENDER_DRAGON.create(level);
+                    // (on the floor: its eye, 6.8 up, under the arena's barrier roof, so it can see the zombie)
+                    Vec3 high = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(-4, 0, -4)));
+                    wither.moveTo(high.x, high.y, high.z, 0.0F, 0.0F);
+                    dragon.moveTo(high.x, high.y, high.z, 0.0F, 0.0F);
+                    boolean raged = Rage.enrage(wither, RageTeam.RED) && Rage.enrage(dragon, RageTeam.RED)
+                            && Rage.isRaged(wither) && Rage.isRaged(dragon);
+                    boolean headbutt = RageAi.headbutts(wither) || RageAi.headbutts(dragon);
+                    RageDragon.tick(dragon);
+                    EnderDragonPhase<?> phase = dragon.getPhaseManager().getCurrentPhase().getPhase();
+                    discard(List.of(foe));
+                    if (!raged || headbutt)
+                    {
+                        helper.fail("the Wither and the Ender Dragon should be raged by the wand and fight with their own moves "
+                                + "(raged " + raged + ", headbutting " + headbutt + ")");
+                    }
+                    if (phase != EnderDragonPhase.CHARGING_PLAYER)
+                    {
+                        helper.fail("a raged Ender Dragon with a raged enemy near should charge at it, but it's " + phase);
                     }
                 })
                 .thenSucceed();

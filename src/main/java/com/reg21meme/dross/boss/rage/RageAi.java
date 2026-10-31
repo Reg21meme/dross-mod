@@ -20,6 +20,8 @@ import net.minecraft.world.entity.ai.memory.WalkTarget;
 import net.minecraft.world.entity.animal.Rabbit;
 import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.entity.animal.goat.Goat;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+import net.minecraft.world.entity.boss.wither.WitherBoss;
 import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.monster.warden.Warden;
 import net.minecraft.world.entity.schedule.Activity;
@@ -102,6 +104,13 @@ public final class RageAi
         // raged enemies: the user, October 24, 2026, "the Huntsman doesn't seem to attack when I use the Rage Wand on
         // him against the other bosses")
         if (mob instanceof RageLeader)
+        {
+            return false;
+        }
+        // nor the Wither (no attack-damage stat: given the headbutt, which outranks its skulls, it only floated at its
+        // enemies: the user, October 30, "can't use the rage wand on the Wither") or the Ender Dragon (its own moves:
+        // RageDragon)
+        if (mob instanceof WitherBoss || mob instanceof EnderDragon)
         {
             return false;
         }
@@ -252,6 +261,11 @@ public final class RageAi
         if (team != null && (mob.tickCount + mob.getId()) % RageTuning.RAGE_PARTICLE_EVERY == 0)
         {
             Rage.teamParticles(level, mob, team, RageTuning.RAGE_PARTICLES);
+        }
+        if (mob instanceof EnderDragon dragon)
+        {
+            RageDragon.tick(dragon);           // (no goals: its fight is flown here)
+            return;
         }
         LivingEntity target = state.targetGoal.target();
         if (target != null && target.isAlive())

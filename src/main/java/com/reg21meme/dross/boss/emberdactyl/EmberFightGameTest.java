@@ -463,8 +463,9 @@ public final class EmberFightGameTest
                     {
                         throw new GameTestAssertException("it carried the cow only " + String.format("%.1f", up) + " blocks up");
                     }
-                    // (its health 10: a fall of 3 + 5 blocks takes half of it)
-                    double most = 3.0D + Math.floor(cow[0].getHealth() * EmberTuning.GRAB_FALL_SHARE) + 1.5D;
+                    // (its health 10: a fall of 3 + 5 blocks takes half of it; it lets go a little higher than that)
+                    double most = 3.0D + Math.floor(cow[0].getHealth() * EmberTuning.GRAB_FALL_SHARE)
+                            + EmberTuning.GRAB_DROP_EXTRA + 1.5D;
                     if (letGo[0] > most)
                     {
                         throw new GameTestAssertException("it let go of the cow " + String.format("%.1f", letGo[0])
