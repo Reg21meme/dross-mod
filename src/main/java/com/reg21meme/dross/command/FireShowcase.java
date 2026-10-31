@@ -43,10 +43,11 @@ import java.util.Map;
  *   <li>{@code /dross showcase boss_designs cinder_wastes}: the fire servant candidates (fifteen possible bosses for the
  *       Fire Necromancer's two open servant places, each its original look and three variations), about 230 blocks
  *       wide and 80 deep;</li>
- *   <li>{@code /dross showcase boss_designs emberdactyl}: the Emberdactyl (the user's volcanic pterosaur, round 2): at
- *       35, 45 and 55 blocks across its wings, each in three looks, its young and its eggs; and behind them its volcano
- *       ({@code boss.emberdactyl.EmberVolcano}), built a piece at a time, with an egg in its nest and an adult hovering
- *       over its crater once it stands. About 200 blocks wide and 320 deep, the volcano 70 tall;</li>
+ *   <li>{@code /dross showcase boss_designs emberdactyl}: the Emberdactyl (the user's volcanic pterosaur, 33 blocks
+ *       across its wings) in four looks side by side (E1A, the one in the game, and E1B-E1D with less and less lava on
+ *       its body and horns, its wings the same: the user's October 31 request), its young and its eggs; and behind them
+ *       its volcano ({@code boss.emberdactyl.EmberVolcano}), built a piece at a time, with an egg in its nest and an
+ *       adult hovering over its crater once it stands. About 190 blocks wide, the volcano 70 tall;</li>
  *   <li>{@code /dross showcase cinder_mobs}: the Cinder Wastes' regular mobs, the Pallbearer and the Cinder Hermit in its
  *       eight shells, in one row.</li>
  * </ul>
@@ -134,8 +135,9 @@ public final class FireShowcase
         SERVANTS(FireDesigns.SERVANTS, "fire servant gallery",
                 "the fifteen originals in a row ahead of you (No. 1 on the left), each one's variations behind it", COMMAND),
         EMBERDACTYL(FireDesigns.EMBERDACTYL, "Emberdactyl gallery",
-                "the Emberdactyl (33 blocks across its wings) ahead of you on the left, its young beside it, then its "
-                        + "egg in its four looks, one behind the other", EMBERDACTYL_COMMAND),
+                "the Emberdactyl (33 blocks across its wings) in its four looks side by side ahead of you on the left "
+                        + "(E1A, the one in the game, then less and less lava on its body: E1B, E1C, E1D), its young "
+                        + "beside them, then its egg in its five looks, one behind the other", EMBERDACTYL_COMMAND),
         CINDER_MOBS(FireDesigns.CINDER_MOBS, "Cinder Wastes' mobs",
                 "the Pallbearer and the Cinder Hermit in its eight shells, in a row ahead of you", CINDER_MOBS_COMMAND);
 

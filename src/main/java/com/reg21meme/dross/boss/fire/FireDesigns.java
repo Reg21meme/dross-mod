@@ -111,25 +111,28 @@ public final class FireDesigns
     /** The Emberdactyl's looks: the adult, its young, then its eggs. */
     public static final List<Design> EMBERDACTYL = List.of(
             new Design(61, "E1A", "emberdactyla", "Emberdactyl", "half-moon crest", "emberdactyl", 1, 1, 0, 10.00F, 16.49F, 15.65F, 5.97F, 16.26F, 16.26F, 16.49F, 6.00F, true, false, false, "emberdactyl"),
-            new Design(62, "E2A", "emberyounga", "Young Reborn", "young reborn", "emberdactyl", 2, 2, 0, 10.00F, 11.64F, 11.36F, 6.95F, 11.26F, 11.26F, 11.64F, 6.00F, true, false, false, "emberyoung"),
-            new Design(63, "E3A", "emberegga", "Emberdactyl Egg", "obsidian fade", "emberdactyl", 3, 3, 0, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
-            new Design(64, "E3B", "embereggb", "Emberdactyl Egg", "ember foot", "emberdactyl", 3, 3, 1, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
-            new Design(65, "E3C", "embereggc", "Emberdactyl Egg", "faint cracks", "emberdactyl", 3, 3, 2, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
-            new Design(66, "E3D", "embereggd", "Emberdactyl Egg", "cut open", "emberdactyl", 3, 3, 3, 10.00F, 13.72F, 5.45F, 5.45F, 5.43F, 5.43F, 13.72F, 4.88F, true, false, false, ""),
-            new Design(67, "E3E", "emberegge", "Emberdactyl Egg", "hatched", "emberdactyl", 3, 3, 4, 10.00F, 6.94F, 6.73F, 6.48F, 7.16F, 6.78F, 6.94F, 5.94F, true, false, false, "")
+            new Design(62, "E1B", "emberdactylb", "Emberdactyl", "less lava", "emberdactyl", 1, 2, 0, 10.00F, 16.49F, 15.65F, 5.97F, 16.26F, 16.26F, 16.49F, 6.00F, true, false, false, "emberdactyl"),
+            new Design(63, "E1C", "emberdactylc", "Emberdactyl", "a little lava", "emberdactyl", 1, 3, 0, 10.00F, 16.49F, 15.65F, 5.97F, 16.26F, 16.26F, 16.49F, 6.00F, true, false, false, "emberdactyl"),
+            new Design(64, "E1D", "emberdactyld", "Emberdactyl", "almost no lava", "emberdactyl", 1, 4, 0, 10.00F, 16.49F, 15.65F, 5.97F, 16.26F, 16.26F, 16.49F, 6.00F, true, false, false, "emberdactyl"),
+            new Design(65, "E2A", "emberyounga", "Young Reborn", "young reborn", "emberdactyl", 2, 5, 0, 10.00F, 11.64F, 11.36F, 6.95F, 11.26F, 11.26F, 11.64F, 6.00F, true, false, false, "emberyoung"),
+            new Design(66, "E3A", "emberegga", "Emberdactyl Egg", "obsidian fade", "emberdactyl", 3, 6, 0, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
+            new Design(67, "E3B", "embereggb", "Emberdactyl Egg", "ember foot", "emberdactyl", 3, 6, 1, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
+            new Design(68, "E3C", "embereggc", "Emberdactyl Egg", "faint cracks", "emberdactyl", 3, 6, 2, 10.00F, 13.65F, 6.19F, 6.19F, 5.35F, 5.35F, 13.65F, 4.82F, true, false, false, ""),
+            new Design(69, "E3D", "embereggd", "Emberdactyl Egg", "cut open", "emberdactyl", 3, 6, 3, 10.00F, 13.72F, 5.45F, 5.45F, 5.43F, 5.43F, 13.72F, 4.88F, true, false, false, ""),
+            new Design(70, "E3E", "emberegge", "Emberdactyl Egg", "hatched", "emberdactyl", 3, 6, 4, 10.00F, 6.94F, 6.73F, 6.48F, 7.16F, 6.78F, 6.94F, 5.94F, true, false, false, "")
     );
 
     /** The Cinder Wastes' mobs: the Pallbearer, then the Cinder Hermit in each of its shells. */
     public static final List<Design> CINDER_MOBS = List.of(
-            new Design(68, "M1A", "mobpallbearera", "Pallbearer", "burning coffin", "cinder_mobs", 1, 1, 0, 3.43F, 9.62F, 2.44F, 1.21F, 1.72F, 1.72F, 9.62F, 1.54F, true, false, false, "pallbearer"),
-            new Design(69, "M2A", "mobhermita", "Cinder Hermit", "bronze bell", "cinder_mobs", 2, 2, 0, 6.26F, 4.06F, 6.27F, 3.91F, 3.13F, 3.13F, 4.06F, 2.82F, true, false, false, "hermit"),
-            new Design(70, "M2B", "mobhermitb", "Cinder Hermit", "iron brazier", "cinder_mobs", 2, 3, 0, 6.26F, 5.18F, 6.27F, 3.82F, 3.13F, 3.13F, 5.18F, 2.82F, true, false, false, "hermit"),
-            new Design(71, "M2C", "mobhermitc", "Cinder Hermit", "horned skull", "cinder_mobs", 2, 4, 0, 7.93F, 5.30F, 6.27F, 3.90F, 3.96F, 3.96F, 5.30F, 3.57F, true, false, false, "hermit"),
-            new Design(72, "M2D", "mobhermitd", "Cinder Hermit", "funerary urn", "cinder_mobs", 2, 5, 0, 6.26F, 4.35F, 6.27F, 4.25F, 3.13F, 3.13F, 4.35F, 2.82F, true, false, false, "hermit"),
-            new Design(73, "M2E", "mobhermite", "Cinder Hermit", "magma conch", "cinder_mobs", 2, 6, 0, 6.26F, 4.72F, 6.27F, 4.77F, 3.13F, 3.13F, 4.72F, 2.82F, true, false, false, "hermit"),
-            new Design(74, "M2F", "mobhermitf", "Cinder Hermit", "crystal geode", "cinder_mobs", 2, 7, 0, 6.26F, 4.40F, 6.27F, 3.63F, 3.13F, 3.13F, 4.40F, 2.82F, true, true, true, "hermit"),
-            new Design(75, "M2I", "mobhermiti", "Cinder Hermit", "giant lantern", "cinder_mobs", 2, 8, 0, 6.26F, 3.66F, 6.27F, 4.97F, 3.13F, 3.13F, 3.66F, 2.82F, true, false, false, "hermit"),
-            new Design(76, "M2J", "mobhermitj", "Cinder Hermit", "colossus shard", "cinder_mobs", 2, 9, 0, 6.26F, 4.76F, 6.27F, 3.88F, 3.13F, 3.13F, 4.76F, 2.82F, true, false, false, "hermit")
+            new Design(71, "M1A", "mobpallbearera", "Pallbearer", "burning coffin", "cinder_mobs", 1, 1, 0, 3.43F, 9.62F, 2.44F, 1.21F, 1.72F, 1.72F, 9.62F, 1.54F, true, false, false, "pallbearer"),
+            new Design(72, "M2A", "mobhermita", "Cinder Hermit", "bronze bell", "cinder_mobs", 2, 2, 0, 6.26F, 4.06F, 6.27F, 3.91F, 3.13F, 3.13F, 4.06F, 2.82F, true, false, false, "hermit"),
+            new Design(73, "M2B", "mobhermitb", "Cinder Hermit", "iron brazier", "cinder_mobs", 2, 3, 0, 6.26F, 5.18F, 6.27F, 3.82F, 3.13F, 3.13F, 5.18F, 2.82F, true, false, false, "hermit"),
+            new Design(74, "M2C", "mobhermitc", "Cinder Hermit", "horned skull", "cinder_mobs", 2, 4, 0, 7.93F, 5.30F, 6.27F, 3.90F, 3.96F, 3.96F, 5.30F, 3.57F, true, false, false, "hermit"),
+            new Design(75, "M2D", "mobhermitd", "Cinder Hermit", "funerary urn", "cinder_mobs", 2, 5, 0, 6.26F, 4.35F, 6.27F, 4.25F, 3.13F, 3.13F, 4.35F, 2.82F, true, false, false, "hermit"),
+            new Design(76, "M2E", "mobhermite", "Cinder Hermit", "magma conch", "cinder_mobs", 2, 6, 0, 6.26F, 4.72F, 6.27F, 4.77F, 3.13F, 3.13F, 4.72F, 2.82F, true, false, false, "hermit"),
+            new Design(77, "M2F", "mobhermitf", "Cinder Hermit", "crystal geode", "cinder_mobs", 2, 7, 0, 6.26F, 4.40F, 6.27F, 3.63F, 3.13F, 3.13F, 4.40F, 2.82F, true, true, true, "hermit"),
+            new Design(78, "M2I", "mobhermiti", "Cinder Hermit", "giant lantern", "cinder_mobs", 2, 8, 0, 6.26F, 3.66F, 6.27F, 4.97F, 3.13F, 3.13F, 3.66F, 2.82F, true, false, false, "hermit"),
+            new Design(79, "M2J", "mobhermitj", "Cinder Hermit", "colossus shard", "cinder_mobs", 2, 9, 0, 6.26F, 4.76F, 6.27F, 3.88F, 3.13F, 3.13F, 4.76F, 2.82F, true, false, false, "hermit")
     );
 
     /** Every candidate of every set. */

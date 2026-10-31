@@ -481,14 +481,18 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             this.setDeltaMovement(Vec3.ZERO);
         }
         Vec3 want = this.getDeltaMovement();
-        Vec3 go = this.isDeadOrDying() ? want : this.wingsClip(want);
-        boolean wingBlocked = Math.abs(go.x - want.x) > 1.0E-7D || Math.abs(go.z - want.z) > 1.0E-7D;
-        if (go != want)
+        if (!this.isDeadOrDying() && !this.standing())
         {
-            this.setDeltaMovement(go);  // (a wing against a wall stops that way, like its body)
+            want = this.steerClear(want);        // a wall ahead: it turns aside before it gets there
+        }
+        Vec3 go = this.isDeadOrDying() ? want : this.shapesClip(want);
+        boolean blocked = Math.abs(go.x - want.x) > 1.0E-7D || Math.abs(go.z - want.z) > 1.0E-7D;
+        if (go != this.getDeltaMovement())
+        {
+            this.setDeltaMovement(go);  // (its head, a wing or its tail against a wall stops that way, like its body)
         }
         this.move(MoverType.SELF, go);
-        if ((this.horizontalCollision || wingBlocked) && !this.isDeadOrDying())
+        if ((this.horizontalCollision || blocked) && !this.isDeadOrDying())
         {
             Vec3 v = this.getDeltaMovement();
             this.setDeltaMovement(v.x, Math.max(v.y, CLIMB_ON_BUMP), v.z);
@@ -496,69 +500,126 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         this.calculateEntityAnimation(true);
     }
 
-    /** Its wings' hitboxes (its parts: the two wings, then the two wing tips). */
-    private static final int[] WINGS = {2, 3, 4, 5};
-
     /**
-     * Its wings are solid too (the user, October 31: "make it so the wings count for the Emberdactyls like a physical
-     * box ... those can't also clip through walls"): {@code move} cut short so none of its wings' hitboxes runs into a
-     * block, as Minecraft does for its body. A wing already inside a block (it came down beside a hill) can still move
-     * out of it.
+     * Its whole body is solid (the user, October 31: "make it so the wings count for the Emberdactyls like a physical box
+     * ... those can't also clip through walls", then its head went through the bedrock: "his entire body"): the boxes
+     * round its head, neck, wings, body and tail through the animation it's playing ({@link EmberShapes}, measured from
+     * its model: its wings flat out in a glide, raised high in its screech), turned with it. Their lowest point is never
+     * under its feet (its body meets the ground).
      */
-    private Vec3 wingsClip(Vec3 move)
+    private List<AABB> shapesAt(Vec3 at, float yawDeg)
+    {
+        String anim = this.animation();
+        double[][] shapes = this.dashes() ? EmberShapes.young(anim) : EmberShapes.adult(anim);
+        float yaw = yawDeg * Mth.DEG_TO_RAD;
+        double cos = Mth.cos(yaw);
+        double sin = Mth.sin(yaw);
+        List<AABB> boxes = new ArrayList<>(shapes.length);
+        for (double[] s : shapes)
+        {
+            double x0 = Double.MAX_VALUE, x1 = -Double.MAX_VALUE, z0 = Double.MAX_VALUE, z1 = -Double.MAX_VALUE;
+            for (double lx : new double[] {s[0], s[3]})
+            {
+                for (double lz : new double[] {s[2], s[5]})
+                {
+                    double x = lx * cos + lz * sin;
+                    double z = lx * sin - lz * cos;
+                    x0 = Math.min(x0, x);
+                    x1 = Math.max(x1, x);
+                    z0 = Math.min(z0, z);
+                    z1 = Math.max(z1, z);
+                }
+            }
+            boxes.add(new AABB(at.x + x0, at.y + Math.max(0.0D, s[1]), at.z + z0, at.x + x1, at.y + Math.max(0.05D, s[4]), at.z + z1));
+        }
+        return boxes;
+    }
+
+    /** {@code move} cut short so none of its body's boxes runs into a block, as Minecraft does for an entity's own box. A
+     *  box already inside a block (it came down beside a hill) can still move out of it. */
+    private Vec3 shapesClip(Vec3 move)
     {
         if (move.lengthSqr() < 1.0E-10D)
         {
             return move;
         }
-        Vec3 at = this.position();
-        for (int i : WINGS)
+        for (AABB box : this.shapesAt(this.position(), this.yBodyRot))
         {
-            if (i < this.parts.length)
-            {
-                move = Entity.collideBoundingBox(this, move, this.partBoxAt(i, at, this.yBodyRot), this.level(), List.of());
-            }
+            move = Entity.collideBoundingBox(this, move, box, this.level(), List.of());
         }
         return move;
     }
 
-    /** Where one of its parts' hitboxes is with it at {@code at} facing {@code yawDeg} (as {@link RimefallBodyPart#place}
-     *  puts it). */
-    private AABB partBoxAt(int i, Vec3 at, float yawDeg)
+    /** How far (blocks, at most {@code reach}) it can go along {@code dir} before any of its boxes meets a block. */
+    private double room(Vec3 dir, double reach)
     {
-        double[] spot = (this.standing() ? this.groundSpots : this.flySpots)[i];
-        float yaw = yawDeg * Mth.DEG_TO_RAD;
-        double cos = Mth.cos(yaw);
-        double sin = Mth.sin(yaw);
-        double x = at.x + spot[0] * cos + spot[2] * sin;
-        double y = at.y + spot[1];
-        double z = at.z + spot[0] * sin - spot[2] * cos;
-        double w = this.parts[i].getBbWidth() * 0.5D;
-        return new AABB(x - w, y, z - w, x + w, y + this.parts[i].getBbHeight(), z + w);
+        Vec3 sweep = dir.scale(reach);
+        double room = reach;
+        for (AABB box : this.shapesAt(this.position(), this.yBodyRot))
+        {
+            room = Math.min(room, Entity.collideBoundingBox(this, sweep, box, this.level(), List.of()).length());
+        }
+        return Math.min(room, Entity.collideBoundingBox(this, sweep, this.getBoundingBox(), this.level(), List.of()).length());
     }
 
     /**
-     * Whether it can turn to {@code yaw} without swinging a wing into a block (one already in a block may turn on, to
-     * get out). When it can't, it's pushed a little away from what's in the way, so it has room to turn next time.
+     * Flying, with a wall within {@link EmberTuning#AVOID_AHEAD_TICKS} ticks' flight ahead, it turns its course aside
+     * before it gets there (the user, October 31: "he should recognize there is stuff in front of him, he should turn
+     * earlier or turn enough so I don't have to hit bedrock"): the nearest way round, to either side, with clear room,
+     * at most {@link EmberTuning#AVOID_TURN} degrees a tick; with no clear way it slows and climbs.
      */
-    private boolean wingsCanTurn(float yaw)
+    private Vec3 steerClear(Vec3 v)
+    {
+        double speed = Math.sqrt(v.x * v.x + v.z * v.z);
+        if (speed < AVOID_MIN_SPEED)
+        {
+            return v;
+        }
+        double reach = Math.max(AVOID_AHEAD_MIN, speed * AVOID_AHEAD_TICKS);
+        Vec3 dir = new Vec3(v.x / speed, 0.0D, v.z / speed);
+        if (this.room(dir, reach) >= reach - 0.01D)
+        {
+            return v;
+        }
+        for (double turn : AVOID_TRIES)
+        {
+            for (int side = 0; side < 2; side++)
+            {
+                double a = Math.toRadians(side == 0 ? turn : -turn);
+                Vec3 d = new Vec3(dir.x * Math.cos(a) - dir.z * Math.sin(a), 0.0D, dir.x * Math.sin(a) + dir.z * Math.cos(a));
+                if (this.room(d, reach) >= reach - 0.01D)
+                {
+                    double step = Math.toRadians(Math.min(turn, AVOID_TURN)) * (side == 0 ? 1.0D : -1.0D);
+                    Vec3 n = new Vec3(dir.x * Math.cos(step) - dir.z * Math.sin(step), 0.0D,
+                            dir.x * Math.sin(step) + dir.z * Math.cos(step));
+                    return new Vec3(n.x * speed, v.y, n.z * speed);
+                }
+            }
+        }
+        return new Vec3(v.x * AVOID_SLOW, Math.max(v.y, CLIMB_ON_BUMP), v.z * AVOID_SLOW);
+    }
+
+    /**
+     * Whether it can turn to {@code yaw} without swinging its head, a wing or its tail into a block (one already in a
+     * block may turn on, to get out). When it can't, it's pushed a little away from what's in the way, so it has room to
+     * turn next time.
+     */
+    private boolean canTurn(float yaw)
     {
         if (this.isDeadOrDying() || this.isPassenger())
         {
             return true;
         }
         Vec3 at = this.position();
+        List<AABB> now = this.shapesAt(at, this.yBodyRot);
+        List<AABB> then = this.shapesAt(at, yaw);
         Vec3 away = Vec3.ZERO;
-        for (int i : WINGS)
+        for (int i = 0; i < then.size(); i++)
         {
-            if (i >= this.parts.length)
+            AABB box = then.get(i).deflate(0.01D);
+            if (!this.level().noCollision(this, box) && this.level().noCollision(this, now.get(i).deflate(0.01D)))
             {
-                continue;
-            }
-            AABB then = this.partBoxAt(i, at, yaw).deflate(0.01D);
-            if (!this.level().noCollision(this, then) && this.level().noCollision(this, this.partBoxAt(i, at, this.yBodyRot).deflate(0.01D)))
-            {
-                Vec3 c = then.getCenter();
+                Vec3 c = box.getCenter();
                 away = away.add(at.x - c.x, 0.0D, at.z - c.z);
             }
         }
@@ -656,10 +717,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
         float want = (float) (Mth.atan2(dir.z, dir.x) * Mth.RAD_TO_DEG) - 90.0F;
         float yaw = Mth.approachDegrees(this.getYRot(), want, TURN * (float) this.speedScale() * (this.dashes() ? 2.0F : 1.0F));
-        if (!this.wingsCanTurn(yaw))
+        if (!this.canTurn(yaw))
         {
             float half = Mth.approachDegrees(this.getYRot(), yaw, Math.abs(Mth.wrapDegrees(yaw - this.getYRot())) * 0.5F);
-            if (!this.wingsCanTurn(half))
+            if (!this.canTurn(half))
             {
                 return;                 // a wing would swing into a wall: it waits (pushed a little away from it)
             }
@@ -1715,16 +1776,16 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         return best;
     }
 
-    /** Whether its body and its wings (solid since October 31) fit at {@code spot}, facing as it does. */
+    /** Whether its body, head, wings and tail (solid since October 31) fit at {@code spot}, facing as it does. */
     private boolean fitsAt(Vec3 spot)
     {
         if (!this.level().noCollision(this, this.getBoundingBox().move(spot.subtract(this.position())).deflate(0.01D)))
         {
             return false;
         }
-        for (int i : WINGS)
+        for (AABB box : this.shapesAt(spot, this.yBodyRot))
         {
-            if (i < this.parts.length && !this.level().noCollision(this, this.partBoxAt(i, spot, this.yBodyRot).deflate(0.01D)))
+            if (!this.level().noCollision(this, box.deflate(0.01D)))
             {
                 return false;
             }

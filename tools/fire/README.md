@@ -41,6 +41,8 @@ python tools/fire/volcano_preview.py          # the Emberdactyl's volcano previe
 python tools/fire/mobs.py                     # the designs that move: their skeletons, animations, previews
 python tools/fire/mobs.py hermit --no-gif     # one mob, without the GIFs (much quicker)
 python tools/fire/sounds.py                   # their sounds (after mobs.py: the moments come from the animations)
+python tools/fire/shapes.py                   # the Emberdactyl's collision boxes (after mobs.py): EmberShapes.java
+python tools/fire/lava_looks.py               # E1A-E1D side by side (after mobs.py emberdactyl)
 ```
 
 **The designs that move** (`mobs.py`, the modules in `firemobs/`; it reuses the Rimefall animals' kit,
@@ -79,6 +81,35 @@ by lava veins, the volcano erupting, a white-hot fill). The other designs were r
 `boss-previews/cinder_wastes/emberdactyl/bossbars/` (`bars.png`, `index.html`); `--previews-only` leaves the game files
 alone. Every look must fit 240 x 34 GUI pixels (checked on every build; `EMBER_FLOOR` keeps the wings' falling embers
 inside it). In the game: `/dross showcase bossbars emberdactyl` (both looks stacked for a minute) or the fight.
+
+**The adult with less lava** (the user, October 31, 2026: "less lava spots on the adult version on the body; the wings
+are fine, but on the body and horns less lava; give me a showcase with those versions"): E1B "less lava" (half of
+E1A's lava veins on its hide, belly, bills, brows, horns and half moon), E1C "a little lava" (a quarter, the half
+moon's glowing rim half cooled over) and E1D "almost no lava" (a few glowing cracks, the rim cooled to a glint), their
+wings exactly E1A's (`BODY_LAVA` in `firekit/emberdactyl.py`; `fmats.obsidian`'s `vein_keep` drops pieces of its veins
+at random, so the veins that are left look as before). They're full moving designs (`mobs.py emberdactyl` builds
+`emberdactyla`-`d` on the same skeleton and animations) and stand side by side in the gallery (`ONE_ROW`).
+`python tools/fire/lava_looks.py` (after `mobs.py emberdactyl`) draws them side by side from the game's own files, each
+view a row (the whole animal by day and at night, its head close up, its body with its wings left off), with the share
+of its body's and wings' texels that glow: `boss-previews/cinder_wastes/emberdactyl/lava_looks/lava_looks.png`. The game's
+fight still wears E1A.
+
+**Its collision shapes** (`shapes.py`; the user, October 31: its head, neck and wings went through walls): for the
+adult (E1A) and the young (E2A), boxes that together hold every corner of the model through every frame of its flying
+animations (all but perch, walk, snap and death) and, separately, its ground animations (perch, walk, snap), read from
+the game's own model and animation files (as `trophies.py` reads them) and posed with GeckoLib's maths. Its middle (body,
+legs, neck, head, horns, tail) is cut along its length at its joints, each piece at most 4 blocks long; each wing (its
+bones and membranes) is cut along x into slabs at most 3 blocks wide from its middle line out to its furthest tip, the
+two wings mirror images of each other; every box covers its part's whole sweep through the animations, grown by 0.15
+blocks. Frame: blocks, x its own left, y up from its feet, z its front at -z (the hitbox parts' frame, `Emberdactyl.java`
+FLY/GROUND, turned by `RimefallBodyPart.place`). Besides those unions it makes one set per animation (all but death),
+so the game can use the set of the animation it's playing (the screech's raised wings make the flying union 26.7
+blocks tall). `python tools/fire/shapes.py` writes the generated `boss/emberdactyl/EmberShapes.java`: the unions
+`ADULT_FLY`, `ADULT_GROUND`, `YOUNG_FLY`, `YOUNG_GROUND`, each animation's `ADULT_HOVER`, `YOUNG_GUST`... (the fly
+animation's `ADULT_FLY_ANIM`, `YOUNG_FLY_ANIM`), and `adult(String animation)` / `young(String animation)` giving an
+animation's set by name (the flying union for any other name); rows `{x0, y0, z0, x1, y1, z1}`. It checks every
+sampled point lies in a box; `--check` only prints them. Run it again after `mobs.py`
+changes either model or its animations.
 
 The volcano is built by the game, not here; its previews are drawn from the blocks the game really placed. First the
 probe (it builds the volcano on a flat plain in a test world and writes what you could see to

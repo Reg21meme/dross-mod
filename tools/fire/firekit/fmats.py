@@ -224,10 +224,12 @@ def crust(pal=MAGMA_CRUST, glow_pal=EMBER, seed=103, cell=7.0, cracks=0.55, widt
 
 
 @_factory(True)
-def obsidian(pal=OBSIDIAN, seed=105, gloss=1.6, veins=0.0, vein_pal=LAVA, outline=0.14, cell=6.0):
+def obsidian(pal=OBSIDIAN, seed=105, gloss=1.6, veins=0.0, vein_pal=LAVA, outline=0.14, cell=6.0, vein_keep=1.0,
+             keep_cell=5.0):
     """
     Obsidian: glassy purple-black with conchoidal facets (cells), sharp pale-violet highlights towards the light;
-    `veins` of glowing lava running through it.
+    `veins` of glowing lava running through it. `vein_keep` (0..1): the share of the veins kept, cut into pieces about
+    `keep_cell` units long and each piece kept or dropped at random (fewer spots of lava, each one as it was).
     """
 
     def paint(tx):
@@ -244,6 +246,9 @@ def obsidian(pal=OBSIDIAN, seed=105, gloss=1.6, veins=0.0, vein_pal=LAVA, outlin
         if veins > 0:
             v = noise.fbm(noise.warp(tx.Pw, 2.5, 10.0, seed + 3), 9.0, 3, seed + 4)
             vm = np.abs(v - 0.5) < 0.009 * (1.0 + veins * 1.5)
+            if vein_keep < 1.0:
+                piece, _i2, _b, _f2, _c2 = noise.voronoi(tx.Pw, keep_cell, seed + 6)
+                vm = vm & (noise.hash_ids(piece, 0, seed + 7) < vein_keep)
             vk = 3.6 - np.abs(v - 0.5) * 120.0
             col = np.where(vm[:, None], pick(vein_pal, vk - 1.0), col)
             g[vm] = rgba(pick(vein_pal, vk[vm]), 255.0)

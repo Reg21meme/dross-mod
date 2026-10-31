@@ -130,24 +130,39 @@ EYE_STYLES = {
 }
 
 
-def materials(young=False, eye=None):
+# Less lava on the adult's body (the user, October 31, 2026: "I am considering less lava spots on the adult version on
+# the body; the wings are fine, but on the body and horns less lava; give me a showcase with those versions"): the
+# gallery's E1B-E1D (firedesigns/e01_emberdactyl.py) keep only `keep` of E1A's lava veins (the same veins, fewer of
+# them) on its hide, belly, bills, brows, horns and half moon, and the half moon's glowing rim cooled over this much
+# (`rim`: 0 bright as E1A's, towards 1 a crust of obsidian with a little lava showing); the wings stay as they are.
+BODY_LAVA = {
+    "less": dict(keep=0.5, rim=0.0),
+    "little": dict(keep=0.25, rim=0.62),
+    "none": dict(keep=0.07, rim=0.92),
+}
+
+
+def materials(young=False, eye=None, lava=None):
     """Obsidian with lava in its veins: a little on the adult's scales; the young's hide all run through with lava
-    (the user: "much more magma"). `eye`: an eye study's key in EYE_STYLES (None: the adult's own eyes)."""
+    (the user: "much more magma"). `eye`: an eye study's key in EYE_STYLES (None: the adult's own eyes). `lava`: a key
+    of BODY_LAVA (the adult with less lava on its body; None: E1A's)."""
+    cut = BODY_LAVA[lava] if lava is not None and not young else dict(keep=1.0, rim=0.0)
+    keep = cut["keep"]
     out = {
-        "hide": F.obsidian(seed=1801, veins=0.14, gloss=1.6),
-        "belly": F.obsidian(seed=1803, veins=0.08, gloss=1.2),
+        "hide": F.obsidian(seed=1801, veins=0.14, gloss=1.6, vein_keep=keep),
+        "belly": F.obsidian(seed=1803, veins=0.08, gloss=1.2, vein_keep=keep),
         "wingbone": F.obsidian(seed=1805, veins=0.11, cell=4.0),
         "joint": F.glowing(F.EMBER, seed=1807, idx=2.0, base_pal=F.LAVA),
         "claw": F.obsidian(OBS_RED, seed=1809, gloss=1.9),
         "tooth": F.obsidian(OBS_RED, seed=1810, gloss=2.0),
-        "beak": F.obsidian(OBS_RED, seed=1811, gloss=1.7, veins=0.08),
+        "beak": F.obsidian(OBS_RED, seed=1811, gloss=1.7, veins=0.08, vein_keep=keep),
         "seam": F.lava(F.EMBER, seed=1813),
         "tongue": F.lava(F.EMBER, seed=1815, crust=0.3),
         "eye": F.eye_disc(iris=F.EYE_EMBER, pupil="slit", rim=0.16, glow=240.0, seed=1817),
         "socket": F.obsidian(SOCKET, seed=1818, gloss=0.8),
-        "brow": F.obsidian(OBS_RED, seed=1820, gloss=1.5, veins=0.1),
+        "brow": F.obsidian(OBS_RED, seed=1820, gloss=1.5, veins=0.1, vein_keep=keep),
         "tear": F.lava(F.EMBER, seed=1822, flow=2.0),
-        "crest": F.obsidian(OBS_RED, seed=1819, gloss=1.8, veins=0.12),
+        "crest": F.obsidian(OBS_RED, seed=1819, gloss=1.8, veins=0.12, vein_keep=keep),
         "spike": F.obsidian(OBS_RED, seed=1821, gloss=1.8),
         "rib": F.obsidian(OBS_RED, seed=1823, gloss=1.4),
         "membrane": F.membrane(OBS_MEMBRANE, seed=1825, hot=0.26, veins=0.9),
@@ -171,6 +186,8 @@ def materials(young=False, eye=None):
             "membrane": F.membrane(OBS_MEMBRANE, seed=1825, hot=1.0, veins=2.0, vein_pal=F.LAVA),
             "membraneedge": F.membrane(OBS_MEMBRANE, seed=1827, hot=1.0, veins=2.0, vein_pal=F.LAVA, ragged=0.8),
         })
+    if cut["rim"] > 0:
+        out["seam"] = F.lava(F.EMBER, seed=1813, crust=cut["rim"], crust_pal=OBS_RED)
     eye = eye or (YOUNG_EYE if young else ADULT_EYE)
     out["eye"] = F.eye_disc(seed=1817, **EYES[eye]["eye"])
     return out

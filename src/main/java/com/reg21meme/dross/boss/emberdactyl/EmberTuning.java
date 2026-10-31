@@ -278,6 +278,18 @@ public final class EmberTuning
     /** Its wings are solid (the user, October 31): when turning would swing one into a block it doesn't turn, and is
      *  pushed this fast (blocks a tick) away from what's in the way, to make room. */
     public static final double WING_NUDGE = 0.08D;
+    /**
+     * Flying, it looks this many ticks of its flight ahead (at least {@link #AVOID_AHEAD_MIN} blocks) for a wall, and
+     * turns its course aside before it gets there (the user, October 31: "he should turn earlier"), at most
+     * {@link #AVOID_TURN} degrees a tick, trying these turns either side; with no clear way it slows to this share of its
+     * speed and climbs. Below {@link #AVOID_MIN_SPEED} (blocks a tick) it doesn't look.
+     */
+    public static final double AVOID_AHEAD_TICKS = 10.0D;
+    public static final double AVOID_AHEAD_MIN = 6.0D;
+    public static final double AVOID_TURN = 12.0D;
+    public static final double[] AVOID_TRIES = {20.0D, 40.0D, 60.0D, 90.0D, 120.0D, 150.0D};
+    public static final double AVOID_SLOW = 0.4D;
+    public static final double AVOID_MIN_SPEED = 0.05D;
     public static final double CLIMB_ON_BUMP = 0.35D;
 
     /** Its flight's loops by its speed (hover, glide, fly): it changes over only this share past the speed at the line
