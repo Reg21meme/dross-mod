@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Locale;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.entity.Entity;
+import com.reg21meme.dross.boss.cinder.CinderHermit;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
@@ -204,10 +207,14 @@ public final class HermitCaveShowcase
                 }
             }
         }
+        // the hermits of a cave built here before go with it
+        BoundingBox footprint = HermitCaves.footprint(plot.ground(), plan.front(), plot.cave());
+        level.getEntitiesOfClass(CinderHermit.class, AABB.of(footprint).inflate(MARGIN, CLEAR_ABOVE, MARGIN)).forEach(Entity::discard);
         if (!HermitCaves.place(level, plot.cave(), plot.ground(), plan.front()))
         {
             return;
         }
+        HermitCaves.spawnCrabs(level, HermitCaves.crabSpots(plot.ground(), plan.front(), plot.cave()), null);
         // its sign on a post of polished blackstone beside its way in, facing you
         BlockPos door = HermitCaves.door(plot.ground(), plan.front(), plot.cave());
         BlockPos post = door.relative(plan.front(), SIGN_OUT).relative(plan.look().getClockWise(), SIGN_SIDE);

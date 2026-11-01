@@ -57,7 +57,9 @@ How a player moves through the mod, from a normal survival world to the Dross.
 - **Sky and fog:** each biome has its own night fog, sky and water colours, particles and ambient sounds, with a blue glow over the night sky and no clouds.
 - **Old worlds:** not supported while the mod is unpublished (the old flat Dross and its biome are gone). Start a new world.
 - **Time:** permanent night (fixed at time 18000). The sun never rises.
-- **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only the Cinder Colossus's **stone golems** spawn there, with **lava golems** (about 1 in 5, always next to lava). Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
+- **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only their own mobs spawn there: the Cinder Colossus's **stone golems**, **lava golems** (always next to lava), the **Cinder Hermit** and the **Pallbearer**. Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
+- **The Cinder Hermit** is a 6-block hermit crab in one of eight shells (a bronze bell, an iron brazier, a horned skull, a funerary urn, a magma conch, a crystal geode, a giant lantern or a piece of the Colossus). It leaves you alone until you hit it, then snaps and pinches, and its neighbours join in; hurt, it may hide in its shell (hits barely hurt it), peek out and come back out. Each Cinder Wastes area has one or two **hermit crab caves**, small dens about 10 blocks deep with their own hermits (`/dross goto hermit_cave`).
+- **The Pallbearer** is a towering skeleton (nearly 10 blocks) carrying a burning coffin. It also leaves you alone until hit; then it roars (slowing you), swipes and slams its coffin down.
   - **Zombies** spawn in full netherite armor with a netherite sword.
   - **Skeletons** spawn in full netherite armor and keep their bows.
   - None of it is enchanted, and none of it drops when they die.

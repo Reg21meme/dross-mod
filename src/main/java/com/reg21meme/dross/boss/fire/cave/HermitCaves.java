@@ -2,7 +2,11 @@ package com.reg21meme.dross.boss.fire.cave;
 
 import com.mojang.logging.LogUtils;
 import java.util.Optional;
+import com.reg21meme.dross.boss.cinder.CinderHermit;
+import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
@@ -103,6 +107,31 @@ public final class HermitCaves
     public static java.util.List<BlockPos> crabSpots(BlockPos ground, Direction front, HermitCaveDesigns.Cave cave)
     {
         return cave.crabs().stream().map(spot -> toWorld(spot, ground, front, cave)).toList();
+    }
+
+    /**
+     * Its Cinder Hermits: one at each of its crab spots ({@code spots}, in the world) inside {@code within} (the chunk
+     * being made; null for all), each in a random shell (its own rule), facing any way, staying put (a cave's crabs
+     * never despawn). Each one's other hermits come for whoever hurts it, as anywhere.
+     */
+    public static void spawnCrabs(ServerLevelAccessor level, java.util.List<BlockPos> spots, @javax.annotation.Nullable BoundingBox within)
+    {
+        for (BlockPos spot : spots)
+        {
+            if (within != null && !within.isInside(spot))
+            {
+                continue;
+            }
+            CinderHermit crab = ModEntities.CINDER_HERMIT.get().create(level.getLevel());
+            if (crab == null)
+            {
+                continue;
+            }
+            crab.moveTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D, level.getRandom().nextFloat() * 360.0F, 0.0F);
+            crab.finalizeSpawn(level, level.getCurrentDifficultyAt(spot), MobSpawnType.STRUCTURE, null, null);
+            crab.setPersistenceRequired();
+            level.addFreshEntityWithPassengers(crab);
+        }
     }
 
     /** The template's corner (its first block) for a cave whose middle is on {@code ground}. */

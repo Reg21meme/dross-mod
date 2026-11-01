@@ -2,6 +2,11 @@ package com.reg21meme.dross.boss.fire.cave;
 
 import com.reg21meme.dross.registry.ModStructures;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.chunk.ChunkGenerator;
+import net.minecraft.world.level.StructureManager;
+import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -62,6 +67,18 @@ public final class HermitCavePiece extends TemplateStructurePiece
     {
         super.addAdditionalSaveData(context, tag);
         tag.putString("Rot", this.placeSettings.getRotation().name());
+    }
+
+    /** The cave, then its Cinder Hermits on its crab spots in this chunk (the user, October 31: the caves are their homes). */
+    @Override
+    public void postProcess(WorldGenLevel level, StructureManager structures, ChunkGenerator generator, RandomSource random,
+                            BoundingBox box, ChunkPos chunk, BlockPos pos)
+    {
+        super.postProcess(level, structures, generator, random, box, chunk, pos);
+        HermitCaveDesigns.Cave cave = byTemplate(new ResourceLocation(this.templateName));
+        HermitCaves.spawnCrabs(level, cave.crabs().stream()
+                .map(local -> StructureTemplate.calculateRelativePosition(this.placeSettings, local).offset(this.templatePosition))
+                .toList(), box);
     }
 
     @Override

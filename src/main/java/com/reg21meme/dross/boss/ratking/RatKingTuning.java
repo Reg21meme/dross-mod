@@ -156,6 +156,10 @@ public final class RatKingTuning
     /** He casts at targets this far away (blocks, from his middle), when he can see them. */
     public static final double CAST_MIN = 5.0D;
     public static final double CAST_MAX = 24.0D;
+    /** Something this far over him and off the ground is a flyer out of his staff's reach: he throws his plague balls up
+     *  at it whenever they're ready (the user, October 31), within this straight distance. */
+    public static final double AIR_TARGET_RISE = 3.0D;
+    public static final double AIR_CAST_MAX = 32.0D;
     /** Ticks before he can cast again (first phase, Rage). */
     public static final int CAST_COOLDOWN = 70;
     public static final int RAGE_CAST_COOLDOWN = 50;

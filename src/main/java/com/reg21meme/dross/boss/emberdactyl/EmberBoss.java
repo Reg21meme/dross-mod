@@ -2352,12 +2352,15 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     {
         boolean standing = this.grounded || this.standing();
         Vec3 from = this.position();
+        // where it'll lie, worked out from where it really is (from its sunk position, lower than a 1-block floor, it
+        // found the ground under the floor and fell through the bedrock arena's floor to it: the user, October 31, "the
+        // Emberdactyl did the fall through the bedrock thing again")
+        Vec3 to = this.restingSpot(from, standing ? Math.min(8.0D, this.kind.lieSearch()) : this.kind.lieSearch());
         if (standing)
         {
             from = from.subtract(0.0D, this.kind.standLift(), 0.0D);
             this.setPos(from.x, from.y, from.z);
         }
-        Vec3 to = this.restingSpot(this.position(), standing ? Math.min(8.0D, this.kind.lieSearch()) : this.kind.lieSearch());
         double needed = to.distanceTo(from) / DEATH_GLIDE;
         this.fallFrom = from;
         this.fallTo = to;

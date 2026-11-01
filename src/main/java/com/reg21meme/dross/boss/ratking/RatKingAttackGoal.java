@@ -349,6 +349,13 @@ public class RatKingAttackGoal extends Goal
     @Nullable
     Choice choose(LivingEntity target)
     {
+        if (this.aloft(target))
+        {
+            // a flyer over him, out of his staff's reach (the user, October 31: "the Rat King also attack flying things
+            // with his wand, sending the poison stuff at them"): his plague balls whenever they're ready, else he keeps
+            // after it on the ground
+            return this.castsAloft(target) ? Choice.POISON : Choice.RUN_IN;
+        }
         Band band = this.band(target);
         if (band == null)
         {
@@ -394,6 +401,20 @@ public class RatKingAttackGoal extends Goal
             }
         }
         return null;
+    }
+
+    /** True if his target is up in the air over him, out of his staff's reach: something flying. */
+    boolean aloft(LivingEntity target)
+    {
+        return !target.onGround() && target.getY() - this.king.getY() > RatKingTuning.AIR_TARGET_RISE;
+    }
+
+    /** True if he can throw his plague balls up at a flyer now: his cast is ready, it's in range and he can see it. */
+    private boolean castsAloft(LivingEntity target)
+    {
+        return this.cooldowns.getOrDefault(Move.CAST, 0) <= 0
+                && this.king.distanceTo(target) <= RatKingTuning.AIR_CAST_MAX
+                && this.king.getSensing().hasLineOfSight(target);
     }
 
     /** True if his target is in his sweep's reach (a little inside it, so it's still in reach at the hit). */
@@ -610,7 +631,9 @@ public class RatKingAttackGoal extends Goal
         Vec3 from = this.king.castPoint().subtract(0.0D, BALL_HALF, 0.0D);
         Vec3 goal = target != null && target.isAlive()
                 ? target.position().add(0.0D, target.getBbHeight() * 0.5D - BALL_HALF, 0.0D) : aim;
-        int ticks = Mth.clamp((int) Math.round(flatDistance(from, goal) / RatKingTuning.BALL_SPEED),
+        // (a flyer high over him: by the straight distance, so a ball thrown up has time to get there)
+        double reach = target != null && this.aloft(target) ? from.distanceTo(goal) : flatDistance(from, goal);
+        int ticks = Mth.clamp((int) Math.round(reach / RatKingTuning.BALL_SPEED),
                 RatKingTuning.BALL_MIN_TICKS, RatKingTuning.BALL_MAX_TICKS);
         if (target != null && target.isAlive())
         {

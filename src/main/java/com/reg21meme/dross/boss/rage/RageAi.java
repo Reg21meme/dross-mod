@@ -268,6 +268,14 @@ public final class RageAi
             RageDragon.tick(dragon);           // (no goals: its fight is flown here)
             return;
         }
+        if (team != null && mob instanceof WitherBoss wither)
+        {
+            witherHeads(wither, state.targetGoal.target());
+        }
+        if (team != null && mob instanceof Warden warden)
+        {
+            wardenOffTeammates(warden);
+        }
         LivingEntity target = state.targetGoal.target();
         if (target != null && target.isAlive())
         {
@@ -278,6 +286,59 @@ public final class RageAi
             if (mob instanceof Slime slime)
             {
                 slimeTouch(slime, target);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- the Wither's side heads, the warden's grudges
+
+    /**
+     * A raged Wither's two side heads pick their own targets, any living thing near that isn't undead, with no target
+     * event the Rage could stop (the user, October 31: a raged Wither and a raged warden on one team "still attack each
+     * other"): every tick a side head aimed at its own team (or at anything but an enemy while an enemy is near) is
+     * turned on {@code enemy} (its main target), or let go.
+     */
+    private static void witherHeads(WitherBoss wither, @Nullable LivingEntity enemy)
+    {
+        boolean enemyNear = enemy != null && enemy.isAlive();
+        for (int head = 1; head <= 2; head++)
+        {
+            int id = wither.getAlternativeTarget(head);
+            if (id <= 0)
+            {
+                continue;
+            }
+            Entity aimed = wither.level().getEntity(id);
+            if (aimed == null || Rage.areTeammates(wither, aimed) || (enemyNear && !Rage.areEnemies(wither, aimed)))
+            {
+                wither.setAlternativeTarget(head, enemyNear ? enemy.getId() : 0);
+            }
+        }
+    }
+
+    /**
+     * A raged warden on a team never holds anything against a teammate, every tick (the safety net checks only every
+     * {@link RageTuning#TEAMMATE_CHECK_TICKS}): its anger is raised by every vibration, a teammate's footsteps and the
+     * blasts of a raged Wither's skulls on its own team among them, and between checks it went for them.
+     */
+    private static void wardenOffTeammates(Warden warden)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            LivingEntity angriest = warden.getEntityAngryAt().orElse(null);
+            if (angriest == null || !Rage.areTeammates(warden, angriest))
+            {
+                break;
+            }
+            warden.clearAnger(angriest);
+        }
+        Brain<?> brain = warden.getBrain();
+        for (MemoryModuleType<LivingEntity> memory : List.of(MemoryModuleType.ATTACK_TARGET, MemoryModuleType.ROAR_TARGET))
+        {
+            LivingEntity held = brain.getMemory(memory).orElse(null);
+            if (held != null && Rage.areTeammates(warden, held))
+            {
+                brain.eraseMemory(memory);
             }
         }
     }
