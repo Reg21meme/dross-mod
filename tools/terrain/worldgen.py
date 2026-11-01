@@ -762,18 +762,34 @@ SPAWN_CATEGORIES = ["monster", "creature", "ambient", "axolotls", "underground_w
 # spawn on solid ground in any light, and a lava golem's spawn fails unless lava is near (boss/golem/WildGolemSpawns:
 # within 6 blocks sideways, 3 up or down). So away from lava every golem is a stone golem, and near lava about 1 in 5
 # is a lava golem: LAVA / (STONE + LAVA) = 20 / 100.
-CINDER_STONE_GOLEM_WEIGHT = 80
-CINDER_LAVA_GOLEM_WEIGHT = 20
+# Then (the user, October 31, 2026) the Cinder Wastes' own two mobs join them, neutral (boss area, boss/cinder): the
+# Cinder Hermit (dross:cinder_hermit, a crab about 6 blocks wide in one of eight shells) and the Pallbearer
+# (dross:pallbearer, 9.6 blocks tall), both monsters by category. The user's shares by count of mobs: stone golems 45%,
+# lava golems 13%, Cinder Hermits 30%, Pallbearers 12%. A weight is picked, then its group (fewest..most) spawns, so the
+# share by count is weight x the group's average size: 45 x 1, 13 x 1, 20 x 1.5, 12 x 1 (out of 100). (Near lava a
+# lava golem is 13 / 58 of the golems, about 1 in 4.5; the top-up, WildLavaGolemTopUp, keeps it about 1 in 5 round each
+# player.) Their own spawn rules (boss/cinder/CinderMobs): a Pallbearer needs 10 blocks of open air over it and never
+# comes within 64 blocks of another; never more than 4 hermits within 48 blocks. A hermit's group of 2 is two tries:
+# vanilla puts a group's next try within 5 blocks of the last, where a 6-block crab fits only if the first try failed.
+CINDER_STONE_GOLEM_WEIGHT = 45
+CINDER_LAVA_GOLEM_WEIGHT = 13
 CINDER_GOLEM_GROUP_MIN = 1      # golems per spawn: always one at a time (a group would bunch them up)
 CINDER_GOLEM_GROUP_MAX = 1
+CINDER_HERMIT_WEIGHT = 20
+CINDER_HERMIT_GROUP_MIN = 1
+CINDER_HERMIT_GROUP_MAX = 2
+CINDER_PALLBEARER_WEIGHT = 12
+CINDER_PALLBEARER_GROUP_MIN = 1  # always alone
+CINDER_PALLBEARER_GROUP_MAX = 1
 # The crowding limit (vanilla's "spawn_costs"; the same numbers as the warped forest's endermen). Every golem nearby
 # (within the loaded land round the players) pushes back on a new one: a golem may only spawn where
 # (sum over the golems of CHARGE / their distance) * CHARGE <= ENERGY_BUDGET. With 1.0 and 0.12 one golem within about
 # 8 blocks (1 / 0.12) is enough to stop it, and so are 6 golems 50 blocks away. Because the golems ignore light, this
 # (not the monster cap of 70) is what keeps them few: about 15 in the 128 blocks round a player, mostly far out, one or
 # two within 50 blocks (until they come for you); the headless test's 80 x 80 site gets about 7.
-# Fewer golems: lower the budget (or raise the charge). The two later Cinder mobs will share this push (every mob with a
-# spawn cost here counts against every other), so give them costs too and check the totals then.
+# Fewer golems: lower the budget (or raise the charge). The hermits and the Pallbearers share this push (every mob with
+# a spawn cost here counts against every other, the same budget and charge for all four), so the Cinder Wastes hold
+# about as many mobs as before, split by the shares above.
 CINDER_GOLEM_ENERGY_BUDGET = 0.12
 CINDER_GOLEM_CHARGE = 1.0
 
@@ -791,10 +807,14 @@ SPAWN_OVERRIDES = {
         "monster": [
             ("dross:stone_golem", CINDER_STONE_GOLEM_WEIGHT, CINDER_GOLEM_GROUP_MIN, CINDER_GOLEM_GROUP_MAX),
             ("dross:lava_golem", CINDER_LAVA_GOLEM_WEIGHT, CINDER_GOLEM_GROUP_MIN, CINDER_GOLEM_GROUP_MAX),
+            ("dross:cinder_hermit", CINDER_HERMIT_WEIGHT, CINDER_HERMIT_GROUP_MIN, CINDER_HERMIT_GROUP_MAX),
+            ("dross:pallbearer", CINDER_PALLBEARER_WEIGHT, CINDER_PALLBEARER_GROUP_MIN, CINDER_PALLBEARER_GROUP_MAX),
         ],
         "spawn_costs": {
             "dross:stone_golem": (CINDER_GOLEM_ENERGY_BUDGET, CINDER_GOLEM_CHARGE),
             "dross:lava_golem": (CINDER_GOLEM_ENERGY_BUDGET, CINDER_GOLEM_CHARGE),
+            "dross:cinder_hermit": (CINDER_GOLEM_ENERGY_BUDGET, CINDER_GOLEM_CHARGE),
+            "dross:pallbearer": (CINDER_GOLEM_ENERGY_BUDGET, CINDER_GOLEM_CHARGE),
         },
     },
 }

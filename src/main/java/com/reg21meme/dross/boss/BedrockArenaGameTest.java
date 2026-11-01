@@ -90,7 +90,9 @@ public final class BedrockArenaGameTest
                         helper.fail("the arena should be bedrock and glowstone (and its teams' glass in the floor), but "
                                 + at.above(dy).toShortString() + " is " + state.getBlock());
                     }
-                    if (!solid && !state.isAir())
+                    // (a block with a block entity is left alone by the arena on purpose, like a chest or a cave's monster
+                    // spawner where the test world put the arena: twice a fresh world's dungeon was there, October 31)
+                    if (!solid && !state.isAir() && !state.hasBlockEntity())
                     {
                         helper.fail("the air in the arena should be clear, but " + at.above(dy).toShortString() + " is "
                                 + state.getBlock());

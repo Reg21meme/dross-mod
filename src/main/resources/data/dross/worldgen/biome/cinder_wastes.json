@@ -29,13 +29,25 @@
     "monster": [
       {
         "type": "dross:stone_golem",
-        "weight": 80,
+        "weight": 45,
         "minCount": 1,
         "maxCount": 1
       },
       {
         "type": "dross:lava_golem",
+        "weight": 13,
+        "minCount": 1,
+        "maxCount": 1
+      },
+      {
+        "type": "dross:cinder_hermit",
         "weight": 20,
+        "minCount": 1,
+        "maxCount": 2
+      },
+      {
+        "type": "dross:pallbearer",
+        "weight": 12,
         "minCount": 1,
         "maxCount": 1
       }
@@ -54,6 +66,14 @@
       "charge": 1.0
     },
     "dross:lava_golem": {
+      "energy_budget": 0.12,
+      "charge": 1.0
+    },
+    "dross:cinder_hermit": {
+      "energy_budget": 0.12,
+      "charge": 1.0
+    },
+    "dross:pallbearer": {
       "energy_budget": 0.12,
       "charge": 1.0
     }

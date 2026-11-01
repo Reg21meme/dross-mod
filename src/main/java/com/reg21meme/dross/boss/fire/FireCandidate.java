@@ -18,6 +18,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -54,7 +55,7 @@ import java.util.Map;
  * Peaceful) and doesn't burn. Right-clicking it shows its number, name and look on the action bar (and plays its next
  * animation, if it moves).
  */
-public class FireCandidate extends Mob implements GeoEntity
+public class FireCandidate extends PathfinderMob implements GeoEntity
 {
     private static final EntityDataAccessor<Integer> DATA_DESIGN = SynchedEntityData.defineId(FireCandidate.class,
             EntityDataSerializers.INT);
@@ -91,10 +92,24 @@ public class FireCandidate extends Mob implements GeoEntity
 
     public FireCandidate(EntityType<? extends FireCandidate> type, Level level)
     {
+        this(type, level, true);
+    }
+
+    /**
+     * @param exhibit true for a model on show (no AI, silent, never despawning); false for a living mob built on the fire
+     *                models (the Cinder Wastes' Pallbearer and Cinder Hermit, {@code boss/cinder}): it keeps its AI and
+     *                its voice and despawns like any mob. (A PathfinderMob, so the living ones can walk and use
+     *                Minecraft's goals; the exhibits have no AI.)
+     */
+    protected FireCandidate(EntityType<? extends FireCandidate> type, Level level, boolean exhibit)
+    {
         super(type, level);
-        this.setNoAi(true);
-        this.setSilent(true);
-        this.setPersistenceRequired();
+        if (exhibit)
+        {
+            this.setNoAi(true);
+            this.setSilent(true);
+            this.setPersistenceRequired();
+        }
     }
 
     public static AttributeSupplier.Builder createAttributes()
@@ -381,11 +396,27 @@ public class FireCandidate extends Mob implements GeoEntity
             this.playedCount = count;
             state.getController().forceAnimationReset();
         }
-        FireAnims.Anim anim = mob.get(this.animation());
+        FireAnims.Anim shown = mob.get(this.shownAnimation());
+        FireAnims.Anim anim = shown != null ? shown : mob.get(this.animation());
+        state.getController().setAnimationSpeed(this.shownAnimationSpeed());
         String key = "animation." + mob.id() + "." + anim.name();
         RawAnimation raw = RAW.computeIfAbsent(key, k -> anim.loop() ? RawAnimation.begin().thenLoop(k)
                 : RawAnimation.begin().thenPlayAndHold(k));
         return state.setAndContinue(raw);
+    }
+
+    /** (client) The animation it shows now: the synced one. A living mob may show another (its walk while it walks:
+     *  the Cinder Wastes' mobs, {@code boss/cinder/CinderMob}). */
+    protected String shownAnimation()
+    {
+        return this.animation();
+    }
+
+    /** (client) How fast the animation it shows plays (a walk sped up or slowed down to its real speed, so its feet
+     *  don't slide). */
+    protected double shownAnimationSpeed()
+    {
+        return 1.0D;
     }
 
     @Override

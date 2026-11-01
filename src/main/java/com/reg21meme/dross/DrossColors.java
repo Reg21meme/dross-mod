@@ -539,6 +539,15 @@ public final class DrossColors {
     public static final int HERMIT_CAVE_BUTTON = 0xFFA45A;
     public static final int HERMIT_CAVE_OVERVIEW_BUTTON = 0xEFE4DA;
 
+    /** The Pallbearer's spawn egg (the Cinder Wastes, boss/cinder): soot-black bone with ember spots (his coffin's fire).
+     *  Used in registry/ModItems. */
+    public static final int PALLBEARER_EGG_BASE = 0x241F1C;
+    public static final int PALLBEARER_EGG_SPOTS = 0xF2762A;
+    /** The Cinder Hermit's spawn egg (boss/cinder): its bronze shell with magma-red spots (its big claw). Used in
+     *  registry/ModItems. */
+    public static final int CINDER_HERMIT_EGG_BASE = 0x8A6232;
+    public static final int CINDER_HERMIT_EGG_SPOTS = 0xC9381A;
+
     // ---------------------------------------------------------------- Helpers
 
     /** Red part of an 0xRRGGBB color, from 0 to 1. */

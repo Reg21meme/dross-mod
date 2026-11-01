@@ -2,6 +2,8 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.fire.FireCandidate;
+import com.reg21meme.dross.boss.cinder.CinderHermit;
+import com.reg21meme.dross.boss.cinder.Pallbearer;
 import com.reg21meme.dross.boss.emberdactyl.EmberEgg;
 import com.reg21meme.dross.boss.emberdactyl.EmberYoung;
 import com.reg21meme.dross.boss.emberdactyl.Emberdactyl;
@@ -278,6 +280,26 @@ public final class ModEntities
                     .clientTrackingRange(4)
                     .updateInterval(20)
                     .build("moonsilver_spear"));
+
+    /**
+     * Boss area: the Cinder Wastes' two regular mobs (CLAUDE.md step 16), neutral, on the fire models: the Pallbearer
+     * (9.6 blocks tall) and the Cinder Hermit (about 6 wide). Their hitboxes are their designs' own sizes (FireCandidate:
+     * the hermit's its shell's, and its claws have one of their own); the sizes here are only the room natural spawning
+     * looks for (the ash's bumps would nearly always keep their whole bodies out): each settles where it fits as it comes,
+     * or doesn't come (CinderMob.settle, CinderMobEvents), and the Pallbearer needs its open air over it (CinderMobs).
+     */
+    public static final RegistryObject<EntityType<Pallbearer>> PALLBEARER = ENTITY_TYPES.register("pallbearer",
+            () -> EntityType.Builder.<Pallbearer>of(Pallbearer::new, MobCategory.MONSTER)
+                    .sized(1.5F, 3.0F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("pallbearer"));
+    public static final RegistryObject<EntityType<CinderHermit>> CINDER_HERMIT = ENTITY_TYPES.register("cinder_hermit",
+            () -> EntityType.Builder.<CinderHermit>of(CinderHermit::new, MobCategory.MONSTER)
+                    .sized(1.5F, 2.0F)
+                    .fireImmune()
+                    .clientTrackingRange(10)
+                    .build("cinder_hermit"));
 
     private ModEntities() {}
 }
