@@ -97,6 +97,14 @@ public final class ModItems
     public static final RegistryObject<Item> EMBERYOUNG_SPAWN_EGG = ITEMS.register("emberyoung_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.EMBERYOUNG, DrossColors.EMBERYOUNG_EGG_BASE, DrossColors.EMBERYOUNG_EGG_SPOTS,
                     new Item.Properties()));
+    // Boss area: the Cinder Wastes' Pallbearer and Cinder Hermit (one egg for the hermit: each use a random one of its
+    // eight shells, all as likely)
+    public static final RegistryObject<Item> PALLBEARER_SPAWN_EGG = ITEMS.register("pallbearer_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.PALLBEARER, DrossColors.PALLBEARER_EGG_BASE, DrossColors.PALLBEARER_EGG_SPOTS,
+                    new Item.Properties()));
+    public static final RegistryObject<Item> CINDER_HERMIT_SPAWN_EGG = ITEMS.register("cinder_hermit_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.CINDER_HERMIT, DrossColors.CINDER_HERMIT_EGG_BASE,
+                    DrossColors.CINDER_HERMIT_EGG_SPOTS, new Item.Properties()));
     // Boss area: the Frostfolk, one egg for each kind (warriors, workers, the elder), each bringing a calling of it at random
     public static final Map<FolkRole.Kind, RegistryObject<Item>> FROSTFOLK_SPAWN_EGGS = frostfolkEggs();
 

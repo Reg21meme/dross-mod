@@ -2,6 +2,8 @@ package com.reg21meme.dross.dimension;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.cinder.CinderMob;
+import com.reg21meme.dross.boss.cinder.CinderMobs;
 import com.reg21meme.dross.boss.golem.WildGolemSpawns;
 import com.reg21meme.dross.dimension.sewer.SewerStructure;
 import com.reg21meme.dross.dimension.sewer.Sewers;
@@ -61,13 +63,14 @@ import org.slf4j.Logger;
  *       Rimehorn herds are placed with the land);
  *       Blightwood keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
  *       witches 7% of the mobs spawning there, 1 in 5 of the rats enraged); the sewers
- *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only the Cinder
- *       Colossus's golems (the user's round 2 request): stone and lava golems as monsters, a lava golem 1 pick in
- *       {@value #LAVA_GOLEM_ONE_IN}, both with a crowding limit (spawn costs), and nothing in any other list (no animals,
- *       no bats).</li>
- *   <li>{@link #cinderWastesSpawnOnlyGolems}: a natural-spawning pass on real Cinder Wastes ground (the sample site of
- *       {@link TerrainChunksGameTest}, generated for real) gives stone golems and nothing else that isn't a golem: no
- *       zombies or skeletons; lava golems only near lava; and the crowding limit keeps them few.</li>
+ *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only their own
+ *       mobs (the user, October 31, 2026): the Cinder Colossus's stone and lava golems, the Cinder Hermit and the
+ *       Pallbearer, all monsters, by count of mobs 45 / 13 / 30 / 12% (a weight times its group's average size), all
+ *       sharing one crowding limit (spawn costs), and nothing in any other list (no animals, no bats).</li>
+ *   <li>{@link #cinderWastesSpawnOnlyItsOwnMobs}: a natural-spawning pass on real Cinder Wastes ground (the sample site of
+ *       {@link TerrainChunksGameTest}, generated for real) gives stone golems and nothing that isn't one of the Cinder
+ *       Wastes' four: no zombies or skeletons; lava golems only near lava; a Pallbearer only with its 10 blocks of open
+ *       air; and the crowding limit keeps them few.</li>
  * </ul>
  * Nothing is added to the world: the pass only asks Minecraft's spawning rules where a mob would go.
  */
@@ -77,8 +80,15 @@ public final class DrossSpawnsGameTest
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** The user's rule for the Cinder Wastes: near lava about 1 golem in this many is a lava golem (weights 20 : 80). */
-    private static final int LAVA_GOLEM_ONE_IN = 5;
+    /**
+     * The user's shares for the Cinder Wastes (October 31, 2026), by count of mobs: stone golems 45%, lava golems 13%,
+     * Cinder Hermits 30%, Pallbearers 12% (a list entry's weight times its group's average size; worldgen.py's
+     * SPAWN_OVERRIDES["cinder_wastes"]).
+     */
+    private static final double CINDER_STONE_SHARE = 0.45D;
+    private static final double CINDER_LAVA_SHARE = 0.13D;
+    private static final double CINDER_HERMIT_SHARE = 0.30D;
+    private static final double CINDER_PALLBEARER_SHARE = 0.12D;
     /** Mobs the base lists must have, and the ones the user removed from them (slimes, creepers, spiders). */
     private static final List<EntityType<?>> BASE_MONSTERS_KEPT = List.of(EntityType.ZOMBIE, EntityType.SKELETON);
     private static final List<EntityType<?>> BASE_MONSTERS_REMOVED = List.of(EntityType.SLIME, EntityType.CREEPER, EntityType.SPIDER);
@@ -97,11 +107,12 @@ public final class DrossSpawnsGameTest
     private static final int ATTEMPTS = 3000;
     /** The pass's own random numbers (the same picks every run, for the same world). */
     private static final long PASS_SEED = 20261012L;
-    /** At least this many stone golems must spawn on the site (it's 80 x 80 blocks; about 7 or 8 do). */
+    /** At least this many stone golems must spawn on the site (it's 80 x 80 blocks; about 7 or 8 mobs do). */
     private static final int MIN_STONE_GOLEMS = 1;
     /**
-     * At most this many golems may spawn on the site: the crowding limit (charge 1.0, budget 0.12) allows about 7 or 8
-     * there, so this is twice that. Without it, golems would spawn at nearly every attempt (they ignore light).
+     * At most this many of the Cinder Wastes' mobs may spawn on the site: the crowding limit (charge 1.0, budget 0.12, the
+     * same for all four) allows about 7 or 8 there, so this is twice that. Without it, they would spawn at nearly every
+     * attempt (they ignore light).
      */
     private static final int MAX_GOLEMS_ON_SITE = 16;
 
@@ -305,7 +316,6 @@ public final class DrossSpawnsGameTest
         }
     }
 
-    /** The Cinder Wastes: only stone and lava golems, as monsters, 1 in 5 a lava golem, both with spawn costs; nothing else. */
     /**
      * Silverwood Forest: the base lists, and the moose among its animals, alone and rarely (the user, October 19: moose
      * "in the main Dross forest too, with less probability").
@@ -382,51 +392,62 @@ public final class DrossSpawnsGameTest
         }
     }
 
+    /**
+     * The Cinder Wastes: only their own four mobs, as monsters (stone and lava golems, the Cinder Hermit, the Pallbearer),
+     * at the user's shares by count, each with a spawn cost (the shared crowding limit); nothing else.
+     */
     private static void checkCinderLists(MobSpawnSettings mobs, List<String> problems)
     {
-        EntityType<?> stone = ModEntities.STONE_GOLEM.get();
-        EntityType<?> lava = ModEntities.LAVA_GOLEM.get();
+        Map<EntityType<?>, Double> shares = new LinkedHashMap<>();
+        shares.put(ModEntities.STONE_GOLEM.get(), CINDER_STONE_SHARE);
+        shares.put(ModEntities.LAVA_GOLEM.get(), CINDER_LAVA_SHARE);
+        shares.put(ModEntities.CINDER_HERMIT.get(), CINDER_HERMIT_SHARE);
+        shares.put(ModEntities.PALLBEARER.get(), CINDER_PALLBEARER_SHARE);
         WeightedRandomList<MobSpawnSettings.SpawnerData> monsters = mobs.getMobs(MobCategory.MONSTER);
-        List<EntityType<?>> listed = monsters.unwrap().stream().<EntityType<?>>map(data -> data.type).toList();
-        if (listed.size() != 2 || !listed.contains(stone) || !listed.contains(lava))
+        Set<EntityType<?>> listed = types(monsters);
+        if (!listed.equals(shares.keySet()) || monsters.unwrap().size() != shares.size())
         {
-            problems.add("the Cinder Wastes' monsters should be just the stone golem and the lava golem, but they're " + describe(monsters));
+            problems.add("the Cinder Wastes' monsters should be just the stone golem, the lava golem, the Cinder Hermit and the"
+                    + " Pallbearer, but they're " + describe(monsters));
         }
         else
         {
-            int total = 0;
-            int lavaWeight = 0;
+            double total = 0.0D;
+            Map<EntityType<?>, Double> counts = new LinkedHashMap<>();
             for (MobSpawnSettings.SpawnerData data : monsters.unwrap())
             {
-                total += data.getWeight().asInt();
-                if (data.type == lava)
+                double count = data.getWeight().asInt() * (data.minCount + data.maxCount) / 2.0D;
+                counts.put(data.type, count);
+                total += count;
+            }
+            for (Map.Entry<EntityType<?>, Double> share : shares.entrySet())
+            {
+                double got = counts.get(share.getKey()) / total;
+                if (Math.abs(got - share.getValue()) > SHARE_TOLERANCE)
                 {
-                    lavaWeight = data.getWeight().asInt();
+                    problems.add("in the Cinder Wastes " + EntityType.getKey(share.getKey()) + " should be "
+                            + Math.round(share.getValue() * 100.0D) + "% of the mobs by count, but it's "
+                            + String.format(Locale.ROOT, "%.1f%%", got * 100.0D) + " (" + describe(monsters) + ")");
                 }
             }
-            if (lavaWeight * LAVA_GOLEM_ONE_IN != total)
-            {
-                problems.add("in the Cinder Wastes 1 golem pick in " + LAVA_GOLEM_ONE_IN + " should be a lava golem, but the weights are "
-                        + describe(monsters));
-            }
         }
-        for (EntityType<?> golem : List.of(stone, lava))
+        for (EntityType<?> mob : shares.keySet())
         {
-            if (golem.getCategory() != MobCategory.MONSTER)
+            if (mob.getCategory() != MobCategory.MONSTER)
             {
-                problems.add(EntityType.getKey(golem) + " should be a monster (it's " + golem.getCategory() + ")");
+                problems.add(EntityType.getKey(mob) + " should be a monster (it's " + mob.getCategory() + ")");
             }
-            MobSpawnSettings.MobSpawnCost cost = mobs.getMobSpawnCost(golem);
+            MobSpawnSettings.MobSpawnCost cost = mobs.getMobSpawnCost(mob);
             if (cost == null || cost.charge() <= 0.0D || cost.energyBudget() <= 0.0D)
             {
-                problems.add("the Cinder Wastes should give " + EntityType.getKey(golem) + " a spawn cost (crowding limit), but it's " + cost);
+                problems.add("the Cinder Wastes should give " + EntityType.getKey(mob) + " a spawn cost (crowding limit), but it's " + cost);
             }
         }
         for (MobCategory category : MobCategory.values())
         {
             if (category != MobCategory.MONSTER && !mobs.getMobs(category).isEmpty())
             {
-                problems.add("the Cinder Wastes' " + category.getName() + " list should be empty (only golems there), but it's "
+                problems.add("the Cinder Wastes' " + category.getName() + " list should be empty (only their own mobs there), but it's "
                         + describe(mobs.getMobs(category)));
             }
         }
@@ -437,7 +458,7 @@ public final class DrossSpawnsGameTest
     // ---------------------------------------------------------------------------------------------
 
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_spawn_cinder", timeoutTicks = TerrainSamplingGameTest.BACKSTOP_TICKS)
-    public static void cinderWastesSpawnOnlyGolems(GameTestHelper helper)
+    public static void cinderWastesSpawnOnlyItsOwnMobs(GameTestHelper helper)
     {
         ServerLevel dross = helper.getLevel().getServer().getLevel(ModDimensions.DROSS_LEVEL);
         if (dross == null)
@@ -466,14 +487,14 @@ public final class DrossSpawnsGameTest
                                 + TerrainChunksGameTest.SITE_X + ", " + TerrainChunksGameTest.SITE_Z);
                     }
                     List<LevelChunk> chunks = TerrainChunksGameTest.generate(dross, site);
-                    checkPass(site, spawnPass(dross, chunks));
+                    checkPass(dross, site, spawnPass(dross, chunks));
                 })
                 .thenSucceed();
     }
 
     /** What the pass found. */
     private record Pass(int attempts, int outside, int emptyLists, Map<EntityType<?>, Integer> picks, int lavaPicksNearLava,
-                        int crowdedOut, List<Spawned> spawned) {}
+                        int crowdedOut, List<Spawned> spawned, Map<EntityType<?>, Integer> fits) {}
 
     /** A mob the pass would have spawned (never added to the world). */
     private record Spawned(EntityType<?> type, BlockPos pos, boolean nearLava) {}
@@ -493,6 +514,9 @@ public final class DrossSpawnsGameTest
         StructureManager structures = dross.structureManager();
         PotentialCalculator crowding = new PotentialCalculator();
         Map<EntityType<?>, Integer> picks = new LinkedHashMap<>();
+        // (how many of each kind's picks its own rules and room would let spawn, before the crowding limit: how much each
+        // kind's share in the world falls short of its share of the picks)
+        Map<EntityType<?>, Integer> fits = new LinkedHashMap<>();
         List<Spawned> spawned = new ArrayList<>();
         int outside = 0;
         int emptyLists = 0;
@@ -529,6 +553,7 @@ public final class DrossSpawnsGameTest
             {
                 continue;
             }
+            fits.merge(type, 1, Integer::sum);
             MobSpawnSettings.MobSpawnCost cost = biome.value().getMobSettings().getMobSpawnCost(type);
             if (cost != null && crowding.getPotentialEnergyChange(pos, cost.charge()) > cost.energyBudget())
             {
@@ -541,15 +566,20 @@ public final class DrossSpawnsGameTest
                 crowding.addCharge(pos, cost.charge());
             }
         }
-        return new Pass(ATTEMPTS, outside, emptyLists, picks, lavaPicksNearLava, crowdedOut, spawned);
+        return new Pass(ATTEMPTS, outside, emptyLists, picks, lavaPicksNearLava, crowdedOut, spawned, fits);
     }
 
-    private static void checkPass(BlockPos site, Pass pass)
+    private static void checkPass(ServerLevel dross, BlockPos site, Pass pass)
     {
         EntityType<?> stone = ModEntities.STONE_GOLEM.get();
         EntityType<?> lava = ModEntities.LAVA_GOLEM.get();
+        EntityType<?> hermit = ModEntities.CINDER_HERMIT.get();
+        EntityType<?> pallbearer = ModEntities.PALLBEARER.get();
+        List<EntityType<?>> own = List.of(stone, lava, hermit, pallbearer);
         int stoneSpawned = (int) pass.spawned().stream().filter(s -> s.type() == stone).count();
         int lavaSpawned = (int) pass.spawned().stream().filter(s -> s.type() == lava).count();
+        int hermitsSpawned = (int) pass.spawned().stream().filter(s -> s.type() == hermit).count();
+        int pallbearersSpawned = (int) pass.spawned().stream().filter(s -> s.type() == pallbearer).count();
         double closest = Double.POSITIVE_INFINITY;
         for (int a = 0; a < pass.spawned().size(); a++)
         {
@@ -560,11 +590,15 @@ public final class DrossSpawnsGameTest
         }
         Map<String, Integer> picks = new LinkedHashMap<>();
         pass.picks().forEach((type, n) -> picks.put(EntityType.getKey(type).toString(), n));
+        Map<String, Integer> fits = new LinkedHashMap<>();
+        pass.fits().forEach((type, n) -> fits.put(EntityType.getKey(type).toString(), n));
         String where = "the Cinder Wastes site at " + site.getX() + ", " + site.getZ();
         LOGGER.info("[dross spawns] {}: {} attempts ({} outside the biome), picked {} ({} lava golem picks near lava); would spawn {} stone"
-                        + " golem(s) and {} lava golem(s), {} more kept out by the crowding limit; the closest two {} blocks apart",
-                where, pass.attempts(), pass.outside(), picks, pass.lavaPicksNearLava(), stoneSpawned, lavaSpawned, pass.crowdedOut(),
-                Double.isInfinite(closest) ? "-" : String.format(Locale.ROOT, "%.1f", closest));
+                        + " golem(s), {} lava golem(s), {} Cinder Hermit(s) and {} Pallbearer(s), {} more kept out by the crowding limit;"
+                        + " the closest two {} blocks apart",
+                where, pass.attempts(), pass.outside(), picks, pass.lavaPicksNearLava(), stoneSpawned, lavaSpawned, hermitsSpawned,
+                pallbearersSpawned, pass.crowdedOut(), Double.isInfinite(closest) ? "-" : String.format(Locale.ROOT, "%.1f", closest));
+        LOGGER.info("[dross spawns] {}: picks that their own rules and room would let spawn (before the crowding limit): {}", where, fits);
 
         List<String> problems = new ArrayList<>();
         if (pass.outside() == pass.attempts())
@@ -577,27 +611,31 @@ public final class DrossSpawnsGameTest
         }
         for (EntityType<?> type : pass.picks().keySet())
         {
-            if (type != stone && type != lava)
+            if (!own.contains(type))
             {
-                problems.add(EntityType.getKey(type) + " was picked to spawn there (only golems should)");
+                problems.add(EntityType.getKey(type) + " was picked to spawn there (only the Cinder Wastes' own mobs should)");
             }
         }
-        for (EntityType<?> golem : List.of(stone, lava))
+        for (EntityType<?> mob : own)
         {
-            if (!pass.picks().containsKey(golem))
+            if (!pass.picks().containsKey(mob))
             {
-                problems.add(EntityType.getKey(golem) + " was never picked in " + pass.attempts() + " attempts");
+                problems.add(EntityType.getKey(mob) + " was never picked in " + pass.attempts() + " attempts");
             }
         }
         for (Spawned s : pass.spawned())
         {
-            if (s.type() != stone && s.type() != lava)
+            if (!own.contains(s.type()))
             {
                 problems.add(EntityType.getKey(s.type()) + " would spawn at " + s.pos().toShortString());
             }
             if (s.type() == lava && !s.nearLava())
             {
                 problems.add("a lava golem would spawn at " + s.pos().toShortString() + " with no lava near");
+            }
+            if (s.type() == pallbearer && !CinderMobs.hasHeadroom(dross, s.pos()))
+            {
+                problems.add("a Pallbearer would spawn at " + s.pos().toShortString() + " without its open air over it");
             }
         }
         if (stoneSpawned < MIN_STONE_GOLEMS)
@@ -606,7 +644,7 @@ public final class DrossSpawnsGameTest
         }
         if (pass.spawned().size() > MAX_GOLEMS_ON_SITE)
         {
-            problems.add(pass.spawned().size() + " golems would spawn on the 80 x 80 site (at most " + MAX_GOLEMS_ON_SITE
+            problems.add(pass.spawned().size() + " mobs would spawn on the 80 x 80 site (at most " + MAX_GOLEMS_ON_SITE
                     + ": the crowding limit should keep them few)");
         }
         if (!problems.isEmpty())
@@ -635,7 +673,9 @@ public final class DrossSpawnsGameTest
             return false;
         }
         mob.moveTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D, 0.0F, 0.0F);
-        return ForgeEventFactory.checkSpawnPosition(mob, level, MobSpawnType.NATURAL);
+        // (the Cinder Wastes' own mobs then settle where their whole body fits, or don't come: boss/cinder/CinderMobEvents)
+        return ForgeEventFactory.checkSpawnPosition(mob, level, MobSpawnType.NATURAL)
+                && (!(mob instanceof CinderMob cinder) || cinder.settle(level));
     }
 
     // ---------------------------------------------------------------------------------------------

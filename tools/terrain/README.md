@@ -207,28 +207,34 @@ Forest, Rimefall, the Gravecrags) get the Dross's base lists exactly (`BASE_MONS
 constants and run `worldgen.py`. **Blightwood** gets the base animals and bats but has its own monsters (rats and
 witches, `SPAWN_REPLACEMENTS`; see the sewers' "Spawns" below).
 
-**The Cinder Wastes** have their own lists (`SPAWN_OVERRIDES`; the user's round 2 request): no zombies, skeletons or
-any other mob for now, only the Cinder Colossus's golems, and only a few (two more Cinder-only mobs will come later).
-The golems spawn on solid ground in any light; a lava golem's spawn fails unless lava is within 6 blocks sideways and 3
-up or down (boss area, `boss/golem/WildGolemSpawns`). So away from lava every golem is a stone golem, and near lava about
-1 in 5 is a lava golem. Its animal and bat lists are empty (the animals need grass, which the wastes don't have, so none
-could spawn there anyway).
+**The Cinder Wastes** have their own lists (`SPAWN_OVERRIDES`; the user's round 2 request, then October 31, 2026): no
+zombies, skeletons or any other mob, only their own four, and only a few: the Cinder Colossus's stone and lava golems,
+the Cinder Hermit and the Pallbearer (boss area, `boss/cinder`), all monsters, by count of mobs 45 / 13 / 30 / 12% (a
+weight times its group's average size: 45 x 1, 13 x 1, 20 x 1.5, 12 x 1). All four spawn on solid ground in any light; a
+lava golem's spawn fails unless lava is within 6 blocks sideways and 3 up or down (`boss/golem/WildGolemSpawns`); a
+Pallbearer needs 10 blocks of open air over it and never comes within 64 blocks of another, and there are never more than
+4 hermits within 48 blocks (`boss/cinder/CinderMobs`). A hermit's group of 2 is really two tries: vanilla puts a group's
+next try within 5 blocks of the last, where a 6-block crab only fits if the first try failed. Its animal and bat lists
+are empty (the animals need grass, which the wastes don't have, so none could spawn there anyway).
 
 | Constant | Now | Meaning |
 |---|---|---|
-| `CINDER_STONE_GOLEM_WEIGHT`, `CINDER_LAVA_GOLEM_WEIGHT` | 80, 20 | How often each is picked (a lava golem 20 / (80 + 20) = 1 pick in 5, and only near lava). |
+| `CINDER_STONE_GOLEM_WEIGHT`, `CINDER_LAVA_GOLEM_WEIGHT` | 45, 13 | How often each is picked (only near lava for a lava golem: 13 / 58 of the golems there, about 1 in 4.5). |
+| `CINDER_HERMIT_WEIGHT`, `_GROUP_MIN`, `_GROUP_MAX` | 20, 1, 2 | The Cinder Hermit: 20 picks in 90, 1-2 at a time (30% of the mobs by count). |
+| `CINDER_PALLBEARER_WEIGHT`, `_GROUP_MIN`, `_GROUP_MAX` | 12, 1, 1 | The Pallbearer: always alone (12%). |
 | `CINDER_GOLEM_GROUP_MIN`, `_MAX` | 1, 1 | Golems per spawn: always one at a time. |
 | `CINDER_GOLEM_ENERGY_BUDGET`, `CINDER_GOLEM_CHARGE` | 0.12, 1.0 | The crowding limit (vanilla's `spawn_costs`; the warped forest's endermen have the same numbers): a golem may only spawn where (sum over the golems near of charge / distance) x charge <= budget. One golem within about 8 blocks stops it, and so do 6 golems 50 blocks away. The golems ignore light, so this (not the monster cap) is what keeps them few: about 15 in the 128 blocks round a player, one or two within 50 blocks. Lower the budget (or raise the charge) for fewer. |
 
-Every mob with a spawn cost in a biome pushes back on every other one there, so when the two later Cinder mobs get
-spawn costs too, they share this limit with the golems: check the numbers again then.
+Every mob with a spawn cost in a biome pushes back on every other one there: all four Cinder mobs have the same cost,
+so they share this limit (about as many mobs as the golems alone had, split by the shares above).
 
 The headless checks, `dimension/DrossSpawnsGameTest`: `spawnListsPerBiome` (the five biomes' lists, spawn costs and
 animal chance are exactly the old biome's, which still has zombies and skeletons and no slimes, creepers or spiders; the
-Cinder Wastes list just the two golems, as monsters, 1 in 5 a lava golem, both with spawn costs, and nothing else) and
-`cinderWastesSpawnOnlyGolems` (a natural-spawning pass, 3,000 tries on the ground of the real Cinder Wastes sample site,
-80 x 80 blocks, with Minecraft's own rules and crowding maths: stone golems spawn, nothing that isn't a golem is ever
-picked, lava golems only near lava, at most 16 golems on the site; nothing is added to the world). Its log line,
+Cinder Wastes list just their four, as monsters, at the user's shares by count, all with spawn costs, and nothing
+else) and `cinderWastesSpawnOnlyItsOwnMobs` (a natural-spawning pass, 3,000 tries on the ground of the real Cinder Wastes
+sample site, 80 x 80 blocks, with Minecraft's own rules and crowding maths: stone golems spawn, nothing but the four is
+ever picked, lava golems only near lava, Pallbearers only with their open air, at most 16 mobs on the site; nothing is
+added to the world). Its log line,
 "[dross spawns]", gives the picks and the result (first run: 2,374 stone and 626 lava golem picks, 6 stone golems and 1
 lava golem placed, the closest two 23 blocks apart).
 
