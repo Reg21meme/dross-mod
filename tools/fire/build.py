@@ -87,7 +87,9 @@ SETS = {
                               "animations are in animations/. Its volcano is built in the game by the showcase, behind "
                               "the gallery. Rounds 1 and 2 are in round1/ and round2/. E1B, E1C and E1D (October 31): "
                               "the adult (E1A) with less and less lava on its body and horns, its wings the same, for "
-                              "the user to compare (side by side in lava_looks/).",
+                              "the user to compare (side by side in lava_looks/). E1C1-E1C4 (November 2): E1C, the "
+                              "user's pick of those, with its bill and jaw, half moon, horns and tail purple in four "
+                              "ways (side by side in purple_looks/).",
                         # drawn by volcano_preview.py from the blocks the game placed (kept by the clean-up)
                         extras=(("volcano_front", "The volcano by day, from its front (where the path starts)"),
                                 ("volcano_back", "From behind (the lookout's side)"),

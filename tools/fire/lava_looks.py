@@ -7,7 +7,14 @@ each view a row with the four looks across it, so they're easy to compare: the w
 head, horns and half moon close up, and its body, neck, legs and tail with its wings left off, by day and at night.
 Under each look, the share of its body's and its wings' texels that glow.
 
-  python tools/fire/lava_looks.py     writes boss-previews/cinder_wastes/emberdactyl/lava_looks/lava_looks.png
+Then E1C with purple (the user, November 2, 2026: "I like E1C. Maybe can you give me variations of the bird but with
+the beak and the horns with purple, and tail, just a variation of what we have here"): E1C and E1C1-E1C4 side by side
+(firekit/emberdactyl.py PURPLE), with close-ups of its head (bill and jaw, half moon, horns) and its tail.
+
+  python tools/fire/lava_looks.py          writes both sheets:
+                                             boss-previews/cinder_wastes/emberdactyl/lava_looks/lava_looks.png
+                                             boss-previews/cinder_wastes/emberdactyl/purple_looks/purple_looks.png
+  python tools/fire/lava_looks.py purple   only the purple one (or `lava`)
 
 Run tools/fire/mobs.py emberdactyl first (after changing a look). Needs numpy and Pillow.
 """
@@ -33,11 +40,13 @@ from shapes import is_middle  # noqa: E402
 from trophies import FIRE_GEO, load_geo, load_textures, points_of  # noqa: E402
 
 OUT = os.path.join(ROOT, "boss-previews", "cinder_wastes", "emberdactyl", "lava_looks")
+PURPLE_OUT = os.path.join(ROOT, "boss-previews", "cinder_wastes", "emberdactyl", "purple_looks")
 ACCENT = (255, 160, 70)
 DAY_BG = (40, 32, 30)
 CELL = 440                      # pixels: each picture's widest side
 WINGS = ("arm_l", "arm_r")      # hidden for the body's close-ups (with everything on them: the whole wing)
 HEAD = ("head", "jaw", "bill", "horn_l", "horn_r", "crest", "lid_l", "lid_r")
+TAIL = ("tail",)
 
 
 def window_of(pts, yaw, el, margin):
@@ -73,31 +82,80 @@ def glowing_share(m, tex, middle):
     return lit / max(total, 1)
 
 
-def main():
-    looks = []
-    for v in DESIGN.VARIANTS:
-        model_id = f"{DESIGN.ID}{v['letter'].lower()}"
-        m = load_geo(os.path.join(FIRE_GEO, f"{model_id}.geo.json"), f"lava_{model_id}")
-        looks.append((f"E1{v['letter']}", v["mood"], m, load_textures(model_id)))
-    m0 = looks[0][2]
-    # The views: (title, yaw, elevation, its window, night, hidden).
+def lava_views(m0):
+    """The lava sheet's views: (title, yaw, elevation, its window, night, hidden)."""
     whole = V.window(m0, 35.0, 14.0, figure=False, ground=False)
     head_pts = points_of(m0, None, HEAD)
     head = window_of(head_pts, 62.0, 12.0, 0.6)
     body = V.window(m0, 90.0, 6.0, figure=False, ground=False, hidden=WINGS)
     back = V.window(m0, -150.0, 30.0, figure=False, ground=False, hidden=WINGS)
-    views = [("The whole animal, three-quarter, by day", 35.0, 14.0, whole, False, ()),
-             ("At night: what glows", 35.0, 14.0, whole, True, ()),
-             ("Its head, horns and half moon, by day", 62.0, 12.0, head, False, ()),
-             ("Its head at night", 62.0, 12.0, head, True, ()),
-             ("Its body, neck, legs and tail (wings left off), from its left, by day", 90.0, 6.0, body, False, WINGS),
-             ("The same at night", 90.0, 6.0, body, True, WINGS),
-             ("Its back from behind and above (wings left off), by day", -150.0, 30.0, back, False, WINGS)]
+    return [("The whole animal, three-quarter, by day", 35.0, 14.0, whole, False, ()),
+            ("At night: what glows", 35.0, 14.0, whole, True, ()),
+            ("Its head, horns and half moon, by day", 62.0, 12.0, head, False, ()),
+            ("Its head at night", 62.0, 12.0, head, True, ()),
+            ("Its body, neck, legs and tail (wings left off), from its left, by day", 90.0, 6.0, body, False, WINGS),
+            ("The same at night", 90.0, 6.0, body, True, WINGS),
+            ("Its back from behind and above (wings left off), by day", -150.0, 30.0, back, False, WINGS)]
+
+
+def purple_views(m0):
+    """The purple sheet's views: the whole animal by day and at night, its head (bill, jaw, half moon and horns) from
+    its left and from its right, its tail and the spike at its end, by day and at night."""
+    whole = V.window(m0, 35.0, 14.0, figure=False, ground=False)
+    head_pts = points_of(m0, None, HEAD)
+    head = window_of(head_pts, 62.0, 12.0, 0.6)
+    head_r = window_of(head_pts, -40.0, 20.0, 0.6)
+    tail = window_of(points_of(m0, None, TAIL), 70.0, 10.0, 0.5)
+    tail_up = window_of(points_of(m0, None, TAIL), 150.0, 35.0, 0.5)
+    return [("The whole animal, three-quarter, by day", 35.0, 14.0, whole, False, ()),
+            ("At night: what glows", 35.0, 14.0, whole, True, ()),
+            ("Its head: bill and jaw, half moon and horns, from its left, by day", 62.0, 12.0, head, False, ()),
+            ("Its head at night", 62.0, 12.0, head, True, ()),
+            ("Its head from its right front, a little above", -40.0, 20.0, head_r, False, ()),
+            ("Its tail and the spike at its end, from its left (wings left off), by day", 70.0, 10.0, tail, False,
+             WINGS),
+            ("Its tail at night", 70.0, 10.0, tail, True, WINGS),
+            ("Its tail from behind and above (where it leaves the body)", 150.0, 35.0, tail_up, False, WINGS)]
+
+
+# The sheets: (the looks' letters, the views, where it goes, its title, its subtitle).
+SHEETS = {
+    "lava": (("A", "B", "C", "D"), lava_views, os.path.join(OUT, "lava_looks.png"),
+             "The Emberdactyl: less lava on its body",
+             "E1A is the one in the game; E1B, E1C and E1D keep its wings as they are and have less and less lava on "
+             "its body, neck, head, legs, tail, horns and half moon (the user, October 31, 2026: \"less lava spots on "
+             "the adult version on the body; the wings are fine, but on the body and horns less lava\"). In the game: "
+             "/dross showcase boss_designs emberdactyl (the four side by side, A on the left)."),
+    "purple": (("C", "C1", "C2", "C3", "C4"), purple_views, os.path.join(PURPLE_OUT, "purple_looks.png"),
+               "The Emberdactyl: E1C with purple",
+               "E1C (the user's pick of the less-lava looks) and four variations of it with its bill and jaw, its half "
+               "moon, its two blade horns and its tail purple, the violet of glossy and crying obsidian, like its egg "
+               "and its spawn egg (the user, November 2, 2026: \"I like E1C. Maybe can you give me variations of the "
+               "bird but with the beak and the horns with purple, and tail, just a variation of what we have here\"); "
+               "everything else as E1C: its body, wings, eyes, lava and its half moon's glowing rim. E1C1 glossy "
+               "violet obsidian, no lava on them; E1C2 deep purple at their tips fading to E1C's near-black at their "
+               "roots; E1C3 violet with lava veins glowing through it; E1C4 only their ends purple, glowing faintly "
+               "with crying obsidian's sparks. In the game: /dross showcase boss_designs emberdactyl (after E1A-E1D "
+               "in the front row)."),
+}
+
+
+def sheet(name):
+    letters, views_of, out, title, subtitle = SHEETS[name]
+    by_letter = {v["letter"]: v for v in DESIGN.VARIANTS}
+    looks = []
+    for letter in letters:
+        v = by_letter[letter]
+        model_id = f"{DESIGN.ID}{letter.lower()}"
+        m = load_geo(os.path.join(FIRE_GEO, f"{model_id}.geo.json"), f"lava_{model_id}")
+        looks.append((f"E1{letter}", v["mood"], m, load_textures(model_id)))
+    m0 = looks[0][2]
+    views = views_of(m0)
     parts = []
-    for title, yaw, el, bounds, night, hidden in views:
+    for heading, yaw, el, bounds, night, hidden in views:
         ims = [V.label(picture(m, tex, yaw, el, bounds, night, hidden), f"{label}: {mood}", 17)
                for label, mood, m, tex in looks]
-        parts.append((title, V.grid(ims, len(ims))))
+        parts.append((heading, V.grid(ims, len(ims))))
     # How much of each glows.
     cards = []
     for label, mood, m, tex in looks:
@@ -111,15 +169,16 @@ def main():
                font=font(15, bold=False), fill=V.DIM)
         cards.append(im)
     parts.insert(0, ("How much of it glows (its texture's texels)", V.grid(cards, len(cards))))
-    os.makedirs(OUT, exist_ok=True)
-    V.page("The Emberdactyl: less lava on its body",
-           "E1A is the one in the game; E1B, E1C and E1D keep its wings as they are and have less and less lava on "
-           "its body, neck, head, legs, tail, horns and half moon (the user, October 31, 2026: \"less lava spots on "
-           "the adult version on the body; the wings are fine, but on the body and horns less lava\"). In the game: "
-           "/dross showcase boss_designs emberdactyl (the four side by side, A on the left).", parts,
-           os.path.join(OUT, "lava_looks.png"), accent=ACCENT)
-    print(f"Wrote {os.path.relpath(os.path.join(OUT, 'lava_looks.png'), ROOT)}")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    V.page(title, subtitle, parts, out, accent=ACCENT)
+    print(f"Wrote {os.path.relpath(out, ROOT)}")
+
+
+def main(argv):
+    for name in [a for a in argv if not a.startswith("--")] or list(SHEETS):
+        print(f"The {name} looks:")
+        sheet(name)
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
