@@ -12,6 +12,22 @@ The Dross is a dangerous dimension for the mid-to-late game.
 - **Light the portal.** 
 
 
+## Biomes
+
+<div class="spoiler">
+<p>The Dross is always night. Five biomes, each with its own ground, plants, fog and mobs.</p>
+<p><img src="biome_silverwood_forest.png" alt="Silverwood Forest"></p>
+<p><b>Silverwood Forest</b>: the dark forest round the hub, its silverwood trees hung with glowing Stormvine. Moose wander under them.</p>
+<p><img src="biome_cinder_wastes.png" alt="Cinder Wastes"></p>
+<p><b>Cinder Wastes</b>: ash, basalt and lava pools. Stone and lava golems, the Pallbearer and Cinder Hermits in their shells roam here, and it's home to the Cinder Colossus and the Emberdactyl.</p>
+<p><img src="biome_blightwood.png" alt="Blightwood"></p>
+<p><b>Blightwood</b>: a rotting fungal forest full of plague rats. Under it, the sewers lead to the Rat King.</p>
+<p><img src="biome_rimefall.png" alt="Rimefall"></p>
+<p><b>Rimefall</b>: frozen lakes, Rimehorn herds, moose and Pond Skaters, and the villages of the Frostfolk, where the Huntsman rides.</p>
+<p><img src="biome_gravecrags.png" alt="The Gravecrags"></p>
+<p><b>The Gravecrags</b>: snow-capped peaks and cliffs, far out from the hub.</p>
+</div>
+
 ## Bosses
 
 <div class="spoiler">

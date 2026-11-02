@@ -275,7 +275,8 @@ public final class EmberTuning
      * do its peck in the air"): its chance in the air fight's table, how many pecks a go, how long before it pecks
      * again (ticks), its bill's place at the strike (blocks ahead of its feet, up from them: measured from the model's
      * {@code air_snap}) and the strike's moment in it, everything within this far of the bill hit (the snap's damage) and
-     * knocked on, how fast it flies to keep its bill there, and how far off it gives up. (The adult's bill is 15.4
+     * knocked on, how fast it flies to keep its bill there, how far off it gives up, and how far over the ground under
+     * it it keeps. (The adult's bill is 15.4
      * blocks ahead of its feet as it hovers, 11.9 drawn back, 18.5 at the strike; the young's 11.2, 9.0, 12.6.)
      */
     public static final int DUEL_PECK = 30;
@@ -291,6 +292,7 @@ public final class EmberTuning
     public static final double AIR_SNAP_THROW = 0.6D;
     public static final double AIR_SNAP_SPEED = 1.0D;
     public static final double AIR_SNAP_GIVE_UP = 40.0D;
+    public static final double AIR_SNAP_CLEARANCE = 2.0D;
     public static final double DUEL_STRIKE_THROW = 0.8D;
 
     /** When a wall stops it, it rises at least this fast (blocks a tick) to get over it. It's never let further than

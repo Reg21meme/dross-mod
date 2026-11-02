@@ -1078,7 +1078,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             // (pecking in the air: the user, October 31, "when facing an enemy that can fly, the Emberdactyl can do its
             // peck in the air"), wings, voice and tornadoes; its dive only onto another lying stuck on the ground
             add(moves, weights, Move.GRAB, DUEL_STRIKE);
-            add(moves, weights, Move.AIR_SNAP, DUEL_PECK);
+            if (flies(this.target))
+            {
+                add(moves, weights, Move.AIR_SNAP, DUEL_PECK);
+            }
             add(moves, weights, Move.BUFFET, DUEL_BUFFET);
             add(moves, weights, Move.SCREECH, DUEL_SCREECH);
             add(moves, weights, Move.TORNADO, DUEL_TORNADO);
@@ -2040,10 +2043,15 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             return;
         }
         // fly so its bill meets the enemy at the strike (before it, the animation's lunge holds the bill about 3 blocks
-        // short of it, drawn back about 6.5: the model itself surges forward onto it)
-        Vec3 aim = this.target.position().add(0.0D, this.target.getBbHeight() * 0.5D, 0.0D);
+        // short of it, drawn back about 6.5: the model itself surges forward onto it), at the nearest part of the enemy's
+        // body from where its bill is now: a tall enemy (another Emberdactyl) it pecks where it is, never flying in under
+        // it (two of them sank to the ground each trying to get under the other); never down into the ground
         Vec3 face = this.facing();
-        Vec3 spot = aim.subtract(face.scale(ahead)).subtract(0.0D, up, 0.0D);
+        Vec3 billNow = this.position().add(face.scale(ahead)).add(0.0D, up, 0.0D);
+        AABB enemy = this.target.getBoundingBox();
+        Vec3 aim = new Vec3(Mth.clamp(billNow.x, enemy.minX, enemy.maxX), Mth.clamp(billNow.y, enemy.minY, enemy.maxY),
+                Mth.clamp(billNow.z, enemy.minZ, enemy.maxZ));
+        Vec3 spot = this.overGround(aim.subtract(face.scale(ahead)).subtract(0.0D, up, 0.0D), AIR_SNAP_CLEARANCE);
         if (peckTick < hit - 2)
         {
             this.turnTo(this.target.position().subtract(this.position()));

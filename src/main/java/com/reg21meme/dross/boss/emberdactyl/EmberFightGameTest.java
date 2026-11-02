@@ -60,6 +60,9 @@ public final class EmberFightGameTest
     private static final TicketType<ChunkPos> TICKET = TicketType.create("dross_ember_fight_test",
             Comparator.comparingLong(ChunkPos::toLong));
     private static final int FLOOR_Y = 200;
+    /** The wall beside the grabbed cow: as tall as fits under its wings at the swoop (they're about 9 blocks over what it
+     *  grabs; since October 31 its whole body is solid, so beside a wall taller than that it can't swoop and gives up). */
+    private static final int GRAB_WALL_HEIGHT = 6;
     private static final int FLOOR_HALF = 40;
     /** A wait gives up (a real failure, cleaned up) after this long, real time (the test server runs ticks far faster
      *  than 20 a second, so a tick count would be over before far-off chunks are made). */
@@ -448,7 +451,8 @@ public final class EmberFightGameTest
     /**
      * The user's first fight: its talon grab carried them through its volcano's side ("he tried to suffocate me"); their
      * second: "make it so he can't drop me from any more than where it does at max half of my health", "I want to be
-     * able to move around as he carries me ... it also looks very stuttery". Next to a stone pillar it grabs a cow: the
+     * able to move around as he carries me ... it also looks very stuttery". Next to a stone wall (as tall as fits under
+     * its wings: {@link #GRAB_WALL_HEIGHT}) it grabs a cow: the
      * cow rides it (hangs from its talons), is never inside a block on the way, is carried up over the pillar and let go
      * no higher over the ground than a fall that takes half its health. Then a cow marked as dropped by it falls 30
      * blocks and loses half its health, no more.
@@ -472,7 +476,7 @@ public final class EmberFightGameTest
                     {
                         for (int dz = -6; dz <= 6; dz++)
                         {
-                            for (int y = 1; y <= 14; y++)
+                            for (int y = 1; y <= GRAB_WALL_HEIGHT; y++)
                             {
                                 run.level.setBlock(pos.set(run.x + dx, FLOOR_Y + y, run.z + dz), Blocks.STONE.defaultBlockState(),
                                         Block.UPDATE_CLIENTS);

@@ -1553,8 +1553,10 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         with **air_snap** in it (`DUEL_PECK` 30): three pecks one after another (`AIR_SNAP_PECKS`), each 4 hearts (the
         snap's), everything within 3.5 blocks of its bill hurt (`AIR_SNAP_RADIUS`; the young's no less than three quarters
         of that) and knocked on; it flies so its bill meets its enemy at the strike (the adult's 18.5 blocks ahead of its
-        feet and 12.25 up, the young's 12.6 and 10.7, measured from the models, `AIR_SNAP_BILL_*`), turning to it until
-        just before; it stops when its enemy lands, dies or gets 40 blocks off. Its animation (`tools/fire/firemobs/
+        feet and 12.25 up, the young's 12.6 and 10.7, measured from the models, `AIR_SNAP_BILL_*`), at the nearest part of
+        its enemy's body from where its bill is (a tall enemy, another Emberdactyl, it pecks where it is: aiming at its
+        middle, two raged ones each flew under the other until both lay on the ground), never lower than 2 blocks over
+        the ground (`AIR_SNAP_CLEARANCE`), turning to it until just before; it stops when its enemy lands, dies or gets 40 blocks off. Its animation (`tools/fire/firemobs/
         emberdactyl.py`, `air_snap`, 0.9 s, the young's 0.56): a harder wingbeat, its neck drawn back and up, then a
         lunge forward and a little down (the whole of it surging about 3 blocks forward), its jaw snapping shut at 0.556
         of the way, and back; its sounds a flap and the beak's clack on the strike; its own collision boxes
