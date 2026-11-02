@@ -15,7 +15,7 @@ import net.minecraft.world.level.levelgen.structure.StructureType;
 
 /**
  * A hermit crab cave in the Cinder Wastes (structure type {@code dross:hermit_cave}; the user, October 31, 2026: "1-2
- * caves per Cinder Wastes area"): one of {@link HermitCaveDesigns}' seven, where {@link HermitCaveSites} planned it. Its
+ * caves per Cinder Wastes area"): one of {@link HermitCaveDesigns}' designs, where {@link HermitCaveSites} planned it (a hillside one into a hill, an underground one on flat land). Its
  * structure set's placement ({@link HermitCavePlacement}) starts it only in its planned chunk; its one piece
  * ({@link HermitCavePiece}) places its template there with the land: its ground layer at the height of the land under its
  * way in (the generator's own height, before any feature), its way in facing the planned way. Built in the "surface

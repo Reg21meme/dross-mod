@@ -10,6 +10,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
@@ -21,10 +23,19 @@ import static com.reg21meme.dross.boss.fire.cave.HermitCaveTuning.*;
 /**
  * Where the hermit crab caves go in the world (the user, October 31, 2026: "1-2 caves per Cinder Wastes area"): every
  * Cinder Wastes patch of the boss-site planner ({@link BossSites}) gets one cave, and a second half the time
- * ({@link HermitCaveTuning#SECOND_CAVE_CHANCE}), each one of the seven designs at random (all equally) with its way in
- * facing any way, at least {@link HermitCaveTuning#MIN_DEPTH} blocks inside the patch, well clear of the patch's Cinder
- * Colossus lair and Emberdactyl volcano ({@link HermitCaveTuning#BOSS_CLEARANCE}; both are built later, near players)
- * and of each other, on the flattest land the seed's tries find.
+ * ({@link HermitCaveTuning#SECOND_CAVE_CHANCE}), at least {@link HermitCaveTuning#MIN_DEPTH} blocks inside the patch,
+ * well clear of the patch's Cinder Colossus lair and Emberdactyl volcano ({@link HermitCaveTuning#BOSS_CLEARANCE}; both
+ * are built later, near players) and of each other.
+ * <p>
+ * Since round 2 (the user, November 2, 2026: "there's a hill, and he builds inside the hill ... we can have some
+ * underground ones") a cave is one of two kinds ({@link HermitCaveDesigns.Kind}). A <b>hillside</b> cave goes where the
+ * land really rises behind its way in (screened with the noise's quick height, the best then checked against the real
+ * ground, the generator's own top blocks: {@link #hillCover}; the land over its den's middle at least
+ * {@link HermitCaveTuning#HILL_MIN_RISE} over the ground at its way in, its rooms mostly under the hill, a gentle walk up
+ * to its way in), facing out of the slope (its way in on the downhill side): of every spot and facing that fits, the one
+ * with the hill fullest over it. An <b>underground</b> one goes on the flattest land the seed's tries find, its way in
+ * facing any way. Each cave is underground {@link HermitCaveTuning#UNDERGROUND_CHANCE} of the time when one fits, else
+ * hillside when one fits; a patch with no hillside gets underground ones. Its design (of its kind) is picked at random.
  * <p>
  * Worked out from the noise alone (the planner's {@link SiteTerrain}), the same every time for a seed and any thread, and
  * remembered with the planner ({@link BossSites#cache}). The structure {@code dross:hermit_cave} starts only in a planned
@@ -92,6 +103,12 @@ public final class HermitCaveSites
      */
     public static Optional<CavePlan> nearest(BossSites sites, BlockPos from, int maxDistance)
     {
+        return nearest(sites, from, maxDistance, cave -> true);
+    }
+
+    /** The nearest planned cave that {@code which} accepts (for example only hillside ones), like {@link #nearest}. */
+    public static Optional<CavePlan> nearest(BossSites sites, BlockPos from, int maxDistance, Predicate<CavePlan> which)
+    {
         double fromHub = sites.hubDistance(from.getX(), from.getZ());
         CavePlan best = null;
         double bestDistance = maxDistance;
@@ -116,6 +133,10 @@ public final class HermitCaveSites
             }
             for (CavePlan cave : plan(sites, p))
             {
+                if (!which.test(cave))
+                {
+                    continue;
+                }
                 double d = Math.hypot(cave.middle().getX() - from.getX(), cave.middle().getZ() - from.getZ());
                 if (d < bestDistance)
                 {
@@ -129,7 +150,7 @@ public final class HermitCaveSites
 
     // ---------------------------------------------------------------------------------------------
 
-    private record Candidate(int x, int z, int relief, int top, int order)
+    private record Candidate(int x, int z, Direction front, double score, int order)
     {
     }
 
@@ -155,76 +176,200 @@ public final class HermitCaveSites
         int spanX = patch.maxX() - patch.minX() + 1;
         int spanZ = patch.maxZ() - patch.minZ() + 1;
         List<int[]> spots = new ArrayList<>();
-        for (int i = 0; i < TRIES; i++)
+        for (int i = 0; i < Math.max(TRIES, HILL_TRIES); i++)
         {
             spots.add(new int[] {patch.minX() + random.nextInt(spanX), patch.minZ() + random.nextInt(spanZ)});
         }
-        // the designs and facings are rolled up front, so they don't depend on which spots fit
-        int[] designs = {random.nextInt(HermitCaveDesigns.CAVES.size()), random.nextInt(HermitCaveDesigns.CAVES.size())};
-        Direction[] fronts = {Direction.from2DDataValue(random.nextInt(4)), Direction.from2DDataValue(random.nextInt(4))};
+        // the designs, the underground caves' facings and which kind each cave tries first are rolled up front, so
+        // they don't depend on which spots fit
+        List<Integer> hills = HermitCaveDesigns.indexesOf(HermitCaveDesigns.Kind.HILLSIDE);
+        List<Integer> flats = HermitCaveDesigns.indexesOf(HermitCaveDesigns.Kind.UNDERGROUND);
+        int[] hillDesign = new int[2];
+        int[] flatDesign = new int[2];
+        Direction[] flatFront = new Direction[2];
+        boolean[] flatFirst = new boolean[2];
+        for (int k = 0; k < 2; k++)
+        {
+            hillDesign[k] = hills.get(random.nextInt(hills.size()));
+            flatDesign[k] = flats.get(random.nextInt(flats.size()));
+            flatFront[k] = Direction.from2DDataValue(random.nextInt(4));
+            flatFirst[k] = random.nextDouble() < UNDERGROUND_CHANCE;
+        }
         // the normal rules first; if they leave the patch short, the looser ones (deeper in fewer patches, nearer a boss)
         List<CavePlan> caves = new ArrayList<>();
-        pick(caves, wanted, candidates(terrain, patch, spots, bosses, MIN_DEPTH, BOSS_CLEARANCE), designs, fronts, patch);
-        if (caves.size() < wanted)
+        for (int pass = 0; pass < 2 && caves.size() < wanted; pass++)
         {
-            pick(caves, wanted, candidates(terrain, patch, spots, bosses, RELAXED_MIN_DEPTH, RELAXED_BOSS_CLEARANCE), designs,
-                    fronts, patch);
+            int minDepth = pass == 0 ? MIN_DEPTH : RELAXED_MIN_DEPTH;
+            int clearance = pass == 0 ? BOSS_CLEARANCE : RELAXED_BOSS_CLEARANCE;
+            while (caves.size() < wanted)
+            {
+                int k = caves.size();
+                Supplier<Optional<CavePlan>> hill = () -> hillside(terrain, patch, spots, bosses, caves, hillDesign[k],
+                        minDepth, clearance);
+                Supplier<Optional<CavePlan>> flat = () -> underground(terrain, patch, spots, bosses, caves, flatDesign[k],
+                        flatFront[k], minDepth, clearance);
+                Optional<CavePlan> next = flatFirst[k] ? flat.get().or(hill) : hill.get().or(flat);
+                if (next.isEmpty())
+                {
+                    break;
+                }
+                caves.add(next.get());
+            }
         }
         return List.copyOf(caves);
     }
 
-    /** Adds caves at the flattest of the spots (then in the seed's order) until there are `wanted`, each apart from the
-     * others. */
-    private static void pick(List<CavePlan> caves, int wanted, List<Candidate> fitting, int[] designs, Direction[] fronts,
-                             Patch patch)
+    /** True if a cave's middle here is far enough inside the patch, clear of its bosses and the caves already planned. */
+    private static boolean allowed(SiteTerrain terrain, Patch patch, int x, int z, List<BlockPos> bosses, List<CavePlan> caves,
+                                   int minDepth, int clearance)
     {
-        fitting.sort(Comparator.comparingInt((Candidate c) -> c.relief() > MAX_RELIEF ? 1 : 0)
-                .thenComparingInt(Candidate::order));
-        for (Candidate c : fitting)
+        if (!patch.contains(x, z) || patch.depthAt(x, z) < minDepth)
         {
-            if (caves.size() >= wanted)
+            return false;
+        }
+        for (BlockPos boss : bosses)
+        {
+            if (Math.hypot(boss.getX() - x, boss.getZ() - z) < clearance)
             {
-                break;
-            }
-            boolean apart = true;
-            for (CavePlan other : caves)
-            {
-                if (Math.hypot(other.middle().getX() - c.x(), other.middle().getZ() - c.z()) < CAVE_SPACING)
-                {
-                    apart = false;
-                    break;
-                }
-            }
-            if (apart)
-            {
-                int k = caves.size();
-                caves.add(new CavePlan(new BlockPos(c.x(), c.top(), c.z()), designs[k], fronts[k], patch.id()));
+                return false;
             }
         }
+        for (CavePlan other : caves)
+        {
+            if (Math.hypot(other.middle().getX() - x, other.middle().getZ() - z) < CAVE_SPACING)
+            {
+                return false;
+            }
+        }
+        return terrain.isBiome(DrossBiomes.CINDER_WASTES, x, z);
     }
 
-    private static List<Candidate> candidates(SiteTerrain terrain, Patch patch, List<int[]> spots, List<BlockPos> bosses,
-                                              int minDepth, int clearance)
+    /**
+     * A hillside cave of this design: of the spots and facings where the land rises behind its way in
+     * ({@link #hillCover}), the one with the hill fullest over it (then the seed's order).
+     */
+    private static Optional<CavePlan> hillside(SiteTerrain terrain, Patch patch, List<int[]> spots, List<BlockPos> bosses,
+                                               List<CavePlan> caves, int design, int minDepth, int clearance)
     {
-        List<Candidate> out = new ArrayList<>();
-        for (int i = 0; i < spots.size(); i++)
+        HermitCaveDesigns.Cave cave = HermitCaveDesigns.CAVES.get(design);
+        List<Candidate> screened = new ArrayList<>();
+        for (int i = 0; i < Math.min(spots.size(), HILL_TRIES); i++)
         {
             int x = spots.get(i)[0];
             int z = spots.get(i)[1];
-            if (!patch.contains(x, z) || patch.depthAt(x, z) < minDepth)
+            if (!allowed(terrain, patch, x, z, bosses, caves, minDepth, clearance))
             {
                 continue;
             }
-            boolean clear = true;
-            for (BlockPos boss : bosses)
+            double middle = terrain.height(x, z);
+            for (Direction front : Direction.Plane.HORIZONTAL)
             {
-                if (Math.hypot(boss.getX() - x, boss.getZ() - z) < clearance)
+                BlockPos door = HermitCaves.door(new BlockPos(x, 0, z), front, cave);
+                double atDoor = terrain.height(door.getX(), door.getZ());
+                if (middle - atDoor < HILL_QUICK_RISE)
                 {
-                    clear = false;
-                    break;
+                    continue;
+                }
+                double cover = hillCover(terrain::height, cave, x, z, front);
+                if (cover >= HILL_MIN_COVER)
+                {
+                    screened.add(new Candidate(x, z, front, cover, i));
                 }
             }
-            if (!clear || !terrain.isBiome(DrossBiomes.CINDER_WASTES, x, z))
+        }
+        // the best by the quick height, then checked against the real ground: the fullest hill of those wins
+        screened.sort(Comparator.comparingDouble((Candidate c) -> -c.score()).thenComparingInt(Candidate::order));
+        Candidate best = null;
+        double bestCover = -1.0D;
+        for (int i = 0; i < Math.min(screened.size(), HILL_VERIFY); i++)
+        {
+            Candidate c = screened.get(i);
+            double cover = hillCover(terrain, cave, c.x(), c.z(), c.front());
+            if (cover >= HILL_MIN_COVER && cover > bestCover)
+            {
+                best = c;
+                bestCover = cover;
+            }
+        }
+        if (best == null)
+        {
+            return Optional.empty();
+        }
+        return Optional.of(new CavePlan(new BlockPos(best.x(), terrain.topBlock(best.x(), best.z()), best.z()), design,
+                best.front(), patch.id()));
+    }
+
+    /** Ground heights for the fit (only their differences count). */
+    @FunctionalInterface
+    private interface Heights
+    {
+        double at(int x, int z);
+    }
+
+    /**
+     * How well a hillside cave with its middle at x, z and its way in facing {@code front} sits in the real land (the
+     * generator's own top blocks, from the noise: exactly the ground it's built on) ({@link #hillCover(Heights,
+     * HermitCaveDesigns.Cave, int, int, Direction)}).
+     */
+    public static double hillCover(SiteTerrain terrain, HermitCaveDesigns.Cave cave, int x, int z, Direction front)
+    {
+        return hillCover((px, pz) -> terrain.topBlock(px, pz), cave, x, z, front);
+    }
+
+    /**
+     * How well a hillside cave with its middle at x, z and its way in facing {@code front} sits in the land (by these
+     * heights): -1 if it doesn't fit (the land over its den's middle less than {@link HermitCaveTuning#HILL_MIN_RISE} over
+     * the ground at its way in, the land in front of its way in too low or too high, or the land under it anywhere lower
+     * than its foundation reaches), else how much of its shell the hill covers over its rooms, on average (0 to 1).
+     */
+    private static double hillCover(Heights heights, HermitCaveDesigns.Cave cave, int x, int z, Direction front)
+    {
+        BlockPos ground = new BlockPos(x, 0, z);
+        BlockPos door = HermitCaves.door(ground, front, cave);
+        double atDoor = heights.at(door.getX(), door.getZ());
+        BlockPos out = door.relative(front, APPROACH_OUT);
+        double atOut = heights.at(out.getX(), out.getZ());
+        if (atOut < atDoor - APPROACH_DROP || atOut > atDoor + APPROACH_RISE)
+        {
+            return -1.0D;
+        }
+        double need = Math.max(1, cave.roofRise());
+        double cover = 0.0D;
+        for (int i = 0; i < cave.rooms().size(); i++)
+        {
+            BlockPos room = HermitCaves.toWorld(cave.rooms().get(i), ground, front, cave);
+            double rise = heights.at(room.getX(), room.getZ()) - atDoor;
+            if (i == 0 && rise < HILL_MIN_RISE)
+            {
+                return -1.0D;
+            }
+            cover += Math.max(0.0D, Math.min(rise, need)) / need;
+        }
+        int w = cave.width() - 1;
+        int d = cave.depth() - 1;
+        for (int[] corner : new int[][] {{0, 0}, {w, 0}, {0, d}, {w, d}, {w / 2, 0}, {0, d / 2}, {w, d / 2}})
+        {
+            BlockPos p = HermitCaves.toWorld(new BlockPos(corner[0], 0, corner[1]), ground, front, cave);
+            if (heights.at(p.getX(), p.getZ()) < atDoor - (cave.groundLayer() - 1))
+            {
+                return -1.0D;
+            }
+        }
+        return cover / cave.rooms().size();
+    }
+
+    /** An underground cave of this design: on the flattest of the spots that fit (then in the seed's order). */
+    private static Optional<CavePlan> underground(SiteTerrain terrain, Patch patch, List<int[]> spots, List<BlockPos> bosses,
+                                                  List<CavePlan> caves, int design, Direction front, int minDepth,
+                                                  int clearance)
+    {
+        Candidate best = null;
+        int bestRelief = Integer.MAX_VALUE;
+        for (int i = 0; i < Math.min(spots.size(), TRIES); i++)
+        {
+            int x = spots.get(i)[0];
+            int z = spots.get(i)[1];
+            if (!allowed(terrain, patch, x, z, bosses, caves, minDepth, clearance))
             {
                 continue;
             }
@@ -239,8 +384,18 @@ public final class HermitCaveSites
                     hi = Math.max(hi, h);
                 }
             }
-            out.add(new Candidate(x, z, hi - lo, terrain.topBlock(x, z), i));
+            int relief = Math.max(0, hi - lo - MAX_RELIEF);      // within MAX_RELIEF counts as flat: the seed's order
+            if (best == null || relief < bestRelief)
+            {
+                best = new Candidate(x, z, front, -relief, i);
+                bestRelief = relief;
+            }
         }
-        return out;
+        if (best == null)
+        {
+            return Optional.empty();
+        }
+        return Optional.of(new CavePlan(new BlockPos(best.x(), terrain.topBlock(best.x(), best.z()), best.z()), design, front,
+                patch.id()));
     }
 }

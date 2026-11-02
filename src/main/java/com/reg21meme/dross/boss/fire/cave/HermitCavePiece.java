@@ -49,7 +49,7 @@ public final class HermitCavePiece extends TemplateStructurePiece
                 .addProcessor(BlockIgnoreProcessor.STRUCTURE_BLOCK);
     }
 
-    /** The cave a template belongs to (the first one if it's unknown: they're all the same size). */
+    /** The cave a template belongs to (the first one if it's unknown: a piece saved before its design was removed). */
     private static HermitCaveDesigns.Cave byTemplate(ResourceLocation location)
     {
         for (HermitCaveDesigns.Cave cave : HermitCaveDesigns.CAVES)
@@ -69,7 +69,8 @@ public final class HermitCavePiece extends TemplateStructurePiece
         tag.putString("Rot", this.placeSettings.getRotation().name());
     }
 
-    /** The cave, then its Cinder Hermits on its crab spots in this chunk (the user, October 31: the caves are their homes). */
+    /** The cave, then its Cinder Hermit on its crab spot if that's in this chunk (the user, October 31: the caves are their
+     * homes; November 2: "only 1 per cave"). */
     @Override
     public void postProcess(WorldGenLevel level, StructureManager structures, ChunkGenerator generator, RandomSource random,
                             BoundingBox box, ChunkPos chunk, BlockPos pos)
