@@ -44,10 +44,11 @@ import java.util.Map;
  *       Fire Necromancer's two open servant places, each its original look and three variations), about 230 blocks
  *       wide and 80 deep;</li>
  *   <li>{@code /dross showcase boss_designs emberdactyl}: the Emberdactyl (the user's volcanic pterosaur, 33 blocks
- *       across its wings) in four looks side by side (E1A, the one in the game, and E1B-E1D with less and less lava on
- *       its body and horns, its wings the same: the user's October 31 request), its young and its eggs; and behind them
- *       its volcano ({@code boss.emberdactyl.EmberVolcano}), built a piece at a time, with an egg in its nest and an
- *       adult hovering over its crater once it stands. About 190 blocks wide, the volcano 70 tall;</li>
+ *       across its wings) in eight looks side by side (E1A, the one in the game, and E1B-E1D with less and less lava on
+ *       its body and horns, its wings the same: the user's October 31 request; then E1C1-E1C4, E1C with its bill, horns
+ *       and tail purple: the user's November 2 request), its young and its eggs; and behind them its volcano
+ *       ({@code boss.emberdactyl.EmberVolcano}), built a piece at a time, with an egg in its nest and an adult hovering
+ *       over its crater once it stands. About 340 blocks wide, the volcano 70 tall;</li>
  *   <li>{@code /dross showcase cinder_mobs}: the Cinder Wastes' regular mobs, the Pallbearer and the Cinder Hermit in its
  *       eight shells, in one row.</li>
  * </ul>
@@ -110,8 +111,9 @@ public final class FireShowcase
     static final String NEST_EGG = "E3B";
     static final String HOVERING_ADULT = "E1A";
     private static final double HOVER_OVER_EGG = 2.0D;
-    /** Blocks round you the animation controls reach (the gallery and its volcano's hovering adult). */
-    static final double PLAY_RADIUS = 220.0D;
+    /** Blocks round you the animation controls reach (the gallery and its volcano's hovering adult): from anywhere along
+     *  the Emberdactyl's gallery (about 340 blocks wide with its eight looks) to its far end. */
+    static final double PLAY_RADIUS = 360.0D;
     /** The [volcano] button: this far in front of the volcano's plan (over the gallery) and this high, looking down this
      *  much: the whole cone in view. */
     private static final double VOLCANO_VIEW_BACK = 10.0D;
@@ -135,9 +137,11 @@ public final class FireShowcase
         SERVANTS(FireDesigns.SERVANTS, "fire servant gallery",
                 "the fifteen originals in a row ahead of you (No. 1 on the left), each one's variations behind it", COMMAND),
         EMBERDACTYL(FireDesigns.EMBERDACTYL, "Emberdactyl gallery",
-                "the Emberdactyl (33 blocks across its wings) in its four looks side by side ahead of you on the left "
-                        + "(E1A, the one in the game, then less and less lava on its body: E1B, E1C, E1D), its young "
-                        + "beside them, then its egg in its five looks, one behind the other", EMBERDACTYL_COMMAND),
+                "the Emberdactyl (33 blocks across its wings) in its eight looks side by side ahead of you on the left "
+                        + "(E1A, the one in the game, then less and less lava on its body: E1B, E1C, E1D; then E1C "
+                        + "with its bill, horns and tail purple: E1C1 glossy violet, E1C2 violet fade, E1C3 violet and "
+                        + "lava, E1C4 violet tips), its young beside them, then its egg in its five looks, one behind "
+                        + "the other", EMBERDACTYL_COMMAND),
         CINDER_MOBS(FireDesigns.CINDER_MOBS, "Cinder Wastes' mobs",
                 "the Pallbearer and the Cinder Hermit in its eight shells, in a row ahead of you", CINDER_MOBS_COMMAND);
 
@@ -431,14 +435,21 @@ public final class FireShowcase
         return spawned;
     }
 
-    /** "E1" for "E1A", "15" for "15D": the design's own number, without the letter of its look. */
+    /**
+     * "E1" for "E1A" and "E1C2", "15" for "15D": the design's own number (its set's letter and its first run of
+     * digits), without its look ("A", "C2").
+     */
     static String designLabel(FireDesigns.Design design)
     {
         String label = design.label();
-        int end = label.length();
-        while (end > 0 && Character.isLetter(label.charAt(end - 1)))
+        int end = 0;
+        while (end < label.length() && !Character.isDigit(label.charAt(end)))
         {
-            end--;
+            end++;
+        }
+        while (end < label.length() && Character.isDigit(label.charAt(end)))
+        {
+            end++;
         }
         return label.substring(0, end);
     }

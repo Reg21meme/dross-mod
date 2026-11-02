@@ -40,6 +40,9 @@ import numpy as np
 from firekit import fmats as F
 from firekit.parts import Xform, leg, rot_matrix
 from firekit.ptero import BODY, OBS_MEMBRANE, OBS_RED, PITCH, wing_points
+from kit import noise
+from kit.paint import pick, rgba
+from rimekit.mats import _factory, _out, _speck
 from rimekit.shapes import Scaled, unit, v3
 
 ADULT_SPAN = 33.0                  # blocks, tip to tip (the user's pick)
@@ -141,11 +144,113 @@ BODY_LAVA = {
     "none": dict(keep=0.07, rim=0.92),
 }
 
+# Purple looks of E1C (the user, November 2, 2026, of the less-lava looks: "I like E1C. Maybe can you give me
+# variations of the bird but with the beak and the horns with purple, and tail, just a variation of what we have
+# here"): E1C as it is (its body, wings, eyes and lava, its half moon's glowing rim), only its bill and jaw, its half
+# moon, its two blade horns and its tail (and the spike at its end) purple: the violet of glossy and crying obsidian,
+# the family of its egg (e03_emberegg.EGG_OBSIDIAN) and its spawn egg A11. Those parts have materials of their own
+# (PURPLE_PARTS), painted as E1A-E1D's were (the same painters) unless a look colours them. The gallery's E1C1-E1C4
+# (firedesigns/e01_emberdactyl.py):
+#   "glossy"  glossy violet obsidian all over them, no lava on them (bright lilac glints where the light catches it);
+#   "fade"    deep purple at their tips fading to E1C's near-black obsidian at their roots (its few lava veins kept);
+#   "veins"   violet obsidian with lava veins glowing through it (as many as E1A has there: orange in purple);
+#   "tips"    only their ends purple (the last third of each horn, the front of the bill and jaw, the top of the half
+#             moon under its rim, the tail's end and its spike), with a faint purple glow and crying obsidian's sparks.
+VIOLET = F.palette("#1c0a32", "#2e1154", "#431a76", "#5c2698", "#7838ba", "#a066dc")       # glossy violet obsidian
+VIOLET_DEEP = F.palette("#120622", "#1e0a38", "#2e1052", "#40186e", "#56248e", "#7238b0")  # its deep purple
+VIOLET_GLOW = F.palette("#5a1c9a", "#7a2ec6", "#9a48e6", "#b874fa", "#d6a8ff")             # crying obsidian's glow
+PURPLE_PARTS = ("beak", "horn", "moon", "tail", "tailspike")
+# Which way each part grows out of the body in the rest pose (the painters' frame: +y up, -z its front), and which of
+# its texels' spreads that is (0 its longest way; the half moon's is along the bill, so its height is its second):
+# root (0) to tip (1), worked out from the part's own texels.
+PART_GROWS = {"beak": ((0.0, 0.0, -1.0), 0), "horn": ((0.0, 1.0, 1.0), 0), "moon": ((0.0, 1.0, 0.0), 1),
+              "tail": ((0.0, 0.0, 1.0), 0), "tailspike": ((0.0, 0.0, 1.0), 0)}
+# E1C's painter each part keeps unless a look colours it, and its seed and lava veins (E1A's amount: E1C keeps a
+# quarter of them, BODY_LAVA["little"]).
+PART_BASE = {"beak": ("beak", 1811, 1.7, 0.08), "horn": ("crest", 1819, 1.8, 0.12), "moon": ("crest", 1819, 1.8, 0.12),
+             "tail": ("hide", 1801, 1.6, 0.14), "tailspike": ("spike", 1821, 1.8, 0.0)}
+PURPLE = {
+    # (fade, tips: w = how purple a texel is, 0 at the part's root .. 1 at its tip, from `ramp` (where it starts and
+    # where it's all purple, as shares of the way out); the tail's spike is all purple, being its tip)
+    "glossy": dict(pal=VIOLET, gloss=2.1, veins=None),
+    "fade": dict(pal=VIOLET_DEEP, gloss=1.8, veins="kept", ramp=(0.05, 0.85)),
+    "veins": dict(pal=VIOLET, gloss=1.8, veins="all", vein_floor=0.12),
+    "tips": dict(pal=VIOLET, gloss=2.0, veins="kept", ramp=(0.6, 0.72), spike_ramp=None, glow=52.0, sparks=0.05),
+}
 
-def materials(young=False, eye=None, lava=None):
+
+def along(tx, grows, rank=0):
+    """Each texel's place along its part, 0 at its root to 1 at its tip: the part's texels' `rank`-th longest spread
+    (rest pose), pointed the way the part grows (`grows`)."""
+    p = tx.Pw
+    mid = p.mean(axis=0)
+    if tx.n < 3:
+        return np.zeros(tx.n)
+    vals, vecs = np.linalg.eigh(np.cov((p - mid).T))
+    axis = vecs[:, np.argsort(vals)[::-1][rank]]
+    if float(axis @ np.asarray(grows, dtype=float)) < 0.0:
+        axis = -axis
+    d = (p - mid) @ axis
+    return (d - d.min()) / max(float(d.max() - d.min()), 1e-6)
+
+
+@_factory(True)
+def toward_tip(root, tip, grows, rank=0, ramp=None, glow=0.0, sparks=0.0, seed=1851):
+    """
+    A part painted `root` at its root and `tip` towards its tip (two painters of the same seed and veins, so the
+    lava veins run on through), blended smoothly over `ramp` (shares of the way out; None: all `tip`); `glow`: a faint
+    purple glow (its alpha) over what's purple, `sparks` (a share) of crying obsidian's brighter specks in it.
+    """
+
+    def paint(tx):
+        b = tip(tx)
+        if ramp is None:
+            w = np.ones(tx.n)
+        else:
+            a = root(tx)
+            s = np.clip((along(tx, grows, rank) - ramp[0]) / max(ramp[1] - ramp[0], 1e-6), 0.0, 1.0)
+            w = s * s * (3.0 - 2.0 * s)
+        col = b["color"] * w[:, None] if ramp is None else a["color"] * (1.0 - w[:, None]) + b["color"] * w[:, None]
+        g = b["glow"] * w[:, None] if ramp is None else a["glow"] * (1.0 - w[:, None]) + b["glow"] * w[:, None]
+        if glow > 0:
+            lit = (g[:, 3] < 1.0) & (w > 0.05)
+            k = 1.2 + (noise.fbm(tx.Pw, 5.0, 2, seed) - 0.5) * 2.0
+            spark = lit & (_speck(tx.Pw, seed + 1, 1.2) < sparks)
+            g[lit] = rgba(pick(VIOLET_GLOW, k[lit]), glow * w[lit])
+            g[spark] = rgba(pick(VIOLET_GLOW, np.full(int(spark.sum()), 4.0)), 190.0 * w[spark])
+            col = np.where(spark[:, None], pick(VIOLET_GLOW, np.full(tx.n, 3.0)), col)
+        return _out(tx, col, None, g)
+
+    return paint
+
+
+def purple_parts(look, base):
+    """The painters of a purple look (PURPLE) for the parts it colours, over E1C's painters `base`."""
+    spec = PURPLE[look]
+    out = {}
+    for part in PURPLE_PARTS:
+        mat, seed, gloss, veins = PART_BASE[part]
+        if spec["veins"] == "all":
+            v, keep = max(veins, spec.get("vein_floor", 0.0)), 1.0
+        elif spec["veins"] == "kept":
+            v, keep = veins, BODY_LAVA["little"]["keep"]
+        else:
+            v, keep = 0.0, 1.0
+        tip = F.obsidian(spec["pal"], seed=seed, gloss=spec["gloss"], veins=v, vein_keep=keep)
+        ramp = spec.get("ramp")
+        if part == "tailspike":
+            ramp = spec.get("spike_ramp")
+        grows, rank = PART_GROWS[part]
+        out[part] = toward_tip(base[mat], tip, grows, rank, ramp=ramp, glow=spec.get("glow", 0.0),
+                               sparks=spec.get("sparks", 0.0), seed=1851 + PURPLE_PARTS.index(part) * 7)
+    return out
+
+
+def materials(young=False, eye=None, lava=None, purple=None):
     """Obsidian with lava in its veins: a little on the adult's scales; the young's hide all run through with lava
     (the user: "much more magma"). `eye`: an eye study's key in EYE_STYLES (None: the adult's own eyes). `lava`: a key
-    of BODY_LAVA (the adult with less lava on its body; None: E1A's)."""
+    of BODY_LAVA (the adult with less lava on its body; None: E1A's). `purple`: a key of PURPLE (its bill, jaw, half
+    moon, horns and tail purple; None: as the rest of it)."""
     cut = BODY_LAVA[lava] if lava is not None and not young else dict(keep=1.0, rim=0.0)
     keep = cut["keep"]
     out = {
@@ -188,6 +293,11 @@ def materials(young=False, eye=None, lava=None):
         })
     if cut["rim"] > 0:
         out["seam"] = F.lava(F.EMBER, seed=1813, crust=cut["rim"], crust_pal=OBS_RED)
+    # (its horns, half moon and tail have materials of their own: the same painters as the rest of it, so the looks
+    # without purple are exactly as they were)
+    out.update(horn=out["crest"], moon=out["crest"], tail=out["hide"], tailspike=out["spike"])
+    if purple is not None and not young:
+        out.update(purple_parts(purple, out))
     eye = eye or (YOUNG_EYE if young else ADULT_EYE)
     out["eye"] = F.eye_disc(seed=1817, **EYES[eye]["eye"])
     return out
@@ -451,11 +561,12 @@ def lids(sl, c, style):
         s.box(e + np.array([sign * (LID_X - 7.6), 0.0, 0.0]), (2.4, st["size"] + 0.4, st["size"] + 0.4), "lid")
 
 
-def head(sh, sj, c, d, sl=None, pieces=None):
+def head(sh, sj, c, d, sl=None, pieces=None, horn_mat="crest", moon_mat="crest"):
     """The head round `c`: the upper bill, its teeth, eyes, brows, horns and the half moon on `sh`; the lower jaw, its
     teeth and the tongue on `sj` (it opens to screech). `pieces` ({"bill", "horn_l", "horn_r", "crest": shape}, the
     adult's): the upper bill with its teeth, each horn and the half moon each on a shape of its own instead (its
-    death breaks them off and throws them: firemobs/emberdactyl.py)."""
+    death breaks them off and throws them: firemobs/emberdactyl.py). `horn_mat`, `moon_mat`: the horns' and the half
+    moon's materials (the living animal's have names of their own, so its purple looks can colour them: PURPLE)."""
     c = v3(c)
     pieces = pieces or {}
     sh.blob(c, (8.0, 7.5, 12.0), "hide", axis=(0, 0, 1), side=(1, 0, 0), slices=4)
@@ -476,7 +587,7 @@ def head(sh, sj, c, d, sl=None, pieces=None):
     for sign in (1.0, -1.0):
         b = back + np.array([sign * 2.5, 0.0, 0.0])
         pieces.get("horn_l" if sign > 0 else "horn_r", sh).taper([b, b + np.array([sign * 2.0, 16.0 * h, 16.0 * h]), b + np.array([sign * 4.0, 26.0 * h, 42.0 * h])],
-                 [2.0, 2.0, 1.0], "crest", depths=[12.0, 10.0, 2.0], side=(1, 0, 0))
+                 [2.0, 2.0, 1.0], horn_mat, depths=[12.0, 10.0, 2.0], side=(1, 0, 0))
     # the half moon standing on the bill all along it, its foot sunk into the bill's top, a glowing rim round its arc
     zc = (MOON_FROM + MOON_TO) / 2.0
     r = (MOON_FROM - MOON_TO) / 2.0
@@ -489,7 +600,7 @@ def head(sh, sj, c, d, sl=None, pieces=None):
         base = bill_top(c, zm) - 1.5
         top = bill_top(c, zm) + hgt
         pieces.get("crest", sh).box(np.array([0.0, (base + top) / 2.0, c[2] + zm]), (2.0, max(1.0, top - base),
-                                                                                    z1 - z0 + 0.4), "crest")
+                                                                                    z1 - z0 + 0.4), moon_mat)
     for i in range(12):
         a = math.pi * (i + 0.5) / 12
         zm = zc - math.cos(a) * r
@@ -599,7 +710,8 @@ def build(s, young=False, span=None):
     head(Scaled(part("head"), head_k), Scaled(part("jaw"), head_k), hc / head_k,
          {"horn": 1.6, "eye": YOUNG_EYE if young else ADULT_EYE},
          [Scaled(part(f"lid_{side}"), head_k) for side, _s in SIDES],
-         None if young else {name: Scaled(part(name), head_k) for name in ("bill", "horn_l", "horn_r", "crest")})
+         None if young else {name: Scaled(part(name), head_k) for name in ("bill", "horn_l", "horn_r", "crest")},
+         horn_mat="horn", moon_mat="moon")
     # the legs, hanging, and their talons
     for side, sign in SIDES:
         hip, knee, ankle = leg_points(sign, slim)
@@ -614,8 +726,9 @@ def build(s, young=False, span=None):
     # the tail: short, spiked
     tail = part("tail")
     root = BODY + np.array([0.0, 0.0, 24.0])
-    tail.cone(root, root + np.array([0.0, -6.0, 22.0]), 7, "hide", steps=3)
-    tail.cone(root + np.array([0.0, -4.0, 18.0]), root + np.array([0.0, -8.0, 30.0]), 3, "spike", steps=2)
+    # (its own materials, painted as its hide and spikes unless a purple look colours them: PURPLE)
+    tail.cone(root, root + np.array([0.0, -6.0, 22.0]), 7, "tail", steps=3)
+    tail.cone(root + np.array([0.0, -4.0, 18.0]), root + np.array([0.0, -8.0, 30.0]), 3, "tailspike", steps=2)
     # the wings
     for side, sign in SIDES:
         lead, mlead, trail = wing_edges(sign, young, t0, slim)

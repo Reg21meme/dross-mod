@@ -26,6 +26,9 @@ import net.minecraft.world.phys.Vec3;
 public class EmberEgg extends FireCandidate
 {
     private static final String TAG_VOLCANO = "Volcano";
+    /** Whether it has hatched, saved as such: its design's number moves whenever looks are added to the gallery
+     *  (November 2: E3B went from 67 to 71), so the saved number alone could bring it back in another design. */
+    private static final String TAG_HATCHED = "Hatched";
     private long volcano;
 
     public EmberEgg(EntityType<? extends EmberEgg> type, Level level)
@@ -77,6 +80,7 @@ public class EmberEgg extends FireCandidate
     {
         super.addAdditionalSaveData(tag);
         tag.putLong(TAG_VOLCANO, this.volcano);
+        tag.putBoolean(TAG_HATCHED, this.isHatched());
     }
 
     @Override
@@ -84,6 +88,15 @@ public class EmberEgg extends FireCandidate
     {
         super.readAdditionalSaveData(tag);
         this.volcano = tag.getLong(TAG_VOLCANO);
+        if (tag.contains(TAG_HATCHED))
+        {
+            this.setDesign(EmberBoss.design(tag.getBoolean(TAG_HATCHED) ? "E3E" : "E3B"));
+        }
+        else if (!this.isHatched() && this.getDesign().number() != EmberBoss.design("E3B"))
+        {
+            // (saved before it kept its state: whatever its old number is now, it's an egg in its nest)
+            this.setDesign(EmberBoss.design("E3B"));
+        }
     }
 
     /** The egg standing in the nest at {@code nest} (within a few blocks), if one does. */

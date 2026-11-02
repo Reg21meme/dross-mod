@@ -42,7 +42,7 @@ python tools/fire/mobs.py                     # the designs that move: their ske
 python tools/fire/mobs.py hermit --no-gif     # one mob, without the GIFs (much quicker)
 python tools/fire/sounds.py                   # their sounds (after mobs.py: the moments come from the animations)
 python tools/fire/shapes.py                   # the Emberdactyl's collision boxes (after mobs.py): EmberShapes.java
-python tools/fire/lava_looks.py               # E1A-E1D side by side (after mobs.py emberdactyl)
+python tools/fire/lava_looks.py               # E1A-E1D and E1C with E1C1-E1C4 side by side (after mobs.py emberdactyl)
 ```
 
 **The designs that move** (`mobs.py`, the modules in `firemobs/`; it reuses the Rimefall animals' kit,
@@ -93,6 +93,22 @@ at random, so the veins that are left look as before). They're full moving desig
 view a row (the whole animal by day and at night, its head close up, its body with its wings left off), with the share
 of its body's and wings' texels that glow: `boss-previews/cinder_wastes/emberdactyl/lava_looks/lava_looks.png`. The game's
 fight still wears E1A.
+
+**E1C with purple** (the user, November 2, 2026: "I like E1C. Maybe can you give me variations of the bird but with the
+beak and the horns with purple, and tail, just a variation of what we have here"): E1C1-E1C4, E1C exactly (its body,
+wings, eyes, lava, its half moon's glowing rim) with its bill and jaw, half moon, two blade horns and tail (and the spike
+at its end) purple, the violet of glossy and crying obsidian (the family of its egg and its spawn egg A11): **E1C1
+glossy violet** (glossy violet obsidian, no lava on them), **E1C2 violet fade** (deep purple at their tips fading to
+E1C's near-black at their roots, E1C's few lava veins kept), **E1C3 violet and lava** (violet with lava veins glowing
+through it, as many as E1A has there), **E1C4 violet tips** (only the last third of each horn, the front of its bill and
+jaw, the top of its half moon under its rim and its tail's end and spike purple, glowing faintly purple with crying
+obsidian's sparks). Those parts have materials of their own (`horn`, `moon`, `tail`, `tailspike`, and `beak`), the same
+painters as the rest of it in every other look, so E1A-E1D and the young are exactly as they were; `PURPLE` in
+`firekit/emberdactyl.py` holds the four looks (`VIOLET`, `VIOLET_DEEP`, `VIOLET_GLOW`), each part's way out from its root
+worked out from its own texels (`along`, `PART_GROWS`) for the fade and the tips (`toward_tip`). `lava_looks.py` draws
+them side by side with close-ups of the head and tail, by day and at night:
+`boss-previews/cinder_wastes/emberdactyl/purple_looks/purple_looks.png`. In the gallery they stand after E1D in the front
+row (the gallery about 340 blocks wide now; its animation buttons reach 360 blocks round you).
 
 **Its peck in the air** (the user, November 1, 2026: "when facing an enemy that can fly, the Emberdactyl can do its
 peck in the air"): `air_snap` (`firemobs/emberdactyl.py`, `AIR_SNAP*`; its young's 1.6 times as fast), a loop of one
