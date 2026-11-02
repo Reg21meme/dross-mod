@@ -240,26 +240,44 @@ or so deep"; all of them in a showcase, 1-2 in every Cinder Wastes area). Not mo
 igloos (`tools/huntsman/igloos.py`), drawn on the shrine kit's voxel grid with the villages' kit (its template writer,
 walking and light checks).
 
+**Round 2** (the user's look at round 1, November 2, 2026: "I like number 7 ... but I expected it to be like, there's a
+hill, and he builds inside the hill ... We can have some underground ones ... some loot and stuff behind, some pots,
+pottery ... not actual stairs ... only 1 per cave"): every design is in No. 7's style, and comes in two kinds. Round 1's
+seven, its kit and its tool are archived in `cavedesigns/round1/` (previews in `boss-previews/.../hermit_caves/round1/`).
+
 ```
-python tools/fire/hermit_caves.py                 # every cave: templates, previews, the Java table
-python tools/fire/hermit_caves.py sinkhole_den    # only these (the Java table is left alone)
-python tools/fire/hermit_caves.py --no-nbt        # previews only
+python tools/fire/hermit_caves.py                     # every cave: templates, previews, the Java table
+python tools/fire/hermit_caves.py hillside_burrows    # only these (the Java table is left alone)
+python tools/fire/hermit_caves.py --no-nbt            # previews only
 ```
 
-- `cavekit.py`: the kit. A design carves its open space, fills solid features into it, then `line()` walls it in with
-  its own stone (every cell at or under the ground next to it), so its lava is walled in by the template's own blocks
-  wherever it's placed; then pools (`pool()`: lava flush with the floor, a bed under it, a lip where a side was open),
-  lights (`auto_light()`: shroomlights set into the walls, or a lantern from the ceiling, until every floor is lit) and
-  props. Its checks fail the build: every lava block has lava or a solid full block under it and on its four sides;
-  nothing floats; every small thing has its support; every floor cell under the ground can be walked to from the way in
-  (up 1, down 1-2) and has block light 1 or more; every crab spot has a free box 7 wide, 6 tall and 7 deep (the Cinder
-  Hermit is about 6.3 x 4-5.3 x 6.3) over a floor.
-- `cavedesigns/c1_sinkhole_den.py` ... `c7_steam_burrows.py`: the seven (Sinkhole Den, Lava Tide Pools, Shell Midden,
-  Collapsed Lava Tube, Basalt Geode, Bone Reef, Steam Vent Burrows). Each template is 29 x 29, its ground block at layer
-  12 (its floor 10 down), 7 layers over the ground, its way in at the south.
+- `cavekit.py`: the kit (its docstring says it all). **Hillside** caves run back into a hill at the way in's level:
+  their open space is `roofed`, so `line()` walls it in above the ground too, with an outer rind (2 thick there), and
+  `foundation()` fills rock under every column of it down to the template's bottom; everything else is unset (structure
+  void), so the hill stays as it is and is the roof, and where the hill is lower the shell shows as a rocky outcrop,
+  never an opening or an overhang. **Underground** caves lie on flat land, their floor 3 down: the way down is a cutting
+  (`carve_slope_z`, a full block every two), the den's roof a mound of ash (`cover()`: over the shell, sloping down to
+  nothing before the template's edge; `heap()` for humps), a ground-level ceiling plain ash (`line(ground=...)`). Loot:
+  `pot()` (decorated pots with sherds), `dig()` (suspicious gravel, its find from `archaeology/hermit_cave`), `barrel()`
+  (`chests/hermit_cave`). The checks fail the build: lava walled in under and on all four sides; nothing floats, and
+  nothing over the ground with nothing of the cave under it; every small thing has its support (suspicious gravel a full
+  block under it); every floor cell inside walked to from the way in and lit; exactly one crab spot with its free box 7
+  x 6 x 7; no stairs or slabs anywhere; every barrel and chest opening onto the room.
+- `cavedesigns/burrows.py`: No. 7's parts (the vent mound, floor vents, the lava burrow, the midden of spare shells, the
+  crab's nest of ash drifts, the mouth's frame). The designs: `h1_hillside_burrows.py` (No. 7 in a hill: a den, the
+  nest at the back, a lava burrow, a midden), `h2_long_gallery.py` (a wide mouth, a gallery along the hill with two
+  pillars and two vents, lava at one end, the midden at the other, the nest behind), `h3_claw_burrows.py` (a narrow
+  mouth, a step down into the den, three burrows fanned out behind like a claw), `u1_ash_mound.py` and
+  `u2_twin_hump.py` (underground: the den 3 down under its mound, the nest, a lava pool, and through a 1-wide crawl the
+  crab can't follow, the loot room). Hillside templates are 29 x 29, underground 37 x 37 (room for the mound); the way
+  in at the south.
 
 It writes `src/main/resources/data/dross/structures/hermit_cave/<id>.nbt`, the generated
-`boss/fire/cave/HermitCaveDesigns.java` (sizes, way in, crab spots, darkest floor cell, lava count) and the previews in
-`boss-previews/cinder_wastes/mobs/hermit_caves/` (each from outside, cut open two ways with its crab spots' corners in
-orange glass, from above with its roof off; `all_caves.png`, `index.html`). In the game: `/dross showcase hermit_caves`;
-in the world `boss/fire/cave/HermitCaveSites` plans them and `/dross goto hermit_cave` visits the nearest.
+`boss/fire/cave/HermitCaveDesigns.java` (kind, sizes, way in, the crab spot, the rooms, the shell's top, darkest floor
+cell, lava count) and the previews in `boss-previews/cinder_wastes/mobs/hermit_caves/` (a hillside cave in a 12-high
+hill and a 6-high one, cut open two ways with its crab spot's corners in orange glass, from above with its roof off; an
+underground one from outside, cut open, from above; `all_caves.png`, `index.html`). In the game: `/dross showcase
+hermit_caves` (a hillside cave against a built-up hill); in the world `boss/fire/cave/HermitCaveSites` plans them (a
+hillside one only where the land rises behind its way in) and `/dross goto hermit_cave` visits the nearest. The probe
+`HermitCaveProbeGameTest` (`-PgameTestNamespaces=dross_hermit_probe`) plans 72 patches over 6 seeds and builds the
+nearest real cave of each kind, logging a slice through it.

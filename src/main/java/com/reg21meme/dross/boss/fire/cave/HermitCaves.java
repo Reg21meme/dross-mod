@@ -101,7 +101,8 @@ public final class HermitCaves
     }
 
     /**
-     * Its crab spots in the world: the cells a Cinder Hermit's feet stand in (its middle), each with a free box 7 wide,
+     * Its crab spot in the world (a list of one: one Cinder Hermit a cave since round 2): the cell a Cinder Hermit's feet
+     * stand in (its middle), with a free box 7 wide,
      * 6 tall and 7 deep round it. (The hermits themselves come with their own mob: this is where to put them.)
      */
     public static java.util.List<BlockPos> crabSpots(BlockPos ground, Direction front, HermitCaveDesigns.Cave cave)

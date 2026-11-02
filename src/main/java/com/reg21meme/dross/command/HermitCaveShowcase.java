@@ -37,12 +37,16 @@ import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 
 /**
- * {@code /dross showcase hermit_caves} (test tool, cheats only): builds the seven hermit crab caves (the boss area's
+ * {@code /dross showcase hermit_caves} (test tool, cheats only): builds the hermit crab caves (the boss area's
  * {@link HermitCaveDesigns}, made by tools/fire/hermit_caves.py; the user, October 31, 2026: "I want all of these designs
- * in a showcase") in a row ahead of you, their ways in facing you, each sunk into its own block of prepared ground:
- * Duskstone (the Dross's rock) {@link #UNDER} deep, Ash on top with patches of basalt and blackstone, the air cleared
- * over it. A sign by each way in ("No. N", its name); one cave is built each server tick; when it's done the chat lists
- * them with [go] buttons (each stands you at a way in, facing in) and an [overview]. Running it again rebuilds them.
+ * in a showcase") in a row ahead of you, their ways in facing you, each on its own block of prepared ground: Duskstone
+ * (the Dross's rock) {@link #UNDER} deep, Ash on top with patches of basalt and blackstone, the air cleared over it. A
+ * hillside cave (round 2, the user's "he builds inside the hill") is built into a hill raised behind its way in, the way
+ * it sits in the world: basalt and blackstone under ash, rising {@link #HILL_SLOPE} blocks a block from its way in to
+ * {@link #HILL_TOP} (a Cinder Wastes mesa's edge; the same hill as tools/fire/hermit_caves.py's previews). An underground
+ * one goes under the flat ground. Each has its one Cinder Hermit. A sign by each way in ("No. N", its name); one cave is
+ * built each server tick; when it's done the chat lists them with [go] buttons (each stands you at a way in, facing in)
+ * and an [overview]. Running it again rebuilds them.
  * In a world whose ground is too near the bottom (a superflat world) the plots' ground is raised so the caves fit.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
@@ -59,7 +63,13 @@ public final class HermitCaveShowcase
     static final int MARGIN = 3;
     static final int UNDER = 14;
     /** Air is cleared this high over the ground. */
-    static final int CLEAR_ABOVE = 12;
+    static final int CLEAR_ABOVE = 16;
+    /** A hillside cave's hill: this many blocks over the ground at its way in, rising this many blocks a block back from
+     * its way in's row, and dropping this many a block past the sides and back of its footprint (tools/fire/
+     * hermit_caves.py's HILL_TOP and HILL_SLOPE). */
+    static final int HILL_TOP = 12;
+    static final double HILL_SLOPE = 2.5D;
+    static final int HILL_SIDE_DROP = 4;
     /** The sign stands this many blocks out from the way in and this many to its right; a [go] button puts you this
      * far out from it. */
     static final int SIGN_OUT = 1;
@@ -197,12 +207,16 @@ public final class HermitCaveShowcase
                     level.setBlock(pos.set(x, y, z), rock, FLAGS);
                 }
                 double n = Math.sin(x * 0.23D) * Math.cos(z * 0.19D) + 0.45D * Math.sin((x - z) * 0.13D + 0.7D);
-                level.setBlock(pos.set(x, y0, z), n > 0.95D ? basalt : n < -1.05D ? blackstone : ash, FLAGS);
+                int hill = plot.cave().hillside() ? hillHeight(plan, plot, x, z) : 0;
+                level.setBlock(pos.set(x, y0, z), hill > 0 ? blackstone : n > 0.95D ? basalt : n < -1.05D ? blackstone : ash,
+                        FLAGS);
                 for (int y = y0 + 1; y <= y0 + CLEAR_ABOVE; y++)
                 {
-                    if (!level.getBlockState(pos.set(x, y, z)).isAir())
+                    BlockState want = y > y0 + hill ? air : y == y0 + hill ? ash
+                            : y >= y0 + hill - 2 || ((x * 3 + y * 5 + z * 7) & 3) != 0 ? basalt : blackstone;
+                    if (level.getBlockState(pos.set(x, y, z)) != want)
                     {
-                        level.setBlock(pos, air, FLAGS);
+                        level.setBlock(pos, want, FLAGS);
                     }
                 }
             }
@@ -223,6 +237,36 @@ public final class HermitCaveShowcase
         Showcases.placeWallSign(level, post.relative(plan.front()), plan.front(), signLines(plot));
     }
 
+    /**
+     * How high a hillside cave's hill stands over the ground at this column: nothing in front of its way in, rising
+     * {@link #HILL_SLOPE} blocks a block back from the row of its way in to {@link #HILL_TOP}, dropping
+     * {@link #HILL_SIDE_DROP} a block past the sides and back of its footprint.
+     */
+    static int hillHeight(Plan plan, Plot plot, int x, int z)
+    {
+        BlockPos door = HermitCaves.door(plot.ground(), plan.front(), plot.cave());
+        Direction into = plan.look();
+        Direction right = into.getClockWise();
+        int back = (x - door.getX()) * into.getStepX() + (z - door.getZ()) * into.getStepZ();
+        int side = Math.abs((x - plot.ground().getX()) * right.getStepX() + (z - plot.ground().getZ()) * right.getStepZ());
+        if (back < 0)
+        {
+            return 0;
+        }
+        int h = Math.min(HILL_TOP, (int) (back * HILL_SLOPE + 0.5D));
+        int half = plot.cave().width() / 2;
+        if (side > half)
+        {
+            h -= HILL_SIDE_DROP * (side - half);
+        }
+        int depth = plot.cave().depth() - 1;
+        if (back > depth)
+        {
+            h -= HILL_SIDE_DROP * (back - depth);
+        }
+        return Math.max(0, h);
+    }
+
     /** "No. 3", the name over two lines, "hermit cave". */
     static String[] signLines(Plot plot)
     {
@@ -237,7 +281,8 @@ public final class HermitCaveShowcase
         LOGGER.info("Hermit cave showcase: built {} caves from {} looking {} (ground at y {})", plan.plots().size(),
                 plan.origin().toShortString(), plan.look().getName(), plan.groundY());
         source.sendSuccess(() -> Component.literal("Built the " + plan.plots().size() + " hermit crab caves (No. 1 on the "
-                + "left), each about 10 blocks deep, with room for 2-3 Cinder Hermits. Click [go] to stand at a way in:"), true);
+                + "left): hillside dens dug into a hill, and underground dens under a mound with a loot room behind, one "
+                + "Cinder Hermit in each. Click [go] to stand at a way in:"), true);
         for (Plot plot : plan.plots())
         {
             source.sendSuccess(() -> goLine(plan, plot), false);
@@ -262,8 +307,8 @@ public final class HermitCaveShowcase
                 .withColor(DrossColors.HERMIT_CAVE_BUTTON)
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.literal(command))));
-        return line.append(Component.literal(String.format(Locale.ROOT, " No. %d %s (%d crab spot%s)", plot.number(),
-                plot.cave().name(), plot.cave().crabs().size(), plot.cave().crabs().size() == 1 ? "" : "s")));
+        return line.append(Component.literal(String.format(Locale.ROOT, " No. %d %s (%s)", plot.number(),
+                plot.cave().name(), plot.cave().hillside() ? "hillside" : "underground, a loot room behind")));
     }
 
     private static Component overviewLine(Plan plan)

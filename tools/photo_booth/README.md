@@ -27,5 +27,7 @@ The world stays in `run/saves/`, ready for the user to open.
 4. Look at every screenshot and compare it with the previews (orientation, UVs, glow layers, particles, hidden parts).
 5. Delete the class and `run/screenshots/`, restore `options.txt`, and build again.
 
-Tips: give each run's world a fresh name (or delete the old one first). Keep the rows away from 0,0 (a world without
+Tips: the template's world has structures turned off (`new WorldOptions(seed, false, false)`): to photograph a structure
+the world generates itself (in the Dross too, say a hermit crab cave reached with `execute in dross:dross run tp ...`),
+pass `true` there, or it simply never appears. Give each run's world a fresh name (or delete the old one first). Keep the rows away from 0,0 (a world without
 structures puts the trader's emergency chapel near spawn). Superflat ground is at y = -61, so feet stand at y = -60.
