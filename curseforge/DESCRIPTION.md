@@ -23,6 +23,8 @@ The Dross is a dangerous dimension for the mid-to-late game.
 <p><b>The Rat King</b>: he sleeps on his hoard of gold at the end of the sewers, until you wake him.</p>
 <p><img src="https://media.forgecdn.net/attachments/2107/191/boss_huntsman-png.png" alt="The Huntsman"></p>
 <p><b>The Huntsman</b>: he rides his Alpha Moose through frozen Rimefall, and when you knock him off, you fight them both at once.</p>
+<p><img src="boss_emberdactyl.png" alt="The Emberdactyl"></p>
+<p><b>The Emberdactyl</b>: it circles its volcano in the Cinder Wastes, guarding its egg. Bring it down and the egg hatches.</p>
 </div>
 
 ## Requirements

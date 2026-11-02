@@ -8,15 +8,18 @@ Draws the pictures for the mod's CurseForge page (into curseforge/), from the bo
     boss_cinder_colossus.png   the Cinder Colossus in its three stages: Shell, Cracking, Lava Core
     boss_rat_king.png          the Rat King awake and enraged
     boss_huntsman.png          the two bosses the Huntsman's fight splits into: the Huntsman and his Alpha Moose
+    boss_emberdactyl.png       the Emberdactyl and its young reborn, named after their boss bars: The Sky That Burns,
+                               The Ember That Remains
     thank_you.png              "THANK YOU!" in the portal frame's stone, and the bosses happy on their biomes' blocks
 
     python tools/icon/draw_page_art.py            (about 6 minutes the first time: it builds the bosses)
     python tools/icon/draw_page_art.py --fresh    (forget the saved renders, after a boss's look changes)
 
-The bosses are drawn by their own generators' renderers (tools/golems, tools/ratking, tools/rimefall) and the renders
-are kept in build/page_art_cache/, so changing the layout afterwards takes seconds. The colours come from
-DrossColors.java (the shared palette, and each boss's own colour) and the biomes' own colours
-(data/dross/worldgen/biome/). A new boss: add its class to BOSSES. Needs numpy, scipy and Pillow.
+The bosses are drawn by their own generators' renderers (tools/golems, tools/ratking, tools/rimefall; the Emberdactyl's
+game files read back the way tools/fire reads them and drawn by tools/rimefall's) and the renders are kept in
+build/page_art_cache/, so changing the layout afterwards takes seconds. The colours come from DrossColors.java (the
+shared palette, and each boss's own colour) and the biomes' own colours (data/dross/worldgen/biome/). A new boss: add
+its class to BOSSES and THANKS_ORDER. Needs numpy, scipy and Pillow.
 """
 import copy
 import importlib.util
@@ -70,6 +73,8 @@ CARD_YAW, CARD_ELEVATION = -30.0, 10.0
 THANKS_TITLE = "THANK YOU!"
 THANKS_TOP = 300          # the bosses' room starts under the title...
 THANKS_FIGURE_H = 500     # ...and the tallest of them is this many pixels tall
+THANKS_FIGURE_W = 480     # (and the widest this many pixels wide; each gets its figure's width of ground and an equal
+                          # share of the rest)
 THANKS_BLOCK = 64         # a block of the ground (16 texels of 4 pixels): each boss's biome's block over Duskstone
 THANKS_FEET = 10          # the bosses stand this far into the ground's top row (it's seen from a little above)
 THANKS_PLANTS = (0.13, 0.87)  # where a plant of its biome grows, in each boss's stretch of ground (shares of it)
@@ -81,7 +86,8 @@ DUST_SEED = 7
 # The 5 x 7 letters (only the ones the pictures use).
 GLYPHS = {
     "A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
-    "C": [".####", "#....", "#....", "#....", "#....", "#....", ".####"],
+    "B": ["####.", "#...#", "#...#", "####.", "#...#", "#...#", "####."],
+    "C":[".####", "#....", "#....", "#....", "#....", "#....", ".####"],
     "D": ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
     "E": ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
     "G": [".####", "#....", "#....", "#..##", "#...#", "#...#", ".###."],
@@ -169,6 +175,7 @@ class Boss:
     happy_yaw = 0.0  # how it's turned on the thank-you banner (degrees; +: its face to the picture's left)
     centres = None # where its poses stand on its picture (shares of its width; None: evenly spaced)
     card_box = CARD_BOX  # each of its poses fits in this box on its picture
+    own_scale = False  # True: too big to stand at the others' scale on the thank-you banner (it's fitted on its own)
 
     def __init__(self):
         self._built = False
@@ -465,8 +472,128 @@ class Huntsman(Boss):
         return mix(biome_colour(self.biome, "fog_color"), ice, 0.15), ice
 
 
+def keeping(model, keep):
+    """A copy of the model with only the boxes of the bones `keep` lets through (the rest still pose it)."""
+    out = copy.deepcopy(model)
+    for bone in out.bones:
+        if not keep(bone):
+            bone.cubes = []
+    return out
+
+
+def of(*names):
+    """A bone test: those bones and what hangs off them."""
+    return lambda bone: any(a.name in names for a in bone.ancestors())
+
+
+class Emberdactyl(Boss):
+    """
+    The Emberdactyl (E1A, 33 blocks across its wings) and its young reborn (E2A), from the game's own models,
+    textures and animations (geo/entity/firemob/emberdactyla and emberyounga, made by tools/fire/mobs.py), read back
+    and posed the way tools/fire/trophies.py reads them, and drawn by the Rimefall kit's renderer (its glow
+    full-bright, like the fire designs' previews).
+    """
+    name = "EMBERDACTYL"
+    glow = "EMBERDACTYL_WING_EMBER"   # (the embers falling from its wings)
+    biome = "cinder_wastes"
+    ground = ("ash", "emberweed")      # (the Colossus's: the two share a stretch of the Cinder Wastes' ash)
+    # its fight's two boss bars (Emberdactyl: The Sky That Burns, then its young's: The Ember That Remains)
+    poses = ("THE SKY THAT BURNS", "THE EMBER THAT REMAINS")
+    card_box = (760, 525)              # (two poses, the adult the bigger: the young is drawn at its scale; its wing
+                                       # tip just under the title)
+    centres = (0.29, 0.75)
+    own_scale = True                   # (33 blocks across its wings: at the others' scale it would fill the banner)
+    happy_yaw = -45.0                  # (on the thank-you banner: on the left, turned towards the middle)
+    STEP = 16                          # its pictures' scale counts sixteenths of a pixel a texture pixel (a giant: at a
+                                       # whole pixel a texel it's already 528 pixels across its wings)
+    TURN, LIFT = -50.0, 12.0           # its picture's view: side-on enough for its wings, its bill and its crest
+    ADULT = ("emberdactyla", "emberdactyl", "hover", 0.0)    # (model, animations, the pose: animation, second)
+    YOUNG = ("emberyounga", "emberyoung", "hover", 1.4)      # (its wings up: not the adult's pose again)
+    HAPPY = ("screech", 0.3)           # its wings flung up in a V, its beak up and open: a cheer...
+    HAPPY_TURNS = {"head": (20.0, 0.0, 0.0)}  # ...its head tipped a little forward (Bedrock degrees, added to the
+                                              # pose), so its blade horns rise behind it instead of crossing its chest
+    HEAD_TURN = (-40.0, 20.0)          # its head on the banner, seen from a little higher than the others' (its crest
+                                       # stands clear of its horns)
+    SKULL_FILL = 0.8                   # its head (not its horns or neck) fills this share of what a head may fill,
+    SKULL_Y = 0.55                     # its middle this far down its frame (its horns and neck reach off to the side)
+    HORNS = ("horn_l", "horn_r")
+    BRIGHT = 1.35                      # its lit (not glowing) colours times this
+
+    def build(self):
+        spec = importlib.util.spec_from_file_location("fire_trophies", ROOT / "tools" / "fire" / "trophies.py")
+        trophies = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(trophies)  # (it puts tools/golems, tools/rimefall and tools/fire on the path)
+        from rimekit import view
+        self.view = view
+        self.mobs = {}
+        for key, (model_id, mob, *_pose) in (("adult", self.ADULT), ("young", self.YOUNG)):
+            model = trophies.load_geo(str(Path(trophies.FIRE_GEO) / f"{model_id}.geo.json"), model_id)
+            anims = trophies.load_anims(str(Path(trophies.FIRE_ANIM) / f"{mob}.animation.json"), f"animation.{mob}.")
+            self.mobs[key] = (model, trophies.load_textures(model_id), anims)
+        adult = self.mobs["adult"][0]
+        self.head = keeping(adult, of("neck"))
+        self.skull = keeping(adult, lambda bone: of("head")(bone) and not of(*self.HORNS)(bone))
+
+    def _pose(self, key, animation, second):
+        anims = self.mobs[key][2]
+        return dict(anims[animation].sample(second))
+
+    def _draw(self, model, textures, pose, scale, yaw, elevation, bounds=None):
+        """Drawn on the key colour and cut out (not cropped), in that view window (default: the model's own)."""
+        bounds = bounds or self.view.window(model, yaw, elevation, figure=False, ground=False, pose=pose)
+        image = self.view.draw(model, textures, yaw=yaw, elevation=elevation, scale=scale / self.STEP, bounds=bounds,
+                               background=KEY, grid=False, figure=False, pose=pose, world_light=self.BRIGHT)
+        a = np.array(image.convert("RGBA"))
+        a[(a[..., 0] == KEY[0]) & (a[..., 1] == KEY[1]) & (a[..., 2] == KEY[2])] = 0
+        return Image.fromarray(a, "RGBA")
+
+    def render(self, kind, scale, angle=None):
+        textures = self.mobs["adult"][1]
+        if kind in ("head", "skull"):
+            # (its head alone is drawn in the same window as its head and neck and cropped the same way, so the two
+            # line up)
+            yaw, elevation = angle or self.HEAD_TURN
+            pose = self._pose("adult", *self.ADULT[2:])
+            bounds = self.view.window(self.head, yaw, elevation, figure=False, ground=False, pose=pose)
+            whole = self._draw(self.head, textures, pose, scale, yaw, elevation, bounds)
+            part = whole if kind == "head" else self._draw(self.skull, textures, pose, scale, yaw, elevation, bounds)
+            return part.crop(whole.getbbox())
+        turns = {}
+        if kind == "HAPPY":
+            key, (animation, second), yaw, turns = "adult", self.HAPPY, self.happy_yaw, self.HAPPY_TURNS
+        else:
+            key = "adult" if kind == self.poses[0] else "young"
+            animation, second = (self.ADULT if key == "adult" else self.YOUNG)[2:]
+            yaw = self.TURN
+        model, textures, _anims = self.mobs[key]
+        pose = self._pose(key, animation, second)
+        for bone, add in turns.items():
+            rotation, position, size = pose.get(bone, ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)))
+            pose[bone] = (tuple(r + d for r, d in zip(rotation, add)), position, size)
+        image = self._draw(model, textures, pose, scale, yaw, self.LIFT)
+        return image.crop(image.getbbox())
+
+    def framed_head(self, size, fill, angle=None):
+        """Its head as big as the other bosses': its skull, bill and crest (not its long blade horns or its neck) as
+        big as fits in fill x fill, its horns and neck reaching off to the side, the neck off the frame's edge."""
+        probe = 4 * self.STEP
+        x0, y0, x1, y1 = self.picture("skull", probe, angle).getbbox()
+        scale = max(1, int(probe * fill * self.SKULL_FILL / max(x1 - x0, y1 - y0)))
+        head = self.picture("head", scale, angle)
+        x0, y0, x1, y1 = self.picture("skull", scale, angle).getbbox()
+        left, top = round((x0 + x1 - size) / 2), round((y0 + y1) / 2 - size * self.SKULL_Y)
+        return head.crop((left, top, left + size, top + size))
+
+    def box_colours(self):
+        """A burning sky: its embers' own colour in the middle, the biome's fog at the edges (its obsidian head stands
+        out dark against it; the Colossus's box, of the same biome, is the darker one)."""
+        return mix(biome_colour(self.biome, "fog_color"), NIGHT, 0.25), colour(self.glow)
+
+
 # The bosses in the game, in the order their boxes come on the banner (a new boss: add its class here).
-BOSSES = [CinderColossus, RatKing, Huntsman]
+BOSSES = [CinderColossus, RatKing, Huntsman, Emberdactyl]
+# Their order on the thank-you banner (the Emberdactyl beside the Colossus: the two share the Cinder Wastes' ash).
+THANKS_ORDER = [Emberdactyl, CinderColossus, RatKing, Huntsman]
 
 
 def fitted(boss, kind, box, probe=4, angle=None):
@@ -663,26 +790,31 @@ def block_texture(name, size):
 
 def thanks(bosses):
     """The thank-you banner (the user's request, October 24, 2026): THANK YOU! in the portal frame's stone, and the
-    bosses happy (the Colossus's eyes upside-down U's, the Rat King and the Huntsman waving), each on its own biome's
-    ground: its block over a row of Duskstone, a plant of its biome either side."""
+    bosses happy (the Colossus's eyes upside-down U's, the Rat King and the Huntsman waving, the Emberdactyl's wings
+    flung up), each on its own biome's ground: its block over a row of Duskstone, a plant of its biome either side.
+    They stand at one scale, the tallest THANKS_FIGURE_H tall; a boss too big for that (`own_scale`: the Emberdactyl)
+    is fitted on its own."""
     w, b = BANNER_W, THANKS_BLOCK
     top = THANKS_TOP + THANKS_FIGURE_H           # the ground's top
     image = night(w, top + 2 * b)
     place(image, stone_title(THANKS_TITLE, TITLE_PIXEL, TITLE_DEPTH), w / 2, top=TITLE_TOP - 40)
-    slot = w / len(bosses)
+    room = (THANKS_FIGURE_W, THANKS_FIGURE_H)
+    scale = min(fitted(boss, "HAPPY", room) for boss in bosses if not boss.own_scale)
+    figures = [boss.picture("HAPPY", fitted(boss, "HAPPY", room) if boss.own_scale else scale) for boss in bosses]
+    # each boss's stretch of ground: its figure's width and an equal share of what's left
+    spare = (w - sum(f.width for f in figures)) / len(bosses)
+    edges = np.cumsum([0.0] + [f.width + spare for f in figures])
     stone = block_texture("duskstone", b)
     for x in range(0, w, b):
-        boss = bosses[min(len(bosses) - 1, int((x + b / 2) / slot))]
+        boss = bosses[min(len(bosses) - 1, int(np.searchsorted(edges, x + b / 2, side="right")) - 1)]
         width = min(b, w - x)
         image.alpha_composite(block_texture(boss.ground[0], b).crop((0, 0, width, b)), (x, top))
         image.alpha_composite(stone.crop((0, 0, width, b)), (x, top + b))
     for i, boss in enumerate(bosses):
         for share in THANKS_PLANTS:
-            place(image, block_texture(boss.ground[1], b), slot * (i + share), bottom=top + 2)
-    scale = min(fitted(boss, "HAPPY", (slot - 60, THANKS_FIGURE_H)) for boss in bosses)
-    for i, boss in enumerate(bosses):
-        figure = boss.picture("HAPPY", scale)
-        cx = slot * (i + 0.5)
+            place(image, block_texture(boss.ground[1], b), edges[i] + (edges[i + 1] - edges[i]) * share, bottom=top + 2)
+    for i, (boss, figure) in enumerate(zip(bosses, figures)):
+        cx = (edges[i] + edges[i + 1]) / 2
         shadow = Image.new("RGBA", image.size, (0, 0, 0, 0))
         ImageDraw.Draw(shadow).ellipse((cx - figure.width * 0.4, top + THANKS_FEET - 14,
                                         cx + figure.width * 0.4, top + THANKS_FEET + 10), fill=(0, 0, 0, 150))
@@ -705,7 +837,7 @@ def main(argv):
         path = OUT / ("boss_" + boss.name.lower().replace(" ", "_") + ".png")
         card(boss).convert("RGB").save(path)
         print(f"draw_page_art: {path}")
-    thanks(bosses).convert("RGB").save(OUT / "thank_you.png")
+    thanks([next(b for b in bosses if type(b) is cls) for cls in THANKS_ORDER]).convert("RGB").save(OUT / "thank_you.png")
     print(f"draw_page_art: {OUT / 'thank_you.png'}")
 
 
