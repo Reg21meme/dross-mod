@@ -111,6 +111,11 @@ public final class DrossColors {
      * the Huntsman's villages stand out: antler amber. */
     public static final int HUNTSMAN_VILLAGE_LABEL = 0xE0B060;
 
+    /** The [go] buttons of /dross showcase hub_camps (command/HubCampShowcase): the hub's own blue (the camps stand at
+     *  the Shattered Spire), and its [overview] button the palette's highlight. */
+    public static final int HUB_CAMP_BUTTON = PALETTE_MAIN;
+    public static final int HUB_CAMP_OVERVIEW_BUTTON = PALETTE_HIGHLIGHT;
+
     // ---------------------------------------------------------------- Dimension (dimension-builder)
     // The Dross's own blocks and plants. (Their texture colors live in the Python palettes in tools/terrain/draw_blocks.py.)
 

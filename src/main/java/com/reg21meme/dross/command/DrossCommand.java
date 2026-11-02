@@ -122,6 +122,8 @@ import net.minecraftforge.fml.common.Mod;
  *       ({@link TrophyShowcase#placeHuntsmanTrophies}; the designs are the boss area's {@code HuntsmanTrophies}).</li>
  *   <li>{@code /dross showcase trophies emberdactyl}: places the 5 Emberdactyl trophy designs the same way
  *       ({@link TrophyShowcase#placeEmberdactylTrophies}; the designs are the boss area's {@code EmberdactylTrophies}).</li>
+ *   <li>{@code /dross showcase hub_camps}: the Shattered Spire three times in a row ahead of you, each with one of the
+ *       survivors' camp designs at its steps ({@link HubCampShowcase}).</li>
  *   <li>{@code /dross boss summon colossus}: summons a fighting Cinder Colossus in front of you, facing you (not on
  *       Peaceful). From the boss area ({@link BossCommands#summonColossus}).</li>
  *   <li>{@code /dross boss arena colossus}: builds the placeholder Colossus arena round you, with a chat button that
@@ -275,8 +277,10 @@ public final class DrossCommand
                         .then(Commands.literal("frostfolk_igloos").executes(HunterIglooShowcase::run))
                         // Boss area's Frostfolk, Rimefall's villagers, one of each calling (FrostfolkShowcase).
                         .then(frostfolkShowcase())
-                        // Boss area's hermit crab caves, the Cinder Hermit's seven dens (HermitCaveShowcase).
-                        .then(Commands.literal("hermit_caves").executes(HermitCaveShowcase::run)))
+                        // Boss area's hermit crab caves, the Cinder Hermit's dens (HermitCaveShowcase).
+                        .then(Commands.literal("hermit_caves").executes(HermitCaveShowcase::run))
+                        // The survivors' camp designs at the Shattered Spire's steps (HubCampShowcase).
+                        .then(Commands.literal("hub_camps").executes(HubCampShowcase::run)))
                 // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
                 // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).
                 .then(Commands.literal("locate")
