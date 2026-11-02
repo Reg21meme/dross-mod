@@ -353,7 +353,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
     - **Hitting a mob** with it never damages or knocks it back; it gives the mob **Rage** (`dross:rage`, `RageEffect` in `registry/ModEffects`: infinite, no cure, milk doesn't remove it, its swirl hidden) **and the wand's team**; hitting it again with another colour switches its team (red, then purple, makes it purple). A short growl and a burst of team-coloured dust, and a puff of it over the mob every second while it lasts (no glowing outline: "not for now"). Players can't be raged (but its hit puts another player on its team, below). It refuses (a click and a puff of smoke) mobs with no AI (showcase entities) and the hub's survivors (they can never die, so their fight would never end). **The Wither and the Ender Dragon can be raged** (the user, October 30: "can't use the rage wand on the Wither, change that, also with the Ender Dragon"): both refuse every effect, so the Rage is put on them by force (`Rage.enrage`); the Wither had no attack-damage stat, so the Rage gave it the headbutt, which outranked its skulls, and it only floated at its enemies; now it shoots its skulls at them (`RageAi.headbutts`); the dragon was refused (it has no goals, flying by its own phases, which only go for players round the End's middle): raged with an enemy of another team in sight it's flown at it (`RageDragon`, numbers `RageTuning.DRAGON_*`): it charges through it (its head and neck hurt, its wings knock aside), flies on 30 blocks past and 12 up, turns and charges again, and every 3.5 s spits its fireball (the lingering cloud) at it when it can see it within 64 blocks; with no enemy near it circles over where it was raged, 24 blocks round and 14 up (`DRAGON_CIRCLE_*`; the user, October 30, "the Ender Dragon doesn't attack anyone": away from the End its own phases fly it off round the world's middle, 0 0, far from its enemies), and it finds its enemies through walls (it flies through them, its body often half in one). **The Dross trader can be raged** (the user, October 30: "I want to be able to affect the trader with the Rage Wand"; until then he was refused with the survivors): he headbutts like a wandering trader, and beaten down to half his health he teleports home and heals as always, which ends his fight.
     - **Players on teams** (the user, October 30: "I want to be able, using /dross, to assign @ a player name or @s etc. ... the player's colour so they can fight alongside or against mobs"; `Rage.setPlayerTeam`, `boss/rage/RageCommands`, World site wires them): **`/dross rage team <targets> <blue|red|green|yellow|purple>`** puts any players and mobs a selector finds (`@s`, a player's name, `@p`, `@a`, `@e[type=zombie,distance=..10]`...) on that team (a mob raged onto it as by the wand's hit), **`/dross rage clear <targets>`** takes them off (a mob's Rage gone too); the wand's hit on another player puts them on its team. A player can't have the Rage itself, but on a team they're in the fight (`Rage.inFight`; saved on them, kept when they die): the raged mobs of other teams go for them like any enemy (in survival or adventure: a player in creative or spectator mode is nobody's enemy, whatever their team, `Rage.areEnemies`; the user, October 30, the Huntsman "even seems to attack me in creative"), the bosses too, their own team's never do, and no blow (an arrow, a boss's slam...) between them and their teammates hurts; a puff of their colour over them now and then, like a raged mob.
     - **Seeing the teams** (the user, October 30: "particles come out from mobs when you hold the Rage Wand, to see what team they are on more easily"): holding the wand (either hand), every raged mob and every other player on a team within 64 blocks gives off specks of its team's colour all over its body every 4 ticks, which only you see (`RageEvents.showTeams`, `RageTuning.WAND_SHOW_*`).
-    - **Many at once** (the user, October 31: "think about ways how we can mass infect mobs with rage: the Rage Wand is nice but it's slow, one by one; maybe a rage bow? or a spell?"; `RageBurst`, numbers `RageTuning.WAND_BURST_*`, `BOW_BURST_RADIUS`, `BURST_*`): **the Rage Burst**, the wand's **sneak + right-click**: every mob within 8 blocks of what you're looking at (a mob or a block up to 48 blocks off) is raged onto the wand's team at once, a beam of its colour running out to it, rings of its colour rolling over the ground and a roar, "Rage Burst: N raged onto <team>" on the action bar, then the wand rests a second (right-click alone still changes its team). **The Rage Bow** (`dross:rage_bow`, `RageBowItem`; creative-only, in the Dross tab after the Moonsilver Spear; drawn by `tools/ragewand/bow.py`: a charred recurve bow laid out like Minecraft's, its string, crystal and arrowhead a second layer tinted with its team's colour): it needs no arrows; where its arrow lands every mob within 5 blocks is raged onto the bow's team (a player it hits goes onto it), no damage; its arrows trail their team's colour; sneak + right-click changes its team. Headless test: `RageGameTest.burstRagesEveryMobAround`.
+    - **Many at once** (the user, October 31: "think about ways how we can mass infect mobs with rage: the Rage Wand is nice but it's slow, one by one; maybe a rage bow? or a spell?"; `RageBurst`, numbers `RageTuning.WAND_BURST_*`, `BOW_BURST_RADIUS`, `BURST_*`): **the Rage Burst**, the wand's **sneak + right-click**: every mob within 8 blocks of what you're looking at (a mob or a block up to 48 blocks off) is raged onto the wand's team at once, a beam of its colour running out to it, rings of its colour rolling over the ground and a roar, "Rage Burst: N raged onto <team>" on the action bar, then the wand rests a second (right-click alone still changes its team). **The Rage Bow** (`dross:rage_bow`, `RageBowItem`; creative-only, in the Dross tab after the Moonsilver Spear; drawn by `tools/ragewand/bow.py`: a charred recurve bow laid out like Minecraft's, its string, crystal and arrowhead a second layer tinted with its team's colour): it needs no arrows; where its arrow lands every mob within 5 blocks is raged onto the bow's team (a player it hits goes onto it), no damage; its arrows trail their team's colour; sneak + right-click changes its team. Headless test: `RageGameTest.burstRagesEveryMobAround`. **A hitscan gun since November 2** (the user: the arrows dropped and were slow, "make it a gun ... instantly and shoot fast, so a hitscan"): right-click fires at once along where you look (`RageBurst.aim`: the first living thing whose box, grown by `AIM_SLACK` 0.5, the line passes through, up to `BOW_REACH` 96 blocks, or the first block), a beam of its colour out to it, every mob within 5 blocks of what it hit raged (no roar each shot), a player hit put on its team; held, it keeps firing every 4 ticks (`BOW_FIRE_TICKS`); no arrows at all now. The wand's burst aims the same way. Headless test: `RageGameTest.hitscanAimFindsWhatsOnTheLine` (the zombie on the line, one 0.7 off it, never one behind a wall).
     - **The bedrock arena sees across** (the user, October 31: "in the arena mobs have infinite vision of other raged mobs on the other side of the arena", its far ends 89 blocks apart, past the 40-block reach): inside a bedrock test arena a raged mob counts every raged enemy in the whole arena as in reach (`Rage.inRange`, `Rage.arenaOf`, `RageTuning.ARENA_RAGE_RANGE`) and tracks and finds paths that far (`ARENA_FOLLOW_RANGE`); it still has to see it, so with the walls between the sections closed each keeps to its own.
     - **The dragon's and the warden's bars** (the user, October 31: "I wanna see the ender dragon health bar now only when the rage wand is active, same with warden ... basic is fine"): a raged Ender Dragon or warden shows Minecraft's plain boss bar (its name and health; the dragon's pink, the warden's blue) to players within 96 blocks while it's raged and alive (`RageBars`, `RageTuning.BAR_*`); it leaves every screen when the mob dies, is gone, loses its Rage or stops ticking. A dragon of the End's own fight keeps the End's bar and gets no second one.
     - **Team fights:** a raged mob **never targets, chases or hits its own team** (friendly blows do no damage either). **The team beats natural enmity** (the user, October 17): an iron golem and a zombie, or a pillager and an iron golem or villager, on one team leave each other alone. When a mob joins or switches team (the wand's hit, a boss's minions joining or moving with it, a reload), it and every raged teammate within 48 blocks (`SETTLE_RANGE`) drop each other at once (`Rage.settleTeam`: the target and the target goal that picked it, a neutral mob's anger, a warden's anger, hurt-by and last-hurt, the brain's attack target, anger, hurt-by and walk target, and the chase), so a fight two mobs started before they were teammates (one coloured a few seconds after the other) ends the moment they are; as a safety net every raged mob checks every 10 ticks (`TEAMMATE_CHECK_TICKS`) that it holds nothing against a teammate and that no target goal of its own is stuck on a refused target. (Until October 17 a target held from before was never dropped: a blue golem and a blue zombie kept chasing and swinging at each other, harmlessly, until another team's mob came.) It goes for the nearest raged mob of **another team** within **40 blocks** (`RAGE_RANGE`) that it can see (since October 30; one already in its fight it follows round corners), the next nearest when that one dies; while it has an enemy-team mob near it ignores players, even one who hits it; with none near it behaves normally towards everything except its own team (players, mobs that aren't raged). **Teams are permanent** (the user: "they stay their team forever: this is a creative-only test item"): the Rage and the team never wear off, and they survive a reload. A Rage given by `/effect` has no team and fights nobody. (Until October 16 it was a free-for-all and the last one standing calmed down after 10 s.)
@@ -1414,9 +1414,10 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       pillar is wider (7.8 across its top) to hold the bigger egg, its ring of bones and logs just clear of it. **The
       hoard** (the user, October 27: "add chests or gold at the top or ores and stuff"): two chests at the lookout, either
       side of it, **empty for now** (the user, the same day after looking: "remove all the loot from the chests, I will
-      decide what to put in them later"; their loot table is gone), gold blocks, raw gold and gilded blackstone heaped
-      round the lookout (`HOARD_GOLD` 16),
-      gold in the nest's ring round the egg (`NEST_GOLD` 0.3) and Dross ores (gold, Moonsilver, Stormite) glinting in the
+      decide what to put in them later"; their loot table is gone), Duskstone gold ore and gilded blackstone heaped
+      round the lookout (`HOARD_GOLD` 16; gold blocks and raw gold blocks until November 2, the user: "not actual gold
+      blocks, that's a little too OP ... make it the ore"), the same ores in the nest's ring round the egg (`NEST_GOLD`
+      0.3, `HOARD_ORE_SHARE`) and Dross ores (gold, Moonsilver, Stormite) glinting in the
       crater wall (`CRATER_ORES` 0.06). **The path made plain** ("make the path up a little more obvious"): paved with
       polished blackstone bricks, **a border of pale bone blocks** along both edges (two pale lines up the dark cone by
       day), **a shroomlight set into its middle every 3 blocks** (`PATH_LIGHT_EVERY`: a dotted line of light by night)
@@ -1463,8 +1464,14 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         flank, the crest beside it cut down to it and room kept clear for its body and its head held out in front
         (`EmberVolcano.planPerch`, `EmberVolcanoTuning.PERCH_*`; saved with the volcano, `EmberVolcanoData.Volcano.perch`;
         checked by `FireGalleriesGameTest.checkPerch`); the fight's state saved with the
-        volcano (`EmberVolcanoData.State`: WAITING, ADULT, YOUNG, BEATEN; a missing one, removed without dying, comes
-        again; beaten, never again).
+        volcano (`EmberVolcanoData.State`: WAITING, ADULT, YOUNG, BEATEN; beaten, never again). **It remembers its own
+        Emberdactyl by its id** (`EmberVolcanoData.boss`; the user, November 2: one chased a raged Wither out past where
+        its volcano looked for it, 130 blocks, and a second came, and that one's death hatched the egg while the first
+        lived on): a new adult (or young) comes only if none is recorded or its own was removed without dying (Peaceful,
+        `markLost` from `EmberBoss.remove`), never while its own is alive anywhere, out of sight or unloaded; only its
+        volcano's own adult hatches the egg as it dies. **Nothing spawns by itself on its ledge** (the user: "make sure
+        no mobs actually spawn on that platform"): natural spawns within 12 blocks of the perch, 6 over or under it, are
+        refused (`EmberKeeper.onSpawnPlacementCheck`, `PERCH_NO_SPAWN`).
       - **Waking**: a player (not creative or a spectator) within 60 blocks of its volcano's foot (`NOTICE_RANGE` +
         `VOLCANO_FOOT`), a raged enemy near (the Rage Wand, below), or a hit; **one from a spawn egg or
         `/dross boss summon` fights from the moment it comes and never goes back to resting** (`makeHostile`, saved as
@@ -1508,7 +1515,8 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         as its talons close, so it always catches (the user, October 30: its talons closing on nothing over their head,
         "remove this weird grab attack that doesn't grab me into the sky": it swooped from wherever it was and missed
         when too far or high; it gives up without a swoop if it can't get close in 4 s: `GRAB_SWOOP_SHARE`,
-        `GRAB_APPROACH_TICKS`); carried off and dropped near where it caught you, at most 6 blocks off (`GRAB_DRIFT`; the user, October 30: "why does he
+        `GRAB_APPROACH_TICKS`; since November 2 the swoop starts about 11 blocks off, not 18, the user: "it just does its
+        grab attack for no reason when I am not nearby": its talons reached out at the air in front of you); carried off and dropped near where it caught you, at most 6 blocks off (`GRAB_DRIFT`; the user, October 30: "why does he
         bring me up to the volcano, just drop me when we are fighting on the ground"; until then over its crater when
         it had one, the user's earlier "anywhere, lava included"); carried, you hang from its talons as its **passenger** (`positionRider`, `shouldRiderSit` false:
         your own game moves you with it, smoothly, and you look round freely; sneak and you struggle free and fall; the
@@ -1526,7 +1534,10 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         (let go, or struggled free, within 30 s) the fall's damage is cut to half the health you have then
         (`EmberBoss.capGrabFall`, `EmberKeeper.onFall`); a player carried off who logs out is let go first;
         **wing buffet** 4, a cone in front, thrown about 25 blocks (`BUFFET_THROW`; the user, October 30: "knock me
-        back 5 more blocks"; 20 before): in the air it first swoops down to 9 blocks from you,
+        back 5 more blocks"; 20 before), a blast that keeps pushing (the user, November 2: "the knockback is super small,
+        it's barely moving me back at all, I should feel the knockback": for 6 ticks whatever it threw is kept moving
+        away at 3.2 blocks a tick or more, only half its knockback resistance counting, lifted 0.8: `BUFFET_PUSH_TICKS`,
+        `BUFFET_RESIST_SHARE`, `BUFFET_LIFT`): in the air it first swoops down to 9 blocks from you,
         4 over you (`BUFFET_APPROACH`; from its circle, 18 up, it reached nobody: the user, "it needs to push me back"),
         and it throws whoever's in the cone even when the hit didn't count (a player just hurt or burning wasn't thrown);
         **screech** 1, slowed, everyone within 20 blocks thrown about 20 (the user's "20 blocks"; the young's comes back
@@ -1582,7 +1593,15 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         flying, it looks 10 ticks of its flight ahead (at least 6 blocks) and, with a wall there, turns its course to
         the nearest side with clear room, at most 12 degrees a tick, else slows and climbs (`steerClear`,
         `EmberTuning.AVOID_*`). In a space narrower than its wings (the adult's are about 37 blocks across flying, the
-        bedrock arena's 3-5 team sections 29 and less) it can't turn freely.
+        bedrock arena's 3-5 team sections 29 and less) it can't turn freely. **Never out of a wall's other side, never
+        out of its arena** (the user, November 2: "the Emberdactyl was in the bedrock arena when I was fighting him, I
+        died, went outside the arena and it somehow escaped": its dive snapped it onto the spot it dived at, a player
+        outside the wall): a move that would put its body into a block is undone (`BODY_CLEAR`); its dive lands on its
+        spot only if it can get there (no block between, its body clear there), else where the wall stopped it; dying,
+        it glides only to a resting place with nothing between; and one whose home is in a bedrock test arena (summoned
+        or spawned in it) is kept inside its walls and under its roof (`EmberBoss.keepInArena`). Headless test
+        `EmberFightGameTest.staysInItsArena` (in an arena, it goes for a cow outside the wall for 300 ticks and never
+        leaves it) and `volcanoRemembersItsOwn`.
       - **Its death on the ground** (the user's first fight: dying in the air it "seems to be falling from the floor ...
         glitches when they die"; over the steep volcano half of it sank into the rock): its death animation screams with
         its body at flying height, then drops it onto the floor (1.9 s in, the young's 1.15 s: `Kind.deathFall`); it
@@ -1604,6 +1623,9 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         blocks, to another dimension or logged out, and all of them when its boss isn't being looked after (its land
         not ticking: the user saw "The Sky That Burns" stuck on their screen far from any; `EmberBoss.sweepBars`), and
         when it goes out of a player's sight.
+      - **Quicker to act** (the adult; the user, November 2: "the boss takes its time to make decisions a little too much,
+        it should be a slight bit faster, not as fast as the younger version"): its pause between moves 18 ticks (30
+        before), its cooldowns 0.8 of their length (the young: 4 ticks, 0.4).
       - **Half health (the adult)**: no new look or animation (the user): 20% faster, cooldowns and pauses 30% shorter,
         a third tornado, and its volcano erupts every 6 s, raining 3 lava bombs (the Colossus's `LavaBlob`, temporary
         lava pools) round the players near its nest.
@@ -1883,25 +1905,34 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
       now a `PathfinderMob` with a living-mob constructor; between moves it shows its walk at its real speed,
       `shownAnimation`, or its idle; its moves synced with their sound cues). **Neutral**: they never start a fight;
       hurt, they fight back, their anger running out after 20-40 s even mid-chase, giving up 24 blocks from where the
-      chase began (`CHASE_LEASH`) and walking back; they despawn like monsters (never on Peaceful), fire and walls never
-      hurt them; they die by their own death animation, lie 1 s, then a puff of smoke.
+      chase began (`CHASE_LEASH`) and walking back; they despawn like monsters (never on Peaceful), fire, lava, magma
+      and walls never hurt them (the user, November 2: magma blocks and fire hurt the Pallbearer and the hermit, their own
+      damage rule having skipped Minecraft's one for a fire-immune mob; the golems were already immune); they die by their own death animation, lie 1 s, then a puff of smoke.
       - **The Pallbearer** (`dross:pallbearer`, M1A, 3.43 x 9.62): 60 health, armour 6, speed 0.2, 80% knockback
         resistance, 15 XP, drops 0-2 bones and charcoal. It roars when it takes on a new foe (Slowness II for 5 s on the
         players within 10 blocks), swipes (6, a wide arc out to 5 blocks, knocked away) and slams (the coffin lands 2.5
         blocks in front: 8 within 3.2 blocks, thrown up, a shockwave of ash and embers; 40% of the time, always with 2 or
-        more foes near); its funeral drum beats as it walks.
+        more foes near); its funeral drum beats as it walks. **Its walk** (the user, November 2: "he stutter steps
+        instead of walking fully"): long strides of 2.5 blocks (40 units, was 26), 1.74 blocks a second (was 1.0, so it
+        was played up to twice as fast to keep up with him: quick little steps), and its walk shows from 0.25 blocks a
+        second and stays until it's been under 0.1 for 5 ticks (`MOVING`, `STILL`, `WALK_HOLD_TICKS`; one speed for both
+        flickered it between its walk and its idle).
       - **The Cinder Hermit** (`dross:cinder_hermit`): one mob in one of its 8 shells (`CinderHermit.SHELLS`), each as
         likely, picked when it's made (natural, egg, `/summon`), saved by label (`{Shell:"M2C"}`) and synced; its hitbox
         its shell's measured size, its claws a hitbox of their own in front. 30 health, armour 8, speed 0.21, 5 XP, drops
         0-1 magma cream. It snaps (5, everything in its claw's arc) and pinches (two nips of 1.5); hurt, the hermits
-        within 12 blocks come for whoever did it; hurt, it may hide (30%, more as it weakens, then not for 10 s): in its
-        shell it takes a fifth of the damage (the bell clangs) and can't be knocked back, after 2-3 s it peeks (its eyes
+        within 12 blocks come for whoever did it; **it hides every time it loses another quarter of its health** (at
+        75%, 50% and 25% left: `HIDE_EVERY`, saved as `HideMark`; the user, November 2: "if it loses like 25% of its
+        health, it goes in the shell to hide ... if it gets one-shot, it gets one-shot": a hit that kills it still kills
+        it; until then a 30-70% chance whenever hurt): in its shell it takes **half** the damage (the user: "in its shell
+        your hits do half the damage"; a fifth until then; the bell clangs) and can't be knocked back, after 2-3 s it peeks (its eyes
         out; only a glance when angry) and comes out, striking at once if angry.
-      - **Spawning** (`worldgen.py`, the Cinder Wastes' `SPAWN_OVERRIDES`; the user's shares by count: stone golems 45%,
-        lava golems 13%, Cinder Hermits 30%, Pallbearers 12%): weights 45, 13, 20 (in groups of 1-2), 12, all four on
-        the golems' spawn cost, so the wastes hold about as many mobs as before; any light. A Pallbearer needs 10 blocks
-        of open air over the 3 x 3 round it and never comes within 64 blocks of another; never more than 4 hermits
-        within 48 (`CinderMobs`). Natural spawning only makes room for a small box; each then settles where its whole body
+      - **Spawning** (`worldgen.py`, the Cinder Wastes' `SPAWN_OVERRIDES`; the user's shares by count: stone golems 45,
+        lava golems 13, Cinder Hermits 27, Pallbearers 12, out of 97; November 2: the hermits 10% fewer, "it should be one
+        Pallbearer or one hermit crab, not both" side by side, and both more spread out): weights 45, 13, 27, 12, every
+        group of one, all four on the golems' spawn cost, so the wastes hold about as many mobs as before; any light. A
+        Pallbearer needs 10 blocks of open air over the 3 x 3 round it and never comes within 96 blocks of another (64
+        until November 2); never more than 3 hermits within 48 (4) (`CinderMobs`). Natural spawning only makes room for a small box; each then settles where its whole body
         fits (up to 3 blocks over or 1.5 up, `CinderMob.settle`) or its natural spawn is called off (`CinderMobEvents`).
         Measured on real Cinder Wastes ground: 97% of the stone golems' picks fit, 45% of the Pallbearers', 36% of the
         hermits', so in the world they come out below their shares (raise their weights, about hermit 55 and Pallbearer
@@ -2101,7 +2132,12 @@ bedrock arena seeing raged enemies anywhere in it (not yet tested in-game). Then
 Pallbearer and the Cinder Hermit as neutral Cinder Wastes mobs (spawning, eggs, the hermit's shells and hiding), the
 hermit crab caves with their crabs, a raged Wither's side heads and a raged warden kept off their own team, the Rat King
 throwing poison up at flyers, the Emberdactyl's death never falling through a floor, and its peck in the air at
-anything flying (November 2) (not yet tested in-game).
+anything flying (November 2) (not yet tested in-game). Then, from the user's look the same day: magma and fire never
+hurting the Pallbearer and the hermit, the hermit hiding every quarter of its health (half damage in its shell), the
+Pallbearer's long-stride walk, fewer and more spread-out hermits and Pallbearers, no spawns on the Emberdactyl's ledge,
+its hoard as ore, its volcano remembering its own Emberdactyl (no second one), the adult quicker between moves, a
+stronger wing buffet, a closer grab swoop, the Emberdactyl kept inside its bedrock arena, and the Rage Bow as a hitscan
+gun (not yet tested in-game).
 The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
@@ -2298,6 +2334,15 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   join in, and sometimes it hides in its shell (hits barely hurt), peeks and comes out; they walk without sliding feet;
   run away and they give up; in the Cinder Wastes hermits and the odd Pallbearer spawn among the golems, never half
   inside a bank; each hermit crab cave has 2-3 hermits in it (the showcase's too).
+- **November 2 fixes** (a new world): magma, fire and lava never hurt a Pallbearer or a hermit (stand them on magma);
+  the Pallbearer walks with long strides, never stuttering, and his walk never flickers to his idle as he slows; hit a
+  hermit: it hides each time it loses a quarter of its health (not before), hits in its shell take half, and a big
+  hit still kills it; in the Cinder Wastes hermits come one at a time and Pallbearers far apart; nothing spawns on the
+  Emberdactyl's ledge; its hoard is gold ore and gilded blackstone (no gold blocks); chase a raged Emberdactyl's
+  target far from its volcano and come back: no second Emberdactyl; the adult acts sooner between moves; its wing
+  buffet throws you clearly far; its grab only reaches for you when it's close; summon one in the bedrock arena and die
+  or walk outside: it never gets out; the Rage Bow fires instantly where you look (hold to keep firing), a beam of its
+  colour, no arrows.
 - **November 1 fixes**: rage a Wither and a warden on the same colour and some mobs on another: the two never go for
   each other; rage the Rat King against something flying (a raged Emberdactyl, a Wither): he throws plague balls up at
   it; kill an Emberdactyl standing on the bedrock arena's floor (stuck after its dive): it lies down on the floor, never

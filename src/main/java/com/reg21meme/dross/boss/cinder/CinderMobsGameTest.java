@@ -22,6 +22,7 @@ import net.minecraft.server.level.TicketType;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -59,7 +60,7 @@ import java.util.function.Supplier;
  *   <li>{@link #hermitShellSavesAndHidingCutsDamage}: a hermit's shell survives a save and load ({@code Shell}); hidden,
  *       it takes a fifth of the damage and can't be knocked back, and it peeks and comes out again.</li>
  *   <li>{@link #eggsAndSpawnRules}: the spawn eggs make them (the hermit's in one of its shells); a Pallbearer may spawn
- *       only with open air over it and no other within 64 blocks; never a fifth hermit within 48 blocks.</li>
+ *       only with open air over it and no other within 96 blocks; never a fourth hermit within 48 blocks.</li>
  * </ul>
  */
 @GameTestHolder(Dross.MODID)
@@ -394,7 +395,7 @@ public final class CinderMobsGameTest
                     {
                         throw new GameTestAssertException("a hermit should be able to spawn with one other near");
                     }
-                    // Never a fifth hermit within 48 blocks (the egg's one counts).
+                    // Never a fourth hermit within 48 blocks (the egg's one counts).
                     List<CinderHermit> crowd = new ArrayList<>();
                     for (int i = 0; i < CinderMobTuning.HERMIT_CROWD - 1; i++)
                     {
@@ -434,6 +435,80 @@ public final class CinderMobsGameTest
                     LOGGER.info("[cinder mobs test] the eggs make them; the spawn rules hold (headroom, spacing, the hermits' crowd);"
                             + " beside a bump a hermit settled {} blocks over", String.format(java.util.Locale.ROOT, "%.1f",
                             settler.position().subtract(run.at(-16, 0).getCenter().with(net.minecraft.core.Direction.Axis.Y, FLOOR_Y + 1)).length()));
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
+     * The user, November 2: the hermit hides every time it loses a quarter of its health, a hit that kills it still kills
+     * it, and magma, fire and lava never hurt the Cinder Wastes' fire mobs (they did the Pallbearer and the hermit).
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH, timeoutTicks = 2_000_000)
+    public static void hidesEveryQuarterAndFireNeverHurts(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 4);
+        CinderHermit[] hermit = new CinderHermit[1];
+        helper.startSequence()
+                .thenWaitUntil(run::ready)
+                .thenExecute(() -> run.step(() -> {
+                    run.floor();
+                    // Fire, lava and magma: nothing off any of the four.
+                    List<LivingEntity> fireMobs = new ArrayList<>();
+                    fireMobs.add(run.spawn(ModEntities.PALLBEARER.get(), -14.0D, 10.0D, 0.0F));
+                    fireMobs.add(run.spawn(ModEntities.CINDER_HERMIT.get(), 0.0D, 10.0D, 0.0F));
+                    for (EntityType<? extends LivingEntity> golem : List.of(ModEntities.STONE_GOLEM.get(), ModEntities.LAVA_GOLEM.get()))
+                    {
+                        LivingEntity g = golem.create(run.level);
+                        if (g == null)
+                        {
+                            throw new GameTestAssertException("couldn't make a golem");
+                        }
+                        g.moveTo(run.at(10 + 4 * fireMobs.size(), 10).getCenter().with(net.minecraft.core.Direction.Axis.Y, FLOOR_Y + 1));
+                        run.level.addFreshEntity(g);
+                        run.extras.add(g);
+                        fireMobs.add(g);
+                    }
+                    for (LivingEntity mob : fireMobs)
+                    {
+                        for (net.minecraft.world.damagesource.DamageSource fire : List.of(run.level.damageSources().hotFloor(),
+                                run.level.damageSources().inFire(), run.level.damageSources().onFire(), run.level.damageSources().lava()))
+                        {
+                            mob.invulnerableTime = 0;
+                            float before = mob.getHealth();
+                            mob.hurt(fire, 4.0F);
+                            if (mob.getHealth() < before)
+                            {
+                                throw new GameTestAssertException(mob.getType().getDescriptionId() + " took " + (before - mob.getHealth())
+                                        + " from " + fire.getMsgId() + " (fire mobs are immune)");
+                            }
+                        }
+                    }
+                    // A hit that would kill it kills it, out of its shell or in it.
+                    CinderHermit oneShot = run.spawn(ModEntities.CINDER_HERMIT.get(), 14.0D, -10.0D, 0.0F);
+                    oneShot.hurt(run.level.damageSources().magic(), 1000.0F);
+                    if (oneShot.isAlive() && oneShot.getHealth() > 0.0F)
+                    {
+                        throw new GameTestAssertException("a hit of 1000 should kill a hermit, it has " + oneShot.getHealth() + " left");
+                    }
+                    // 5 off (still over three quarters): it stays out; 3 more (under): it hides.
+                    hermit[0] = run.spawn(ModEntities.CINDER_HERMIT.get(), -14.0D, -10.0D, 0.0F);
+                    hermit[0].hurt(run.level.damageSources().magic(), hermit[0].getMaxHealth() * 0.2F);
+                }))
+                .thenIdle(10)
+                .thenExecute(() -> run.step(() -> {
+                    if (hermit[0].isHidden())
+                    {
+                        throw new GameTestAssertException("a fifth of its health off, it shouldn't hide yet");
+                    }
+                    hermit[0].invulnerableTime = 0;
+                    hermit[0].hurt(run.level.damageSources().magic(), hermit[0].getMaxHealth() * 0.1F);
+                }))
+                .thenWaitUntil(() -> run.waitTicks("it to hide past three quarters of its health", 40, () -> hermit[0].isHidden(),
+                        () -> hermit[0].shellRoutine() + ", " + hermit[0].getHealth() + " of " + hermit[0].getMaxHealth()))
+                .thenExecute(() -> run.step(() -> {
+                    LOGGER.info("[cinder mobs test] fire, lava and magma hurt none of the four; a big hit kills a hermit; it hides"
+                            + " past three quarters of its health");
                     run.cleanUp();
                 }))
                 .thenSucceed();

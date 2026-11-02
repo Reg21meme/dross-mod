@@ -67,33 +67,7 @@ public final class RageEvents
         if (event.phase == TickEvent.Phase.END)
         {
             RageBars.sweep();
-            RageBowItem.trail();
         }
-    }
-
-    /** A Rage Bow's arrow lands: every mob round where it landed onto its team ({@link RageBurst}), a player it hit onto
-     *  it too; it does no damage and is gone. */
-    @SubscribeEvent
-    public static void onImpact(ProjectileImpactEvent event)
-    {
-        Projectile arrow = event.getProjectile();
-        RageTeam team = RageBowItem.arrowTeam(arrow);
-        if (team == null || !(arrow.level() instanceof ServerLevel level))
-        {
-            return;
-        }
-        Player by = arrow.getOwner() instanceof Player p ? p : null;
-        if (event.getRayTraceResult() instanceof EntityHitResult hit)
-        {
-            Entity e = hit.getEntity() instanceof PartEntity<?> part ? part.getParent() : hit.getEntity();
-            if (e instanceof Player other && other != by)
-            {
-                Rage.setPlayerTeam(other, team);
-            }
-        }
-        RageBurst.burst(level, event.getRayTraceResult().getLocation(), RageTuning.BOW_BURST_RADIUS, team, by);
-        event.setImpactResult(ProjectileImpactEvent.ImpactResult.STOP_AT_CURRENT_NO_DAMAGE);
-        arrow.discard();
     }
 
     @SubscribeEvent

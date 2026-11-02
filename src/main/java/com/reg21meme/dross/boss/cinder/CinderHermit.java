@@ -52,6 +52,7 @@ public class CinderHermit extends CinderMob
     private static final EntityDataAccessor<Boolean> DATA_HIDDEN = SynchedEntityData.defineId(CinderHermit.class,
             EntityDataSerializers.BOOLEAN);
     private static final String TAG_SHELL = "Shell";
+    private static final String TAG_HIDE_MARK = "HideMark";
     /** It turns at most this many degrees a tick (a 6-block crab). */
     private static final float MAX_TURN = 10.0F;
 
@@ -62,7 +63,8 @@ public class CinderHermit extends CinderMob
     private Shell shell = Shell.OUT;
     /** (server) set when a hurt makes it want to hide (its hiding goal takes it from there) */
     private boolean wantsToHide;
-    private int hideCooldown;
+    /** (server) it hides when its health falls to this share of its most or under (then the next quarter down) */
+    private float hideMark = 1.0F - HIDE_EVERY;
     /** (server) out of its shell angry: it strikes at once */
     private boolean strikeNow;
 
@@ -166,10 +168,6 @@ public class CinderHermit extends CinderMob
     {
         super.tick();
         RimefallBodyPart.place(this, this.parts, this.isHidden() ? HERMIT_CLAW_SPOT_HIDDEN : HERMIT_CLAW_SPOT, 1.0F);
-        if (!this.level().isClientSide)
-        {
-            this.hideCooldown = Math.max(0, this.hideCooldown - 1);
-        }
     }
 
     // ---------------------------------------------------------------- what it says
@@ -215,7 +213,9 @@ public class CinderHermit extends CinderMob
 
     /**
      * In its shell it takes {@link CinderMobTuning#HIDDEN_DAMAGE_TAKEN} of the damage (never less against
-     * {@code /kill}), with a clang. Hurt, it may hide, and the hermits round it come for whoever did it.
+     * {@code /kill}), with a clang. Every quarter of its health it loses ({@link CinderMobTuning#HIDE_EVERY}), it hides
+     * (the user, November 2: "if it loses like 25% of its health, it goes in the shell to hide"; a hit that kills it
+     * still kills it: it's never shielded before it hides), and the hermits round it come for whoever hurt it.
      */
     @Override
     public boolean hurt(DamageSource source, float amount)
@@ -237,10 +237,15 @@ public class CinderHermit extends CinderMob
             {
                 this.callKin(attacker);
             }
-            if (this.shell == Shell.OUT && this.hideCooldown == 0)
+            float left = this.getHealth() / this.getMaxHealth();
+            if (left <= this.hideMark + 1.0E-4F)
             {
-                float weak = 1.0F - this.getHealth() / this.getMaxHealth();
-                this.wantsToHide = this.random.nextFloat() < HIDE_CHANCE + HIDE_CHANCE_HURT * weak;
+                // (the next quarter under where its health is now: a big hit can take it past two at once)
+                this.hideMark = (float) Math.floor((left - 1.0E-4F) / HIDE_EVERY) * HIDE_EVERY;
+                if (this.shell == Shell.OUT)
+                {
+                    this.wantsToHide = true;
+                }
             }
         }
         return hurt;
@@ -411,7 +416,6 @@ public class CinderHermit extends CinderMob
                         self.shell = Shell.OUT;
                         self.setHidden(false);
                         self.endMove();
-                        self.hideCooldown = HIDE_COOLDOWN;
                         self.strikeNow = self.getTarget() != null;
                     }
                 }
@@ -586,6 +590,7 @@ public class CinderHermit extends CinderMob
     {
         super.addAdditionalSaveData(tag);
         tag.putString(TAG_SHELL, this.getShell().label());
+        tag.putFloat(TAG_HIDE_MARK, this.hideMark);
     }
 
     @Override
@@ -593,6 +598,10 @@ public class CinderHermit extends CinderMob
     {
         FireDesigns.Design kept = this.getShell();
         super.readAdditionalSaveData(tag);
+        if (tag.contains(TAG_HIDE_MARK))
+        {
+            this.hideMark = tag.getFloat(TAG_HIDE_MARK);
+        }
         FireDesigns.Design shell = kept;
         if (tag.contains(TAG_SHELL))
         {

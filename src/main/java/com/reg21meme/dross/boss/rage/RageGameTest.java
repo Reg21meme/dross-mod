@@ -774,6 +774,52 @@ public final class RageGameTest
         helper.succeed();
     }
 
+    /** The Rage Bow's and the wand's hitscan aim (the user, November 2: "make it a gun ... instantly ... a hitscan"): the
+     *  zombie on the line is hit, one just off it (within the aim's slack) too, never one behind a wall. */
+    @GameTest(template = ARENA, batch = "dross_rage_aim", timeoutTicks = ARENA_WAIT_TICKS + 100)
+    public static void hitscanAimFindsWhatsOnTheLine(GameTestHelper helper)
+    {
+        if (waitForArena(helper, RageGameTest::hitscanAimFindsWhatsOnTheLine))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Player shooter = helper.makeMockPlayer();
+        Vec3 eyeFoot = Vec3.atBottomCenterOf(helper.absolutePos(MIDDLE.offset(-8, 0, 0)));
+        shooter.moveTo(eyeFoot.x, eyeFoot.y, eyeFoot.z, -90.0F, 0.0F);     // facing +x (east)
+        shooter.setYHeadRot(-90.0F);
+        Zombie ahead = zombie(helper, MIDDLE.offset(2, 0, 0));
+        Zombie aside = zombie(helper, MIDDLE.offset(8, 0, 0));
+        aside.setPos(aside.getX(), aside.getY(), aside.getZ() + 0.7D);          // a little off the line
+        RageBurst.Hit first = RageBurst.aim(level, shooter, 32.0D);
+        if (first.entity() != ahead)
+        {
+            discard(List.of(ahead, aside));
+            helper.fail("the shot along the line should hit the zombie 10 blocks ahead, it hit " + first.entity());
+            return;
+        }
+        ahead.discard();
+        RageBurst.Hit second = RageBurst.aim(level, shooter, 32.0D);
+        BlockPos wall = helper.absolutePos(MIDDLE.offset(4, 1, 0));
+        level.setBlock(wall, net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(), 3);
+        level.setBlock(wall.below(), net.minecraft.world.level.block.Blocks.STONE.defaultBlockState(), 3);
+        RageBurst.Hit third = RageBurst.aim(level, shooter, 32.0D);
+        level.setBlock(wall, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+        level.setBlock(wall.below(), net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+        discard(List.of(aside));
+        if (second.entity() != aside)
+        {
+            helper.fail("a zombie 0.7 blocks off the line should still be hit (the aim's slack), it hit " + second.entity());
+            return;
+        }
+        if (third.entity() != null)
+        {
+            helper.fail("a zombie behind a wall was hit: " + third.entity());
+            return;
+        }
+        helper.succeed();
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Headbutts
     // ---------------------------------------------------------------------------------------------

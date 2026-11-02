@@ -102,7 +102,7 @@ def idle(rig):
     return C.record(rig, "idle", L, frame)
 
 
-WALK = (2.6, 0.62, 26.0, 7.0)     # cycle, stance share, stride (units), lift
+WALK = (2.4, 0.6, 40.0, 10.0)    # cycle, stance share, stride (units), lift (November 2: was 2.6, 0.62, 26, 7: short shuffling steps played up to twice as fast, "he stutter steps")
 
 
 def walk(rig):

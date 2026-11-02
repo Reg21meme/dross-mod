@@ -600,7 +600,7 @@
   "subtitles.dross.emberyoung.harden": "Obsidian hardens",
   "subtitles.dross.hermit.emerge": "Cinder Hermit climbs out",
   "item.dross.rage_bow": "Rage Bow",
-  "item.dross.rage_bow.tooltip": "Its arrows enrage every mob round where they land onto this team",
+  "item.dross.rage_bow.tooltip": "Right-click (or hold) to fire: every mob round where it hits is enraged onto this team",
   "item.dross.rage_bow.tooltip.hint": "Sneak + right-click to change team",
   "item.dross.rage_bow.team_changed": "Rage Bow: %s team",
   "item.dross.rage_wand.tooltip.burst": "Sneak + right-click: Rage Burst on every mob round where you look",

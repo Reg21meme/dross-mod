@@ -25,9 +25,10 @@
   its coffin into the ground.
 - **The Cinder Hermit**: a hermit crab in one of eight shells (a bronze bell, an iron brazier, a horned skull, an urn,
   a magma conch, a crystal geode, a giant lantern, a piece of a colossus). It's neutral: hit it and its neighbours join
-  in. It sometimes hides in its shell, where hits barely hurt, peeks out and comes back fighting.
+  in. Every time it loses a quarter of its health it hides in its shell, where hits do half damage, then peeks out
+  and comes back fighting.
 - **Hermit crab caves**: seven kinds of small den (sinkholes, lava tide pools, shell middens, bone reefs, a geode and
-  more), one or two in every Cinder Wastes area, each with its hermits.
+  more), one or two in every Cinder Wastes area, each with its hermit.
 - Spawn eggs for both.
 
 ## Changes and fixes
@@ -45,7 +46,8 @@
 - **Rage Wand**: sneak + right-click rages every mob round where you look onto the wand's team. It now also works on
   the Wither, the Ender Dragon and the Dross trader, and shows every team's colour while you hold it. A raged Ender
   Dragon or Warden shows its health bar.
-- **Rage Bow**: needs no arrows; every mob round where its arrow lands joins its team.
+- **Rage Bow**: a hitscan gun, no arrows needed: it fires instantly where you look (hold to keep firing), and every
+  mob round what it hits joins its team.
 - `/dross rage team <targets> <team>` and `/dross rage clear <targets>` put players and mobs on teams.
 - `/dross boss arena bedrock [teams]`: a roofed test arena, divided into 1-5 team sections with walls that open and
   close.

@@ -51,6 +51,15 @@ public final class BedrockArenaData extends SavedData
         this.setDirty();
     }
 
+    /** Forgets the arena with its floor at {@code floor} (a test's, taken away again). */
+    public void remove(BlockPos floor)
+    {
+        if (this.arenas.removeIf(a -> a.floor().equals(floor)))
+        {
+            this.setDirty();
+        }
+    }
+
     /** The arena {@code pos} is in, else the nearest within {@code range} blocks of it, else null. */
     @Nullable
     public Arena find(BlockPos pos, double range)

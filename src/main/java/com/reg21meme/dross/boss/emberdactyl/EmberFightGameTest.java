@@ -300,6 +300,134 @@ public final class EmberFightGameTest
     }
 
     /**
+     * The user, November 2: "the Emberdactyl was in the bedrock arena when I was fighting him, I died, went outside the
+     * arena and it somehow escaped". In a bedrock arena it dives and fights a cow standing outside its wall, and never
+     * leaves the arena.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_arena", timeoutTicks = 2_000_000)
+    public static void staysInItsArena(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7600, -6400);
+        Emberdactyl[] adult = new Emberdactyl[1];
+        Cow[] cow = new Cow[1];
+        int[] ticks = {0};
+        BlockPos floor = new BlockPos(run.x, FLOOR_Y, run.z);
+        int r = com.reg21meme.dross.boss.BedrockArena.RADIUS;
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    com.reg21meme.dross.boss.BedrockArena.build(run.level, floor, 1);
+                    com.reg21meme.dross.boss.BedrockArenaData.get(run.level).add(new com.reg21meme.dross.boss.BedrockArenaData.Arena(floor, 1));
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int dx = r + 3; dx <= r + 9; dx++)
+                    {
+                        for (int dz = -3; dz <= 3; dz++)
+                        {
+                            run.level.setBlock(pos.set(run.x + dx, FLOOR_Y, run.z + dz), Blocks.STONE.defaultBlockState(), Block.UPDATE_CLIENTS);
+                        }
+                    }
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.x + r + 6.5D, FLOOR_Y + 1, run.z + 0.5D, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    cow[0].setNoAi(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(25.0D, 10.0D, 0.0D));
+                    adult[0].testMove(EmberBoss.Move.DIVE, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("300 ticks of it going for a cow outside its arena", () -> {
+                    Emberdactyl a = adult[0];
+                    double half = a.getBbWidth() * 0.5D;
+                    double dx = Math.abs(a.getX() - (run.x + 0.5D));
+                    double dz = Math.abs(a.getZ() - (run.z + 0.5D));
+                    if (dx > r + 0.5D - half + 0.01D || dz > r + 0.5D - half + 0.01D || a.getY() < FLOOR_Y + 1 - 0.01D
+                            || a.getY() + a.getBbHeight() > FLOOR_Y + com.reg21meme.dross.boss.BedrockArena.ROOF_HEIGHT + 0.01D)
+                    {
+                        run.giveUp("it got out of its arena: " + String.format("%.1f, %.1f, %.1f", a.getX() - run.x, a.getY() - FLOOR_Y,
+                                a.getZ() - run.z) + " from the floor's middle (" + a.animation() + ")");
+                    }
+                    return ++ticks[0] > 300 || run.failure != null;
+                }, () -> "tick " + ticks[0]))
+                .thenExecute(() -> run.guard(() -> {
+                    LOGGER.info("[ember test] it went for a cow outside its arena for 300 ticks and stayed inside ({} from the middle)",
+                            String.format("%.1f", Math.hypot(adult[0].getX() - run.x, adult[0].getZ() - run.z)));
+                    clearArena(run, floor);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /** Takes the test's bedrock arena away again (its blocks and its record). */
+    private static void clearArena(Run run, BlockPos floor)
+    {
+        com.reg21meme.dross.boss.BedrockArenaData.get(run.level).remove(floor);
+        int r = com.reg21meme.dross.boss.BedrockArena.RADIUS + 1;
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int dx = -r; dx <= r; dx++)
+        {
+            for (int dz = -r; dz <= r; dz++)
+            {
+                for (int y = FLOOR_Y; y <= FLOOR_Y + com.reg21meme.dross.boss.BedrockArena.ROOF_HEIGHT; y++)
+                {
+                    if (!run.level.getBlockState(pos.set(floor.getX() + dx, y, floor.getZ() + dz)).isAir())
+                    {
+                        run.level.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * The user, November 2: a second Emberdactyl came to its volcano while its own was off chasing a Wither. Its volcano
+     * remembers its own by its id: a new one may come only if none is recorded or its own was removed without dying
+     * (Peaceful), never while its own is alive anywhere, and never because one that died is gone.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_keeper", timeoutTicks = 2_000_000)
+    public static void volcanoRemembersItsOwn(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7800, -6400);
+        long id = 7_800_640_000_123L;
+        Emberdactyl[] adult = new Emberdactyl[2];
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    EmberVolcanoData data = EmberVolcanoData.get(run.level.getServer());
+                    if (!data.mayBring(id))
+                    {
+                        throw new GameTestAssertException("with none recorded, one may come");
+                    }
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(0.0D, 10.0D, 0.0D));
+                    adult[0].setHome(run.centre, null, null, 0.0F, id);
+                    data.setBoss(id, adult[0].getUUID());
+                    if (data.mayBring(id))
+                    {
+                        throw new GameTestAssertException("its own is alive: no second one may come");
+                    }
+                    // a stray one of the same volcano removed: nothing changes
+                    adult[1] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(20.0D, 10.0D, 0.0D));
+                    adult[1].setHome(run.centre, null, null, 0.0F, id);
+                    adult[1].discard();
+                    if (data.mayBring(id))
+                    {
+                        throw new GameTestAssertException("a stray second one removed shouldn't let a new one come");
+                    }
+                    // its own removed without dying (Peaceful): a new one may come
+                    adult[0].discard();
+                    if (!data.mayBring(id))
+                    {
+                        throw new GameTestAssertException("its own removed without dying: a new one may come");
+                    }
+                    data.setBoss(id, null);
+                    LOGGER.info("[ember test] a volcano remembers its own Emberdactyl: no second one while it's alive");
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
      * The user, November 1: "when facing an enemy that can fly, the Emberdactyl can do its peck in the air". An iron golem
      * hanging in the air ahead of it (no gravity: a flyer to it) gets its pecks in the air, each one counting, and the
      * Emberdactyl never comes down to the ground for it.

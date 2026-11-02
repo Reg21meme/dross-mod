@@ -5,6 +5,7 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModEntities;
 import java.util.List;
+import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
@@ -34,9 +35,10 @@ import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
  * state is saved with the volcano ({@link EmberVolcanoData.State}):
  * <ul>
  *   <li>{@code WAITING}: nothing there yet: both come ({@code ADULT}).</li>
- *   <li>{@code ADULT}: a missing egg or adult (removed without dying: Peaceful) comes again.</li>
- *   <li>{@code YOUNG} (the adult died): if its egg didn't hatch (the server stopped first), it hatches now; a missing young
- *       (removed without dying) comes again over the nest.</li>
+ *   <li>{@code ADULT}: a missing egg comes again; a new adult only if its own (known by its id, wherever it has flown)
+ *       was removed without dying (Peaceful), never while it's out of sight or unloaded somewhere.</li>
+ *   <li>{@code YOUNG} (the adult died): if its egg didn't hatch (the server stopped first), it hatches now; a new young
+ *       only on the same terms.</li>
  *   <li>{@code BEATEN} (the young died): never again (the user's rule for every boss: no respawn).</li>
  * </ul>
  */
@@ -46,6 +48,38 @@ public final class EmberKeeper
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private EmberKeeper() {}
+
+    /**
+     * Nothing spawns by itself on the Emberdactyl's ledge (the user, November 2: "we gave the Emberdactyl a little platform
+     * to hang on ... make sure no mobs actually spawn on that platform"): natural spawns within
+     * {@link EmberVolcanoTuning#PERCH_NO_SPAWN} blocks of a built volcano's perch (and a few blocks over or under it).
+     * LOWEST priority, so its DENY wins.
+     */
+    @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
+    public static void onSpawnPlacementCheck(net.minecraftforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck event)
+    {
+        MobSpawnType type = event.getSpawnType();
+        if (type != MobSpawnType.NATURAL && type != MobSpawnType.CHUNK_GENERATION)
+        {
+            return;
+        }
+        ServerLevel level = event.getLevel().getLevel();
+        if (!level.dimension().equals(ModDimensions.DROSS_LEVEL))
+        {
+            return;
+        }
+        BlockPos pos = event.getPos();
+        for (EmberVolcanoData.Volcano volcano : EmberVolcanoData.get(level.getServer()).all())
+        {
+            Vec3 perch = volcano.perch();
+            if (perch != null && Math.abs(pos.getY() - perch.y) <= EmberVolcanoTuning.PERCH_NO_SPAWN_HEIGHT
+                    && Math.hypot(pos.getX() + 0.5D - perch.x, pos.getZ() + 0.5D - perch.z) <= EmberVolcanoTuning.PERCH_NO_SPAWN)
+            {
+                event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
+                return;
+            }
+        }
+    }
 
     /** A fall after its talon grab never takes more than half of its victim's health ({@link EmberBoss#capGrabFall}). */
     @SubscribeEvent
@@ -133,8 +167,6 @@ public final class EmberKeeper
         AABB area = new AABB(nest, nest).inflate(130.0D, 140.0D, 130.0D);
         long id = volcano.id();
         EmberEgg egg = first(dross.getEntitiesOfClass(EmberEgg.class, area, e -> e.volcano() == id));
-        Emberdactyl adult = first(dross.getEntitiesOfClass(Emberdactyl.class, area, e -> e.volcano() == id));
-        EmberYoung young = first(dross.getEntitiesOfClass(EmberYoung.class, area, e -> e.volcano() == id));
         switch (state)
         {
             case WAITING, ADULT ->
@@ -143,15 +175,20 @@ public final class EmberKeeper
                 {
                     egg = EmberEgg.lay(dross, nest, perch.yaw(), id);
                 }
-                if (adult == null)
+                Emberdactyl adult = boss(dross, data, id, Emberdactyl.class, area);
+                if (adult == null && data.mayBring(id))
                 {
-                    spawnAdult(dross, volcano, perch);
+                    adult = spawnAdult(dross, volcano, perch);
+                    if (adult != null)
+                    {
+                        data.setBoss(id, adult.getUUID());
+                    }
                 }
                 data.setState(id, EmberVolcanoData.State.ADULT);
             }
             case YOUNG ->
             {
-                if (adult != null && adult.isDeadOrDying())
+                if (!dross.getEntitiesOfClass(Emberdactyl.class, area, e -> e.volcano() == id && e.isDeadOrDying()).isEmpty())
                 {
                     return;   // (still breaking apart: its egg hatches as it does)
                 }
@@ -163,15 +200,38 @@ public final class EmberKeeper
                 {
                     egg.hatch();
                 }
-                if (young == null)
+                EmberYoung young = boss(dross, data, id, EmberYoung.class, area);
+                if (young == null && data.mayBring(id))
                 {
-                    spawnYoung(dross, volcano);
+                    young = spawnYoung(dross, volcano);
+                    if (young != null)
+                    {
+                        data.setBoss(id, young.getUUID());
+                    }
                 }
             }
             default ->
             {
             }
         }
+    }
+
+    /** The volcano's own Emberdactyl of this kind: the recorded one wherever it is loaded, else one of this volcano near
+     *  its nest (then recorded), else null. */
+    @Nullable
+    private static <T extends EmberBoss> T boss(ServerLevel dross, EmberVolcanoData data, long id, Class<T> kind, AABB area)
+    {
+        UUID known = data.boss(id);
+        if (known != null && kind.isInstance(dross.getEntity(known)))
+        {
+            return kind.cast(dross.getEntity(known));
+        }
+        T near = first(dross.getEntitiesOfClass(kind, area, e -> e.volcano() == id && !e.isDeadOrDying()));
+        if (near != null && !near.getUUID().equals(known))
+        {
+            data.setBoss(id, near.getUUID());
+        }
+        return near;
     }
 
     @Nullable
@@ -201,12 +261,13 @@ public final class EmberKeeper
         return new Perch(new Vec3(spot.x, y, spot.z), yaw);
     }
 
-    static void spawnAdult(ServerLevel level, EmberVolcanoData.Volcano volcano, Perch perch)
+    @Nullable
+    static Emberdactyl spawnAdult(ServerLevel level, EmberVolcanoData.Volcano volcano, Perch perch)
     {
         Emberdactyl adult = ModEntities.EMBERDACTYL.get().create(level);
         if (adult == null)
         {
-            return;
+            return null;
         }
         adult.moveTo(perch.spot().x, perch.spot().y, perch.spot().z, perch.yaw(), 0.0F);
         adult.setYHeadRot(perch.yaw());
@@ -216,19 +277,22 @@ public final class EmberKeeper
         level.addFreshEntity(adult);
         LOGGER.info("Emberdactyl volcanoes: the Emberdactyl perches on its volcano at {} (patch {}), guarding its egg.",
                 volcano.ground().toShortString(), volcano.id());
+        return adult;
     }
 
-    static void spawnYoung(ServerLevel level, EmberVolcanoData.Volcano volcano)
+    @Nullable
+    static EmberYoung spawnYoung(ServerLevel level, EmberVolcanoData.Volcano volcano)
     {
         EmberYoung young = ModEntities.EMBERYOUNG.get().create(level);
         if (young == null)
         {
-            return;
+            return null;
         }
         Vec3 over = volcano.egg().add(0.0D, 16.0D, 0.0D);
         young.moveTo(over.x, over.y, over.z, 0.0F, 0.0F);
         young.setHome(volcano.egg(), volcano.egg(), null, 0.0F, volcano.id());
         young.finalizeSpawn(level, level.getCurrentDifficultyAt(young.blockPosition()), MobSpawnType.STRUCTURE, null, null);
         level.addFreshEntity(young);
+        return young;
     }
 }

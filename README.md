@@ -58,7 +58,7 @@ How a player moves through the mod, from a normal survival world to the Dross.
 - **Old worlds:** not supported while the mod is unpublished (the old flat Dross and its biome are gone). Start a new world.
 - **Time:** permanent night (fixed at time 18000). The sun never rises.
 - **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only their own mobs spawn there: the Cinder Colossus's **stone golems**, **lava golems** (always next to lava), the **Cinder Hermit** and the **Pallbearer**. Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
-- **The Cinder Hermit** is a 6-block hermit crab in one of eight shells (a bronze bell, an iron brazier, a horned skull, a funerary urn, a magma conch, a crystal geode, a giant lantern or a piece of the Colossus). It leaves you alone until you hit it, then snaps and pinches, and its neighbours join in; hurt, it may hide in its shell (hits barely hurt it), peek out and come back out. Each Cinder Wastes area has one or two **hermit crab caves**, small dens about 10 blocks deep with their own hermits (`/dross goto hermit_cave`).
+- **The Cinder Hermit** is a 6-block hermit crab in one of eight shells (a bronze bell, an iron brazier, a horned skull, a funerary urn, a magma conch, a crystal geode, a giant lantern or a piece of the Colossus). It leaves you alone until you hit it, then snaps and pinches, and its neighbours join in; every time it loses a quarter of its health it hides in its shell (hits there do half damage), peeks out and comes back out. Each Cinder Wastes area has one or two **hermit crab caves**, small dens about 10 blocks deep with their own hermits (`/dross goto hermit_cave`).
 - **The Pallbearer** is a towering skeleton (nearly 10 blocks) carrying a burning coffin. It also leaves you alone until hit; then it roars (slowing you), swipes and slams its coffin down.
   - **Zombies** spawn in full netherite armor with a netherite sword.
   - **Skeletons** spawn in full netherite armor and keep their bows.
@@ -660,7 +660,7 @@ mostly in the air, circling you, and never strays more than 100 blocks from its 
   You hang from its talons (look round as you like; sneak to struggle free) as it carries you up, always through open
   air, holds you a moment and drops you close to where it caught you (the young drops you higher). However high it
   drops you, the fall never takes more than half your health.
-- **Wing buffet** (it swoops down to you first): it throws you about 25 blocks. **Screech**: about 20 blocks.
+- **Wing buffet** (it swoops down to you first): a blast that throws you about 25 blocks. **Screech**: about 20 blocks.
 - **Peck in the air**: against anything flying (another Emberdactyl, a Wither, a phantom, you on elytra) it bites in
   mid-air, three quick pecks of 4 hearts, its body surging forward with each.
 
@@ -705,8 +705,9 @@ can't be cured, not even with milk.
 - A raged **Ender Dragon** or **warden** shows a plain health bar at the top of the screen to players within 96
   blocks.
 - **Many at once:** sneak + right-click with the wand casts a **Rage Burst**: every mob within 8 blocks of what you're
-  looking at joins the wand's team. The **Rage Bow** (creative only, no arrows needed) does the same where its arrows
-  land (5 blocks round); sneak + right-click changes its team.
+  looking at joins the wand's team. The **Rage Bow** (creative only) is a hitscan gun: right-click fires instantly
+  where you look (hold it to keep firing), and every mob within 5 blocks of what it hits joins its team; sneak +
+  right-click changes its team.
 - In the **bedrock test arena**, raged mobs find raged enemies anywhere in it (once they can see them).
 - It won't rage showcase mobs or the hub's survivors. The **trader** can be raged: he headbutts,
   and beaten down to half his health he teleports home and heals as always.

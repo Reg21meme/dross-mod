@@ -132,12 +132,14 @@ public final class EmberVolcanoTuning
     /** Chests at the lookout (either side of it, facing its middle), empty for now: the user will decide what goes in
      * them (October 27, 2026). */
     public static final int HOARD_CHESTS = 2;
-    /** Gold heaped round the lookout (gold blocks, raw gold, gilded blackstone; now and then two high), within this
-     * many blocks of its middle. */
+    /** Gold heaped round the lookout (Duskstone gold ore and gilded blackstone, now and then two high; gold blocks and
+     * raw gold blocks until November 2: "too OP"), within this many blocks of its middle. */
     public static final int HOARD_GOLD = 16;
     public static final double HOARD_REACH = 5.5D;
-    /** The share of the nest's ring of bones and logs that's gold instead (the egg on its hoard). */
+    /** The share of the nest's ring of bones and logs that's gold ore instead (the egg on its hoard), and the share of
+     * that which is Duskstone gold ore (the rest gilded blackstone). */
     public static final double NEST_GOLD = 0.3D;
+    public static final double HOARD_ORE_SHARE = 0.6D;
     /** The share of the crater wall's surface that's ore (Dross gold, Moonsilver, Stormite) glinting in the rock. */
     public static final double CRATER_ORES = 0.06D;
 
@@ -175,6 +177,10 @@ public final class EmberVolcanoTuning
     public static final double PERCH_BODY_BACK = 7.5D;
     public static final double PERCH_BODY_FRONT = 5.5D;
     public static final int PERCH_BODY_HEIGHT = 18;
+    /** Nothing spawns by itself within this many blocks of the perch (its ledge reaches 7.5 to each side), this many over
+     *  or under it (the user, November 2). */
+    public static final double PERCH_NO_SPAWN = 12.0D;
+    public static final int PERCH_NO_SPAWN_HEIGHT = 6;
     /** ...and for its neck and head, held out in front of it (4.8 either side, out to 15 in front, from 8 over its
      *  feet): nothing over this many blocks above the ledge there. */
     public static final double PERCH_HEAD_HALF_WIDTH = 6.0D;

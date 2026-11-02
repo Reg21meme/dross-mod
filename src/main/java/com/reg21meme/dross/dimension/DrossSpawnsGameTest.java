@@ -82,13 +82,13 @@ public final class DrossSpawnsGameTest
 
     /**
      * The user's shares for the Cinder Wastes (October 31, 2026), by count of mobs: stone golems 45%, lava golems 13%,
-     * Cinder Hermits 30%, Pallbearers 12% (a list entry's weight times its group's average size; worldgen.py's
+     * Cinder Hermits 27, Pallbearers 12, out of 97 since November 2 (a list entry's weight times its group's average size; worldgen.py's
      * SPAWN_OVERRIDES["cinder_wastes"]).
      */
-    private static final double CINDER_STONE_SHARE = 0.45D;
-    private static final double CINDER_LAVA_SHARE = 0.13D;
-    private static final double CINDER_HERMIT_SHARE = 0.30D;
-    private static final double CINDER_PALLBEARER_SHARE = 0.12D;
+    private static final double CINDER_STONE_SHARE = 45.0D / 97.0D;
+    private static final double CINDER_LAVA_SHARE = 13.0D / 97.0D;
+    private static final double CINDER_HERMIT_SHARE = 27.0D / 97.0D;
+    private static final double CINDER_PALLBEARER_SHARE = 12.0D / 97.0D;
     /** Mobs the base lists must have, and the ones the user removed from them (slimes, creepers, spiders). */
     private static final List<EntityType<?>> BASE_MONSTERS_KEPT = List.of(EntityType.ZOMBIE, EntityType.SKELETON);
     private static final List<EntityType<?>> BASE_MONSTERS_REMOVED = List.of(EntityType.SLIME, EntityType.CREEPER, EntityType.SPIDER);

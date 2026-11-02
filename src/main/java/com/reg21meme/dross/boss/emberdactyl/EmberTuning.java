@@ -53,7 +53,10 @@ public final class EmberTuning
     {
     }
 
-    public static final Kind ADULT = new Kind(ADULT_HEALTH, 10.0D, 0.55D, 1.4D, 30, 1.0D, 26.0D, 18.0D, 100.0D, 2, 1.0F, 60,
+    /** The adult (the user, November 2: "the boss takes its time to make decisions a little too much, it should be a
+     *  slight bit faster, not as fast as the younger version": its pause between moves 18 ticks, was 30, its cooldowns
+     *  0.8 of their length, were 1.0; the young's 4 and 0.4). */
+    public static final Kind ADULT = new Kind(ADULT_HEALTH, 10.0D, 0.55D, 1.4D, 18, 0.8D, 26.0D, 18.0D, 100.0D, 2, 1.0F, 60,
             5.0F, 11.0F, 38, (8.0D + 48.313D) / 16.0D, 7.0D, 30.0D);
     /** The young: 2.5 times as fast (the user, October 29), almost no rest. Its leash as long as the adult's and more
      *  (the user's first fight: "its battle range needs to be longer": at 40 blocks from its nest it never reached a
@@ -170,8 +173,10 @@ public final class EmberTuning
     public static final int GRAB_HOLD_TICKS = 12;
     /** Its swoop starts only once it's within this share of what it flies (at its fast speed) by the moment its talons
      *  close; it closes in for at most this many ticks first (else no swoop); the swoop flies no faster than this many
-     *  times its fast speed; and held up, it still catches within this many ticks after its talons close. */
-    public static final double GRAB_SWOOP_SHARE = 0.85D;
+     *  times its fast speed; and held up, it still catches within this many ticks after its talons close. (0.55 since
+     *  November 2: from 0.85 the adult started its grab about 18 blocks off, its talons reaching out at the empty air
+     *  in front of you, the user: "it just does its grab attack for no reason when I am not nearby"; now about 11.) */
+    public static final double GRAB_SWOOP_SHARE = 0.55D;
     public static final int GRAB_APPROACH_TICKS = 80;
     public static final double GRAB_SWOOP_FASTEST = 1.4D;
     public static final int GRAB_CATCH_GRACE = 8;
@@ -211,7 +216,11 @@ public final class EmberTuning
      *  30: "when he does the wing flap make it knock me back 5 more blocks": it was {@link #THROW_20}, about 20). In the
      *  air it first swoops down to this far from its target, this high over it, so its beat reaches it (from its circle,
      *  18 blocks up, it missed everyone: the user's first fight, "it needs to push me back"). Everything in the cone is
-     *  thrown, hurt or not (a player on fire, just hurt, wasn't). */
+     *  thrown, hurt or not (a player on fire, just hurt, wasn't). The throw is a blast that keeps pushing: for
+     *  {@link #BUFFET_PUSH_TICKS} ticks whatever it threw is kept moving away at least this fast (the user, November 2:
+     *  "the knockback is super small, it's barely moving me back at all, I should feel the knockback": one shove, cut by
+     *  armour's knockback resistance and the ground's friction, came to little), only {@link #BUFFET_RESIST_SHARE} of
+     *  its knockback resistance counting, lifted {@link #BUFFET_LIFT}. */
     public static final float BUFFET_DAMAGE = 8.0F;
     public static final double BUFFET_RANGE = 18.0D;
     public static final double BUFFET_REACH_DOWN = 12.0D;
@@ -220,7 +229,10 @@ public final class EmberTuning
     public static final double BUFFET_APPROACH_HEIGHT = 4.0D;
     public static final double THROW_20 = 2.2D;
     public static final double THROW_20_LIFT = 0.55D;
-    public static final double BUFFET_THROW = 2.85D;
+    public static final double BUFFET_THROW = 3.2D;
+    public static final int BUFFET_PUSH_TICKS = 6;
+    public static final double BUFFET_RESIST_SHARE = 0.5D;
+    public static final double BUFFET_LIFT = 0.8D;
     public static final int BUFFET_COOLDOWN = 120;
 
     /** Screech: 1 heart, slowness, and everyone within this many blocks thrown about 20 blocks (the user). */
@@ -298,6 +310,9 @@ public final class EmberTuning
     /** When a wall stops it, it rises at least this fast (blocks a tick) to get over it. It's never let further than
      *  this into the ground under it (blocks): pushed back up at once. */
     public static final double FLOOR_EMBED = 0.01D;
+    /** A move that would put its body into a block is undone (its box shrunk this much, so lying flush against a wall
+     *  doesn't count). */
+    public static final double BODY_CLEAR = 0.05D;
     /** Its wings are solid (the user, October 31): when turning would swing one into a block it doesn't turn, and is
      *  pushed this fast (blocks a tick) away from what's in the way, to make room. */
     public static final double WING_NUDGE = 0.08D;

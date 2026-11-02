@@ -764,20 +764,20 @@ SPAWN_CATEGORIES = ["monster", "creature", "ambient", "axolotls", "underground_w
 # is a lava golem: LAVA / (STONE + LAVA) = 20 / 100.
 # Then (the user, October 31, 2026) the Cinder Wastes' own two mobs join them, neutral (boss area, boss/cinder): the
 # Cinder Hermit (dross:cinder_hermit, a crab about 6 blocks wide in one of eight shells) and the Pallbearer
-# (dross:pallbearer, 9.6 blocks tall), both monsters by category. The user's shares by count of mobs: stone golems 45%,
-# lava golems 13%, Cinder Hermits 30%, Pallbearers 12%. A weight is picked, then its group (fewest..most) spawns, so the
-# share by count is weight x the group's average size: 45 x 1, 13 x 1, 20 x 1.5, 12 x 1 (out of 100). (Near lava a
-# lava golem is 13 / 58 of the golems, about 1 in 4.5; the top-up, WildLavaGolemTopUp, keeps it about 1 in 5 round each
-# player.) Their own spawn rules (boss/cinder/CinderMobs): a Pallbearer needs 10 blocks of open air over it and never
-# comes within 64 blocks of another; never more than 4 hermits within 48 blocks. A hermit's group of 2 is two tries:
-# vanilla puts a group's next try within 5 blocks of the last, where a 6-block crab fits only if the first try failed.
+# (dross:pallbearer, 9.6 blocks tall), both monsters by category. The user's shares by count of mobs (November 2: the
+# hermits 10% fewer, one at a time: "it should be one Pallbearer or one hermit crab, not both [together]", and both more
+# spread out): stone golems 45, lava golems 13, Cinder Hermits 27, Pallbearers 12 (out of 97). A weight is picked, then
+# its group (fewest..most) spawns, so the share by count is weight x the group's average size; every group is one now.
+# (Near lava a lava golem is 13 / 58 of the golems, about 1 in 4.5; the top-up, WildLavaGolemTopUp, keeps it about 1 in
+# 5 round each player.) Their own spawn rules (boss/cinder/CinderMobs): a Pallbearer needs 10 blocks of open air over it
+# and never comes within 96 blocks of another (64 until November 2); never more than 3 hermits within 48 blocks (4).
 CINDER_STONE_GOLEM_WEIGHT = 45
 CINDER_LAVA_GOLEM_WEIGHT = 13
 CINDER_GOLEM_GROUP_MIN = 1      # golems per spawn: always one at a time (a group would bunch them up)
 CINDER_GOLEM_GROUP_MAX = 1
-CINDER_HERMIT_WEIGHT = 20
-CINDER_HERMIT_GROUP_MIN = 1
-CINDER_HERMIT_GROUP_MAX = 2
+CINDER_HERMIT_WEIGHT = 27
+CINDER_HERMIT_GROUP_MIN = 1      # always alone (two at a time put two crabs side by side)
+CINDER_HERMIT_GROUP_MAX = 1
 CINDER_PALLBEARER_WEIGHT = 12
 CINDER_PALLBEARER_GROUP_MIN = 1  # always alone
 CINDER_PALLBEARER_GROUP_MAX = 1

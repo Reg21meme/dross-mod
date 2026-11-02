@@ -77,7 +77,7 @@ public final class FireAnims
             new Anim("death", 2.400F, false)));
     public static final Mob PALLBEARER = new Mob("pallbearer", "idle", false, List.of(
             new Anim("idle", 5.000F, true),
-            new Anim("walk", 2.600F, true),
+            new Anim("walk", 2.400F, true),
             new Anim("swipe", 1.700F, false),
             new Anim("slam", 2.200F, false),
             new Anim("roar", 2.600F, false),

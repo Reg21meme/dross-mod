@@ -132,15 +132,20 @@ public final class RageTuning
     public static final double WAND_BURST_RADIUS = 8.0D;
     public static final double WAND_BURST_REACH = 48.0D;
     public static final int WAND_BURST_COOLDOWN = 20;
-    /** Where a Rage Bow's arrow lands, every mob this far round it is raged onto the bow's team. */
+    /** The Rage Bow (a hitscan gun since November 2): it reaches this far, every mob this far round what it hits is raged
+     *  onto its team, and held it fires every this many ticks. A shot (the bow's or the wand's burst) hits a mob whose box
+     *  the line passes within this much of. */
+    public static final double BOW_REACH = 96.0D;
     public static final double BOW_BURST_RADIUS = 5.0D;
+    public static final int BOW_FIRE_TICKS = 4;
+    public static final double AIM_SLACK = 0.5D;
     /** The burst's look: the dust rings' points, its size, the puff in the middle, its roar. */
     public static final int BURST_RING_POINTS = 48;
     public static final float BURST_DUST_SIZE = 1.6F;
     public static final int BURST_CENTRE_PARTICLES = 30;
     public static final float BURST_VOLUME = 0.8F;
     public static final float BURST_PITCH = 1.4F;
-    /** The wand's beam to the burst (dust every this many blocks) and a bow arrow's trail. */
+    /** The wand's and the bow's beam (dust every this many blocks), and its dust's size. */
     public static final double BEAM_STEP = 0.8D;
     public static final float ARROW_TRAIL_SIZE = 1.0F;
 

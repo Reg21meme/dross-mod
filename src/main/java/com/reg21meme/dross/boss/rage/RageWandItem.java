@@ -125,25 +125,9 @@ public class RageWandItem extends Item
      */
     private void burst(ServerLevel level, Player player, RageTeam team)
     {
-        Vec3 eye = player.getEyePosition();
-        Vec3 look = player.getViewVector(1.0F);
-        Vec3 end = eye.add(look.scale(RageTuning.WAND_BURST_REACH));
-        BlockHitResult block = level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, player));
-        Vec3 at = block.getType() == HitResult.Type.MISS ? end : block.getLocation();
-        EntityHitResult mob = ProjectileUtil.getEntityHitResult(level, player, eye, at,
-                player.getBoundingBox().expandTowards(at.subtract(eye)).inflate(1.0D), e -> e instanceof LivingEntity && e != player);
-        if (mob != null)
-        {
-            at = mob.getLocation();
-        }
-        DustParticleOptions dust = new DustParticleOptions(DrossColors.vector(team.color()), RageTuning.ARROW_TRAIL_SIZE);
-        double length = at.distanceTo(eye);
-        for (double d = 1.0D; d < length; d += RageTuning.BEAM_STEP)
-        {
-            Vec3 p = eye.add(look.scale(d));
-            level.sendParticles(dust, p.x, p.y - 0.2D, p.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
-        }
-        RageBurst.burst(level, at, RageTuning.WAND_BURST_RADIUS, team, player);
+        RageBurst.Hit hit = RageBurst.aim(level, player, RageTuning.WAND_BURST_REACH);
+        RageBurst.beam(level, player, hit.at(), team);
+        RageBurst.burst(level, hit.at(), RageTuning.WAND_BURST_RADIUS, team, player);
         player.getCooldowns().addCooldown(this, RageTuning.WAND_BURST_COOLDOWN);
     }
 

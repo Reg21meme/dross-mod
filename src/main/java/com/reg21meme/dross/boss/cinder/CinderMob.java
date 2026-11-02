@@ -115,10 +115,29 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
         this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, false));
     }
 
+    /** (client) whether its walk shows: switched with a margin and a hold ({@link CinderMobTuning#MOVING},
+     *  {@link CinderMobTuning#STILL}, {@link CinderMobTuning#WALK_HOLD_TICKS}), so slowing down never flickers it between
+     *  its walk and its idle */
+    private boolean walkShown;
+    private int stillTicks;
+
     @Override
     public void aiStep()
     {
         super.aiStep();
+        if (this.level().isClientSide)
+        {
+            double speed = RimefallAnims.groundSpeed(this);
+            if (speed > CinderMobTuning.MOVING)
+            {
+                this.walkShown = true;
+                this.stillTicks = 0;
+            }
+            else if (speed < CinderMobTuning.STILL && ++this.stillTicks >= CinderMobTuning.WALK_HOLD_TICKS)
+            {
+                this.walkShown = false;
+            }
+        }
         if (!this.level().isClientSide && this.isAlive())
         {
             // Its anger runs out even while it chases you (false: vanilla's neutral mobs stay angry for as long as they
@@ -390,8 +409,7 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
     {
         String now = this.animation();
         FireAnims.Mob mob = this.anims();
-        if (mob != null && now.equals(mob.idle()) && !this.isDeadOrDying() && mob.get("walk") != null
-                && RimefallAnims.groundSpeed(this) > CinderMobTuning.MOVING)
+        if (mob != null && now.equals(mob.idle()) && !this.isDeadOrDying() && mob.get("walk") != null && this.walkShown)
         {
             return "walk";
         }
@@ -406,7 +424,7 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
         {
             return 1.0D;
         }
-        return Mth.clamp(RimefallAnims.groundSpeed(this) / this.walkPace(), CinderMobTuning.MIN_WALK_SPEEDUP,
+        return Mth.clamp(Math.max(RimefallAnims.groundSpeed(this), CinderMobTuning.STILL) / this.walkPace(), CinderMobTuning.MIN_WALK_SPEEDUP,
                 CinderMobTuning.MAX_WALK_SPEEDUP);
     }
 
@@ -422,8 +440,10 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
         {
             return true;
         }
+        // (fire, lava and magma never: they're fire mobs. Its type is fire-immune, but this rule replaces Minecraft's, which
+        // is where a fire-immune mob ignores fire damage: magma blocks and fire hurt them until November 2)
         return this.isRemoved() || this.isInvulnerable() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
-                && !source.isCreativePlayer();
+                && !source.isCreativePlayer() || source.is(DamageTypeTags.IS_FIRE) && this.fireImmune();
     }
 
     /** It despawns like any monster: far from every player (never with a name tag). */

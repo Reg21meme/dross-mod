@@ -33,6 +33,8 @@ import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
  */
 public class Emberdactyl extends EmberBoss
 {
+    /** (server) set as it starts dying if it's its volcano's own Emberdactyl: only then does its egg hatch */
+    private boolean ownsVolcano;
     /** Its parts' sizes (width, height): head, neck, left wing, right wing, left wing tip, right wing tip, tail. */
     private static final double[][] SIZES = {{4.5D, 4.5D}, {3.5D, 4.0D}, {7.0D, 7.0D}, {7.0D, 7.0D}, {6.0D, 8.0D},
             {6.0D, 8.0D}, {3.0D, 3.0D}};
@@ -151,9 +153,9 @@ public class Emberdactyl extends EmberBoss
 
     private void hatch()
     {
-        if (this.nest == null || !(this.level() instanceof ServerLevel level))
+        if (this.nest == null || !(this.level() instanceof ServerLevel level) || this.volcano != 0L && !this.ownsVolcano)
         {
-            return;
+            return;   // (only its volcano's own adult: never a stray second one)
         }
         EmberEgg egg = EmberEgg.findNear(level, this.nest);
         if (egg == null || egg.isHatched())
@@ -179,7 +181,9 @@ public class Emberdactyl extends EmberBoss
         young.startFighting(foe);
         if (this.volcano != 0L)
         {
-            EmberVolcanoData.get(level.getServer()).setState(this.volcano, EmberVolcanoData.State.YOUNG);
+            EmberVolcanoData data = EmberVolcanoData.get(level.getServer());
+            data.setState(this.volcano, EmberVolcanoData.State.YOUNG);
+            data.setBoss(this.volcano, young.getUUID());
         }
     }
 
@@ -188,7 +192,15 @@ public class Emberdactyl extends EmberBoss
     {
         if (this.volcano != 0L && this.level() instanceof ServerLevel level)
         {
-            EmberVolcanoData.get(level.getServer()).setState(this.volcano, EmberVolcanoData.State.YOUNG);
+            // (only if it's its volcano's own: a stray second one changes nothing)
+            EmberVolcanoData data = EmberVolcanoData.get(level.getServer());
+            java.util.UUID own = data.boss(this.volcano);
+            if (own == null || own.equals(this.getUUID()))
+            {
+                this.ownsVolcano = true;
+                data.setState(this.volcano, EmberVolcanoData.State.YOUNG);
+                data.setBoss(this.volcano, null);
+            }
         }
     }
 }

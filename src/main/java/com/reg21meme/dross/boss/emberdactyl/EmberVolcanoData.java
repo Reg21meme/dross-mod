@@ -2,9 +2,12 @@ package com.reg21meme.dross.boss.emberdactyl;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -27,6 +30,9 @@ public final class EmberVolcanoData extends SavedData
 
     private final Map<Long, Volcano> volcanoes = new LinkedHashMap<>();
     private final Map<Long, State> states = new LinkedHashMap<>();
+    /** Each volcano's Emberdactyl now (the adult, then its young), by its id; one removed without dying is "lost". */
+    private final Map<Long, UUID> bosses = new LinkedHashMap<>();
+    private final Set<Long> lost = new HashSet<>();
 
     /** Where a volcano's fight is: its egg and Emberdactyl not come yet, the adult there, its young out, or both beaten
      *  (for good: no respawn, the user's rule for every boss). */
@@ -48,6 +54,46 @@ public final class EmberVolcanoData extends SavedData
             this.states.put(id, state);
             setDirty();
         }
+    }
+
+    /**
+     * The volcano's own Emberdactyl now, wherever it is (the user, November 2: one chased a Wither past where its volcano
+     * looked for it, and a second came), or null if none is recorded.
+     */
+    @Nullable
+    public UUID boss(long id)
+    {
+        return this.bosses.get(id);
+    }
+
+    /** Records the volcano's Emberdactyl (null: none, a new one may come). */
+    public void setBoss(long id, @Nullable UUID boss)
+    {
+        if (boss == null)
+        {
+            this.bosses.remove(id);
+        }
+        else
+        {
+            this.bosses.put(id, boss);
+        }
+        this.lost.remove(id);
+        setDirty();
+    }
+
+    /** Its Emberdactyl was removed without dying (Peaceful): a new one may come. */
+    public void markLost(long id, UUID boss)
+    {
+        if (boss.equals(this.bosses.get(id)) && this.lost.add(id))
+        {
+            setDirty();
+        }
+    }
+
+    /** True if a new Emberdactyl may come to it: none recorded, or the recorded one was removed without dying. */
+    public boolean mayBring(long id)
+    {
+        return !this.bosses.containsKey(id) || this.lost.contains(id);
     }
 
     /**
@@ -121,6 +167,14 @@ public final class EmberVolcanoData extends SavedData
             {
                 data.states.put(id, State.valueOf(v.getString("State")));
             }
+            if (v.hasUUID("Boss"))
+            {
+                data.bosses.put(id, v.getUUID("Boss"));
+                if (v.getBoolean("BossLost"))
+                {
+                    data.lost.add(id);
+                }
+            }
             data.volcanoes.put(id, new Volcano(id, v.getInt("Group"), new BlockPos(v.getInt("X"), v.getInt("Y"), v.getInt("Z")),
                     v.getInt("RimY"), v.getInt("LakeY"), vec(v, "Egg"), vec(v, "PathFoot"), v.getFloat("PathFootYaw"), vec(v, "Lookout"),
                     v.getFloat("LookoutYaw"), v.contains("PerchX") ? vec(v, "Perch") : null, v.getFloat("PerchYaw"),
@@ -155,6 +209,12 @@ public final class EmberVolcanoData extends SavedData
             }
             v.putLong("BuildMillis", volcano.buildMillis());
             v.putString("State", this.state(volcano.id()).name());
+            UUID boss = this.bosses.get(volcano.id());
+            if (boss != null)
+            {
+                v.putUUID("Boss", boss);
+                v.putBoolean("BossLost", this.lost.contains(volcano.id()));
+            }
             list.add(v);
         }
         tag.put("Volcanoes", list);

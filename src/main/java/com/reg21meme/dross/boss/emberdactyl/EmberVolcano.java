@@ -1330,8 +1330,8 @@ public final class EmberVolcano
                     BlockState log = ModBlocks.CHARRED_LOG.get().defaultBlockState().setValue(RotatedPillarBlock.AXIS, along);
                     if (hash(dx, dz, 71) < NEST_GOLD)
                     {
-                        put(dx, this.nestTop + 1, dz, hash(dx, dz, 83) < 0.5D ? Blocks.GOLD_BLOCK.defaultBlockState()
-                                : Blocks.RAW_GOLD_BLOCK.defaultBlockState());
+                        put(dx, this.nestTop + 1, dz, hash(dx, dz, 83) < HOARD_ORE_SHARE
+                                ? ModBlocks.DUSKSTONE_GOLD_ORE.get().defaultBlockState() : Blocks.GILDED_BLACKSTONE.defaultBlockState());
                         continue;
                     }
                     if (roll < 0.55D)
@@ -1572,8 +1572,10 @@ public final class EmberVolcano
                 }
             }
             Collections.shuffle(spots, random);
-            BlockState[] gold = {Blocks.GOLD_BLOCK.defaultBlockState(), Blocks.RAW_GOLD_BLOCK.defaultBlockState(),
-                    Blocks.GILDED_BLACKSTONE.defaultBlockState(), Blocks.GOLD_BLOCK.defaultBlockState()};
+            // (ore, never gold or raw gold blocks: the user, November 2, "not actual gold blocks, that's a little too OP ...
+            // make it the ore")
+            BlockState[] gold = {ModBlocks.DUSKSTONE_GOLD_ORE.get().defaultBlockState(), ModBlocks.DUSKSTONE_GOLD_ORE.get().defaultBlockState(),
+                    Blocks.GILDED_BLACKSTONE.defaultBlockState()};
             for (int s = 0; s < Math.min(HOARD_GOLD, spots.size()); s++)
             {
                 int dx = spots.get(s)[0];

@@ -155,6 +155,24 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     private Vec3 swoopSpot;
     private int dropTick;
     private final Set<UUID> hitThisMove = new HashSet<>();
+    /** (server) the bedrock arena it belongs to, looked up now and then ({@link #arena}) */
+    @Nullable
+    private com.reg21meme.dross.boss.BedrockArenaData.Arena arena;
+    private boolean arenaChecked;
+    /** (server) what its wing buffet is still blowing away: the push's direction (at full strength) and ticks left */
+    private final java.util.Map<LivingEntity, Blast> blasts = new java.util.HashMap<>();
+
+    private static final class Blast
+    {
+        final Vec3 along;
+        int ticks;
+
+        Blast(Vec3 along, int ticks)
+        {
+            this.along = along;
+            this.ticks = ticks;
+        }
+    }
     /** The young's fire trail: the spot (along the ground) it last laid fire at. */
     @Nullable
     private Vec3 trailFrom;
@@ -491,7 +509,20 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             this.setDeltaMovement(go);  // (its head, a wing or its tail against a wall stops that way, like its body)
         }
+        Vec3 before = this.position();
+        boolean clearBefore = this.level().noCollision(this, this.getBoundingBox().deflate(BODY_CLEAR));
         this.move(MoverType.SELF, go);
+        if (!this.isDeadOrDying())
+        {
+            // never into a block (Minecraft lets a box already touching one slip on through it), never out of its arena
+            if (clearBefore && !this.level().noCollision(this, this.getBoundingBox().deflate(BODY_CLEAR)))
+            {
+                this.setPos(before.x, before.y, before.z);
+                this.setDeltaMovement(Vec3.ZERO);
+                blocked = true;
+            }
+            this.keepInArena();
+        }
         if ((this.horizontalCollision || blocked) && !this.isDeadOrDying())
         {
             Vec3 v = this.getDeltaMovement();
@@ -814,6 +845,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         if (this.home == null)
         {
             this.home = this.position();
+        }
+        if (!this.blasts.isEmpty())
+        {
+            this.keepBlowing();
         }
         if (this.phase == Phase.DYING || this.isDeadOrDying())
         {
@@ -1290,9 +1325,22 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
         else if (this.moveTick == impact)
         {
+            // onto its spot only if it can get there (a wall between: it crashes where the wall stopped it; the user,
+            // November 2: snapped onto a player outside the bedrock arena, it was out of it)
             this.setDeltaMovement(Vec3.ZERO);
-            this.setPos(spot.x, spot.y, spot.z);
-            this.crash(spot);
+            if (this.canReach(spot))
+            {
+                this.setPos(spot.x, spot.y, spot.z);
+            }
+            else
+            {
+                spot = new Vec3(this.getX(), this.groundAt(this.getX(), this.getZ()), this.getZ());
+                if (this.getY() < spot.y || this.getY() - spot.y < 2.0D)
+                {
+                    this.setPos(spot.x, Math.max(this.getY(), spot.y), spot.z);
+                }
+            }
+            this.crash(this.position());
         }
         else
         {
@@ -2189,7 +2237,9 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                     continue;
                 }
                 e.hurt(this.damageSources().mobAttack(this), BUFFET_DAMAGE);
-                this.throwOut(e, (d < 0.01D ? face : rel.scale(1.0D / d)).scale(BUFFET_THROW), THROW_20_LIFT);
+                Vec3 along = (d < 0.01D ? face : rel.scale(1.0D / d)).scale(BUFFET_THROW);
+                this.blasts.put(e, new Blast(along, BUFFET_PUSH_TICKS));
+                this.blow(e, along, BUFFET_LIFT);
             }
             if (this.level() instanceof ServerLevel level)
             {
@@ -2282,6 +2332,111 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 && !Rage.areTeammates(this, e)
                 && (Rage.areEnemies(this, e) || !(e instanceof EmberBoss) && !(e instanceof FireCandidate)
                 && (e instanceof Player p ? !p.isCreative() && !p.isSpectator() : e == this.getLastHurtByMob() || e == this.target)));
+    }
+
+    /** The bedrock test arena its home is in (summoned or spawned in it), looked up now and then; null if none. */
+    @Nullable
+    private com.reg21meme.dross.boss.BedrockArenaData.Arena arena()
+    {
+        if (this.home == null || !(this.level() instanceof ServerLevel level))
+        {
+            return null;
+        }
+        if (!this.arenaChecked || this.tickCount % 40 == 0)
+        {
+            this.arenaChecked = true;
+            this.arena = com.reg21meme.dross.boss.BedrockArenaData.get(level).find(BlockPos.containing(this.home), 0.0D);
+        }
+        return this.arena;
+    }
+
+    /**
+     * One of a bedrock test arena stays inside its walls and under its roof (the user, November 2: "the Emberdactyl was
+     * in the bedrock arena when I was fighting him, I died, went outside the arena and it somehow escaped").
+     */
+    private void keepInArena()
+    {
+        com.reg21meme.dross.boss.BedrockArenaData.Arena arena = this.arena();
+        if (arena == null)
+        {
+            return;
+        }
+        BlockPos f = arena.floor();
+        int r = com.reg21meme.dross.boss.BedrockArena.RADIUS;
+        double half = this.getBbWidth() * 0.5D;
+        double x = Mth.clamp(this.getX(), f.getX() - r + half, f.getX() + r + 1 - half);
+        double z = Mth.clamp(this.getZ(), f.getZ() - r + half, f.getZ() + r + 1 - half);
+        double y = Mth.clamp(this.getY(), f.getY() + 1.0D,
+                Math.max(f.getY() + 1.0D, f.getY() + com.reg21meme.dross.boss.BedrockArena.ROOF_HEIGHT - this.getBbHeight()));
+        if (x != this.getX() || y != this.getY() || z != this.getZ())
+        {
+            this.setPos(x, y, z);
+            Vec3 v = this.getDeltaMovement();
+            this.setDeltaMovement(x != this.getX() ? 0.0D : v.x, y != this.getY() ? 0.0D : v.y, z != this.getZ() ? 0.0D : v.z);
+        }
+    }
+
+    /** True if (x, z) is inside its arena's walls (always, without one). */
+    private boolean inArena(double x, double z)
+    {
+        com.reg21meme.dross.boss.BedrockArenaData.Arena arena = this.arena();
+        if (arena == null)
+        {
+            return true;
+        }
+        int r = com.reg21meme.dross.boss.BedrockArena.RADIUS;
+        double half = this.getBbWidth() * 0.5D;
+        return Math.abs(x - (arena.floor().getX() + 0.5D)) <= r + 0.5D - half && Math.abs(z - (arena.floor().getZ() + 0.5D)) <= r + 0.5D - half;
+    }
+
+    /** True if nothing solid stands on the straight line between two spots (a little over each, its body's middle). */
+    private boolean clearLine(Vec3 from, Vec3 to)
+    {
+        Vec3 a = from.add(0.0D, 1.5D, 0.0D);
+        Vec3 b = to.add(0.0D, 1.5D, 0.0D);
+        return this.level().clip(new net.minecraft.world.level.ClipContext(a, b, net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, this)).getType() == net.minecraft.world.phys.HitResult.Type.MISS;
+    }
+
+    /** True if it can get to {@code spot} from where it is: no block between, its body clear there, inside its arena. */
+    private boolean canReach(Vec3 spot)
+    {
+        return this.inArena(spot.x, spot.z) && this.clearLine(this.position(), spot)
+                && this.level().noCollision(this, this.getBoundingBox().move(spot.subtract(this.position())).deflate(BODY_CLEAR));
+    }
+
+    /** The wing buffet's blast: keeps everything it threw moving away at least as fast as the throw, a few ticks. */
+    private void keepBlowing()
+    {
+        this.blasts.entrySet().removeIf(entry -> {
+            LivingEntity e = entry.getKey();
+            Blast blast = entry.getValue();
+            if (!e.isAlive() || --blast.ticks <= 0 || e.level() != this.level())
+            {
+                return true;
+            }
+            this.blow(e, blast.along, 0.0D);
+            return false;
+        });
+    }
+
+    /** One push of the buffet's blast: at least {@code along} away (only part of its knockback resistance counting),
+     *  lifted to at least {@code up} (a player's client is told). */
+    private void blow(LivingEntity e, Vec3 along, double up)
+    {
+        double resist = 1.0D - BUFFET_RESIST_SHARE * Mth.clamp(e.getAttributeValue(
+                net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE), 0.0D, 1.0D);
+        Vec3 dir = along.normalize();
+        Vec3 v = e.getDeltaMovement();
+        double now = v.x * dir.x + v.z * dir.z;
+        double want = along.length() * resist;
+        if (now < want)
+        {
+            v = v.add(dir.x * (want - now), 0.0D, dir.z * (want - now));
+        }
+        e.setDeltaMovement(v.x, Math.max(v.y, up), v.z);
+        e.hurtMarked = true;
+        e.hasImpulse = true;
     }
 
     /** Throws something: its push along the ground and up (a player's client is told). */
@@ -2411,6 +2566,12 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     @Override
     public void remove(RemovalReason reason)
     {
+        // removed without dying (Peaceful, a command): its volcano may bring a new one (unloaded, it's still there)
+        if ((reason == RemovalReason.DISCARDED || reason == RemovalReason.CHANGED_DIMENSION) && this.volcano != 0L
+                && !this.isDeadOrDying() && this.level() instanceof ServerLevel level)
+        {
+            EmberVolcanoData.get(level.getServer()).markLost(this.volcano, this.getUUID());
+        }
         this.dropBar();
         if (this.bar != null)
         {
@@ -2497,9 +2658,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 double x = from.x + i * 2.0D;
                 double z = from.z + j * 2.0D;
                 double d = Math.hypot(x - from.x, z - from.z);
-                if (d > search || !this.level().hasChunksAt(BlockPos.containing(x - r, 0, z - r), BlockPos.containing(x + r, 0, z + r)))
+                if (d > search || !this.level().hasChunksAt(BlockPos.containing(x - r, 0, z - r), BlockPos.containing(x + r, 0, z + r))
+                        || !this.inArena(x, z) || !this.clearLine(from, new Vec3(x, this.groundAt(x, z), z)))
                 {
-                    continue;
+                    continue;   // (only where it can glide to: never past a wall, never out of its arena)
                 }
                 double lo = Double.MAX_VALUE;
                 double hi = -Double.MAX_VALUE;

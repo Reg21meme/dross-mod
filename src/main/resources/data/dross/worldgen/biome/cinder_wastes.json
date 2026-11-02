@@ -41,9 +41,9 @@
       },
       {
         "type": "dross:cinder_hermit",
-        "weight": 20,
+        "weight": 27,
         "minCount": 1,
-        "maxCount": 2
+        "maxCount": 1
       },
       {
         "type": "dross:pallbearer",

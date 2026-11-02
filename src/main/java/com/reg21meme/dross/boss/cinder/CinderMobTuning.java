@@ -17,8 +17,11 @@ public final class CinderMobTuning
     public static final int ANGER_MAX_SECONDS = 40;
     /** It gives up a chase once it's this far from where the chase began, and walks back there. */
     public static final double CHASE_LEASH = 24.0D;
-    /** Below this (blocks a second) it counts as standing still (its idle shows, not its walk). */
-    public static final double MOVING = 0.15D;
+    /** Over this (blocks a second) its walk shows; it goes back to its idle only once it's been under {@link #STILL} for
+     *  {@link #WALK_HOLD_TICKS} ticks (one speed for both flickered between them as it slowed: November 2). */
+    public static final double MOVING = 0.25D;
+    public static final double STILL = 0.1D;
+    public static final int WALK_HOLD_TICKS = 5;
     /** Its walk plays at most this much faster or slower than it was made (to keep its feet from sliding). */
     public static final double MIN_WALK_SPEEDUP = 0.4D;
     public static final double MAX_WALK_SPEEDUP = 2.6D;
@@ -48,9 +51,10 @@ public final class CinderMobTuning
     /** Closing in on what it fights (times its speed): about 2.1 blocks a second. */
     public static final double PALLBEARER_CHASE_SPEED = 1.1D;
     /** Blocks a second its walk's feet cover as made ({@code tools/fire/firemobs/anims.json}, its walk's "speed"). */
-    public static final double PALLBEARER_WALK_PACE = 1.008D;
-    /** Blocks it walks between two footfalls (its stride: 26 units a foot). */
-    public static final double PALLBEARER_STEP_LENGTH = 1.6D;
+    public static final double PALLBEARER_WALK_PACE = 1.74D;
+    /** Blocks it walks between two footfalls (its stride: 40 units a foot since November 2, was 26: short shuffling steps,
+     *  played up to twice as fast to keep up with him, "he stutter steps instead of walking fully"). */
+    public static final double PALLBEARER_STEP_LENGTH = 2.09D;
     /** While it walks, its funeral drum beats at most this often. */
     public static final int PALLBEARER_DRUM_TICKS = 140;
     public static final int PALLBEARER_XP = 15;
@@ -102,7 +106,7 @@ public final class CinderMobTuning
     /** Natural spawning: open air this many blocks up over where it stands (it's 9.6 tall), and never this close to
      *  another Pallbearer. */
     public static final int PALLBEARER_HEADROOM = 10;
-    public static final double PALLBEARER_SPACING = 64.0D;
+    public static final double PALLBEARER_SPACING = 96.0D;
 
     // ---------------------------------------------------------------- the Cinder Hermit
 
@@ -142,13 +146,12 @@ public final class CinderMobTuning
     /** It snaps (rather than pinches) this often when both are ready. */
     public static final float SNAP_CHANCE = 0.55F;
 
-    /** Hiding: hurt, it pulls into its shell this often (more as it weakens: up to HIDE_CHANCE + HIDE_CHANCE_HURT at
-     *  no health), then waits before it may hide again. */
-    public static final float HIDE_CHANCE = 0.3F;
-    public static final float HIDE_CHANCE_HURT = 0.4F;
-    public static final int HIDE_COOLDOWN = 200;
-    /** In its shell it takes this share of the damage (80% less), and it can't be knocked back. */
-    public static final float HIDDEN_DAMAGE_TAKEN = 0.2F;
+    /** Hiding (the user, November 2): it pulls into its shell every time it has lost this share of its health (at 75%,
+     *  50% and 25% left; until then a 30-70% chance whenever it was hurt). */
+    public static final float HIDE_EVERY = 0.25F;
+    /** In its shell it takes this share of the damage (the user: "in its shell your hits do half the damage"; a fifth
+     *  until November 2), and it can't be knocked back. */
+    public static final float HIDDEN_DAMAGE_TAKEN = 0.5F;
     /** Its hide animation (1.2 s), then hidden for 2-3 s, then it peeks (its eyes out: the whole look round, 4.1 s, or
      *  just a glance when it's angry), then comes out (2.45 s; out of its shell at 1.4 s). */
     public static final int HIDE_TICKS = 24;
@@ -160,7 +163,7 @@ public final class CinderMobTuning
     public static final int COME_OUT_FREE_TICK = 28;
 
     /** Natural spawning: never more than this many hermits within HERMIT_CROWD_RANGE blocks. */
-    public static final int HERMIT_CROWD = 4;
+    public static final int HERMIT_CROWD = 3;
     public static final double HERMIT_CROWD_RANGE = 48.0D;
 
     /** Its claws' own hitbox in front of its body (its body's is a square round its middle; the crab reaches about 6
