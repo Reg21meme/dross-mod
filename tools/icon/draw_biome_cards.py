@@ -29,29 +29,31 @@ art.GLYPHS.setdefault("X", ["#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#"
 art.GLYPHS.setdefault(",", ["..", "..", "..", "..", "..", ".#", "#."])
 art.GLYPHS.setdefault("'", ["#", "#", ".", ".", ".", ".", "."])
 
-# Each biome: its card's title, the screenshot it uses, the line under the title, the title's colour.
+# Each biome: its card's title, the screenshot it uses, the line under the title, the title's colour, and where the
+# card is cut from the screenshot top to bottom (0 its top, 0.5 its middle, 1 its foot).
 BIOMES = [
     ("silverwood_forest", "SILVERWOOD FOREST", "1_close", "DARK SILVERWOOD TREES HUNG WITH GLOWING STORMVINE",
-     (127, 168, 255)),
-    ("cinder_wastes", "CINDER WASTES", "1_close", "ASH, BASALT AND LAVA, WHERE THE PALLBEARER WALKS",
-     (255, 140, 40)),
-    ("blightwood", "BLIGHTWOOD", "1_close", "A ROTTING FOREST OVER THE RAT KING'S SEWERS",
-     (150, 220, 70)),
-    ("rimefall", "RIMEFALL", "1_close", "FROZEN LAKES, RIMEHORN HERDS AND THE FROSTFOLK",
-     (190, 230, 255)),
-    ("gravecrags", "THE GRAVECRAGS", "1_close", "SNOWY PEAKS HIGH OVER THE DROSS",
-     (205, 205, 215)),
+     (127, 168, 255), 0.5),
+    ("cinder_wastes", "CINDER WASTES", "a_close", "ASH, BASALT AND LAVA, WHERE THE PALLBEARER WALKS",
+     (255, 140, 40), 0.0),
+    ("blightwood", "BLIGHTWOOD", "3_high", "A ROTTING FOREST OVER THE RAT KING'S SEWERS",
+     (150, 220, 70), 0.5),
+    ("rimefall", "RIMEFALL", "3_high", "FROZEN LAKES, RIMEHORN HERDS AND THE FROSTFOLK",
+     (190, 230, 255), 0.5),
+    ("gravecrags", "THE GRAVECRAGS", "d_round0", "SNOWY PEAKS HIGH OVER THE DROSS",
+     (205, 205, 215), 0.0),
 ]
 TITLE_PIXEL = 11          # one pixel of the title's letters, in image pixels
 LINE_PIXEL = 4            # ...of the line under it
 MARGIN = 54               # from the card's left and bottom edges
 SHADE_FROM = 0.45         # the card darkens from this share of its height down...
 SHADE = 0.78              # ...to this much dark at its foot
-BRIGHTNESS = 1.12         # the screenshot a little brighter (the Dross is always night)
+BRIGHTNESS = 1.18         # the screenshot a little brighter (the Dross is always night)
 
 
-def crop_to_card(shot):
-    """The screenshot cut to the cards' shape (centred) and scaled to their size."""
+def crop_to_card(shot, anchor=0.5):
+    """The screenshot cut to the cards' shape (across its middle; top to bottom at `anchor`) and scaled to their
+    size."""
     w, h = shot.size
     want = art.CARD_W / art.CARD_H
     if w / h > want:
@@ -59,7 +61,8 @@ def crop_to_card(shot):
         box = ((w - cw) // 2, 0, (w - cw) // 2 + cw, h)
     else:
         ch = int(w / want)
-        box = (0, (h - ch) // 2, w, (h - ch) // 2 + ch)
+        top = int((h - ch) * anchor)
+        box = (0, top, w, top + ch)
     return shot.crop(box).resize((art.CARD_W, art.CARD_H), Image.LANCZOS)
 
 
@@ -75,8 +78,8 @@ def shade(card):
     return card
 
 
-def biome_card(shot, title, line, colour):
-    card = ImageEnhance.Brightness(crop_to_card(shot.convert("RGB"))).enhance(BRIGHTNESS).convert("RGBA")
+def biome_card(shot, title, line, colour, anchor=0.5):
+    card = ImageEnhance.Brightness(crop_to_card(shot.convert("RGB"), anchor)).enhance(BRIGHTNESS).convert("RGBA")
     card = shade(card)
     sub = art.label(line, LINE_PIXEL, (225, 230, 240))
     name = art.label(title, TITLE_PIXEL, colour)
@@ -89,9 +92,9 @@ def main(argv):
     if len(argv) < 2:
         raise SystemExit("usage: python tools/icon/draw_biome_cards.py <screenshots folder>")
     shots = Path(argv[1])
-    for biome, title, which, line, colour in BIOMES:
+    for biome, title, which, line, colour, anchor in BIOMES:
         path = shots / f"tour_{biome}_{which}.png"
-        card = biome_card(Image.open(path), title, line, colour)
+        card = biome_card(Image.open(path), title, line, colour, anchor)
         out = art.OUT / f"biome_{biome}.png"
         card.convert("RGB").save(out)
         print(f"draw_biome_cards: {out}")
