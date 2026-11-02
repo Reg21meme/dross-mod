@@ -1,6 +1,8 @@
 """
 Draws the biome pictures for the mod's CurseForge page (into curseforge/), one per Dross biome: an in-game screenshot
-of the biome with a few of its mobs (taken by a temporary photo booth, tools/photo_booth/), cropped to the boss cards'
+of the biome, its creatures only far off and few (the user, November 2: "natural, don't clump them together ... maybe
+you see a group of Rimehorns or a moose in the background, but you don't have to see everything"; taken by a temporary
+photo booth, tools/photo_booth/, from over the land looking across it), cropped to the boss cards'
 size, darkened towards its foot, with the biome's name in the page's blocky letters in its own colour and a line about
 it under the name.
 
@@ -8,7 +10,7 @@ it under the name.
 
     python tools/icon/draw_biome_cards.py <screenshots folder>
 
-The screenshots are named tour_<biome>_<shot>.png (SHOTS picks which one each card uses). The letters and the outline
+The screenshots are named tour2_<biome>_<shot>.png (BIOMES picks which one each card uses). The letters and the outline
 come from draw_page_art.py. Needs Pillow and numpy.
 """
 import importlib.util
@@ -32,16 +34,16 @@ art.GLYPHS.setdefault("'", ["#", "#", ".", ".", ".", ".", "."])
 # Each biome: its card's title, the screenshot it uses, the line under the title, the title's colour, and where the
 # card is cut from the screenshot top to bottom (0 its top, 0.5 its middle, 1 its foot).
 BIOMES = [
-    ("silverwood_forest", "SILVERWOOD FOREST", "1_close", "DARK SILVERWOOD TREES HUNG WITH GLOWING STORMVINE",
+    ("silverwood_forest", "SILVERWOOD FOREST", "0_090", "DARK SILVERWOOD TREES HUNG WITH GLOWING STORMVINE",
      (127, 168, 255), 0.5),
-    ("cinder_wastes", "CINDER WASTES", "a_close", "ASH, BASALT AND LAVA, WHERE THE PALLBEARER WALKS",
-     (255, 140, 40), 0.0),
-    ("blightwood", "BLIGHTWOOD", "3_high", "A ROTTING FOREST OVER THE RAT KING'S SEWERS",
+    ("cinder_wastes", "CINDER WASTES", "0_180", "ASH, BASALT AND LAVA, WHERE THE PALLBEARER WALKS",
+     (255, 140, 40), 0.5),
+    ("blightwood", "BLIGHTWOOD", "0h_135", "A ROTTING FOREST OVER THE RAT KING'S SEWERS",
      (150, 220, 70), 0.5),
-    ("rimefall", "RIMEFALL", "3_high", "FROZEN LAKES, RIMEHORN HERDS AND THE FROSTFOLK",
+    ("rimefall", "RIMEFALL", "0_180", "FROZEN LAKES, RIMEHORN HERDS AND THE FROSTFOLK",
      (190, 230, 255), 0.5),
-    ("gravecrags", "THE GRAVECRAGS", "d_round0", "SNOWY PEAKS HIGH OVER THE DROSS",
-     (205, 205, 215), 0.0),
+    ("gravecrags", "THE GRAVECRAGS", "0h_090", "SNOWY PEAKS HIGH OVER THE DROSS",
+     (205, 205, 215), 1.0),
 ]
 TITLE_PIXEL = 11          # one pixel of the title's letters, in image pixels
 LINE_PIXEL = 4            # ...of the line under it
@@ -93,7 +95,7 @@ def main(argv):
         raise SystemExit("usage: python tools/icon/draw_biome_cards.py <screenshots folder>")
     shots = Path(argv[1])
     for biome, title, which, line, colour, anchor in BIOMES:
-        path = shots / f"tour_{biome}_{which}.png"
+        path = shots / f"tour2_{biome}_{which}.png"
         card = biome_card(Image.open(path), title, line, colour, anchor)
         out = art.OUT / f"biome_{biome}.png"
         card.convert("RGB").save(out)
