@@ -27,8 +27,8 @@
   a magma conch, a crystal geode, a giant lantern, a piece of a colossus). It's neutral: hit it and its neighbours join
   in. Every time it loses a quarter of its health it hides in its shell, where hits do half damage, then peeks out
   and comes back fighting.
-- **Hermit crab caves**: seven kinds of small den (sinkholes, lava tide pools, shell middens, bone reefs, a geode and
-  more), one or two in every Cinder Wastes area, each with its hermit.
+- **Hermit crab caves**: one or two in every Cinder Wastes area, each with its hermit: dens dug into hillsides round
+  a smoking vent, and shallow dens under mounds of ash with a loot room (pots, suspicious gravel, a barrel).
 - Spawn eggs for both.
 
 ## Changes and fixes

@@ -54,7 +54,7 @@
 | Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic; the advancement icon items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon`) and their tool `tools/icons/`. Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
 | Boss | `boss-builder` | `com.reg21meme.dross.boss.*`; the bosses and mini-bosses, starting with the **Cinder Colossus** golem: its entity (`boss/golem/CinderColossus`, `GolemAction`, `GolemAttributes`, the generated `GolemDesigns`), renderer and layers (`boss/golem/client/`), its entity type in `registry/ModEntities`, its design (the user's pick, **3G Saddleback**; model, animations and textures in `geo/`, `animations/` and `textures/entity/cinder_colossus/`, made by the Python generator in `tools/golems/`, previews in `boss-previews/cinder_wastes/cinder_colossus/`; the other candidates of rounds 1-3 archived in `tools/golems/designs/round1/`-`round3/` and `boss-previews/cinder_wastes/cinder_colossus/round1/`-`round3/`), the GeckoLib dependency, and the boss fights: the Colossus fight (`ColossusAttackGoal`, `ColossusStage`, every number in `ColossusTuning`), its minions (`GolemMinion`, `StoneGolem`, `LavaGolem`), projectiles (`ColossusRock`, `LavaBlob`), the temporary lava and fire blocks (`CinderLavaBlock`, `CinderFireBlock`, `LavaPools`; in `registry/ModBlocks`), its sounds (`registry/ModSounds`, `assets/dross/sounds.json`), its spawn egg and its minions' (stone golem, lava golem), the **trophies** (`boss/trophy/`: the `dross:colossus_trophy` block, its block entity (`registry/ModBlockEntities`) and item, their GeckoLib renderers and layers in `boss/trophy/client/`, the generated `TrophyModels`; made by `tools/golems/kit/trophies.py`, previews `boss-previews/cinder_wastes/cinder_colossus/trophies.png`) and the trophy drop, the custom boss bar (`boss/client/DrossBossBars`), the test commands' logic (`boss/BossCommands`, `boss/BossArena`, `boss/BedrockArena`; world-builder wires them into `/dross boss`), granting "Set in Stone" (through Quest's helper), and later boss progression (with Quest). Design: see The plan, step 8; the stone and lava golems as wild Cinder Wastes mobs (`WildGolemSpawns`, `WildLavaGolemTopUp`); **the Colossus lair** (`boss/lair/`: the lairs on the boss-site planner (`LairFinder`, `LairSetup`), built lazily near players (`LairPlacer`, `LairBuilder`), the volcano, the rise (no respawn), the `ColossusLair` API, previews `boss-previews/cinder_wastes/cinder_colossus/lair_*.png` from `tools/golems/lair_preview.py`); **the Rat King** (The plan, step 9: `boss/ratking/` (`RatKing`, `RatKingAction`, `Rat` for both kinds of rat, `RatKingEvents`, the generated `RatKingDesigns` and `RatDesigns`, `client/`), his and the rats' entity types and the `dross:zzz` particle (`registry/ModEntities`, `ModParticles`), the Python generator `tools/ratking/` and its previews `boss-previews/blightwood/rat_king/`, their original sounds (`tools/ratking/sounds.py`, `registry/ModSounds`, `assets/dross/sounds.json`, `assets/dross/sounds/rat_king|rat|enraged_rat/`), his and the rats' spawn eggs; **his fight** (`RatKingAttackGoal`, `RatKingBurrow`, every number in `RatKingTuning`, the poison ball and cloud `PlagueBall`, `PoisonCloud` (`registry/ModEntities`), his boss bar (the user's pick of nine designs: `tools/ratking/bossbars.py` makes `textures/gui/rat_king_bar.png` and the generated `boss/client/RatKingBarArt`; drawn by `DrossBossBars`), `boss/RatKingArena`, granting "Down the Drain" through Quest's helper); his **trophies** (`boss/ratking/trophy/`: the `dross:rat_king_trophy` block, block entity and item, `client/` renderers and layers, the generated `RatKingTrophyModels`, made by `tools/ratking/ratkit/trophies.py`, previews `boss-previews/blightwood/rat_king/trophies/`) and the trophy drop (shared with the Colossus: `boss/trophy/TrophyRewards`); `boss/BossChase` (both bosses steer straight at their target when the way is clear); his home in the rat caves (`boss/ratking/lair/`: asleep on the nest, never back once beaten, his snores at the grand entrance, the stronger cave Ravagers, the rats' spawn rules (dim light in the sewers); the caves themselves are Dimension's, step 11)); **the Rage Wand** (The plan, step 10: `boss/rage/`, the `dross:rage` effect in `registry/ModEffects`, its textures drawn by `tools/ragewand/draw.py`); **the Rimefall candidates** (The plan, step 13: `boss/rimefall/` (`RimefallCandidate`, the generated `RimefallDesigns`, `RimefallBlocks`, `client/` with the real-block layer), the entity type `dross:rimefall_candidate` in `registry/ModEntities`, the Python generator `tools/rimefall/` and its previews `boss-previews/rimefall/`); **Rimefall's animals** (The plan, step 14: `Rimehorn`, `Moose`, `PondSkater` and `PondSkaterPart`, `RimefallAnimals` (their spawn rules), `RimefallAnims`, every number in `RimefallMobTuning`, `client/RimefallMob*`, their entity types, sounds and spawn eggs; `tools/rimefall/mobs.py`, `rimemobs/`, `rimekit/mobkit.py` (their skeletons and animations) and `tools/rimefall/sounds.py`; previews `boss-previews/rimefall/mobs/`); **the Huntsman** (The plan, step 14 part 4: `boss/huntsman/` (his fight: `HuntFight`, `HuntStage`, `HuntGoal`, `WildHuntGoal`, `FootGoal`, `MooseGoal`, `HuntsmanPair`, `Bola`, `HuntSpear`, `SnaredEffect` (`dross:snared` in `registry/ModEffects`), `HuntsmanFightEvents`, every number in `HuntsmanTuning`; `boss/HuntsmanArena`; his spawn egg; granting "The Hunter Hunted" through Quest's helper; and `HuntsmanBarShowcase`), his boss bars (`boss/client/HuntsmanBarArt`, `textures/gui/huntsman_bar.png`), the hunter villages and his lodge (`boss/huntsman/village/`, `data/dross/structures/hunter_village/`; built in the world by `HunterVillageStructure`/`HunterVillagePiece`, `dross:huntsman_village` and `dross:hunter_village` in `registry/ModStructures`; him at home, `HuntsmanVillages`, `HuntsmanVillageData`), the hunter designs (`tools/rimefall/rimedesigns/d10_hunters.py`, `RimefallDesigns.HUNTERS`), the Frostfolk, Rimefall's villagers (`boss/frostfolk/`: `Frostfolk`, `FolkRole`, `FolkAnims`, `FolkEvents`, every number in `FolkTuning`, `client/`; their eleven entity types `dross:frostfolk_<calling>` and their three spawn eggs (`FrostfolkSpawnEggItem`: warrior, worker, elder), their voices; the model `tools/rimefall/rimemobs/frostfolk.py`, the preview `tools/huntsman/folk_preview.py`; never called hunters), his trophy candidates (`tools/rimefall/hunt_trophies.py`) and his trophies (`boss/huntsman/trophy/`: the `dross:huntsman_trophy` block, block entity and item, `client/` renderers and layer, the generated `HuntsmanTrophyModels`; made by `tools/huntsman/trophies.py`, previews `boss-previews/rimefall/huntsman/trophies/`) and their drop, the igloo templates and decorations (`HunterIglooDesigns`, `HunterIgloos`, `data/dross/structures/hunter_igloo/`, `hunter_decor/`; `tools/huntsman/igloos.py`, `igloo_designs/`), Rimefall's crops (`HunterCrops`, `HardyCropBlock`, `RimeberryBushBlock`: Frostroots, Snow Lichen, the two-block Rimeberry Bush, the Frostroot Crate and the Rimeberry Basket in `registry/ModBlocks`/`ModItems`; textures by `tools/huntsman/crops.py`), the villages' fires (`boss/huntsman/village/VillageFireBlock`: `dross:village_fire`, `village_soul_fire`), `boss/client/PartLayer` (a GeckoLib pass drawn only for the parts that show in it), the Moonsilver Spear and the Planted Moonsilver Spear (`boss/huntsman/spear/`), the mounted skulls and who drops them (`boss/huntsman/skull/`), the Python generators `tools/huntsman/` and the previews `boss-previews/rimefall/huntsman/`); the bosses' drawn
 spawn eggs (`tools/eggs/`, the picks' textures and the option sheets in each boss's `spawn_eggs/` preview folder);
-`BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made); **the fire servant candidates** (The plan, step 15: `boss/fire/` (`FireCandidate`, the generated `FireDesigns`, `client/`), the entity type `dross:fire_candidate` in `registry/ModEntities`, the Python generator `tools/fire/` and its previews `boss-previews/cinder_wastes/servants/`); **the Emberdactyl** (The plan, step 16: its looks, `FireDesigns.EMBERDACTYL` (`tools/fire/firekit/emberdactyl.py`, `firedesigns/eNN_*`, previews `boss-previews/cinder_wastes/emberdactyl/`), the fire mobs' skeletons and animations (`tools/fire/mobs.py`, `firemobs/`, the generated `boss/fire/FireAnims`, `geo|textures|animations/entity/firemob/`) and sounds (`tools/fire/sounds.py`, the generated `boss/fire/FireSounds`, `assets/dross/sounds/emberdactyl|emberyoung|pallbearer|hermit/`), and its volcano (`boss/emberdactyl/`: `EmberVolcano`, every number in `EmberVolcanoTuning`, the probe `EmberVolcanoProbeGameTest` and `tools/fire/volcano_preview.py`), its volcanoes in the Cinder Wastes (`VolcanoFinder` and `VolcanoSetup`, the planner's fit test; `VolcanoPlacer`, built near players; `EmberVolcanoData`; the API `EmberVolcanoes`; `/dross goto lair emberdactyl` is World site's `command/GotoVolcano`)); **the Cinder Wastes' mobs' looks** (`FireDesigns.CINDER_MOBS`, `firedesigns/mNN_*`, previews `boss-previews/cinder_wastes/mobs/`); **the hermit crab caves** (`boss/fire/cave/`: the generated `HermitCaveDesigns`, `HermitCaves`, `HermitCaveSites`, `HermitCaveStructure`, `HermitCavePiece`, `HermitCavePlacement` (`dross:hermit_cave` in `registry/ModStructures`), every number in `HermitCaveTuning`; templates `data/dross/structures/hermit_cave/`; made by `tools/fire/hermit_caves.py` with `tools/fire/cavekit.py` and `cavedesigns/`; previews `boss-previews/cinder_wastes/mobs/hermit_caves/`); **the Cinder Wastes' mobs in the world** (`boss/cinder/`: `CinderMob`, `Pallbearer`, `CinderHermit`, `CinderMobs` (attributes, spawn rules), `CinderMobEvents`, every number in `CinderMobTuning`, `client/`; their entity types `dross:pallbearer`, `dross:cinder_hermit`, spawn eggs and loot tables) |
+`BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made); **the fire servant candidates** (The plan, step 15: `boss/fire/` (`FireCandidate`, the generated `FireDesigns`, `client/`), the entity type `dross:fire_candidate` in `registry/ModEntities`, the Python generator `tools/fire/` and its previews `boss-previews/cinder_wastes/servants/`); **the Emberdactyl** (The plan, step 16: its looks, `FireDesigns.EMBERDACTYL` (`tools/fire/firekit/emberdactyl.py`, `firedesigns/eNN_*`, previews `boss-previews/cinder_wastes/emberdactyl/`), the fire mobs' skeletons and animations (`tools/fire/mobs.py`, `firemobs/`, the generated `boss/fire/FireAnims`, `geo|textures|animations/entity/firemob/`) and sounds (`tools/fire/sounds.py`, the generated `boss/fire/FireSounds`, `assets/dross/sounds/emberdactyl|emberyoung|pallbearer|hermit/`), and its volcano (`boss/emberdactyl/`: `EmberVolcano`, every number in `EmberVolcanoTuning`, the probe `EmberVolcanoProbeGameTest` and `tools/fire/volcano_preview.py`), its volcanoes in the Cinder Wastes (`VolcanoFinder` and `VolcanoSetup`, the planner's fit test; `VolcanoPlacer`, built near players; `EmberVolcanoData`; the API `EmberVolcanoes`; `/dross goto lair emberdactyl` is World site's `command/GotoVolcano`)); **the Cinder Wastes' mobs' looks** (`FireDesigns.CINDER_MOBS`, `firedesigns/mNN_*`, previews `boss-previews/cinder_wastes/mobs/`); **the hermit crab caves** (`boss/fire/cave/`: the generated `HermitCaveDesigns`, `HermitCaves`, `HermitCaveSites`, `HermitCaveStructure`, `HermitCavePiece`, `HermitCavePlacement` (`dross:hermit_cave` in `registry/ModStructures`), every number in `HermitCaveTuning`; templates `data/dross/structures/hermit_cave/`; their loot tables `data/dross/loot_tables/chests/hermit_cave.json` and `archaeology/hermit_cave.json`; made by `tools/fire/hermit_caves.py` with `tools/fire/cavekit.py` and `cavedesigns/`; previews `boss-previews/cinder_wastes/mobs/hermit_caves/`); **the Cinder Wastes' mobs in the world** (`boss/cinder/`: `CinderMob`, `Pallbearer`, `CinderHermit`, `CinderMobs` (attributes, spawn rules), `CinderMobEvents`, every number in `CinderMobTuning`, `client/`; their entity types `dross:pallbearer`, `dross:cinder_hermit`, spawn eggs and loot tables) |
 | Testing | `mod-tester` | Nothing. Builds, runs and reads logs only; never edits feature code |
 
 Client-only code (renderers, particle providers, book screens) goes in a `client` subpackage of the area, for example `com.reg21meme.dross.villager.client`.
@@ -1962,38 +1962,68 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         through a save and set by `Shell`; hidden, a fifth of the damage and no knockback, then it peeks and comes out;
         the eggs; the Pallbearer's headroom and 64-block rules, the hermits' crowd; a hermit settling clear of a bump.
         `DrossSpawnsGameTest` checks the four shares and the spawn pass.
-    - **The hermit crab caves** [built October 31, 2026, not yet looked at in-game] (the user: "a new structure called
-      a hermit crab cave ... nothing huge, maybe 10 blocks or so deep"; every design in a showcase; 1-2 in every Cinder
-      Wastes area). Seven small dens of the Cinder Hermit: **1 Sinkhole Den** (a round basalt hole open to the sky,
-      about 13 across, a ledge spiralling down its wall to an ash floor with a lava pool ringed in magma, belling out
-      under the rim into a den about 22 across), **2 Lava Tide Pools** (a low mouth in a slope of ash and basalt, a
-      tunnel down into a hall with shallow walled-in lava pools in bays under basalt arches), **3 Shell Midden** (a
-      domed den heaped with the crabs' spare shells: bells, decorated pots, wither and skeleton skulls, lanterns,
-      lava-cauldron braziers, amethyst, obsidian and crying obsidian, magma), **4 Collapsed Lava Tube** (an east-west
-      tube with a lava channel, its roof fallen in over a rubble slope, a round crab nook at each end), **5 Basalt
-      Geode** (a smooth basalt rind, a blackstone lining with gilded blackstone, glowing orange crystals of orange glass,
-      shroomlight and ochre froglight, a lava seep), **6 Bone Reef** (ribs of bone arching over the den like a ribcage,
-      dead fire coral and bone growths, magma at the ribs' roots, lava in the hollows, a bone gateway over the way in),
-      **7 Steam Vent Burrows** (a Cinder Vent on a basalt and magma mound in a round den, three burrows off it, vents
-      and lava in their floors). Each is a 29 x 29 template, its floor about 10 down, its way in at the south, with 2-3
-      crab spots (a free box 7 wide, 6 tall and 7 deep each; the table's `crabs`, `HermitCaves.crabSpots` in the world),
-      fire colours only. The generator checks every lava block is walled in under and on its four sides, nothing
-      floats, every underground floor can be walked to from the way in and is lit (block light 1+), and every crab spot
-      has room. **`/dross showcase hermit_caves`** builds the seven in a row sunk into prepared ground, a cave a tick,
-      with signs, [go] buttons and an [overview]. **In the world:** every Cinder Wastes patch of the boss-site planner
-      gets one cave and a second half the time (`HermitCaveSites`; a random design and facing each), 28 blocks inside the
-      patch, 112 from its Colossus lair or Emberdactyl volcano site and 56 from each other (looser, 20 and 100, when a
-      patch would come up short), on the flattest land the seed's 96 tries find, built with the land at the height of
-      the ground under the way in (the surface-structures step, the boss area's own placement `dross:hermit_cave`;
-      `/locate` can't find them). **`/dross goto hermit_cave`** lands you in front of the nearest cave's way in, facing
-      it. **Its crabs** (since November 1): a Cinder Hermit (a random shell) stands on each of its 2-3 crab spots when it's
-      made with the land (`HermitCavePiece.postProcess`, in the chunk being made) and in the showcase (a cave built
-      again loses the crabs of the one before), staying put (they never despawn), neutral like any hermit
-      (`HermitCaves.spawnCrabs`). Headless tests (`boss/fire/cave/HermitCaveGameTest`): the templates match their table; the showcase stands with
-      every lava block still a few seconds later, crab rooms free and every darkest floor lit; the first 9 patches get
-      1-2 caves each, clear of the boss sites and the same when planned again; the nearest cave generated with the land
-      matches its template (over 99%) with still lava. Not yet: where the land falls away round a cave its lining can
-      show above the ground, and a basalt spire right over an opening could be cut off.
+    - **The hermit crab caves** [round 2 built November 2, 2026, not yet looked at in-game] (the user, October 31: "a new
+      structure called a hermit crab cave ... nothing huge, maybe 10 blocks or so deep"; 1-2 in every Cinder Wastes area).
+      **Round 1** (October 31, archived: `tools/fire/cavedesigns/round1/`, `boss-previews/cinder_wastes/mobs/hermit_caves/
+      round1/`): seven dens sunk into flat ground (1 Sinkhole Den, 2 Lava Tide Pools, 3 Shell Midden, 4 Collapsed Lava
+      Tube, 5 Basalt Geode, 6 Bone Reef, 7 Steam Vent Burrows), 2-3 crabs each. **The user's look** (November 2: "I don't
+      like the caves ... I like number 7 ... I expected it to be like in a hill ... we can have some underground ones ...
+      a depth of like 3 ... some loot and stuff behind, some pots, pottery ... make sure it's not actual stairs you use
+      ... there should only be 1 per cave"). **Round 2**: five dens in No. 7's style (burrows round a Cinder Vent on its
+      mound of basalt and magma, middens of spare shells, lava burrows), each with **one crab spot** (a free box 7 wide, 6
+      tall and 7 deep: the table's `crabs`, `HermitCaves.crabSpots`), **no stair or slab blocks** anywhere (the generator
+      fails a design with one; slopes climb a full block at a time, never more), fire colours only:
+      - **Dug into a hill** (`kind` hillside: the den carved into the land behind its way in, a lining 1-2 blocks thick,
+        the template empty outside it so the real hill stays as it is; where the hill runs low a basalt outcrop fills in;
+        nothing open to the sky): **H1 Hillside Burrows** (a rocky mouth into the slope, a round den round its vent mound,
+        the crab's nest at the back, a lava burrow one side and a midden of urns the other), **H2 Long Gallery** (a mouth
+        7 wide onto a long gallery dug along the hill, two pillars holding its roof, two vents, a pool of lava at one end,
+        a midden at the other, the nest in a burrow back into the hill), **H3 Claw Burrows** (a narrow mouth 3 wide, a
+        step down into a round den round its vent, three burrows fanned out behind it like a claw's fingers: lava, the
+        nest deepest in, the midden).
+      - **Shallow, underground** (`kind` underground, 37 x 37, on flat land: the floor about 3 blocks under the ground, the
+        den's roof rising over the land as a low mound of ash, the crab being about 5 tall): **U1 Ash Mound Den** (a
+        cutting sloping down a block every two into the den round its vent, a second vent smoking on the mound's top; off
+        it the nest, a pool of lava and, behind a crawl 1 wide and 2 tall the crab can't follow, a loot room: a barrel, 4
+        decorated pots, 2 suspicious gravel), **U2 Twin Hump Den** (two humps of ash: a cutting down to a vent chamber,
+        the nest under the bigger hump, a pool of lava to the north and, through a crawl, a loot room of a barrel, 3 pots
+        and 2 suspicious gravel).
+      - **Loot** (the user will tune it): the barrels from `dross:chests/hermit_cave` (3-6 of gold nuggets, coal, iron
+        nuggets, flint, magma cream, blaze powder, now and then a gold ingot; and a burn or danger pottery sherd half the
+        time), the suspicious gravel (brush it) from `dross:archaeology/hermit_cave` (one of the same, or a sherd). The
+        decorated pots carry fire sherds (burn, danger, skull, blade, prize...), which they drop when broken: in 1.20.1 a
+        pot holds no items. The hillside middens' urns are plain decoration.
+      - **The checks** (the generator, `tools/fire/hermit_caves.py` with `cavekit.py` and `cavedesigns/`: `burrows.py`,
+        `h1`-`h3`, `u1`-`u2`): every lava block walled in under and on its four sides, nothing floating, no stairs or
+        slabs, every floor walked to from the way in and lit (block light 1+), the crab's room free, the suspicious gravel
+        on a full block. Previews `boss-previews/cinder_wastes/mobs/hermit_caves/` (each cave in its hill and in a low
+        hill with its rock showing, cut along its way in and across its den, from above; `all_caves.png`, `index.html`).
+      - **`/dross showcase hermit_caves`** builds the five in a row, a cave a tick, the hillside ones inside a hill it
+        raises round them (`command/HermitCaveShowcase`), with signs, [go] buttons and an [overview].
+      - **In the world** (`HermitCaveSites`, every number in `HermitCaveTuning`): every Cinder Wastes patch of the
+        boss-site planner gets one cave and a second half the time, 28 blocks inside the patch, 112 from its Colossus lair
+        or Emberdactyl volcano site and 56 from each other (looser, 20 and 100, when a patch would come up short). **A
+        hillside cave** goes only where the land really rises behind its way in: the land over the den's middle at least
+        `HILL_MIN_RISE` (6) over the ground at the way in, at least `HILL_MIN_COVER` (0.6) of the den under the hill, a
+        gentle walk up to the way in, which faces downhill; spots are screened by the noise's quick heights, then the best
+        8 (`HILL_VERIFY`) are checked against the generator's own top blocks (the quick heights missed the ground's
+        roughness once, and a test cave came out not inside a hill). **An underground cave** takes the flattest land
+        (`MAX_RELIEF` 6); about 3 in 10 cave slots try underground first (`UNDERGROUND_CHANCE`), and a patch with no
+        hillside fit gets underground ones. Built with the land (the surface-structures step, the boss area's own
+        placement `dross:hermit_cave`; `/locate` can't find them). Measured over 72 patches of 6 seeds (the probe
+        `HermitCaveProbeGameTest`, its own GameTest namespace `dross_hermit_probe`): 69 hillside caves (the hill over 97%
+        of their dens on average), 40 underground, no patch without a cave; about 70 ms of planning a patch, in the
+        background. **`/dross goto hermit_cave`** lands you in front of the nearest cave's way in, facing it. **Its crab**:
+        one Cinder Hermit (a random shell) on its crab spot when the cave is made with the land
+        (`HermitCavePiece.postProcess`) and in the showcase (a cave built again loses the crab of the one before), staying
+        put (it never despawns), neutral like any hermit (`HermitCaves.spawnCrabs`).
+      - Headless tests (`boss/fire/cave/HermitCaveGameTest`): both kinds of cave, each with exactly one crab; the rooms and
+        the roof's rise as the table says; the loot tables there; the showcase stands with every lava block still a few
+        seconds later, its crab room free and every darkest floor lit; the first 9 patches get 1-2 caves each, clear of
+        the boss sites and the same when planned again (in a fresh world 12 caves, 5 in hills, 7 underground); a hillside
+        cave and an underground one generated with the land match their templates (about 99%), the hillside one with the
+        land 10-13 blocks over its den. Not measured yet: whether a cave's lining shows above the ground where the land
+        falls away round it.
     - **In the game** (the same frozen `dross:fire_candidate`, step 15; `FireDesigns.EMBERDACTYL`, `CINDER_MOBS`):
       **`/dross showcase boss_designs emberdactyl`** (`command/FireShowcase`): the adult, the young and the egg's five
       looks facing you, signs, [go] buttons; then the volcano goes up behind them (about a minute), and once it stands the
@@ -2153,7 +2183,9 @@ hurting the Pallbearer and the hermit, the hermit hiding every quarter of its he
 Pallbearer's long-stride walk, fewer and more spread-out hermits and Pallbearers, no spawns on the Emberdactyl's ledge,
 its hoard as ore, its volcano remembering its own Emberdactyl (no second one), the adult quicker between moves, a
 stronger wing buffet, a closer grab swoop, the Emberdactyl kept inside its bedrock arena, and the Rage Bow as a hitscan
-gun (not yet tested in-game).
+gun (not yet tested in-game). Then the same day: four purple looks of the adult Emberdactyl (E1C1-E1C4) in its gallery,
+and the hermit crab caves remade: five dens in No. 7's style, three dug into hills and two shallow underground ones
+with loot, one crab each (not yet looked at in-game).
 The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
@@ -2340,11 +2372,13 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   the screen while you're within about 96 blocks, gone when it dies or you walk away; fly the Emberdactyl (and its
   young) along the bedrock arena's walls and its dividing walls: its wings stop at the wall instead of passing
   through it, and it turns away from walls without swinging a wing into them.
-- **Hermit crab caves** (October 31): `/dross showcase hermit_caves` builds the seven in a row, each matching
-  `boss-previews/cinder_wastes/mobs/hermit_caves/`; walk down each from its way in (no jumps over a block, no dark
-  corners at night); no lava flows anywhere; in a new world `/dross goto hermit_cave` lands you at a cave in the Cinder
-  Wastes, sitting on the land (no floating lining, the way in open), never inside a Colossus lair's or Emberdactyl
-  volcano's ground.
+- **Hermit crab caves, round 2** (November 2): `/dross showcase hermit_caves` builds the five in a row, each matching
+  `boss-previews/cinder_wastes/mobs/hermit_caves/`, the three hillside ones inside a hill; walk in from each way in (no
+  stairs or slabs, no jumps over a block, no dark corners at night); the two underground ones under a low ash mound,
+  a loot room behind a crawl (decorated pots to break, suspicious gravel to brush, a barrel); one hermit in each cave;
+  no lava flows anywhere; in a new world `/dross goto hermit_cave` lands you at a den dug into a real hillside (the land
+  over it, no lining showing) or at a mound on flat land, never inside a Colossus lair's or Emberdactyl volcano's
+  ground.
 - **The Cinder Wastes' mobs** (October 31): from their eggs (survival): both ignore you until hit; the Pallbearer
   roars (you're slowed), swipes and slams; the hermit (a different shell each egg) snaps and pinches, its neighbours
   join in, and sometimes it hides in its shell (hits barely hurt), peeks and comes out; they walk without sliding feet;
