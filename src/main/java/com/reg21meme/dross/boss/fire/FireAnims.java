@@ -49,6 +49,7 @@ public final class FireAnims
             new Anim("gust", 2.400F, false),
             new Anim("grab", 1.900F, false),
             new Anim("snap", 1.000F, false),
+            new Anim("air_snap", 0.900F, true),
             new Anim("perch", 10.000F, true),
             new Anim("walk", 2.000F, true),
             new Anim("death", 6.880F, false)));
@@ -61,6 +62,7 @@ public final class FireAnims
             new Anim("gust", 1.500F, false),
             new Anim("grab", 1.187F, false),
             new Anim("snap", 0.625F, false),
+            new Anim("air_snap", 0.562F, true),
             new Anim("perch", 6.250F, true),
             new Anim("walk", 1.250F, true),
             new Anim("death", 4.125F, false)));

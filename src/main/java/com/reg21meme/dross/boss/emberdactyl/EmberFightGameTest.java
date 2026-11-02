@@ -297,6 +297,63 @@ public final class EmberFightGameTest
     }
 
     /**
+     * The user, November 1: "when facing an enemy that can fly, the Emberdactyl can do its peck in the air". An iron golem
+     * hanging in the air ahead of it (no gravity: a flyer to it) gets its pecks in the air, each one counting, and the
+     * Emberdactyl never comes down to the ground for it.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_air_peck", timeoutTicks = 2_000_000)
+    public static void airPeckHitsAFlyer(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7400, -6400);
+        Emberdactyl[] adult = new Emberdactyl[1];
+        net.minecraft.world.entity.animal.IronGolem[] golem = new net.minecraft.world.entity.animal.IronGolem[1];
+        boolean[] pecking = {false};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(0.0D, 10.0D, 0.0D));
+                    adult[0].setYRot(-90.0F);
+                    adult[0].yBodyRot = -90.0F;
+                    adult[0].yHeadRot = -90.0F;
+                    golem[0] = EntityType.IRON_GOLEM.create(run.level);
+                    golem[0].moveTo(run.centre.x + EmberTuning.AIR_SNAP_BILL_AHEAD, run.centre.y + 10.0D
+                            + EmberTuning.AIR_SNAP_BILL_UP - 1.35D, run.centre.z, 90.0F, 0.0F);
+                    golem[0].setNoAi(true);
+                    golem[0].setNoGravity(true);
+                    run.level.addFreshEntity(golem[0]);
+                    run.extras.add(golem[0]);
+                    if (!EmberBoss.flies(golem[0]))
+                    {
+                        throw new GameTestAssertException("a golem with no gravity off the ground should count as flying");
+                    }
+                    adult[0].testMove(EmberBoss.Move.AIR_SNAP, golem[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("its pecks in the air", () -> {
+                    boolean now = adult[0].animation().equals("air_snap");
+                    pecking[0] |= now;
+                    return pecking[0] && !now;
+                }, () -> "the golem's health " + golem[0].getHealth() + ", the adult " + String.format("%.1f",
+                        adult[0].getY() - run.centre.y) + " blocks up"))
+                .thenExecute(() -> run.guard(() -> {
+                    float want = EmberTuning.AIR_SNAP_PECKS * EmberTuning.SNAP_DAMAGE;
+                    float lost = golem[0].getMaxHealth() - golem[0].getHealth();
+                    if (Math.abs(lost - want) > 0.01F)
+                    {
+                        throw new GameTestAssertException("the golem in the air lost " + lost + " to its beak, not " + want
+                                + " (" + EmberTuning.AIR_SNAP_PECKS + " pecks)");
+                    }
+                    if (adult[0].getY() - run.centre.y < 4.0D)
+                    {
+                        throw new GameTestAssertException("pecking in the air it came down to the ground");
+                    }
+                    LOGGER.info("[ember test] its pecks in the air: the flying golem lost {}", lost);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
      * The user's third look: "I used the rage wand on the adult then ... the younger one, nothing seems to happen between
      * the two". The adult raged Red and the young Blue, with nobody else near: both wake and each hurts the other.
      */

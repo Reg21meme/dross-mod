@@ -6,7 +6,7 @@ package com.reg21meme.dross.boss.emberdactyl;
  * (but its death), the boxes that together hold every corner of its model through every frame of it
  * ({@code ADULT_HOVER}, {@code YOUNG_GUST}..., its fly animation's {@code ADULT_FLY_ANIM} and {@code YOUNG_FLY_ANIM}:
  * {@link #adult(String)} and {@link #young(String)} give the one it's playing); and, as fallbacks, the union of its
- * flying animations ({@code *_FLY}: hover, fly, glide, dive, screech, gust, grab)
+ * flying animations ({@code *_FLY}: hover, fly, glide, dive, screech, gust, grab, air_snap)
  * and of its ground ones ({@code *_GROUND}: snap, perch, walk).
  * <p>
  * Each row is one box {@code {x0, y0, z0, x1, y1, z1}} in blocks, in the frame its hitbox parts use
@@ -23,32 +23,32 @@ public final class EmberShapes
 {
     /**
      * The adult (E1A, 33 blocks across its wings) flying (all its flying animations): 23 boxes,
-     * together x -18.95 to 18.95, y 0.25 to 26.70, z -16.90 to 8.65.
+     * together x -18.95 to 18.95, y 0.25 to 26.70, z -18.70 to 9.05.
      */
     public static final double[][] ADULT_FLY = {
-            {-2.80D, 0.25D, -16.90D, 2.80D, 18.60D, -13.15D},
-            {-3.35D, 0.65D, -13.50D, 3.35D, 22.10D, -9.75D},
-            {-3.50D, 2.60D, -10.10D, 3.50D, 23.70D, -6.40D},
+            {-2.80D, 0.25D, -18.70D, 2.80D, 16.85D, -14.35D},
+            {-2.65D, 0.25D, -14.70D, 2.65D, 21.10D, -10.35D},
+            {-3.50D, 2.30D, -10.70D, 3.50D, 23.70D, -6.40D},
             {-2.15D, 4.85D, -6.75D, 2.15D, 24.25D, -4.40D},
-            {-2.50D, 4.75D, -4.75D, 2.50D, 23.50D, -2.35D},
+            {-2.50D, 2.85D, -4.75D, 2.50D, 23.50D, -2.35D},
             {-2.95D, 2.40D, -2.70D, 2.95D, 23.10D, 0.25D},
             {-2.95D, 2.45D, -0.10D, 2.95D, 21.80D, 2.90D},
-            {-3.30D, 2.50D, 2.55D, 3.30D, 19.70D, 5.80D},
-            {-2.95D, 4.45D, 5.45D, 2.95D, 18.90D, 8.65D},
+            {-3.30D, 2.50D, 2.55D, 3.30D, 19.70D, 6.00D},
+            {-2.95D, 4.55D, 5.65D, 2.95D, 18.90D, 9.05D},
             {-0.15D, 6.20D, -4.55D, 2.85D, 22.30D, 5.40D},
             {2.50D, 3.05D, -6.00D, 5.55D, 25.90D, 7.75D},
             {5.20D, 1.60D, -5.95D, 8.25D, 26.70D, 8.65D},
             {7.90D, 1.30D, -7.55D, 10.90D, 26.15D, 8.50D},
-            {10.55D, 1.55D, -11.20D, 13.60D, 24.15D, 8.55D},
-            {13.25D, 1.35D, -11.55D, 16.30D, 21.60D, 7.45D},
-            {15.95D, 2.35D, -8.95D, 18.95D, 18.95D, 4.75D},
+            {10.55D, 1.05D, -11.20D, 13.60D, 24.15D, 8.55D},
+            {13.25D, 0.45D, -11.55D, 16.30D, 21.60D, 8.10D},
+            {15.95D, 2.35D, -8.95D, 18.95D, 18.95D, 7.00D},
             {-2.85D, 6.20D, -4.55D, 0.15D, 22.30D, 5.40D},
             {-5.55D, 3.05D, -6.00D, -2.50D, 25.90D, 7.75D},
             {-8.25D, 1.60D, -5.95D, -5.20D, 26.70D, 8.65D},
             {-10.90D, 1.30D, -7.55D, -7.90D, 26.15D, 8.50D},
-            {-13.60D, 1.55D, -11.20D, -10.55D, 24.15D, 8.55D},
-            {-16.30D, 1.35D, -11.55D, -13.25D, 21.60D, 7.45D},
-            {-18.95D, 2.35D, -8.95D, -15.95D, 18.95D, 4.75D}
+            {-13.60D, 1.05D, -11.20D, -10.55D, 24.15D, 8.55D},
+            {-16.30D, 0.45D, -11.55D, -13.25D, 21.60D, 8.10D},
+            {-18.95D, 2.35D, -8.95D, -15.95D, 18.95D, 7.00D}
     };
 
     /**
@@ -291,6 +291,36 @@ public final class EmberShapes
     };
 
     /**
+     * The adult (E1A, 33 blocks across its wings) in its air_snap animation: 23 boxes,
+     * together x -18.65 to 18.65, y 0.45 to 20.70, z -18.70 to 9.05.
+     */
+    public static final double[][] ADULT_AIR_SNAP = {
+            {-0.75D, 10.10D, -18.70D, 0.75D, 14.85D, -14.35D},
+            {-1.80D, 9.75D, -14.70D, 1.80D, 16.70D, -10.35D},
+            {-1.80D, 9.95D, -10.70D, 1.80D, 18.30D, -6.40D},
+            {-1.80D, 6.60D, -6.75D, 1.80D, 18.20D, -4.40D},
+            {-1.75D, 2.85D, -4.75D, 1.75D, 17.45D, -2.35D},
+            {-1.75D, 2.65D, -2.70D, 1.75D, 17.85D, 0.25D},
+            {-1.75D, 2.60D, -0.10D, 1.75D, 18.20D, 2.90D},
+            {-1.70D, 2.70D, 2.55D, 1.70D, 17.95D, 6.00D},
+            {-1.30D, 4.55D, 5.65D, 1.30D, 17.70D, 9.05D},
+            {-0.15D, 7.70D, -4.55D, 2.80D, 13.25D, 4.80D},
+            {2.45D, 6.05D, -4.10D, 5.45D, 17.30D, 6.55D},
+            {5.10D, 4.85D, -3.85D, 8.10D, 19.15D, 7.50D},
+            {7.75D, 3.05D, -5.35D, 10.75D, 20.25D, 8.15D},
+            {10.40D, 1.05D, -3.45D, 13.40D, 20.70D, 8.20D},
+            {13.05D, 0.45D, -2.90D, 16.00D, 20.50D, 8.25D},
+            {15.65D, 2.90D, -1.65D, 18.65D, 18.65D, 7.50D},
+            {-2.80D, 7.70D, -4.55D, 0.15D, 13.25D, 4.80D},
+            {-5.45D, 6.05D, -4.10D, -2.45D, 17.30D, 6.55D},
+            {-8.10D, 4.85D, -3.85D, -5.10D, 19.15D, 7.50D},
+            {-10.75D, 3.05D, -5.35D, -7.75D, 20.25D, 8.15D},
+            {-13.40D, 1.05D, -3.45D, -10.40D, 20.70D, 8.20D},
+            {-16.00D, 0.45D, -2.90D, -13.05D, 20.50D, 8.25D},
+            {-18.65D, 2.90D, -1.65D, -15.65D, 18.65D, 7.50D}
+    };
+
+    /**
      * The adult (E1A, 33 blocks across its wings) in its perch animation: 14 boxes,
      * together x -7.15 to 7.15, y -0.20 to 15.15, z -15.00 to 6.25.
      */
@@ -333,26 +363,27 @@ public final class EmberShapes
     };
 
     /**
-     * Its young reborn (E2A, 22.5 blocks across its wings) flying (all its flying animations): 16 boxes,
-     * together x -14.40 to 14.40, y -0.15 to 19.65, z -12.25 to 10.70.
+     * Its young reborn (E2A, 22.5 blocks across its wings) flying (all its flying animations): 17 boxes,
+     * together x -14.40 to 14.40, y -0.15 to 19.65, z -13.30 to 10.70.
      */
     public static final double[][] YOUNG_FLY = {
-            {-2.05D, 2.85D, -12.25D, 2.05D, 16.45D, -8.10D},
-            {-2.35D, 3.75D, -8.45D, 2.35D, 18.65D, -4.35D},
-            {-1.65D, 5.30D, -4.70D, 1.65D, 18.80D, -1.60D},
+            {-2.05D, 2.85D, -13.30D, 2.05D, 14.05D, -10.10D},
+            {-1.95D, 3.05D, -10.45D, 1.95D, 16.90D, -7.20D},
+            {-2.35D, 4.00D, -7.55D, 2.35D, 18.65D, -4.35D},
+            {-1.65D, 3.50D, -4.70D, 1.65D, 18.80D, -1.60D},
             {-1.95D, 3.20D, -1.95D, 1.95D, 18.50D, 2.05D},
-            {-2.55D, 3.25D, 1.70D, 2.55D, 16.60D, 4.55D},
-            {-2.55D, 5.35D, 4.20D, 2.55D, 14.95D, 7.00D},
-            {-0.15D, 3.40D, -2.35D, 3.00D, 15.95D, 9.65D},
+            {-2.55D, 3.25D, 1.70D, 2.55D, 16.60D, 4.60D},
+            {-2.55D, 4.75D, 4.25D, 2.55D, 14.95D, 7.10D},
+            {-0.15D, 3.40D, -3.05D, 3.00D, 15.95D, 9.65D},
             {2.65D, 1.35D, -3.25D, 5.85D, 18.85D, 10.70D},
             {5.50D, 0.40D, -4.20D, 8.70D, 19.65D, 9.65D},
-            {8.35D, -0.15D, -5.55D, 11.55D, 18.30D, 9.45D},
-            {11.20D, -0.15D, -5.20D, 14.40D, 15.50D, 7.70D},
-            {-3.00D, 3.40D, -2.35D, 0.15D, 15.95D, 9.65D},
+            {8.35D, -0.15D, -5.55D, 11.55D, 18.30D, 9.85D},
+            {11.20D, -0.15D, -5.20D, 14.40D, 15.50D, 9.40D},
+            {-3.00D, 3.40D, -3.05D, 0.15D, 15.95D, 9.65D},
             {-5.85D, 1.35D, -3.25D, -2.65D, 18.85D, 10.70D},
             {-8.70D, 0.40D, -4.20D, -5.50D, 19.65D, 9.65D},
-            {-11.55D, -0.15D, -5.55D, -8.35D, 18.30D, 9.45D},
-            {-14.40D, -0.15D, -5.20D, -11.20D, 15.50D, 7.70D}
+            {-11.55D, -0.15D, -5.55D, -8.35D, 18.30D, 9.85D},
+            {-14.40D, -0.15D, -5.20D, -11.20D, 15.50D, 9.40D}
     };
 
     /**
@@ -536,6 +567,30 @@ public final class EmberShapes
     };
 
     /**
+     * Its young reborn (E2A, 22.5 blocks across its wings) in its air_snap animation: 17 boxes,
+     * together x -12.60 to 12.60, y 0.50 to 14.45, z -13.30 to 9.85.
+     */
+    public static final double[][] YOUNG_AIR_SNAP = {
+            {-0.50D, 8.20D, -13.30D, 0.50D, 12.20D, -10.10D},
+            {-1.20D, 8.45D, -10.45D, 1.20D, 13.50D, -7.20D},
+            {-1.20D, 8.35D, -7.55D, 1.20D, 14.40D, -4.35D},
+            {-1.20D, 3.50D, -4.70D, 1.20D, 14.20D, -1.60D},
+            {-1.25D, 3.35D, -1.95D, 1.25D, 14.25D, 2.05D},
+            {-1.15D, 3.40D, 1.70D, 1.15D, 14.45D, 4.60D},
+            {-1.05D, 4.75D, 4.25D, 1.05D, 14.15D, 7.10D},
+            {-0.15D, 6.20D, -3.05D, 2.65D, 10.95D, 5.55D},
+            {2.30D, 3.95D, -2.25D, 5.15D, 12.95D, 7.15D},
+            {4.80D, 1.50D, -2.65D, 7.65D, 13.70D, 8.50D},
+            {7.30D, 0.50D, 0.30D, 10.10D, 14.15D, 9.85D},
+            {9.75D, 2.30D, 2.55D, 12.60D, 13.80D, 9.75D},
+            {-2.65D, 6.20D, -3.05D, 0.15D, 10.95D, 5.55D},
+            {-5.15D, 3.95D, -2.25D, -2.30D, 12.95D, 7.15D},
+            {-7.65D, 1.50D, -2.65D, -4.80D, 13.70D, 8.50D},
+            {-10.10D, 0.50D, 0.30D, -7.30D, 14.15D, 9.85D},
+            {-12.60D, 2.30D, 2.55D, -9.75D, 13.80D, 9.75D}
+    };
+
+    /**
      * Its young reborn (E2A, 22.5 blocks across its wings) in its perch animation: 9 boxes,
      * together x -4.05 to 4.05, y -0.20 to 10.80, z -11.00 to 6.50.
      */
@@ -587,6 +642,7 @@ public final class EmberShapes
             case "gust" -> ADULT_GUST;
             case "grab" -> ADULT_GRAB;
             case "snap" -> ADULT_SNAP;
+            case "air_snap" -> ADULT_AIR_SNAP;
             case "perch" -> ADULT_PERCH;
             case "walk" -> ADULT_WALK;
             default -> ADULT_FLY;
@@ -613,6 +669,7 @@ public final class EmberShapes
             case "gust" -> YOUNG_GUST;
             case "grab" -> YOUNG_GRAB;
             case "snap" -> YOUNG_SNAP;
+            case "air_snap" -> YOUNG_AIR_SNAP;
             case "perch" -> YOUNG_PERCH;
             case "walk" -> YOUNG_WALK;
             default -> YOUNG_FLY;

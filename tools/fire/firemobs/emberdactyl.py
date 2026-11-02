@@ -12,6 +12,8 @@ from the boss with the number of hits, how fast it flies in the sky, animations 
   gust     (once)  wings drawn up and back, then one huge beat forward (the fire tornadoes leave at "gust")
   grab     (once)  a swoop: it flares, swings its legs forward, its talons close ("grab"), and it beats away
   snap     (once)  on the ground: its head lunges down and the beak snaps shut ("hit")
+  air_snap (loop)  its peck in the air at a flying foe: hovering, its neck draws back, then lunges forward and a little
+                   down, the jaw snapping shut at "hit", and it recovers; one peck a loop, so it can peck again and again
   perch    (loop)  standing on its legs, its wrists on the ground, wings half open at its sides, looking round
   walk     (loop)  walking on its legs and wrists, the diagonal pairs together
   death    (once)  a last scream, wings flailing, then it crashes onto its belly, wings spread on the ground, and
@@ -528,6 +530,45 @@ def snap(rig):
         return p
 
     a = wingfold.record(rig, "snap", L, frame, loop=False)
+    a.meta["hit"] = hit
+    return a
+
+
+# Its peck in the air (the user, November 1: "when facing an enemy that can fly, the Emberdactyl can do its peck in the
+# air"): hovering, its wings beating a little harder (one beat a peck, its downstroke under the lunge), its neck draws
+# back and up, then lunges forward and a little down, its jaw snapping shut at the end of the lunge ("hit"), and it
+# recovers. One peck, a loop that runs straight into itself, so the game can play it two or three times in a row.
+AIR_SNAP = (0.9, 0.3, 0.5)            # seconds (the adult's): one peck, the end of the draw back, the strike
+AIR_SNAP_BEAT = (-14.0, 54.0, 0.15)   # its wingbeat: up, down (hover's -12, 48) and when its downstroke starts
+# Degrees a full lunge turns its body, neck and head down (drawn back, the other way): the neck dips a little and the
+# head lifts against it, so the bill stays nearly level; with the surge forward (units at the adult's size), the bill
+# goes about 3 blocks forward of where it hovers and 2 down (about 6.5 forward and 3.5 down from drawn back).
+AIR_SNAP_LUNGE = (3.0, 8.0, -4.0)
+AIR_SNAP_REACH = 40.0
+AIR_SNAP_GAPE = 30.0                  # degrees its jaw opens
+
+
+def air_snap(rig):
+    L, drawn, hit = (T(s) for s in AIR_SNAP)
+    up, down, start = AIR_SNAP_BEAT
+    body, neck, head = (a * SNAP_LUNGE for a in AIR_SNAP_LUNGE)
+    reach = AIR_SNAP_REACH * SCL
+
+    def frame(t):
+        p = Pose()
+        push = beat(p, ((t - T(start)) / L) % 1.0, up=up, down=down)
+        lunge = k(t, [(0.0, 0.0), (drawn, -1.0), (hit, 1.0, "in"), (hit + T(0.12), 0.85), (L, 0.0)])
+        gape = k(t, [(0.0, 0.0), (T(0.22), 1.0), (hit - T(0.05), 0.9), (hit, 0.0, "in"), (L, 0.0)])
+        p.pos("root", 0.0, (AIR + 6.0 * push) * SCL, -reach * lunge)
+        p.rot("body", -6.0 - 3.0 * push + body * lunge, 0.0, 0.0)
+        p.rot("neck", 4.0 + 3.0 * push + neck * lunge, 0.0, 0.0)
+        p.rot("head", 2.0 + head * lunge, 0.0, 0.0)
+        p.rot("jaw", 2.0 + AIR_SNAP_GAPE * gape, 0.0, 0.0)
+        p.rot("tail", 6.0 * push - 6.0 * lunge, 0.0, 0.0)
+        dangle(p, t, L, 5.0)
+        return p
+
+    a = wingfold.record(rig, "air_snap", L, frame)
     a.meta["hit"] = hit
     return a
 
@@ -1276,7 +1317,8 @@ def extra_textures(m, variant, tex):
 
 def animations(rig):
     out = {"hover": hover(rig), "fly": fly(rig), "glide": glide(rig), "dive": dive(rig), "screech": screech(rig),
-           "gust": gust(rig), "grab": grab(rig), "snap": snap(rig), "perch": perch(rig), "walk": walk(rig)}
+           "gust": gust(rig), "grab": grab(rig), "snap": snap(rig), "air_snap": air_snap(rig), "perch": perch(rig),
+           "walk": walk(rig)}
     out.update(deaths(rig))
     # (the membranes are thin plates the clipping check's points can't see into each other: their boxes are tested)
     for name, (depth, t) in sorted(wingfold.crossings(rig.m, out, MEMBRANES["l"], MEMBRANES["r"]).items()):

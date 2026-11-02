@@ -94,6 +94,12 @@ view a row (the whole animal by day and at night, its head close up, its body wi
 of its body's and wings' texels that glow: `boss-previews/cinder_wastes/emberdactyl/lava_looks/lava_looks.png`. The game's
 fight still wears E1A.
 
+**Its peck in the air** (the user, November 1, 2026: "when facing an enemy that can fly, the Emberdactyl can do its
+peck in the air"): `air_snap` (`firemobs/emberdactyl.py`, `AIR_SNAP*`; its young's 1.6 times as fast), a loop of one
+peck in flight: a harder wingbeat, its neck drawn back and up, then a lunge forward and a little down (the whole of it
+surging forward), its jaw snapping shut at the strike (`hit`, 0.556 of the loop; the beak's clack and a flap are its
+sound cues), and back. It runs straight into itself, so the game can play it several times in a row.
+
 **Its collision shapes** (`shapes.py`; the user, October 31: its head, neck and wings went through walls): for the
 adult (E1A) and the young (E2A), boxes that together hold every corner of the model through every frame of its flying
 animations (all but perch, walk, snap and death) and, separately, its ground animations (perch, walk, snap), read from

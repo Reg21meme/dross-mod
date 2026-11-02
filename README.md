@@ -661,6 +661,8 @@ mostly in the air, circling you, and never strays more than 100 blocks from its 
   air, holds you a moment and drops you close to where it caught you (the young drops you higher). However high it
   drops you, the fall never takes more than half your health.
 - **Wing buffet** (it swoops down to you first): it throws you about 25 blocks. **Screech**: about 20 blocks.
+- **Peck in the air**: against anything flying (another Emberdactyl, a Wither, a phantom, you on elytra) it bites in
+  mid-air, three quick pecks of 4 hearts, its body surging forward with each.
 
 It can't fly through blocks: walls, hills and roofs stop it (its wings too), and it rises over what's in its way.
 
@@ -696,7 +698,7 @@ can't be cured, not even with milk.
 - **Bosses** work too, each with its own moves: raging the Cinder Colossus makes it fight; raging the sleeping Rat
   King wakes him; raging the Huntsman or his moose rages both, and the Wild Hunt fights with its spear, arrows, horn
   and the moose's charges; raging an Emberdactyl or its young wakes it, and the adult and the young raged on two
-  teams fight each other in the air (talons, buffets, screeches, tornadoes). Their golems
+  teams fight each other in the air (talons, pecks, buffets, screeches, tornadoes). Their golems
   or rats (the ones already out and every one they summon) **join their team**, never fighting them or each other.
 - The **Wither** fights with its skulls, and the **Ender Dragon** charges through its enemies, swings round and spits
   its fireballs at them; with nobody to fight it circles over where you raged it.

@@ -1030,6 +1030,9 @@ CUES = {
     ("emberdactyl", "gust"): [("gust", "entity.emberdactyl.gust")],
     ("emberdactyl", "grab"): [("grab", "entity.emberdactyl.grab")],
     ("emberdactyl", "snap"): [(0.35, "entity.emberdactyl.snap")],
+    # its peck in the air (November 1): a flap each peck, the beak's clack landing on the strike ("hit")
+    ("emberdactyl", "air_snap"): [(0.12, "entity.emberdactyl.flap"),
+                                  (("hit", 0.5, SNAP_HIT), "entity.emberdactyl.snap")],
     ("emberdactyl", "walk"): [(0.0, "entity.emberdactyl.step"), (1.0, "entity.emberdactyl.step")],
     # its death (the user's pick of three, October 28: it breaks apart): the scream and fall, then (its big crack 1 s
     # into the sound) the stone breaking
@@ -1041,6 +1044,8 @@ CUES = {
     ("emberyoung", "gust"): [("gust", "entity.emberdactyl.gust")],
     ("emberyoung", "grab"): [("grab", "entity.emberdactyl.grab")],
     ("emberyoung", "snap"): [(0.2, "entity.emberdactyl.snap")],
+    ("emberyoung", "air_snap"): [(0.11, "entity.emberyoung.flap"),
+                                 (("hit", 0.3125, SNAP_HIT), "entity.emberdactyl.snap")],
     ("emberyoung", "death"): [(("cry", 0.125, 0.0), "entity.emberyoung.hurt"),
                               (("harden", 1.0, 0.0), "entity.emberyoung.harden")],
     ("pallbearer", "idle"): [],

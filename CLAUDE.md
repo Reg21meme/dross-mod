@@ -1546,7 +1546,20 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         fire and tornadoes hurt raged enemies (a tornado reaches 30 blocks up for one flying over it), never its own team.
         Against another Emberdactyl it fights in the air: its talon strike (the grab's swoop, raking it without carrying
         it: too big), buffet, screech, tornadoes and the young's dash, its dive only onto one lying stuck (`DUEL_*`), both
-        circling over the ground under each other (circling each other's heads they'd climb for ever).
+        circling over the ground under each other (circling each other's heads they'd climb for ever). **Its peck in the
+        air** (the user, November 1: "when facing an enemy that can fly, the Emberdactyl can do its peck in the air"):
+        against anything flying (another Emberdactyl, a Wither, a ghast, a phantom, a bee, a bat, a blaze, the Ender
+        Dragon, anything with no gravity off the ground, a player gliding on elytra: `EmberBoss.flies`) the same air fight
+        with **air_snap** in it (`DUEL_PECK` 30): three pecks one after another (`AIR_SNAP_PECKS`), each 4 hearts (the
+        snap's), everything within 3.5 blocks of its bill hurt (`AIR_SNAP_RADIUS`; the young's no less than three quarters
+        of that) and knocked on; it flies so its bill meets its enemy at the strike (the adult's 18.5 blocks ahead of its
+        feet and 12.25 up, the young's 12.6 and 10.7, measured from the models, `AIR_SNAP_BILL_*`), turning to it until
+        just before; it stops when its enemy lands, dies or gets 40 blocks off. Its animation (`tools/fire/firemobs/
+        emberdactyl.py`, `air_snap`, 0.9 s, the young's 0.56): a harder wingbeat, its neck drawn back and up, then a
+        lunge forward and a little down (the whole of it surging about 3 blocks forward), its jaw snapping shut at 0.556
+        of the way, and back; its sounds a flap and the beak's clack on the strike; its own collision boxes
+        (`EmberShapes.ADULT_AIR_SNAP`, `YOUNG_AIR_SNAP`). Headless test `EmberFightGameTest.airPeckHitsAFlyer` (an iron
+        golem with no gravity hanging in front of it loses all three pecks, and it stays up in the air).
       - **Blocks stop it** (the user, October 30: the young "likes to clip through walls", and both went up through the
         bedrock arena's roof, "make it so they can't clip through ceilings and stuff"; until then it flew through
         everything, `noPhysics`, and inside a roof took its top for the ground): it moves like any mob against blocks,
@@ -2085,7 +2098,8 @@ animation) and turning aside before walls; three less-lava looks of the adult (E
 bedrock arena seeing raged enemies anywhere in it (not yet tested in-game). Then (October 31-November 1): the
 Pallbearer and the Cinder Hermit as neutral Cinder Wastes mobs (spawning, eggs, the hermit's shells and hiding), the
 hermit crab caves with their crabs, a raged Wither's side heads and a raged warden kept off their own team, the Rat King
-throwing poison up at flyers, and the Emberdactyl's death never falling through a floor (not yet tested in-game).
+throwing poison up at flyers, the Emberdactyl's death never falling through a floor, and its peck in the air at
+anything flying (November 2) (not yet tested in-game).
 The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
@@ -2285,7 +2299,9 @@ Built and passing the headless check, but not yet tested in-game. Check these du
 - **November 1 fixes**: rage a Wither and a warden on the same colour and some mobs on another: the two never go for
   each other; rage the Rat King against something flying (a raged Emberdactyl, a Wither): he throws plague balls up at
   it; kill an Emberdactyl standing on the bedrock arena's floor (stuck after its dive): it lies down on the floor, never
-  falling through it.
+  falling through it. In the bedrock arena, rage the Emberdactyl one colour and a Wither (or its young) another: it pecks
+  at it in the air, three quick bites with its jaw snapping shut, its body surging forward with each; fly at it with
+  elytra in survival and it pecks you out of the air.
 - **Many raged at once** (October 31): sneak + right-click with the Rage Wand at a crowd of mobs: a beam of the
   wand's colour, rings on the ground, a roar, every mob within about 8 blocks raged onto its team; the Rage Bow (Dross
   tab) needs no arrows, its string and crystal show its team's colour (sneak + right-click to change it), its arrows

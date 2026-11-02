@@ -95,7 +95,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     /** Its moves. */
     protected enum Move
     {
-        NONE, DIVE, STUCK, TORNADO, STRAFE, GRAB, SNAP, BUFFET, SCREECH, DASH, TAKE_OFF, GLIDE
+        NONE, DIVE, STUCK, TORNADO, STRAFE, GRAB, SNAP, BUFFET, SCREECH, DASH, TAKE_OFF, GLIDE, AIR_SNAP
     }
 
     private static final String TAG_HOME = "Home";
@@ -1038,6 +1038,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             case DASH -> this.dash();
             case TAKE_OFF -> this.takeOff();
             case GLIDE -> this.glideIn();
+            case AIR_SNAP -> this.airSnap();
             default -> this.endMove();
         }
     }
@@ -1071,15 +1072,17 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         List<Move> moves = new ArrayList<>();
         List<Integer> weights = new ArrayList<>();
         boolean young = this.dashes();
-        if (this.target instanceof EmberBoss other)
+        if (this.target instanceof EmberBoss || flies(this.target))
         {
-            // a fight in the air with another Emberdactyl (the Rage Wand): its talons, wings, voice and tornadoes; its
-            // dive only onto one lying stuck on the ground
+            // a fight in the air with another Emberdactyl (the Rage Wand) or anything else flying: its talons, its beak
+            // (pecking in the air: the user, October 31, "when facing an enemy that can fly, the Emberdactyl can do its
+            // peck in the air"), wings, voice and tornadoes; its dive only onto another lying stuck on the ground
             add(moves, weights, Move.GRAB, DUEL_STRIKE);
+            add(moves, weights, Move.AIR_SNAP, DUEL_PECK);
             add(moves, weights, Move.BUFFET, DUEL_BUFFET);
             add(moves, weights, Move.SCREECH, DUEL_SCREECH);
             add(moves, weights, Move.TORNADO, DUEL_TORNADO);
-            if (other.grounded)
+            if (this.target instanceof EmberBoss other && other.grounded)
             {
                 add(moves, weights, Move.DIVE, DUEL_DIVE);
             }
@@ -1194,6 +1197,12 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 this.swoopFrom = 0;          // (its swoop's animation starts when it's in reach: grab())
                 this.loop("fly");
                 this.ready.put(m, this.tickCount + this.cooldown(GRAB_COOLDOWN));
+            }
+            case AIR_SNAP ->
+            {
+                this.playAnimation("air_snap");
+                this.hitThisMove.clear();
+                this.ready.put(m, this.tickCount + this.cooldown(AIR_SNAP_COOLDOWN) + this.length("air_snap") * AIR_SNAP_PECKS);
             }
             case SNAP ->
             {
@@ -1982,6 +1991,92 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             }
             e.setDeltaMovement(this.getDeltaMovement().scale(0.5D));
             e.hurtMarked = true;
+        }
+    }
+
+    /**
+     * True if something flies: off the ground and a flyer by nature (no gravity, a ghast or phantom, a bee or parrot, a
+     * bat, blaze, vex or allay, the Wither, the Ender Dragon, another Emberdactyl), or a player gliding on elytra.
+     */
+    static boolean flies(@Nullable LivingEntity e)
+    {
+        if (e == null || e.onGround())
+        {
+            return false;
+        }
+        return e.isNoGravity() || e instanceof net.minecraft.world.entity.FlyingMob
+                || e instanceof net.minecraft.world.entity.animal.FlyingAnimal
+                || e instanceof net.minecraft.world.entity.ambient.Bat || e instanceof net.minecraft.world.entity.monster.Blaze
+                || e instanceof net.minecraft.world.entity.monster.Vex || e instanceof net.minecraft.world.entity.animal.allay.Allay
+                || e instanceof net.minecraft.world.entity.boss.wither.WitherBoss
+                || e instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon
+                || e instanceof EmberBoss || e instanceof Player p && p.isFallFlying();
+    }
+
+    /**
+     * Beak peck in the air, at a flying enemy: {@link EmberTuning#AIR_SNAP_PECKS} pecks one after another, flying so its
+     * bill meets the enemy at each strike (the bill's place at the strike measured from the model,
+     * {@link EmberTuning#AIR_SNAP_BILL_AHEAD}), everything within {@link EmberTuning#AIR_SNAP_RADIUS} of the bill hurt
+     * and knocked away. It stops early if its enemy lands or gets away.
+     */
+    private void airSnap()
+    {
+        int peckLength = this.length("air_snap");
+        int peck = (this.moveTick - 1) / peckLength;
+        int peckTick = (this.moveTick - 1) % peckLength + 1;
+        if (peckTick == 1 && peck > 0)
+        {
+            this.playAnimation("air_snap");
+            this.hitThisMove.clear();
+        }
+        double scale = this.dashes() ? this.kind.width() / ADULT.width() : 1.0D;
+        double ahead = this.dashes() ? YOUNG_AIR_SNAP_BILL_AHEAD : AIR_SNAP_BILL_AHEAD;
+        double up = this.dashes() ? YOUNG_AIR_SNAP_BILL_UP : AIR_SNAP_BILL_UP;
+        int hit = this.at("air_snap", this.dashes() ? YOUNG_AIR_SNAP_HIT_SHARE : AIR_SNAP_HIT_SHARE);
+        if (this.target == null || !this.target.isAlive() || this.target.onGround()
+                || this.target.distanceTo(this) > AIR_SNAP_GIVE_UP)
+        {
+            this.endMove();
+            return;
+        }
+        // fly so its bill meets the enemy at the strike (before it, the animation's lunge holds the bill about 3 blocks
+        // short of it, drawn back about 6.5: the model itself surges forward onto it)
+        Vec3 aim = this.target.position().add(0.0D, this.target.getBbHeight() * 0.5D, 0.0D);
+        Vec3 face = this.facing();
+        Vec3 spot = aim.subtract(face.scale(ahead)).subtract(0.0D, up, 0.0D);
+        if (peckTick < hit - 2)
+        {
+            this.turnTo(this.target.position().subtract(this.position()));
+        }
+        this.steer(spot, this.kind.fast() * AIR_SNAP_SPEED, 0.5D);
+        if (peckTick == hit)
+        {
+            Vec3 bill = this.position().add(face.scale(ahead)).add(0.0D, up, 0.0D);
+            double reach = AIR_SNAP_RADIUS * Math.max(0.75D, scale);
+            if (this.level() instanceof ServerLevel level)
+            {
+                level.sendParticles(ParticleTypes.CRIT, bill.x, bill.y, bill.z, 14, reach * 0.3D, reach * 0.3D, reach * 0.3D, 0.2D);
+                level.sendParticles(ParticleTypes.LAVA, bill.x, bill.y, bill.z, 5, reach * 0.3D, reach * 0.3D, reach * 0.3D, 0.0D);
+            }
+            for (LivingEntity e : this.foesWithin(new AABB(bill, bill).inflate(reach)))
+            {
+                AABB body = e.getBoundingBox();
+                double dx = Math.max(0.0D, Math.max(body.minX - bill.x, bill.x - body.maxX));
+                double dy = Math.max(0.0D, Math.max(body.minY - bill.y, bill.y - body.maxY));
+                double dz = Math.max(0.0D, Math.max(body.minZ - bill.z, bill.z - body.maxZ));
+                if (dx * dx + dy * dy + dz * dz <= reach * reach && this.hitThisMove.add(e.getUUID()))
+                {
+                    e.invulnerableTime = 0;
+                    if (e.hurt(this.damageSources().mobAttack(this), SNAP_DAMAGE))
+                    {
+                        this.throwOut(e, face.scale(AIR_SNAP_THROW), 0.25D);
+                    }
+                }
+            }
+        }
+        if (this.moveTick >= peckLength * AIR_SNAP_PECKS)
+        {
+            this.endMove();
         }
     }
 

@@ -49,6 +49,11 @@
     false
    ],
    [
+    "air_snap",
+    0.9,
+    true
+   ],
+   [
     "perch",
     10.0,
     true
@@ -81,6 +86,9 @@
     "grab": 0.75
    },
    "snap": {
+    "hit": 0.5
+   },
+   "air_snap": {
     "hit": 0.5
    },
    "walk": {
@@ -142,6 +150,11 @@
     false
    ],
    [
+    "air_snap",
+    0.562,
+    true
+   ],
+   [
     "perch",
     6.25,
     true
@@ -174,6 +187,9 @@
     "grab": 0.469
    },
    "snap": {
+    "hit": 0.312
+   },
+   "air_snap": {
     "hit": 0.312
    },
    "walk": {

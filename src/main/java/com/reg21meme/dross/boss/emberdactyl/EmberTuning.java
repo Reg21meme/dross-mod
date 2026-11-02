@@ -270,6 +270,27 @@ public final class EmberTuning
     public static final int DUEL_STRIKE = 35, DUEL_BUFFET = 20, DUEL_SCREECH = 10, DUEL_TORNADO = 15, DUEL_DIVE = 30,
             DUEL_DASH = 25;
     public static final double DUEL_STRIKE_REACH = 4.0D;
+    /**
+     * Its peck in the air at a flying enemy (the user, October 31: "when facing an enemy that can fly, the Emberdactyl can
+     * do its peck in the air"): its chance in the air fight's table, how many pecks a go, how long before it pecks
+     * again (ticks), its bill's place at the strike (blocks ahead of its feet, up from them: measured from the model's
+     * {@code air_snap}) and the strike's moment in it, everything within this far of the bill hit (the snap's damage) and
+     * knocked on, how fast it flies to keep its bill there, and how far off it gives up. (The adult's bill is 15.4
+     * blocks ahead of its feet as it hovers, 11.9 drawn back, 18.5 at the strike; the young's 11.2, 9.0, 12.6.)
+     */
+    public static final int DUEL_PECK = 30;
+    public static final int AIR_SNAP_PECKS = 3;
+    public static final int AIR_SNAP_COOLDOWN = 60;
+    public static final double AIR_SNAP_BILL_AHEAD = 18.5D;
+    public static final double AIR_SNAP_BILL_UP = 12.25D;
+    public static final double AIR_SNAP_HIT_SHARE = 0.556D;
+    public static final double YOUNG_AIR_SNAP_BILL_AHEAD = 12.6D;
+    public static final double YOUNG_AIR_SNAP_BILL_UP = 10.7D;
+    public static final double YOUNG_AIR_SNAP_HIT_SHARE = 0.556D;
+    public static final double AIR_SNAP_RADIUS = 3.5D;
+    public static final double AIR_SNAP_THROW = 0.6D;
+    public static final double AIR_SNAP_SPEED = 1.0D;
+    public static final double AIR_SNAP_GIVE_UP = 40.0D;
     public static final double DUEL_STRIKE_THROW = 0.8D;
 
     /** When a wall stops it, it rises at least this fast (blocks a tick) to get over it. It's never let further than
