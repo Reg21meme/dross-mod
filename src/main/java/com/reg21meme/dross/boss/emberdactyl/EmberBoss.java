@@ -846,6 +846,11 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             this.home = this.position();
         }
+        if (this.tickCount % 20 == 1)
+        {
+            // its ledge, where nothing may spawn by itself (EmberKeeper.onSpawnPlacementCheck)
+            EmberKeeper.keepLedge(this, this.perch);
+        }
         if (!this.blasts.isEmpty())
         {
             this.keepBlowing();
@@ -2578,6 +2583,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             LIVE_BARS.remove(this.bar);
         }
         this.release();
+        if (reason.shouldDestroy())
+        {
+            EmberKeeper.dropLedge(this.getUUID());
+        }
         super.remove(reason);
     }
 

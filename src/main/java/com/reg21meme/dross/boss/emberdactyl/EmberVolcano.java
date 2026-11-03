@@ -625,6 +625,23 @@ public final class EmberVolcano
             return manages(x, z) ? this.ground.getY() + this.top[idx(x - this.ground.getX(), z - this.ground.getZ())] : landY(x, z);
         }
 
+        /** For the tests' messages: what it makes of a column (its kind, the top it lays, the land's, any lava). */
+        public String columnInfo(int x, int z)
+        {
+            int dx = x - this.ground.getX();
+            int dz = z - this.ground.getZ();
+            if (!inGrid(dx, dz))
+            {
+                return x + " " + z + ": outside its grid";
+            }
+            int i = idx(dx, dz);
+            String[] kinds = {"outside", "fringe", "apron", "cone", "crater", "nest", "path", "lip", "crust", "perch"};
+            byte k = this.kind[i];
+            return x + " " + z + ": " + (k >= 0 && k < kinds.length ? kinds[k] : "kind " + k) + ", top y " + (this.ground.getY() + this.top[i])
+                    + ", land y " + (this.ground.getY() + this.land[i]) + (this.lava[i] != NO_LAVA ? ", lava" : "")
+                    + (nextToLava(dx, dz) ? ", next to lava" : "");
+        }
+
         /** The land's top block in a column, as a world height (its ground on a flat floor). */
         public int landY(int x, int z)
         {
@@ -901,6 +918,29 @@ public final class EmberVolcano
                     }
                 }
             }
+            // ...and the way onto it: a strip from its foot straight out over the ground round the cone, where no lava,
+            // crust, vent or decoration goes, so you walk onto it from the land and the ground there steps down to the
+            // land from the foot (November 3: a river's foot pool and its crust lay right in front of the foot)
+            PathPoint foot = this.path.get(0);
+            double radial = Math.max(1.0E-6D, Math.hypot(foot.x(), foot.z()));
+            double ux = foot.x() / radial;
+            double uz = foot.z() / radial;
+            int half = Mth.ceil(WAY_IN_HALF_WIDTH);
+            for (double t = 0.0D; t <= FRINGE_OUT; t += 0.5D)
+            {
+                double px = foot.x() + ux * t;
+                double pz = foot.z() + uz * t;
+                for (int dx = (int) Math.floor(px) - half; dx <= (int) Math.floor(px) + half + 1; dx++)
+                {
+                    for (int dz = (int) Math.floor(pz) - half; dz <= (int) Math.floor(pz) + half + 1; dz++)
+                    {
+                        if (inGrid(dx, dz) && Math.hypot(dx - px, dz - pz) <= WAY_IN_HALF_WIDTH)
+                        {
+                            this.nearPath[idx(dx, dz)] = true;
+                        }
+                    }
+                }
+            }
         }
 
         /**
@@ -1014,7 +1054,8 @@ public final class EmberVolcano
             this.lava[i] = level;
         }
 
-        /** A lava pool at each river's foot, and the field of cooled crust round it (lava showing through here and there). */
+        /** A lava pool at each river's foot, and the field of cooled crust round it (lava showing through here and there),
+         *  where the land isn't far under its ground ({@link EmberVolcanoTuning#FOOT_POOL_MAX_RAISE}). */
         private void planFootPools(Random random)
         {
             for (int k = 0; k < RIVERS; k++)
@@ -1043,6 +1084,12 @@ public final class EmberVolcano
                         double a = Math.atan2(oz, ox);
                         double wobble = 0.9D * (2.0D * noise(Math.cos(a) * 2.5D + k * 7.0D, Math.sin(a) * 2.5D, 23) - 1.0D);
                         double outward = Math.cos(angleBetween(a, angle));
+                        if (this.land[i] < -FOOT_POOL_MAX_RAISE)
+                        {
+                            // not on ground it would have to raise far over the land (a pool on a terrace, its crust
+                            // holding the ground up so it couldn't step down to the land before its edge)
+                            continue;
+                        }
                         if (d <= radius + wobble && lavaAllowed(dx, dz) && this.top[i] <= 1)
                         {
                             setLava(i, 0, FOOT_POOL_DEPTH);

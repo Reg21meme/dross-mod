@@ -120,6 +120,58 @@ public final class EmberVolcanoProbeGameTest
         helper.succeed();
     }
 
+    /**
+     * The nearest volcano's planned columns from its path's foot straight out (as {@code GotoVolcanoGameTest} walks them),
+     * each with its neighbours, in the log: where its ground steps more than a block, and why.
+     */
+    @GameTest(template = EMPTY, batch = "dross_volcano_way", timeoutTicks = 20000)
+    public static void volcanoWayOnto(GameTestHelper helper)
+    {
+        net.minecraft.server.MinecraftServer server = helper.getLevel().getServer();
+        ServerLevel dross = server.getLevel(com.reg21meme.dross.dimension.ModDimensions.DROSS_LEVEL);
+        com.reg21meme.dross.dimension.sites.Site site = com.reg21meme.dross.dimension.sites.BossSites.forLevel(dross)
+                .nearest(com.reg21meme.dross.dimension.sites.BossSites.EMBER_VOLCANO, BlockPos.ZERO, 100_000)
+                .orElseThrow(() -> new GameTestAssertException("no volcano site planned"));
+        EmberVolcano.Plan plan = EmberVolcanoes.replan(dross, site);
+        net.minecraft.world.phys.Vec3 foot = plan.pathFoot();
+        double ox = foot.x - (plan.ground().getX() + 0.5D);
+        double oz = foot.z - (plan.ground().getZ() + 0.5D);
+        double len = Math.sqrt(ox * ox + oz * oz);
+        StringBuilder out = new StringBuilder();
+        int x0 = Integer.MIN_VALUE;
+        int z0 = Integer.MIN_VALUE;
+        for (double step = 0.0D; step <= 30.0D; step += 0.5D)
+        {
+            int x = (int) Math.floor(foot.x + ox / len * step);
+            int z = (int) Math.floor(foot.z + oz / len * step);
+            if (x == x0 && z == z0)
+            {
+                continue;
+            }
+            x0 = x;
+            z0 = z;
+            if (!plan.manages(x, z))
+            {
+                out.append("\n  ").append(x).append(' ').append(z).append(": the land, y ").append(plan.landY(x, z));
+                break;
+            }
+            out.append("\n  ").append(plan.columnInfo(x, z)).append(" | round it:");
+            for (int ax = -1; ax <= 1; ax++)
+            {
+                for (int az = -1; az <= 1; az++)
+                {
+                    if (ax != 0 || az != 0)
+                    {
+                        out.append(' ').append(plan.groundY(x + ax, z + az));
+                    }
+                }
+            }
+        }
+        LOGGER.info("[volcano probe] the volcano at {}, its path's foot {}, straight out:{}", plan.ground().toShortString(),
+                BlockPos.containing(foot).toShortString(), out);
+        helper.succeed();
+    }
+
     /** Makes the probe's spot a flat plain of grass first (like the superflat world the showcase is meant for), a little
      *  past everything the volcano may change, so the previews show the volcano and not the hills it was cut into. */
     private static void flatten(ServerLevel level, EmberVolcano.Plan plan)

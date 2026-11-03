@@ -64,6 +64,7 @@ public final class GotoVolcanoGameTest
     public static void gotoVolcano(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel().getServer());
+        run.watch(helper);
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::checkPlan))
                 .thenExecute(() -> run.guard(run::ask))
@@ -87,6 +88,10 @@ public final class GotoVolcanoGameTest
         @Nullable
         EmberVolcano.Plan plan;
         long askedAt;
+        @Nullable
+        GotoBiomeGameTest.Chat chat;
+        /** The command was asked again once the volcano was built (it had given up waiting for it). */
+        boolean askedAgain;
 
         Run(MinecraftServer server)
         {
@@ -101,6 +106,23 @@ public final class GotoVolcanoGameTest
         /** The first real failure (rethrown by every later step, so a retried step can't hide it behind "the stand-in is gone"). */
         @Nullable
         RuntimeException failure;
+
+        /**
+         * Fails the test as soon as a step has failed. A wait takes any failed check for "not yet" and tries it again
+         * every tick, until the test's backstop hours later; so a failure found in a wait is kept ({@link #failure}) and
+         * this second sequence (started before the test's own) fails the test with it at once.
+         */
+        void watch(GameTestHelper helper)
+        {
+            helper.startSequence()
+                    .thenWaitUntil(() -> {
+                        if (failure == null)
+                        {
+                            throw new GameTestAssertException("the test ran out of time");
+                        }
+                    })
+                    .thenFail(() -> failure);
+        }
 
         /** Runs a step; on a failure it's logged and the stand-in logged out first. */
         void guard(Runnable step)
@@ -184,7 +206,7 @@ public final class GotoVolcanoGameTest
                     .orElseThrow(() -> new GameTestAssertException("no volcano site planned"));
             this.player = GotoBiomeGameTest.joinPlayer(server.overworld(), "goto-volcano-test", GotoBiomeGameTest.overworldSpawn(server));
             this.askedAt = Util.getMillis();
-            GotoBiomeGameTest.Chat chat = new GotoBiomeGameTest.Chat();
+            this.chat = new GotoBiomeGameTest.Chat();
             int result = GotoBiomeGameTest.run(chat, player, "dross goto lair emberdactyl");
             if (result != 1)
             {
@@ -196,6 +218,15 @@ public final class GotoVolcanoGameTest
         {
             ServerPlayer p = requirePlayer();
             Optional<EmberVolcanoData.Volcano> built = EmberVolcanoes.get(server, site);
+            if (built.isPresent() && p.level() != dross && !askedAgain && GotoVolcano.TIMEOUT.equals(chat.lastKey()))
+            {
+                // The command waits 5 minutes for a volcano to be built; a busy test server (every test making its land at
+                // once) can take longer. Once it's built, asking again must land at once.
+                askedAgain = true;
+                LOGGER.warn("[goto volcano test] the command gave up before the volcano was built ({} s); asking again",
+                        (Util.getMillis() - askedAt) / 1000L);
+                GotoBiomeGameTest.run(chat, p, "dross goto lair emberdactyl");
+            }
             if (built.isEmpty() || p.level() != dross)
             {
                 if (Util.getMillis() - askedAt > PLACEMENT_TIMEOUT_MILLIS)
@@ -236,9 +267,9 @@ public final class GotoVolcanoGameTest
         }
 
         /**
-         * From the path's foot straight out (away from the volcano), over the ground it lays: a block's step at most, and
-         * that ground really there (solid) in the world. (Its own planned heights: a bone pile or skull on the way is
-         * walked round.)
+         * From the path's foot straight out (away from the volcano), over the ground it lays and onto the land past it: a
+         * block's step at most, and that ground really there (solid) in the world. (Its own planned heights: a bone pile
+         * or skull on the way is walked round.)
          */
         void checkWayOnto(EmberVolcanoData.Volcano volcano)
         {
@@ -246,7 +277,9 @@ public final class GotoVolcanoGameTest
             double ox = foot.x - (volcano.ground().getX() + 0.5D);
             double oz = foot.z - (volcano.ground().getZ() + 0.5D);
             double len = Math.sqrt(ox * ox + oz * oz);
-            int before = plan.groundY((int) Math.floor(foot.x), (int) Math.floor(foot.z));
+            int px = (int) Math.floor(foot.x);
+            int pz = (int) Math.floor(foot.z);
+            int before = plan.groundY(px, pz);
             int x0 = Integer.MIN_VALUE;
             int z0 = Integer.MIN_VALUE;
             for (double step = 0.5D; step <= 30.0D; step += 0.5D)
@@ -259,15 +292,19 @@ public final class GotoVolcanoGameTest
                 }
                 x0 = x;
                 z0 = z;
-                if (!plan.manages(x, z))
-                {
-                    break;
-                }
+                boolean land = !plan.manages(x, z); // the first column past its ground, the land's own: checked, then done
                 int ground = plan.groundY(x, z);
                 if (Math.abs(ground - before) > 1)
                 {
                     throw new GameTestAssertException("from the volcano's path foot outwards its ground steps " + (ground - before)
-                            + " blocks at " + x + " " + z + " (from y " + before + " to " + ground + ")");
+                            + " blocks at " + x + " " + z + " (from y " + before + " to " + ground + "; " + plan.columnInfo(px, pz)
+                            + ", then " + plan.columnInfo(x, z) + ")");
+                }
+                px = x;
+                pz = z;
+                if (land)
+                {
+                    break;
                 }
                 if (dross.getBlockState(new BlockPos(x, ground, z)).isAir())
                 {

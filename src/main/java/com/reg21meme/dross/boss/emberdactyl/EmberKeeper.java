@@ -5,9 +5,12 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModEntities;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -16,6 +19,7 @@ import net.minecraft.world.Difficulty;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -49,11 +53,46 @@ public final class EmberKeeper
 
     private EmberKeeper() {}
 
+    /** The ledges of the Emberdactyls about, by their ids: any volcano's (an arena's too, in any dimension), kept fresh by
+     *  their own ticks ({@link #keepLedge}; spawns are checked on the world generator's threads too). */
+    private static final Map<UUID, Ledge> LIVE_LEDGES = new ConcurrentHashMap<>();
+
+    private record Ledge(ResourceKey<Level> level, Vec3 perch)
+    {
+    }
+
+    /** An Emberdactyl's ledge while it's about (its perch; none: it has no ledge). */
+    public static void keepLedge(EmberBoss boss, @Nullable Vec3 perch)
+    {
+        if (perch == null)
+        {
+            LIVE_LEDGES.remove(boss.getUUID());
+        }
+        else
+        {
+            LIVE_LEDGES.put(boss.getUUID(), new Ledge(boss.level().dimension(), perch));
+        }
+    }
+
+    /** It's gone (dead or removed). */
+    public static void dropLedge(UUID boss)
+    {
+        LIVE_LEDGES.remove(boss);
+    }
+
+    @SubscribeEvent
+    public static void onServerStopping(net.minecraftforge.event.server.ServerStoppingEvent event)
+    {
+        LIVE_LEDGES.clear();
+    }
+
     /**
      * Nothing spawns by itself on the Emberdactyl's ledge (the user, November 2: "we gave the Emberdactyl a little platform
-     * to hang on ... make sure no mobs actually spawn on that platform"): natural spawns within
-     * {@link EmberVolcanoTuning#PERCH_NO_SPAWN} blocks of a built volcano's perch (and a few blocks over or under it).
-     * LOWEST priority, so its DENY wins.
+     * to hang on ... make sure no mobs actually spawn on that platform"; then "mobs can spawn on the surface, I saw it
+     * happen"): natural spawns within {@link EmberVolcanoTuning#PERCH_NO_SPAWN} blocks of a ledge (and a few blocks over
+     * or under it) are refused: every built volcano's in the Dross (one saved before it had a ledge: where its Emberdactyl
+     * perches on its rim), and the ledge of every Emberdactyl about, in any dimension (an arena's volcano isn't saved
+     * with the world's). LOWEST priority, so its DENY wins.
      */
     @SubscribeEvent(priority = net.minecraftforge.eventbus.api.EventPriority.LOWEST)
     public static void onSpawnPlacementCheck(net.minecraftforge.event.entity.living.MobSpawnEvent.SpawnPlacementCheck event)
@@ -63,22 +102,54 @@ public final class EmberKeeper
         {
             return;
         }
-        ServerLevel level = event.getLevel().getLevel();
-        if (!level.dimension().equals(ModDimensions.DROSS_LEVEL))
+        if (onLedge(event.getLevel().getLevel(), event.getPos()))
         {
-            return;
+            event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
         }
-        BlockPos pos = event.getPos();
-        for (EmberVolcanoData.Volcano volcano : EmberVolcanoData.get(level.getServer()).all())
+    }
+
+    /** True if {@code pos} is on (or just over or under) an Emberdactyl's ledge, where nothing may spawn by itself. */
+    public static boolean onLedge(ServerLevel level, BlockPos pos)
+    {
+        for (Ledge ledge : LIVE_LEDGES.values())
         {
-            Vec3 perch = volcano.perch();
-            if (perch != null && Math.abs(pos.getY() - perch.y) <= EmberVolcanoTuning.PERCH_NO_SPAWN_HEIGHT
-                    && Math.hypot(pos.getX() + 0.5D - perch.x, pos.getZ() + 0.5D - perch.z) <= EmberVolcanoTuning.PERCH_NO_SPAWN)
+            if (ledge.level() == level.dimension() && near(pos, ledge.perch()))
             {
-                event.setResult(net.minecraftforge.eventbus.api.Event.Result.DENY);
-                return;
+                return true;
             }
         }
+        if (level.dimension().equals(ModDimensions.DROSS_LEVEL))
+        {
+            for (EmberVolcanoData.Volcano volcano : EmberVolcanoData.get(level.getServer()).all())
+            {
+                if (near(pos, ledgeOf(volcano)))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean near(BlockPos pos, Vec3 perch)
+    {
+        return Math.abs(pos.getY() - perch.y) <= EmberVolcanoTuning.PERCH_NO_SPAWN_HEIGHT
+                && Math.hypot(pos.getX() + 0.5D - perch.x, pos.getZ() + 0.5D - perch.z) <= EmberVolcanoTuning.PERCH_NO_SPAWN;
+    }
+
+    /** A volcano's ledge: its saved perch, or (saved before it had one) where {@link #perch} puts its Emberdactyl, at its
+     *  rim's height (no height map: spawns are checked off the server thread too). */
+    private static Vec3 ledgeOf(EmberVolcanoData.Volcano volcano)
+    {
+        if (volcano.perch() != null)
+        {
+            return volcano.perch();
+        }
+        Vec3 centre = new Vec3(volcano.ground().getX() + 0.5D, 0.0D, volcano.ground().getZ() + 0.5D);
+        Vec3 away = new Vec3(centre.x - volcano.lookout().x, 0.0D, centre.z - volcano.lookout().z);
+        away = away.lengthSqr() < 0.01D ? new Vec3(1.0D, 0.0D, 0.0D) : away.normalize();
+        Vec3 spot = centre.add(away.scale(PERCH_OUT));
+        return new Vec3(spot.x, volcano.rimY(), spot.z);
     }
 
     /** A fall after its talon grab never takes more than half of its victim's health ({@link EmberBoss#capGrabFall}). */

@@ -93,6 +93,9 @@ public final class EmberVolcanoTuning
     public static final double FOOT_POOL_RADIUS = 5.6D;
     public static final double FOOT_POOL_RADIUS_SPREAD = 2.0D;
     public static final int FOOT_POOL_DEPTH = 2;
+    /** A foot pool and its crust go only where the land is at most this far under the volcano's ground (on the real
+     *  land; November 3: one 12 over the land held the ground round it up, a 6-block drop at the edge). */
+    public static final int FOOT_POOL_MAX_RAISE = 4;
     /** Round each foot pool a field of cooled lava crust (magma and obsidian) this far past its edge, with lava showing
      *  through this share of it. */
     public static final double CRUST_REACH = 7.0D;
@@ -103,6 +106,9 @@ public final class EmberVolcanoTuning
     public static final double POCKET_RADIUS_MAX = 2.8D;
     /** Lava never comes within this many blocks of the path (it would spill onto it), measured square. */
     public static final int LAVA_PATH_CLEARANCE = 2;
+    /** The way onto the path: a strip this many blocks either side of the line from its foot straight out over the
+     *  ground round the cone, kept free of lava, crust, vents and decorations. */
+    public static final double WAY_IN_HALF_WIDTH = 4.0D;
 
     // ---- The path up ----
 
@@ -254,6 +260,8 @@ public final class EmberVolcanoTuning
     public static final int MAX_BUILDS_AT_ONCE = 1;
     /** Its chunks (this far round its middle) are generated before it's built; it waits at most this long for them. */
     public static final long LOAD_TIMEOUT_MILLIS = 180_000L;
+    /** Past that, while its plan still isn't done, it says so in the log once this often. */
+    public static final long WAIT_NOTE_MILLIS = 60_000L;
     /** Once built, its chunks stay loaded this many ticks (for their lighting). */
     public static final int HOLD_AFTER_BUILD_TICKS = 100;
     /** The first groups' volcano sites are worked out (in the background) when the world starts. */

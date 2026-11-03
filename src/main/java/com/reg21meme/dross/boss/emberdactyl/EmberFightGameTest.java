@@ -74,6 +74,7 @@ public final class EmberFightGameTest
     public static void wakesAndFights(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 6400, -6400);
+        run.watch(helper);
         Emberdactyl[] adult = new Emberdactyl[1];
         helper.startSequence()
                 .thenWaitUntil(() -> run.guard(run::ready))
@@ -120,6 +121,7 @@ public final class EmberFightGameTest
     public static void tornadoBurnsAndLifts(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 6600, -6400);
+        run.watch(helper);
         Cow[] cow = new Cow[1];
         double[] highest = {0.0D};
         float[] start = {0.0F};
@@ -158,6 +160,7 @@ public final class EmberFightGameTest
     public static void eggHatchesAndWingsClipped(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 6400, -6600);
+        run.watch(helper);
         EmberEgg[] egg = new EmberEgg[1];
         Emberdactyl[] adult = new Emberdactyl[1];
         EmberYoung[] young = new EmberYoung[1];
@@ -232,6 +235,7 @@ public final class EmberFightGameTest
     public static void buffetThrowsAndBeakPecksFive(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 6600, -6600);
+        run.watch(helper);
         Cow[] cow = new Cow[1];
         Emberdactyl[] adult = new Emberdactyl[1];
         net.minecraft.world.entity.animal.IronGolem[] golem = new net.minecraft.world.entity.animal.IronGolem[2];
@@ -308,6 +312,7 @@ public final class EmberFightGameTest
     public static void staysInItsArena(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 7600, -6400);
+        run.watch(helper);
         Emberdactyl[] adult = new Emberdactyl[1];
         Cow[] cow = new Cow[1];
         int[] ticks = {0};
@@ -380,6 +385,57 @@ public final class EmberFightGameTest
     }
 
     /**
+     * The user, November 2: "mobs can spawn on the surface [where it waits], I saw it happen". An Emberdactyl with a ledge
+     * (an arena's: no saved volcano, and outside the Dross) keeps natural spawns off it while it's about: a natural spawn
+     * by its perch is refused, one 40 blocks off isn't, a spawn egg there isn't, and once it's gone the ledge is free.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_ledge", timeoutTicks = 2_000_000)
+    public static void nothingSpawnsOnItsLedge(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 8000, -6400);
+        run.watch(helper);
+        Emberdactyl[] adult = new Emberdactyl[1];
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre);
+                    adult[0].setHome(run.centre, null, run.centre, 0.0F, 0L);
+                }))
+                // (it lists its ledge once a second, from its own tick; a wait that threw a real failure here would be
+                // given again on every retry until the test's tick limit: waitFor waits, then gives up properly)
+                .thenWaitUntil(() -> run.waitFor("it to keep its ledge", () -> EmberKeeper.onLedge(run.level,
+                        BlockPos.containing(run.centre.add(5.0D, 0.0D, 3.0D))), () -> "its ledge isn't listed"))
+                .thenExecute(() -> run.guard(() -> {
+                    BlockPos by = BlockPos.containing(run.centre.add(5.0D, 0.0D, 3.0D));
+                    BlockPos far = BlockPos.containing(run.centre.add(40.0D, 0.0D, 0.0D));
+                    if (net.minecraftforge.event.ForgeEventFactory.checkSpawnPlacements(EntityType.ZOMBIE, run.level,
+                            MobSpawnType.NATURAL, by, run.level.random, true))
+                    {
+                        throw new GameTestAssertException("a zombie may spawn naturally on its ledge");
+                    }
+                    if (!net.minecraftforge.event.ForgeEventFactory.checkSpawnPlacements(EntityType.ZOMBIE, run.level,
+                            MobSpawnType.NATURAL, far, run.level.random, true))
+                    {
+                        throw new GameTestAssertException("a natural spawn 40 blocks off its ledge was refused");
+                    }
+                    if (!net.minecraftforge.event.ForgeEventFactory.checkSpawnPlacements(EntityType.ZOMBIE, run.level,
+                            MobSpawnType.SPAWN_EGG, by, run.level.random, true))
+                    {
+                        throw new GameTestAssertException("a spawn egg on its ledge was refused (only natural spawns are)");
+                    }
+                    adult[0].discard();
+                    if (EmberKeeper.onLedge(run.level, by))
+                    {
+                        throw new GameTestAssertException("it's gone, but its ledge still keeps spawns off");
+                    }
+                    LOGGER.info("[ember test] nothing spawns by itself on an Emberdactyl's ledge while it's about");
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
      * The user, November 2: a second Emberdactyl came to its volcano while its own was off chasing a Wither. Its volcano
      * remembers its own by its id: a new one may come only if none is recorded or its own was removed without dying
      * (Peaceful), never while its own is alive anywhere, and never because one that died is gone.
@@ -388,6 +444,7 @@ public final class EmberFightGameTest
     public static void volcanoRemembersItsOwn(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 7800, -6400);
+        run.watch(helper);
         long id = 7_800_640_000_123L;
         Emberdactyl[] adult = new Emberdactyl[2];
         helper.startSequence()
@@ -436,6 +493,7 @@ public final class EmberFightGameTest
     public static void airPeckHitsAFlyer(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 7400, -6400);
+        run.watch(helper);
         Emberdactyl[] adult = new Emberdactyl[1];
         net.minecraft.world.entity.animal.IronGolem[] golem = new net.minecraft.world.entity.animal.IronGolem[1];
         boolean[] pecking = {false};
@@ -492,6 +550,7 @@ public final class EmberFightGameTest
     public static void ragedTheyFightEachOther(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 7200, -6400);
+        run.watch(helper);
         Emberdactyl[] adult = new Emberdactyl[1];
         EmberYoung[] young = new EmberYoung[1];
         helper.startSequence()
@@ -532,6 +591,7 @@ public final class EmberFightGameTest
     public static void spawnEggOnesFightAtOnce(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 7200, -6600);
+        run.watch(helper);
         EmberBoss[] boss = new EmberBoss[2];
         helper.startSequence()
                 .thenWaitUntil(() -> run.guard(run::ready))
@@ -589,6 +649,7 @@ public final class EmberFightGameTest
     public static void grabNeverCarriesYouIntoTheGround(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 6800, -6400);
+        run.watch(helper);
         Cow[] cow = new Cow[1];
         Cow[] faller = new Cow[1];
         Emberdactyl[] adult = new Emberdactyl[1];
@@ -694,6 +755,7 @@ public final class EmberFightGameTest
     public static void farGlideEndsInADiveAndTheYoungDropsFire(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 7000, -6200);
+        run.watch(helper);
         Cow[] cow = new Cow[1];
         EmberBoss[] boss = new EmberBoss[1];
         double[] diveFrom = {Double.NaN};
@@ -785,6 +847,23 @@ public final class EmberFightGameTest
                     this.held.add(chunk);
                 }
             }
+        }
+
+        /**
+         * Fails the test as soon as a step has failed. A wait takes any failed check for "not yet" and tries it again
+         * every tick, until the test's tick limit hours later; so a failure found in a wait is kept ({@link #failure})
+         * and this second sequence (started before the test's own) fails the test with it at once.
+         */
+        void watch(GameTestHelper helper)
+        {
+            helper.startSequence()
+                    .thenWaitUntil(() -> {
+                        if (this.failure == null)
+                        {
+                            throw new GameTestAssertException("the test ran out of time");
+                        }
+                    })
+                    .thenFail(() -> this.failure);
         }
 
         /** Runs a step; a real failure is remembered, logged and cleaned up (and given again by every later step). */

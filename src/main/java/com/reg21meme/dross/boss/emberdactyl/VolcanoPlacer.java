@@ -361,6 +361,8 @@ final class VolcanoPlacer
         final long ticketKey;
         final long requestedAt = Util.getMillis();
         long loadMillis = -1L;
+        /** When it next says it's still waiting for its plan (once a minute, not every tick). */
+        long nextWaitNote = LOAD_TIMEOUT_MILLIS;
         final CompletableFuture<EmberVolcano.Plan> plan;
         @Nullable
         EmberVolcano.Build build;
@@ -396,7 +398,11 @@ final class VolcanoPlacer
                 }
                 if (!plan.isDone())
                 {
-                    LOGGER.warn("Emberdactyl volcanoes: planning the volcano at {} {} still wasn't done after {} s; it waits on.", x, z, waited / 1000);
+                    if (waited >= nextWaitNote)
+                    {
+                        LOGGER.warn("Emberdactyl volcanoes: planning the volcano at {} {} still wasn't done after {} s; it waits on.", x, z, waited / 1000);
+                        nextWaitNote = waited + WAIT_NOTE_MILLIS;
+                    }
                     return false;
                 }
                 if (!all)
