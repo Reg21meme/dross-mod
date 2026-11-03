@@ -12,6 +12,7 @@ import com.reg21meme.dross.boss.fire.FireSounds;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
@@ -76,6 +77,10 @@ public final class FireGalleriesGameTest
     /** How long the volcano may take to go up, and how long the lava is left before it's checked again (ticks: lava
      *  in the Overworld moves every 30). */
     private static final int VOLCANO_TIMEOUT_TICKS = 12_000;
+    /** The held chunks may take this long to load (real time: {@link ChunkWait}); the tests' tick limits leave room for
+     *  that at the test server's pace (far over 20 ticks a second). */
+    private static final long LOAD_MILLIS = 240_000L;
+    private static final int LOAD_BACKSTOP_TICKS = 60_000;
     private static final int LAVA_SETTLE_TICKS = 120;
     /** The rim stands at least this close to its planned height (its crest is jagged, notched at the path). */
     private static final int RIM_SLACK = 9;
@@ -92,7 +97,7 @@ public final class FireGalleriesGameTest
 
     private FireGalleriesGameTest() {}
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_fire_emberdactyl", timeoutTicks = VOLCANO_TIMEOUT_TICKS + 2000)
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_fire_emberdactyl", timeoutTicks = VOLCANO_TIMEOUT_TICKS + LOAD_BACKSTOP_TICKS)
     public static void emberdactylGalleryAndVolcano(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
@@ -108,12 +113,14 @@ public final class FireGalleriesGameTest
         int x1 = column.getX() + half + 12;
         int z1 = column.getZ() + (int) Math.ceil(reach);
         List<ChunkPos> held = hold(level, x0, z0, x1, z1);
+        ChunkWait loading = new ChunkWait(level, held);
         plain(level, x0, z0, x1, z1);
         double galleryEnd = column.getZ() + FireShowcase.layout(FireDesigns.EMBERDACTYL).depth() + 6.0D;
         EmberVolcano.Plan[] plan = {null};
         helper.startSequence()
-                .thenWaitUntil(() -> ready(level, held))
+                .thenWaitUntil(loading::poll)
                 .thenExecute(() -> {
+                    loading.check();
                     int result = run(server, level, column, PLAIN_Y + 1, "dross showcase boss_designs emberdactyl");
                     if (result != FireDesigns.EMBERDACTYL.size())
                     {
@@ -151,7 +158,7 @@ public final class FireGalleriesGameTest
                 .thenSucceed();
     }
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_fire_cinder_mobs", timeoutTicks = 6000)
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_fire_cinder_mobs", timeoutTicks = 6000 + LOAD_BACKSTOP_TICKS)
     public static void cinderMobsGallery(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
@@ -161,11 +168,13 @@ public final class FireGalleriesGameTest
         double depth = FireShowcase.layout(FireDesigns.CINDER_MOBS).depth();
         List<ChunkPos> held = hold(level, column.getX() - (int) half - 16, column.getZ() - 16, column.getX() + (int) half + 16,
                 column.getZ() + (int) depth + 16);
+        ChunkWait loading = new ChunkWait(level, held);
         helper.startSequence()
-                .thenWaitUntil(() -> ready(level, held))
+                .thenWaitUntil(loading::poll)
                 .thenExecute(() -> {
                     try
                     {
+                        loading.check();
                         level.getChunkAt(column);
                         int feetY = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, column.getX(), column.getZ());
                         int result = run(server, level, column, feetY, "dross showcase cinder_mobs");
@@ -331,20 +340,54 @@ public final class FireGalleriesGameTest
         return held;
     }
 
-    /** Waits (throws) until every held chunk is loaded with its entities seen and ticking. */
-    private static void ready(ServerLevel level, List<ChunkPos> held)
+    /**
+     * The wait for a test's held chunks: until every one is loaded with its entities seen and ticking, at most
+     * {@link #LOAD_MILLIS} (real time: the test server runs ticks far faster than 20 a second, so a count of ticks was
+     * over in under a minute, and a busy server's first minutes once took longer). A wait that gives up ends (a wait
+     * that threw would only be tried again until the tick backstop), and the step after it fails ({@link #check}).
+     */
+    private static final class ChunkWait
     {
-        int waiting = 0;
-        for (ChunkPos chunk : held)
+        final ServerLevel level;
+        final List<ChunkPos> held;
+        long since = -1L;
+        int waiting;
+
+        ChunkWait(ServerLevel level, List<ChunkPos> held)
         {
-            if (!level.isPositionEntityTicking(chunk.getWorldPosition()))
+            this.level = level;
+            this.held = held;
+        }
+
+        /** For {@code thenWaitUntil}: throws while it's still waiting. */
+        void poll()
+        {
+            this.waiting = 0;
+            for (ChunkPos chunk : this.held)
             {
-                waiting++;
+                if (!this.level.isPositionEntityTicking(chunk.getWorldPosition()))
+                {
+                    this.waiting++;
+                }
+            }
+            if (this.since < 0L)
+            {
+                this.since = Util.getMillis();
+            }
+            if (this.waiting > 0 && Util.getMillis() - this.since < LOAD_MILLIS)
+            {
+                throw new GameTestAssertException("waiting for " + this.waiting + " of " + this.held.size() + " chunks to load");
             }
         }
-        if (waiting > 0)
+
+        /** For the step after it: fails if it gave up. */
+        void check()
         {
-            throw new GameTestAssertException("waiting for " + waiting + " of " + held.size() + " chunks to load");
+            if (this.waiting > 0)
+            {
+                throw new GameTestAssertException(this.waiting + " of " + this.held.size() + " chunks still weren't loaded after "
+                        + LOAD_MILLIS / 1000L + " s");
+            }
         }
     }
 
