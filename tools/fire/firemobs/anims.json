@@ -2,14 +2,7 @@
  "emberdactyl": {
   "idle": "hover",
   "models": [
-   "emberdactyla",
-   "emberdactylb",
-   "emberdactylc",
-   "emberdactyld",
-   "emberdactylc1",
-   "emberdactylc2",
-   "emberdactylc3",
-   "emberdactylc4"
+   "emberdactyla"
   ],
   "anims": [
    [

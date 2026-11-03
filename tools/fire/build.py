@@ -85,11 +85,9 @@ SETS = {
                               "more lava; the egg with a thinner shell round its young curled up inside, in three "
                               "strengths of magma and cut open. In the game the adult and the young move: their "
                               "animations are in animations/. Its volcano is built in the game by the showcase, behind "
-                              "the gallery. Rounds 1 and 2 are in round1/ and round2/. E1B, E1C and E1D (October 31): "
-                              "the adult (E1A) with less and less lava on its body and horns, its wings the same, for "
-                              "the user to compare (side by side in lava_looks/). E1C1-E1C4 (November 2): E1C, the "
-                              "user's pick of those, with its bill and jaw, half moon, horns and tail purple in four "
-                              "ways (side by side in purple_looks/).",
+                              "the gallery. Rounds 1 and 2 are in round1/ and round2/. Round 4 (October 31-November 2): "
+                              "the adult with less lava, then purple, in eight looks; the user picked E1C3 (violet and "
+                              "lava, November 3), which E1A now wears; the eight are in round4/.",
                         # drawn by volcano_preview.py from the blocks the game placed (kept by the clean-up)
                         extras=(("volcano_front", "The volcano by day, from its front (where the path starts)"),
                                 ("volcano_back", "From behind (the lookout's side)"),

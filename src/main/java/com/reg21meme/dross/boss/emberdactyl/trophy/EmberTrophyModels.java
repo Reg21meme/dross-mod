@@ -69,10 +69,10 @@ public final class EmberTrophyModels
     public static final List<Model> ALL = List.of(
             // 1. Guardian of the Nest (candidate 11): the volcano, the egg, the adult's hover at 0.55 s
             new Model(1, 11, "guardian_of_the_nest", "Over its nest", 0.0269F, 0.8500F, 0.0000F, 7,
-                    new Spot(0.0400F, 0.0000F, 0.0759F), new Spot(0.9600F, 0.9287F, 0.9241F),
+                    new Spot(0.0400F, 0.0000F, 0.0759F), new Spot(0.9600F, 0.9254F, 0.9241F),
                     List.of(new Mark(Effect.EMBER, new Spot(0.0873F, 0.8554F, 0.7459F), new Spot(0.0873F, 0.8049F, 0.7459F)),
                             new Mark(Effect.EMBER, new Spot(0.9098F, 0.8554F, 0.4465F), new Spot(0.9098F, 0.8049F, 0.4465F)),
-                            new Mark(Effect.SMOKE, new Spot(0.4635F, 0.3965F, 0.5000F), new Spot(0.4635F, 0.4975F, 0.5000F)),
+                            new Mark(Effect.SMOKE, new Spot(0.4635F, 0.3965F, 0.5000F), new Spot(0.4635F, 0.4974F, 0.5000F)),
                             new Mark(Effect.LAVA, new Spot(0.4635F, 0.3965F, 0.5000F), new Spot(0.4635F, 0.4470F, 0.5000F)))),
             // 2. Into the Fire (candidate 4): the pool, the adult's dive at 0.9 s
             new Model(2, 4, "into_the_fire", "Dive", 0.0368F, 0.8500F, 0.0000F, 5,
