@@ -70,23 +70,13 @@ public final class HermitCaveDesigns
         }
     }
 
-    /** Every cave, in order (their numbers, 1 the Hillside Burrows, 2 the Long Gallery, 3 the Claw Burrows, 4 the Ash Mound Den, 5 the Twin Hump Den). */
+    /** Every cave, in order (their numbers, 1 the Long Gallery, 2 the Ash Mound Den, 3 the Twin Hump Den). */
     public static final List<Cave> CAVES = List.of(
-            new Cave("hillside_burrows", "Hillside Burrows", Kind.HILLSIDE,
-                    "No. 7 dug into a hill: a rocky mouth in the hillside, a round den round a Cinder Vent on its mound of basalt and magma, and three burrows off it: the crab's nest at the back, a pool of lava, and a midden of its spare shells.",
-                    29, 29, 14, 4, 14, 28, 13, 5, 9, 6, 13,
-                    List.of(new BlockPos(14, 5, 6)),
-                    List.of(new BlockPos(14, 5, 16), new BlockPos(14, 5, 6), new BlockPos(6, 5, 15), new BlockPos(22, 5, 15))),
             new Cave("long_gallery", "Long Gallery", Kind.HILLSIDE,
                     "A wide mouth in the hillside onto a long gallery dug along the hill, two pillars holding its roof and two Cinder Vents on their mounds; a pool of lava at its west end, a midden of spare shells at its east end, and the crab's nest in a burrow back into the hill.",
-                    29, 29, 13, 4, 14, 28, 12, 5, 12, 4, 12,
-                    List.of(new BlockPos(14, 5, 7)),
-                    List.of(new BlockPos(14, 5, 19), new BlockPos(14, 5, 7), new BlockPos(6, 5, 19), new BlockPos(22, 5, 19))),
-            new Cave("claw_burrows", "Claw Burrows", Kind.HILLSIDE,
-                    "A narrow mouth in the hillside, a step down into a round den round its Cinder Vent, and three burrows fanned out behind it like a claw's fingers: a pool of lava, the crab's nest deepest in the hill, and a midden of its spare shells.",
-                    29, 29, 13, 4, 14, 28, 18, 4, 7, 5, 12,
-                    List.of(new BlockPos(14, 4, 6)),
-                    List.of(new BlockPos(14, 4, 18), new BlockPos(14, 4, 6), new BlockPos(6, 4, 10), new BlockPos(22, 4, 10))),
+                    33, 33, 14, 4, 16, 32, 13, 5, 18, 6, 13,
+                    List.of(new BlockPos(16, 5, 8)),
+                    List.of(new BlockPos(16, 5, 22), new BlockPos(16, 5, 8), new BlockPos(6, 5, 22), new BlockPos(26, 5, 22))),
             new Cave("ash_mound", "Ash Mound Den", Kind.UNDERGROUND,
                     "A cutting slopes down a block every two into a den 3 blocks under the ground round its Cinder Vent, its roof a low mound of ash with a second vent smoking on top; off it the crab's nest, a pool of lava, and behind a crawl the crab can't follow, a little loot room of decorated pots, suspicious gravel and a barrel.",
                     37, 37, 17, 7, 18, 36, 20, 5, 28, 3, 14,

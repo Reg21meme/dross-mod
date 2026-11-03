@@ -189,7 +189,8 @@ down, their roof a low mound of ash over them, with a loot room behind a crawl t
 anywhere: steps are whole blocks. Every lava block is walled in under and on all four sides, every floor cell can be
 walked to from the way in (at the south) and is lit. In the game: <code>/dross showcase hermit_caves</code>; in the
 world, 1-2 in every Cinder Wastes area, hillside ones where the land rises (<code>/dross goto hermit_cave</code>).
-Round 1's seven: <a href="round1/index.html">round1/</a>.</p>
+The user kept three of round 2's five (November 3), the Long Gallery made bigger; round 2 as it was:
+<a href="round2/index.html">round2/</a>. Round 1's seven: <a href="round1/index.html">round1/</a>.</p>
 {rows}</body></html>"""
     with open(os.path.join(PREVIEWS, "index.html"), "w", encoding="utf-8") as f:
         f.write(html)

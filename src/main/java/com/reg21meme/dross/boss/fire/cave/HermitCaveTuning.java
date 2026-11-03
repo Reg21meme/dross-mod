@@ -20,8 +20,8 @@ public final class HermitCaveTuning
      * first {@link #TRIES} that fit; a hillside one where the hill over it is fullest of all {@link #HILL_TRIES}. */
     public static final int TRIES = 96;
     public static final int HILL_TRIES = 192;
-    /** A cave's middle is at least this many blocks inside its patch (the template is 29 across: its corners stay
-     * well inside the Cinder Wastes). */
+    /** A cave's middle is at least this many blocks inside its patch (the templates are 33 and 37 across: their corners
+     * stay inside the Cinder Wastes). */
     public static final int MIN_DEPTH = 28;
     /** ...or, when the normal rules leave a patch short of its caves, this many. */
     public static final int RELAXED_MIN_DEPTH = 20;

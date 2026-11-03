@@ -769,6 +769,11 @@ def toll(rng, base=140.0, dur=4.5):
     return bell(rng, base, dur, 1.0) + bell(rng, base * 0.971, dur, 0.45)
 
 
+# When the dead Pallbearer goes in its puff of smoke, in seconds after its death cry starts: its death animation (3.6 s,
+# boss/fire/FireAnims) and the second it lies there (CinderMobTuning.DEATH_LINGER_TICKS). The dying laugh ends then.
+PB_POOF = 3.6 + 1.0
+
+
 def pb_death(rng, kind):
     """An evil Halloween death: a falling moan or wail, his bones clattering down, his censer bells out of tune, a last
     toll (3 versions for the user). The collapse lands at the animation's fall."""
@@ -790,7 +795,8 @@ def pb_death(rng, kind):
     else:                  # the dying laugh: an evil cackle slowing and sinking, his censer bells jangling with it,
         # the collapse and the last toll, then the bells withering away, each fainter, slower and flatter, and a slow
         # creak as the last of them dies (the user's pick, October 28: "the dying laugh ... include the bells with that,
-        # and the creaking at the end as the bells wither away")
+        # and the creaking at the end as the bells wither away"); then (November 3: "less bells on the Pallbearer death so
+        # his screech ends when he poofs off") fewer bells, a shorter toll and echo, all of it over as he goes in smoke
         laugh, at = [], 0.0
         for i in range(6):
             f0 = 150.0 * 0.9 ** i
@@ -801,12 +807,13 @@ def pb_death(rng, kind):
             at += 0.2 + 0.035 * i
         sigh = skull_voice(rng, 0.9, [(0.0, 70.0), (0.9, 45.0)], [(0.0, "ah"), (0.9, "oh")], rasp=0.6,
                            amp=[(0.0, 0.0), (0.1, 0.8), (0.9, 0.0)])
-        wither = [(fall + w, norm(bell(rng, b, 1.6)) * lv) for w, b, lv in
-                  ((0.7, 668.0, 0.5), (1.3, 652.0, 0.38), (2.1, 636.0, 0.27), (3.0, 618.0, 0.18), (4.0, 600.0, 0.1))]
-        creak = jaw_creak(rng, 1.6, ((0.0, 28.0), (1.0, 7.0)), 0.45)
-        x = S.place(fall + 6.4, *laugh, (at, sigh * 0.7), (0.1, norm(censers(rng, fall, 7)) * 0.35), (fall, down),
-                    (fall, norm(censers(rng, 0.8, 6)) * 0.4), (fall + 0.8, norm(toll(rng, 130.0)) * 0.7), *wither,
-                    (fall + 3.6, creak))
+        wither = [(fall + w, norm(bell(rng, b, 1.0)) * lv) for w, b, lv in ((0.7, 668.0, 0.42), (1.25, 645.0, 0.22))]
+        creak = jaw_creak(rng, 0.9, ((0.0, 28.0), (1.0, 7.0)), 0.45)
+        x = S.place(PB_POOF, *laugh, (at, sigh * 0.7), (0.1, norm(censers(rng, fall, 4)) * 0.35), (fall, down),
+                    (fall, norm(censers(rng, 0.6, 3)) * 0.4), (fall + 0.8, norm(toll(rng, 130.0, 2.0)) * 0.65), *wither,
+                    (fall + 1.5, creak))
+        x = valley(x, rng, rt60=1.4, mix=0.4, echoes=((0.18, 0.2), (0.4, 0.1)))
+        return limit(fade_end(x[:S.n_of(PB_POOF)], 0.7), 0.55)      # (cut as he goes in smoke, fading out)
     return limit(valley(x, rng, rt60=2.6, mix=0.45, echoes=((0.18, 0.2), (0.4, 0.1))), 0.55)
 
 
@@ -993,11 +1000,11 @@ EVENTS = [
     Event("entity.pallbearer.hurt", PB, versions("hurt", pb_hurt, 2), "Pallbearer hurts", "Pallbearer",
           "Hurt: a groan and rattling bones (2 versions)"),
     Event("entity.pallbearer.death", PB, versions("death", pb_death, 3), "Pallbearer falls", "Pallbearer",
-          "Death, an evil Halloween one (the user's pick: 3, the dying laugh, with the bells withering away)", pick=3,
+          "Death, an evil Halloween one (the user's pick: 3, the dying laugh, over as he goes in smoke)", pick=3,
           about=["the falling wail: a ghostly wail sinking away, his censers clanging, the last toll",
                  "the bells' dirge: three tolls each a quarter-tone flatter over a deep moan, the last ringing on",
-                 "the dying laugh: an evil cackle with his bells, the collapse, the toll, the bells withering away and"
-                 " a last creak"]),
+                 "the dying laugh: an evil cackle with a few bells, the collapse, a short toll, two bells withering"
+                 " and a creak, over as he goes in smoke"]),
     Event("entity.pallbearer.step", PB, [("step", lambda r: pb_step(r, 1))], "Heavy footsteps", "Pallbearer",
           "A heavy foot in the ash", volume=1.0),
     Event("entity.hermit.ambient", HM, versions("ambient", hm_ambient, 2), "Cinder Hermit clicks", "Cinder Hermit",

@@ -64,7 +64,7 @@ public final class FireSounds
             new Sound("Pallbearer", "entity.pallbearer.swing", "Its backhand swing", 1, 0, List.of("")),
             new Sound("Pallbearer", "entity.pallbearer.slam", "The coffin's weight slammed down, embers bursting", 1, 0, List.of("")),
             new Sound("Pallbearer", "entity.pallbearer.hurt", "Hurt: a groan and rattling bones (2 versions)", 2, 0, List.of("", "")),
-            new Sound("Pallbearer", "entity.pallbearer.death", "Death, an evil Halloween one (the user's pick: 3, the dying laugh, with the bells withering away)", 3, 3, List.of("the falling wail: a ghostly wail sinking away, his censers clanging, the last toll", "the bells' dirge: three tolls each a quarter-tone flatter over a deep moan, the last ringing on", "the dying laugh: an evil cackle with his bells, the collapse, the toll, the bells withering away and a last creak")),
+            new Sound("Pallbearer", "entity.pallbearer.death", "Death, an evil Halloween one (the user's pick: 3, the dying laugh, over as he goes in smoke)", 3, 3, List.of("the falling wail: a ghostly wail sinking away, his censers clanging, the last toll", "the bells' dirge: three tolls each a quarter-tone flatter over a deep moan, the last ringing on", "the dying laugh: an evil cackle with a few bells, the collapse, a short toll, two bells withering and a creak, over as he goes in smoke")),
             new Sound("Pallbearer", "entity.pallbearer.step", "A heavy foot in the ash", 1, 0, List.of("")),
             new Sound("Cinder Hermit", "entity.hermit.ambient", "Clicking mandibles, a bubbling (2 versions)", 2, 0, List.of("", "")),
             new Sound("Cinder Hermit", "entity.hermit.clang", "Its bronze bell struck (the stunning clang)", 1, 0, List.of("")),
