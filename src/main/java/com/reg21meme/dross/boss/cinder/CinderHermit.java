@@ -3,7 +3,9 @@ package com.reg21meme.dross.boss.cinder;
 import com.reg21meme.dross.boss.BossChase;
 import com.reg21meme.dross.boss.fire.FireDesigns;
 import com.reg21meme.dross.boss.rimefall.RimefallBodyPart;
+import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
@@ -18,6 +20,7 @@ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.entity.PartEntity;
 
 import javax.annotation.Nullable;
@@ -53,6 +56,7 @@ public class CinderHermit extends CinderMob
             EntityDataSerializers.BOOLEAN);
     private static final String TAG_SHELL = "Shell";
     private static final String TAG_HIDE_MARK = "HideMark";
+    private static final String TAG_DEN = "Den";
     /** It turns at most this many degrees a tick (a 6-block crab). */
     private static final float MAX_TURN = 10.0F;
 
@@ -207,6 +211,120 @@ public class CinderHermit extends CinderMob
     {
         this.goalSelector.addGoal(1, new HideGoal());
         this.goalSelector.addGoal(2, new FightGoal());
+        this.goalSelector.addGoal(4, new BackToDenGoal());
+    }
+
+    // ---------------------------------------------------------------- a cave's own crab: its den
+
+    /**
+     * (server) Where a hermit crab cave's own crab lives (its crab spot; null: it roams, a natural or an egg's hermit).
+     * It never wanders off from there, and walks back once it's more than {@link CinderMobTuning#CAVE_CRAB_DEN} blocks
+     * away with nothing to fight (the user, November 3; a headless test saw one leave its den). It isn't a vanilla
+     * restriction: Minecraft's target goals refuse anything outside one, so it wouldn't fight back from its den.
+     */
+    @Nullable
+    private BlockPos den;
+
+    /** Makes {@code spot} (a hermit crab cave's crab spot) its den, saved with it. */
+    public void setDen(BlockPos spot)
+    {
+        this.den = spot.immutable();
+    }
+
+    @Nullable
+    public BlockPos den()
+    {
+        return this.den;
+    }
+
+    @Override
+    protected boolean mayWander()
+    {
+        return this.den == null;
+    }
+
+    private double fromDen()
+    {
+        return this.den == null ? 0.0D : Math.hypot(this.getX() - (this.den.getX() + 0.5D), this.getZ() - (this.den.getZ() + 0.5D));
+    }
+
+    /** For the tests' messages: how its way back to its den stands (its path, its running goals). */
+    String denState()
+    {
+        net.minecraft.world.level.pathfinder.Path path = this.getNavigation().getPath();
+        StringBuilder goals = new StringBuilder();
+        this.goalSelector.getRunningGoals().forEach(g -> goals.append(g.getGoal().getClass().getSimpleName()).append(' '));
+        return String.format(java.util.Locale.ROOT, "%.1f from its den, on the ground %s, its path %s, done %s, running %s, its animation %s"
+                        + " | yaw %.1f, wants %s %.1f %.1f, speed %.3f, zza %.3f, moving %.3f %.3f",
+                this.fromDen(), this.onGround(), path == null ? "none" : path.getNodeCount() + " nodes to " + path.getTarget().toShortString()
+                        + " next " + (path.isDone() ? "-" : path.getNextNodeIndex() + " " + path.getNextNodePos().toShortString())
+                        + (path.canReach() ? "" : " (can't reach)"), this.getNavigation().isDone(), goals.toString().trim(), this.animation(),
+                this.getYRot(), this.getMoveControl().hasWanted(), this.getMoveControl().getWantedX(), this.getMoveControl().getWantedZ(),
+                this.getSpeed(), this.zza, this.getDeltaMovement().x, this.getDeltaMovement().z);
+    }
+
+    /** Back to its den after a fight: straight there when the way is clear (as it chases: {@link BossChase}), else
+     *  along a route of up to {@link CinderMobTuning#CAVE_CRAB_PATH_RANGE} blocks, until it's
+     *  {@link CinderMobTuning#CAVE_CRAB_HOME} from the middle of its den. */
+    private final class BackToDenGoal extends Goal
+    {
+        private int repath;
+
+        BackToDenGoal()
+        {
+            this.setFlags(EnumSet.of(Flag.MOVE));
+        }
+
+        @Override
+        public boolean canUse()
+        {
+            return CinderHermit.this.den != null && CinderHermit.this.getTarget() == null && !CinderHermit.this.inMove()
+                    && CinderHermit.this.fromDen() > CAVE_CRAB_DEN;
+        }
+
+        @Override
+        public boolean canContinueToUse()
+        {
+            return CinderHermit.this.den != null && CinderHermit.this.getTarget() == null && !CinderHermit.this.inMove()
+                    && CinderHermit.this.fromDen() > CAVE_CRAB_HOME;
+        }
+
+        @Override
+        public void start()
+        {
+            this.repath = 0;
+        }
+
+        @Override
+        public void tick()
+        {
+            CinderHermit self = CinderHermit.this;
+            BlockPos d = self.den;
+            Vec3 home = new Vec3(d.getX() + 0.5D, d.getY(), d.getZ() + 0.5D);
+            if (BossChase.straightWay(self, home))
+            {
+                self.getNavigation().stop();
+                self.getMoveControl().setWantedPosition(home.x, home.y, home.z, CAVE_CRAB_HOME_SPEED);
+                this.repath = 0;
+            }
+            else if (--this.repath <= 0 || self.getNavigation().isDone())
+            {
+                self.walkFar(home, CAVE_CRAB_HOME_SPEED, CAVE_CRAB_PATH_RANGE);
+                this.repath = CAVE_CRAB_REPATH_TICKS;
+            }
+        }
+
+        @Override
+        public boolean requiresUpdateEveryTick()
+        {
+            return true;
+        }
+
+        @Override
+        public void stop()
+        {
+            CinderHermit.this.getNavigation().stop();
+        }
     }
 
     // ---------------------------------------------------------------- hurt: hiding, and its kin
@@ -591,6 +709,10 @@ public class CinderHermit extends CinderMob
         super.addAdditionalSaveData(tag);
         tag.putString(TAG_SHELL, this.getShell().label());
         tag.putFloat(TAG_HIDE_MARK, this.hideMark);
+        if (this.den != null)
+        {
+            tag.put(TAG_DEN, NbtUtils.writeBlockPos(this.den));
+        }
     }
 
     @Override
@@ -601,6 +723,10 @@ public class CinderHermit extends CinderMob
         if (tag.contains(TAG_HIDE_MARK))
         {
             this.hideMark = tag.getFloat(TAG_HIDE_MARK);
+        }
+        if (tag.contains(TAG_DEN))
+        {
+            this.setDen(NbtUtils.readBlockPos(tag.getCompound(TAG_DEN)));
         }
         FireDesigns.Design shell = kept;
         if (tag.contains(TAG_SHELL))

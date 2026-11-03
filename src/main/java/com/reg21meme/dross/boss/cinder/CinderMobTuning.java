@@ -25,6 +25,10 @@ public final class CinderMobTuning
     /** Its walk plays at most this much faster or slower than it was made (to keep its feet from sliding). */
     public static final double MIN_WALK_SPEEDUP = 0.4D;
     public static final double MAX_WALK_SPEEDUP = 2.6D;
+    /** How fast its walk's speed follows how fast it really moves: this share of the gap each tick (its position comes
+     *  from the server every few ticks, and a tick's own speed wobbles; November 3, "stutters while walking"). The walk
+     *  itself never jumps when its speed changes ({@code boss/SteadyController}). */
+    public static final double WALK_SPEED_EASE = 0.3D;
     /** It may step up this high without jumping (they're giants: a block's ledge is a step to them). */
     public static final float STEP_HEIGHT = 1.1F;
     /** Coming into the world: natural spawning only makes room for a small box (ModEntities: their legs' spread and the
@@ -111,6 +115,18 @@ public final class CinderMobTuning
     // ---------------------------------------------------------------- the Cinder Hermit
 
     public static final double HERMIT_HEALTH = 30.0D;
+    /** A hermit crab cave's own crab never wanders off its crab spot, and walks back once it's this many blocks from it
+     *  with nothing to fight (November 3: one wandered out of its den; natural and egg hermits roam). */
+    public static final double CAVE_CRAB_DEN = 2.0D;
+    /** It walks back until it's this close to the middle of its spot, at this times its speed, a new route every this
+     *  many ticks while the way isn't straight, each route up to this many blocks long (past its follow range: it
+     *  may have chased you out to its leash, and an 8-block crab's way round a wall is long). */
+    public static final double CAVE_CRAB_HOME = 0.75D;
+    public static final double CAVE_CRAB_HOME_SPEED = 1.0D;
+    public static final int CAVE_CRAB_REPATH_TICKS = 20;
+    public static final float CAVE_CRAB_PATH_RANGE = 40.0F;
+    /** Walking a route, a step counts as reached once their middle is this close to it (each way). */
+    public static final double WAYPOINT_REACH = 0.5D;
     public static final double HERMIT_ARMOR = 8.0D;
     public static final double HERMIT_SPEED = 0.21D;
     public static final double HERMIT_KNOCKBACK_RESISTANCE = 0.5D;

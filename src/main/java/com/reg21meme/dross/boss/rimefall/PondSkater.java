@@ -4,6 +4,7 @@ import com.reg21meme.dross.boss.frostfolk.Frostfolk;
 import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -427,7 +428,7 @@ public class PondSkater extends Monster implements GeoEntity, RimefallAnimal
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        controllers.add(new AnimationController<>(this, "main", BLEND_TICKS, this::animate));
+        controllers.add(new SteadyController<>(this, "main", BLEND_TICKS, this::animate));
     }
 
     private PlayState animate(AnimationState<PondSkater> state)

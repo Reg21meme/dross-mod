@@ -9,6 +9,7 @@ import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModParticles;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -1505,7 +1506,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        AnimationController<RatKing> main = new AnimationController<>(this, "main", ANIMATION_BLEND_TICKS, this::animate);
+        AnimationController<RatKing> main = new SteadyController<>(this, "main", ANIMATION_BLEND_TICKS, this::animate);
         main.setAnimationSpeedHandler(king -> king.animationSpeed());
         controllers.add(main);
     }

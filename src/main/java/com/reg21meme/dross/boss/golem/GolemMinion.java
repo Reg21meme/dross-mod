@@ -2,6 +2,7 @@ package com.reg21meme.dross.boss.golem;
 
 import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -339,7 +340,7 @@ public abstract class GolemMinion extends Monster implements GeoEntity
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        AnimationController<GolemMinion> main = new AnimationController<>(this, "main", BLEND_TICKS, this::animate);
+        AnimationController<GolemMinion> main = new SteadyController<>(this, "main", BLEND_TICKS, this::animate);
         main.setAnimationSpeedHandler(minion -> minion.animationSpeed());
         controllers.add(main);
     }

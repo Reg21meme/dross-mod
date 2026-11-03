@@ -2,6 +2,7 @@ package com.reg21meme.dross.boss.fire;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.registry.ModEntities;
+import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -380,7 +381,7 @@ public class FireCandidate extends PathfinderMob implements GeoEntity
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        controllers.add(new AnimationController<>(this, "main", BLEND_TICKS, this::animate));
+        controllers.add(new SteadyController<>(this, "main", BLEND_TICKS, this::animate));
     }
 
     private PlayState animate(AnimationState<FireCandidate> state)

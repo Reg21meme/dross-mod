@@ -20,6 +20,7 @@ import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
 import com.reg21meme.dross.boss.BossChase;
+import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraftforge.entity.PartEntity;
 import net.minecraft.world.entity.AgeableMob;
@@ -877,7 +878,7 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        controllers.add(new AnimationController<>(this, "main", BLEND_TICKS, this::animate));
+        controllers.add(new SteadyController<>(this, "main", BLEND_TICKS, this::animate));
     }
 
     private PlayState animate(AnimationState<Moose> state)

@@ -4,10 +4,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.pathfinder.BlockPathTypes;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -61,12 +63,28 @@ public final class BossChase
      */
     public static boolean straightWay(Mob boss, LivingEntity target)
     {
-        if (!boss.getSensing().hasLineOfSight(target) || Math.abs(target.getY() - boss.getY()) > MAX_RISE)
+        return boss.getSensing().hasLineOfSight(target) && clearLine(boss, target.getX(), target.getY(), target.getZ());
+    }
+
+    /** {@link #straightWay(Mob, LivingEntity)} for a spot on the ground: nothing in the way between the mob's eyes and
+     *  the spot at that height, and its body fits along the line. */
+    public static boolean straightWay(Mob mob, Vec3 spot)
+    {
+        Vec3 eyes = mob.getEyePosition();
+        Vec3 there = new Vec3(spot.x, spot.y + mob.getEyeHeight(), spot.z);
+        return mob.level().clip(new ClipContext(eyes, there, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, mob)).getType()
+                == HitResult.Type.MISS && clearLine(mob, spot.x, spot.y, spot.z);
+    }
+
+    /** About level with (x, y, z), and the body fits along the line to it with ground under it all the way. */
+    private static boolean clearLine(Mob boss, double x, double y, double z)
+    {
+        if (Math.abs(y - boss.getY()) > MAX_RISE)
         {
             return false;
         }
-        double dx = target.getX() - boss.getX();
-        double dz = target.getZ() - boss.getZ();
+        double dx = x - boss.getX();
+        double dz = z - boss.getZ();
         double distance = Math.sqrt(dx * dx + dz * dz);
         if (distance < STEP)
         {

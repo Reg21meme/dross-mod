@@ -8,6 +8,7 @@ import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -1542,7 +1543,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        AnimationController<CinderColossus> main = new AnimationController<>(this, "main", ANIMATION_BLEND_TICKS, this::animateBody);
+        AnimationController<CinderColossus> main = new SteadyController<>(this, "main", ANIMATION_BLEND_TICKS, this::animateBody);
         main.setAnimationSpeedHandler(golem -> golem.bodyAnimationSpeed());
         controllers.add(main);
         controllers.add(new AnimationController<>(this, "volcano", ANIMATION_BLEND_TICKS, this::animateVolcano));

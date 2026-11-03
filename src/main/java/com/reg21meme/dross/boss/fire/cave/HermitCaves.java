@@ -112,8 +112,9 @@ public final class HermitCaves
 
     /**
      * Its Cinder Hermits: one at each of its crab spots ({@code spots}, in the world) inside {@code within} (the chunk
-     * being made; null for all), each in a random shell (its own rule), facing any way, staying put (a cave's crabs
-     * never despawn). Each one's other hermits come for whoever hurts it, as anywhere.
+     * being made; null for all), each in a random shell (its own rule), facing any way, keeping to its den (its crab
+     * spot: {@link CinderHermit#setDen}; a cave's crabs never despawn). Each one's other hermits come for whoever hurts
+     * it, as anywhere.
      */
     public static void spawnCrabs(ServerLevelAccessor level, java.util.List<BlockPos> spots, @javax.annotation.Nullable BoundingBox within)
     {
@@ -131,6 +132,7 @@ public final class HermitCaves
             crab.moveTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D, level.getRandom().nextFloat() * 360.0F, 0.0F);
             crab.finalizeSpawn(level, level.getCurrentDifficultyAt(spot), MobSpawnType.STRUCTURE, null, null);
             crab.setPersistenceRequired();
+            crab.setDen(spot);
             level.addFreshEntityWithPassengers(crab);
         }
     }

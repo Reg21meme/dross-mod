@@ -5,6 +5,7 @@ import com.reg21meme.dross.boss.rimefall.PondSkater;
 import com.reg21meme.dross.boss.rimefall.RimefallAnims;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -292,7 +293,7 @@ public class Frostfolk extends PathfinderMob implements GeoEntity
     @Override
     public void registerControllers(AnimatableManager.ControllerRegistrar controllers)
     {
-        controllers.add(new AnimationController<>(this, "main", BLEND_TICKS, this::animate));
+        controllers.add(new SteadyController<>(this, "main", BLEND_TICKS, this::animate));
     }
 
     private PlayState animate(AnimationState<Frostfolk> state)

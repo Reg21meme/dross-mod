@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
@@ -74,6 +75,12 @@ public final class CinderMobsGameTest
     private static final int FLOOR_Y = 200;
     private static final int FLOOR_HALF = 24;
     private static final int CLEAR_UP = 16;
+    /** The den test's wall: this far east of the den, this far either side of it north and south, this tall; the crab is
+     *  put this far east of the den, behind it. */
+    private static final int DEN_WALL_X = 5;
+    private static final int DEN_WALL_HALF = 3;
+    private static final int DEN_WALL_HEIGHT = 7;
+    private static final double DEN_WALL_BEHIND = 12.0D;
     /** Each test's floor: this far out, and this far apart. */
     private static final int X0 = -9000;
     private static final int Z0 = 9000;
@@ -93,6 +100,7 @@ public final class CinderMobsGameTest
     public static void sizesHealthAndShells(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 0);
+        run.watch(helper);
         helper.startSequence()
                 .thenWaitUntil(run::ready)
                 .thenExecute(() -> run.step(() -> {
@@ -191,6 +199,7 @@ public final class CinderMobsGameTest
     public static void neutralUntilHurtThenFightsBack(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 1);
+        run.watch(helper);
         Pallbearer[] pallbearer = new Pallbearer[1];
         CinderHermit[] hermits = new CinderHermit[2];
         ServerPlayer[] players = new ServerPlayer[2];
@@ -201,7 +210,8 @@ public final class CinderMobsGameTest
                     // Facing south (+z), each player in front of it, in reach.
                     pallbearer[0] = run.spawn(ModEntities.PALLBEARER.get(), -12.0D, -2.0D, 0.0F);
                     hermits[0] = run.spawn(ModEntities.CINDER_HERMIT.get(), 10.0D, -8.0D, 0.0F);
-                    hermits[1] = run.spawn(ModEntities.CINDER_HERMIT.get(), 10.0D, 7.0D, 0.0F);
+                    // 10 blocks from the first at their middles: well inside its call (12 edge to edge) whatever their shells
+                    hermits[1] = run.spawn(ModEntities.CINDER_HERMIT.get(), 10.0D, 2.0D, 0.0F);
                     players[0] = run.join("cinder_mourner", -12.0D, 2.0D);
                     players[1] = run.join("cinder_crabber", 10.0D, -3.4D);
                 }))
@@ -259,6 +269,7 @@ public final class CinderMobsGameTest
     public static void hermitShellSavesAndHidingCutsDamage(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 2);
+        run.watch(helper);
         CinderHermit[] hidden = new CinderHermit[1];
         CinderHermit[] open = new CinderHermit[1];
         boolean[] peeked = new boolean[1];
@@ -345,6 +356,7 @@ public final class CinderMobsGameTest
     public static void eggsAndSpawnRules(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 3);
+        run.watch(helper);
         helper.startSequence()
                 .thenWaitUntil(run::ready)
                 .thenExecute(() -> run.step(() -> {
@@ -448,6 +460,7 @@ public final class CinderMobsGameTest
     public static void hidesEveryQuarterAndFireNeverHurts(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel(), 4);
+        run.watch(helper);
         CinderHermit[] hermit = new CinderHermit[1];
         helper.startSequence()
                 .thenWaitUntil(run::ready)
@@ -512,6 +525,108 @@ public final class CinderMobsGameTest
                     run.cleanUp();
                 }))
                 .thenSucceed();
+    }
+
+    // ---------------------------------------------------------------- a hermit crab cave's own crab: its den
+
+    /**
+     * A cave's own crab (its den set, as HermitCaves.spawnCrabs does; in the widest shell, about 8 blocks) never
+     * wanders off its den on its own; moved 8 blocks away, it walks back; put behind a wall, it goes round it (the
+     * pathfinder's route for its whole width, CinderMob's WideNavigation); it still fights back against a player who
+     * hurts it from 5 blocks off (a vanilla restriction would have stopped that); its den is kept through a save. A
+     * hermit with no den roams as before.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH, timeoutTicks = 2_000_000)
+    public static void caveCrabKeepsToItsDen(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 5);
+        run.watch(helper);
+        CinderHermit[] crab = new CinderHermit[1];
+        BlockPos[] den = new BlockPos[1];
+        ServerPlayer[] player = new ServerPlayer[1];
+        double[] furthest = {0.0D};
+        int[] watched = {0};
+        int[] walked = {0, 0};
+        helper.startSequence()
+                .thenWaitUntil(run::ready)
+                .thenExecute(() -> run.step(() -> {
+                    run.floor();
+                    crab[0] = run.spawn(ModEntities.CINDER_HERMIT.get(), 0.0D, 0.0D, 0.0F);
+                    crab[0].setShell(shell("M2C")); // the widest (about 8 blocks): the pathfinder's hardest case
+                    den[0] = run.at(0, 0);
+                    crab[0].setDen(den[0]);
+                    CompoundTag saved = crab[0].saveWithoutId(new CompoundTag());
+                    CinderHermit copy = ModEntities.CINDER_HERMIT.get().create(run.level);
+                    if (copy == null)
+                    {
+                        throw new GameTestAssertException("couldn't make a hermit");
+                    }
+                    copy.load(saved);
+                    if (!den[0].equals(copy.den()))
+                    {
+                        throw new GameTestAssertException("its den should be kept through a save: " + copy.den());
+                    }
+                }))
+                // calm for a good while: never more than its den's reach (and a little) from it
+                .thenWaitUntil(() -> run.waitTicks("600 ticks of it left alone", 700, () -> {
+                    furthest[0] = Math.max(furthest[0], Math.hypot(crab[0].getX() - (den[0].getX() + 0.5D),
+                            crab[0].getZ() - (den[0].getZ() + 0.5D)));
+                    return ++watched[0] >= 600;
+                }, () -> "watched " + watched[0]))
+                .thenExecute(() -> run.step(() -> {
+                    if (furthest[0] > CinderMobTuning.CAVE_CRAB_DEN + 0.5D)
+                    {
+                        throw new GameTestAssertException("left alone, a cave's crab wandered " + String.format(Locale.ROOT,
+                                "%.1f", furthest[0]) + " blocks from its den");
+                    }
+                    crab[0].teleportTo(den[0].getX() + 8.5D, den[0].getY(), den[0].getZ() + 0.5D);
+                }))
+                .thenWaitUntil(() -> run.waitTicks("it to walk back to its den", 600, () -> home(crab[0], den[0], walked, 0),
+                        () -> "at " + crab[0].position() + ": " + crab[0].denState()))
+                // A wall between it and its den: it goes round it, along the pathfinder's route for its whole width.
+                .thenExecute(() -> run.step(() -> {
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int dz = -DEN_WALL_HALF; dz <= DEN_WALL_HALF; dz++)
+                    {
+                        for (int y = 1; y <= DEN_WALL_HEIGHT; y++)
+                        {
+                            run.level.setBlock(pos.set(den[0].getX() + DEN_WALL_X, FLOOR_Y + y, den[0].getZ() + dz),
+                                    Blocks.STONE.defaultBlockState(), Block.UPDATE_CLIENTS);
+                        }
+                    }
+                    crab[0].teleportTo(den[0].getX() + 0.5D + DEN_WALL_BEHIND, den[0].getY(), den[0].getZ() + 0.5D);
+                }))
+                .thenWaitUntil(() -> run.waitTicks("it to go round a wall back to its den", 900, () -> home(crab[0], den[0], walked, 1),
+                        () -> "at " + crab[0].position() + ": " + crab[0].denState()))
+                .thenExecute(() -> run.step(() -> {
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int dz = -DEN_WALL_HALF; dz <= DEN_WALL_HALF; dz++)
+                    {
+                        for (int y = 1; y <= DEN_WALL_HEIGHT; y++)
+                        {
+                            run.level.setBlock(pos.set(den[0].getX() + DEN_WALL_X, FLOOR_Y + y, den[0].getZ() + dz),
+                                    Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS);
+                        }
+                    }
+                    player[0] = run.join("cinder_den_visitor", 0.0D, -5.5D);
+                    crab[0].hurt(run.level.damageSources().playerAttack(player[0]), 1.0F);
+                }))
+                .thenWaitUntil(() -> run.waitTicks("it to go for the player who hurt it from 5 blocks off", 80,
+                        () -> crab[0].getTarget() == player[0], () -> "its target " + crab[0].getTarget()))
+                .thenExecute(() -> run.step(() -> {
+                    LOGGER.info("[cinder mobs test] a cave's crab (in M2C, {} wide) kept within {} of its den, walked back in {} ticks"
+                            + " (round a wall in {}), and fought back", crab[0].getBbWidth(), String.format(Locale.ROOT, "%.2f", furthest[0]),
+                            walked[0], walked[1]);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /** True once the crab is back at its den; counts the ticks it has walked in {@code walked[i]}. */
+    private static boolean home(CinderHermit crab, BlockPos den, int[] walked, int i)
+    {
+        walked[i]++;
+        return Math.hypot(crab.getX() - (den.getX() + 0.5D), crab.getZ() - (den.getZ() + 0.5D)) <= CinderMobTuning.CAVE_CRAB_DEN;
     }
 
     // ---------------------------------------------------------------- one test's floor
@@ -603,6 +718,23 @@ public final class CinderMobsGameTest
                 this.cleanUp();
                 throw e;
             }
+        }
+
+        /**
+         * Fails the test as soon as a step has failed. A wait takes any failed check for "not yet" and tries it again
+         * every tick, until the test's tick limit hours later; so a failure found in a wait is kept ({@link #failure})
+         * and this second sequence (started before the test's own) fails the test with it at once.
+         */
+        void watch(GameTestHelper helper)
+        {
+            helper.startSequence()
+                    .thenWaitUntil(() -> {
+                        if (this.failure == null)
+                        {
+                            throw new GameTestAssertException("the test ran out of time");
+                        }
+                    })
+                    .thenFail(() -> this.failure);
         }
 
         /** A failure found by an earlier wait: the test fails now. */

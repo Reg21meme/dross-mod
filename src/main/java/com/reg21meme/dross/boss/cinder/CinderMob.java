@@ -25,6 +25,7 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.NeutralMob;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.control.MoveControl;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
 import net.minecraft.world.entity.ai.goal.LookAtPlayerGoal;
@@ -34,17 +35,25 @@ import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
 import net.minecraft.world.entity.ai.goal.target.ResetUniversalAngerTargetGoal;
+import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.ServerLevelAccessor;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.pathfinder.Node;
+import net.minecraft.world.level.pathfinder.Path;
+import net.minecraft.world.level.pathfinder.PathFinder;
+import net.minecraft.world.level.pathfinder.Target;
+import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -107,7 +116,14 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
     {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.addFightGoals();
-        this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, this.wanderSpeed()));
+        this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, this.wanderSpeed())
+        {
+            @Override
+            public boolean canUse()
+            {
+                return CinderMob.this.mayWander() && super.canUse();
+            }
+        });
         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 10.0F));
         this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
         this.targetSelector.addGoal(1, new HurtByTargetGoal(this));
@@ -115,11 +131,20 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
         this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, false));
     }
 
+    /** Whether it wanders about when calm (a hermit crab cave's own crab keeps to its den: {@link CinderHermit}). */
+    protected boolean mayWander()
+    {
+        return true;
+    }
+
     /** (client) whether its walk shows: switched with a margin and a hold ({@link CinderMobTuning#MOVING},
      *  {@link CinderMobTuning#STILL}, {@link CinderMobTuning#WALK_HOLD_TICKS}), so slowing down never flickers it between
      *  its walk and its idle */
     private boolean walkShown;
     private int stillTicks;
+    /** (client) how fast it moves, eased ({@link CinderMobTuning#WALK_SPEED_EASE}): its position comes from the server
+     *  every few ticks, so the speed worked out tick by tick wobbles, and its walk would speed up and slow down with it */
+    private double shownSpeed;
 
     @Override
     public void aiStep()
@@ -128,6 +153,7 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
         if (this.level().isClientSide)
         {
             double speed = RimefallAnims.groundSpeed(this);
+            this.shownSpeed += (speed - this.shownSpeed) * CinderMobTuning.WALK_SPEED_EASE;
             if (speed > CinderMobTuning.MOVING)
             {
                 this.walkShown = true;
@@ -424,7 +450,7 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
         {
             return 1.0D;
         }
-        return Mth.clamp(Math.max(RimefallAnims.groundSpeed(this), CinderMobTuning.STILL) / this.walkPace(), CinderMobTuning.MIN_WALK_SPEEDUP,
+        return Mth.clamp(Math.max(this.shownSpeed, CinderMobTuning.STILL) / this.walkPace(), CinderMobTuning.MIN_WALK_SPEEDUP,
                 CinderMobTuning.MAX_WALK_SPEEDUP);
     }
 
@@ -562,6 +588,102 @@ public abstract class CinderMob extends FireCandidate implements NeutralMob
             }
         }
         throw new IllegalArgumentException("no Cinder Wastes mob design " + label);
+    }
+
+    @Override
+    protected PathNavigation createNavigation(Level level)
+    {
+        return new WideNavigation(this, level);
+    }
+
+    /** Sets off along a route to {@code spot} that may run up to {@code range} blocks, further than its follow range
+     *  (the pathfinder searching as many more steps). */
+    protected boolean walkFar(Vec3 spot, double speed, float range)
+    {
+        float follow = (float) this.getAttributeValue(Attributes.FOLLOW_RANGE);
+        return this.getNavigation() instanceof WideNavigation wide
+                ? wide.moveTo(spot, speed, range, Math.max(1.0F, range / Math.max(1.0F, follow)))
+                : this.getNavigation().moveTo(spot.x, spot.y, spot.z, speed);
+    }
+
+    /**
+     * Minecraft's ground pathfinder for a mob several blocks wide. The pathfinder takes each step of a route to be the
+     * corner of the mob's body (it checks the blocks from there out to the mob's width, and steers the mob to that
+     * corner plus half its width), but it starts a route at the block under the mob's middle and ends it at the block
+     * asked for: so a 6-block hermit's route was checked for a body 3 blocks off its own, and it was steered 3.5 blocks
+     * off every step and walked round in circles (a hermit crab cave's crab never got back to its den). Here a route
+     * starts and ends at the corners that put the mob's middle on its own block and on the one asked for.
+     */
+    private static final class WideNavigation extends GroundPathNavigation
+    {
+        WideNavigation(Mob mob, Level level)
+        {
+            super(mob, level);
+        }
+
+        /**
+         * On to the next step once the mob's middle is within {@link CinderMobTuning#WAYPOINT_REACH} of this one's.
+         * Minecraft's own takes a step as reached half the mob's width away from it (its way of making up for steering a
+         * wide mob off its steps), so an 8-block crab set off for the next step 4 blocks early, cut the corner of a wall
+         * and stuck on it.
+         */
+        @Override
+        protected void followThePath()
+        {
+            Vec3 next = this.path.getNextEntityPos(this.mob);
+            if (Math.abs(this.mob.getX() - next.x) <= CinderMobTuning.WAYPOINT_REACH
+                    && Math.abs(this.mob.getZ() - next.z) <= CinderMobTuning.WAYPOINT_REACH
+                    && Math.abs(this.mob.getY() - next.y) < 1.0D)
+            {
+                this.path.advance();
+            }
+            this.doStuckDetection(this.getTempMobPos());
+        }
+
+        /** A route to {@code spot} that may run up to {@code range} blocks (Minecraft's own end at the mob's follow
+         *  range), searching {@code nodes} times as far. */
+        boolean moveTo(Vec3 spot, double speed, float range, float nodes)
+        {
+            this.setMaxVisitedNodesMultiplier(nodes);
+            Path path = this.createPath(Set.of(BlockPos.containing(spot)), 8, false, 1, range);
+            this.resetMaxVisitedNodesMultiplier();
+            return this.moveTo(path, speed);
+        }
+
+        @Override
+        protected PathFinder createPathFinder(int maxVisitedNodes)
+        {
+            this.nodeEvaluator = new CornerNodeEvaluator();
+            this.nodeEvaluator.setCanPassDoors(true);
+            return new PathFinder(this.nodeEvaluator, maxVisitedNodes);
+        }
+    }
+
+    /** Walking nodes, a route's first and last ones at the corner of the mob's body ({@link WideNavigation}). */
+    private static final class CornerNodeEvaluator extends WalkNodeEvaluator
+    {
+        /** How far from a step's corner the pathfinder steers the mob's middle ({@code Path.getEntityPosAtNode}). */
+        private double half()
+        {
+            return (int) (this.mob.getBbWidth() + 1.0F) * 0.5D;
+        }
+
+        @Override
+        public Node getStart()
+        {
+            Node start = super.getStart();
+            double half = this.half();
+            return this.getStartNode(new BlockPos(Mth.floor(this.mob.getX() - half + 0.5D), start.y,
+                    Mth.floor(this.mob.getZ() - half + 0.5D)));
+        }
+
+        @Override
+        public Target getGoal(double x, double y, double z)
+        {
+            // (x, z) is the corner of the block asked for: its middle is half a block in
+            double half = this.half();
+            return super.getGoal(x + 1.0D - half, y, z + 1.0D - half);
+        }
     }
 
     /** Minecraft's move control, but a giant turns at most {@code maxTurn} degrees a tick as it walks (vanilla's 90 a
