@@ -27,12 +27,17 @@
   a magma conch, a crystal geode, a giant lantern, a piece of a colossus). It's neutral: hit it and its neighbours join
   in. Every time it loses a quarter of its health it hides in its shell, where hits do half damage, then peeks out
   and comes back fighting.
-- **Hermit crab caves**: one or two in every Cinder Wastes area, each with its hermit: dens dug into hillsides round
+- **Hermit crab caves**: one or two in every Cinder Wastes area, each with its hermit (who keeps to its den): dens dug into hillsides round
   a smoking vent, and shallow dens under mounds of ash with a loot room (pots, suspicious gravel, a barrel).
 - Spawn eggs for both.
 
 ## Changes and fixes
 
+- The hub's two survivors, the Blind Oracle and the Ragged Seeker, now live in a camp of their own at the foot of the
+  Shattered Spire's front steps: a fallen slab of the spire's crown, a blue soul fire, his books and the Seeker's crates.
+- Mobs no longer stutter as they speed up or slow down while walking.
+- The Pallbearer and the Cinder Hermit find their way round walls and hills for their whole size (they could walk round
+  in circles near one), and a hermit crab cave's hermit walks back to its den after a fight.
 - New drawn advancement icons for every boss: the sword in the stone (Set in Stone), the Rat King's crown down the
   drain (Down the Drain), the Huntsman's mounted hood (The Hunter Hunted) and a clipped wing (Wings Clipped).
 - The Rat King is immune to fire and lava, and throws his plague balls up at anything flying over him.
