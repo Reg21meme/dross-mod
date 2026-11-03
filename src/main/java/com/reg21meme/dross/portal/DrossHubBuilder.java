@@ -1,6 +1,7 @@
 package com.reg21meme.dross.portal;
 
 import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.portal.camp.HubCamp;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.shrine.GroundFit;
 import com.reg21meme.dross.world.shrine.ShrineDesign;
@@ -31,7 +32,8 @@ import org.slf4j.Logger;
  *   <li>The user's own design, if the template {@code data/dross/structures/dross_hub.nbt} exists: centred on
  *       {@link DrossHub#CENTER}, on fitted ground (below), with its Dross frame found and lit.</li>
  *   <li>Otherwise the <b>Shattered Spire</b> (shrine design No. 2), its frame opening (3 wide, 5 tall, along X) on the
- *       centre and its gate facing south, on fitted ground. Its frame is lit: it's the exit portal.</li>
+ *       centre and its gate facing south, on fitted ground, with the survivors' <b>camp</b> at the foot of its front steps
+ *       ({@link HubCamp}: the user's pick, No. 3A, Under the Fallen Stones). Its frame is lit: it's the exit portal.</li>
  *   <li>Only if the spire can't be built or lit (an error is logged): the <b>placeholder</b>, an 11x11 stone platform
  *       with a lit 4x5 exit frame (opening 2x3) in its middle.</li>
  * </ol>
@@ -101,14 +103,27 @@ final class DrossHubBuilder
      * @param footprint the box it covers (null only if nothing was built)
      * @param groundY   the Y of the ground block it stands on (its levelled ground)
      * @param fitted    true if the ground under and around {@code footprint} was fitted (levelled, with a staircase)
+     * @param camp      true if the survivors' camp was placed at the spire's steps (only the spire has one)
      */
-    record Result(@Nullable PortalOpening exit, @Nullable DrossHub.Kind kind, @Nullable BoundingBox footprint, int groundY, boolean fitted)
+    record Result(@Nullable PortalOpening exit, @Nullable DrossHub.Kind kind, @Nullable BoundingBox footprint, int groundY, boolean fitted,
+                  boolean camp)
     {
+        Result(@Nullable PortalOpening exit, @Nullable DrossHub.Kind kind, @Nullable BoundingBox footprint, int groundY, boolean fitted)
+        {
+            this(exit, kind, footprint, groundY, fitted, false);
+        }
+
         /** Building failed completely: no hub, no exit portal. */
         static Result failed()
         {
             return new Result(null, null, null, 0, false);
         }
+    }
+
+    /** The middle of the spire's footprint (its ground block) when it stands on ground level {@code groundY}. */
+    static BlockPos spireCenter(ShrineDesign spire, int groundY)
+    {
+        return spire.centerForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), groundY, SPIRE_FACING);
     }
 
     /** A placeholder that was built: its exit portal (null if its frame isn't complete), its box and its floor level. */
@@ -126,8 +141,9 @@ final class DrossHubBuilder
      *   <li><b>plan</b> it: the ground level and the staircase (changes nothing);</li>
      *   <li><b>build</b>: the spire is built a step at a time (world-builder's {@link ShrineDesign.FittedBuild}: felling the
      *       trees that touch, in steps of at most about {@link GroundFit#STEP_MILLIS} ms, then levelling, sealing, snow,
-     *       the template in one step, snow inside), then its <b>frame</b> is lit on a step of its own. The user's template
-     *       and the placeholder are built in one step. Or a fallback if anything goes wrong.</li>
+     *       the template in one step, snow inside), then the survivors' <b>camp</b> on a step of its own (its template on
+     *       the spire's steps), then its <b>frame</b> is lit on a step of its own. The user's template and the placeholder
+     *       are built in one step. Or a fallback if anything goes wrong (a camp that fails to go on is only logged).</li>
      * </ol>
      * The world only changes in the build steps, from the first tree removed on ({@link #changedWorld}): a build that has
      * got that far must be finished, never dropped. Which hub it builds is decided when it's made. Server thread only.
@@ -156,6 +172,9 @@ final class DrossHubBuilder
         private ShrineDesign.FittedBuild fitted;
         @Nullable
         private BlockPos spireCenter;
+        /** The camp's step has run (whether its template went on: {@link #campPlaced}). */
+        private boolean campTried;
+        private boolean campPlaced;
         @Nullable
         private Result result;
         private int stepsDone;
@@ -299,7 +318,7 @@ final class DrossHubBuilder
             }
             if (fitted != null)
             {
-                return fitted.done() ? "frame" : fitted.stageName();
+                return !fitted.done() ? fitted.stageName() : campTried ? "frame" : "camp";
             }
             return "build";
         }
@@ -430,7 +449,7 @@ final class DrossHubBuilder
         @Nullable
         private Result startSpire()
         {
-            BlockPos center = spire.centerForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), plan.groundY, SPIRE_FACING);
+            BlockPos center = spireCenter(spire, plan.groundY);
             spireCenter = center;
             Optional<ShrineDesign.FittedBuild> started;
             try
@@ -453,7 +472,8 @@ final class DrossHubBuilder
         }
 
         /**
-         * The spire's next step; once it's all built, its frame is lit on a step of its own.
+         * The spire's next step; once it's all built, the survivors' camp goes on its steps on a step of its own, then its
+         * frame is lit on another.
          *
          * @return null while it's being built, or what was built (the spire, or a fallback if something went wrong)
          */
@@ -473,7 +493,13 @@ final class DrossHubBuilder
                 }
                 return null;
             }
-            return finishSpire(dross, spire, spireCenter, plan, fitted.report());
+            if (!campTried)
+            {
+                campTried = true;
+                campPlaced = placeCamp(dross, spireCenter);
+                return null;
+            }
+            return finishSpire(dross, spire, spireCenter, plan, fitted.report(), campPlaced);
         }
     }
 
@@ -483,7 +509,8 @@ final class DrossHubBuilder
      * The Shattered Spire is built on the planned ground with its frame opening centred on the hub centre: lights that
      * frame. Falls back to the placeholder (with an error in the log) if its frame can't be lit.
      */
-    private static Result finishSpire(ServerLevel dross, ShrineDesign spire, BlockPos center, GroundFit.Plan plan, GroundFit.Report report)
+    private static Result finishSpire(ServerLevel dross, ShrineDesign spire, BlockPos center, GroundFit.Plan plan, GroundFit.Report report,
+                                      boolean camp)
     {
         LOGGER.info("Dross hub: trees and the like cleared for the {}: {}", spire.name(), report.felling().summary());
 
@@ -497,7 +524,35 @@ final class DrossHubBuilder
                         + "portal: opening {} along {} ({}x{}), lit",
                 spire.name(), spire.number(), placed.facing().getName(), plan.groundY,
                 exit.minCorner().toShortString(), exit.axis(), exit.width(), exit.height());
-        return new Result(exit, DrossHub.Kind.SPIRE, placed.footprint(), plan.groundY, true);
+        return new Result(exit, DrossHub.Kind.SPIRE, placed.footprint(), plan.groundY, true, camp);
+    }
+
+    /**
+     * The survivors' camp ({@link HubCamp#hubCamp}) on the built spire, at the foot of its front steps. A camp that can't
+     * go on (its template missing, an error) is only logged: the hub works without it, and the survivors then live in
+     * the spire as before.
+     */
+    private static boolean placeCamp(ServerLevel dross, BlockPos spireCenter)
+    {
+        try
+        {
+            boolean placed = HubCamp.place(dross, HubCamp.hubCamp(), spireCenter, SPIRE_FACING, Block.UPDATE_CLIENTS);
+            if (placed)
+            {
+                LOGGER.info("Dross hub: the survivors' camp ({}, No. {}) is at the foot of the spire's steps", HubCamp.hubCamp().name(),
+                        HubCamp.hubCamp().label());
+            }
+            else
+            {
+                LOGGER.error("Dross hub: the survivors' camp couldn't be placed (see above); they live in the spire instead.");
+            }
+            return placed;
+        }
+        catch (RuntimeException e)
+        {
+            LOGGER.error("Dross hub: placing the survivors' camp failed; they live in the spire instead.", e);
+            return false;
+        }
     }
 
     /**

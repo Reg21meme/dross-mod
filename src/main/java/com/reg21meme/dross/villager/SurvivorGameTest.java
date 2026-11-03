@@ -177,7 +177,7 @@ public final class SurvivorGameTest
             throw new GameTestAssertException("the Dross dimension isn't loaded");
         }
         DrossHub.Layout layout = DrossHub.layout(server).orElseThrow(() -> new GameTestAssertException("the hub has no layout"));
-        BoundingBox area = layout.footprint().inflatedBy(SurvivorGrounds.AREA_MARGIN);
+        BoundingBox area = SurvivorGrounds.areaFor(layout);
         // From here on the ticket keeps the hub's chunks loaded; the step after the wait always removes it.
         HubTicket ticket = HubTicket.add(dross, area);
         LoadWait wait = new LoadWait(helper);
@@ -222,8 +222,9 @@ public final class SurvivorGameTest
             String who = survivor.getRole().id();
             BlockPos at = survivor.blockPosition();
             BoundingBox own = survivor.getArea();
-            expect(problems, own != null && own.equals(area), "the " + who + "'s area is " + own + ", not the footprint and "
-                    + SurvivorGrounds.AREA_MARGIN + " blocks round it " + area);
+            expect(problems, own != null && own.equals(area), "the " + who + "'s area is " + own + ", not the hub's " + area
+                    + (layout.camp() != null ? " (its camp's box and " + SurvivorGrounds.CAMP_AREA_MARGIN + " blocks round it)"
+                    : " (its footprint and " + SurvivorGrounds.AREA_MARGIN + " blocks round it)"));
             expect(problems, area.isInside(at), "the " + who + " is at " + at.toShortString() + ", outside its area");
             SurvivorGrounds.Clearance clearance = survivor.getClearance();
             expect(problems, clearance != null && !clearance.keepsWalkingOff(at.getX(), at.getY(), at.getZ())

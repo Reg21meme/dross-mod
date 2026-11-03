@@ -3,11 +3,14 @@ package com.reg21meme.dross.portal;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.portal.camp.HubCamp;
+import com.reg21meme.dross.world.shrine.ShrineDesign;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
@@ -39,7 +42,8 @@ import org.slf4j.Logger;
  *   <li>The exit portal's position, direction and size are remembered, and only that frame is the exit. The spire's
  *       loose frame "shards" (on the ground, in its broken top, floating above it) are just decoration: they're never
  *       looked for, and they can't make a frame. If the exit ever goes out, it's relit.</li>
- *   <li>{@link #layout} tells other areas where everything is (the hub's two survivors live by it).</li>
+ *   <li>{@link #layout} tells other areas where everything is (the hub's two survivors live by it: in the spire's
+ *       camp at the foot of its front steps, {@link HubCamp}).</li>
  * </ul>
  */
 public final class DrossHub
@@ -90,16 +94,19 @@ public final class DrossHub
      * @param arrival    where a player arriving through any Dross portal lands (feet; the middle of the block), in front
      *                   of the exit portal. Spire: (0.5, ground+9, 1.5), on the step in front of the frame.
      * @param arrivalYaw the way they face there (0 = south: in the spire, towards the gate)
-     * @param restSpots  two cells side by side (feet) where the survivors rest, mentor's first: never in the opening, on
-     *                   the steps beside it, on the walkway out in front of it or within a block of the arrival spot.
-     *                   Spire: (3, ground+8, 1) and (3, ground+8, 2), on the dais east of the step. Empty only if no free
-     *                   pair was found (never for the spire or the placeholder).
+     * @param restSpots  two cells (feet) where the survivors rest, mentor's first. With the camp: its two rest spots
+     *                   ({@code camp}). Otherwise two cells side by side, never in the opening, on the steps beside it, on
+     *                   the walkway out in front of it or within a block of the arrival spot (a spire without its camp:
+     *                   (3, ground+8, 1) and (3, ground+8, 2), on the dais east of the step). Empty only if no free pair
+     *                   was found (never for the spire or the placeholder).
      * @param groundY    the Y of the ground block the hub stands on (its levelled ground)
      * @param fitted     true if the ground under and around {@code footprint} was fitted (levelled, staircase edges) when
      *                   it was built; false for a placeholder built next to something else
+     * @param camp       where the survivors live in the spire's camp, at the foot of its front steps (their rest spots, the
+     *                   places they walk to, its box), or null if the hub has none (not the spire, or its camp failed)
      */
     public record Layout(Kind kind, BoundingBox footprint, PortalOpening exit, Vec3 arrival, float arrivalYaw,
-                         List<BlockPos> restSpots, int groundY, boolean fitted)
+                         List<BlockPos> restSpots, int groundY, boolean fitted, @Nullable HubCamp.Spots camp)
     {
         /** A copy (a bounding box can be changed in place). */
         @Override
@@ -166,9 +173,24 @@ public final class DrossHub
         {
             return Optional.empty(); // no exit portal (building failed), or asked from inside the build
         }
-        List<BlockPos> restSpots = DrossHubLayouts.restSpots(dross, exit, arrival);
+        HubCamp.Spots camp = campSpots(data);
+        List<BlockPos> restSpots = camp != null ? List.of(camp.mentor(), camp.student())
+                : DrossHubLayouts.restSpots(dross, exit, arrival);
         return Optional.of(new Layout(data.getKind(), data.getFootprint(), exit, arrival, data.getArrivalYaw(), restSpots, data.getGroundY(),
-                data.isFitted()));
+                data.isFitted(), camp));
+    }
+
+    /** Where the survivors live in the spire's camp, or null if the hub has no camp. */
+    @Nullable
+    private static HubCamp.Spots campSpots(DrossHubData data)
+    {
+        if (!data.hasCamp() || data.getKind() != Kind.SPIRE)
+        {
+            return null;
+        }
+        Optional<ShrineDesign> spire = ShrineDesign.byId(DrossHubBuilder.SPIRE_DESIGN_ID);
+        return spire.map(s -> HubCamp.spots(HubCamp.hubCamp(), DrossHubBuilder.spireCenter(s, data.getGroundY()),
+                DrossHubBuilder.SPIRE_FACING)).orElse(null);
     }
 
     /**
@@ -258,10 +280,10 @@ public final class DrossHub
         String rest = layout.restSpots().isEmpty() ? "none found"
                 : layout.restSpots().stream().map(BlockPos::toShortString).collect(Collectors.joining(" and "));
         return String.format(Locale.ROOT, "Dross hub: %s%s, ground level %d, footprint %s; exit portal %s along %s (%dx%d); arrival %.2f, %.2f, %.2f "
-                        + "facing %s; survivors' rest spots %s",
+                        + "facing %s; survivors' rest spots %s%s",
                 layout.kind(), layout.fitted() ? " on fitted ground" : "", layout.groundY(), describe(layout.footprint()),
                 exit.minCorner().toShortString(), exit.axis(), exit.width(), exit.height(), arrival.x, arrival.y, arrival.z,
-                Direction.fromYRot(layout.arrivalYaw()).getName(), rest);
+                Direction.fromYRot(layout.arrivalYaw()).getName(), rest, layout.camp() == null ? "" : " (in their camp)");
     }
 
     private static String describe(BoundingBox box)

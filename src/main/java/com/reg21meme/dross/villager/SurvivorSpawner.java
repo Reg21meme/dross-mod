@@ -112,10 +112,11 @@ public final class SurvivorSpawner
         BlockPos b = grounds.restSpot(1);
         LOGGER.info("[Dross] Survivors: the Blind Oracle at {}, {}, {} and the Ragged Seeker at {}, {}, {}",
                 a.getX(), a.getY(), a.getZ(), b.getX(), b.getY(), b.getZ());
-        LOGGER.info("[Dross] Survivors: they live within X {}..{}, Z {}..{} (the hub's footprint and {} blocks round it, {} hub); {} places to "
-                        + "walk to: {}",
-                grounds.area().minX(), grounds.area().maxX(), grounds.area().minZ(), grounds.area().maxZ(), SurvivorGrounds.AREA_MARGIN,
-                layout.get().kind(), grounds.waypoints().size(),
+        boolean camp = layout.get().camp() != null;
+        LOGGER.info("[Dross] Survivors: they live within X {}..{}, Z {}..{} ({} and {} blocks round it, {} hub); {} places to walk to: {}",
+                grounds.area().minX(), grounds.area().maxX(), grounds.area().minZ(), grounds.area().maxZ(),
+                camp ? "their camp at the spire's steps" : "the hub's footprint",
+                camp ? SurvivorGrounds.CAMP_AREA_MARGIN : SurvivorGrounds.AREA_MARGIN, layout.get().kind(), grounds.waypoints().size(),
                 grounds.waypoints().stream().map(w -> w.pos().toShortString()).toList());
     }
 }

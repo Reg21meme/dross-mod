@@ -20,7 +20,8 @@ import net.minecraft.world.phys.Vec3;
  *       (none if the hub has no exit portal: building it failed).</li>
  *   <li>The layout: {@code Kind} (which hub was built), {@code Footprint} (the box it covers: min X, Y, Z, max X, Y, Z),
  *       {@code GroundY} (the ground level it stands on), {@code Fitted} (its ground was levelled and blended into the
- *       terrain with a staircase) and the arrival spot ({@code ArrivalX/Y/Z}, {@code ArrivalYaw}).</li>
+ *       terrain with a staircase), {@code Camp} (the survivors' camp was placed at the spire's steps) and the arrival
+ *       spot ({@code ArrivalX/Y/Z}, {@code ArrivalYaw}).</li>
  * </ul>
  */
 public class DrossHubData extends SavedData
@@ -42,6 +43,7 @@ public class DrossHubData extends SavedData
     private BoundingBox footprint;
     private int groundY;
     private boolean fitted;
+    private boolean camp;
     @Nullable
     private Vec3 arrival;
     private float arrivalYaw;
@@ -76,6 +78,7 @@ public class DrossHubData extends SavedData
         }
         data.groundY = tag.getInt("GroundY");
         data.fitted = tag.getBoolean("Fitted");
+        data.camp = tag.getBoolean("Camp");
         if (tag.contains("ArrivalX"))
         {
             data.arrival = new Vec3(tag.getDouble("ArrivalX"), tag.getDouble("ArrivalY"), tag.getDouble("ArrivalZ"));
@@ -108,6 +111,7 @@ public class DrossHubData extends SavedData
         }
         tag.putInt("GroundY", this.groundY);
         tag.putBoolean("Fitted", this.fitted);
+        tag.putBoolean("Camp", this.camp);
         if (this.arrival != null)
         {
             tag.putDouble("ArrivalX", this.arrival.x);
@@ -183,6 +187,7 @@ public class DrossHubData extends SavedData
         this.footprint = copy(result.footprint());
         this.groundY = result.groundY();
         this.fitted = result.fitted();
+        this.camp = result.camp();
         this.builtThisSession = true;
         setDirty();
     }
@@ -209,6 +214,12 @@ public class DrossHubData extends SavedData
     boolean isFitted()
     {
         return this.fitted;
+    }
+
+    /** True if the survivors' camp was placed at the spire's steps. */
+    boolean hasCamp()
+    {
+        return this.camp;
     }
 
     boolean wasBuiltThisSession()

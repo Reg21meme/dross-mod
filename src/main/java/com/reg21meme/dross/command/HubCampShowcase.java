@@ -4,6 +4,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
+import com.reg21meme.dross.portal.camp.HubCamp;
 import com.reg21meme.dross.portal.camp.HubCampDesigns;
 import com.reg21meme.dross.world.shrine.ShrineDesign;
 import java.util.ArrayDeque;
@@ -11,7 +12,6 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -19,15 +19,11 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
@@ -41,10 +37,12 @@ import org.slf4j.Logger;
  * user, November 2: "include the hub camps as well into the showcase"). Builds the Shattered Spire once per camp
  * ({@link ShrineDesign#build}, as the game builds the hub), in a row ahead of you, their fronts facing you, then each
  * camp's template ({@link HubCampDesigns}, made by tools/hub_camp/camps.py: only what the camp changes on the spire) on
- * top at the same corner and turn. A sign on the road in front of each camp ("No. N", its name); one spire and camp a
- * server tick; when it's done the chat lists them with [go] buttons (each stands you on the road in front of a camp,
- * facing the steps) and an [overview]. The survivors aren't in it (their home is the real hub). Running it again builds
- * them again in front of where you stand.
+ * top at the same corner and turn ({@link HubCamp#place}, as the hub's own camp is placed): since November 3, the
+ * user's pick, No. 3A, Under the Fallen Stones (the camp at the real hub; its other four versions are archived). A sign
+ * on the road in front of each camp ("No. 3A", its name); one spire and camp a server tick; when it's done the chat
+ * lists them with [go] buttons (each stands you on the road in front of a camp, facing the steps) and an [overview].
+ * The survivors aren't in it (their home is the real hub). Running it again builds them again in front of where you
+ * stand.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class HubCampShowcase
@@ -173,19 +171,10 @@ public final class HubCampShowcase
         {
             return false;
         }
-        ResourceLocation id = new ResourceLocation(Dross.MODID, plot.camp().template());
-        Optional<StructureTemplate> found = level.getStructureManager().get(id);
-        if (found.isEmpty())
+        if (!HubCamp.place(level, plot.camp(), plot.center(), plan.front(), Block.UPDATE_ALL))
         {
-            LOGGER.error("Hub camp showcase: the camp template {} is missing", id);
             return false;
         }
-        StructurePlaceSettings settings = new StructurePlaceSettings()
-                .setRotation(rotation(plan.front()))
-                .setRotationPivot(pivot())
-                .setIgnoreEntities(true);
-        BlockPos origin = origin(plot);
-        found.get().placeInWorld(level, origin, origin, settings, level.getRandom(), Block.UPDATE_ALL);
         // its sign on a post of stripped silverwood by the road in front of the camp, facing you
         BlockPos sign = toWorld(plan, plot, campFront(plot.camp(), SIGN_OUT)).relative(plan.look().getClockWise(), SIGN_SIDE);
         BlockPos post = sign.relative(plan.look());
@@ -195,42 +184,34 @@ public final class HubCampShowcase
         return true;
     }
 
-    /** "No. 2", the name over two lines, "hub camp". */
+    /** "No. 3A", the name over two lines, "hub camp". */
     static String[] signLines(HubCampDesigns.Camp camp)
     {
         String name = camp.name().startsWith("The ") ? camp.name().substring(4) : camp.name();
         String[] lines = HunterIglooShowcase.split(name, 15);
-        return new String[] {"No. " + camp.number(), lines[0], lines[1], "hub camp"};
+        return new String[] {"No. " + camp.label(), lines[0], lines[1], "hub camp"};
     }
 
-    /** The template's corner (its ground at the spire's center's height), as the spire's own. */
+    /** The template's corner (its ground at the spire's center's height), as the spire's own ({@link HubCamp#origin}). */
     static BlockPos origin(Plot plot)
     {
-        return plot.center().offset(-HubCampDesigns.WIDTH / 2, -HubCampDesigns.GROUND_LAYER, -HubCampDesigns.DEPTH / 2);
+        return HubCamp.origin(plot.center());
     }
 
-    /** The template turns round its middle column, like the spire's (so both land on the same blocks). */
     static BlockPos pivot()
     {
-        return new BlockPos(HubCampDesigns.WIDTH / 2, 0, HubCampDesigns.DEPTH / 2);
+        return HubCamp.pivot();
     }
 
-    /** The turn that takes "front faces south" (how the templates are made) to "front faces {@code front}". */
     static Rotation rotation(Direction front)
     {
-        return switch (front)
-        {
-            case WEST -> Rotation.CLOCKWISE_90;
-            case NORTH -> Rotation.CLOCKWISE_180;
-            case EAST -> Rotation.COUNTERCLOCKWISE_90;
-            default -> Rotation.NONE;
-        };
+        return HubCamp.rotation(front);
     }
 
     /** A template cell (unturned) to the world, for this plot. */
     static BlockPos toWorld(Plan plan, Plot plot, BlockPos local)
     {
-        return StructureTemplate.transform(local, Mirror.NONE, rotation(plan.front()), pivot()).offset(origin(plot));
+        return HubCamp.toWorld(plot.center(), plan.front(), local);
     }
 
     /** The road's middle in front of the camp's box, {@code out} blocks past its front edge, a block over the ground. */
@@ -253,9 +234,9 @@ public final class HubCampShowcase
         CommandSourceStack source = job.source();
         LOGGER.info("Hub camp showcase: built {} spires and camps from {} looking {} (ground at y {})",
                 plan.plots().size(), plan.origin().toShortString(), plan.look().getName(), plan.groundY());
-        source.sendSuccess(() -> Component.literal("Built the Shattered Spire " + plan.plots().size() + " times (No. 1 on "
-                + "the left), each with one camp for the Blind Oracle and the Ragged Seeker at the foot of its steps. "
-                + "Click [go] to stand in front of one:"), true);
+        source.sendSuccess(() -> Component.literal("Built the Shattered Spire with the survivors' camp at the foot of its "
+                + "steps (No. 3A, Under the Fallen Stones: the camp at the real hub, where the Blind Oracle and the Ragged "
+                + "Seeker live). Click [go] to stand in front of it:"), true);
         for (Plot plot : plan.plots())
         {
             source.sendSuccess(() -> goLine(plan, plot), false);
@@ -273,7 +254,7 @@ public final class HubCampShowcase
                 .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, command))
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                         Component.literal(plot.camp().blurb() + "\n" + command))));
-        return line.append(Component.literal(String.format(Locale.ROOT, " No. %d %s", plot.camp().number(),
+        return line.append(Component.literal(String.format(Locale.ROOT, " No. %s %s", plot.camp().label(),
                 plot.camp().name())));
     }
 

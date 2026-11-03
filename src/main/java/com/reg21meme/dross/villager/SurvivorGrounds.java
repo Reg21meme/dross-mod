@@ -2,6 +2,7 @@ package com.reg21meme.dross.villager;
 
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.portal.PortalOpening;
+import com.reg21meme.dross.portal.camp.HubCamp;
 import com.reg21meme.dross.registry.ModBlocks;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +26,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * Where the hub's two survivors live, worked out once from the hub's layout ({@link DrossHub#layout}) when they spawn,
- * and then saved on each of them (so nothing here runs while they walk about):
+ * and then saved on each of them (so nothing here runs while they walk about). At the spire with its <b>camp</b> (the
+ * user's pick of November 3, 2026, No. 3A, Under the Fallen Stones: they live there instead of wandering the spire,
+ * {@link HubCamp}): their rest spots are the camp's (the Oracle on the runner before his seat, facing the road; the
+ * Seeker by his bed and chest, facing the fire), their area the camp's box and {@value #CAMP_AREA_MARGIN} blocks round
+ * it, and the places they walk to the camp's (the fire, his books, the Seeker's tools, the woodpile, the road). Without
+ * a camp (another hub, or the camp failed to go on):
  * <ul>
  *   <li>{@link #restSpots}: their two spots side by side (mentor's first), and the way they face there: towards the
  *       arrival spot (in the Shattered Spire: on the dais beside the step, facing west).</li>
@@ -45,6 +51,10 @@ public record SurvivorGrounds(List<BlockPos> restSpots, List<Float> restYaws, Bo
 {
     /** The area reaches this many blocks past the hub's footprint, on every side (up and down too). */
     public static final int AREA_MARGIN = 20;
+    /** With the camp: the area reaches this many blocks past the camp's box, on every side (up and down too). */
+    public static final int CAMP_AREA_MARGIN = 6;
+    /** A block in a survivor's own cell this low or lower (a carpet, a thin snow layer) is a floor it stands on. */
+    static final double THIN_FLOOR = 0.2D;
 
     // The places they walk to, in blocks from the arrival spot along the way it faces (out of the gate), and to the side.
     /** Just inside the gate (the spire's gate is 4 to 6 blocks in front of the arrival spot)... */
@@ -110,7 +120,20 @@ public record SurvivorGrounds(List<BlockPos> restSpots, List<Float> restYaws, Bo
             return null;
         }
         Vec3 arrival = layout.arrival();
-        BoundingBox area = layout.footprint().inflatedBy(AREA_MARGIN);
+        BoundingBox area = areaFor(layout);
+        HubCamp.Spots camp = layout.camp();
+        if (camp != null)
+        {
+            Clearance clearance = new Clearance(layout.exit(), arrival);
+            List<Waypoint> places = new ArrayList<>();
+            for (HubCamp.Place place : camp.places())
+            {
+                add(places, dross, new int[] {place.pos().getX(), place.pos().getZ()}, place.pos().getY(), area, clearance, size,
+                        place.weight());
+            }
+            return new SurvivorGrounds(List.of(camp.mentor().immutable(), camp.student().immutable()),
+                    List.of(camp.mentorYaw(), camp.studentYaw()), area, List.copyOf(places), clearance);
+        }
         List<BlockPos> rest = List.of(layout.restSpots().get(0).immutable(), layout.restSpots().get(1).immutable());
         List<Float> yaws = new ArrayList<>();
         for (BlockPos spot : rest)
@@ -120,6 +143,13 @@ public record SurvivorGrounds(List<BlockPos> restSpots, List<Float> restYaws, Bo
         Clearance clearance = new Clearance(layout.exit(), arrival);
         List<Waypoint> waypoints = waypoints(dross, layout, rest.get(0), area, clearance, size);
         return new SurvivorGrounds(rest, yaws, area, waypoints, clearance);
+    }
+
+    /** Where the survivors may be at this hub: its camp's box and {@value #CAMP_AREA_MARGIN} blocks round it, or (no
+     *  camp) its footprint and {@value #AREA_MARGIN} blocks round it. */
+    public static BoundingBox areaFor(DrossHub.Layout layout)
+    {
+        return layout.camp() != null ? layout.camp().box().inflatedBy(CAMP_AREA_MARGIN) : layout.footprint().inflatedBy(AREA_MARGIN);
     }
 
     /** The way to face from {@code from} to look at {@code to} (Minecraft's yaw: 0 = south, 90 = west). */
@@ -240,7 +270,9 @@ public record SurvivorGrounds(List<BlockPos> restSpots, List<Float> restYaws, Bo
 
     /**
      * True if something {@code size} big fits standing in this cell (no block or liquid in the way), with solid ground
-     * under it that isn't leaves, and nothing harmful (fire, lava, magma, cactus, a portal...) in or under it.
+     * under it that isn't leaves, and nothing harmful (fire, lava, magma, cactus, a portal...) in or under it. A thin
+     * floor in the cell itself (a carpet, a thin snow layer: {@value #THIN_FLOOR} of a block or less) is stood on (the
+     * camp's Oracle rests on his runner).
      */
     static boolean canStandAt(ServerLevel level, BlockPos feet, EntityDimensions size)
     {
@@ -248,7 +280,9 @@ public record SurvivorGrounds(List<BlockPos> restSpots, List<Float> restYaws, Bo
         {
             return false;
         }
-        AABB body = size.makeBoundingBox(Vec3.atBottomCenterOf(feet));
+        VoxelShape inCell = level.getBlockState(feet).getCollisionShape(level, feet);
+        double lift = !inCell.isEmpty() && inCell.max(Direction.Axis.Y) <= THIN_FLOOR ? inCell.max(Direction.Axis.Y) : 0.0D;
+        AABB body = size.makeBoundingBox(Vec3.atBottomCenterOf(feet).add(0.0D, lift, 0.0D));
         if (!level.noCollision(body) || level.containsAnyLiquid(body))
         {
             return false;

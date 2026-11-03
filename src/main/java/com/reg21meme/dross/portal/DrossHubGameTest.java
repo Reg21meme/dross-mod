@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.portal.camp.HubCamp;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import com.reg21meme.dross.world.shrine.GroundFit;
@@ -17,11 +18,13 @@ import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -38,6 +41,8 @@ import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.gametest.GameTestHolder;
@@ -90,8 +95,10 @@ public final class DrossHubGameTest
     private static final int SPIRE_MAX_Z = 38;
     /** The arrival spot is the exit's lowest corner plus this: on the step in front of the frame. */
     private static final Vec3 SPIRE_ARRIVAL_OFFSET = new Vec3(1.5D, 0.0D, 1.5D);
-    /** The rest spots: on the dais east of the step, (3, ground+8, 1) and (3, ground+8, 2). */
+    /** A spire without its camp: the rest spots on the dais east of the step, (3, ground+8, 1) and (3, ground+8, 2). */
     private static final BlockPos[] SPIRE_REST_SPOTS = {new BlockPos(3, 8, 1), new BlockPos(3, 8, 2)};
+    /** At least this share of the camp's template blocks must be at the hub (blocks, air included). */
+    private static final double CAMP_MIN_MATCH = 0.99D;
 
     // The ground around the hub
     /** The ground is surveyed this far round the footprint. */
@@ -187,11 +194,34 @@ public final class DrossHubGameTest
             expect(problems, layout.arrival().distanceTo(arrival) < 1.0E-6D && Math.abs(Mth.wrapDegrees(layout.arrivalYaw())) < 1.0E-3F,
                     "the spire's arrival spot is " + layout.arrival() + " facing " + layout.arrivalYaw() + ", not " + arrival + " facing south (0)");
             List<BlockPos> rest = new ArrayList<>();
-            for (BlockPos spot : SPIRE_REST_SPOTS)
+            if (layout.camp() != null)
             {
-                rest.add(spot.offset(0, ground, 0));
+                // the survivors' camp at the foot of its steps: its template in place, their rest spots the camp's
+                BlockPos center = DrossHubBuilder.spireCenter(spire, ground);
+                HubCamp.Spots camp = HubCamp.spots(HubCamp.hubCamp(), center, DrossHubBuilder.SPIRE_FACING);
+                if (camp != null)
+                {
+                    rest.add(camp.mentor());
+                    rest.add(camp.student());
+                }
+                String wrong = campNotInPlace(dross, center);
+                if (wrong != null)
+                {
+                    problems.add(wrong);
+                }
+            }
+            else
+            {
+                for (BlockPos spot : SPIRE_REST_SPOTS)
+                {
+                    rest.add(spot.offset(0, ground, 0));
+                }
             }
             expect(problems, layout.restSpots().equals(rest), "the spire's rest spots are " + layout.restSpots() + ", not " + rest);
+            if (data.wasBuiltThisSession())
+            {
+                expect(problems, layout.camp() != null, "the hub was built in this run, so the survivors' camp should be at its steps");
+            }
         }
         else if (layout.kind() == DrossHub.Kind.PLACEHOLDER)
         {
@@ -207,7 +237,8 @@ public final class DrossHubGameTest
                     + exit.minCorner().toShortString());
         }
 
-        // 3. The rest spots: two, side by side, free to stand in, off the walkway and away from the arrival spot.
+        // 3. The rest spots: two (side by side, unless they're the camp's), free to stand in, off the walkway and away from
+        // the arrival spot.
         List<BlockPos> rest = layout.restSpots();
         if (rest.size() != 2)
         {
@@ -217,8 +248,15 @@ public final class DrossHubGameTest
         {
             BlockPos a = rest.get(0);
             BlockPos b = rest.get(1);
-            expect(problems, a.getY() == b.getY() && Math.abs(a.getX() - b.getX()) + Math.abs(a.getZ() - b.getZ()) == 1,
-                    "the rest spots " + a.toShortString() + " and " + b.toShortString() + " aren't side by side");
+            if (layout.camp() == null)
+            {
+                expect(problems, a.getY() == b.getY() && Math.abs(a.getX() - b.getX()) + Math.abs(a.getZ() - b.getZ()) == 1,
+                        "the rest spots " + a.toShortString() + " and " + b.toShortString() + " aren't side by side");
+            }
+            else
+            {
+                expect(problems, !a.equals(b), "the camp's two rest spots are the same cell " + a.toShortString());
+            }
             BlockPos arrivalCell = BlockPos.containing(layout.arrival());
             for (BlockPos spot : rest)
             {
@@ -239,6 +277,49 @@ public final class DrossHubGameTest
         LOGGER.info("[hub test] {}{}; the kind, footprint, arrival spot and rest spots are right", DrossHub.describe(layout),
                 data.wasBuiltThisSession() ? " (built in this run)" : " (built before this run)");
         helper.succeed();
+    }
+
+    /** Null if at least {@value #CAMP_MIN_MATCH} of the camp's template blocks are where it puts them on the spire
+     *  centred on {@code center}; otherwise what's wrong. */
+    @Nullable
+    private static String campNotInPlace(ServerLevel dross, BlockPos center)
+    {
+        Optional<StructureTemplate> found = dross.getStructureManager().get(new ResourceLocation(Dross.MODID, HubCamp.hubCamp().template()));
+        if (found.isEmpty())
+        {
+            return "the camp's template " + HubCamp.hubCamp().template() + " is missing";
+        }
+        StructurePlaceSettings settings = new StructurePlaceSettings()
+                .setRotation(HubCamp.rotation(DrossHubBuilder.SPIRE_FACING))
+                .setRotationPivot(HubCamp.pivot());
+        BlockPos origin = HubCamp.origin(center);
+        int total = 0;
+        int same = 0;
+        String firstWrong = null;
+        for (Block block : BuiltInRegistries.BLOCK)
+        {
+            for (StructureTemplate.StructureBlockInfo info : found.get().filterBlocks(origin, settings, block))
+            {
+                total++;
+                BlockState there = dross.getBlockState(info.pos());
+                if (there.is(block))
+                {
+                    same++;
+                }
+                else if (firstWrong == null)
+                {
+                    firstWrong = info.pos().toShortString() + " is " + name(there) + ", not " + block;
+                }
+            }
+        }
+        if (total == 0)
+        {
+            return "the camp's template is empty";
+        }
+        double share = same / (double) total;
+        return share >= CAMP_MIN_MATCH ? null
+                : String.format(java.util.Locale.ROOT, "only %.1f%% of the camp's %d template blocks are at the hub (%s)", 100.0D * share,
+                        total, firstWrong);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -676,7 +757,10 @@ public final class DrossHubGameTest
         for (BlockPos cell : List.of(feet, feet.above()))
         {
             BlockState state = dross.getBlockState(cell);
-            if (!state.getCollisionShape(dross, cell).isEmpty())
+            VoxelShape inCell = state.getCollisionShape(dross, cell);
+            // (a thin floor in the feet's own cell, a carpet, is stood on: the camp's Oracle rests on his runner)
+            boolean thinFloor = cell.equals(feet) && !inCell.isEmpty() && inCell.max(Direction.Axis.Y) <= 0.2D;
+            if (!inCell.isEmpty() && !thinFloor)
             {
                 return name(state) + " at " + cell.toShortString();
             }
