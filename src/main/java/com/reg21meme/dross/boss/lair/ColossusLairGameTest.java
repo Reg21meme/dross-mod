@@ -20,6 +20,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -537,6 +538,7 @@ public final class ColossusLairGameTest
         MinecraftServer server = helper.getLevel().getServer();
         ServerLevel dross = drossOf(helper);
         Built run = new Built(server, dross);
+        watch(helper, () -> run.failure);
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::plan))
                 .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.planned.isDone(), "the planner's lair sites")))
@@ -560,6 +562,9 @@ public final class ColossusLairGameTest
         final List<ServerPlayer> players = new ArrayList<>();
         long deadline;
         boolean failed;
+        /** The step's failure that ended the test, for {@link #watch}. */
+        @Nullable
+        GameTestAssertException failure;
 
         Built(MinecraftServer server, ServerLevel dross)
         {
@@ -586,7 +591,8 @@ public final class ColossusLairGameTest
                 failed = true;
                 LOGGER.error("[lair test] {}", e.getMessage());
                 cleanUp();
-                throw e instanceof GameTestAssertException assertion ? assertion : new GameTestAssertException("the test threw " + e);
+                failure = e instanceof GameTestAssertException assertion ? assertion : new GameTestAssertException("the test threw " + e);
+                throw failure;
             }
         }
 
@@ -1623,6 +1629,7 @@ public final class ColossusLairGameTest
     {
         MinecraftServer server = helper.getLevel().getServer();
         Rise run = new Rise(server);
+        watch(helper, () -> run.failure);
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::requestLair))
                 .thenWaitUntil(() -> run.guard(() -> run.waitFor(() -> run.lair != null, "a lair to be built")))
@@ -1654,6 +1661,9 @@ public final class ColossusLairGameTest
         long deadline;
         int arrivals;
         boolean failed;
+        /** The step's failure that ended the test, for {@link #watch}. */
+        @Nullable
+        GameTestAssertException failure;
 
         Rise(MinecraftServer server)
         {
@@ -1680,7 +1690,8 @@ public final class ColossusLairGameTest
                 failed = true;
                 LOGGER.error("[lair test] {}", e.getMessage());
                 cleanUp();
-                throw e instanceof GameTestAssertException assertion ? assertion : new GameTestAssertException("the test threw " + e);
+                failure = e instanceof GameTestAssertException assertion ? assertion : new GameTestAssertException("the test threw " + e);
+                throw failure;
             }
         }
 
@@ -1855,6 +1866,24 @@ public final class ColossusLairGameTest
             throw new GameTestAssertException("there's no Dross level");
         }
         return dross;
+    }
+
+    /**
+     * Fails the test as soon as one of its steps has failed. A wait takes any failed check for "not yet" and tries it
+     * again every tick; on the next one its guard skips it (and every later step) once a step has failed, so the test
+     * would end as passed. So the guard keeps its failure, and this second sequence, started before the test's own (so
+     * it's looked at first each tick), fails the test with it.
+     */
+    private static void watch(GameTestHelper helper, Supplier<GameTestAssertException> failure)
+    {
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (failure.get() == null)
+                    {
+                        throw new GameTestAssertException("the test ran out of time");
+                    }
+                })
+                .thenFail(failure::get);
     }
 
     /** "Still waiting" in a waiting step: never a failure by itself. */

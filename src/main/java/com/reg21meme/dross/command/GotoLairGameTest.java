@@ -14,6 +14,7 @@ import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.world.PortalSiteGameTest;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
 import net.minecraft.commands.CommandSourceStack;
@@ -71,6 +72,7 @@ public final class GotoLairGameTest
     public static void gotoLair(GameTestHelper helper)
     {
         Run run = new Run(helper.getLevel().getServer());
+        watch(helper, () -> run.failure);
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::notesAndAsk))
                 .thenWaitUntil(() -> run.guard(run::waitForLanding))
@@ -300,6 +302,9 @@ public final class GotoLairGameTest
         ColossusLair.Lair landed;
         /** True once a step has failed. */
         boolean failed;
+        /** The step's failure that ended the test, for {@link #watch}. */
+        @Nullable
+        GameTestAssertException failure;
 
         Run(MinecraftServer server)
         {
@@ -329,6 +334,7 @@ public final class GotoLairGameTest
                 failed = true;
                 LOGGER.error("[goto lair test] {}", e.getMessage());
                 cleanUp();
+                failure = e;
                 throw e;
             }
             catch (RuntimeException e)
@@ -336,7 +342,7 @@ public final class GotoLairGameTest
                 failed = true;
                 LOGGER.error("[goto lair test] the test threw", e);
                 cleanUp();
-                GameTestAssertException failure = new GameTestAssertException("the test threw " + e);
+                failure = new GameTestAssertException("the test threw " + e);
                 failure.initCause(e);
                 throw failure;
             }
@@ -500,6 +506,24 @@ public final class GotoLairGameTest
             GotoBiomeGameTest.logOut(player);
             player = null;
         }
+    }
+
+    /**
+     * Fails the test as soon as one of its steps has failed. A wait takes any failed check for "not yet" and tries it
+     * again every tick; on the next one its guard skips it (and every later step) once a step has failed, so the test
+     * would end as passed. So the guard keeps its failure, and this second sequence, started before the test's own (so
+     * it's looked at first each tick), fails the test with it.
+     */
+    private static void watch(GameTestHelper helper, Supplier<GameTestAssertException> failure)
+    {
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (failure.get() == null)
+                    {
+                        throw new GameTestAssertException("the test ran out of time");
+                    }
+                })
+                .thenFail(failure::get);
     }
 
     /** "Still waiting" in a waiting step: never a failure by itself. */

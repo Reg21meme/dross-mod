@@ -153,6 +153,11 @@ Copy `boss/ratking/`.
   - timed actions end in the right state;
   - state flags switch;
   - minions spawn as the right kind.
+- **A wait never fails by itself:** in a `thenWaitUntil` step Minecraft takes any failed check for "not yet" and tries it
+  again every tick until the test's tick limit (hours away), and a guard that skips the steps after a failure lets the
+  test end as passed. So a wait that gives up keeps its failure and returns, and the test starts a watchdog sequence
+  before its own that fails it at once (`watch` in `boss/emberdactyl/EmberFightGameTest`, or with a skipping guard
+  `boss/lair/ColossusLairGameTest`; `enchant/RisenTestWait` checks after each wait instead).
 - **Build:** `.\gradlew.bat build --console=plain`.
 - **Headless:** `.\gradlew.bat runGameTestServer -PgameTestWorld=<new folder> --console=plain`. Look for **"All N required tests passed :)"** (a datapack failure can still exit 0).
 

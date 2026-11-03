@@ -17,6 +17,7 @@ import com.reg21meme.dross.world.PortalSiteGameTest;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import javax.annotation.Nullable;
@@ -138,6 +139,7 @@ public final class RatKingLairGameTest
     public static void kingAppearsOnceAndNeverReturns(GameTestHelper helper)
     {
         KingRun run = new KingRun(helper.getLevel().getServer());
+        watch(helper, () -> run.failure);
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::load))
                 .thenWaitUntil(() -> run.guard(() -> run.cave.waitForEntities()))
@@ -169,6 +171,9 @@ public final class RatKingLairGameTest
         long deadline;
         int arrivals;
         boolean failed;
+        /** The step's failure that ended the test, for {@link #watch}. */
+        @Nullable
+        GameTestAssertException failure;
 
         KingRun(MinecraftServer server)
         {
@@ -195,7 +200,8 @@ public final class RatKingLairGameTest
                 failed = true;
                 LOGGER.error("[rat king lair test] {}", e.getMessage());
                 cleanUp();
-                throw e instanceof GameTestAssertException assertion ? assertion : wrap(e);
+                failure = e instanceof GameTestAssertException assertion ? assertion : wrap(e);
+                throw failure;
             }
         }
 
@@ -468,6 +474,7 @@ public final class RatKingLairGameTest
     {
         MinecraftServer server = helper.getLevel().getServer();
         SpawnRun run = new SpawnRun(server);
+        watch(helper, () -> run.failure);
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::darkSpots))
                 .thenWaitUntil(() -> run.guard(run::waitForLight))
@@ -500,6 +507,9 @@ public final class RatKingLairGameTest
         int wanted;
         long deadline;
         boolean failed;
+        /** The step's failure that ended the test, for {@link #watch}. */
+        @Nullable
+        GameTestAssertException failure;
 
         SpawnRun(MinecraftServer server)
         {
@@ -525,7 +535,8 @@ public final class RatKingLairGameTest
                 failed = true;
                 LOGGER.error("[rat spawn rule test] {}", e.getMessage());
                 cleanUp();
-                throw e instanceof GameTestAssertException assertion ? assertion : wrap(e);
+                failure = e instanceof GameTestAssertException assertion ? assertion : wrap(e);
+                throw failure;
             }
         }
 
@@ -732,6 +743,7 @@ public final class RatKingLairGameTest
     public static void snoresAtTheGrandEntrance(GameTestHelper helper)
     {
         SnoreRun run = new SnoreRun(helper.getLevel().getServer());
+        watch(helper, () -> run.failure);
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::load))
                 .thenWaitUntil(() -> run.guard(() -> run.cave.waitForEntities()))
@@ -757,6 +769,9 @@ public final class RatKingLairGameTest
         int heardWhenBeaten;
         long deadline;
         boolean failed;
+        /** The step's failure that ended the test, for {@link #watch}. */
+        @Nullable
+        GameTestAssertException failure;
 
         SnoreRun(MinecraftServer server)
         {
@@ -782,7 +797,8 @@ public final class RatKingLairGameTest
                 failed = true;
                 LOGGER.error("[rat king snore test] {}", e.getMessage());
                 cleanUp();
-                throw e instanceof GameTestAssertException assertion ? assertion : wrap(e);
+                failure = e instanceof GameTestAssertException assertion ? assertion : wrap(e);
+                throw failure;
             }
         }
 
@@ -859,6 +875,24 @@ public final class RatKingLairGameTest
     // ---------------------------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------------------------
+
+    /**
+     * Fails the test as soon as one of its steps has failed. A wait takes any failed check for "not yet" and tries it
+     * again every tick; on the next one its guard skips it (and every later step) once a step has failed, so the test
+     * would end as passed. So the guard keeps its failure, and this second sequence, started before the test's own (so
+     * it's looked at first each tick), fails the test with it.
+     */
+    private static void watch(GameTestHelper helper, Supplier<GameTestAssertException> failure)
+    {
+        helper.startSequence()
+                .thenWaitUntil(() -> {
+                    if (failure.get() == null)
+                    {
+                        throw new GameTestAssertException("the test ran out of time");
+                    }
+                })
+                .thenFail(failure::get);
+    }
 
     /** "Still waiting" in a waiting step: never a failure by itself. */
     private static final class Waiting extends GameTestAssertException

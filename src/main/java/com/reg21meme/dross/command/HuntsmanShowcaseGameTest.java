@@ -10,6 +10,7 @@ import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
 import com.reg21meme.dross.boss.huntsman.HuntsmanTuning;
 import com.reg21meme.dross.world.PortalSiteGameTest;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.gametest.framework.GameTest;
@@ -43,10 +44,12 @@ public final class HuntsmanShowcaseGameTest
     private static final BlockPos AT = new BlockPos(-43000, 200, 39000);
     /** Ticks given to the loaded land, then to the spawned exhibits, before they're looked at. */
     private static final int SETTLE = 10;
+    /** At most this long (real time) for the exhibits to start ticking ({@link #whenTicked}). */
+    private static final long TICK_WAIT_MILLIS = 120_000L;
 
     private HuntsmanShowcaseGameTest() {}
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_huntsman_showcase", timeoutTicks = 400)
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_huntsman_showcase", timeoutTicks = 40_000)
     public static void huntsmanOnShow(GameTestHelper helper)
     {
         checkFiles(HuntAnims.HUNTSMAN);
@@ -75,7 +78,7 @@ public final class HuntsmanShowcaseGameTest
         helper.runAfterDelay(SETTLE, () ->
         {
             List<HuntMob> row = HuntsmanShowcase.spawnRow(level, AT, Direction.NORTH);
-            helper.runAfterDelay(SETTLE, () ->
+            whenTicked(helper, row, Util.getMillis(), () ->
             {
                 try
                 {
@@ -89,6 +92,21 @@ public final class HuntsmanShowcaseGameTest
                 }
             });
         });
+    }
+
+    /**
+     * Runs {@code then} once every exhibit has lived {@link #SETTLE} ticks of its own: land far out in a busy test
+     * world can take a while to start ticking, and until then the moose hasn't seated him (a check of a fixed number of
+     * the test's ticks once failed so). After {@link #TICK_WAIT_MILLIS} the checks run anyway and say what's wrong.
+     */
+    private static void whenTicked(GameTestHelper helper, List<HuntMob> row, long since, Runnable then)
+    {
+        if (row.stream().allMatch(m -> m.tickCount >= SETTLE) || Util.getMillis() - since > TICK_WAIT_MILLIS)
+        {
+            then.run();
+            return;
+        }
+        helper.runAfterDelay(1, () -> whenTicked(helper, row, since, then));
     }
 
     private static void checkRow(GameTestHelper helper, ServerLevel level, List<HuntMob> row, Runnable unforce)
@@ -107,7 +125,10 @@ public final class HuntsmanShowcaseGameTest
                 || Math.abs(rider.getY() - rider.getVehicle().getY() - HuntsmanTuning.RIDER_SEAT) > 0.01D)
         {
             throw new GameTestAssertException("the riding Huntsman's model should stand at the moose's own position, his hitbox"
-                    + " over its back, with his riding animations");
+                    + " over its back, with his riding animations (riding animations " + (rider.animations() == HuntAnims.RIDING)
+                    + (rider.getVehicle() == null ? ", no vehicle" : String.format(", his hitbox %.2f over its feet (%.2f wanted)",
+                            rider.getY() - rider.getVehicle().getY(), HuntsmanTuning.RIDER_SEAT))
+                    + ", ticks lived: him " + rider.tickCount + ")");
         }
         // (played on the row itself: the test world can take a while to list newly spawned mobs in fresh land)
         Vec3 near = Vec3.atCenterOf(AT);
