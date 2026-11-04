@@ -2127,6 +2127,37 @@ def portal_site_structures():
                      "placement": {"type": "dross:portal_site", "salt": PORTAL_SITE_SALT}}
     return structure, structure_set
 
+
+# The Dross trader's Rift Chapels (the villager area's villager/RiftChapel*; the user's decision of November 2, 2026): a
+# rare structure of its own in the Overworld's countryside, each with its trader, on a seeded grid like igloos and witch
+# huts (vanilla's random_spread, as dross:rift_chapel, which also keeps them off the portal site), made with the land in
+# the "surface structures" step, the land shaped to its floor (beard_thin). Not a Dross structure, but its JSON lives in
+# the folders this script owns, so it's written here (else remove_stale would delete it). Whether a grid cell's chunk gets
+# one (its biome in the tag below, its land dry and flat enough) is worked out from the noise (villager/RiftChapels.fit).
+RIFT_CHAPEL_SALT = 1104202603           # (under 2^31: Minecraft reads a salt as an int)
+RIFT_CHAPEL_SPACING = 32                # chunks: one possible chapel in every 512 x 512 blocks (igloos' and witch huts')
+RIFT_CHAPEL_SEPARATION = 8              # chunks: at least 8 chunks (128 blocks) between two cells' spots
+# (40 / 12 was tried first, November 4: only about 1 cell in 10 got a chapel (the rest sea, steep, by a village...), so a
+# world had about 35 within 5,000 blocks of its spawn; on this grid, with 6 blocks of relief allowed, see WORLDGEN_REPORT.md)
+RIFT_CHAPEL_VILLAGE_CLEARANCE = 6       # chunks: never this close to a possible village's chunk (a village reaches ~5)
+# Dry, open Overworld land, by tag where there's one (so other mods' biomes count): never sea, river, beach, swamp or the
+# peaks (the fit's flatness and height checks keep it off steep groves, meadows and windswept savannas).
+RIFT_CHAPEL_BIOMES = ["#minecraft:is_forest", "#minecraft:is_taiga", "#minecraft:is_savanna", "minecraft:plains",
+                      "minecraft:sunflower_plains", "minecraft:snowy_plains", "minecraft:desert", "minecraft:meadow",
+                      "minecraft:cherry_grove", {"id": "#forge:is_plains", "required": False},
+                      {"id": "#forge:is_desert", "required": False}]
+
+
+def rift_chapel_structures():
+    structure = {"type": "dross:rift_chapel", "biomes": "#dross:has_structure/rift_chapel", "spawn_overrides": {},
+                 "step": "surface_structures", "terrain_adaptation": "beard_thin"}
+    structure_set = {"structures": [{"structure": "dross:rift_chapel", "weight": 1}],
+                     "placement": {"type": "dross:rift_chapel", "spacing": RIFT_CHAPEL_SPACING,
+                                   "separation": RIFT_CHAPEL_SEPARATION, "salt": RIFT_CHAPEL_SALT,
+                                   "exclusion_zone": {"other_set": "minecraft:villages",
+                                                      "chunk_count": RIFT_CHAPEL_VILLAGE_CLEARANCE}}}
+    return structure, structure_set, {"replace": False, "values": RIFT_CHAPEL_BIOMES}
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2301,6 +2332,10 @@ def main():
     site, site_set = portal_site_structures()
     write_json("structure", "portal_site", site)
     write_json("structure_set", "portal_site", site_set)
+    chapel, chapel_set, chapel_biomes = rift_chapel_structures()
+    write_json("structure", "rift_chapel", chapel)
+    write_json("structure_set", "rift_chapel", chapel_set)
+    write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "rift_chapel.json"), chapel_biomes)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())

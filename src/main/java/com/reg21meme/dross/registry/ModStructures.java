@@ -20,6 +20,9 @@ import com.reg21meme.dross.dimension.sites.BossSitePlacement;
 import com.reg21meme.dross.portal.DrossHubPiece;
 import com.reg21meme.dross.portal.DrossHubPlacement;
 import com.reg21meme.dross.portal.DrossHubStructure;
+import com.reg21meme.dross.villager.RiftChapelPiece;
+import com.reg21meme.dross.villager.RiftChapelPlacement;
+import com.reg21meme.dross.villager.RiftChapelStructure;
 import com.reg21meme.dross.world.PortalSitePiece;
 import com.reg21meme.dross.world.PortalSitePlacement;
 import com.reg21meme.dross.world.PortalSiteStructure;
@@ -114,6 +117,16 @@ public final class ModStructures
             () -> (StructurePieceType.ContextlessType) PortalSitePiece::new);
     public static final RegistryObject<StructurePlacementType<PortalSitePlacement>> PORTAL_SITE_PLACEMENT = STRUCTURE_PLACEMENTS.register("portal_site",
             () -> () -> PortalSitePlacement.CODEC);
+
+    // Villager area: dross:rift_chapel, the Dross trader's Rift Chapels (villager/RiftChapel*), rare in the Overworld's
+    // countryside on a seeded grid, each with its trader, made with the land: the structure, its one piece, and its
+    // placement (vanilla's random_spread, kept off the villages and the portal site)
+    public static final RegistryObject<StructureType<RiftChapelStructure>> RIFT_CHAPEL = STRUCTURE_TYPES.register("rift_chapel",
+            () -> () -> RiftChapelStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> RIFT_CHAPEL_PIECE = STRUCTURE_PIECES.register("rift_chapel",
+            () -> (StructurePieceType.ContextlessType) RiftChapelPiece::new);
+    public static final RegistryObject<StructurePlacementType<RiftChapelPlacement>> RIFT_CHAPEL_PLACEMENT = STRUCTURE_PLACEMENTS.register("rift_chapel",
+            () -> () -> RiftChapelPlacement.CODEC);
 
     private ModStructures() {}
 }

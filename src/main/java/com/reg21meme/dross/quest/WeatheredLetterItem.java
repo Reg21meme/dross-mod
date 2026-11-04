@@ -1,12 +1,12 @@
 package com.reg21meme.dross.quest;
 
 import com.reg21meme.dross.registry.ModItems;
-import com.reg21meme.dross.villager.TraderSpawnData;
+import com.reg21meme.dross.villager.RiftChapels;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -14,21 +14,22 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The Weathered Letter ({@code dross:weathered_letter}): found in Nether Fortress and Bastion chests
  * ({@link WeatheredLetterLootModifier}). Readable like a written book.
  * <ul>
  *   <li>Four pages: blue portals from the Dross have been spilling into the world; "we" closed them, but the
- *       Dross is pressing to break through again; an old villager, the writer's friend, is looking for someone
- *       strong enough to fight back; and roughly where his hut is: the direction from world spawn, with
- *       coordinates rounded to {@value #LOCATION_ROUNDING} blocks. The wording depends on whether his hut is at
- *       the edge of a village or on its own in the wilds ({@link TraderSpawnData#isInVillage()}). If his hut
- *       isn't built yet, the location is vaguer.</li>
- *   <li>The text is written when the letter is made (in the chest). A letter without text (for example from
- *       the creative tab) gets its text as soon as it's in a player's inventory. A letter written before his
- *       hut was built (the vague text) rewrites itself once, the next time it's in a player's inventory
- *       after he has spawned. Letters that already show a real location are never rewritten.</li>
+ *       Dross is pressing to break through again; an old villager, the writer's friend, keeps watch in an old chapel in
+ *       the wilds and is looking for someone strong enough to fight back; and roughly where that chapel is: the
+ *       direction from world spawn, with coordinates rounded to {@value #LOCATION_ROUNDING} blocks.</li>
+ *   <li>Which chapel: the nearest Rift Chapel (the villager area's {@link RiftChapels}; a world has many, each with its
+ *       trader) to where the letter is first held: there in the Overworld, the Overworld's place for it in the Nether
+ *       (where the letters are found: its coordinates times 8), the world spawn anywhere else. A letter comes out of its
+ *       chest blank and is written then, once (the search runs off the server thread, so it stays blank for that moment),
+ *       and never again. With no chapel within {@link RiftChapels#SEARCH_RADIUS} blocks (or none in the world) it says it
+ *       can't tell where he is.</li>
  *   <li>Having one in your inventory grants "A Weathered Letter" (and silently unlocks the Dross advancement tab).</li>
  * </ul>
  * All wording is in {@code en_us.json} under {@code book.dross.weathered_letter.*} and {@code book.dross.direction.*}.
@@ -44,8 +45,10 @@ public class WeatheredLetterItem extends ReadableItem
 
     /** Start of every lang key for the letter's pages. */
     private static final String KEY = "book.dross.weathered_letter.";
-    /** The location page used while his hut isn't built yet. Letters with it rewrite themselves once he has spawned. */
+    /** The location page an old world's letter used while his hut wasn't built yet. Letters with it are written again. */
     private static final String UNKNOWN_KEY = KEY + "location_unknown";
+    /** Where the letter was first held (the Overworld's X and Z for it), so it names the nearest chapel to there. */
+    private static final String FOUND_AT_TAG = "DrossFoundAt";
 
     /** Lang keys for the 8 directions, starting at north and going clockwise. North is -Z, east is +X. */
     private static final String[] DIRECTION_KEYS = {
@@ -59,15 +62,7 @@ public class WeatheredLetterItem extends ReadableItem
         super(new Properties().stacksTo(16));
     }
 
-    /** A new letter with its text written for this world. */
-    public static ItemStack create(MinecraftServer server)
-    {
-        ItemStack stack = new ItemStack(ModItems.WEATHERED_LETTER.get());
-        setPages(stack, writePages(server));
-        return stack;
-    }
-
-    /** A letter without text (the creative tab copy). It gets its text once it's in a player's inventory. */
+    /** A letter without text (a chest's, the creative tab's). It gets its text once it's in a player's inventory. */
     public static ItemStack createBlank()
     {
         return new ItemStack(ModItems.WEATHERED_LETTER.get());
@@ -80,24 +75,41 @@ public class WeatheredLetterItem extends ReadableItem
         {
             return;
         }
-        if (!hasPages(stack))
+        if (!hasPages(stack) || hasUnknownLocation(stack))
         {
-            setPages(stack, writePages(player.server));
+            this.writeWhenFound(stack, player);
         }
         if (player.tickCount % CHECK_INTERVAL == 0)
         {
-            // Written before his hut existed? Now that he has spawned, fill in the real location (once).
-            if (hasUnknownLocation(stack) && TraderSpawnData.get(player.server.overworld()).hasSpawned())
-            {
-                setPages(stack, writePages(player.server));
-            }
             QuestProgress.onLetterInInventory(player);
         }
     }
 
     /**
-     * True if this letter was written before his hut was built (its text uses the "unknown location" page).
-     * Checked by looking for that page's lang key in the stored pages.
+     * Writes the letter for where it was first held: the nearest Rift Chapel to that spot ({@link RiftChapels#nearestIfReady},
+     * off the server thread; the letter stays blank for the moment that takes). The spot is remembered on the letter the
+     * first tick, so it's written for where it was found, even if its holder walks on meanwhile.
+     */
+    private void writeWhenFound(ItemStack stack, ServerPlayer player)
+    {
+        ServerLevel overworld = player.server.overworld();
+        CompoundTag tag = stack.getOrCreateTag();
+        if (!tag.contains(FOUND_AT_TAG, Tag.TAG_INT_ARRAY) || tag.getIntArray(FOUND_AT_TAG).length != 2)
+        {
+            BlockPos from = RiftChapels.searchOrigin(overworld, player.level(), player.blockPosition());
+            tag.putIntArray(FOUND_AT_TAG, new int[] {from.getX(), from.getZ()});
+        }
+        int[] at = tag.getIntArray(FOUND_AT_TAG);
+        Optional<RiftChapels.Chapel> nearest = RiftChapels.nearestIfReady(overworld, new BlockPos(at[0], 0, at[1]));
+        if (nearest != null)
+        {
+            setPages(stack, writePages(overworld, nearest));
+        }
+    }
+
+    /**
+     * True if this letter shows the "unknown location" page (an old world's letter written before his hut was built: it
+     * is written again). Checked by looking for that page's lang key in the stored pages.
      */
     private static boolean hasUnknownLocation(ItemStack stack)
     {
@@ -116,40 +128,30 @@ public class WeatheredLetterItem extends ReadableItem
         return false;
     }
 
-    /** The letter's pages, using where the trader's hut is right now (read from the villager area's saved data). */
-    private static List<Component> writePages(MinecraftServer server)
+    /** The letter's pages for the chapel it names (the nearest to where it was found), or for none within reach. */
+    static List<Component> writePages(ServerLevel overworld, Optional<RiftChapels.Chapel> nearest)
     {
-        ServerLevel overworld = server.overworld();
-        TraderSpawnData trader = TraderSpawnData.get(overworld);
-        if (!trader.hasSpawned())
-        {
-            // His hut isn't built yet: we don't know where he is.
-            return List.of(Component.translatable(KEY + "page1"), Component.translatable(KEY + "page2_intro"),
-                    Component.translatable(KEY + "page3"), Component.translatable(UNKNOWN_KEY));
-        }
-
-        // At the edge of a village, or (no usable village was found) on its own in the wilds near spawn.
-        String suffix = trader.isInVillage() ? "" : "_wild";
         Component story = Component.translatable(KEY + "page1");
-        Component intro = Component.translatable(KEY + "page2_intro" + suffix);
+        Component intro = Component.translatable(KEY + "page2_intro_chapel");
         Component friend = Component.translatable(KEY + "page3");
-
-        BlockPos hut = trader.getPos();
+        if (nearest.isEmpty())
+        {
+            return List.of(story, intro, friend, Component.translatable(KEY + "location_none"));
+        }
+        BlockPos hut = nearest.get().traderSpot();
         BlockPos spawn = overworld.getSharedSpawnPos();
         int roughX = roundRough(hut.getX());
         int roughZ = roundRough(hut.getZ());
         int dx = hut.getX() - spawn.getX();
         int dz = hut.getZ() - spawn.getZ();
-
         Component where;
         if (dx * dx + dz * dz < NEAR_SPAWN_DISTANCE * NEAR_SPAWN_DISTANCE)
         {
-            where = Component.translatable(KEY + "location_near_spawn" + suffix, roughX, roughZ);
+            where = Component.translatable(KEY + "location_near_spawn_wild", roughX, roughZ);
         }
         else
         {
-            where = Component.translatable(KEY + "location" + suffix,
-                    Component.translatable(directionKey(dx, dz)), roughX, roughZ);
+            where = Component.translatable(KEY + "location_wild", Component.translatable(directionKey(dx, dz)), roughX, roughZ);
         }
         return List.of(story, intro, friend, where);
     }

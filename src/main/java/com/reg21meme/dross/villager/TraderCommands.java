@@ -2,51 +2,36 @@ package com.reg21meme.dross.villager;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.registry.ModEntities;
+import java.util.Optional;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.server.ServerLifecycleHooks;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * The trader's test commands. {@code DrossCommand} (the /dross root) hooks them up:
  * <ul>
- *   <li>{@code /dross goto trader}: teleports you to the hut trader, even if his area isn't loaded
- *       (then you go to where he was last seen, which is where he still is).</li>
- *   <li>{@code /dross trader sendhome}: sends him home. If his area isn't loaded, it's loaded first.</li>
+ *   <li>{@code /dross goto trader}: teleports you to the door of the nearest Rift Chapel ({@link RiftChapels#nearest}: to
+ *       you in the Overworld, to the Overworld's place for you in the Nether, to the world spawn elsewhere), facing it. Its
+ *       chunks are loaded first (the first time, made: the chapel and its trader with them), as a nether portal trip loads
+ *       its destination.</li>
+ *   <li>{@code /dross trader sendhome}: the nearest trader whose land is loaded teleports home.</li>
  * </ul>
  */
-@Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class TraderCommands
 {
-    private static final TicketType<ChunkPos> LOAD_TICKET =
-            TicketType.create("dross_trader_load", Comparator.comparingLong(ChunkPos::toLong));
-    /** Chunks loaded around his last known position and around his hut. */
-    private static final int TICKET_RADIUS = 2;
-    /** Give up looking for him after 10 seconds. */
-    private static final int LOAD_TIMEOUT_TICKS = 10 * 20;
-
-    /** "/dross trader sendhome" requests waiting for his area to load. */
-    private static final List<PendingHome> PENDING = new ArrayList<>();
-
-    private record PendingHome(UUID trader, ChunkPos from, ChunkPos home, long deadline, CommandSourceStack source) {}
+    /** {@code /dross goto trader} looks this far for a chapel (blocks). */
+    static final int GOTO_RADIUS = 12_000;
+    /** The arrival's chunks are held this many chunks round it for a moment (vanilla's portal ticket). */
+    private static final int ARRIVAL_TICKET_RADIUS = 3;
 
     private TraderCommands() {}
 
@@ -55,85 +40,78 @@ public final class TraderCommands
         CommandSourceStack source = context.getSource();
         ServerPlayer player = source.getPlayerOrException();
         ServerLevel overworld = source.getServer().overworld();
-        TraderSpawnData data = TraderSpawnData.get(overworld);
-        if (!data.hasSpawned())
+        if (!RiftChapels.available(overworld))
         {
-            source.sendFailure(Component.literal("The Dross trader hasn't spawned in this world."));
+            source.sendFailure(Component.literal("This world has no Rift Chapels: Generate Structures is off, or its kind of world makes none."));
             return 0;
         }
-        Entity trader = data.getTraderId() == null ? null : overworld.getEntity(data.getTraderId());
-        Vec3 target = trader != null ? trader.position() : Vec3.atBottomCenterOf(data.getLastPos());
-        player.teleportTo(overworld, target.x, target.y, target.z, player.getYRot(), player.getXRot());
-        BlockPos at = BlockPos.containing(target);
-        source.sendSuccess(() -> Component.literal("Teleported to the Dross trader at "
-                + at.getX() + ", " + at.getY() + ", " + at.getZ()), true);
+        BlockPos from = RiftChapels.searchOrigin(overworld, player.level(), player.blockPosition());
+        Optional<RiftChapels.Chapel> found = RiftChapels.nearest(overworld, from, GOTO_RADIUS);
+        if (found.isEmpty())
+        {
+            source.sendFailure(Component.literal("There's no Rift Chapel within " + GOTO_RADIUS + " blocks of " + from.getX() + ", " + from.getZ() + "."));
+            return 0;
+        }
+        RiftChapels.Chapel chapel = found.get();
+        BlockPos at = landing(overworld, chapel);
+        player.teleportTo(overworld, at.getX() + 0.5D, at.getY(), at.getZ() + 0.5D, chapel.doorYaw(), 0.0F);
+        BlockPos spot = chapel.traderSpot();
+        long distance = Math.round(Math.sqrt(chapel.distanceSqr(from)));
+        source.sendSuccess(() -> Component.literal("Teleported to the Rift Chapel at " + spot.getX() + ", " + spot.getY() + ", " + spot.getZ()
+                + " (" + distance + " blocks from " + from.getX() + ", " + from.getZ() + ")"), true);
         return 1;
+    }
+
+    /**
+     * Loads the chapel's chunks (and the doorstep's), now (the first time, generated), adds vanilla's portal ticket round
+     * the door, and gives the spot to land on: the doorstep if it's free (it is, on the chapel's own ground), else the top
+     * of the ground there. Server thread.
+     */
+    static BlockPos landing(ServerLevel overworld, RiftChapels.Chapel chapel)
+    {
+        BlockPos door = chapel.doorstep();
+        overworld.getChunkSource().addRegionTicket(TicketType.PORTAL, new ChunkPos(door), ARRIVAL_TICKET_RADIUS, door);
+        BoundingBox foot = chapel.footprint();
+        for (int cx = SectionPos.blockToSectionCoord(foot.minX()); cx <= SectionPos.blockToSectionCoord(foot.maxX()); cx++)
+        {
+            for (int cz = SectionPos.blockToSectionCoord(foot.minZ()); cz <= SectionPos.blockToSectionCoord(foot.maxZ()); cz++)
+            {
+                overworld.getChunk(cx, cz);
+            }
+        }
+        if (free(overworld, door) && free(overworld, door.above()) && !free(overworld, door.below()))
+        {
+            return door;
+        }
+        return overworld.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, door);
+    }
+
+    private static boolean free(ServerLevel level, BlockPos pos)
+    {
+        return level.getBlockState(pos).getCollisionShape(level, pos).isEmpty() && level.getFluidState(pos).isEmpty();
     }
 
     public static int sendTraderHome(CommandContext<CommandSourceStack> context)
     {
         CommandSourceStack source = context.getSource();
         ServerLevel overworld = source.getServer().overworld();
-        TraderSpawnData data = TraderSpawnData.get(overworld);
-        if (!data.hasSpawned() || data.getTraderId() == null)
+        Vec3 from = source.getLevel() == overworld ? source.getPosition() : Vec3.atCenterOf(overworld.getSharedSpawnPos());
+        DrossTrader nearest = null;
+        for (DrossTrader trader : overworld.getEntities(ModEntities.TRADER.get(), trader -> trader.isAlive() && trader.getHome() != null))
         {
-            source.sendFailure(Component.literal("The Dross trader hasn't spawned in this world."));
+            if (nearest == null || trader.distanceToSqr(from) < nearest.distanceToSqr(from))
+            {
+                nearest = trader;
+            }
+        }
+        if (nearest == null)
+        {
+            source.sendFailure(Component.literal("No Dross trader's land is loaded. /dross goto trader takes you to the nearest Rift Chapel."));
             return 0;
         }
-        if (overworld.getEntity(data.getTraderId()) instanceof DrossTrader trader)
-        {
-            trader.teleportHome(overworld);
-            source.sendSuccess(() -> Component.literal("Sent the Dross trader home."), true);
-            return 1;
-        }
-
-        // He isn't loaded: load the chunks around where he was last seen and around his hut,
-        // then send him home as soon as he appears (see onServerTick).
-        ChunkPos from = new ChunkPos(data.getLastPos());
-        ChunkPos home = new ChunkPos(data.getPos());
-        overworld.getChunkSource().addRegionTicket(LOAD_TICKET, from, TICKET_RADIUS, from);
-        overworld.getChunkSource().addRegionTicket(LOAD_TICKET, home, TICKET_RADIUS, home);
-        PENDING.add(new PendingHome(data.getTraderId(), from, home, source.getServer().getTickCount() + LOAD_TIMEOUT_TICKS, source));
-        source.sendSuccess(() -> Component.literal("The trader's area isn't loaded. Loading it, then sending him home..."), true);
+        nearest.teleportHome(overworld);
+        BlockPos home = nearest.getHome();
+        source.sendSuccess(() -> Component.literal("Sent the Dross trader home, to " + home.getX() + ", " + home.getY() + ", " + home.getZ() + "."), true);
         return 1;
-    }
-
-    @SubscribeEvent
-    public static void onServerTick(TickEvent.ServerTickEvent event)
-    {
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (event.phase != TickEvent.Phase.END || PENDING.isEmpty() || server == null)
-        {
-            return;
-        }
-        ServerLevel overworld = server.overworld();
-        Iterator<PendingHome> it = PENDING.iterator();
-        while (it.hasNext())
-        {
-            PendingHome p = it.next();
-            if (overworld.getEntity(p.trader()) instanceof DrossTrader trader)
-            {
-                trader.teleportHome(overworld);
-                p.source().sendSuccess(() -> Component.literal("Sent the Dross trader home."), true);
-            }
-            else if (server.getTickCount() > p.deadline())
-            {
-                p.source().sendFailure(Component.literal("Couldn't find the Dross trader near where he was last seen."));
-            }
-            else
-            {
-                continue;
-            }
-            // Done: let the chunks unload normally again.
-            overworld.getChunkSource().removeRegionTicket(LOAD_TICKET, p.from(), TICKET_RADIUS, p.from());
-            overworld.getChunkSource().removeRegionTicket(LOAD_TICKET, p.home(), TICKET_RADIUS, p.home());
-            it.remove();
-        }
-    }
-
-    @SubscribeEvent
-    public static void onServerStopped(ServerStoppedEvent event)
-    {
-        PENDING.clear();
     }
 }

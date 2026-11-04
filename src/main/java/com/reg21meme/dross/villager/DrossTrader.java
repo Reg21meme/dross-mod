@@ -9,6 +9,7 @@ import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Vec3i;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
@@ -66,10 +67,12 @@ import java.util.List;
  * Right-click (main hand, not sneaking): see {@link #mobInteract}. Before a player has finished the quest
  * his trading screen never opens. All his lines are lang keys named {@code dross.trader.dialogue.*}.
  * <p>
- * He can be hurt and knocked back but can never die (he only spawns once, so we don't want him lost):
- * at half health or less he teleports home and fully heals.
+ * He can be hurt and knocked back but can never die (each chapel only ever gets its one trader, so we don't want him
+ * lost): at half health or less he teleports home and fully heals.
  * <p>
- * He lives in a hut (see {@link TraderHut}: the Rift Chapel) and wanders within {@link #LEASH} blocks of it.
+ * He lives in a Rift Chapel ({@link TraderHut}, {@link RiftChapels}: they come with the land, each with its trader, so a
+ * world has many of them; the quest is each player's, so any of them serves anyone) and wanders within {@link #LEASH}
+ * blocks of it.
  * If he strays too far, falls, or ends up underground, he teleports back into the hut (home is his spot in it).
  * The hut's whole footprint is saved on him ({@code HutBox}), so a roof over his head never counts as
  * "underground". A trader from a spawn egg (or {@code /summon}) treats the spot he was spawned at as his home and,
@@ -106,6 +109,11 @@ public class DrossTrader extends AbstractVillager
     private static final String TAG_HOME = "HomePos";
     /** The hut footprint, saved as six ints: min X, Y, Z, then max X, Y, Z. */
     private static final String TAG_HUT_BOX = "HutBox";
+    /** True once his chapel's trees are felled. */
+    private static final String TAG_TIDIED = "ChapelTidied";
+    /** His chapel's middle (its ground block) and the way its door faces (a 2D direction number). */
+    private static final String TAG_CHAPEL_CENTER = "ChapelCenter";
+    private static final String TAG_CHAPEL_FACING = "ChapelFacing";
 
     /** His spot inside his hut (or his spawn spot, for a spawn-egg trader). Set on his first tick if missing. */
     @Nullable
@@ -113,6 +121,16 @@ public class DrossTrader extends AbstractVillager
     /** Everything his hut covers, floor to roof, or null if he has none saved (see {@link #isInsideHut}). */
     @Nullable
     private BoundingBox hutBox;
+    /** His Rift Chapel's middle and the way its door faces (null for a spawn-egg trader): what its tidy-up puts back. */
+    @Nullable
+    private BlockPos chapelCenter;
+    @Nullable
+    private Direction chapelFacing;
+    /** True once the trees that grew into his chapel have been felled ({@link #tidyChapel}); saved. */
+    private boolean chapelTidied;
+    /** The felling under way, if any (not saved: it starts again from the start, which gives the same result). */
+    @Nullable
+    private RiftChapelTidy tidy;
 
     public DrossTrader(EntityType<? extends DrossTrader> type, Level level)
     {
@@ -160,6 +178,33 @@ public class DrossTrader extends AbstractVillager
         this.restrictTo(this.home, LEASH);
     }
 
+    /** Which Rift Chapel is his: its middle and the way its door faces (set when the chapel is made with the land). */
+    public void setChapel(BlockPos center, Direction facing)
+    {
+        this.chapelCenter = center.immutable();
+        this.chapelFacing = facing;
+    }
+
+    /** His home (his spot in his chapel, or a spawn-egg trader's spawn spot), or null before his first tick. */
+    @Nullable
+    public BlockPos getHome()
+    {
+        return this.home;
+    }
+
+    /** His chapel's footprint, or null for a spawn-egg (or {@code /summon}) trader. */
+    @Nullable
+    public BoundingBox getHutBox()
+    {
+        return this.hutBox;
+    }
+
+    /** True once the trees that grew into his chapel have been felled (never for a trader with no chapel). */
+    public boolean isChapelTidied()
+    {
+        return this.chapelTidied;
+    }
+
     @Override
     public void aiStep()
     {
@@ -180,7 +225,33 @@ public class DrossTrader extends AbstractVillager
         if (this.tickCount % 20 == 0)
         {
             this.updateGlow(serverLevel);
-            this.rememberPosition(serverLevel);
+        }
+        if (!this.chapelTidied && this.hutBox != null)
+        {
+            this.tidyChapel(serverLevel);
+        }
+    }
+
+    /**
+     * Once, the first time the land round his chapel is loaded: the trees that grew into it after it was made with the
+     * land (Minecraft's trees come after the structures, in its chunks and their neighbours') are felled, whole (the
+     * portal site's {@code TreeFelling}, in steps of at most about 40 ms a tick; {@link RiftChapelTidy}). Saved as done.
+     */
+    private void tidyChapel(ServerLevel level)
+    {
+        if (this.tidy == null)
+        {
+            if (this.tickCount % 20 != 0 || !RiftChapelTidy.landLoaded(level, this.hutBox))
+            {
+                return;
+            }
+            this.tidy = new RiftChapelTidy(level, this.hutBox, this.chapelCenter, this.chapelFacing);
+        }
+        if (this.tidy.step())
+        {
+            this.tidy.log();
+            this.tidy = null;
+            this.chapelTidied = true;
         }
     }
 
@@ -207,16 +278,6 @@ public class DrossTrader extends AbstractVillager
     public int getTeamColor()
     {
         return DrossColors.TRADER_GLOW;
-    }
-
-    /** If this is the hut trader, remember where he is, so /dross goto trader can find him when he isn't loaded. */
-    private void rememberPosition(ServerLevel level)
-    {
-        TraderSpawnData data = TraderSpawnData.get(level.getServer().overworld());
-        if (this.getUUID().equals(data.getTraderId()))
-        {
-            data.setLastPos(this.blockPosition());
-        }
     }
 
     /**
@@ -339,6 +400,12 @@ public class DrossTrader extends AbstractVillager
                     this.hutBox.minX(), this.hutBox.minY(), this.hutBox.minZ(),
                     this.hutBox.maxX(), this.hutBox.maxY(), this.hutBox.maxZ()});
         }
+        tag.putBoolean(TAG_TIDIED, this.chapelTidied);
+        if (this.chapelCenter != null && this.chapelFacing != null)
+        {
+            tag.put(TAG_CHAPEL_CENTER, NbtUtils.writeBlockPos(this.chapelCenter));
+            tag.putInt(TAG_CHAPEL_FACING, this.chapelFacing.get2DDataValue());
+        }
     }
 
     @Override
@@ -360,6 +427,11 @@ public class DrossTrader extends AbstractVillager
                         new Vec3i(corners[3], corners[4], corners[5]));
             }
             this.setHome(NbtUtils.readBlockPos(tag.getCompound(TAG_HOME)), hut);
+        }
+        this.chapelTidied = tag.getBoolean(TAG_TIDIED);
+        if (tag.contains(TAG_CHAPEL_CENTER, Tag.TAG_COMPOUND))
+        {
+            this.setChapel(NbtUtils.readBlockPos(tag.getCompound(TAG_CHAPEL_CENTER)), Direction.from2DDataValue(tag.getInt(TAG_CHAPEL_FACING)));
         }
     }
 

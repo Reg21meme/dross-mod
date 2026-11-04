@@ -39,8 +39,9 @@ public class WeatheredLetterLootModifier extends LootModifier
     {
         if (context.getRandom().nextFloat() < LETTER_CHANCE)
         {
-            // The text (rough location of the trader's hut) is written now, as the chest is filled.
-            generatedLoot.add(WeatheredLetterItem.create(context.getLevel().getServer()));
+            // Blank for now: its text (the rough location of the nearest Rift Chapel to whoever takes it) is written once
+            // it's in a player's inventory.
+            generatedLoot.add(WeatheredLetterItem.createBlank());
         }
         return generatedLoot;
     }

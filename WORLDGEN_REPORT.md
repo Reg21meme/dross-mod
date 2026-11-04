@@ -335,3 +335,179 @@ brand-new world: `run/gt_nov4_site4` (seed 1234, pinned for a forest), `run/gt_n
 - Needs from the coordinator (docs): `CLAUDE.md` step 3 and the Areas table (world-builder's row: `PortalSiteBuilder`,
   `PortalSitePlacer`, the placeholder shrine and the user template are gone; the site is the structure
   `dross:portal_site`); "Verify over time" (the site's checks).
+
+### Stage 3: the Rift Chapels (villager-builder; the Weathered Letter with the coordinator's leave)
+
+**Built.** The Dross trader's Rift Chapel is a world-generation structure of its own, `dross:rift_chapel`, rare in the
+Overworld's countryside on a seeded grid, each chapel with its trader, made with the land the first time its chunks are
+generated. Nothing of the trader happens at world start: no village search, no chunk tickets, no building, no spawning.
+- `villager/RiftChapelPlacement` (new; in `registry/ModStructures`, entries only): vanilla's `random_spread` (a subclass,
+  so `/locate structure` walks it the vanilla way and its JSON reads like vanilla's) with its `exclusion_zone` keeping it 6
+  chunks off any possible `minecraft:villages` chunk, plus one rule more: never within 6 chunks of the portal site's
+  chunk (otherwise the one cathedral would build over a chapel in roughly 1-2% of worlds). That's asked through the portal
+  set's own placement (`ChunkGeneratorStructureState.hasStructureChunkInRange`): no world-builder code is called.
+- `villager/RiftChapels` (new), the API:
+  - `fit(generator, random, seed, chunkX, chunkZ)`: whether a grid cell's chunk gets a chapel, from the noise alone,
+    cheapest first. The door faces a way the seed picks. The biome where the land roughly is (two readings of the
+    noise's depth) must be in `#dross:has_structure/rift_chapel`. Nine noise columns in a height band (the middle, then
+    the corners and side middles of the footprint grown by 2) must be dry and vary by at most 6 (`MAX_RELIEF`); the floor
+    goes at their median. Then the biome at that height, at the middle and the corners, must be in the tag (so no river,
+    beach or sea comes right up to it). The answers are remembered per world (keyed by its `RandomState`), so world
+    generation and the searches share them. The structure uses `fit` as its `findGenerationPoint` and skips vanilla's
+    own biome check, so the API and world generation always agree.
+  - `nearest(overworld, from, radius)`: the grid's cells ring by ring outwards (`getPotentialStructureChunk`, then the
+    placement's own `isStructureChunk`, then `fit`) until no nearer chapel can be left; nothing generated or loaded; any
+    thread. `within` lists them all (tests, log). `nearestAsync` / `nearestIfReady` run it on a thread of its own ("Dross
+    Rift Chapel search"). `searchOrigin`: the player's own spot in the Overworld, the Nether's spot times 8 (its
+    teleportation scale), the world spawn anywhere else. `available` is false with Generate Structures off, or when the
+    world's list of structures leaves the set out (superflat).
+- `villager/RiftChapelStructure`, `RiftChapelPiece` (new): step `surface_structures`, `terrain_adaptation` `beard_thin`
+  (the beard box is the footprint from the floor up, ground delta 1, through Forge's `PieceBeardifierModifier`: stage 2's
+  way). The chapel's middle is its chunk's middle, so the chapel itself always lies in one chunk; the piece's box also
+  holds a 6-block ring round it, so up to 3 x 3 chunks build their part. In each chunk:
+  - the ring: each column d blocks out cut or filled to within d of the floor (by at most 8), from its own ground, with its
+    own top block and soil;
+  - the chapel: the design drawn, clipped to the chunk;
+  - water or lava right beside it sealed;
+  - in the chunk holding his spot in the aisle, the trader (`create`, `moveTo` facing the door, `finalizeSpawn` with
+    `STRUCTURE`, persistent; his home his spot, his `HutBox` the footprint, his chapel's middle and facing saved). A chunk
+    is generated once, so a chapel gets one trader.
+- `villager/hut/HutCanvas`, `HutDesign`: the canvas works on a `WorldGenLevel` and a clip box (the chunk), and reads and
+  places only there. Glass panes and stairs get their shapes from the recorded blocks themselves, with vanilla's own
+  rules (`IronBarsBlock.attachsTo`; `StairBlock`'s corner rule copied, it being private), so every chunk agrees whichever
+  is made first; then everything is placed with a known shape, like vanilla's jigsaw pieces. New: `HutDesign.build(level,
+  clip, center, facing)`, `blocks(center, facing)` (what the design puts where, for the tests and the tidy-up),
+  `doorstep`. The build now fills gaps under every footprint column, not only where the top block is missing (below).
+- `villager/RiftChapelTidy` (new): run once by each chapel's trader when the land round his chapel (the footprint and 16
+  blocks) is loaded; by then every chunk whose trees could reach into it is fully made. It fells every tree, huge mushroom
+  and ice spike that touches the footprint, whole, with world-builder's `world.shrine.TreeFelling` (its public `Felling`
+  and `Area`, unchanged), then puts back any of the chapel's own blocks something took. Saved on him (`ChapelTidied`).
+- `villager/DrossTrader`: the tidy-up, `setChapel`, `getHome`, `getHutBox`, `isChapelTidied`; `rememberPosition` and
+  `TraderSpawnData` are gone. Every other rule is as it was: the 50-block leash, going home when lost or at half health,
+  the glow, can't die, no portals, the quest and shop (quest progress is each player's, so any trader serves anyone).
+- `villager/TraderCommands`: `/dross goto trader` goes to the nearest chapel (from the player's `searchOrigin`), loads its
+  chunks (the first time, generated) with vanilla's portal ticket, and lands on its doorstep facing the door (on the top of
+  the ground there if the doorstep is ever blocked). `/dross trader sendhome`: the nearest loaded trader goes home. Their
+  method names are unchanged, so `command/DrossCommand` needed nothing.
+- `villager/TraderAnnouncer`: each player who joins is told "Dross trader's hut is at X, Y, Z" for the nearest chapel to
+  them within 5,000 blocks, found off the server thread; nothing if there's none. No broadcast at a spawn any more.
+- `villager/RiftChapelEvents` (new): one WARN at server start with Generate Structures off: "The Dross's Rift Chapels and
+  Fallen Cathedral aren't generated: Generate Structures is off in this world, so it has no Dross trader and no portal
+  site."
+- `quest/WeatheredLetterItem`, `WeatheredLetterLootModifier`: a chest now gives a blank letter. The first time it's in a
+  player's inventory it remembers where (`DrossFoundAt`: the Overworld's X and Z for that spot), asks for the nearest
+  chapel to there off the server thread, and is written once, in the chapel's wording; it's never written again (an old
+  world's "unknown location" letter still is). Two new lang keys (added only): `page2_intro_chapel` (the old
+  `page2_intro_wild` says "not far from where the world began", untrue for a chapel found from the Nether) and
+  `location_none` (no chapel within 5,000 blocks). Pages checked with Minecraft's own glyph widths (`ascii.png` from the
+  game jar, a 114-pixel page): 10-13 lines of 14 with real coordinates, 14 at the world's edge (X and Z -29,999,950).
+- JSON, written by `tools/terrain/worldgen.py` (it owns those folders: `rift_chapel_structures`, the constants
+  `RIFT_CHAPEL_*`; noted in `tools/terrain/README.md`): `worldgen/structure/rift_chapel.json`,
+  `worldgen/structure_set/rift_chapel.json`, `tags/worldgen/biome/has_structure/rift_chapel.json`.
+
+**Removed.** `villager/TraderSpawner`, `VillageSearchPlan` and `TraderSpawnData` (nothing needs them), all of `TraderHut`
+but its `DESIGN` (the village spot search, the path finder, the emergency chapel, the path material),
+`TraderAnnouncer.announceSpawned`, `WeatheredLetterItem.create`. `world/SiteVillages` is world-builder's and untouched (its
+comment still mentions the old `TraderSpawner`). Spawn-egg traders work as before: home where they're spawned, no chapel,
+no tidy-up.
+
+**Choices (no one to ask).**
+- **The grid: spacing 32, separation 8 chunks** (vanilla's igloos and witch huts: one possible chapel every 512 x 512
+  blocks), not 40 / 12. With 40 / 12 only about 1 cell in 10 got a chapel (most turned down for their biome, mostly sea;
+  then steep land, a village's clearance, water), so two test worlds had 33 and 37 within 5,000 blocks of spawn. On 32 / 8
+  with 6 blocks of relief allowed (5 at first), four worlds had 48, 48, 57 and 57; the nearest to the spawn was 419-952
+  blocks off. A cell: about 50% turned down for its biome, 15-20% kept off a village or the portal site, 10-15% too steep,
+  about 10% water, 1% a corner's biome; 11-13% get a chapel.
+- **Biomes by tag** so modded ones count: `#minecraft:is_forest`, `#minecraft:is_taiga`, `#minecraft:is_savanna`, plains,
+  sunflower plains, snowy plains, desert, meadow, cherry grove, and `#forge:is_plains` / `#forge:is_desert` (optional).
+  Never ocean, river, beach, swamp, jungle or peaks (not in the tag; the corner check keeps it off their edges); steep
+  groves, meadows and windswept savannas are kept off by the relief check.
+- **The fit is nine noise columns**, about 5 ms a spot that gets as far as the heights; the biome check first throws out
+  most for microseconds.
+- **The ring**: `beard_thin` alone wasn't enough (below). The cathedral's staircase rule, at the chapel's scale (6 blocks,
+  at most 8 cut or filled in a column); further out the land's own slopes stay (the tests logged up to 6-7 blocks off at
+  6 blocks out on a hillside meadow).
+- **The trees**: Minecraft places them after the structures, also from neighbouring chunks, and a filter on vanilla's
+  trees is impossible; so each chapel's own trader fells what grew into it, once, when its land is loaded (he ticks only
+  in entity-ticking land, so the chunks round him are fully made by then). Measured: 0-7 trees (up to 312 logs, 736
+  leaves), 1-49 ms, once per chapel. Trees standing on a cut ring column outside the footprint aren't followed.
+- **The letter's "nearest"**: to where it's first held, not where it was looted (the loot table doesn't know who opens
+  the chest); in the Nether its spot times 8. Direction words stay "of where the world began", as the lang keys say.
+
+**What went wrong, and what was changed for it.**
+- A dark-forest chapel (seed 1605830344569903968, the chapel at 1080, 63, -1720) stood on a crust: under its edge
+  columns a single grass block at the floor's level over 6 blocks of air, the land all round it 9 blocks lower, and 3 of
+  its eave stairs gone. `beard_thin` only pulls the land towards the floor near the floor's own level (a kernel that fades
+  with depth), so over lower land it left a thin lip; the build only filled under a column whose top block was missing.
+  And Minecraft's huge mushrooms grow through anything that isn't a full cube (stairs, panes, lanterns): felling the one
+  there left the holes. Now the build fills gaps under every footprint column, the piece steps the ring (above), and the
+  tidy-up puts the chapel's own blocks back. On the same seed in a fresh world it then stood whole: the ground round it
+  1, 2, ... 6 blocks out at most 1, 2, 3, 4, 5, 6 off, 3 blocks put back.
+- A first version of the `/dross trader sendhome` check moved the trader 6 blocks east into a chunk inside the ticket
+  whose entities hadn't finished loading; Minecraft hides an entity from every search until they have, and the command
+  picked another loaded trader 2,000 blocks away. A test artefact, not the command's: the check now moves him onto his
+  own doorstep (the chapel's own chunk), and logs every trader the command could see. Two more runs on that seed passed.
+- The trader opens his door: the block check takes a door open or shut as right.
+
+**Checked** (`villager/RiftChapelGameTest`, new, and `TraderAnnouncerGameTest`, rewritten; their own namespace
+`dross_chapel` for these runs, now back in `dross`). After the ground fix, four brand-new worlds: `run/gt_nov4_chapel6`
+and `gt_nov4_chapel7` (the pinned seed above, still with the first sendhome check), `gt_nov4_chapel8` and
+`gt_nov4_chapel9` (random seeds, everything as it is now; `level-seed` is empty again): `All 5 required tests passed :)`
+each time (also `All 4` in `gt_nov4_chapel1`-`3`, before the fourth test was added).
+- `nothingHappensAtWorldStart`: when the server had started no search had run, the world makes chapels, and no trader was
+  loaded but those world generation had put in chapels round the spawn (0 in these worlds).
+- `nearestFindsChapels`: chapels within 5,000 blocks of the spawn counted and logged (48 and 57 in the last two random
+  worlds); the nearest to the spawn and to four other places is the nearest of all of them; 12 of them worked out afresh
+  on the server thread and on another thread, the same; the Nether's 100, -50 is searched from 800, -400; a search under
+  5 s.
+- `chapelIsMadeWithTheLand` (the nearest chapel at least 400 blocks from the spawn, out of its always-loaded chunks; a
+  ticket holds its land, waited for by the clock, then its trader's tidy-up): its structure start; 538 of the design's 538
+  blocks in place and all 1,644 of its cleared cells clear (99% needed); every footprint column solid at the floor and
+  under it; the land 1 and 2 blocks round it within 1 and 2 of the floor (logged out to 6); no log, leaves or huge
+  mushroom in it; its frame pieces there and unbreakable; exactly one trader within 64 blocks, his home his spot, his hut
+  the footprint, persistent; his first right-click gives the opening speech; `/dross goto trader` lands on the doorstep
+  facing the door; `/dross trader sendhome` puts him back on his spot; a Weathered Letter held at the door names it
+  (`location_wild`, the chapel's spot rounded to 50, `page2_intro_chapel`); its land unloaded (ticket gone, nobody near)
+  and loaded again: still the one trader, the same UUID.
+- `moreChapelsAreMadeWell` (new): the next four chapels likewise (start, blocks, ground, no trees, frame, one trader).
+  Across the last runs that's 20 chapels in birch, old-growth birch, dark forest (up to y 108), forest (y 143), grove,
+  meadow, taiga and plains: every one 100% in place.
+- `TraderAnnouncerGameTest.hutMessage`: a player who joins is told once, a moment later, with the nearest chapel's spot;
+  a second player too; a spawn-egg and a `/summon` trader say nothing.
+- `.\gradlew.bat build --console=plain` passes; the jar holds no test classes.
+
+**Measured.**
+- `nearest` from the spawn, cold: 26-87 ms (5-19 spots worked out); asked again 0.1-0.5 ms.
+- Every spot within 5,000 blocks (`within`, the worst case of a search that finds nothing): 1.4-2.5 s, 310-450 spots,
+  about 5 ms each. The join message and the letter run it off the server thread; `/dross goto trader` runs it on the server
+  thread (12,000 blocks at most), normally a few tens of ms.
+- A chapel's chunks: 9 per chapel (the chapel and its ring), 35-53 ms of world generation for 5 chapels, the slowest
+  chunk 17-33 ms (the one with the chapel).
+- The tidy-up: 1-49 ms, once per chapel.
+
+**Left / risks.**
+- Not seen in a game window yet: a chapel on real land (its ring, the felled trees round it, the trader in the aisle),
+  the join message's timing, the letter being blank for a moment.
+- The tidy-up runs when the trader first ticks: a player arriving by `/dross goto trader` may see trees vanish a moment
+  after the land loads (as at the cathedral). Trees on a cut ring column (outside the footprint) aren't felled and may
+  stand on less ground; a player's sapling may grow into a chapel later.
+- The ring keeps the land's own slopes past 6 blocks; a hillside can still rise or fall 5-7 blocks 6 blocks out.
+- `/locate structure dross:rift_chapel` uses vanilla's grid walk, which doesn't apply exclusion zones; it may name a cell
+  whose chapel was kept off a village. `/dross goto trader` never does.
+- Other structures than villages and the portal site aren't kept off (a desert pyramid, a mansion, a ruined portal); like
+  vanilla's own structures they may overlap, rarely.
+- A world whose chapel land was made before this stage keeps no chapel there (new worlds only, as agreed); old worlds'
+  `dross_trader.dat` is ignored, and their one old trader stays where he is.
+- `RiftChapels.turnedDown` counts why spots are turned down (cheap; for the tests' log); keep or drop it.
+
+**Needs from other areas.**
+- Needs from world site: with Generate Structures off, `PortalSite.isPlaced` still answers true (the portal set is in
+  the world's list of structures even when none are made), so `/dross goto cathedral`, the join message and the compass
+  point at a cathedral that isn't there. `RiftChapels.available` checks `worldGenOptions().generateStructures()`;
+  `SiteFinder.available` could do the same. (The WARN at server start is logged from `villager/RiftChapelEvents`.)
+- Needs from the coordinator (docs): `CLAUDE.md` step 4 ("Which village and when", the hut "at the edge of the closest
+  village", the emergency chapel, the path, `TraderSpawnData`, the location broadcast at his spawn), step 7.2 (the letter
+  names the nearest Rift Chapel to where it's first held, in the chapel's wording) and 7.3, the Areas table (villager:
+  the Rift Chapels are the structure `dross:rift_chapel`; no village search; `TraderAnnouncer` tells each joining player
+  the nearest), and the "Verify over time" lines about the chapel next to the village, the batch of 5 villages, the
+  5,000-block search and the emergency chapel. README likewise.

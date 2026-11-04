@@ -3,9 +3,12 @@ package com.reg21meme.dross.villager.hut;
 import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
+import java.util.Map;
+import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 /**
@@ -93,12 +96,15 @@ public abstract class HutDesign
     /**
      * Builds the hut at {@code center} (the floor level): clears everything above the floor inside the footprint
      * (up to its height), which cuts away any ground that rises above the floor, fills dips under it with dirt, then
-     * draws the design.
+     * draws the design. Only the part inside {@code clip} is read and placed (the chunk being made, for a hut made with
+     * the land; null for all of it), so building it chunk by chunk gives the same hut as all at once.
+     *
+     * @return how many blocks were placed
      */
-    public final void build(ServerLevel level, BlockPos center, Direction facing)
+    public final int build(WorldGenLevel level, @Nullable BoundingBox clip, BlockPos center, Direction facing)
     {
         Direction door = horizontal(facing);
-        HutCanvas canvas = new HutCanvas(level, center, door, width, depth, 0xD2055L * 31 + number);
+        HutCanvas canvas = new HutCanvas(level, clip, center, door, width, depth, 0xD2055L * 31 + number);
         // Where the ground rises above the floor, clearing the footprint cuts it away (read before anything is placed).
         boolean[] cut = new boolean[width * depth];
         for (int x = 0; x < width; x++)
@@ -116,25 +122,40 @@ public abstract class HutDesign
                 if (!canvas.isSolidGround(x, z))
                 {
                     canvas.set(x, 0, z, Blocks.GRASS_BLOCK);
-                    canvas.foundation(x, z, x, z, Blocks.DIRT);
                 }
                 else if (cut[x * depth + z] && canvas.isDirt(x, 0, z))
                 {
                     // The grass went with the cut; put some back on the new top (bare dirt looks wrong).
                     canvas.set(x, 0, z, Blocks.GRASS_BLOCK);
                 }
+                // Dips, and gaps under a crust of ground (Minecraft's terrain adaptation can leave one at the floor's level
+                // over lower land), filled down to solid ground.
+                canvas.foundation(x, z, x, z, Blocks.DIRT);
             }
         }
         draw(canvas);
-        canvas.apply(number + " (" + name + ")");
+        int placed = canvas.apply();
 
         // The trader must have room to stand where he teleports home.
         BlockPos spot = traderSpot(center, door);
-        if (!level.getBlockState(spot).getCollisionShape(level, spot).isEmpty()
-                || !level.getBlockState(spot.above()).getCollisionShape(level, spot.above()).isEmpty())
+        if ((clip == null || clip.isInside(spot)) && (!level.getBlockState(spot).getCollisionShape(level, spot).isEmpty()
+                || !level.getBlockState(spot.above()).getCollisionShape(level, spot.above()).isEmpty()))
         {
             LOGGER.warn("Hut design {} ({}): the trader's spot at {} isn't clear", number, name, spot.toShortString());
         }
+        return placed;
+    }
+
+    /**
+     * What the design itself puts where, in their final shapes, for a hut at {@code center}: its own blocks and the air
+     * it clears, not what depends on the ground (the dirt filling dips, grass put back). For the tests.
+     */
+    public final Map<BlockPos, BlockState> blocks(BlockPos center, Direction facing)
+    {
+        HutCanvas canvas = new HutCanvas(null, null, center, horizontal(facing), width, depth, 0xD2055L * 31 + number);
+        canvas.air(0, 1, 0, width - 1, height, depth - 1);
+        draw(canvas);
+        return canvas.shaped();
     }
 
     /** Everything the hut covers: from the ground layer up to its height. */
@@ -150,6 +171,15 @@ public abstract class HutDesign
     public final BlockPos entrance(BlockPos center, Direction facing)
     {
         return HutCanvas.toWorld(center, horizontal(facing), width, depth, doorX, 0, depth);
+    }
+
+    /**
+     * Where to stand in front of the door (feet position): the footprint's front row, in line with the door, so on the
+     * hut's own level ground. {@code /dross goto trader} lands here, facing the door.
+     */
+    public final BlockPos doorstep(BlockPos center, Direction facing)
+    {
+        return HutCanvas.toWorld(center, horizontal(facing), width, depth, doorX, 1, depth - 1);
     }
 
     /** Where the trader stands inside (feet position): the spot he teleports home to. */

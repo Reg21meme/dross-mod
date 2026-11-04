@@ -1,24 +1,31 @@
 package com.reg21meme.dross.villager.hut;
 
-import com.mojang.logging.LogUtils;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CandleBlock;
 import net.minecraft.world.level.block.DoorBlock;
+import net.minecraft.world.level.block.IronBarsBlock;
 import net.minecraft.world.level.block.LanternBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.StairBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
-import org.slf4j.Logger;
+import net.minecraft.world.level.block.state.properties.Half;
+import net.minecraft.world.level.block.state.properties.StairsShape;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
+import net.minecraft.world.level.material.FluidState;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,19 +41,26 @@ import java.util.Map;
  * </ul>
  * The canvas turns that grid (and every stair, door, log...) to face the real direction.
  * <p>
- * Blocks are only recorded while drawing; {@link #apply} places them all at once, bottom-up, without
- * neighbour updates (so nothing pops off half-built), then fixes shapes in one pass at the end
- * (fences and panes connect, stair corners round off).
+ * Blocks are only recorded while drawing; {@link #apply} works out the shapes that depend on neighbours from the
+ * recorded blocks themselves (glass panes join each other and the walls, stair corners round off: {@link #shaped}), then
+ * places them bottom-up with a known shape and no neighbour updates, the way Minecraft's own structures are placed. So
+ * a hut built a chunk at a time with the land (the Rift Chapels: {@code villager.RiftChapelPiece}) comes out exactly the
+ * same whichever of its chunks is made first: each chunk places only the blocks inside its own part ({@code clip}), and
+ * reads the world (where the ground is) only there.
  */
 final class HutCanvas
 {
-    private static final Logger LOGGER = LogUtils.getLogger();
     /** No neighbour or shape updates while placing; the clients still get every block. */
     private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
     /** A foundation goes at most this many blocks down looking for solid ground. */
     private static final int MAX_FOUNDATION_DEPTH = 8;
 
-    private final ServerLevel level;
+    /** The world it's drawn into, or null when it's only drawn (to know what goes where: no reads, nothing placed). */
+    @Nullable
+    private final WorldGenLevel level;
+    /** Only blocks inside this box are read or placed (a chunk being made); null for no limit. */
+    @Nullable
+    private final BoundingBox clip;
     private final BlockPos center;
     private final int centerX;
     private final int centerZ;
@@ -54,9 +68,10 @@ final class HutCanvas
     private final RandomSource random;
     private final Map<BlockPos, BlockState> blocks = new LinkedHashMap<>();
 
-    HutCanvas(ServerLevel level, BlockPos center, Direction facing, int width, int depth, long seed)
+    HutCanvas(@Nullable WorldGenLevel level, @Nullable BoundingBox clip, BlockPos center, Direction facing, int width, int depth, long seed)
     {
         this.level = level;
+        this.clip = clip;
         this.center = center;
         this.centerX = width / 2;
         this.centerZ = depth / 2;
@@ -190,6 +205,10 @@ final class HutCanvas
         {
             for (int z = Math.min(z1, z2); z <= Math.max(z1, z2); z++)
             {
+                if (!this.readable(toWorld(x, 0, z)))
+                {
+                    continue; // (a column outside the chunk being made: its own chunk lays its foundation)
+                }
                 for (int y = -1; y >= -MAX_FOUNDATION_DEPTH; y--)
                 {
                     BlockPos pos = toWorld(x, y, z);
@@ -204,59 +223,177 @@ final class HutCanvas
         }
     }
 
-    /** True if the world's ground at this spot (y = 0) is solid and dry (before anything is placed). */
+    /**
+     * True if the world's ground at this spot (y = 0) is solid and dry (before anything is placed). Where the world isn't
+     * read (only drawing, or outside the chunk being made) it counts as solid: no foundation is laid there.
+     */
     boolean isSolidGround(int x, int z)
     {
-        BlockPos pos = toWorld(x, 0, z);
-        return level.getBlockState(pos).blocksMotion() && level.getFluidState(pos).isEmpty();
+        return isSolid(x, 0, z);
     }
 
-    /** True if the world at this spot (before anything is placed) is solid and dry. */
+    /** True if the world at this spot (before anything is placed) is solid and dry (solid where it isn't read). */
     boolean isSolid(int x, int y, int z)
     {
         BlockPos pos = toWorld(x, y, z);
+        if (!this.readable(pos))
+        {
+            return true;
+        }
         return level.getBlockState(pos).blocksMotion() && level.getFluidState(pos).isEmpty();
     }
 
-    /** True if the world at this spot (before anything is placed) is a plain dirt block. */
+    /** True if the world at this spot (before anything is placed) is a plain dirt block (never where it isn't read). */
     boolean isDirt(int x, int y, int z)
     {
-        return level.getBlockState(toWorld(x, y, z)).is(Blocks.DIRT);
+        BlockPos pos = toWorld(x, y, z);
+        return this.readable(pos) && level.getBlockState(pos).is(Blocks.DIRT);
+    }
+
+    /** True if this spot of the world is read: there is a world, and the spot is in the part being made. */
+    private boolean readable(BlockPos pos)
+    {
+        return level != null && (clip == null || clip.isInside(pos.getX(), clip.minY(), pos.getZ()));
     }
 
     // ---------------------------------------------------------------- placing
 
     /**
-     * Places every recorded block, bottom-up, then lets fences, panes, stairs, grass... fit their neighbours.
-     * Anything that can't stay where the design put it (a flower on stone, a lantern with nothing to hang from)
-     * disappears, and is logged as a warning so the design can be fixed.
+     * Places the recorded blocks that are inside the part being made ({@code clip}; all of them if there's none),
+     * bottom-up, each in its final shape ({@link #shaped}), without neighbour updates.
+     *
+     * @return how many blocks were placed
      */
-    void apply(String design)
+    int apply()
     {
-        List<Map.Entry<BlockPos, BlockState>> list = new ArrayList<>(blocks.entrySet());
-        list.sort(Comparator.comparingInt(entry -> entry.getKey().getY()));
-        for (Map.Entry<BlockPos, BlockState> entry : list)
+        if (level == null)
         {
-            level.setBlock(entry.getKey(), entry.getValue(), FLAGS);
+            return 0;
         }
-        List<String> fellOff = new ArrayList<>();
+        List<Map.Entry<BlockPos, BlockState>> list = new ArrayList<>(this.shaped().entrySet());
+        list.sort(Comparator.comparingInt(entry -> entry.getKey().getY()));
+        int placed = 0;
         for (Map.Entry<BlockPos, BlockState> entry : list)
         {
-            BlockPos pos = entry.getKey();
-            BlockState placed = level.getBlockState(pos);
-            BlockState shaped = Block.updateFromNeighbourShapes(placed, level, pos);
-            if (shaped != placed)
+            if (clip == null || clip.isInside(entry.getKey()))
             {
-                level.setBlock(pos, shaped, FLAGS);
-                if (shaped.isAir() && !placed.isAir())
-                {
-                    fellOff.add(BuiltInRegistries.BLOCK.getKey(placed.getBlock()).getPath() + " at " + pos.toShortString());
-                }
+                level.setBlock(entry.getKey(), entry.getValue(), FLAGS);
+                placed++;
             }
         }
-        if (!fellOff.isEmpty())
+        return placed;
+    }
+
+    /**
+     * Every recorded block in its final shape: glass panes (and iron bars) joined to the panes and solid faces beside
+     * them, stairs turned into corners where two meet at a right angle (Minecraft's own rules for both), worked out from
+     * the recorded blocks alone (a spot with nothing recorded counts as air), so every chunk of a hut gets the same
+     * answer. Other blocks are kept as drawn. In drawing order.
+     */
+    Map<BlockPos, BlockState> shaped()
+    {
+        BlockGetter view = new Recorded();
+        Map<BlockPos, BlockState> out = new LinkedHashMap<>();
+        for (Map.Entry<BlockPos, BlockState> entry : blocks.entrySet())
         {
-            LOGGER.warn("Hut design {}: {} block(s) couldn't stay where they were drawn: {}", design, fellOff.size(), fellOff);
+            BlockPos pos = entry.getKey();
+            BlockState state = entry.getValue();
+            if (state.getBlock() instanceof IronBarsBlock bars)
+            {
+                for (Direction side : Direction.Plane.HORIZONTAL)
+                {
+                    BlockPos next = pos.relative(side);
+                    BlockState there = view.getBlockState(next);
+                    boolean joins = bars.attachsTo(there, there.isFaceSturdy(view, next, side.getOpposite()));
+                    state = state.setValue(side(side), joins);
+                }
+            }
+            else if (state.getBlock() instanceof StairBlock)
+            {
+                state = state.setValue(StairBlock.SHAPE, stairsShape(state, view, pos));
+            }
+            out.put(pos, state);
+        }
+        return Collections.unmodifiableMap(out);
+    }
+
+    /** A pane's (or iron bars') join towards {@code side}. */
+    private static BooleanProperty side(Direction side)
+    {
+        return switch (side)
+        {
+            case NORTH -> BlockStateProperties.NORTH;
+            case EAST -> BlockStateProperties.EAST;
+            case SOUTH -> BlockStateProperties.SOUTH;
+            default -> BlockStateProperties.WEST;
+        };
+    }
+
+    /** A stair's shape from its neighbours, exactly Minecraft's rule ({@code StairBlock.getStairsShape}, which is private). */
+    private static StairsShape stairsShape(BlockState state, BlockGetter view, BlockPos pos)
+    {
+        Direction facing = state.getValue(StairBlock.FACING);
+        Half half = state.getValue(StairBlock.HALF);
+        BlockState front = view.getBlockState(pos.relative(facing));
+        if (StairBlock.isStairs(front) && front.getValue(StairBlock.HALF) == half)
+        {
+            Direction other = front.getValue(StairBlock.FACING);
+            if (other.getAxis() != facing.getAxis() && canTakeShape(state, view, pos, other.getOpposite()))
+            {
+                return other == facing.getCounterClockWise() ? StairsShape.OUTER_LEFT : StairsShape.OUTER_RIGHT;
+            }
+        }
+        BlockState back = view.getBlockState(pos.relative(facing.getOpposite()));
+        if (StairBlock.isStairs(back) && back.getValue(StairBlock.HALF) == half)
+        {
+            Direction other = back.getValue(StairBlock.FACING);
+            if (other.getAxis() != facing.getAxis() && canTakeShape(state, view, pos, other))
+            {
+                return other == facing.getCounterClockWise() ? StairsShape.INNER_LEFT : StairsShape.INNER_RIGHT;
+            }
+        }
+        return StairsShape.STRAIGHT;
+    }
+
+    private static boolean canTakeShape(BlockState state, BlockGetter view, BlockPos pos, Direction side)
+    {
+        BlockState there = view.getBlockState(pos.relative(side));
+        return !StairBlock.isStairs(there) || there.getValue(StairBlock.FACING) != state.getValue(StairBlock.FACING)
+                || there.getValue(StairBlock.HALF) != state.getValue(StairBlock.HALF);
+    }
+
+    /** The recorded blocks as a little world of their own: what's recorded, air everywhere else (for {@link #shaped}). */
+    private final class Recorded implements BlockGetter
+    {
+        @Override
+        @Nullable
+        public BlockEntity getBlockEntity(BlockPos pos)
+        {
+            return null;
+        }
+
+        @Override
+        public BlockState getBlockState(BlockPos pos)
+        {
+            return blocks.getOrDefault(pos, Blocks.AIR.defaultBlockState());
+        }
+
+        @Override
+        public FluidState getFluidState(BlockPos pos)
+        {
+            return this.getBlockState(pos).getFluidState();
+        }
+
+        @Override
+        public int getHeight()
+        {
+            return level != null ? level.getHeight() : 384;
+        }
+
+        @Override
+        public int getMinBuildHeight()
+        {
+            return level != null ? level.getMinBuildHeight() : -64;
         }
     }
 

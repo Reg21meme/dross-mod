@@ -293,6 +293,10 @@ comes after it keeps off it (`dross:not_on_hub`, `dimension/worldgen/NotOnHubFil
 feature after the hub gets it from `hub_filter`): trees, giant mushrooms and ice spikes `HUB_TREE_MARGIN` (24) blocks past
 its footprint, plant patches `HUB_PLANT_MARGIN` (8; the ones in `HUB_PLANT_FEATURES`), ores `HUB_ORE_MARGIN` (8) but only
 from `HUB_ORE_DEPTH` (8) blocks under its ground up. The hub's structure (`dross:dross_hub`) is written here too.
+Two Overworld structures live in the folders this script owns, so it writes their JSON too (else they'd be deleted as left
+over): the portal site (`dross:portal_site`, world-builder's) and the Dross trader's Rift Chapels (`dross:rift_chapel`, the
+villager area's: `rift_chapel_structures`, its grid `RIFT_CHAPEL_SPACING` / `_SEPARATION`, its village clearance and its
+biome tag `has_structure/rift_chapel`).
 
 **The tidy-up** (`dross:tidy_up`, `dimension/worldgen/TidyUpFeature`, the last feature of every chunk): a chunk's
 features reach a few blocks into the chunks round it, some decorated before it and some after, so now and then a plant

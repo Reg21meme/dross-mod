@@ -8,6 +8,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.Util;
@@ -41,24 +42,19 @@ import org.slf4j.Logger;
 
 /**
  * Headless test (GameTest) for the trader's chat message ({@link TraderAnnouncer}). Run it with
- * {@code .\gradlew.bat runGameTestServer --console=plain}, or in a dev world with {@code /test runall}. It only exists
- * in the development environment: in a normal game nothing here runs.
- *
- * <p>It works in both kinds of world (the GameTest server uses the world named in {@code run/server.properties}):
+ * {@code .\gradlew.bat runGameTestServer --console=plain} (only it and the chapel tests: set
+ * {@link RiftChapelGameTest#NAMESPACE} to {@code "dross_chapel"} and add {@code -PgameTestNamespaces=dross_chapel}). It only
+ * exists in the development environment: in a normal game nothing here runs.
  * <ul>
- *   <li><b>He has already spawned:</b> a player who joins is told "Dross trader's hut is at X, Y, Z" once, with his
- *       saved spot in the hut.</li>
- *   <li><b>He hasn't spawned yet</b> (his village search is still running in the background): nothing is said on
- *       joining; once he spawns (usually under a minute; the test waits at most {@link #SPAWN_TIMEOUT_MILLIS} of real
- *       time) that player has been told exactly once, and a second player who joins then is told once too.</li>
+ *   <li>A player who joins is told "Dross trader's hut is at X, Y, Z" once, a moment later (the search runs off the server
+ *       thread; the test waits for it by the clock), with the trader's spot in the nearest Rift Chapel to him
+ *       ({@link RiftChapels#nearest}); a second player who joins is told once too. If there's no chapel within the
+ *       search's reach, nobody is told anything.</li>
+ *   <li>Then a spawn-egg trader and a {@code /summon}-style trader are spawned, and neither sends the message.</li>
  * </ul>
- * In both cases a spawn-egg trader and a {@code /summon}-style trader are then spawned, and neither sends the message.
- *
- * <p>The wait is measured in real time, not in game ticks: the game test server runs its ticks as fast as it can (it
- * doesn't wait 50 ms between them), so on a busy computer thousands of ticks can pass while the village search takes
- * real time. The wait always ends by itself, before the test's tick limit, so the stand-in players always leave.
+ * The wait always ends by itself, before the test's tick limit, so the stand-in players always leave.
  */
-@GameTestHolder(Dross.MODID)
+@GameTestHolder(RiftChapelGameTest.NAMESPACE)
 @PrefixGameTestTemplate(false)
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class TraderAnnouncerGameTest
@@ -67,61 +63,31 @@ public final class TraderAnnouncerGameTest
 
     /** The test needs no blocks: a 1x1x1 air template, made in memory when the server starts (no file needed). */
     private static final String EMPTY = "trader_announcer_test_empty";
-    private static final ResourceLocation EMPTY_ID = new ResourceLocation(Dross.MODID, EMPTY);
-    /** In a new world he spawns in the background once a village is ready (usually under a minute): wait at most 10 minutes (real time). */
-    private static final long SPAWN_TIMEOUT_MILLIS = 10 * 60 * 1000L;
-    /**
-     * The ticks the test may spend waiting for him, added to its own time limit: only a backstop behind
-     * {@link #SPAWN_TIMEOUT_MILLIS} (the test server can run several hundred ticks a second while it waits). The wait
-     * gives up by itself when it gets here, so the stand-in players still leave.
-     */
-    private static final int SPAWN_BACKSTOP_TICKS = 2_000_000;
+    /** Wait at most this long (real time) for a player's message. */
+    private static final long MESSAGE_TIMEOUT_MILLIS = 60_000L;
+    /** With no chapel near, how long nobody must be told anything (real time). */
+    private static final long QUIET_MILLIS = 3_000L;
+    /** The ticks the test may spend waiting, a backstop behind the real-time limits (the server runs ticks very fast). */
+    private static final int BACKSTOP_TICKS = 2_000_000;
     /** How long the spawn-egg and {@code /summon}-style traders are watched for a message (ticks). */
     private static final int OTHER_TRADERS_WATCH_TICKS = 40;
 
-    @GameTest(template = EMPTY, batch = "dross_trader_announcer", timeoutTicks = SPAWN_BACKSTOP_TICKS + OTHER_TRADERS_WATCH_TICKS + 100)
+    @GameTest(template = EMPTY, batch = "dross_trader_announcer", timeoutTicks = 2 * BACKSTOP_TICKS + OTHER_TRADERS_WATCH_TICKS + 100)
     public static void hutMessage(GameTestHelper helper)
     {
         ServerLevel overworld = helper.getLevel().getServer().overworld();
-        boolean spawnedAtStart = TraderSpawnData.get(overworld).hasSpawned();
-        TestPlayer first = TestPlayer.join(helper.getLevel(), "trader-test-player");
-        List<TestPlayer> players = new ArrayList<>(List.of(first));
-        // One sequence for the whole test (a sequence must not be started from inside another one).
+        List<TestPlayer> players = new ArrayList<>();
         GameTestSequence sequence = helper.startSequence();
-
-        if (spawnedAtStart)
-        {
-            LOGGER.info("[trader test] The trader has already spawned: checking the join message.");
-            checked(players, () -> expectHutMessages(first, 1, overworld, "on joining a world where he has spawned"));
-        }
-        else
-        {
-            LOGGER.info("[trader test] The trader hasn't spawned yet: checking that joining says nothing, then waiting for him.");
-            checked(players, () -> expectHutMessages(first, 0, overworld, "on joining before he has spawned"));
-            long started = Util.getMillis();
-            sequence.thenWaitUntil(() -> {
-                        // Ends once he has spawned, at the real-time deadline, or at the backstop (then the next step fails, and the players leave).
-                        if (!TraderSpawnData.get(overworld).hasSpawned() && Util.getMillis() - started < SPAWN_TIMEOUT_MILLIS
-                                && helper.getTick() < SPAWN_BACKSTOP_TICKS)
-                        {
-                            throw new GameTestAssertException("Waiting for the trader to spawn");
-                        }
-                    })
-                    .thenExecute(() -> checked(players, () -> {
-                        if (!TraderSpawnData.get(overworld).hasSpawned())
-                        {
-                            throw new GameTestAssertException("The trader never spawned (waited " + (Util.getMillis() - started) / 1000L + " s, "
-                                    + helper.getTick() + " ticks)");
-                        }
-                        expectHutMessages(first, 1, overworld, "after he spawned (the broadcast)");
-                        TestPlayer second = TestPlayer.join(helper.getLevel(), "trader-test-player-2");
-                        players.add(second);
-                        expectHutMessages(second, 1, overworld, "on joining after he spawned");
-                    }))
-                    // If that failed, the test ends here: in the tick a step fails, the framework still runs the next
-                    // one, which would spawn traders that nobody removes.
-                    .thenIdle(1);
-        }
+        Joined first = new Joined();
+        Joined second = new Joined();
+        sequence.thenExecute(() -> first.join(helper, overworld, players, "trader-test-player"))
+                .thenWaitUntil(() -> first.waitForMessage(helper))
+                .thenExecute(() -> checked(players, () -> first.expectTold("on joining")))
+                .thenExecute(() -> second.join(helper, overworld, players, "trader-test-player-2"))
+                .thenWaitUntil(() -> second.waitForMessage(helper))
+                .thenExecute(() -> checked(players, () -> second.expectTold("on joining second")))
+                // If that failed, the test ends here: in the tick a step fails, the framework still runs the next one.
+                .thenIdle(1);
 
         // Then a spawn-egg trader and a /summon-style trader appear next to the test: nobody is told anything new.
         OtherTraders others = new OtherTraders();
@@ -133,6 +99,47 @@ public final class TraderAnnouncerGameTest
                     players.forEach(TestPlayer::leave);
                 })
                 .thenSucceed();
+    }
+
+    /** One stand-in player who joined: when, and the nearest chapel to where he came in. */
+    private static final class Joined
+    {
+        @Nullable
+        TestPlayer player;
+        Optional<RiftChapels.Chapel> nearest = Optional.empty();
+        long joinedAt;
+
+        void join(GameTestHelper helper, ServerLevel overworld, List<TestPlayer> players, String name)
+        {
+            this.player = TestPlayer.join(helper.getLevel(), name);
+            players.add(this.player);
+            BlockPos from = RiftChapels.searchOrigin(overworld, this.player.level(), this.player.blockPosition());
+            this.nearest = RiftChapels.nearest(overworld, from, RiftChapels.SEARCH_RADIUS);
+            this.joinedAt = Util.getMillis();
+            LOGGER.info("[trader test] {} joined at {}; the nearest chapel to him: {}", name, from.toShortString(),
+                    this.nearest.map(RiftChapels.Chapel::describe).orElse("none within " + RiftChapels.SEARCH_RADIUS + " blocks"));
+        }
+
+        /** Waits (by the clock) until he's been told, or (no chapel near) a few quiet seconds have passed. */
+        void waitForMessage(GameTestHelper helper)
+        {
+            long waited = Util.getMillis() - this.joinedAt;
+            boolean told = this.player != null && countHutMessages(this.player) > 0;
+            boolean over = this.nearest.isPresent() ? told || waited > MESSAGE_TIMEOUT_MILLIS : told || waited > QUIET_MILLIS;
+            if (!over && helper.getTick() < BACKSTOP_TICKS)
+            {
+                throw new GameTestAssertException("Waiting for the hut message");
+            }
+        }
+
+        void expectTold(String when)
+        {
+            if (this.player == null)
+            {
+                throw new GameTestAssertException(when + ": nobody joined");
+            }
+            expectHutMessages(this.player, this.nearest.isPresent() ? 1 : 0, this.nearest.orElse(null), when);
+        }
     }
 
     /** A spawn-egg trader and a /summon-style trader, and how many hut messages each player had before they appeared. */
@@ -200,8 +207,8 @@ public final class TraderAnnouncerGameTest
         return count;
     }
 
-    /** The player got exactly {@code count} hut messages, each with his saved spot in the hut as X, Y, Z. */
-    private static void expectHutMessages(TestPlayer player, int count, ServerLevel overworld, String when)
+    /** The player got exactly {@code count} hut messages, each with the trader's spot in this chapel as X, Y, Z. */
+    private static void expectHutMessages(TestPlayer player, int count, @Nullable RiftChapels.Chapel chapel, String when)
     {
         List<TranslatableContents> found = new ArrayList<>();
         for (Component message : player.messages)
@@ -217,14 +224,18 @@ public final class TraderAnnouncerGameTest
         {
             throw new GameTestAssertException(when + ": expected " + count + " hut message(s), got " + found.size());
         }
-        BlockPos hut = TraderSpawnData.get(overworld).getPos();
+        if (chapel == null)
+        {
+            return;
+        }
+        BlockPos hut = chapel.traderSpot();
         Object[] expected = {hut.getX(), hut.getY(), hut.getZ()};
         for (TranslatableContents translatable : found)
         {
             if (!Arrays.equals(translatable.getArgs(), expected))
             {
                 throw new GameTestAssertException(when + ": the hut message says " + Arrays.toString(translatable.getArgs())
-                        + " but his saved spot is " + Arrays.toString(expected));
+                        + " but the nearest chapel's spot is " + Arrays.toString(expected));
             }
         }
     }
@@ -299,35 +310,11 @@ public final class TraderAnnouncerGameTest
         {
             return;
         }
-        StructureTemplate template = event.getServer().getStructureManager().getOrCreate(EMPTY_ID);
-        template.load(BuiltInRegistries.BLOCK.asLookup(), emptyTag());
-    }
-
-    private static CompoundTag emptyTag()
-    {
-        CompoundTag tag = new CompoundTag();
-        tag.put("size", intList(1, 1, 1));
-        ListTag palette = new ListTag();
-        palette.add(NbtUtils.writeBlockState(Blocks.AIR.defaultBlockState()));
-        tag.put("palette", palette);
-        ListTag blocks = new ListTag();
-        CompoundTag block = new CompoundTag();
-        block.put("pos", intList(0, 0, 0));
-        block.putInt("state", 0);
-        blocks.add(block);
-        tag.put("blocks", blocks);
-        tag.put("entities", new ListTag());
-        return tag;
-    }
-
-    private static ListTag intList(int... values)
-    {
-        ListTag list = new ListTag();
-        for (int value : values)
+        RiftChapelGameTest.registerEmpty(event.getServer(), new ResourceLocation(Dross.MODID, EMPTY));
+        if (!RiftChapelGameTest.NAMESPACE.equals(Dross.MODID))
         {
-            list.add(IntTag.valueOf(value));
+            RiftChapelGameTest.registerEmpty(event.getServer(), new ResourceLocation(RiftChapelGameTest.NAMESPACE, EMPTY));
         }
-        return list;
     }
 
     private TraderAnnouncerGameTest() {}
