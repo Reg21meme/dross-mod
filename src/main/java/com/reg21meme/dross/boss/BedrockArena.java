@@ -241,7 +241,11 @@ public final class BedrockArena
         }).defaultBlockState();
     }
 
-    /** Sets a block unless it's already that or has a block entity: 1 if it changed, -1 if it was kept, 0 if it was already right. */
+    /**
+     * Sets a block unless it's already that or has a block entity (a chest...): 1 if it changed, -1 if it was kept, 0 if it
+     * was already right. A mob spawner goes, though (a dungeon's under the floor or in a wall would spawn mobs in the
+     * spawn-proof arena: November 4, 2026, a headless run built one round a dungeon's spawner).
+     */
     private static int set(ServerLevel level, BlockPos pos, BlockState want)
     {
         BlockState here = level.getBlockState(pos);
@@ -249,7 +253,7 @@ public final class BedrockArena
         {
             return 0;
         }
-        if (here.hasBlockEntity())
+        if (here.hasBlockEntity() && !here.is(Blocks.SPAWNER))
         {
             return -1;
         }

@@ -85,14 +85,16 @@ public final class BedrockArenaGameTest
                     boolean solid = dy == 0 || dy == BedrockArena.ROOF_HEIGHT || wall || divider && dy <= BedrockArena.DIVIDER_HEIGHT;
                     boolean marker = dy == 0 && !wall && state.getBlock().defaultBlockState() == state
                             && sections.stream().anyMatch(s -> state.is(BedrockArena.glass(s.team()).getBlock()));
-                    if (solid && !state.is(Blocks.BEDROCK) && !state.is(Blocks.GLOWSTONE) && !marker)
+                    // (a block with a block entity is left alone by the arena on purpose, like a chest where the test world
+                    // put the arena: a fresh world's dungeon was there, October 31 and November 4; but never a mob spawner,
+                    // which would spawn in it: the arena replaces those)
+                    boolean kept = state.hasBlockEntity() && !state.is(Blocks.SPAWNER);
+                    if (solid && !kept && !state.is(Blocks.BEDROCK) && !state.is(Blocks.GLOWSTONE) && !marker)
                     {
                         helper.fail("the arena should be bedrock and glowstone (and its teams' glass in the floor), but "
                                 + at.above(dy).toShortString() + " is " + state.getBlock());
                     }
-                    // (a block with a block entity is left alone by the arena on purpose, like a chest or a cave's monster
-                    // spawner where the test world put the arena: twice a fresh world's dungeon was there, October 31)
-                    if (!solid && !state.isAir() && !state.hasBlockEntity())
+                    if (!solid && !state.isAir() && !kept)
                     {
                         helper.fail("the air in the arena should be clear, but " + at.above(dy).toShortString() + " is "
                                 + state.getBlock());
