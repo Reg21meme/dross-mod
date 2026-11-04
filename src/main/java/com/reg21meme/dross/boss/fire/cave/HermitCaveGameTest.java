@@ -181,12 +181,14 @@ public final class HermitCaveGameTest
                     {
                         checkLava(level, plot.cave(), plot.ground(), plan.front(), later, true);
                         // (counted a few seconds on: a freshly loaded chunk's mobs aren't always found at once)
-                        int crabs = level.getEntitiesOfClass(CinderHermit.class,
-                                AABB.of(HermitCaves.footprint(plot.ground(), plan.front(), plot.cave())).inflate(2.0D)).size();
-                        if (crabs != 1)
+                        List<CinderHermit> crabs = level.getEntitiesOfClass(CinderHermit.class,
+                                AABB.of(HermitCaves.footprint(plot.ground(), plan.front(), plot.cave())).inflate(2.0D));
+                        if (crabs.size() != 1)
                         {
-                            later.add(plot.cave().name() + " has " + crabs + " Cinder Hermits (one expected)");
+                            later.add(plot.cave().name() + " has " + crabs.size() + " Cinder Hermits (one expected)");
                         }
+                        crabs.stream().filter(c -> !HermitCaves.CAVE_SHELLS.contains(c.getShell())).forEach(c -> later.add(
+                                plot.cave().name() + "'s crab wears " + c.getShell().label() + ", too wide for its room"));
                     }
                     if (!later.isEmpty())
                     {
@@ -533,6 +535,10 @@ public final class HermitCaveGameTest
                     {
                         problems.add(crabs.size() + " of its own Cinder Hermits in it (one expected, at its crab spot "
                                 + spot.toShortString() + ")");
+                    }
+                    else if (!HermitCaves.CAVE_SHELLS.contains(crabs.get(0).getShell()))
+                    {
+                        problems.add("its crab wears " + crabs.get(0).getShell().label() + ", too wide for its room");
                     }
                     BoundingBox box = footprint.inflatedBy(16);
                     for (int cx = box.minX() >> 4; cx <= box.maxX() >> 4; cx++)

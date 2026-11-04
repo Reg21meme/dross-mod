@@ -552,7 +552,9 @@ public final class CinderMobsGameTest
                 .thenExecute(() -> run.step(() -> {
                     run.floor();
                     crab[0] = run.spawn(ModEntities.CINDER_HERMIT.get(), 0.0D, 0.0D, 0.0F);
-                    crab[0].setShell(shell("M2C")); // the widest (about 8 blocks): the pathfinder's hardest case
+                    // the widest (about 8 blocks; a cave's own crab never wears it, but any hermit may): the pathfinder's
+                    // hardest case
+                    crab[0].setShell(shell("M2C"));
                     den[0] = run.at(0, 0);
                     crab[0].setDen(den[0]);
                     CompoundTag saved = crab[0].saveWithoutId(new CompoundTag());

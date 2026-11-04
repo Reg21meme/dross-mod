@@ -1,8 +1,10 @@
 package com.reg21meme.dross.boss.fire.cave;
 
 import com.mojang.logging.LogUtils;
+import java.util.List;
 import java.util.Optional;
 import com.reg21meme.dross.boss.cinder.CinderHermit;
+import com.reg21meme.dross.boss.fire.FireDesigns;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.MobSpawnType;
@@ -27,6 +29,10 @@ import org.slf4j.Logger;
 public final class HermitCaves
 {
     private static final Logger LOGGER = LogUtils.getLogger();
+    /** The shells a cave's crab may wear: those whose hitbox fits in its crab spot's room
+     *  ({@link HermitCaveTuning#CRAB_ROOM_WIDTH}; the horned skull's doesn't, so it's only met in the open). */
+    public static final List<FireDesigns.Design> CAVE_SHELLS = CinderHermit.SHELLS.stream()
+            .filter(shell -> shell.width() <= HermitCaveTuning.CRAB_ROOM_WIDTH).toList();
 
     private HermitCaves() {}
 
@@ -112,7 +118,7 @@ public final class HermitCaves
 
     /**
      * Its Cinder Hermits: one at each of its crab spots ({@code spots}, in the world) inside {@code within} (the chunk
-     * being made; null for all), each in a random shell (its own rule), facing any way, keeping to its den (its crab
+     * being made; null for all), each in a random shell that fits its room ({@link #CAVE_SHELLS}), facing any way, keeping to its den (its crab
      * spot: {@link CinderHermit#setDen}; a cave's crabs never despawn). Each one's other hermits come for whoever hurts
      * it, as anywhere.
      */
@@ -129,6 +135,7 @@ public final class HermitCaves
             {
                 continue;
             }
+            crab.setShell(CAVE_SHELLS.get(level.getRandom().nextInt(CAVE_SHELLS.size())));
             crab.moveTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D, level.getRandom().nextFloat() * 360.0F, 0.0F);
             crab.finalizeSpawn(level, level.getCurrentDifficultyAt(spot), MobSpawnType.STRUCTURE, null, null);
             crab.setPersistenceRequired();

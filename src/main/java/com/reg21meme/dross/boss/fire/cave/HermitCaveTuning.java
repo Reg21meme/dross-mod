@@ -28,6 +28,12 @@ public final class HermitCaveTuning
     /** A cave's middle at least this many blocks from the spot of the patch's Cinder Colossus lair or Emberdactyl
      * volcano (both are built later, near players, and reshape the land out to about 90 blocks round them). */
     public static final int BOSS_CLEARANCE = 112;
+
+    // ---------------------------------------------------------------- its crab
+
+    /** A crab spot's free room is this many blocks wide (and deep) round the crab's middle: a cave's crab wears only a
+     *  shell whose hitbox fits in it (the horned skull's, 7.93 wide, doesn't; the others are 6.26). */
+    public static final double CRAB_ROOM_WIDTH = 7.0D;
     /** ...or this many, with the looser rules. */
     public static final int RELAXED_BOSS_CLEARANCE = 100;
     /** The two caves of a patch at least this many blocks apart. */

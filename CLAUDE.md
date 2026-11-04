@@ -2054,7 +2054,9 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         `HermitCaveProbeGameTest`, its own GameTest namespace `dross_hermit_probe`): 69 hillside caves (the hill over 97%
         of their dens on average), 40 underground, no patch without a cave; about 70 ms of planning a patch, in the
         background. **`/dross goto hermit_cave`** lands you in front of the nearest cave's way in, facing it. **Its crab**:
-        one Cinder Hermit (a random shell) on its crab spot when the cave is made with the land
+        one Cinder Hermit on its crab spot, in a random shell that fits the spot's room (`HermitCaves.CAVE_SHELLS`, the
+        room 7 blocks across, `CRAB_ROOM_WIDTH`: never the horned skull, 7.93 wide, which overlapped the walls; November
+        4, 2026; the skull is met in the open), when the cave is made with the land
         (`HermitCavePiece.postProcess`) and in the showcase (a cave built again loses the crab of the one before), never
         despawning, neutral like any hermit (`HermitCaves.spawnCrabs`); **it keeps to its den** (November 3: a headless
         test saw one wander out of its cave): it never wanders off its crab spot by itself and walks back once it's more
@@ -2679,10 +2681,6 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   own position...") in a badly overloaded run: it looked 10 ticks after spawning them in fresh land, before they had
   ticked once. It now waits until every one of them has ticked 10 times (`whenTicked`, at most 2 minutes), and its
   message says what it found.
-- **The skull-shelled hermit is wider than a hermit crab cave's crab room** (Boss area, found November 3): the Cinder
-  Hermit in M2C (the horned skull) is 7.93 blocks wide, the others 6.26, and every cave's crab spot is a free box 7 wide
-  (`HermitCaves.crabSpots`), so a cave's crab that comes out in the skull (1 in 8) overlaps the room's walls by about
-  half a block each side. Not changed yet: either the crab rooms 8-9 wide or a cave's crab never in the skull.
 - **The test runs' first minutes overloaded** (found November 3): in one full run the boss-site planner's background
   read of the map took 131 s (2-3 s in the runs before), the Emberdactyl volcano's plan (on its low-priority thread)
   6 minutes, and the whole run 2.5 hours (15-45 minutes before), with no change to that code since. The volcano's "still
