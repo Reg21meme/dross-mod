@@ -1,6 +1,7 @@
 package com.reg21meme.dross.world;
 
 import com.mojang.logging.LogUtils;
+import java.util.Comparator;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -44,6 +45,15 @@ public final class PortalSite
      * the frame's own chunks at once.
      */
     private static final int ARRIVAL_TICKET_RADIUS = 3;
+    /**
+     * While a player stands in the hub's exit portal (a survival player's trip comes after vanilla's 4-second wait), the
+     * chunks this many round the frame are made in the background ({@link #warmArrival}), by a ticket that lapses after
+     * {@value #WARM_TICKS} ticks.
+     */
+    private static final int WARM_RADIUS = 2;
+    private static final int WARM_TICKS = 20 * 20;
+    private static final TicketType<ChunkPos> WARM_TICKET = TicketType.create("dross_site_warm",
+            Comparator.comparingLong(ChunkPos::toLong), WARM_TICKS);
 
     /** The bottom corner frame block with the lowest X and Z, in the Overworld. */
     public static BlockPos getFramePos(ServerLevel anyLevel)
@@ -85,6 +95,21 @@ public final class PortalSite
         catch (RuntimeException e)
         {
             return false;
+        }
+    }
+
+    /**
+     * Has the chunks round the frame made in the background, ahead of a trip from the hub's exit portal, so it finds the
+     * cathedral's chunks ready rather than making them on the server thread as it lands. Nothing waits for it, and its
+     * ticket lapses by itself. Does nothing in a world with no site. Server thread.
+     */
+    public static void warmArrival(ServerLevel anyLevel)
+    {
+        ServerLevel overworld = toOverworld(anyLevel);
+        if (isPlaced(overworld))
+        {
+            ChunkPos at = new ChunkPos(getOpeningCenter(overworld));
+            overworld.getChunkSource().addRegionTicket(WARM_TICKET, at, WARM_RADIUS, at);
         }
     }
 

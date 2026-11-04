@@ -10,6 +10,7 @@ import com.reg21meme.dross.villager.Survivor;
 import com.reg21meme.dross.villager.SurvivorGrounds;
 import com.reg21meme.dross.villager.SurvivorRole;
 import com.reg21meme.dross.villager.SurvivorSpawner;
+import com.reg21meme.dross.world.PortalSite;
 import com.reg21meme.dross.world.shrine.GroundFit;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.nio.file.Files;
@@ -123,6 +124,7 @@ public final class DrossHubGameTest
     private static final String BATCH = "dross_hub";
     private static final String RELOAD_BATCH = "dross_hub_reload";
     private static final String RELIGHT_BATCH = "dross_hub_relight";
+    private static final String WARM_BATCH = "dross_hub_warm";
     /** Holds the hub's chunks loaded while a test looks (no time limit; always removed at the end). */
     private static final TicketType<ChunkPos> TICKET = TicketType.create("dross_hub_test", Comparator.comparingLong(ChunkPos::toLong));
     /** The ticket's radius round the hub's middle chunk: every chunk the hub's piece touches is loaded with its entities. */
@@ -684,6 +686,44 @@ public final class DrossHubGameTest
                 .thenExecute(() -> run.guard(run::release))
                 .thenSucceed();
     }
+    /**
+     * Stepping into a Dross portal has the far side's chunks made in the background ({@link DrossHub#warmArrival} for the
+     * hub's landing, {@code PortalSite.warmArrival} for the cathedral's frame): once each landing chunk is unloaded (no
+     * test holds it), the warm-up alone brings it back, here asked again every tick as a player standing in the portal
+     * keeps it asked.
+     */
+    @GameTest(template = EMPTY, batch = WARM_BATCH, timeoutTicks = TIMEOUT_TICKS)
+    public static void warmUpMakesTheLandingChunks(GameTestHelper helper)
+    {
+        Run run = new Run(helper);
+        run.watch();
+        ServerLevel overworld = helper.getLevel().getServer().overworld();
+        ChunkPos hub = new ChunkPos(BlockPos.containing(run.layout.arrival()));
+        boolean site = PortalSite.isPlaced(overworld);
+        ChunkPos frame = site ? new ChunkPos(PortalSite.getOpeningCenter(overworld)) : hub;
+        ServerLevel frameLevel = site ? overworld : run.dross;
+        helper.startSequence()
+                .thenWaitUntil(() -> run.waitFor("the hub's landing chunk " + hub + " to unload", () -> run.dross.getChunkSource().getChunkNow(hub.x, hub.z) == null,
+                        () -> "it's still loaded"))
+                .thenWaitUntil(() -> run.waitFor("the warm-up to make the hub's landing chunk " + hub, () -> {
+                    DrossHub.warmArrival(run.dross);
+                    return run.dross.getChunkSource().getChunkNow(hub.x, hub.z) != null;
+                }, () -> "it isn't loaded"))
+                .thenWaitUntil(() -> run.waitFor("the cathedral's frame chunk " + frame + " to unload", () -> !site || frameLevel.getChunkSource().getChunkNow(frame.x, frame.z) == null,
+                        () -> "it's still loaded"))
+                .thenWaitUntil(() -> run.waitFor("the warm-up to make the cathedral's frame chunk " + frame, () -> {
+                    if (!site)
+                    {
+                        return true;
+                    }
+                    PortalSite.warmArrival(overworld);
+                    return overworld.getChunkSource().getChunkNow(frame.x, frame.z) != null;
+                }, () -> "it isn't loaded"))
+                .thenExecute(() -> run.guard(() -> LOGGER.info("[hub test] The portal's warm-up made the hub's landing chunk {}{}", hub,
+                        site ? " and the cathedral's frame chunk " + frame : " (this world has no cathedral)")))
+                .thenSucceed();
+    }
+
     // ---------------------------------------------------------------------------------------------
     // Arriving
     // ---------------------------------------------------------------------------------------------

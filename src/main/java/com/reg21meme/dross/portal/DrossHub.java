@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.portal.camp.HubCamp;
 import com.reg21meme.dross.world.shrine.ShrineDesign;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -79,6 +80,15 @@ public final class DrossHub
     private static final int ARRIVAL_TICKET_RADIUS = 3;
     /** An arrival that has to wait longer than this (ms) for its chunks is logged. */
     private static final long SLOW_ARRIVAL_MILLIS = 50L;
+    /**
+     * While a player stands in a Dross portal in the Overworld (a survival player's trip comes after vanilla's 4-second
+     * wait), the chunks this many round their landing spot are made in the background ({@link #warmArrival}), by a ticket
+     * that lapses after {@value #WARM_TICKS} ticks.
+     */
+    private static final int WARM_RADIUS = 2;
+    private static final int WARM_TICKS = 20 * 20;
+    private static final TicketType<ChunkPos> WARM_TICKET = TicketType.create("dross_hub_warm",
+            Comparator.comparingLong(ChunkPos::toLong), WARM_TICKS);
 
     private static final ShrineDesign SPIRE = ShrineDesign.byId(SPIRE_DESIGN_ID)
             .orElseThrow(() -> new IllegalStateException("There's no shrine design called " + SPIRE_DESIGN_ID));
@@ -226,6 +236,17 @@ public final class DrossHub
         LOGGER.warn("Dross hub: the exit portal is missing; landing {} on safe ground near the hub's arrival spot instead.",
                 entity.getName().getString());
         return DrossTeleporter.safeLanding(dross, entity, Mth.floor(layout.arrival().x), Mth.floor(layout.arrival().z));
+    }
+
+    /**
+     * Has the chunks an arrival lands in made in the background, ahead of it (a player standing in a Dross portal: the
+     * trip comes when its wait is over), so the first trip into the Dross finds the hub's chunks ready rather than making
+     * them on the server thread as it lands. Nothing waits for it, and its ticket lapses by itself. Server thread.
+     */
+    public static void warmArrival(ServerLevel dross)
+    {
+        ChunkPos at = new ChunkPos(BlockPos.containing(layoutAt(groundY(dross)).arrival()));
+        dross.getChunkSource().addRegionTicket(WARM_TICKET, at, WARM_RADIUS, at);
     }
 
     /**

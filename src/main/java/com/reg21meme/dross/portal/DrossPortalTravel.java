@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModBlocks;
+import com.reg21meme.dross.world.PortalSite;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.WeakHashMap;
@@ -66,7 +67,13 @@ public final class DrossPortalTravel
             entity.setPortalCooldown(); // like vanilla: you have to step out before you can travel again
             return;
         }
-        PortalTimer timer = TIMERS.computeIfAbsent(entity, e -> new PortalTimer());
+        PortalTimer timer = TIMERS.get(entity);
+        if (timer == null)
+        {
+            timer = new PortalTimer();
+            TIMERS.put(entity, timer);
+            warmDestination(entity);
+        }
         timer.insideThisTick = true;
         timer.portalPos = portalPos.immutable();
     }
@@ -134,6 +141,38 @@ public final class DrossPortalTravel
                     TIMERS.remove(entity);
                 }
             }
+        }
+    }
+
+    /**
+     * A player has just stepped into a Dross portal: the chunks they'll land in start being made in the background now,
+     * so the trip (after the portal's wait) finds them ready. Never stops the trip if it fails.
+     */
+    private static void warmDestination(Entity entity)
+    {
+        if (!(entity instanceof ServerPlayer player))
+        {
+            return;
+        }
+        try
+        {
+            MinecraftServer server = player.serverLevel().getServer();
+            if (player.level().dimension() == ModDimensions.DROSS_LEVEL)
+            {
+                PortalSite.warmArrival(player.serverLevel());
+            }
+            else
+            {
+                ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
+                if (dross != null)
+                {
+                    DrossHub.warmArrival(dross);
+                }
+            }
+        }
+        catch (RuntimeException e)
+        {
+            LOGGER.warn("Dross portal: getting the far side ready ahead of a trip failed; the trip makes it instead", e);
         }
     }
 
