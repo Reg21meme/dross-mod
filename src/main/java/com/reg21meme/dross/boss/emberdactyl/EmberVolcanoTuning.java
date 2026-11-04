@@ -109,6 +109,10 @@ public final class EmberVolcanoTuning
     /** The way onto the path: a strip this many blocks either side of the line from its foot straight out over the
      *  ground round the cone, kept free of lava, crust, vents and decorations. */
     public static final double WAY_IN_HALF_WIDTH = 4.0D;
+    /** ...and it reaches this many blocks past the fringe: where the land in front of the path's foot lies lower than the
+     *  fringe can step down to, the ground along the strip steps on down to it, a block at a time (November 4: on one
+     *  seed the fringe ended 3 blocks over the land there). */
+    public static final double WAY_IN_REACH = 12.0D;
 
     // ---- The path up ----
 

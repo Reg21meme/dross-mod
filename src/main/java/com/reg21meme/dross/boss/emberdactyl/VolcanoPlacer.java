@@ -375,7 +375,7 @@ final class VolcanoPlacer
             this.id = site.patch().id();
             this.x = site.pos().getX();
             this.z = site.pos().getZ();
-            this.area = ChunkArea.round(x, z, EmberVolcano.REACH);
+            this.area = ChunkArea.round(x, z, EmberVolcano.LAND_REACH);
             this.ticketKey = nextTicketKey++;
             area.addTickets(dross, ticketKey);
             long seed = shapeSeed(dross, site);

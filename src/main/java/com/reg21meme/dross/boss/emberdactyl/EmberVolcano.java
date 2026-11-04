@@ -57,11 +57,14 @@ public final class EmberVolcano
     /** Blocks are placed without poking their neighbours (no lava ticks, no redstone), but players see every change. */
     private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE;
     private static final int NO_LAVA = Integer.MIN_VALUE;
-    /** How far the plan reaches from the middle: the cone's widest foot, then the ground round it. */
-    private static final int EXT = Mth.ceil(BASE_RADIUS * (1.0D + LOBE_3 + LOBE_5 + LOBE_2) + FRINGE_OUT) + 1;
+    /** How far from its middle (X and Z) the cone, the ground round it and its fringe reach: on flat land nothing past it
+     *  changes (the showcase and the bedrock arena keep this much room). */
+    public static final int REACH = Mth.ceil(BASE_RADIUS * (1.0D + LOBE_3 + LOBE_5 + LOBE_2) + FRINGE_OUT) + 1;
+    /** How far the plan reaches from the middle: {@link #REACH}, and the way onto its path past it on lower land. */
+    private static final int EXT = REACH + Mth.ceil(WAY_IN_REACH);
     private static final int N = 2 * EXT + 1;
-    /** How far from its middle (X and Z) it may change anything: the cone, the ground round it and its fringe. */
-    public static final int REACH = EXT;
+    /** How far from its middle (X and Z) it may change anything on the real land, its way onto the path included. */
+    public static final int LAND_REACH = EXT;
     private static final double PATH_STEP = 0.5D;
 
     // What each column of the plan is.
@@ -490,7 +493,9 @@ public final class EmberVolcano
                 {
                     int i = idx(dx, dz);
                     byte k = this.kind[i];
-                    soft[i] = (k == APRON || k == FRINGE) && this.lava[i] == NO_LAVA && !nextToLava(dx, dz);
+                    // (the way onto the path reaches on past the fringe: there the land steps down to lower land too)
+                    soft[i] = (k == APRON || k == FRINGE || (k == OUTSIDE && this.nearPath[i])) && this.lava[i] == NO_LAVA
+                            && !nextToLava(dx, dz);
                     support[i] = soft[i] || k == OUTSIDE ? Integer.MIN_VALUE / 2 : this.top[i];
                 }
             }
@@ -585,6 +590,7 @@ public final class EmberVolcano
                 else if (height[i] > this.land[i])
                 {
                     this.kind[i] = APRON;
+                    this.slope[i] = -1.0F;
                     this.top[i] = height[i];
                 }
             }
@@ -926,7 +932,7 @@ public final class EmberVolcano
             double ux = foot.x() / radial;
             double uz = foot.z() / radial;
             int half = Mth.ceil(WAY_IN_HALF_WIDTH);
-            for (double t = 0.0D; t <= FRINGE_OUT; t += 0.5D)
+            for (double t = 0.0D; t <= FRINGE_OUT + WAY_IN_REACH; t += 0.5D)
             {
                 double px = foot.x() + ux * t;
                 double pz = foot.z() + uz * t;

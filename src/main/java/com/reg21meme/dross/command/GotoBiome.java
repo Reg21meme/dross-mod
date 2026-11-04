@@ -139,7 +139,7 @@ public final class GotoBiome
      * Never land within this many blocks of an Emberdactyl volcano's middle, built or planned (its reach, the cone, the
      * ground round it and its fringe, plus a little): not on its flanks, in its lava or where it's about to be built.
      */
-    public static final int VOLCANO_CLEARANCE = EmberVolcano.REACH + 8;
+    public static final int VOLCANO_CLEARANCE = EmberVolcano.LAND_REACH + 8;
     /** The lairs (built or planned) a landing keeps clear of are looked up within this many blocks of where it looks... */
     public static final int LAIR_ZONE_SEARCH = 512;
     /** ...again once it looks more than this many blocks (along X or Z) from where they were last looked up. */
