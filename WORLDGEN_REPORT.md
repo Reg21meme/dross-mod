@@ -511,3 +511,107 @@ each time (also `All 4` in `gt_nov4_chapel1`-`3`, before the fourth test was add
   the Rift Chapels are the structure `dross:rift_chapel`; no village search; `TraderAnnouncer` tells each joining player
   the nearest), and the "Verify over time" lines about the chapel next to the village, the batch of 5 villages, the
   5,000-block search and the emergency chapel. README likewise.
+
+### Stage 4: the full GameTest run (coordinator)
+
+`.\gradlew.bat runGameTestServer -PgameTestWorld=gt_nov4_full1` (a brand-new world, seed 5666491801082744466): **277
+tests, 276 passed, in 10 minutes 18 seconds**, the whole run (the last full runs, on November 3, took about 43 minutes:
+their first minutes were overloaded, the boss-site planner's map read taking 62-131 s; with the start-up searches gone the
+run is four times faster). The one failure, `gotovolcano`, was the Emberdactyl volcano's (November 3) code, not tonight's:
+on this seed the land in front of its path's foot lay lower than its 7-block fringe could step down to, so the ground
+ended 3 blocks over the land (`from the volcano's path foot outwards its ground steps -3 blocks at 764 -51`). Fixed
+(96d3b0b): the way-in strip reaches 12 blocks past the fringe (`EmberVolcanoTuning.WAY_IN_REACH`) and the ground along it
+steps on down a block at a time; the plan's grid grows by as much (`EmberVolcano.LAND_REACH`, used for its chunks and the
+biome landings' clearance), while `REACH`, the room the showcase and the arena keep, is unchanged (on flat land nothing
+past it changes). Re-run on the same seed with the volcano tests alone: `All 4 required tests passed :)`.
+
+Also (4e6fdb8): with Generate Structures off a world has no site (`SiteFinder` checks the world options, as
+`RiftChapels` does), and the start-up warning names the hub too.
+
+### Stage 5: performance in the real game (coordinator)
+
+A temporary client probe (`perf/client/PerfProbe`, environment variable `DROSS_PERF`; deleted after the runs) made a
+fresh default world (seed 20261104, creative, Normal), timed its creation, then went to each place with `/dross goto`,
+let it load (measured too), measured the frame times and the integrated server's tick times there, and took a
+screenshot. The user's own settings: render distance 24, simulation distance 16, vsync on, max 120 fps.
+
+**After (this branch, 96d3b0b):**
+
+| Place | fps avg / 1% low | server tick avg / max (ms) | while loading: worst tick (ms), ticks over 50 ms |
+|---|---|---|---|
+| world creation to the player in it | | 19.5 s | |
+| spawn (first minute) | 76 / 36 | 20.0 / 62 | 110, 14 of 401 |
+| the hub (first entry into the Dross) | 78 / 40 | 20.3 / 41 | 1,300 (the arrival making its chunks), 9 of 559 |
+| the Fallen Cathedral (3575, -3107: 4,736 blocks out) | 76 / 30 | 22.0 / 63 | 425, 9 of 598 |
+| the nearest Rift Chapel (3202, -2328) | 74 / 34 | 23.8 / 57 | 232, 5 of 601 |
+| Silverwood Forest | 76 / 40 | 20.3 / 38 | 434, 3 of 591 |
+| a Frostfolk village | 76 / 42 | 19.1 / 41 | 101, 6 of 800 |
+| the Huntsman's village | 74 / 35 | 17.2 / 39 | 244, 3 of 801 |
+| an Emberdactyl volcano (built on arrival) | 74 / 48 | 19.0 / 27 | 134, 7 of 1,200 |
+| a Colossus lair | 75 / 49 | 16.5 / 30 | 111, 10 of 1,201 |
+| the rat cave | 75 / 50 | 15.8 / 90 | 86, 1 of 801 |
+| a hermit crab cave | 73 / 48 | 16.0 / 33 | 86, 2 of 800 |
+| a Rimefall lake | 73 / 49 | 22.6 / 34 | 74, 4 of 800 |
+| Blightwood | 74 / 47 | 17.1 / 32 | 78, 2 of 601 |
+| the Gravecrags | 75 / 46 | 17.7 / 24 | 46, 0 of 601 |
+
+The screenshots show the hub (the camp at the foot of the steps, the forest a clearing away), the cathedral's frame
+unlit with its opening clear, and the trader's glow through his chapel's wall by the door. The site's spot needed the
+first relaxed rung ("rougher ground, 8 blocks of variation"). No error from the mod in the log.
+
+**Before (the same probe on 7e41ea6, the code before tonight, same seed and settings; a temporary copy of the project):**
+
+| Place | fps avg (before / after) | worst server tick once loaded, ms (before / after) | worst tick while loading, ms (before / after) |
+|---|---|---|---|
+| world creation to the player in it | | 22.8 s / 19.5 s | |
+| spawn (the first minute) | 76 / 76 | 301 / 62 (8 / 3 ticks over 50 ms) | 166 / 110 |
+| the hub | 73 / 78 | 70 / 41 | 524 / 1,300 |
+| the cathedral | 77 / 76 | 51 / 63 | 289 / 425 |
+| the trader | 77 / 74 | 52 / 57 | 175 / 232 |
+| Silverwood Forest | 77 / 76 | 35 / 38 | 214 / 434 |
+| a Frostfolk village | 78 / 76 | 38 / 41 | 75 / 101 |
+| the Huntsman's village | 77 / 74 | 66 / 39 | 157 / 244 |
+| an Emberdactyl volcano | 75 / 74 | 68 / 27 | 170 / 134 |
+| a Colossus lair | 75 / 75 | 26 / 30 | 90 / 111 |
+| the rat cave | 75 / 75 | 29 / 90 | 71 / 86 |
+| a hermit crab cave | 75 / 73 | 29 / 33 | 156 / 86 |
+| a Rimefall lake | 75 / 73 | 45 / 34 | 103 / 74 |
+| Blightwood | 76 / 74 | 22 / 32 | 63 / 78 |
+| the Gravecrags | 78 / 75 | 87 / 24 | 37 / 46 |
+
+Memory after the first minute: 2.9 GB before, 1.7 GB after. In the old code, during that first minute, the hub was
+built (985 ms of work, 120 trees felled), the site search scanned 53,945 spots in 23 s on 4 threads, the trader's
+village was generated and his hut built, and the cathedral was built (in a big modpack these ran into the 166 s ticks
+reported on CurseForge; on this fast computer with no other mods they mostly hid on background threads). The Dross
+stops run the same code in both builds: their differences are noise (chunk generation at render distance 24 going on in
+the background). The cathedral and the trader stood elsewhere in the old build (7,226 blocks out; by the nearest
+village), so those rows compare different places.
+
+**The one place the new build was slower: the first trip into the Dross.** The old build had made the hub's chunks at
+world start, so the arrival's chunks were ready (a 524 ms tick); now the arrival makes them on the server thread (a
+1,300 ms tick, once per world, about what vanilla's first nether trip into new land costs). **Fixed, without changing
+anything a player sees**: when a player steps into a Dross portal, the chunks they'll land in (the hub's landing spot, or
+the cathedral's frame from the hub's exit) start being made in the background at once (`DrossHub.warmArrival`,
+`PortalSite.warmArrival`, called from `DrossPortalTravel`; a ticket of radius 2 that lapses after 20 s), so a survival
+player's trip after the portal's 4-second wait finds them made. (`/dross goto hub` and creative players, whose trip is
+immediate, still make them on the spot.) Headless test: `DrossHubGameTest.warmUpMakesTheLandingChunks` (each landing
+chunk unloaded first, then brought back by the warm-up alone).
+
+**A profile** (Java Flight Recorder on the whole probe run, 51,767 CPU samples; its "profile" settings also logged 6.7
+million deoptimisation events, enough to fill its 250 MB and slow that one run's frame rate, so its fps aren't
+comparable): on the server thread the mod's own code is about a tenth of the time, spread over its mobs' ordinary
+ticking (rats 2.5%, Frostfolk 2.4%, Rimehorns 2.3%, Cinder Hermits 1.1%, moose 0.8%), mostly vanilla's movement and
+collision work for big hitboxes; the rest is vanilla (chunk tracking 8.6%, block lookups, natural spawning's nearest-player
+search 4.4%, entity collisions 14% across every mob). On the render thread the mod's renderers are about a tenth too (the
+fire models 4.2%, Rimefall's animals 3.0%, the Huntsman 2.9%, the Dross sky's glow 1.1%); the rest is vanilla drawing
+chunks at render distance 24. Nothing in the mod stood out as a hot spot. A possible small one for later: the sky's glow
+dome (1,536 vertices) is rebuilt every frame; it could be built once into a vertex buffer with its colour as the shader
+colour (about 1% of the render thread).
+
+**Last full runs** (after the warm-up): 278 tests each. Run 2 (new world): 277 passed; the one failure,
+`nothingspawnsinthebedrockarena`, found a vanilla dungeon's spawner left in the bedrock test arena (the arena keeps blocks
+with block entities, so it never destroys a chest). Fixed: the arena replaces mob spawners (`BedrockArena.set`), and the
+test skips a kept chest but never a spawner. Run 3 (same seed, the arena fix): the dungeon's chest was left, by design;
+run 4 (same seed, the test fix): the arena test passed, and the only failure was the known flake
+`HuntsmanFightGameTest.theyAttackAtOnce` (the pair calm again, as on November 3; it passed in runs 1-3). Each run took
+about 10 minutes.
