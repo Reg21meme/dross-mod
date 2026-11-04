@@ -14,10 +14,11 @@ import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
  * Placement filter {@code dross:not_near_hub}: a feature is only placed more than {@code radius} blocks (measured along
  * the ground, X and Z) from the hub's centre, {@link DrossHub#CENTER} (Dross 0, 0).
  *
- * <p>The hub (the Shattered Spire) is built on fitted ground when a world starts: it removes the trees and giant
- * mushrooms touching it, whole, and levels the ground under it. Ponds, boulders and fallen logs right next to it would
- * look odd, could block its walls or the survivors' walks, and would count as "ground" when the hub is fitted, so the
- * worldgen JSON keeps them away with this filter. Used like vanilla's filters:
+ * <p>The hub (the Shattered Spire) is made with the land, in the "surface structures" step ({@code portal.DrossHubPiece}):
+ * it levels the ground under it and steps it back to the land round it, reading the land's own heights. Ponds, boulders
+ * and fallen logs come before it, so right next to it they'd be cut through or left floating, could block its walls or
+ * the survivors' walks, and the worldgen JSON keeps them well away with this filter. (What comes after the hub, the
+ * trees, plants and ores, keeps off it with {@link NotOnHubFilter}.) Used like vanilla's filters:
  * <pre>{"type": "dross:not_near_hub", "radius": 112}</pre>
  * The numbers are labeled constants in {@code tools/terrain/worldgen.py} (FEATURES).
  */

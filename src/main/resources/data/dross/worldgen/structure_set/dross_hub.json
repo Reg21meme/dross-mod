@@ -1,0 +1,12 @@
+{
+  "structures": [
+    {
+      "structure": "dross:dross_hub",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:dross_hub",
+    "salt": 1104202601
+  }
+}

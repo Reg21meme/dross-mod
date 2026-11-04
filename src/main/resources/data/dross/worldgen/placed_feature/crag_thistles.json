@@ -25,6 +25,10 @@
       "heightmap": "MOTION_BLOCKING_NO_LEAVES"
     },
     {
+      "type": "dross:not_on_hub",
+      "margin": 8
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

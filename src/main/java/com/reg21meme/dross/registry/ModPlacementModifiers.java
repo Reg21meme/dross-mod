@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.worldgen.NotNearHubFilter;
 import com.reg21meme.dross.dimension.worldgen.NotNearSewerEntranceFilter;
+import com.reg21meme.dross.dimension.worldgen.NotOnHubFilter;
 import com.reg21meme.dross.dimension.worldgen.NotOnRimefallLakeFilter;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.placement.PlacementModifierType;
@@ -31,6 +32,11 @@ public final class ModPlacementModifiers
     // big frozen lakes
     public static final RegistryObject<PlacementModifierType<NotOnRimefallLakeFilter>> NOT_ON_RIMEFALL_LAKE =
             PLACEMENT_MODIFIERS.register("not_on_rimefall_lake", () -> () -> NotOnRimefallLakeFilter.CODEC);
+
+    // Dimension area (added by the portal area with the hub made by world generation): dross:not_on_hub, keeps the trees,
+    // plants and ores that come after the hub (the Shattered Spire at Dross 0, 0) off it and its staircase ring
+    public static final RegistryObject<PlacementModifierType<NotOnHubFilter>> NOT_ON_HUB =
+            PLACEMENT_MODIFIERS.register("not_on_hub", () -> () -> NotOnHubFilter.CODEC);
 
     private ModPlacementModifiers() {}
 }

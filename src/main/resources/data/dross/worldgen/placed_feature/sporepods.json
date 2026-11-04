@@ -28,6 +28,10 @@
       "type": "dross:not_near_sewer_entrance"
     },
     {
+      "type": "dross:not_on_hub",
+      "margin": 8
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

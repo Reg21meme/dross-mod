@@ -58,7 +58,7 @@ import org.slf4j.Logger;
  * Headless tests (GameTests) for the hub's two survivors ({@link Survivor}). Run them with
  * {@code .\gradlew.bat runGameTestServer --console=plain}. They only exist in the development environment.
  * <ul>
- *   <li>{@link #realPairAtTheHub}: the real pair spawned at the hub ({@link SurvivorSpawnData}) is there: exactly two
+ *   <li>{@link #realPairAtTheHub}: the real pair that came with the hub's land ({@link SurvivorSpawner}) is there: exactly two
  *       survivors near the hub, the Blind Oracle (mentor, skin 8) and the Ragged Seeker (student, skin 3), each the
  *       other's partner, with the hub's two rest spots as their homes, inside their area (the footprint and 20 blocks
  *       round it), within 6 blocks of each other, and neither on the arrival step or in the portal. (In a world that's
@@ -164,18 +164,14 @@ public final class SurvivorGameTest
     public static void realPairAtTheHub(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
-        SurvivorSpawnData data = SurvivorSpawnData.get(server.overworld());
-        UUID mentorId = data.getMentorId();
-        UUID studentId = data.getStudentId();
-        if (!data.hasSpawned() || mentorId == null || studentId == null)
-        {
-            throw new GameTestAssertException("the hub's survivors were never spawned (see the log: did the hub have a layout?)");
-        }
         ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
         if (dross == null)
         {
             throw new GameTestAssertException("the Dross dimension isn't loaded");
         }
+        // They come with the hub's land (its structure, when its camp's chunk is generated), their UUIDs from the seed.
+        UUID mentorId = SurvivorSpawner.mentorId(dross.getSeed());
+        UUID studentId = SurvivorSpawner.studentId(dross.getSeed());
         DrossHub.Layout layout = DrossHub.layout(server).orElseThrow(() -> new GameTestAssertException("the hub has no layout"));
         BoundingBox area = SurvivorGrounds.areaFor(layout);
         // From here on the ticket keeps the hub's chunks loaded; the step after the wait always removes it.
@@ -240,7 +236,7 @@ public final class SurvivorGameTest
         fail(problems);
         LOGGER.info("[survivor test] At the hub ({}): the Blind Oracle at {} (rest spot {}) and the Ragged Seeker at {} (rest spot {}), "
                         + "{} blocks apart; area {}; {} places to walk to",
-                layout.kind(), mentor.blockPosition().toShortString(), mentor.getRestSpot().toShortString(),
+                "the Shattered Spire's camp", mentor.blockPosition().toShortString(), mentor.getRestSpot().toShortString(),
                 student.blockPosition().toShortString(), student.getRestSpot().toShortString(), String.format("%.1f", apart), area,
                 mentor.getWaypoints().size());
     }

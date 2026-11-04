@@ -1356,6 +1356,17 @@ def rock_faces():
 # dimension/worldgen/NotNearHubFilter). Its footprint, the 16-block ring it levels round itself and the ground the hub
 # checks reach about 88 blocks from its centre, and a pond spreads up to 16 blocks from where it starts.
 NOT_NEAR_HUB_RADIUS = 112
+# The hub is made with the land (since November 4, 2026: portal/DrossHubPiece, the "surface structures" step), so what
+# comes after it in world generation keeps off it (dross:not_on_hub, dimension/worldgen/NotOnHubFilter; a box round its
+# footprint, X -25..49, Z -34..38): the trees, giant mushrooms and ice spikes HUB_TREE_MARGIN blocks past it (its 16-block
+# staircase ring and 8 more, so the forest comes right up to the ring and no crown reaches the spire), the plant patches
+# HUB_PLANT_MARGIN (their spread and a block: none on the spire or its camp, plants on the ring are fine), and the ores
+# HUB_ORE_MARGIN, but only from HUB_ORE_DEPTH blocks under its ground up (none in the spire's blackstone walls; the
+# ground under it keeps its ores).
+HUB_TREE_MARGIN = 24
+HUB_PLANT_MARGIN = 8
+HUB_ORE_MARGIN = 8
+HUB_ORE_DEPTH = 8
 
 # --- Silverwood Forest: dense and dark ---------------------------------------------------------------------------------
 # Three layers of trees (TREES section for their shapes): great silverwoods (2x2 trunks, 20-28 tall, a wide flat canopy)
@@ -1505,6 +1516,15 @@ def not_near_hub():
     return {"type": "dross:not_near_hub", "radius": NOT_NEAR_HUB_RADIUS}
 
 
+def not_on_hub(margin, depth=None):
+    """Keeps a feature that comes after the hub off it (dross:not_on_hub): `margin` blocks past its footprint, and with
+    `depth` only from that many blocks under its ground up."""
+    js = {"type": "dross:not_on_hub", "margin": int(margin)}
+    if depth is not None:
+        js["depth"] = int(depth)
+    return js
+
+
 def not_near_sewer_entrance():
     """Keeps a Blightwood feature off the sewers' entrances and the Rat King's poisoned ground (dross:not_near_sewer_entrance;
     the distances are SewerTuning.PIPE_CLEARANCE and GRAND_CLEARANCE: the entrances come from the boss-site planner)."""
@@ -1626,6 +1646,24 @@ def height_range(spread):
 SAPLING = block_state("dross:silverwood_sapling", stage=0)
 
 
+# The plant patches (and Storm Lichen) that keep HUB_PLANT_MARGIN off the hub; every other feature after the hub keeps
+# HUB_TREE_MARGIN off it (the trees, giant mushrooms, ice spikes), the ores HUB_ORE_MARGIN from HUB_ORE_DEPTH under its
+# ground up.
+HUB_PLANT_FEATURES = {"glimmer_ferns", "wispblooms", "emberweed", "ash_layers", "gloomcaps", "sporepods", "frostblooms",
+                      "snow_drifts", "crag_thistles", "storm_lichen"}
+
+
+def hub_filter(step, name):
+    """The dross:not_on_hub filter a feature in `step` gets: none before or with the hub (those keep NOT_NEAR_HUB_RADIUS
+    away where it matters) and none in the last step (the tidy-up leaves the hub alone itself; snow and herds never come
+    near it)."""
+    if STEPS.index(step) <= STEPS.index("surface_structures") or step == "top_layer_modification":
+        return []
+    if step == "underground_ores":
+        return [not_on_hub(HUB_ORE_MARGIN, HUB_ORE_DEPTH)]
+    return [not_on_hub(HUB_PLANT_MARGIN if name in HUB_PLANT_FEATURES else HUB_TREE_MARGIN)]
+
+
 def add_feature(step, name, biomes, configured, placement):
     """Adds the placed feature dross:<name> to `step` of each biome in `biomes`, after every feature added before it
     (one global order, so no feature order cycle). `configured` is the configured feature's JSON (written as
@@ -1642,7 +1680,7 @@ def add_feature(step, name, biomes, configured, placement):
     else:
         CONFIGURED[name] = configured
         feature_id = "dross:" + name
-    PLACED[name] = {"feature": feature_id, "placement": list(placement) + [BIOME]}
+    PLACED[name] = {"feature": feature_id, "placement": list(placement) + hub_filter(step, name) + [BIOME]}
     for b in biomes:
         BIOME_FEATURES[b][step].append("dross:" + name)
 
@@ -2058,6 +2096,21 @@ def hermit_cave_structures():
                      "placement": {"type": "dross:hermit_cave", "salt": HERMIT_CAVE_SALT}}
     return structure, structure_set, {"replace": False, "values": ["dross:cinder_wastes"]}
 
+# The hub at Dross 0,0 (the portal area's portal/DrossHub*; the user's decision of November 2, 2026): the Shattered Spire
+# with the survivors' camp and its lit exit portal, made with the land in the "surface structures" step, after the ponds,
+# boulders and fallen logs (which keep NOT_NEAR_HUB_RADIUS away) and before the trees, plants and ores (which keep off it:
+# dross:not_on_hub). Its own placement (dross:dross_hub) starts it only in the chunk holding the spire's middle; any of
+# the surface biomes may hold it (it's always the Silverwood Forest round the hub).
+HUB_SALT = 1104202601                   # (under 2^31: Minecraft reads a salt as an int)
+
+
+def hub_structures():
+    structure = {"type": "dross:dross_hub", "biomes": "#dross:has_structure/dross_hub", "spawn_overrides": {},
+                 "step": "surface_structures", "terrain_adaptation": "none"}
+    structure_set = {"structures": [{"structure": "dross:dross_hub", "weight": 1}],
+                     "placement": {"type": "dross:dross_hub", "salt": HUB_SALT}}
+    return structure, structure_set, {"replace": False, "values": ["dross:" + b for b in BIOMES]}
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2225,6 +2278,10 @@ def main():
     write_json("structure", "hermit_cave", cave)
     write_json("structure_set", "hermit_cave", cave_set)
     write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "hermit_cave.json"), cave_biomes)
+    hub, hub_set, hub_biomes = hub_structures()
+    write_json("structure", "dross_hub", hub)
+    write_json("structure_set", "dross_hub", hub_set)
+    write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "dross_hub.json"), hub_biomes)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())

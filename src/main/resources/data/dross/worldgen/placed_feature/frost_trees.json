@@ -47,6 +47,10 @@
       "type": "dross:not_on_rimefall_lake"
     },
     {
+      "type": "dross:not_on_hub",
+      "margin": 24
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

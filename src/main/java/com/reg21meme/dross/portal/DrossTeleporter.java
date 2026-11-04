@@ -43,7 +43,8 @@ import org.slf4j.Logger;
  * Decides where an entity lands when it goes through a Dross portal.
  * <ul>
  *   <li><b>Into the Dross</b> (any Dross portal outside the Dross): always the <b>hub</b> at Dross 0,0, standing
- *       in front of its exit portal (see {@link DrossHub}). The hub is built the first time it's needed.</li>
+ *       in front of its exit portal (see {@link DrossHub}). The hub is made with the land: its chunks are
+ *       loaded (the first time, generated) as the entity arrives, like a nether portal trip's.</li>
  *   <li><b>Out of the Dross</b> (the hub's exit portal): always the <b>castle portal</b> in the Overworld
  *       ({@link PortalSite}), wherever the entity came in. Lit or not, it lands in front of that frame.
  *       Nothing is ever built in the Overworld. If the castle frame can't be found, the entity lands safely
@@ -171,16 +172,6 @@ public class DrossTeleporter implements ITeleporter
     }
 
     /**
-     * Where a standing player arriving through this opening lands (the hub's arrival spot), worked out the same way as
-     * {@link #arrivalAt(ServerLevel, Entity, PortalOpening)}: in front of the opening if there's room, facing away from it.
-     */
-    static PortalInfo arrivalSpot(ServerLevel level, PortalOpening opening)
-    {
-        return spotBeside(level, null, PLAYER_SIZE, opening, false)
-                .orElseGet(() -> spotInside(opening, frontYaw(opening), 0.0F));
-    }
-
-    /**
      * Like {@link #arrivalAt(ServerLevel, Entity, PortalOpening)}, but for an opening whose frame may be broken (so
      * the opening itself can't be trusted either): the spot inside the opening is only used if it's safe too, and if
      * no spot is safe the result is empty.
@@ -247,12 +238,6 @@ public class DrossTeleporter implements ITeleporter
         return new PortalInfo(inside, Vec3.ZERO, yaw, pitch);
     }
 
-    /** The yaw that faces out of the front (+Z / +X side) of the opening. */
-    private static float frontYaw(PortalOpening opening)
-    {
-        return opening.axis() == Direction.Axis.X ? 0.0F : -90.0F;
-    }
-
     /**
      * Lands on safe ground near X/Z ({@link #findSafeSpot}, up to {@link #LANDING_SEARCH_RADIUS} blocks away), or on
      * open water right there. If there's neither: in the Dross, on the hub's arrival spot (never anywhere near the
@@ -287,21 +272,11 @@ public class DrossTeleporter implements ITeleporter
         return new PortalInfo(spawnSpot != null ? spawnSpot : Vec3.atBottomCenterOf(spawn), Vec3.ZERO, entity.getYRot(), entity.getXRot());
     }
 
-    /**
-     * The last resort in the Dross: the hub's remembered arrival spot (saved with its exit portal); if the hub has no exit
-     * portal at all, the ground at X/Z, whatever it is.
-     */
+    /** The last resort in the Dross: the hub's arrival spot (its layout, from the world's seed). */
     private static PortalInfo hubFallback(ServerLevel dross, Entity entity, int x, int z)
     {
-        DrossHubData data = DrossHubData.get(dross.getServer());
-        Vec3 arrival = data.getArrival();
-        if (arrival != null)
-        {
-            return new PortalInfo(arrival, Vec3.ZERO, data.getArrivalYaw(), 0.0F);
-        }
-        Vec3 surface = surfaceSpot(dross, x, z);
-        return new PortalInfo(surface != null ? surface : new Vec3(x + 0.5D, dross.getSeaLevel(), z + 0.5D), Vec3.ZERO,
-                entity.getYRot(), entity.getXRot());
+        DrossHub.Layout layout = DrossHub.layoutAt(DrossHub.groundY(dross));
+        return new PortalInfo(layout.arrival(), Vec3.ZERO, layout.arrivalYaw(), 0.0F);
     }
 
     // ------------------------------------------------------------------ finding safe ground
@@ -432,12 +407,6 @@ public class DrossTeleporter implements ITeleporter
     private static EntityDimensions sizeOf(@Nullable Entity entity)
     {
         return entity == null ? PLAYER_SIZE : entity.getDimensions(Pose.STANDING);
-    }
-
-    /** True if something {@code size} big can stand at {@code pos} safely (see {@link #isSafe(ServerLevel, Entity, EntityDimensions, Vec3)}). */
-    static boolean isStandable(ServerLevel level, EntityDimensions size, Vec3 pos)
-    {
-        return isSafe(level, null, size, pos);
     }
 
     /** True if this entity can land at {@code pos} safely (standing up). */

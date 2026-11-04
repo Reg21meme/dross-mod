@@ -17,6 +17,9 @@ import com.reg21meme.dross.dimension.sewer.SewerPipePiece;
 import com.reg21meme.dross.dimension.sewer.SewerStructure;
 import com.reg21meme.dross.dimension.sewer.SewerTunnelPiece;
 import com.reg21meme.dross.dimension.sites.BossSitePlacement;
+import com.reg21meme.dross.portal.DrossHubPiece;
+import com.reg21meme.dross.portal.DrossHubPlacement;
+import com.reg21meme.dross.portal.DrossHubStructure;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
@@ -88,6 +91,16 @@ public final class ModStructures
             () -> (StructurePieceType.StructureTemplateType) HermitCavePiece::new);
     public static final RegistryObject<StructurePlacementType<HermitCavePlacement>> HERMIT_CAVE_PLACEMENT = STRUCTURE_PLACEMENTS.register("hermit_cave",
             () -> () -> HermitCavePlacement.CODEC);
+
+    // Portal area: dross:dross_hub, the hub at Dross 0,0 (the Shattered Spire with the survivors' camp and its lit exit
+    // portal; portal/DrossHub*), made with the land: the structure, its one piece, and its placement (only in the chunk
+    // holding the spire's middle)
+    public static final RegistryObject<StructureType<DrossHubStructure>> DROSS_HUB = STRUCTURE_TYPES.register("dross_hub",
+            () -> () -> DrossHubStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> DROSS_HUB_PIECE = STRUCTURE_PIECES.register("dross_hub",
+            () -> (StructurePieceType.ContextlessType) DrossHubPiece::new);
+    public static final RegistryObject<StructurePlacementType<DrossHubPlacement>> DROSS_HUB_PLACEMENT = STRUCTURE_PLACEMENTS.register("dross_hub",
+            () -> () -> DrossHubPlacement.CODEC);
 
     private ModStructures() {}
 }

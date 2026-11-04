@@ -24,6 +24,10 @@
       }
     },
     {
+      "type": "dross:not_on_hub",
+      "margin": 8
+    },
+    {
       "type": "minecraft:biome"
     }
   ]

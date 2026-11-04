@@ -1,122 +1,82 @@
 package com.reg21meme.dross.villager;
 
 import com.mojang.logging.LogUtils;
-import com.reg21meme.dross.Dross;
-import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.portal.DrossHub;
-import com.reg21meme.dross.registry.ModEntities;
-import java.util.Optional;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import net.minecraft.core.BlockPos;
-import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.event.server.ServerStartedEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import org.slf4j.Logger;
 
 /**
- * Spawns the hub's two survivors ({@link Survivor}), the Blind Oracle and the Ragged Seeker, <b>once per world</b>, on
- * their rest spots at the hub, when the world starts:
- * <ul>
- *   <li>At {@link EventPriority#LOW low} priority, after the portal area has built the hub; {@link DrossHub#layout} builds
- *       it first anyway if it isn't built yet, so the order doesn't really matter.</li>
- *   <li>If the hub has no layout (no Dross, or no exit portal), a warning is logged and it tries again the next time the
- *       world starts. Once they've spawned ({@link SurvivorSpawnData}), they're never spawned again, like the trader.</li>
- * </ul>
+ * The hub's two survivors ({@link Survivor}), the Blind Oracle and the Ragged Seeker, come <b>with the land</b>: the hub's
+ * structure (portal area, {@code portal.DrossHubPiece}) puts each one on his rest spot in the camp when it builds the
+ * chunk that holds that spot ({@link #spawnWithLand}), the way a village's villagers come with it. So they're made
+ * exactly once per world (a chunk is only generated once), and only when someone first goes to the Dross.
+ * <p>
+ * Their UUIDs come from the world's seed ({@link #mentorId}, {@link #studentId}), so each knows his partner even when
+ * the two rest spots are in different chunks, made at different times.
  */
-@Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class SurvivorSpawner
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     private SurvivorSpawner() {}
 
-    @SubscribeEvent(priority = EventPriority.LOW)
-    public static void onServerStarted(ServerStartedEvent event)
+    /** The Blind Oracle's UUID in the world with this seed. */
+    public static UUID mentorId(long seed)
     {
-        MinecraftServer server = event.getServer();
-        SurvivorSpawnData data = SurvivorSpawnData.get(server.overworld());
-        if (data.hasSpawned())
-        {
-            return;
-        }
-        // The hub is built in the background after a new world starts: wait for it instead of forcing it now.
-        DrossHub.whenBuilt(server, built ->
-        {
-            if (data.hasSpawned())
-            {
-                return;
-            }
-            try
-            {
-                spawn(server, data);
-            }
-            catch (RuntimeException e)
-            {
-                LOGGER.error("[Dross] Survivors: spawning them at the hub failed; trying again the next time the world starts.", e);
-            }
-        });
+        return idFor(seed, SurvivorRole.MENTOR);
     }
 
-    private static void spawn(MinecraftServer server, SurvivorSpawnData data)
+    /** The Ragged Seeker's UUID in the world with this seed. */
+    public static UUID studentId(long seed)
     {
-        ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
-        if (dross == null)
-        {
-            LOGGER.warn("[Dross] Survivors: the Dross isn't loaded, so they weren't spawned; trying again the next time the world starts.");
-            return;
-        }
-        Optional<DrossHub.Layout> layout = DrossHub.layout(server);
-        if (layout.isEmpty())
-        {
-            LOGGER.warn("[Dross] Survivors: the hub has no layout (no exit portal?), so they weren't spawned; trying again the next time "
-                    + "the world starts.");
-            return;
-        }
-        SurvivorGrounds grounds = SurvivorGrounds.fromLayout(dross, layout.get(), ModEntities.SURVIVOR.get().getDimensions());
+        return idFor(seed, SurvivorRole.STUDENT);
+    }
+
+    private static UUID idFor(long seed, SurvivorRole role)
+    {
+        return UUID.nameUUIDFromBytes(("dross:survivor/" + role.id() + "/" + seed).getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
+     * Puts the survivors whose rest spots are in {@code chunk} (the chunk being made: only X and Z count) there, with their
+     * home in the hub's camp ({@link SurvivorGrounds#fromCamp}) and each other as partners. World generation only.
+     */
+    public static void spawnWithLand(WorldGenLevel level, DrossHub.Layout layout, BoundingBox chunk)
+    {
+        SurvivorGrounds grounds = SurvivorGrounds.fromCamp(layout);
         if (grounds == null)
         {
-            LOGGER.warn("[Dross] Survivors: the hub has no two free spots side by side for them, so they weren't spawned; trying again the "
-                    + "next time the world starts.");
+            LOGGER.error("[Dross] Survivors: the hub's camp says nothing of where they live, so they weren't spawned.");
             return;
         }
-
-        Survivor mentor = Survivor.create(dross, SurvivorRole.MENTOR);
-        Survivor student = Survivor.create(dross, SurvivorRole.STUDENT);
-        if (mentor == null || student == null)
+        long seed = level.getSeed();
+        SurvivorRole[] roles = {SurvivorRole.MENTOR, SurvivorRole.STUDENT};
+        for (int i = 0; i < roles.length; i++)
         {
-            LOGGER.warn("[Dross] Survivors: couldn't create them; trying again the next time the world starts.");
-            return;
+            BlockPos rest = grounds.restSpot(i);
+            if (rest.getX() < chunk.minX() || rest.getX() > chunk.maxX() || rest.getZ() < chunk.minZ() || rest.getZ() > chunk.maxZ())
+            {
+                continue;
+            }
+            Survivor survivor = Survivor.create(level.getLevel(), roles[i]);
+            if (survivor == null)
+            {
+                LOGGER.error("[Dross] Survivors: couldn't create the {}.", roles[i].id());
+                continue;
+            }
+            survivor.setUUID(idFor(seed, roles[i]));
+            survivor.setHome(grounds, i);
+            survivor.setPartner(idFor(seed, roles[1 - i]));
+            survivor.placeAtRestSpot();
+            level.addFreshEntity(survivor);
+            LOGGER.info("[Dross] Survivors: the {} came with the hub's land, at {}; he lives within X {}..{}, Z {}..{} (his camp and {} "
+                            + "blocks round it), {} places to walk to", roles[i] == SurvivorRole.MENTOR ? "Blind Oracle" : "Ragged Seeker",
+                    rest.toShortString(), grounds.area().minX(), grounds.area().maxX(), grounds.area().minZ(), grounds.area().maxZ(),
+                    SurvivorGrounds.CAMP_AREA_MARGIN, grounds.waypoints().size());
         }
-        mentor.setHome(grounds, 0);
-        student.setHome(grounds, 1);
-        mentor.setPartner(student.getUUID());
-        student.setPartner(mentor.getUUID());
-        mentor.placeAtRestSpot();
-        student.placeAtRestSpot();
-        if (!dross.addFreshEntity(mentor))
-        {
-            LOGGER.warn("[Dross] Survivors: the Blind Oracle couldn't be added to the Dross; trying again the next time the world starts.");
-            return;
-        }
-        if (!dross.addFreshEntity(student))
-        {
-            mentor.discard();
-            LOGGER.warn("[Dross] Survivors: the Ragged Seeker couldn't be added to the Dross; trying again the next time the world starts.");
-            return;
-        }
-        data.markSpawned(mentor.getUUID(), student.getUUID());
-
-        BlockPos a = grounds.restSpot(0);
-        BlockPos b = grounds.restSpot(1);
-        LOGGER.info("[Dross] Survivors: the Blind Oracle at {}, {}, {} and the Ragged Seeker at {}, {}, {}",
-                a.getX(), a.getY(), a.getZ(), b.getX(), b.getY(), b.getZ());
-        boolean camp = layout.get().camp() != null;
-        LOGGER.info("[Dross] Survivors: they live within X {}..{}, Z {}..{} ({} and {} blocks round it, {} hub); {} places to walk to: {}",
-                grounds.area().minX(), grounds.area().maxX(), grounds.area().minZ(), grounds.area().maxZ(),
-                camp ? "their camp at the spire's steps" : "the hub's footprint",
-                camp ? SurvivorGrounds.CAMP_AREA_MARGIN : SurvivorGrounds.AREA_MARGIN, layout.get().kind(), grounds.waypoints().size(),
-                grounds.waypoints().stream().map(w -> w.pos().toShortString()).toList());
     }
 }

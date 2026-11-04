@@ -4,6 +4,7 @@ import com.reg21meme.dross.dimension.sites.BossSites;
 import com.reg21meme.dross.dimension.rimefall.RimefallVillages;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.DrossBiomes;
+import com.reg21meme.dross.portal.DrossHub;
 import com.mojang.serialization.Codec;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -50,7 +51,8 @@ import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConf
  * </ul>
  * Nothing else is changed: logs, ground, water and lava are never touched, and nor are the fittings only structures
  * put down (ladders, banners, candles: {@link #isBuiltFitting}), since a structure built across a chunk border isn't
- * finished until its next chunk is.
+ * finished until its next chunk is. The hunter villages and the hub's footprint ({@link DrossHub#isOnHub}) are left
+ * alone altogether, for the same reason.
  */
 public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
 {
@@ -133,6 +135,9 @@ public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
         // a hunter village is left as it's built (its wall skulls, lanterns and crops stand on blocks that may be in a
         // neighbouring chunk not built yet): October 23, 2026
         List<RimefallVillages.VillagePlan> villages = villagesNear(level, centre);
+        // and so is the hub (its lanterns and fittings may hang from blocks in a neighbouring chunk not built yet: it's made
+        // with the land since November 4, 2026)
+        boolean dross = level.getLevel().dimension().equals(ModDimensions.DROSS_LEVEL);
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         for (int cx = centre.x - REACH_CHUNKS; cx <= centre.x + REACH_CHUNKS; cx++)
         {
@@ -156,7 +161,7 @@ public class TidyUpFeature extends Feature<NoneFeatureConfiguration>
                 {
                     for (int z = z0; z < z0 + 16; z++)
                     {
-                        if (inVillage(villages, x, z))
+                        if (inVillage(villages, x, z) || (dross && DrossHub.isOnHub(x, z, 0)))
                         {
                             continue;
                         }

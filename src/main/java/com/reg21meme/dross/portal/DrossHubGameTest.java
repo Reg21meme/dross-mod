@@ -6,84 +6,133 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.portal.camp.HubCamp;
 import com.reg21meme.dross.registry.ModBlocks;
-import com.reg21meme.dross.world.PortalSiteGameTest;
+import com.reg21meme.dross.villager.Survivor;
+import com.reg21meme.dross.villager.SurvivorGrounds;
+import com.reg21meme.dross.villager.SurvivorRole;
+import com.reg21meme.dross.villager.SurvivorSpawner;
 import com.reg21meme.dross.world.shrine.GroundFit;
-import com.reg21meme.dross.world.shrine.ShrineDesign;
 import io.netty.channel.embedded.EmbeddedChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
+import net.minecraft.Util;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.gametest.framework.GameTest;
 import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.IntTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ArmorStand;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.LeavesBlock;
+import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
-import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
+import net.minecraft.world.level.storage.LevelResource;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.gametest.ForgeGameTestHooks;
 import net.minecraftforge.gametest.GameTestHolder;
 import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.slf4j.Logger;
 
 /**
- * Headless tests (GameTests) for the hub at Dross 0,0 and for finding safe ground. Run them with
- * {@code .\gradlew.bat runGameTestServer --console=plain}. They only exist in the development environment.
+ * Headless tests (GameTests) for the hub at Dross 0,0, made with the land ({@link DrossHubStructure}), and for finding
+ * safe ground. Run them with {@code .\gradlew.bat runGameTestServer --console=plain}; only these, in a brand-new world:
+ * set {@link #NAMESPACE} to {@code "dross_hub"} and add {@code -PgameTestNamespaces=dross_hub -PgameTestWorld=<a new
+ * folder>}. They only exist in the development environment.
  * <ul>
- *   <li>{@link #hubLayout}: the hub has a layout; its kind matches its exit portal (a 3x5 exit on the centre is the
- *       Shattered Spire, which a hub built in this run must be, on fitted ground; a 2x3 exit is the placeholder); its
- *       footprint is what the exit implies (the spire's: X -25..49, Z -34..38); the spire's arrival spot is on the step
- *       in front of the frame, facing the gate; the two rest spots are side by side, free to stand in, off the walkway out of the portal and
- *       not by the arrival spot (the spire's: (3, ground+8, 1) and (3, ground+8, 2)).</li>
+ *   <li>{@link #nothingHappensAtWorldStart}: when the server had started, no chunk of the Dross was loaded and no part of
+ *       the hub built, and working out its layout loaded nothing (and took well under a second).</li>
+ *   <li>{@link #hubIsMadeWithTheLand}: once the hub's chunks are made (a ticket loads them; waited for by the clock), its
+ *       structure start is there; the layout is the spire's (footprint X -25..49, Z -34..38, exit 3x5 along X on the
+ *       centre, 9 over the ground, the arrival on the step in front of it facing south, the camp's rest spots) and the
+ *       same as when the server started; at least 99% of the spire's and the camp's template blocks are in place; the
+ *       exit is lit; no log or leaves of a tree in the footprint; every column of the staircase ring has its ground where
+ *       {@link DrossHubGround#target} says (from the generator's own heights), and no step between two is steeper than
+ *       the land's own or a block; the arrival spot is free to stand on; exactly one Blind Oracle and one Ragged Seeker,
+ *       each other's partners, their homes the camp's. In a world whose hub was made before it came with the land (its
+ *       region file already there when the server started, and no structure start), it's skipped with a log line.</li>
+ *   <li>{@link #survivorsComeOnlyOnce}: the hub's chunks loaded, unloaded and loaded again: still exactly the same two
+ *       survivors.</li>
  *   <li>{@link #arrivalThroughPortal}: an armor stand sent from the Overworld through {@link DrossTeleporter} lands on the
- *       layout's arrival spot (the spire's: the exit's corner + (1.5, 0, 1.5)), facing its way (south), standing on the
- *       step.</li>
- *   <li>{@link #gotoHubLandsOnTheStep}: {@code /dross goto hub}'s teleport puts a player on that same spot, facing the
- *       same way.</li>
- *   <li>{@link #groundAroundTheHub}: if the hub's ground was fitted, the ground round it is surveyed again: every dry
- *       column d blocks outside the footprint (d up to 15) is within d blocks of the hub's ground level, no two
- *       neighbouring dry columns within 16 blocks differ by 3 or more, and none within 4 by 2 or more. Trivial while the
- *       Dross is flat; the real check once it has terrain. A placeholder built next to something else (not fitted) is
- *       skipped, with a log line.</li>
- *   <li>{@link #whenBuiltOnceTheHubIs}: once the hub is built, {@link DrossHub#isBuilt} says so and
- *       {@link DrossHub#whenBuilt} runs straight away with the same layout (the hub's survivors spawn through it).</li>
+ *       layout's arrival spot facing south, standing on the step.</li>
+ *   <li>{@link #gotoHubLandsOnTheStep}: {@code /dross goto hub}'s teleport puts a player on that same spot.</li>
+ *   <li>{@link #exitIsRelit}: with its portal blocks gone (the frame whole), {@code /dross goto hub} lights the exit again.</li>
  *   <li>{@link #safeLandingOnRoughGround}: on a platform built high in the Dross's sky far from the hub, with a tree, a
  *       block floating 20 blocks up, a column of lava and a giant blightcap, {@link DrossTeleporter#findSafeSpot} lands
  *       under the floating block on the platform, never in the trunk's, the lava's or the stem's column, never on leaves,
  *       logs, a mushroom cap or lava.</li>
  * </ul>
- * They use world-builder's empty template ({@link PortalSiteGameTest#EMPTY}) and their own batch.
+ * A wait never fails by itself (Minecraft retries it until the test's tick limit): a wait that gives up keeps its failure
+ * and a watchdog sequence fails the test with it ({@link Run#watch}).
  */
-@GameTestHolder(Dross.MODID)
+@GameTestHolder(DrossHubGameTest.NAMESPACE)
 @PrefixGameTestTemplate(false)
+@Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class DrossHubGameTest
 {
+    /** The tests' GameTest namespace: the mod's ({@code "dross_hub"} to run only these). */
+    static final String NAMESPACE = Dross.MODID;
     private static final Logger LOGGER = LogUtils.getLogger();
+    /** The tests' own empty template (a block of air), made when the test server starts. */
+    private static final String EMPTY = "hub_test_empty";
+    private static final ResourceLocation EMPTY_ID = new ResourceLocation(NAMESPACE, EMPTY);
     private static final String BATCH = "dross_hub";
+    private static final String RELOAD_BATCH = "dross_hub_reload";
+    private static final String RELIGHT_BATCH = "dross_hub_relight";
+    /** Holds the hub's chunks loaded while a test looks (no time limit; always removed at the end). */
+    private static final TicketType<ChunkPos> TICKET = TicketType.create("dross_hub_test", Comparator.comparingLong(ChunkPos::toLong));
+    /** The ticket's radius round the hub's middle chunk: every chunk the hub's piece touches is loaded with its entities. */
+    private static final int HOLD_RADIUS = 6;
+    /** A wait gives up after this long (real time: the test server runs ticks far faster than the game). */
+    private static final long WAIT_MILLIS = 240_000L;
+    /** The tests' tick limit, far past any wait (each wait ends by the clock first). */
+    private static final int TIMEOUT_TICKS = 2_000_000;
+    /** Working out the layout from the seed must take less than this (ms). */
+    private static final long LAYOUT_MAX_MILLIS = 1_000L;
 
     // The Shattered Spire, as built at the hub (read from its template, shattered_spire.nbt)
     /** The spire's frame opening is this many blocks above its ground level. */
@@ -93,24 +142,15 @@ public final class DrossHubGameTest
     private static final int SPIRE_MAX_X = 49;
     private static final int SPIRE_MIN_Z = -34;
     private static final int SPIRE_MAX_Z = 38;
+    /** It reaches this far under its ground level, and this far over it. */
+    private static final int SPIRE_BELOW = 2;
+    private static final int SPIRE_ABOVE = 61;
     /** The arrival spot is the exit's lowest corner plus this: on the step in front of the frame. */
     private static final Vec3 SPIRE_ARRIVAL_OFFSET = new Vec3(1.5D, 0.0D, 1.5D);
-    /** A spire without its camp: the rest spots on the dais east of the step, (3, ground+8, 1) and (3, ground+8, 2). */
-    private static final BlockPos[] SPIRE_REST_SPOTS = {new BlockPos(3, 8, 1), new BlockPos(3, 8, 2)};
-    /** At least this share of the camp's template blocks must be at the hub (blocks, air included). */
-    private static final double CAMP_MIN_MATCH = 0.99D;
-
-    // The ground around the hub
-    /** The ground is surveyed this far round the footprint. */
-    private static final int GROUND_SURVEY_MARGIN = 18;
-    /** Every dry column up to this far out is within as many blocks of the hub's ground level as it is far out. */
-    private static final int STAIRCASE_REACH = DrossHub.HUB_BLEND_MARGIN - 1;
-    /** No step of 3 or more between neighbouring dry columns up to this far out... */
-    private static final int NO_CLIFF_REACH = DrossHub.HUB_BLEND_MARGIN;
-    private static final int CLIFF_STEP = 3;
-    /** ...and no step of 2 or more up to this far out. */
-    private static final int GENTLE_REACH = 4;
-    private static final int GENTLE_STEP = 2;
+    /** At least this share of the spire's and of the camp's template blocks must be at the hub. */
+    private static final double TEMPLATE_MIN_MATCH = 0.99D;
+    /** The staircase ring checked: every column up to this far outside the footprint (the ring and the row past it). */
+    private static final int RING_CHECKED = DrossHub.HUB_BLEND_MARGIN + 1;
 
     // The rough ground for findSafeSpot: a platform high in the sky, far from the hub
     /** Where the platform's middle goes (X, Z in the Dross); then spares, in case the land is too high. */
@@ -136,202 +176,529 @@ public final class DrossHubGameTest
     /** findSafeSpot looks this far round the tree's and the lava's columns (all of it on the platform). */
     private static final int LANDING_RADIUS = 2;
 
+
+    /** What was true when the server had started (before any test ran). */
+    private static final class AtStart
+    {
+        /** -1: the Dross wasn't loaded (or the snapshot wasn't taken). */
+        static int drossChunks = -1;
+        static long hubChunksBuilt = -1L;
+        static int chunksAfterLayout = -1;
+        static double layoutMillis = -1.0D;
+        @Nullable
+        static DrossHub.Layout layout;
+        /** The region file holding the hub's middle chunk was already there: its land was made before this run. */
+        static boolean hubRegionExisted;
+    }
+
     private DrossHubGameTest() {}
 
-    // ---------------------------------------------------------------------------------------------
-    // The layout
-    // ---------------------------------------------------------------------------------------------
-
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH)
-    public static void hubLayout(GameTestHelper helper)
+    /** The tests' empty template, and what's true when the server has started (after every other mod's handlers). */
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void onServerStarted(ServerStartedEvent event)
     {
-        MinecraftServer server = helper.getLevel().getServer();
-        ServerLevel dross = drossOf(server);
-        DrossHub.Layout layout = layoutOf(server);
-        DrossHubData data = DrossHubData.get(server);
-        PortalOpening exit = layout.exit();
-        BoundingBox footprint = layout.footprint();
-        boolean template = dross.getStructureManager().get(DrossHub.TEMPLATE).isPresent();
+        if (!ForgeGameTestHooks.isGametestEnabled())
+        {
+            return;
+        }
+        MinecraftServer server = event.getServer();
+        registerEmpty(server);
+        ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
+        if (dross == null)
+        {
+            return;
+        }
+        ChunkPos middle = new ChunkPos(DrossHub.spireCenter(0));
+        Path region = DimensionType.getStorageFolder(dross.dimension(), server.getWorldPath(LevelResource.ROOT))
+                .resolve("region").resolve("r." + middle.getRegionX() + "." + middle.getRegionZ() + ".mca");
+        AtStart.hubRegionExisted = Files.exists(region);
+        AtStart.drossChunks = dross.getChunkSource().getLoadedChunksCount();
+        AtStart.hubChunksBuilt = DrossHubPiece.timing()[0];
+        long start = System.nanoTime();
+        AtStart.layout = DrossHub.layout(server).orElse(null);
+        AtStart.layoutMillis = (System.nanoTime() - start) / 1.0E6D;
+        AtStart.chunksAfterLayout = dross.getChunkSource().getLoadedChunksCount();
+        LOGGER.info("[hub test] When the server had started: {} Dross chunks loaded, {} of the hub's chunks built; the layout took {} ms "
+                        + "and left {} Dross chunks loaded; the hub's region file {}", AtStart.drossChunks, AtStart.hubChunksBuilt,
+                String.format(Locale.ROOT, "%.1f", AtStart.layoutMillis), AtStart.chunksAfterLayout,
+                AtStart.hubRegionExisted ? "was already there (its land was made before this run)" : "wasn't there yet");
+        if ("1".equals(System.getenv(ARRIVAL_PROBE)))
+        {
+            // A probe, not a check: the first arrival in a new world, as a player's first trip makes it (its chunks made then).
+            ArmorStand stand = EntityType.ARMOR_STAND.create(server.overworld());
+            long arriving = System.nanoTime();
+            net.minecraft.world.level.portal.PortalInfo info = DrossHub.arrival(dross, stand);
+            LOGGER.info("[hub test] probe: the first arrival in this world took {} ms (the hub's chunks made then and there), landing at {}; "
+                            + "{} of the hub's chunks built", (System.nanoTime() - arriving) / 1_000_000L, info.pos, DrossHubPiece.timing()[0]);
+        }
+    }
+
+    /** With this environment variable set to 1, the test server times the first arrival in its world when it starts. */
+    private static final String ARRIVAL_PROBE = "DROSS_HUB_ARRIVAL_PROBE";
+
+    // ---------------------------------------------------------------------------------------------
+    // Nothing at world start
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = EMPTY, batch = BATCH)
+    public static void nothingHappensAtWorldStart(GameTestHelper helper)
+    {
         List<String> problems = new ArrayList<>();
-
-        // 1. The kind matches the exit portal.
-        boolean spireExit = isSpireExit(exit);
-        boolean placeholderExit = exit.width() == 2 && exit.height() == 3;
-        if (template)
-        {
-            expect(problems, layout.kind() == DrossHub.Kind.TEMPLATE || layout.kind() == DrossHub.Kind.PLACEHOLDER,
-                    "the user's hub template exists, but the hub is " + layout.kind());
-        }
-        else
-        {
-            DrossHub.Kind expected = spireExit ? DrossHub.Kind.SPIRE : placeholderExit ? DrossHub.Kind.PLACEHOLDER : null;
-            if (expected == null)
-            {
-                problems.add("the exit portal (" + describe(exit) + ") is neither the spire's nor the placeholder's");
-            }
-            expect(problems, layout.kind() == expected, "the exit portal (" + describe(exit) + ") makes it " + expected + ", but its layout says "
-                    + layout.kind());
-            if (data.wasBuiltThisSession())
-            {
-                expect(problems, layout.kind() == DrossHub.Kind.SPIRE && layout.fitted(),
-                        "the hub was built in this run, so it should be the Shattered Spire on fitted ground, not " + layout.kind()
-                                + (layout.fitted() ? " (fitted)" : " (not fitted)"));
-            }
-        }
-
-        // 2. The footprint is what the exit implies.
-        if (layout.kind() == DrossHub.Kind.SPIRE)
-        {
-            int ground = exit.minCorner().getY() - SPIRE_OPENING_ABOVE_GROUND;
-            expect(problems, layout.groundY() == ground, "the spire's ground level is " + layout.groundY() + ", but its exit implies " + ground);
-            ShrineDesign spire = ShrineDesign.byId("shattered_spire").orElseThrow(() -> new GameTestAssertException("no Shattered Spire design"));
-            BoundingBox expected = spire.footprintForFrameAt(DrossHub.CENTER.getX(), DrossHub.CENTER.getZ(), ground, Direction.SOUTH);
-            expect(problems, footprint.equals(expected), "the spire's footprint is " + describe(footprint) + ", not " + describe(expected));
-            expect(problems, footprint.minX() == SPIRE_MIN_X && footprint.maxX() == SPIRE_MAX_X && footprint.minZ() == SPIRE_MIN_Z
-                    && footprint.maxZ() == SPIRE_MAX_Z, "the spire's footprint is " + describe(footprint) + ", not X " + SPIRE_MIN_X + ".."
-                    + SPIRE_MAX_X + ", Z " + SPIRE_MIN_Z + ".." + SPIRE_MAX_Z);
-            Vec3 arrival = Vec3.atLowerCornerOf(exit.minCorner()).add(SPIRE_ARRIVAL_OFFSET);
-            expect(problems, layout.arrival().distanceTo(arrival) < 1.0E-6D && Math.abs(Mth.wrapDegrees(layout.arrivalYaw())) < 1.0E-3F,
-                    "the spire's arrival spot is " + layout.arrival() + " facing " + layout.arrivalYaw() + ", not " + arrival + " facing south (0)");
-            List<BlockPos> rest = new ArrayList<>();
-            if (layout.camp() != null)
-            {
-                // the survivors' camp at the foot of its steps: its template in place, their rest spots the camp's
-                BlockPos center = DrossHubBuilder.spireCenter(spire, ground);
-                HubCamp.Spots camp = HubCamp.spots(HubCamp.hubCamp(), center, DrossHubBuilder.SPIRE_FACING);
-                if (camp != null)
-                {
-                    rest.add(camp.mentor());
-                    rest.add(camp.student());
-                }
-                String wrong = campNotInPlace(dross, center);
-                if (wrong != null)
-                {
-                    problems.add(wrong);
-                }
-            }
-            else
-            {
-                for (BlockPos spot : SPIRE_REST_SPOTS)
-                {
-                    rest.add(spot.offset(0, ground, 0));
-                }
-            }
-            expect(problems, layout.restSpots().equals(rest), "the spire's rest spots are " + layout.restSpots() + ", not " + rest);
-            if (data.wasBuiltThisSession())
-            {
-                expect(problems, layout.camp() != null, "the hub was built in this run, so the survivors' camp should be at its steps");
-            }
-        }
-        else if (layout.kind() == DrossHub.Kind.PLACEHOLDER)
-        {
-            BlockPos min = exit.minCorner();
-            int cx = exit.axis() == Direction.Axis.X ? min.getX() + 1 : min.getX();
-            int cz = exit.axis() == Direction.Axis.X ? min.getZ() : min.getZ() + 1;
-            expect(problems, footprint.minX() <= cx - 5 && footprint.maxX() >= cx + 5 && footprint.minZ() <= cz - 5 && footprint.maxZ() >= cz + 5,
-                    "the placeholder's footprint " + describe(footprint) + " doesn't hold its 11x11 platform round " + cx + ", " + cz);
-        }
-        else
-        {
-            expect(problems, footprint.isInside(exit.minCorner()), "the footprint " + describe(footprint) + " doesn't hold the exit portal at "
-                    + exit.minCorner().toShortString());
-        }
-
-        // 3. The rest spots: two (side by side, unless they're the camp's), free to stand in, off the walkway and away from
-        // the arrival spot.
-        List<BlockPos> rest = layout.restSpots();
-        if (rest.size() != 2)
-        {
-            problems.add("there are " + rest.size() + " rest spots, not 2");
-        }
-        else
-        {
-            BlockPos a = rest.get(0);
-            BlockPos b = rest.get(1);
-            if (layout.camp() == null)
-            {
-                expect(problems, a.getY() == b.getY() && Math.abs(a.getX() - b.getX()) + Math.abs(a.getZ() - b.getZ()) == 1,
-                        "the rest spots " + a.toShortString() + " and " + b.toShortString() + " aren't side by side");
-            }
-            else
-            {
-                expect(problems, !a.equals(b), "the camp's two rest spots are the same cell " + a.toShortString());
-            }
-            BlockPos arrivalCell = BlockPos.containing(layout.arrival());
-            for (BlockPos spot : rest)
-            {
-                String why = notStandable(dross, spot);
-                if (why != null)
-                {
-                    problems.add("the rest spot " + spot.toShortString() + " isn't free to stand in: " + why);
-                }
-                expect(problems, !onWalkway(exit, spot), "the rest spot " + spot.toShortString() + " is on the walkway out of the portal");
-                expect(problems, !inOpening(exit, spot), "the rest spot " + spot.toShortString() + " is in the portal");
-                expect(problems, Math.abs(spot.getX() - arrivalCell.getX()) > 1 || Math.abs(spot.getZ() - arrivalCell.getZ()) > 1
-                        || Math.abs(spot.getY() - arrivalCell.getY()) > 1, "the rest spot " + spot.toShortString() + " is by the arrival spot "
-                        + arrivalCell.toShortString());
-            }
-        }
-
+        expect(problems, AtStart.drossChunks == 0, "when the server had started " + AtStart.drossChunks + " Dross chunks were loaded, not 0");
+        expect(problems, AtStart.hubChunksBuilt == 0L, AtStart.hubChunksBuilt + " of the hub's chunks were built before any test ran");
+        expect(problems, AtStart.layout != null, "the hub had no layout when the server had started");
+        expect(problems, AtStart.chunksAfterLayout == AtStart.drossChunks, "working out the layout loaded "
+                + (AtStart.chunksAfterLayout - AtStart.drossChunks) + " Dross chunks");
+        expect(problems, AtStart.layoutMillis >= 0.0D && AtStart.layoutMillis < LAYOUT_MAX_MILLIS, "working out the layout took "
+                + AtStart.layoutMillis + " ms (" + LAYOUT_MAX_MILLIS + " at most)");
         fail(problems);
-        LOGGER.info("[hub test] {}{}; the kind, footprint, arrival spot and rest spots are right", DrossHub.describe(layout),
-                data.wasBuiltThisSession() ? " (built in this run)" : " (built before this run)");
+        LOGGER.info("[hub test] Nothing of the hub happened at world start; its layout came from the seed in {} ms without loading a chunk "
+                + "(the generator's heights: {} ms)", String.format(Locale.ROOT, "%.1f", AtStart.layoutMillis), DrossHubGround.lastMillis());
         helper.succeed();
     }
 
-    /** Null if at least {@value #CAMP_MIN_MATCH} of the camp's template blocks are where it puts them on the spire
-     *  centred on {@code center}; otherwise what's wrong. */
-    @Nullable
-    private static String campNotInPlace(ServerLevel dross, BlockPos center)
+    // ---------------------------------------------------------------------------------------------
+    // The hub, made with the land
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = EMPTY, batch = BATCH, timeoutTicks = TIMEOUT_TICKS)
+    public static void hubIsMadeWithTheLand(GameTestHelper helper)
     {
-        Optional<StructureTemplate> found = dross.getStructureManager().get(new ResourceLocation(Dross.MODID, HubCamp.hubCamp().template()));
-        if (found.isEmpty())
+        Run run = new Run(helper);
+        run.watch();
+        helper.startSequence()
+                .thenExecute(() -> run.guard(run::hold))
+                .thenWaitUntil(() -> run.waitFor("the hub's chunks and their entities", run::loaded, run::loadState))
+                .thenExecute(() -> run.guard(() -> {
+                    if (run.skipOldWorld())
+                    {
+                        return;
+                    }
+                    checkLayout(run);
+                    checkBlocks(run);
+                    checkRing(run);
+                    checkSurvivors(run, "made with the land");
+                    long[] t = DrossHubPiece.timing();
+                    LOGGER.info("[hub test] The hub came with the land: {} of its chunks built this run, {} ms in all, the slowest {} ms; "
+                            + "the ground level from the seed in {} ms", t[0], t[1] / 1_000_000L, t[2] / 1_000_000L, DrossHubGround.lastMillis());
+                }))
+                .thenExecute(() -> run.guard(run::release))
+                .thenSucceed();
+    }
+
+    /** The layout: the spire's, from the seed, the same as when the server had started. */
+    private static void checkLayout(Run run)
+    {
+        List<String> problems = new ArrayList<>();
+        DrossHub.Layout layout = run.layout;
+        int g = layout.groundY();
+        expect(problems, g == DrossHub.groundY(run.dross), "the layout's ground level " + g + " isn't the seed's " + DrossHub.groundY(run.dross));
+        expect(problems, AtStart.layout != null && sameLayout(AtStart.layout, layout), "the layout isn't the same as when the server had "
+                + "started: " + (AtStart.layout == null ? "none then" : DrossHub.describe(AtStart.layout)) + " then, " + DrossHub.describe(layout) + " now");
+        BoundingBox box = layout.footprint();
+        expect(problems, box.minX() == SPIRE_MIN_X && box.maxX() == SPIRE_MAX_X && box.minZ() == SPIRE_MIN_Z && box.maxZ() == SPIRE_MAX_Z
+                && box.minY() == g - SPIRE_BELOW && box.maxY() == g + SPIRE_ABOVE, "the footprint is " + describe(box) + ", not the spire's");
+        PortalOpening exit = layout.exit();
+        expect(problems, exit.axis() == Direction.Axis.X && exit.width() == 3 && exit.height() == 5
+                && exit.minCorner().equals(new BlockPos(DrossHub.CENTER.getX() - 1, g + SPIRE_OPENING_ABOVE_GROUND, DrossHub.CENTER.getZ())),
+                "the exit is " + describe(exit) + ", not the spire's frame on the centre");
+        Vec3 step = Vec3.atLowerCornerOf(exit.minCorner()).add(SPIRE_ARRIVAL_OFFSET);
+        expect(problems, layout.arrival().distanceTo(step) < 1.0E-6D && Math.abs(Mth.wrapDegrees(layout.arrivalYaw())) < 1.0E-3F,
+                "the arrival is " + layout.arrival() + " facing " + layout.arrivalYaw() + ", not " + step + " facing south");
+        HubCamp.Spots camp = layout.camp();
+        expect(problems, camp != null && layout.restSpots().equals(List.of(camp.mentor(), camp.student())),
+                "the rest spots " + layout.restSpots() + " aren't the camp's");
+        Structure hub = run.dross.registryAccess().registryOrThrow(Registries.STRUCTURE)
+                .get(new ResourceLocation(Dross.MODID, "dross_hub"));
+        ChunkPos middle = new ChunkPos(DrossHub.spireCenter(g));
+        expect(problems, hub != null && run.dross.getChunk(middle.x, middle.z).getStartForStructure(hub) != null,
+                "there's no dross:dross_hub structure start in the spire's middle chunk " + middle);
+        String standing = notStandable(run.dross, BlockPos.containing(layout.arrival()));
+        expect(problems, standing == null, "the arrival spot " + layout.arrival() + " isn't free to stand on: " + standing);
+        fail(problems);
+        LOGGER.info("[hub test] {}", DrossHub.describe(layout));
+    }
+
+    private static boolean sameLayout(DrossHub.Layout a, DrossHub.Layout b)
+    {
+        return a.groundY() == b.groundY() && a.footprint().equals(b.footprint()) && a.exit().equals(b.exit()) && a.arrival().equals(b.arrival())
+                && a.arrivalYaw() == b.arrivalYaw() && a.restSpots().equals(b.restSpots());
+    }
+
+    /** The spire's and the camp's template blocks in place, the exit lit, and no tree in the footprint. */
+    private static void checkBlocks(Run run)
+    {
+        List<String> problems = new ArrayList<>();
+        ServerLevel dross = run.dross;
+        DrossHub.Layout layout = run.layout;
+        BlockPos center = DrossHub.spireCenter(layout.groundY());
+        var spire = DrossHub.spire();
+        Map<BlockPos, BlockState> spireBlocks = templateBlocks(dross, spire.template(),
+                center.offset(-spire.width() / 2, -spire.groundLayer(), -spire.depth() / 2), new BlockPos(spire.width() / 2, 0, spire.depth() / 2));
+        Map<BlockPos, BlockState> campBlocks = templateBlocks(dross, new ResourceLocation(Dross.MODID, HubCamp.hubCamp().template()),
+                HubCamp.origin(center), HubCamp.pivot());
+        List<BlockPos> opening = openingCells(layout.exit());
+        spireBlocks.keySet().removeAll(campBlocks.keySet()); // the camp goes on over the spire
+        opening.forEach(spireBlocks::remove);
+        opening.forEach(campBlocks::remove);
+        String spireWrong = notInPlace(dross, spireBlocks, "the spire's");
+        String campWrong = notInPlace(dross, campBlocks, "the camp's");
+        expect(problems, spireWrong == null, spireWrong);
+        expect(problems, campWrong == null, campWrong);
+
+        // The exit, lit: every cell of its opening a portal block of its axis, in a whole frame.
+        PortalOpening exit = layout.exit();
+        Optional<DrossPortalShape> lit = DrossPortalShape.findLitPortalShape(dross, exit.minCorner(), exit.axis());
+        expect(problems, lit.isPresent() && PortalOpening.of(lit.get()).equals(exit), "the exit " + describe(exit) + " isn't lit ("
+                + lit.map(shape -> "a lit portal " + describe(PortalOpening.of(shape))).orElse("no lit portal there") + ")");
+        for (BlockPos cell : opening)
         {
-            return "the camp's template " + HubCamp.hubCamp().template() + " is missing";
+            BlockState state = dross.getBlockState(cell);
+            expect(problems, state.is(ModBlocks.DROSS_PORTAL.get()) && state.getValue(DrossPortalBlock.AXIS) == exit.axis(),
+                    "the exit's opening at " + cell.toShortString() + " is " + name(state));
         }
-        StructurePlaceSettings settings = new StructurePlaceSettings()
-                .setRotation(HubCamp.rotation(DrossHubBuilder.SPIRE_FACING))
-                .setRotationPivot(HubCamp.pivot());
-        BlockPos origin = HubCamp.origin(center);
-        int total = 0;
-        int same = 0;
-        String firstWrong = null;
-        for (Block block : BuiltInRegistries.BLOCK)
+
+        // No log or leaves of a tree in the footprint (only the templates' own).
+        BoundingBox box = layout.footprint();
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        int trees = 0;
+        String firstTree = null;
+        for (int x = box.minX(); x <= box.maxX(); x++)
         {
-            for (StructureTemplate.StructureBlockInfo info : found.get().filterBlocks(origin, settings, block))
+            for (int z = box.minZ(); z <= box.maxZ(); z++)
             {
-                total++;
-                BlockState there = dross.getBlockState(info.pos());
-                if (there.is(block))
+                for (int y = box.minY(); y <= box.maxY(); y++)
                 {
-                    same++;
-                }
-                else if (firstWrong == null)
-                {
-                    firstWrong = info.pos().toShortString() + " is " + name(there) + ", not " + block;
+                    BlockState state = dross.getBlockState(pos.set(x, y, z));
+                    if (!state.is(BlockTags.LOGS) && !state.is(BlockTags.LEAVES))
+                    {
+                        continue;
+                    }
+                    BlockState own = campBlocks.containsKey(pos) ? campBlocks.get(pos) : spireBlocks.get(pos);
+                    if (own == null || !own.is(state.getBlock()))
+                    {
+                        trees++;
+                        firstTree = firstTree != null ? firstTree : name(state) + " at " + pos.toShortString();
+                    }
                 }
             }
         }
-        if (total == 0)
-        {
-            return "the camp's template is empty";
-        }
-        double share = same / (double) total;
-        return share >= CAMP_MIN_MATCH ? null
-                : String.format(java.util.Locale.ROOT, "only %.1f%% of the camp's %d template blocks are at the hub (%s)", 100.0D * share,
-                        total, firstWrong);
+        expect(problems, trees == 0, trees + " tree blocks in the footprint (the first: " + firstTree + ")");
+        fail(problems);
+        LOGGER.info("[hub test] The spire's {} and the camp's {} template blocks are in place, the exit is lit, no tree in the footprint",
+                spireBlocks.size(), campBlocks.size());
     }
 
+    /** Null if at least {@value #TEMPLATE_MIN_MATCH} of the blocks are there; otherwise what's wrong. */
+    @Nullable
+    private static String notInPlace(ServerLevel dross, Map<BlockPos, BlockState> blocks, String whose)
+    {
+        int same = 0;
+        String firstWrong = null;
+        for (Map.Entry<BlockPos, BlockState> e : blocks.entrySet())
+        {
+            BlockState there = dross.getBlockState(e.getKey());
+            if (there.is(e.getValue().getBlock()))
+            {
+                same++;
+            }
+            else if (firstWrong == null)
+            {
+                firstWrong = e.getKey().toShortString() + " is " + name(there) + ", not " + name(e.getValue());
+            }
+        }
+        if (blocks.isEmpty())
+        {
+            return whose + " template is empty or missing";
+        }
+        double share = same / (double) blocks.size();
+        return share >= TEMPLATE_MIN_MATCH ? null : String.format(Locale.ROOT, "only %.2f%% of %s %d template blocks are in place (%s)",
+                100.0D * share, whose, blocks.size(), firstWrong);
+    }
+
+    /** Every block of a template (air too), where it goes when placed at {@code origin} turned as the hub's are. */
+    private static Map<BlockPos, BlockState> templateBlocks(ServerLevel dross, ResourceLocation id, BlockPos origin, BlockPos pivot)
+    {
+        Map<BlockPos, BlockState> out = new HashMap<>();
+        Optional<StructureTemplate> found = dross.getStructureManager().get(id);
+        if (found.isEmpty())
+        {
+            return out;
+        }
+        CompoundTag tag = found.get().save(new CompoundTag());
+        ListTag palette = tag.contains("palette", Tag.TAG_LIST) ? tag.getList("palette", Tag.TAG_COMPOUND)
+                : tag.getList("palettes", Tag.TAG_LIST).getList(0);
+        List<BlockState> states = new ArrayList<>();
+        for (int i = 0; i < palette.size(); i++)
+        {
+            states.add(NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), palette.getCompound(i)));
+        }
+        var turn = HubCamp.rotation(DrossHub.SPIRE_FACING);
+        ListTag blocks = tag.getList("blocks", Tag.TAG_COMPOUND);
+        for (int i = 0; i < blocks.size(); i++)
+        {
+            CompoundTag block = blocks.getCompound(i);
+            ListTag p = block.getList("pos", Tag.TAG_INT);
+            BlockPos local = new BlockPos(p.getInt(0), p.getInt(1), p.getInt(2));
+            out.put(StructureTemplate.transform(local, Mirror.NONE, turn, pivot).offset(origin), states.get(block.getInt("state")).rotate(turn));
+        }
+        return out;
+    }
+
+    /** The cells of an opening. */
+    private static List<BlockPos> openingCells(PortalOpening exit)
+    {
+        List<BlockPos> cells = new ArrayList<>();
+        boolean alongX = exit.axis() == Direction.Axis.X;
+        for (int i = 0; i < exit.width(); i++)
+        {
+            for (int j = 0; j < exit.height(); j++)
+            {
+                cells.add(exit.minCorner().offset(alongX ? i : 0, j, alongX ? 0 : i));
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * The ground round the footprint, out to {@value #RING_CHECKED} blocks: every column where {@link DrossHubGround#target}
+     * puts it (from the generator's own height there), within d blocks of the ground level d blocks out, and no step
+     * between two neighbours steeper than a block or the land's own step there.
+     */
+    private static void checkRing(Run run)
+    {
+        List<String> problems = new ArrayList<>();
+        ServerLevel dross = run.dross;
+        int g = run.layout.groundY();
+        BoundingBox columns = DrossHub.columns();
+        var generator = dross.getChunkSource().getGenerator();
+        var random = dross.getChunkSource().randomState();
+        int x0 = columns.minX() - RING_CHECKED;
+        int z0 = columns.minZ() - RING_CHECKED;
+        int w = columns.getXSpan() + 2 * RING_CHECKED;
+        int h = columns.getZSpan() + 2 * RING_CHECKED;
+        int[] natural = new int[w * h];
+        int[] ground = new int[w * h];
+        boolean[] ring = new boolean[w * h];
+        int checked = 0;
+        int wrong = 0;
+        int furthest = 0;
+        String firstWrong = null;
+        long start = System.nanoTime();
+        for (int i = 0; i < w; i++)
+        {
+            for (int k = 0; k < h; k++)
+            {
+                int x = x0 + i;
+                int z = z0 + k;
+                int d = GroundFit.distanceOutside(columns, x, z);
+                if (d == 0 || d > RING_CHECKED)
+                {
+                    continue;
+                }
+                int index = i * h + k;
+                ring[index] = true;
+                natural[index] = generator.getBaseHeight(x, z, Heightmap.Types.WORLD_SURFACE_WG, dross, random) - 1;
+                ground[index] = groundTop(dross, x, z);
+                checked++;
+                int target = DrossHubGround.target(x, z, natural[index], g);
+                if (ground[index] != target)
+                {
+                    wrong++;
+                    firstWrong = firstWrong != null ? firstWrong : x + ", " + z + " (" + d + " out): ground at y " + ground[index]
+                            + ", not " + target + " (the land's own " + natural[index] + ")";
+                }
+                if (d < DrossHub.HUB_BLEND_MARGIN)
+                {
+                    furthest = Math.max(furthest, Math.abs(ground[index] - g));
+                    expect(problems, Math.abs(ground[index] - g) <= d, "the column " + x + ", " + z + " (" + d + " out) is at y "
+                            + ground[index] + ", more than " + d + " from the ground level " + g);
+                }
+            }
+        }
+        long millis = (System.nanoTime() - start) / 1_000_000L;
+        expect(problems, wrong == 0, wrong + " of " + checked + " columns round the hub don't have their ground where the plan puts it "
+                + "(the first: " + firstWrong + ")");
+        int steepest = 0;
+        for (int i = 0; i < w; i++)
+        {
+            for (int k = 0; k < h; k++)
+            {
+                for (int[] step : new int[][] {{1, 0}, {0, 1}})
+                {
+                    int a = i * h + k;
+                    int ni = i + step[0];
+                    int nk = k + step[1];
+                    if (!ring[a] || ni >= w || nk >= h || !ring[ni * h + nk])
+                    {
+                        continue;
+                    }
+                    int b = ni * h + nk;
+                    int rise = Math.abs(ground[a] - ground[b]);
+                    steepest = Math.max(steepest, rise);
+                    expect(problems, rise <= Math.max(1, Math.abs(natural[a] - natural[b])), "a step of " + rise + " between "
+                            + (x0 + i) + ", " + (z0 + k) + " and " + (x0 + ni) + ", " + (z0 + nk) + " (the land's own: "
+                            + Math.abs(natural[a] - natural[b]) + ")");
+                }
+            }
+        }
+        fail(problems);
+        LOGGER.info("[hub test] The ground round the hub: {} columns out to {} blocks, each where the plan puts it; the most any within the "
+                + "staircase is off the ground level {}: {}; the steepest step {} (checked in {} ms)", checked, RING_CHECKED, g, furthest,
+                steepest, millis);
+    }
+
+    /** The top of the ground in a column: the highest block that stops movement, but a tree's or a plant's. */
+    private static int groundTop(ServerLevel dross, int x, int z)
+    {
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        for (int y = dross.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, x, z) - 1; y > dross.getMinBuildHeight(); y--)
+        {
+            BlockState state = dross.getBlockState(pos.set(x, y, z));
+            if (!state.isAir() && !state.is(BlockTags.LOGS) && !state.is(BlockTags.LEAVES) && state.getFluidState().isEmpty()
+                    && !state.getCollisionShape(dross, pos).isEmpty())
+            {
+                return y;
+            }
+        }
+        return dross.getMinBuildHeight();
+    }
+
+    /** Exactly one Blind Oracle and one Ragged Seeker at the hub, each other's partners, living in the camp. */
+    private static void checkSurvivors(Run run, String when)
+    {
+        List<String> problems = new ArrayList<>();
+        ServerLevel dross = run.dross;
+        DrossHub.Layout layout = run.layout;
+        UUID mentorId = SurvivorSpawner.mentorId(dross.getSeed());
+        UUID studentId = SurvivorSpawner.studentId(dross.getSeed());
+        BoundingBox area = SurvivorGrounds.areaFor(layout);
+        UUID[] ids = {mentorId, studentId};
+        SurvivorRole[] roles = {SurvivorRole.MENTOR, SurvivorRole.STUDENT};
+        for (int i = 0; i < 2; i++)
+        {
+            Entity found = dross.getEntity(ids[i]);
+            if (!(found instanceof Survivor survivor))
+            {
+                problems.add("the " + roles[i].id() + " (" + ids[i] + ") isn't at the hub (" + found + ")");
+                continue;
+            }
+            expect(problems, survivor.getRole() == roles[i], "the " + roles[i].id() + " is a " + survivor.getRole());
+            expect(problems, ids[1 - i].equals(survivor.getPartnerId()), "the " + roles[i].id() + "'s partner is " + survivor.getPartnerId());
+            expect(problems, layout.restSpots().get(i).equals(survivor.getRestSpot()), "the " + roles[i].id() + "'s rest spot is "
+                    + survivor.getRestSpot() + ", not the camp's " + layout.restSpots().get(i));
+            expect(problems, area.equals(survivor.getArea()) && area.isInside(survivor.blockPosition()), "the " + roles[i].id() + " is at "
+                    + survivor.blockPosition().toShortString() + " with the area " + survivor.getArea() + ", not in the camp's " + area);
+        }
+        List<Survivor> all = dross.getEntitiesOfClass(Survivor.class, AABB.of(layout.footprint().inflatedBy(DrossHub.HUB_BLEND_MARGIN)));
+        expect(problems, all.size() == 2, "there are " + all.size() + " survivors at the hub, not 2: "
+                + all.stream().map(s -> s.getRole().id() + " " + s.getUUID()).toList());
+        fail(problems);
+        LOGGER.info("[hub test] The hub's two survivors ({}): the Blind Oracle at {} and the Ragged Seeker at {}, partners, at home in the "
+                + "camp", when, dross.getEntity(mentorId).blockPosition().toShortString(), dross.getEntity(studentId).blockPosition().toShortString());
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // The survivors come once; the exit is relit
+    // ---------------------------------------------------------------------------------------------
+
+    @GameTest(template = EMPTY, batch = RELOAD_BATCH, timeoutTicks = TIMEOUT_TICKS)
+    public static void survivorsComeOnlyOnce(GameTestHelper helper)
+    {
+        Run run = new Run(helper);
+        run.watch();
+        ChunkPos camp = new ChunkPos(run.layout.restSpots().get(0));
+        helper.startSequence()
+                .thenExecute(() -> run.guard(run::hold))
+                .thenWaitUntil(() -> run.waitFor("the hub's chunks and their entities", run::loaded, run::loadState))
+                .thenExecute(() -> run.guard(() -> {
+                    if (!run.skipOldWorld())
+                    {
+                        checkSurvivors(run, "the first time its chunks are loaded");
+                    }
+                    run.release();
+                }))
+                .thenWaitUntil(() -> run.waitFor("the camp's chunk " + camp + " to unload", () -> run.skipped || run.unloaded(camp),
+                        () -> "it's still " + (run.dross.getChunkSource().getChunkNow(camp.x, camp.z) != null ? "loaded" : "holding its entities")))
+                .thenExecute(() -> run.guard(() -> {
+                    if (!run.skipped)
+                    {
+                        run.hold();
+                    }
+                }))
+                .thenWaitUntil(() -> run.waitFor("the hub's chunks and their entities, again", () -> run.skipped || run.loaded(), run::loadState))
+                .thenExecute(() -> run.guard(() -> {
+                    if (!run.skipped)
+                    {
+                        checkSurvivors(run, "after its chunks were unloaded and loaded again");
+                    }
+                }))
+                .thenExecute(() -> run.guard(run::release))
+                .thenSucceed();
+    }
+
+    @GameTest(template = EMPTY, batch = RELIGHT_BATCH, timeoutTicks = TIMEOUT_TICKS)
+    public static void exitIsRelit(GameTestHelper helper)
+    {
+        Run run = new Run(helper);
+        run.watch();
+        helper.startSequence()
+                .thenExecute(() -> run.guard(run::hold))
+                .thenWaitUntil(() -> run.waitFor("the hub's chunks and their entities", run::loaded, run::loadState))
+                .thenExecute(() -> run.guard(() -> {
+                    if (run.skipOldWorld())
+                    {
+                        return;
+                    }
+                    PortalOpening exit = run.layout.exit();
+                    for (BlockPos cell : openingCells(exit))
+                    {
+                        run.dross.setBlock(cell, Blocks.AIR.defaultBlockState(), Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE);
+                    }
+                    if (DrossPortalShape.findLitPortalShape(run.dross, exit.minCorner(), exit.axis()).isPresent())
+                    {
+                        throw new GameTestAssertException("the exit is still lit with its portal blocks gone");
+                    }
+                    TestPlayer player = TestPlayer.join(helper.getLevel(), "hub-relight-test");
+                    try
+                    {
+                        if (!DrossHub.teleportToHub(player))
+                        {
+                            throw new GameTestAssertException("/dross goto hub's teleport failed (no Dross?)");
+                        }
+                        List<String> problems = new ArrayList<>();
+                        for (BlockPos cell : openingCells(exit))
+                        {
+                            expect(problems, run.dross.getBlockState(cell).is(ModBlocks.DROSS_PORTAL.get()), "the exit's opening at "
+                                    + cell.toShortString() + " is " + name(run.dross.getBlockState(cell)) + " after /dross goto hub");
+                        }
+                        checkArrival(problems, run.dross, run.layout, player.position(), player.getYRot(), "/dross goto hub after the relight");
+                        fail(problems);
+                    }
+                    finally
+                    {
+                        player.leave();
+                    }
+                    LOGGER.info("[hub test] With its portal blocks gone, /dross goto hub lit the exit again");
+                }))
+                .thenExecute(() -> run.guard(run::release))
+                .thenSucceed();
+    }
     // ---------------------------------------------------------------------------------------------
     // Arriving
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH)
+    @GameTest(template = EMPTY, batch = BATCH)
     public static void arrivalThroughPortal(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
         ServerLevel dross = drossOf(server);
         DrossHub.Layout layout = layoutOf(server);
+        if (oldWorld(dross, layout))
+        {
+            helper.succeed();
+            return;
+        }
         ArmorStand stand = helper.spawn(EntityType.ARMOR_STAND, BlockPos.ZERO);
         Entity arrived;
         try
@@ -365,12 +732,17 @@ public final class DrossHubGameTest
         helper.succeed();
     }
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH)
+    @GameTest(template = EMPTY, batch = BATCH)
     public static void gotoHubLandsOnTheStep(GameTestHelper helper)
     {
         MinecraftServer server = helper.getLevel().getServer();
         ServerLevel dross = drossOf(server);
         DrossHub.Layout layout = layoutOf(server);
+        if (oldWorld(dross, layout))
+        {
+            helper.succeed();
+            return;
+        }
         TestPlayer player = TestPlayer.join(helper.getLevel(), "hub-test-player");
         try
         {
@@ -397,12 +769,9 @@ public final class DrossHubGameTest
     {
         expect(problems, at.distanceTo(layout.arrival()) < 1.0E-6D, who + " landed at " + at + ", not on the arrival spot " + layout.arrival());
         expect(problems, Math.abs(Mth.wrapDegrees(yaw - layout.arrivalYaw())) < 1.0E-3F, who + " faces " + yaw + ", not " + layout.arrivalYaw());
-        if (layout.kind() == DrossHub.Kind.SPIRE)
-        {
-            Vec3 step = Vec3.atLowerCornerOf(layout.exit().minCorner()).add(SPIRE_ARRIVAL_OFFSET);
-            expect(problems, at.distanceTo(step) < 1.0E-6D, who + " landed at " + at + ", not on the step in front of the frame " + step);
-            expect(problems, Math.abs(Mth.wrapDegrees(yaw)) < 1.0E-3F, who + " faces " + yaw + ", not south (0), toward the gate");
-        }
+        Vec3 step = Vec3.atLowerCornerOf(layout.exit().minCorner()).add(SPIRE_ARRIVAL_OFFSET);
+        expect(problems, at.distanceTo(step) < 1.0E-6D, who + " landed at " + at + ", not on the step in front of the frame " + step);
+        expect(problems, Math.abs(Mth.wrapDegrees(yaw)) < 1.0E-3F, who + " faces " + yaw + ", not south (0), toward the gate");
         BlockPos below = BlockPos.containing(at).below();
         BlockState ground = dross.getBlockState(below);
         VoxelShape shape = ground.getCollisionShape(dross, below);
@@ -410,120 +779,23 @@ public final class DrossHubGameTest
                 who + " isn't standing on " + name(ground) + " under it at " + below.toShortString());
     }
 
-    // ---------------------------------------------------------------------------------------------
-    // The ground round the hub
-    // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH)
-    public static void groundAroundTheHub(GameTestHelper helper)
+    /** True (with a log line) if this world's hub was made before it came with the land ({@link Run#skipOldWorld}). */
+    private static boolean oldWorld(ServerLevel dross, DrossHub.Layout layout)
     {
-        MinecraftServer server = helper.getLevel().getServer();
-        ServerLevel dross = drossOf(server);
-        DrossHub.Layout layout = layoutOf(server);
-        if (!layout.fitted())
+        ChunkPos middle = new ChunkPos(DrossHub.spireCenter(layout.groundY()));
+        if (!AtStart.hubRegionExisted || madeWithTheLand(dross, middle))
         {
-            LOGGER.info("[hub test] groundAroundTheHub skipped: this world's hub ({}) wasn't built on fitted ground (a fallback built next to "
-                    + "something else)", layout.kind());
-            helper.succeed();
-            return;
+            return false;
         }
-        BoundingBox footprint = layout.footprint();
-        int ground = layout.groundY();
-        GroundFit.Survey survey = GroundFit.survey(dross, footprint, GROUND_SURVEY_MARGIN);
-        GroundFit.Plan again = GroundFit.plan(survey, ground, DrossHub.HUB_BLEND_MARGIN, DrossHub.HUB_WATER_CLEARANCE);
-        LOGGER.info("[hub test] The ground round the hub as it is now, planned again at its ground level (the \"natural ground under the "
-                + "footprint\" numbers are the hub's own blocks; the staircase numbers are what count): {}", again.summary());
-
-        List<String> problems = new ArrayList<>();
-        int checked = 0;
-        int wet = 0;
-        int furthest = 0;
-        int steepest = 0;
-        for (int x = footprint.minX() - GROUND_SURVEY_MARGIN; x <= footprint.maxX() + GROUND_SURVEY_MARGIN; x++)
-        {
-            for (int z = footprint.minZ() - GROUND_SURVEY_MARGIN; z <= footprint.maxZ() + GROUND_SURVEY_MARGIN; z++)
-            {
-                int d = survey.distance(x, z);
-                if (d == 0)
-                {
-                    continue; // the hub itself
-                }
-                if (survey.liquidAt(x, z))
-                {
-                    wet++;
-                    continue;
-                }
-                checked++;
-                int h = survey.surfaceAt(x, z);
-                if (d <= STAIRCASE_REACH)
-                {
-                    furthest = Math.max(furthest, Math.abs(h - ground));
-                    if (Math.abs(h - ground) > d)
-                    {
-                        problems.add("the column " + x + ", " + z + " (" + d + " out) is at y " + h + ", more than " + d + " from the ground level " + ground);
-                    }
-                }
-                for (int[] step : new int[][] {{1, 0}, {0, 1}})
-                {
-                    int nx = x + step[0];
-                    int nz = z + step[1];
-                    if (!survey.contains(nx, nz) || survey.distance(nx, nz) == 0 || survey.liquidAt(nx, nz))
-                    {
-                        continue;
-                    }
-                    int near = Math.min(d, survey.distance(nx, nz));
-                    int rise = Math.abs(h - survey.surfaceAt(nx, nz));
-                    if (near <= NO_CLIFF_REACH)
-                    {
-                        steepest = Math.max(steepest, rise);
-                    }
-                    if ((near <= NO_CLIFF_REACH && rise >= CLIFF_STEP) || (near <= GENTLE_REACH && rise >= GENTLE_STEP))
-                    {
-                        problems.add("a step of " + rise + " between " + x + ", " + z + " and " + nx + ", " + nz + " (" + near + " out)");
-                    }
-                }
-            }
-        }
-        fail(problems);
-        LOGGER.info("[hub test] The ground round the hub ({} dry columns checked, {} water/lava): every column up to {} out is within its "
-                        + "distance of the ground level {} (the most any is off: {}); the steepest step up to {} out is {} (overflow {})",
-                checked, wet, STAIRCASE_REACH, ground, furthest, NO_CLIFF_REACH, steepest, again.overflow);
-        helper.succeed();
+        LOGGER.info("[hub test] skipped: this world's hub was made before it came with the land; run the tests in a brand-new world");
+        return true;
     }
-
-    // ---------------------------------------------------------------------------------------------
-    // Waiting for the hub
-    // ---------------------------------------------------------------------------------------------
-
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH)
-    public static void whenBuiltOnceTheHubIs(GameTestHelper helper)
-    {
-        MinecraftServer server = helper.getLevel().getServer();
-        DrossHub.Layout layout = layoutOf(server); // finishes the hub at once if it's still being built
-        List<String> problems = new ArrayList<>();
-        expect(problems, DrossHub.isBuilt(server), "the hub has a layout, but DrossHub.isBuilt says it isn't built");
-        List<Optional<DrossHub.Layout>> told = new ArrayList<>();
-        DrossHub.whenBuilt(server, told::add);
-        if (told.size() != 1 || told.get(0).isEmpty())
-        {
-            problems.add("DrossHub.whenBuilt didn't run straight away with the layout once the hub was built (it ran " + told.size() + " time(s))");
-        }
-        else
-        {
-            DrossHub.Layout given = told.get(0).get();
-            expect(problems, given.kind() == layout.kind() && given.exit().equals(layout.exit()) && given.arrival().equals(layout.arrival())
-                    && given.footprint().equals(layout.footprint()), "DrossHub.whenBuilt gave a different layout: " + DrossHub.describe(given));
-        }
-        fail(problems);
-        LOGGER.info("[hub test] The hub is built, and DrossHub.whenBuilt runs straight away with its layout");
-        helper.succeed();
-    }
-
     // ---------------------------------------------------------------------------------------------
     // Safe ground on rough ground
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH)
+    @GameTest(template = EMPTY, batch = BATCH)
     public static void safeLandingOnRoughGround(GameTestHelper helper)
     {
         ServerLevel dross = drossOf(helper.getLevel().getServer());
@@ -700,6 +972,186 @@ public final class DrossHubGameTest
         throw new GameTestAssertException("no room in the Dross's sky for the test platform at" + tried);
     }
 
+
+    // ---------------------------------------------------------------------------------------------
+    // One test's run: holding the hub's chunks, waiting by the clock, failing at once
+    // ---------------------------------------------------------------------------------------------
+
+    /** "Not yet": a wait's check that isn't done. Minecraft tries it again the next tick. */
+    private static final class Waiting extends GameTestAssertException
+    {
+        Waiting(String message)
+        {
+            super(message);
+        }
+    }
+
+    private static final class Run
+    {
+        final GameTestHelper helper;
+        final ServerLevel dross;
+        final DrossHub.Layout layout;
+        /** The chunk holding the spire's middle: the ticket's centre and the structure's start. */
+        final ChunkPos middle;
+        /** The chunks the hub's piece touches (chunk coordinates in X and Z). */
+        final int chunkX0;
+        final int chunkX1;
+        final int chunkZ0;
+        final int chunkZ1;
+        @Nullable
+        RuntimeException failure;
+        long waitingSince = -1L;
+        boolean held;
+        /** The world's hub was made before it came with the land: the checks are skipped. */
+        boolean skipped;
+
+        Run(GameTestHelper helper)
+        {
+            this.helper = helper;
+            MinecraftServer server = helper.getLevel().getServer();
+            this.dross = drossOf(server);
+            this.layout = layoutOf(server);
+            this.middle = new ChunkPos(DrossHub.spireCenter(this.layout.groundY()));
+            BoundingBox cover = DrossHub.columns().inflatedBy(DrossHub.HUB_BLEND_MARGIN);
+            this.chunkX0 = SectionPos.blockToSectionCoord(cover.minX());
+            this.chunkX1 = SectionPos.blockToSectionCoord(cover.maxX());
+            this.chunkZ0 = SectionPos.blockToSectionCoord(cover.minZ());
+            this.chunkZ1 = SectionPos.blockToSectionCoord(cover.maxZ());
+        }
+
+        /**
+         * Fails the test as soon as a step has failed: a wait takes any failed check for "not yet" and tries it again every
+         * tick until the test's tick limit, so a failure found in a wait is kept and this second sequence (started before
+         * the test's own) fails the test with it at once.
+         */
+        void watch()
+        {
+            this.helper.startSequence()
+                    .thenWaitUntil(() -> {
+                        if (this.failure == null)
+                        {
+                            throw new GameTestAssertException("the test ran out of time");
+                        }
+                    })
+                    .thenFail(() -> this.failure);
+        }
+
+        /** Runs a step; a real failure is remembered, logged and cleaned up (and given again by every later step). */
+        void guard(Runnable step)
+        {
+            if (this.failure != null)
+            {
+                throw this.failure;
+            }
+            try
+            {
+                step.run();
+            }
+            catch (Waiting w)
+            {
+                throw w;
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("[hub test] failed: {}", e.getMessage());
+                this.failure = e;
+                this.release();
+                throw e;
+            }
+        }
+
+        /** A wait: still waiting (throws), or done; after {@value #WAIT_MILLIS} ms by the clock, a real failure. */
+        void waitFor(String what, BooleanSupplier done, Supplier<String> state)
+        {
+            this.guard(() -> {
+                if (done.getAsBoolean())
+                {
+                    this.waitingSince = -1L;
+                    return;
+                }
+                long now = Util.getMillis();
+                if (this.waitingSince < 0L)
+                {
+                    this.waitingSince = now;
+                }
+                if (now - this.waitingSince > WAIT_MILLIS)
+                {
+                    throw new GameTestAssertException("gave up waiting for " + what + " after " + WAIT_MILLIS / 1000L + " s (" + state.get() + ")");
+                }
+                throw new Waiting("waiting for " + what);
+            });
+        }
+
+        void hold()
+        {
+            this.dross.getChunkSource().addRegionTicket(TICKET, this.middle, HOLD_RADIUS, this.middle);
+            this.held = true;
+        }
+
+        /** Safe to call twice. */
+        void release()
+        {
+            if (this.held)
+            {
+                this.dross.getChunkSource().removeRegionTicket(TICKET, this.middle, HOLD_RADIUS, this.middle);
+                this.held = false;
+            }
+        }
+
+        /** True once every chunk the hub's piece touches is fully loaded with its entities. */
+        boolean loaded()
+        {
+            return this.loadState() == null;
+        }
+
+        /** Null once loaded; otherwise how far it has got. */
+        @Nullable
+        String loadState()
+        {
+            int total = 0;
+            int full = 0;
+            int entities = 0;
+            for (int cx = this.chunkX0; cx <= this.chunkX1; cx++)
+            {
+                for (int cz = this.chunkZ0; cz <= this.chunkZ1; cz++)
+                {
+                    total++;
+                    full += this.dross.getChunkSource().getChunkNow(cx, cz) != null ? 1 : 0;
+                    entities += this.dross.areEntitiesLoaded(ChunkPos.asLong(cx, cz)) ? 1 : 0;
+                }
+            }
+            return full == total && entities == total ? null : full + " of " + total + " chunks loaded, " + entities + " with their entities";
+        }
+
+        boolean unloaded(ChunkPos chunk)
+        {
+            return this.dross.getChunkSource().getChunkNow(chunk.x, chunk.z) == null && !this.dross.areEntitiesLoaded(chunk.toLong());
+        }
+
+        /**
+         * True (with a log line) if this world's hub was made before the hub came with the land: no structure start in its
+         * middle chunk, and its region file was already there when the server started. (Without the region file, a missing
+         * start is a failure: {@link #checkLayout}.)
+         */
+        boolean skipOldWorld()
+        {
+            if (!AtStart.hubRegionExisted || madeWithTheLand(this.dross, this.middle))
+            {
+                return false;
+            }
+            LOGGER.info("[hub test] skipped: this world's hub was made before it came with the land (its region file was there when the "
+                    + "server started, and its middle chunk has no dross:dross_hub start); run the tests in a brand-new world");
+            this.skipped = true;
+            return true;
+        }
+    }
+
+    /** True if the chunk holding the spire's middle has the hub's structure start. */
+    private static boolean madeWithTheLand(ServerLevel dross, ChunkPos middle)
+    {
+        Structure hub = dross.registryAccess().registryOrThrow(Registries.STRUCTURE).get(new ResourceLocation(Dross.MODID, "dross_hub"));
+        return hub != null && dross.getChunk(middle.x, middle.z).getStartForStructure(hub) != null;
+    }
     // ---------------------------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------------------------
@@ -716,38 +1168,7 @@ public final class DrossHubGameTest
 
     private static DrossHub.Layout layoutOf(MinecraftServer server)
     {
-        return DrossHub.layout(server).orElseThrow(() -> new GameTestAssertException("the hub has no layout (no exit portal?)"));
-    }
-
-    /** True if the exit is where the Shattered Spire's frame is: 3x5 along X, its middle column on the hub centre. */
-    private static boolean isSpireExit(PortalOpening exit)
-    {
-        return exit.axis() == Direction.Axis.X && exit.width() == 3 && exit.height() == 5
-                && exit.minCorner().getX() == DrossHub.CENTER.getX() - 1 && exit.minCorner().getZ() == DrossHub.CENTER.getZ();
-    }
-
-    /** True if the cell is on the walkway straight out in front of the opening (as wide as it, 7 blocks deep). */
-    private static boolean onWalkway(PortalOpening exit, BlockPos cell)
-    {
-        boolean alongX = exit.axis() == Direction.Axis.X;
-        int along = alongX ? cell.getX() : cell.getZ();
-        int perp = alongX ? cell.getZ() : cell.getX();
-        int minAlong = alongX ? exit.minCorner().getX() : exit.minCorner().getZ();
-        int front = alongX ? exit.minCorner().getZ() : exit.minCorner().getX();
-        return along >= minAlong && along < minAlong + exit.width() && perp >= front + 1 && perp <= front + DrossHub.WALKWAY_DEPTH;
-    }
-
-    /** True if a body standing in the cell (2 blocks tall) would reach into the opening. */
-    private static boolean inOpening(PortalOpening exit, BlockPos cell)
-    {
-        boolean alongX = exit.axis() == Direction.Axis.X;
-        int along = alongX ? cell.getX() : cell.getZ();
-        int perp = alongX ? cell.getZ() : cell.getX();
-        int minAlong = alongX ? exit.minCorner().getX() : exit.minCorner().getZ();
-        int plane = alongX ? exit.minCorner().getZ() : exit.minCorner().getX();
-        int minY = exit.minCorner().getY();
-        return perp == plane && along >= minAlong && along < minAlong + exit.width()
-                && cell.getY() + 1 >= minY && cell.getY() < minY + exit.height();
+        return DrossHub.layout(server).orElseThrow(() -> new GameTestAssertException("the hub has no layout (no Dross?)"));
     }
 
     /** Why a villager-sized body can't stand in this cell, or null if it can. */
@@ -853,5 +1274,34 @@ public final class DrossHubGameTest
                 server.getPlayerList().remove(this);
             }
         }
+    }
+
+    /** The tests' empty template (a block of air). */
+    private static void registerEmpty(MinecraftServer server)
+    {
+        StructureTemplate template = server.getStructureManager().getOrCreate(EMPTY_ID);
+        CompoundTag tag = new CompoundTag();
+        tag.put("size", ints(1, 1, 1));
+        ListTag palette = new ListTag();
+        palette.add(NbtUtils.writeBlockState(Blocks.AIR.defaultBlockState()));
+        tag.put("palette", palette);
+        ListTag blocks = new ListTag();
+        CompoundTag block = new CompoundTag();
+        block.put("pos", ints(0, 0, 0));
+        block.putInt("state", 0);
+        blocks.add(block);
+        tag.put("blocks", blocks);
+        tag.put("entities", new ListTag());
+        template.load(BuiltInRegistries.BLOCK.asLookup(), tag);
+    }
+
+    private static ListTag ints(int... values)
+    {
+        ListTag list = new ListTag();
+        for (int v : values)
+        {
+            list.add(IntTag.valueOf(v));
+        }
+        return list;
     }
 }

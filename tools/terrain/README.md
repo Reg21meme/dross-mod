@@ -288,7 +288,11 @@ means most in the middle of the range. They replace Duskstone and the biome rock
 
 **Near the hub** (the Shattered Spire at 0, 0): ponds, mossy boulders and fallen logs stay `NOT_NEAR_HUB_RADIUS` blocks
 away (the placement filter `dross:not_near_hub`, `dimension/worldgen/NotNearHubFilter`, registered in
-`registry/ModPlacementModifiers`); the hub fells the trees touching it itself.
+`registry/ModPlacementModifiers`). The hub is made with the land (the "surface structures" step, after those), so what
+comes after it keeps off it (`dross:not_on_hub`, `dimension/worldgen/NotOnHubFilter`, a box round its footprint; every
+feature after the hub gets it from `hub_filter`): trees, giant mushrooms and ice spikes `HUB_TREE_MARGIN` (24) blocks past
+its footprint, plant patches `HUB_PLANT_MARGIN` (8; the ones in `HUB_PLANT_FEATURES`), ores `HUB_ORE_MARGIN` (8) but only
+from `HUB_ORE_DEPTH` (8) blocks under its ground up. The hub's structure (`dross:dross_hub`) is written here too.
 
 **The tidy-up** (`dross:tidy_up`, `dimension/worldgen/TidyUpFeature`, the last feature of every chunk): a chunk's
 features reach a few blocks into the chunks round it, some decorated before it and some after, so now and then a plant

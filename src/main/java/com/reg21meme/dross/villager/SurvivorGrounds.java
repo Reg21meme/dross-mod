@@ -121,18 +121,9 @@ public record SurvivorGrounds(List<BlockPos> restSpots, List<Float> restYaws, Bo
         }
         Vec3 arrival = layout.arrival();
         BoundingBox area = areaFor(layout);
-        HubCamp.Spots camp = layout.camp();
-        if (camp != null)
+        if (layout.camp() != null)
         {
-            Clearance clearance = new Clearance(layout.exit(), arrival);
-            List<Waypoint> places = new ArrayList<>();
-            for (HubCamp.Place place : camp.places())
-            {
-                add(places, dross, new int[] {place.pos().getX(), place.pos().getZ()}, place.pos().getY(), area, clearance, size,
-                        place.weight());
-            }
-            return new SurvivorGrounds(List.of(camp.mentor().immutable(), camp.student().immutable()),
-                    List.of(camp.mentorYaw(), camp.studentYaw()), area, List.copyOf(places), clearance);
+            return fromCamp(layout);
         }
         List<BlockPos> rest = List.of(layout.restSpots().get(0).immutable(), layout.restSpots().get(1).immutable());
         List<Float> yaws = new ArrayList<>();
@@ -143,6 +134,39 @@ public record SurvivorGrounds(List<BlockPos> restSpots, List<Float> restYaws, Bo
         Clearance clearance = new Clearance(layout.exit(), arrival);
         List<Waypoint> waypoints = waypoints(dross, layout, rest.get(0), area, clearance, size);
         return new SurvivorGrounds(rest, yaws, area, waypoints, clearance);
+    }
+
+    /**
+     * Their grounds in the hub's camp, from its design alone (nothing in the world is read, so the hub's structure can
+     * give them their home as it's made with the land): the camp's rest spots and the ways they face there, its box and
+     * {@value #CAMP_AREA_MARGIN} blocks round it, and the camp's places to walk to as they are (each checked by its
+     * generator to have a floor and room to stand), leaving out any outside the area, kept clear by the exit portal, or
+     * next to one already kept.
+     *
+     * @return null if the layout has no camp
+     */
+    @Nullable
+    public static SurvivorGrounds fromCamp(DrossHub.Layout layout)
+    {
+        HubCamp.Spots camp = layout.camp();
+        if (camp == null)
+        {
+            return null;
+        }
+        BoundingBox area = areaFor(layout);
+        Clearance clearance = new Clearance(layout.exit(), layout.arrival());
+        List<Waypoint> places = new ArrayList<>();
+        for (HubCamp.Place place : camp.places())
+        {
+            BlockPos spot = place.pos().immutable();
+            boolean near = places.stream().anyMatch(other -> other.pos().distSqr(spot) < MIN_APART * MIN_APART);
+            if (area.isInside(spot) && !clearance.keepsRestingOff(spot) && !near)
+            {
+                places.add(new Waypoint(spot, place.weight()));
+            }
+        }
+        return new SurvivorGrounds(List.of(camp.mentor().immutable(), camp.student().immutable()),
+                List.of(camp.mentorYaw(), camp.studentYaw()), area, List.copyOf(places), clearance);
     }
 
     /** Where the survivors may be at this hub: its camp's box and {@value #CAMP_AREA_MARGIN} blocks round it, or (no

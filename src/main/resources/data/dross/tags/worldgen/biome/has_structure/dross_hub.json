@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "dross:silverwood_forest",
+    "dross:cinder_wastes",
+    "dross:blightwood",
+    "dross:rimefall",
+    "dross:gravecrags"
+  ]
+}

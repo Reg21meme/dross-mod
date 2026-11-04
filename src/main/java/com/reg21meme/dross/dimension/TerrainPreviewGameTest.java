@@ -555,7 +555,7 @@ public final class TerrainPreviewGameTest
         {
             footprint = layout.get().footprint();
             DrossHub.Layout l = layout.get();
-            stats.addProperty("hub", l.kind() + (l.fitted() ? " on fitted ground" : "") + ", ground level " + l.groundY() + ", footprint X "
+            stats.addProperty("hub", "the Shattered Spire, made with the land, ground level " + l.groundY() + ", footprint X "
                     + footprint.minX() + ".." + footprint.maxX() + ", Z " + footprint.minZ() + ".." + footprint.maxZ());
         }
         drawBlocks(dross, cx, cz, HUB_HALF, HUB_SCALE, footprint, out.resolve("hub_area.png"), "The hub, " + 2 * HUB_HALF + " blocks square (real blocks)");
