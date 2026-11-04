@@ -46,7 +46,7 @@ import org.slf4j.Logger;
  *       generator and starts working the spot out on a background thread; anything that asks before it's done waits for
  *       it (or, if it hasn't started, does it itself: the same work, done once).</li>
  *   <li>A world whose Overworld doesn't generate the site's structure set (a superflat world's own list of structures)
- *       has no site: {@link #available} is false.</li>
+ *       has no site: {@link #available} is false. So has a world made with Generate Structures off.</li>
  * </ul>
  */
 final class SiteFinder
@@ -75,7 +75,9 @@ final class SiteFinder
             LevelHeightAccessor full = LevelHeightAccessor.create(overworld.getMinBuildHeight(), overworld.getHeight());
             int bandMin = Math.max(overworld.getMinBuildHeight(), Math.floorDiv(overworld.getSeaLevel() - SiteRules.BAND_BELOW, 8) * 8);
             int bandMax = Math.min(overworld.getMaxBuildHeight(), Math.floorDiv(overworld.getSeaLevel() + SiteRules.BAND_ABOVE + 7, 8) * 8);
-            boolean available = structures.possibleStructureSets().stream().anyMatch(set -> set.is(SET));
+            // (Generate Structures off: no structure is made at all, like vanilla's strongholds, so no site either)
+            boolean available = structures.possibleStructureSets().stream().anyMatch(set -> set.is(SET))
+                    && overworld.getServer().getWorldData().worldGenOptions().generateStructures();
             ChunkPos spawn = new ChunkPos(random.sampler().findSpawnPosition());
             return new Context(generator, random, structures, full, LevelHeightAccessor.create(bandMin, bandMax - bandMin),
                     overworld.getSeaLevel(), SiteVillages.villageSets(structures), available, spawn.getMinBlockX() + 8, spawn.getMinBlockZ() + 8);

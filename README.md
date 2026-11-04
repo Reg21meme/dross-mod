@@ -19,15 +19,15 @@ The Dross is a **mid-to-late game** place. You reach it after surviving the Neth
 
 How a player moves through the mod, from a normal survival world to the Dross.
 
-1. **Normal survival.** Nothing from the mod is needed at first. Somewhere 3,000–10,000 blocks from spawn, the **Fallen Cathedral** already stands in ruins around an unlit blue portal frame, and the land around it is dying. An old villager, the **Dross Trader**, lives in a small stone chapel at the edge of a village near spawn.
+1. **Normal survival.** Nothing from the mod is needed at first. Somewhere 4,000–5,000 blocks from spawn, usually in a forest, taiga or snowy land, the **Fallen Cathedral** stands in ruins around an unlit blue portal frame, and the land around it is dying. Out in the countryside, away from the villages, stand small stone **Rift Chapels**, each with an old villager inside: a **Dross Trader**.
 2. **The Weathered Letter.** Every Nether Fortress and Bastion Remnant chest holds a Weathered Letter. It's a 4-page letter from an unnamed friend:
    - Blue portals from the Dross have been spilling into the world. "We" closed them, but the Dross is pressing to break through again.
    - An old villager, the writer's friend, is looking for someone strong enough to fight back.
-   - It gives a rough location for him: a direction from where the world began, and coordinates rounded to 50 blocks.
+   - It gives a rough location for him, in the nearest Rift Chapel to where you first held the letter (in the Nether, the matching Overworld spot: your coordinates times 8): a direction from where the world began, and coordinates rounded to 50 blocks.
    - It tells the reader to say an old friend sent them about the rift.
 
    Picking up the letter opens the **Dross** advancement tab.
-3. **Meeting the trader.** The first time you right-click him, he doubts you're strong enough and sends you for three tributes, one each from the Nether's fortresses, the deep dark's cities and the End. After that, each right-click reminds you what's still missing. His trading screen stays closed until the quest is done.
+3. **Meeting the trader.** Any chapel's trader will do: your quest progress is your own. The first time you right-click him, he doubts you're strong enough and sends you for three tributes, one each from the Nether's fortresses, the deep dark's cities and the End. After that, each right-click reminds you what's still missing. His trading screen stays closed until the quest is done.
 4. **The three tributes** (any order). Right-click him while holding the full amount: **1 wither skeleton skull**, **3 echo shards** and **15 end stone**. If you hold too few, he tells you how many to bring. If you hold more, he takes exactly what he needs. Once all three are in, he gives you the **Dross Compass**, which points at the cathedral's portal. He says he knows how to forge a key but needs materials. *Advancement: Proven Worthy.*
 5. **The key materials** (any order, same rules): **1 trident**, **1 Heart of the Sea** and **8 amethyst shards**. He forges the **Rift Key**, tells you to be careful what you let out, and mentions he has books that can help in there. *Advancement: Keymaster.* His shop opens for you.
 6. **Opening the rift.** Follow the compass to the Fallen Cathedral and throw the Rift Key into the frame's opening. The key is used up and the portal lights, staying open for everyone, permanently.
@@ -154,30 +154,31 @@ Electric blue portal texture, blue particles, and a blue swirl over your screen 
 
 ## The Fallen Cathedral (the portal site)
 
-The cathedral is the only way into the Dross, and it's built once per world.
+The cathedral is the only way into the Dross. There's one per world, and it's made by world generation (the structure `dross:portal_site`): it appears with the land the first time its chunks are generated, like a village. Nothing is built when a new world starts.
 
-- **Where:** a random spot **3,000–10,000 blocks from world spawn**, chosen when a new world starts and saved with the world.
-  - **Allowed biomes:** plains, sunflower plains, desert, taiga (including old growth and snowy taiga), forest, flower forest, birch forest, dark forest, snowy plains and ice spikes.
-  - **Avoided:** ocean, river, beach, swamp, water near the footprint, and villages.
-  - The natural ground under it must be nearly flat to begin with: 5 blocks of variation or less, with a few small dips allowed.
-  - The search runs in the background using the world generator's own maths, then the best spot is checked in the real world. If nothing passes, the rules relax step by step, so every world gets a site. It takes about a minute after a new world starts.
-  - When it's built, a chat message gives its location. You see the message again each time you join the world.
+- **Where:** worked out from the world's seed alone (in about a second, without loading or generating anything), so it's known from the start and is the same every time.
+  - **4,000–5,000 blocks from spawn**, in a direction the seed picks, then nudged to the nearest good spot: forest, dark forest, taiga, snowy plains or taiga, ice spikes or grove.
+  - **Avoided:** ocean, river, beach, swamp, mountains, deep water, and villages and pillager outposts.
+  - The land under it must be nearly flat to begin with: 5 blocks of variation or less.
+  - If nothing passes, the rules relax step by step (more variation, further out, any dry land), so every world gets a site.
+  - Each time you join the world, a chat message gives its location.
 - **What:** a huge ruined cathedral, 61 × 87 blocks. Its heart is an unlit, unbreakable portal frame with a 3 × 5 opening, facing south. Glowing blue cracks, broken frame shards and dead ground show the Dross leaking out.
 - **Fitting into the land:**
-  - The footprint is levelled by cutting or filling a few blocks, with no big foundations.
-  - Around it the ground steps back down to the natural terrain **one block at a time**, so there are no cliffs or dirt walls.
-  - New ground keeps the local top layer (grass, sand, snow...).
-  - Only trees that touch the cathedral or the reshaped ground are removed, always whole, so there are no floating leaves. The rest of the forest is left alone.
+  - Minecraft's own terrain shaping (as for village houses) draws the land to its floor, and the footprint is levelled exactly, with no big foundations.
+  - Around it the ground steps back to the natural terrain **one block at a time**, out to 16 blocks, so there are no cliffs or dirt walls. New ground keeps the local top layer (grass, sand, snow...).
+  - Minecraft grows its trees after the structures, so once its land is loaded, every tree touching the cathedral is removed, always whole, so there are no floating leaves. The rest of the forest is left alone. (Arriving there, you may see them vanish a moment after the land appears.)
 - **The leak:** within about 16 blocks, flowers and grass die or disappear, some grass turns to coarse dirt, and stone bricks crack.
-- **Fallback:** if the cathedral can't be built, a small ruined stone-brick shrine around a 4 × 5 frame is built instead.
+- **No site** in a superflat world, or one made with **Generate Structures** off (no structures at all, like vanilla's strongholds; a warning in the log): there, the hub's exit portal brings you back near the world spawn.
 
-The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size). The compass, `/dross goto cathedral` and the hub's exit portal all use it.
+The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size), worked out from the seed. The compass, `/dross goto cathedral` and the hub's exit portal all use it; the last two load the frame's land first (the first time, generating it), as a nether portal trip does.
+
+(Until November 4, 2026 the site was found by a long search at world start, 3,000–10,000 blocks out, and built a step at a time; on some modded worlds that froze the game, so it became a world-generation structure.)
 
 ---
 
 ## The hub: the Shattered Spire
 
-- Built once per world at **Dross 0,0**: a tall, broken spire, levelled into the forest. It's built in the background a few seconds after a new world starts, so creating the world doesn't wait for it (going through a portal sooner finishes it on the spot). The ground round it steps back to the natural land at most 1 block at a time (no cliffs or dirt walls), and only trees touching it are removed, each one whole.
+- One per world at **Dross 0,0**: a tall, broken spire, levelled into the forest. It's made by world generation (the structure `dross:dross_hub`), with the land, the first time someone enters the Dross: nothing happens when a new world starts, and that first trip takes about a second longer, like a first trip into new Nether land. Its ground level comes from the seed. The ground round it steps back to the natural land at most 1 block at a time (no cliffs or dirt walls), and trees keep about 24 blocks off it, plants and ores 8.
 - Its portal frame is lit as the **exit portal**, facing south.
 - You arrive inside the spire's hall, on the top step in front of the exit portal, facing the gate.
 - **Arrival sequence**, every time you come through the portal:
@@ -185,11 +186,12 @@ The site's position and the frame's direction are available to the rest of the m
   - Four piano notes play, "dun, dun, DUN, dunnn" (E, D, C#, then a low F#). Only you hear them.
   - Two seconds after the last note, you get the *Enter the Dross* advancement.
   - On your **first arrival only**, you get the **Dross Guide Book** (dropped at your feet if your inventory is full).
-- **Fallback:** if the spire can't be built, an 11 × 11 platform with a lit 4 × 5 exit portal is built instead.
+- If the exit portal has gone out but its frame is whole, arriving lights it again.
+- With **Generate Structures** off there's no hub (nor cathedral or chapels): you'd land on safe ground near Dross 0,0.
 
 ### The survivors
 Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the Dross skins drawn for the trader's villager model (8 and 3).
-- They live in their **camp** at the foot of the spire's front steps, west of the road: a slab of the spire's broken crown on four broken pillars behind a windbreak of masonry, the Oracle's seat by a humming shard of a Dross frame among his books and candles, the Seeker's bed among his crates and tools, and a blue soul fire with benches in front. They walk together round the camp (the fire, the books, the tools, the road), never more than 6 blocks outside it. (If the camp couldn't be built, they live in the spire instead, starting on the dais beside the arrival step.)
+- They live in their **camp** at the foot of the spire's front steps, west of the road: a slab of the spire's broken crown on four broken pillars behind a windbreak of masonry, the Oracle's seat by a humming shard of a Dross frame among his books and candles, the Seeker's bed among his crates and tools, and a blue soul fire with benches in front. They walk together round the camp (the fire, the books, the tools, the road), never more than 6 blocks outside it. They come with the hub's land, once per world.
 - Right-click one and he says his next line in chat.
 - Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them, and Necromancy never raises undead from hitting them.
 - No trades.
@@ -201,18 +203,17 @@ Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Ora
 An old villager (`dross:dross_trader`) who knows about the rift. He wears an original electric blue skin, **The Archivist**: a bald scholar with glowing spectacles and a blue book.
 
 ### Where he lives
-- He spawns **once per world**, in his own **Rift Chapel** at the edge of the nearest village to world spawn that has room for it.
-- **Finding a village:** he checks the 5 nearest villages within 1,000 blocks first. If none has room, he tries the next 5, widening the search 1,000 blocks at a time up to 5,000. The log says which village was picked and why.
-- **No usable village:** if none is found (for example with Generate Structures off), the chapel goes on the nearest flat spot near spawn, with its door facing spawn.
-- When he spawns, a chat message gives his chapel's location. You see the message again each time you join the world.
+- In a **Rift Chapel**: a small stone chapel made by world generation (the structure `dross:rift_chapel`), standing on its own in the Overworld's countryside, like an igloo or a witch hut. A world has **many** of them, roughly one every 500 × 500 blocks where the land suits (about 50 within 5,000 blocks of spawn), and **each has its own trader**, who comes with the chapel's land. Nothing of him happens when a new world starts.
+- **Where one fits:** forests, taigas, savannas, plains, snowy plains, desert, meadows and cherry groves, on dry land that's nearly flat (6 blocks of variation or less); never by an ocean, river, beach, swamp, jungle or peak, and never near a village or the cathedral. Its door faces a way the seed picks.
+- **Fitting into the land:** Minecraft's own terrain shaping draws the land to its floor, and the ground round it steps back to the land a block at a time over 6 blocks. Trees that grew into it are felled, whole, by its trader the first time its land is loaded.
+- Each time you join the world, a chat message gives the location of the chapel nearest you.
+- Your quest progress is your own, so any chapel's trader will do.
+- In a superflat world, or one made with **Generate Structures** off, there are no chapels (only spawn-egg traders).
+- (Until November 4, 2026 there was one trader per world, in a chapel at the edge of the nearest village to spawn, found by a search at world start that could freeze modded worlds.)
 - **The Rift Chapel** (9 wide, 13 deep, 18 tall):
   - **Outside:** deepslate and stone brick walls with lapis, buttresses, tall blue windows, a blue rose window over the dark oak door, and a steep roof. On top are an open belfry with a soul lantern and a spire with a copper lightning rod.
   - **Inside:** pews, blue banners and soul lanterns. Behind the altar is a broken piece of a real Dross portal frame, which leaks and hums but can't be lit.
-- **Placement:**
-  - The chapel sits right next to the village's houses without touching any of them. Its door faces the nearest street.
-  - A 3-wide path in the village's own path material (dirt path, or smooth sandstone in desert villages) leads from the door to that street.
-  - Small bumps under it are levelled, up to 3 blocks each way.
-  - The lightning rod draws natural lightning within 128 blocks to the spire, which keeps it away from the village.
+  - The lightning rod draws natural lightning within 128 blocks to the spire (harmless).
 
 ### Behavior
 - **Wandering:** he wanders within 50 blocks of his chapel and opens his door.
@@ -243,7 +244,7 @@ Unlimited uses, no restocking, no XP.
 
 | Item | What it does |
 |---|---|
-| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in every Nether Fortress and Bastion Remnant chest (added with a global loot modifier, so other mods' loot still works). It points to the trader with a rough location and rewrites itself with his real location once he has spawned. |
+| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in every Nether Fortress and Bastion Remnant chest (added with a global loot modifier, so other mods' loot still works). It comes out of its chest blank and is written the first time it's in your inventory, a moment later: a rough location of the nearest Rift Chapel to where you held it (in the Nether, the matching Overworld spot). |
 | **Dross Compass** | Given by the trader after the three tributes. Points at the Fallen Cathedral's portal and re-aims itself every second, so it stays correct. Spins in other dimensions. |
 | **Rift Key** | Forged by the trader from the key materials. A crystal key with a blue heart. Throw it into a Dross frame to light the portal (it's used up). Fireproof, never despawns. |
 | **Dross Guide Book** | Given on your first arrival in the Dross, and sold by the trader. A readable 5-page guide to the dimension: endless night, the safe hub, the netherite-clad dead, and no way out but the hub. |
@@ -762,9 +763,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 
 | Command | What it does |
 |---|---|
-| `/dross goto cathedral` | Teleports you in front of the Fallen Cathedral's frame, facing it. Before the site is built, it says so instead. |
-| `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross. |
-| `/dross goto trader` | Teleports you to the trader, even if his area isn't loaded. |
+| `/dross goto cathedral` | Teleports you in front of the Fallen Cathedral's frame, facing it, generating its land first if needed. In a world with no site (superflat, or Generate Structures off), it says so instead. |
+| `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross, onto the arrival step (the first time, its land is generated). |
+| `/dross goto trader` | Teleports you onto the doorstep of the nearest Rift Chapel (within 12,000 blocks), facing its door, generating its land first if needed. |
 | `/dross goto biome <name>` | Teleports you to safe ground in the nearest example of a Dross biome: `silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall` or `gravecrags`. |
 | `/dross goto lair colossus` | Teleports you to the nearest Cinder Colossus lair's entrance. If it isn't built yet, it says so, builds it, and teleports you once it's ready. |
 | `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
@@ -774,7 +775,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto village` | Teleports you to the way into the nearest hunter village (either kind). `/dross goto village <x> <z>`: the one nearest that spot. |
 | `/dross locate villages` | A test tool for now: lists the 5 nearest hunter villages (which kind, where, how far, how many igloos), each with a [go] button. |
 | `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
-| `/dross trader sendhome` | Sends the trader home. |
+| `/dross trader sendhome` | Sends the nearest trader whose land is loaded home. |
 | `/dross quest status` | Shows your quest progress. |
 | `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*, *Set in Stone* and *Down the Drain*). |
 | `/dross quest complete` | Finishes the quest for you. |
@@ -842,7 +843,7 @@ From the project folder, on Windows:
   - See `tools/shrines/README.md`.
 - **`tools/skins/`:** draws the 4 villager-model skins (`textures/entity/trader/`: 1 Hooded Watcher, kept for later; 2 The Archivist, the trader; 3 Ragged Seeker and 8 Blind Oracle, the survivors) and renders the front and back previews in `skin-previews/`.
 - **`tools/terrain/`:** the Dross's terrain and blocks.
-  - `worldgen.py` writes all the terrain data files (noise, biomes, ground cover, features, ores, spawn lists); every tuning number is a labeled constant at its top.
+  - `worldgen.py` writes all the terrain data files (noise, biomes, ground cover, features, ores, spawn lists), and the structure files of the hub, the Fallen Cathedral and the Rift Chapels; every tuning number is a labeled constant at its top (among them how far trees, plants and ores keep off the hub).
   - `draw_blocks.py` draws the terrain blocks' textures and `block_data.py` writes their models, block states, loot, tags and recipes; previews go to `block-previews/`.
   - Top-down maps of a generated area are in `terrain-previews/`.
   - See `tools/terrain/README.md` (and `TERRAIN_DESIGN.md` for the design).
@@ -865,14 +866,14 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 
 | Package | What's in it |
 |---|---|
-| `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators and the hub falloff (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
-| `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (fitted onto the terrain), the arrival sequence |
-| `world` | The portal site: location search, the Fallen Cathedral, ground fitting, the leak (`world/shrine` holds the shrine designs) |
-| `villager` | The trader, his chapel and path, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
+| `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators, the hub falloff and the filter that keeps features off the hub (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
+| `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (a world-generation structure fitted onto the terrain), the arrival sequence |
+| `world` | The portal site: its spot from the seed, the Fallen Cathedral as a world-generation structure, the tree tidy-up, ground fitting, the leak (`world/shrine` holds the shrine designs) |
+| `villager` | The trader, his Rift Chapels (a world-generation structure) and finding the nearest, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
 | `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
 | `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
 | `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss` |
 | `command` | The `/dross` command and its showcases |
-| `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, world generation features, tree decorators, density functions, placement modifiers, the creative tab |
+| `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, world generation features, tree decorators, density functions, placement modifiers, structures, the creative tab |
 
 Mod metadata is in `src/main/resources/META-INF/mods.toml`, filled from `gradle.properties`. All player-facing text is in `assets/dross/lang/en_us.json`.

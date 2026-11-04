@@ -22,8 +22,8 @@ public final class RiftChapelEvents
     {
         if (!event.getServer().getWorldData().worldGenOptions().generateStructures())
         {
-            LOGGER.warn("[Dross] The Dross's Rift Chapels and Fallen Cathedral aren't generated: Generate Structures is off in this world, so it "
-                    + "has no Dross trader and no portal site.");
+            LOGGER.warn("[Dross] The Dross's Rift Chapels, Fallen Cathedral and hub aren't generated: Generate Structures is off in this world, "
+                    + "so it has no Dross trader, no portal site and no exit portal in the Dross.");
         }
     }
 
