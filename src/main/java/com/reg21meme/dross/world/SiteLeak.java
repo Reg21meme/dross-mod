@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.state.properties.DoubleBlockHalf;
 import org.slf4j.Logger;
 
 /**
- * "The Dross is leaking out": done <b>once</b>, right after the castle (or placeholder shrine) is placed.
+ * "The Dross is leaking out": done <b>once</b>, when the cathedral's land is first loaded ({@link SiteTidy}).
  * Around the frame:
  * <ul>
  *   <li>flowers, grass and ferns die: they become dead bushes or disappear;</li>
@@ -45,8 +45,8 @@ final class SiteLeak
      */
     private static final float EDGE_FALLOFF = 0.5F;
 
-    /** Applies the leak around the frame, once, and logs what changed. */
-    static void apply(ServerLevel level, SiteFrame frame)
+    /** Applies the leak around the frame, once, and logs what changed (and returns it, for the tidy-up's summary). */
+    static String apply(ServerLevel level, SiteFrame frame)
     {
         RandomSource random = level.getRandom();
         BlockPos center = frame.openingCenter();
@@ -101,9 +101,11 @@ final class SiteLeak
                 }
             }
         }
-        LOGGER.info("Dross portal site: leak effects applied within {} blocks of {}: {} plants turned into dead bushes, "
-                + "{} plants removed, {} grass blocks turned into coarse dirt, {} stone bricks cracked",
-                LEAK_RADIUS, center.toShortString(), deadBushes, plantsRemoved, coarseDirt, cracked);
+        String summary = String.format("the leak within %d blocks of %s: %d plants turned into dead bushes, %d plants removed, %d grass "
+                + "blocks turned into coarse dirt, %d stone bricks cracked", LEAK_RADIUS, center.toShortString(), deadBushes, plantsRemoved,
+                coarseDirt, cracked);
+        LOGGER.info("Dross portal site: {}", summary);
+        return summary;
     }
 
     /** Flowers (one and two blocks tall), grass, tall grass, ferns and large ferns. */

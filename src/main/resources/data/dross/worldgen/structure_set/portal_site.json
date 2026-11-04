@@ -1,0 +1,12 @@
+{
+  "structures": [
+    {
+      "structure": "dross:portal_site",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:portal_site",
+    "salt": 1104202602
+  }
+}

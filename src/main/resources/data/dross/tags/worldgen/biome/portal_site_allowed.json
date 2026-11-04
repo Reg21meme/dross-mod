@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "#dross:portal_site_preferred",
+    "minecraft:plains",
+    "minecraft:sunflower_plains",
+    "minecraft:desert",
+    "minecraft:savanna",
+    "minecraft:savanna_plateau",
+    "minecraft:meadow",
+    "minecraft:cherry_grove",
+    {
+      "id": "#forge:is_plains",
+      "required": false
+    }
+  ]
+}

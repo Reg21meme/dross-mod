@@ -1,38 +1,28 @@
 package com.reg21meme.dross.world;
 
-import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraftforge.event.server.ServerStartedEvent;
+import net.minecraft.world.level.Level;
+import net.minecraftforge.event.level.LevelEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import org.slf4j.Logger;
 
 /**
- * Starts placing the portal site (castle) when a world has finished loading: only the first time, it's remembered after
- * that. The spot is picked and the site built in the background ({@link PortalSitePlacer}).
+ * When the server's Overworld is made (before its spawn area is generated), its portal site's spot starts being worked out
+ * from the seed on a background thread ({@link SiteFinder#register}), so it's ready long before anything asks for it.
+ * Nothing else of the site happens at world start: no chunk is loaded or held for it, and nothing is built (the cathedral
+ * comes with its land, {@link PortalSiteStructure}; the tidy-up waits for that land, {@link SiteTidy}).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class PortalSiteEvents
 {
-    private static final Logger LOGGER = LogUtils.getLogger();
-
     @SubscribeEvent
-    public static void onServerStarted(ServerStartedEvent event)
+    public static void onLevelLoad(LevelEvent.Load event)
     {
-        ServerLevel overworld = event.getServer().overworld();
-        if (overworld == null)
+        if (event.getLevel() instanceof ServerLevel level && level.dimension() == Level.OVERWORLD)
         {
-            return;
+            SiteFinder.register(level);
         }
-        PortalSiteData data = PortalSiteData.get(overworld);
-        if (data.isPlaced())
-        {
-            LOGGER.info("Dross portal site: already placed in this world ({}); frame corner {} axis {}",
-                    data.getKind(), data.getFramePos().toShortString(), data.getAxis());
-            return;
-        }
-        PortalSitePlacer.start(overworld);
     }
 
     private PortalSiteEvents() {}

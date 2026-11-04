@@ -152,3 +152,186 @@ after this change. `.\gradlew.bat build` passes, and the jar holds no test class
   fails in a reused old `run/world`. New worlds only, as agreed.
 - Not seen in a game window yet: the spire on the land, the camp, the forest's edge 24 blocks out, and the survivors
   walking.
+
+### Stage 2: the Fallen Cathedral (world-builder)
+
+**Built.** The Overworld portal site is a world-generation structure, `dross:portal_site`, one per world, made with
+the land the first time its chunks are generated. At world start nothing happens but working out its spot from the
+seed, on a background thread: no search over the world, no chunk tickets, no chunk loads, no building.
+- `world/SiteFinder` (new): the spot from the seed alone, deterministic and thread-safe, remembered per world (keyed by
+  its `RandomState`). The seed (mixed by Xoroshiro: the legacy generator's first number barely changes between nearby
+  seeds, and seeds 1, 2, 3... all pointed east) picks a direction and a distance of 4,000-5,000 blocks from the climate
+  sampler's spawn point (`Climate.Sampler.findSpawnPosition`, where Minecraft starts looking for the world spawn; the
+  real spawn is within about 100 blocks of it). From there the nearest acceptable spot on an outward grid, each
+  candidate read in stages, cheapest first, from the generator's own noise:
+  1. the land's smooth height at the site column (two readings of the noise router's `depth`: microseconds) inside a
+     height band round sea level (no mountains, no deep sea);
+  2. biomes at that height: the site column and 12 places over the footprint (corners, sides, middle) in the rung's
+     tag, and nothing forbidden (ocean, river, beach, swamp) at 9 places just round it;
+  3. a quick look at the real heights: the footprint's corners, side middles and middle (9 noise columns): dry and
+     within the rung's variation;
+  4. no possible village or pillager outpost start within 125 + 48 blocks of the footprint and its 16-block ring
+     (`world/SiteVillages`, now with outposts: the sets' own `RandomSpreadStructurePlacement` maths, and only starts
+     whose biome can hold one);
+  5. the full check: noise columns every 15 blocks over the footprint and 4 round it (48): dry, variation within the
+     rung's;
+  then its ground level: the median of the generator's heights every 10 blocks over the footprint (63 columns), moved
+  to the nearest level the cathedral fits at. Heights are read in a band from 16 under sea level to 112 over it (much
+  quicker than the whole column).
+  The ladder (`SiteRules.LADDER`, each relaxed rung with a WARN): 0 strict (preferred biomes, variation 5, 1,024 blocks
+  round the seed's spot every 48); 1 variation 8; 2 2,048 blocks round it every 96; 3 any dry-land biome
+  (`#dross:portal_site_allowed`); 4 any land, variation 12, 3,500-5,500 from spawn; then the last resort (the flattest
+  dry spot looked at, else the seed's own spot), so a world always gets a site.
+  - `register` (on `LevelEvent.Load` for the server's Overworld, before its spawn is generated) starts the work on a
+    daemon thread; anything that asks before it's done waits for it (or, if no thread has started it, does it itself:
+    `FutureTask`, the same work done once).
+  - Every chunk out of the widest rung's reach (all but a ring 3,244-5,756 blocks out) is answered "not the site's"
+    without any work, so spawn generation never waits for it.
+- `world/SiteSpot` (new): the answer (site column, ground level, rung, variation, distance, how much was read, time).
+- `world/PortalSitePlacement`, `PortalSiteStructure`, `PortalSitePiece` (new; in `registry/ModStructures`, entries
+  only; JSON `worldgen/structure/portal_site.json`, `structure_set/portal_site.json`, also written by
+  `tools/terrain/worldgen.py`, which owns those folders and would otherwise delete them):
+  - the placement starts the structure only in the chunk holding the site column, looking the world up by its random
+    state (so a mod's other dimension with Overworld biomes never gets one);
+  - the structure skips Minecraft's biome check (the spot was chosen with its biomes), step `surface_structures`,
+    biomes `#minecraft:is_overworld`, `terrain_adaptation` `beard_thin`;
+  - the piece covers the footprint and a 16-block ring; it tells Minecraft's beardifier (through Forge's
+    `PieceBeardifierModifier`) to draw the land to the floor over the footprint (its box from the ground level up,
+    ground delta 1, so the ground's top block is the cathedral's ground level); then, chunk by chunk, it levels the
+    footprint exactly (boulders, water and plants over it cleared, dips and caves just under it filled, at most 8
+    down; a ravine at most 24), steps the ring back to the land (a column d blocks out kept within d of the ground
+    level, out to 16; each column's own top block and soil), walls in any water or lava beside a cut, and places the
+    cathedral's template cut to the chunk with a known shape (flags 18, like the hub's piece), its unlit frame among
+    its blocks.
+- `world/SiteTidy` (new): once per world, when every chunk of the footprint and 3 chunks round it are loaded (never
+  loads one), a step a server tick: fells every tree, huge mushroom and ice spike that touches the footprint, whole
+  (`TreeFelling`, steps of at most 40 ms), the cathedral's own blocks kept; clears the frame's opening; applies the leak
+  (`SiteLeak`). Saved as done in `PortalSiteData` (rewritten: just that). If its land unloads half way it waits; if the
+  server stops after it has started removing things, the rest is done at once.
+- `world/shrine/TreeFelling`: the felling now works on an `Area` (the columns, which are touched, their ground, what's
+  cleared anyway, what it keeps, how far it may follow a tree); `GroundFit.Plan` is one (`Area.of`, exactly the old
+  behaviour); the tidy-up's area keeps the template's own blocks (its dark oak and spruce beams, mossy cobblestone,
+  blue ice), and a kept log never holds a tree's leaves up.
+- `world/PortalSite` (rewritten): `getFramePos`, `getFrameAxis`, `getOpeningCenter`, `getOpeningWidth` are arithmetic
+  on the seed's spot (`PortalCathedral`, rewritten as the cathedral's arithmetic); `isPlaced` is now "this world has a
+  site" (false only in a superflat world whose list of structures leaves it out); new `loadAround(level)` loads the
+  frame's chunks (the first time, generated) and adds vanilla's portal ticket, as a nether trip does.
+- Callers: `/dross goto cathedral` (`command/DrossCommand`: loads the frame's chunks, then lands in front of the frame
+  facing it as before; in a world with no site it says so), the hub's exit (`portal/DrossTeleporter.toCastle`: loads
+  them, then lands in front of the frame; no site: near the world spawn), `villager/DrossCompass` (unchanged: it reads
+  `getOpeningCenter`), `world/SiteAnnouncer` (each player who joins is told where it is: it's known from the start).
+- Biome tags (new): `#dross:portal_site_preferred` (`#minecraft:is_forest`, `#minecraft:is_taiga`, `#forge:is_snowy`,
+  dark forest, snowy plains and taiga, ice spikes, grove) and `#dross:portal_site_allowed` (those plus plains, sunflower
+  plains, desert, savanna, savanna plateau, meadow, cherry grove, `#forge:is_plains`).
+
+**Removed.** `world/SiteSearch`, `SiteCheck`, `PortalSitePlacer`, `PortalSiteBuilder`, `PortalCastle` (and
+`PortalSite.CASTLE_TEMPLATE`), `PortalShrine`, `SiteLayout`; `SiteAnnouncer.announcePlaced`; the old `PortalSiteData`
+contents; `SiteFrame.standard`. Kept: `GroundFit`, `ShrineDesign`, `ShrineGround` (the hub and `/dross showcase
+hub_camps` use them), `TreeFelling` (the tidy-up). `ShrineDesign.startFitted`/`buildFitted` and `GroundFit.Fitting`/
+`apply` now have no game users, only their tests (`SteppedFitGameTest`, `GroundFitTagsGameTest`, unchanged and still in
+the `dross` namespace); they could go in a later cleanup.
+
+**Choices (no one to ask).**
+- **The placement finds the world by its random state**, not by reflection on `ChunkGeneratorStructureState`'s private
+  biome source: the spot needs the generator's heights too, which the structure state doesn't have. The Overworld
+  registers its generator, random state and structure state on `LevelEvent.Load` (Forge fires it before
+  `setInitialSpawn`, so before any chunk is made), and the placement and the structure look it up by
+  `state.randomState()` / `context.randomState()` (the same object). A level that isn't registered (another dimension
+  using Overworld biomes) never gets a site.
+- **The spot is measured from the climate sampler's spawn point**, not `getSharedSpawnPos`: the real spawn isn't set
+  until after the level is loaded (and a command can move it), and the spot must be the same on every thread from the
+  start. Minecraft picks the real spawn within 5 chunks of that point, so it's 4,000-5,000 blocks from the real spawn
+  give or take about 100 (the test allows 150).
+- **The nudge reaches 1,024 blocks for the strict rules** (2,048 for the relaxed), not a stronghold's 112: a multi-seed
+  probe (`world/PortalSiteProbeGameTest`, namespace `dross_site_probe`, 16 seeds) showed that 4,000-5,000 blocks out is
+  very often sea (most turned-down spots were oceans, rivers and beaches). With 384 blocks only 3 of 16 seeds found a
+  forest, taiga or snowy spot and the average was 1.6 s; with the final ladder 13 of 16 found one (6 under the strict
+  rules, 4 with up to 8 blocks of variation, 3 further out), 2 took any dry-land biome (a desert...), 1 the steep last
+  rung; 0.8 s on average, 1.7 s at worst.
+- **Biomes over the footprint, not its ring**: every sample over the footprint and its 16-block ring had to be preferred
+  at first; with rivers threading forests almost nothing passed. Now the footprint's 12 places and the site column must
+  be in the tag, and only a forbidden biome just round it (4 blocks: the water clearance) turns it down; water itself is
+  caught by the height check (fluid on the noise column).
+- **`beard_thin`, kept**: on the same hilly dark-forest seed (seed 2: the land varying by 7, ground y 89) the
+  `beard_box` run gave identical numbers (the piece changed 88 columns, 249 blocks of height, at most 8 in one, all
+  beyond the beard's reach of about 8 blocks; inside it both left nothing to do) and both passed every check. `beard_box`
+  carves the whole box volume (66 blocks tall here) and its surroundings, which on a hillside cuts a cathedral-high pit;
+  `beard_thin` is what Minecraft uses for village houses and stays near the floor. The piece's own levelling and
+  staircase (a column d blocks out within d of the ground level) guarantees the edges either way. The beard box is the
+  footprint from the ground level up with ground delta 1 (Forge's `PieceBeardifierModifier`), so the top of the shaped
+  ground is exactly the cathedral's ground level; the piece's own bounding box is bigger (the ring and the fill under
+  it) so every chunk it touches builds its part.
+- **The tidy-up is kept, and simple to trust**: it reuses `TreeFelling` through a new `Area`, so the felling (whole
+  trees, leaves no remaining log holds up, rounds for canopies that reach in) is the one already tested; the area keeps
+  only the template's own fellable blocks (its beams of dark oak and spruce, mossy cobblestone, blue ice) and a kept log
+  never holds leaves up (found by the test: 133 leaves round the beams stayed; and 3 dark oak logs that grew into
+  template cells holding dead bushes stayed until only fellable template blocks were kept). It follows a tree at most 24
+  blocks out of the footprint and waits for 3 chunks round it to be loaded, so it never reads an unloaded chunk.
+- **Superflat worlds have no site** (a flat world's list of structures leaves the set out): `PortalSite.isPlaced` is
+  false there, `/dross goto cathedral` says so, the hub's exit lands near the world spawn, and nobody is told a
+  location. (The old search built a cathedral on flat land; a world-generation structure can't be added to a flat
+  world's list without a mixin.)
+- **Ores and stone blobs in the cathedral's stone**: Minecraft's ore, diorite/granite/tuff and dungeon features come
+  after the surface structures (in neighbouring chunks too), so a few of its `stone` blocks become diorite or an ore, and
+  once in a while a dungeon's cave air reaches its underground layers (vanilla's structures get the same). Left as it is;
+  the test counts a stone-to-ore or stone-to-blob swap as the world's own.
+
+**Checked** (`world/PortalSiteGameTest`, rewritten; its own namespace `dross_site` for these runs, now back in `dross`;
+it keeps the shared empty template `PortalSiteGameTest.EMPTY` the other areas' tests use). Last runs, each in a
+brand-new world: `run/gt_nov4_site4` (seed 1234, pinned for a forest), `run/gt_nov4_thin2` and `run/gt_nov4_box2`
+(seed 2, the beard comparison) and `run/gt_nov4_site5` (a random seed): `All 3 required tests passed :)` each time.
+- `nothingHappensAtWorldStart`: when the server had started the spot was already worked out (on its thread), none of
+  the 120-143 chunks of the site and the 3 chunks round it was loaded, and no part of it built.
+- `spotComesFromTheSeed`: 4,000-5,000 blocks from the spawn point (or the rung's distances) and within 150 of that from
+  the real spawn; the site column in the rung's biomes, nothing forbidden under the footprint (every 8 blocks at its
+  ground level); no possible village or outpost start near it; its land within the rung's variation; worked out afresh
+  on the server thread and on another thread, the same, in under 2 s.
+- `cathedralIsMadeWithTheLand` (a ticket holds the site and 3 chunks round it, waited for by the clock; then the
+  tidy-up, by the clock): the structure start in the site's chunk; 99.94-100% of the cathedral's 16,747 template blocks
+  in place (a leak-cracked stone brick and a stone-to-ore swap count; all 1,744 of its air cells still air); the frame
+  whole (`DrossPortalShape`, the portal area's own frame test), unlit, its 3x5 opening empty, where the API says; all
+  5,172 columns out to 15 blocks within d of the ground level d blocks out; no log, leaf or huge mushroom on the
+  footprint that isn't the cathedral's own; the leak there (180-205 stone bricks cracked); `/dross goto cathedral` and
+  the hub's exit (`DrossTeleporter.getPortalInfo`) land on the frame's +Z side within a few blocks of the opening,
+  facing it (north); a new Dross Compass aims at the opening's middle; the stand-in player who joined was told once,
+  with those coordinates. An old world (the site's region file there at start and no structure start) is skipped with a
+  log line.
+- The ground-fitting tests (`SteppedFitGameTest`, `GroundFitTagsGameTest`), run on their own after the `TreeFelling`
+  change: `All 3 required tests passed :)` (`run/gt_nov4_fit2`).
+- `.\gradlew.bat build` passes; the jar holds no test classes.
+
+**Measured.**
+- The spot: 0.25-0.9 s on a quiet server thread (`spotComesFromTheSeed`), 0.6-1.9 s on its background thread at world
+  start while the spawn's land is being made; the probe's 16 seeds 0.8 s on average, 1.7 s at worst. A noise column
+  costs about 1-1.5 ms, a biome sample far less; the strict rules usually look at 2-400 spots.
+- The cathedral's chunks: 48-63 chunks of world-generation work, 46-100 ms in all, the slowest chunk 11-27 ms.
+- After Minecraft's beard the piece still cut or filled 10-88 columns (at most 1-9 blocks in one), all in the ring.
+- The tidy-up: 78-104 trees (565-2,113 logs, 5,000-6,300 leaves) and up to 15 huge mushrooms, 200-300 ms of work in 6-8
+  ticks, the longest 41-42 ms.
+- `/dross goto cathedral` in a new world generates the frame's chunks on the spot (as the first nether trip does); not
+  timed separately.
+
+**Left / risks.**
+- Not seen in a game window yet: the cathedral on real land (its beard-shaped edges, the felled forest round it, the
+  leak), the trees disappearing a moment after its land loads (the tidy-up runs when the chunks round it are loaded; a
+  player arriving by `/dross goto cathedral` may see it happen), and the frame lit with the Rift Key.
+- The ring's natural land is kept beyond the staircase: a natural step of 5-10 blocks can stand 5-12 blocks from the
+  footprint (logged by the test: "the land's own there").
+- A dungeon or a neighbouring chunk's feature can still reach into the cathedral's underground layers (a few cave-air
+  or dirt blocks seen); and a tree that grows after the tidy-up (a player's sapling) stays.
+- Superflat worlds have no site (above). The Weathered Letter, the trader and the quest don't depend on it, but a player
+  in such a world who goes through a Dross portal comes back near the spawn.
+- `CLAUDE.md` and `README` still describe the old search (step 3 "Location", "The castle", the "Verify over time"
+  lines about placement); agents may not edit `CLAUDE.md`.
+- `tools/terrain/worldgen.py` now also writes the site's structure JSON (it owns those folders); its own last step still
+  stops on the `en_us.json` format check (stage 1's note).
+- `world/SiteVillages` is world-builder's own copy; the trader (`villager/TraderSpawner`) never used it, so the next
+  stage is free to change its own.
+
+**Needs from other areas.**
+- Needs from portal-builder: nothing to build; `DrossTeleporter.toCastle` was changed here only as far as the site's new
+  API needs (it loads the frame's chunks with `PortalSite.loadAround`, and lands near the spawn in a world with no site).
+  Please look it over.
+- Needs from the coordinator (docs): `CLAUDE.md` step 3 and the Areas table (world-builder's row: `PortalSiteBuilder`,
+  `PortalSitePlacer`, the placeholder shrine and the user template are gone; the site is the structure
+  `dross:portal_site`); "Verify over time" (the site's checks).

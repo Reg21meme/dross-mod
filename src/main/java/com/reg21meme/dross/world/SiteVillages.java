@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.Holder;
 import net.minecraft.core.QuartPos;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.StructureTags;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LevelHeightAccessor;
@@ -16,12 +15,13 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.Structure;
+import net.minecraft.world.level.levelgen.structure.BuiltinStructures;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
 import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 
 /**
- * Where villages can be, worked out the way the world generator decides it, so no chunk is generated (the same idea
- * as the villager area's {@code TraderSpawner}; this is world site's own read-only copy):
+ * Where villages (and pillager outposts) can be, worked out the way the world generator decides it, so no chunk is
+ * generated (the same idea as the villager area's {@code TraderSpawner}; this is world site's own read-only copy):
  * <ol>
  *   <li>Every region of each village structure set's placement grid has one <b>possible</b> village chunk.</li>
  *   <li>The world generator only starts a village there if the biome at the village's starting point suits one of the
@@ -40,7 +40,7 @@ final class SiteVillages
     /** One village structure set: its placement grid and the village structures it can start. */
     record VillageSet(RandomSpreadStructurePlacement placement, List<Structure> structures) {}
 
-    /** The world's village structure sets. Read them on the server thread, use them anywhere. */
+    /** The world's village (and pillager outpost) structure sets. Read them once, use them anywhere. */
     static List<VillageSet> villageSets(ChunkGeneratorStructureState state)
     {
         List<VillageSet> found = new ArrayList<>();
@@ -54,7 +54,8 @@ final class SiteVillages
             List<Structure> villages = new ArrayList<>();
             for (StructureSet.StructureSelectionEntry entry : set.structures())
             {
-                if (entry.structure().is(StructureTags.VILLAGE))
+                // (pillager outposts count too: the user wants the site away from them as well)
+                if (entry.structure().is(StructureTags.VILLAGE) || entry.structure().is(BuiltinStructures.PILLAGER_OUTPOST))
                 {
                     villages.add(entry.structure().value());
                 }
@@ -91,13 +92,6 @@ final class SiteVillages
             {
                 known[i] = new Long2ByteOpenHashMap();
             }
-        }
-
-        static Finder of(ServerLevel level)
-        {
-            ChunkGeneratorStructureState state = level.getChunkSource().getGeneratorState();
-            return new Finder(level.getChunkSource().getGenerator(), level.getChunkSource().randomState(), state,
-                    villageSets(state), LevelHeightAccessor.create(level.getMinBuildHeight(), level.getHeight()));
         }
 
         /**

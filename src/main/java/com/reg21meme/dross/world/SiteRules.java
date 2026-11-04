@@ -1,115 +1,136 @@
 package com.reg21meme.dross.world;
 
+import com.reg21meme.dross.Dross;
 import java.util.List;
-import java.util.Set;
-import javax.annotation.Nullable;
 import net.minecraft.core.Holder;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.BiomeTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.Biomes;
 
 /**
- * The rules for <b>where</b> the portal site (the Fallen Cathedral) may go in a new world, all in one place.
+ * The rules for <b>where</b> the portal site (the Fallen Cathedral) goes in a world, all in one place. It's a
+ * world-generation structure, one per world, placed from the seed alone ({@link SiteFinder}; the user's decision of
+ * November 2, 2026, "Minecraft's way", like a stronghold ring):
  * <ul>
- *   <li>A random spot {@link #MIN_DISTANCE} to {@link #MAX_DISTANCE} blocks from world spawn.</li>
- *   <li>In one of the {@link #ALLOWED_BIOMES} under the whole footprint and its blending ring; never an ocean, a
- *       river or a swamp, and never water under the footprint.</li>
- *   <li>Well away from every place a village could be ({@link #VILLAGE_REACH} + {@link #VILLAGE_CLEARANCE}).</li>
- *   <li>Natural ground under the footprint that already varies by {@link #MAX_VARIATION} blocks or less.</li>
+ *   <li>The seed picks a direction and a distance, {@link #MIN_DISTANCE} to {@link #MAX_DISTANCE} blocks from where
+ *       Minecraft starts looking for the world spawn (the climate sampler's spawn point; the real spawn is within about
+ *       100 blocks of it).</li>
+ *   <li>From there the nearest acceptable spot is taken, searching outwards on a grid (vanilla nudges a stronghold into a
+ *       good biome the same way): every sampled biome under the footprint in {@link #PREFERRED} (forests, dark
+ *       forests, taigas, snowy land: biome tags, so modded forests count), none {@link #isForbidden forbidden} just
+ *       round it; no possible village or pillager outpost start within {@link #VILLAGE_REACH} +
+ *       {@link #VILLAGE_CLEARANCE} of it; the ground under the footprint varying by {@link #MAX_VARIATION} blocks or
+ *       less; no water on it.</li>
+ *   <li>If nothing fits, the rules are relaxed a rung at a time ({@link #LADDER}), each with a WARN, so a world always
+ *       gets a site.</li>
  * </ul>
- * If no spot passes, the rules are relaxed one step at a time ({@link #LADDER}), with a warning in the log, so a world
- * is never left without a site.
+ * Minecraft's terrain adaptation ({@code beard_thin}) shapes the land to it; the structure's piece levels its footprint
+ * and steps the ring back to the land ({@link #BLEND_MARGIN}).
  */
 final class SiteRules
 {
-    /** The site is at least this many blocks (flat distance) from world spawn... */
-    static final int MIN_DISTANCE = 3000;
+    /** The seed's spot is at least this many blocks (flat distance) from the spawn point... */
+    static final int MIN_DISTANCE = 4000;
     /** ...and at most this many. */
-    static final int MAX_DISTANCE = 10000;
+    static final int MAX_DISTANCE = 5000;
+    /** Mixed into the world seed for the spot's direction and distance (any number; changing it moves every world's site). */
+    static final long SPOT_SALT = 1104202602L;
 
-    /**
-     * The biomes the site may be in. Every part of the footprint and its blending ring must be one of these
-     * (oceans, rivers and swamps never are). Forests are fine: trees in the way are removed whole.
-     */
-    static final List<ResourceKey<Biome>> ALLOWED_BIOMES = List.of(
-            Biomes.PLAINS,
-            Biomes.SUNFLOWER_PLAINS,
-            Biomes.DESERT,
-            Biomes.TAIGA,
-            Biomes.OLD_GROWTH_PINE_TAIGA,
-            Biomes.OLD_GROWTH_SPRUCE_TAIGA,
-            Biomes.SNOWY_TAIGA,
-            Biomes.FOREST,
-            Biomes.FLOWER_FOREST,
-            Biomes.BIRCH_FOREST,
-            Biomes.OLD_GROWTH_BIRCH_FOREST,
-            Biomes.DARK_FOREST,
-            Biomes.SNOWY_PLAINS,
-            Biomes.ICE_SPIKES);
+    /** Biomes the site likes: forests, dark forests, taigas, snowy land ({@code data/dross/tags/worldgen/biome/}). */
+    static final TagKey<Biome> PREFERRED = TagKey.create(Registries.BIOME, new ResourceLocation(Dross.MODID, "portal_site_preferred"));
+    /** Dry land it may take if no preferred spot is near: the preferred ones plus plains, deserts, savannas, meadows... */
+    static final TagKey<Biome> ALLOWED = TagKey.create(Registries.BIOME, new ResourceLocation(Dross.MODID, "portal_site_allowed"));
 
-    /** The most the natural ground under the footprint may vary (highest minus lowest), in blocks. */
+    /** The most the natural ground under the footprint may vary (highest minus lowest sample), in blocks. */
     static final int MAX_VARIATION = 5;
+    /** The fallback rungs' limits. */
+    static final int FALLBACK_VARIATION = 8;
+    static final int FALLBACK_VARIATION_LAST = 12;
+
     /**
-     * How far (in blocks) outside the footprint the ground may be reshaped into a staircase that meets the natural
-     * terrain. The staircase has to end inside this ring.
+     * How far (blocks) outside the footprint the ground is stepped back to the land: a column d blocks out is kept within d
+     * of the ground level, so the edge steps at most a block at a time (Minecraft's beard reaches about 12).
      */
     static final int BLEND_MARGIN = 16;
-    /** No water or lava within this many blocks of the footprint (it would pour into the cleared space). */
+    /** No water within this many blocks of the footprint (it's sampled there too). */
     static final int WATER_CLEARANCE = 4;
-    /**
-     * Inside the footprint, dips and caves under the ground are filled down to solid ground, but never more than this
-     * deep (counted from the footprint's ground level), so no big foundations.
-     */
+    /** Dips and caves right under the footprint's ground are filled, at most this deep. */
     static final int MAX_DIP_FILL = 8;
-    /**
-     * Small dips (a cave mouth or a little pit) don't count toward the variation: up to this share of the footprint's
-     * columns may lie lower than the rest. They're filled up to the ground level, but none deeper than the level's dip fill.
-     */
-    static final double SMALL_DIP_SHARE = 0.01;
-    /**
-     * The most the staircase may raise or lower one column outside the footprint, in blocks. A spot that would need more
-     * (say, a ravine right next to it being filled) isn't flat enough.
-     */
-    static final int MAX_RING_CHANGE = 8;
+    /** A dip under the footprint deeper than this (a ravine) isn't filled further down: its bottom stays open. */
+    static final int MAX_FOUNDATION = 24;
+
     /**
      * How far a village's buildings can reach from the middle of the chunk it starts in, in blocks: the village jigsaw
-     * keeps every building within 80 blocks each way of its town centre, so up to about 125 blocks diagonally.
+     * keeps every building within 80 blocks each way of its town centre, so up to about 125 blocks diagonally. Pillager
+     * outposts are smaller and counted the same.
      */
     static final int VILLAGE_REACH = 125;
-    /**
-     * Extra clear blocks kept between that reach and the site (its footprint plus blending ring). Leaves room for the
-     * trader's chapel and its path, which sit just outside his village.
-     */
+    /** Extra clear blocks kept between that reach and the site's footprint and staircase ring. */
     static final int VILLAGE_CLEARANCE = 48;
-    /** Other structures (outposts, ruined portals, igloos...) count if they reach this close under the ground level. */
-    static final int STRUCTURE_DEPTH = 8;
 
-    /** One step of the ladder: how strict the rules are. */
-    record Level(int number, String name, @Nullable Set<ResourceKey<Biome>> biomes, int maxVariation, int blendMargin,
-                 boolean staircaseRequired, int maxDipFill, int maxRingChange, int minDistance, int maxDistance)
+    // How the land is read (from the world generator's own noise: no chunk is made)
+    /**
+     * The biomes are read at the site column and every this many blocks over the footprint (its corners, along its sides
+     * and through its middle: 12 places); just round it ({@link #WATER_CLEARANCE} out) only forbidden ones count (9 places).
+     */
+    static final int BIOME_STEP = 30;
+    /**
+     * After a quick look at the footprint's corners, the middles of its sides and its middle (9 columns), the heights (and
+     * water) every this many blocks over the footprint and {@link #WATER_CLEARANCE} round it.
+     */
+    static final int CHECK_STEP = 15;
+    /** The ground level is the median of the heights every this many blocks over the footprint (63 columns). */
+    static final int GROUND_STEP = 10;
+    /**
+     * Heights are read in a band from this far under sea level to this far over it (fewer blocks of noise per column, so
+     * much quicker); ground outside it (mountains) never holds the site, except at the last resort.
+     */
+    static final int BAND_BELOW = 16;
+    static final int BAND_ABOVE = 112;
+    /** The land's smooth height must be at least this far under the band's top (its bumps stay in the band). */
+    static final int BAND_TOP_ROOM = 16;
+
+    /** Which biomes a rung of the {@link #LADDER} takes. */
+    enum BiomeRule
     {
-        /** True if the site may be in this biome. {@code biomes == null} means any dry land (still no ocean, river or swamp). */
-        boolean allows(Holder<Biome> biome)
-        {
-            if (isForbidden(biome))
-            {
-                return false;
-            }
-            if (biomes == null)
-            {
-                return true;
-            }
-            for (ResourceKey<Biome> key : biomes)
-            {
-                if (biome.is(key))
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
+        /** Every sample in {@link #PREFERRED}. */
+        PREFERRED,
+        /** Every sample in {@link #ALLOWED}. */
+        ALLOWED,
+        /** Any land that isn't {@link #isForbidden forbidden}. */
+        LAND
     }
+
+    /**
+     * One rung of the ladder: how strict the rules are, and how far from the seed's spot (on a grid of {@code step} blocks,
+     * nearest first) and from the spawn point a spot may be.
+     */
+    record Rung(int number, String name, BiomeRule biomes, int maxVariation, int radius, int step, int minDistance, int maxDistance)
+    {
+    }
+
+    /**
+     * Tried in order; every rung after the first logs a WARN when it's the one that finds the spot. The search reaches far
+     * from the seed's spot because 4,000-5,000 blocks out is often sea (measured over 16 seeds: within 384 blocks of it only
+     * 3 found a forest, taiga or snowy spot, the rest turned down by oceans, rivers and beaches).
+     */
+    static final List<Rung> LADDER = List.of(
+            new Rung(0, "strict", BiomeRule.PREFERRED, MAX_VARIATION, 1024, 48, MIN_DISTANCE, MAX_DISTANCE),
+            new Rung(1, "rougher ground (" + FALLBACK_VARIATION + " blocks of variation)", BiomeRule.PREFERRED, FALLBACK_VARIATION,
+                    1024, 48, MIN_DISTANCE, MAX_DISTANCE),
+            new Rung(2, "further from the seed's spot (2,048 blocks)", BiomeRule.PREFERRED, FALLBACK_VARIATION, 2048, 96,
+                    MIN_DISTANCE, MAX_DISTANCE),
+            new Rung(3, "any dry-land biome (plains, desert, savanna...)", BiomeRule.ALLOWED, FALLBACK_VARIATION, 2048, 96,
+                    MIN_DISTANCE, MAX_DISTANCE),
+            new Rung(4, "any land, steeper ground (" + FALLBACK_VARIATION_LAST + "), 3,500 to 5,500 from spawn",
+                    BiomeRule.LAND, FALLBACK_VARIATION_LAST, 2048, 128, 3500, 5500));
+    /** The number given to the last resort: no rung found a spot, so the flattest dry land seen (or the seed's own spot). */
+    static final int LAST_RESORT = 5;
+    /** No spot is ever this much nearer the spawn point or further from it than the widest rung allows (for a quick "no"). */
+    static final int REACH_SLACK = 256;
 
     /** Oceans (frozen ones too), rivers (frozen too), beaches and swamps: never. */
     static boolean isForbidden(Holder<Biome> biome)
@@ -122,40 +143,34 @@ final class SiteRules
                 || biome.is(Biomes.MANGROVE_SWAMP);
     }
 
-    /** The most the ground may vary at the first, second and last fallback steps of the {@link #LADDER}. */
-    static final int FALLBACK_VARIATION_1 = 6;
-    static final int FALLBACK_VARIATION_2 = 8;
-    static final int FALLBACK_VARIATION_LAST = 12;
+    /** How a biome fits: 2 preferred, 1 allowed, 0 other land, -1 forbidden. */
+    static int fit(Holder<Biome> biome)
+    {
+        if (isForbidden(biome))
+        {
+            return -1;
+        }
+        return biome.is(PREFERRED) ? 2 : biome.is(ALLOWED) ? 1 : 0;
+    }
 
-    /** The strict rules every new world tries first. */
-    static final Level STRICT = new Level(0, "strict", Set.copyOf(ALLOWED_BIOMES), MAX_VARIATION, BLEND_MARGIN, true,
-            MAX_DIP_FILL, MAX_RING_CHANGE, MIN_DISTANCE, MAX_DISTANCE);
+    /** The fit a rung needs. */
+    static int needs(BiomeRule biomes)
+    {
+        return switch (biomes)
+        {
+            case PREFERRED -> 2;
+            case ALLOWED -> 1;
+            case LAND -> 0;
+        };
+    }
 
-    /**
-     * If nothing passes, these are tried in order, each with a WARN in the log. The last one never fails: it builds on the
-     * best spot found, on whatever ground is there (with a foundation and slopes, like the old cathedral placement).
-     */
-    static final List<Level> LADDER = List.of(
-            STRICT,
-            new Level(1, "slightly rougher ground (" + FALLBACK_VARIATION_1 + " blocks of variation)", Set.copyOf(ALLOWED_BIOMES),
-                    FALLBACK_VARIATION_1, 18, true, 10, 10, MIN_DISTANCE, MAX_DISTANCE),
-            new Level(2, "rougher ground (" + FALLBACK_VARIATION_2 + " blocks of variation)", Set.copyOf(ALLOWED_BIOMES),
-                    FALLBACK_VARIATION_2, 20, true, 12, 12, MIN_DISTANCE, MAX_DISTANCE),
-            new Level(3, "any dry land biome (" + FALLBACK_VARIATION_2 + " blocks of variation)", null,
-                    FALLBACK_VARIATION_2, 20, true, 12, 12, MIN_DISTANCE, MAX_DISTANCE),
-            new Level(4, "steep ground (" + FALLBACK_VARIATION_LAST + " blocks of variation, no staircase guarantee)", null,
-                    FALLBACK_VARIATION_LAST, 28, false, 24, Integer.MAX_VALUE, MIN_DISTANCE, MAX_DISTANCE));
-
-    /** A search scans at most this many tiles of the ring (512 blocks square; the whole ring is about 1,800)... */
-    static final int MAX_SEARCH_REGIONS = 4000;
-    /** ...for at most this long (it runs in the background, so the game never waits for it unless it must). */
-    static final long MAX_SEARCH_MILLIS = 120_000L;
-    /** A search stops once it has this many good spots, and ranks them. */
-    static final int GOOD_SPOTS_WANTED = 8;
-    /** At most this many of a search's spots are checked in the real world before moving down the ladder. */
-    static final int MAX_CHECKS_PER_LEVEL = 8;
-    /** Spots a search returns are at least this far apart (blocks), so one bad area doesn't fill the whole list. */
-    static final int SPOT_SPACING = 300;
+    // The tidy-up once the cathedral's land is loaded (SiteTidy)
+    /** The tidy-up waits until every chunk of the footprint and this many chunks round it are loaded. */
+    static final int TIDY_RING_CHUNKS = 3;
+    /** A tree or mushroom touching the footprint is followed at most this far out of it (inside the loaded ring). */
+    static final int TIDY_REACH = 24;
+    /** While it waits, it looks every this many ticks whether the land is loaded. */
+    static final int TIDY_CHECK_TICKS = 40;
 
     private SiteRules() {}
 }

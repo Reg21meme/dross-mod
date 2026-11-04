@@ -44,10 +44,9 @@ import net.minecraftforge.fml.common.Mod;
  * the bosses' lairs), {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
  * {@code quest <action>}.
  * <ul>
- *   <li>{@code /dross goto cathedral}: teleports you in front of the castle's portal frame (the Fallen Cathedral, or
- *       the small fallback shrine), facing it. Before the site has been built in this world it fails
- *       ("hasn't been placed ... yet") and builds nothing: the site is built in the background a little while after a
- *       new world opens.</li>
+ *   <li>{@code /dross goto cathedral}: teleports you in front of the castle's portal frame (the Fallen Cathedral, made
+ *       with its land: its chunks are loaded, the first time generated, before you land), facing it. In a world with no
+ *       portal site (a superflat world's own list of structures leaves it out) it fails and says so.</li>
  *   <li>{@code /dross goto hub}: teleports you to the hub in the Dross (portal area's {@link DrossHub}).</li>
  *   <li>{@code /dross goto biome silverwood_forest|cinder_wastes|blightwood|rimefall|gravecrags}: teleports
  *       you to the nearest place of that Dross biome, on safe ground and never on or right by the hub: searching from
@@ -164,8 +163,8 @@ import net.minecraftforge.fml.common.Mod;
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossCommand
 {
-    /** What {@code /dross goto cathedral} says (as a failure) before the site has been built in this world. */
-    public static final String SITE_NOT_PLACED = "The Dross portal site hasn't been placed in this world yet.";
+    /** What {@code /dross goto cathedral} says (as a failure) in a world with no portal site (a superflat world's). */
+    public static final String SITE_NOT_PLACED = "This world has no Dross portal site (its Overworld doesn't make one, as in a superflat world).";
     /** How far in front of (or behind) the frame the player is put, best first. */
     private static final int[] STAND_DISTANCES = {3, 2, 4, 1, 5};
     /** Height steps tried at each spot (relative to the frame's bottom row), best first. */
@@ -518,12 +517,12 @@ public final class DrossCommand
         ServerLevel overworld = source.getServer().overworld();
         if (!PortalSite.isPlaced(overworld))
         {
-            // Never build it from here: it's built in the background a little while after a new world opens (or right
-            // away when someone leaves the Dross), and everyone is told where it is then.
             source.sendFailure(Component.literal(SITE_NOT_PLACED));
             return 0;
         }
         ServerPlayer player = source.getPlayerOrException();
+        // The cathedral comes with its land: its chunks are loaded now (the first time, generated, the cathedral with them).
+        PortalSite.loadAround(overworld);
 
         BlockPos frame = PortalSite.getFramePos(overworld);
         Direction.Axis axis = PortalSite.getFrameAxis(overworld);

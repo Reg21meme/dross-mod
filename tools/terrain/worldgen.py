@@ -2111,6 +2111,22 @@ def hub_structures():
                      "placement": {"type": "dross:dross_hub", "salt": HUB_SALT}}
     return structure, structure_set, {"replace": False, "values": ["dross:" + b for b in BIOMES]}
 
+
+# The Overworld's portal site, the Fallen Cathedral (world-builder's world/PortalSite*; the user's decision of November 2,
+# 2026): one per world at the spot the seed picks (world/SiteFinder), made with the land in the "surface structures" step,
+# the land shaped to its floor by Minecraft's terrain adaptation (beard_thin). Not a Dross structure, but its JSON lives in
+# the folders this script owns, so it's written here (else remove_stale would delete it). Its own placement
+# (dross:portal_site) starts it only in the chunk holding the site column; its biomes were chosen with the spot.
+PORTAL_SITE_SALT = 1104202602           # (under 2^31: Minecraft reads a salt as an int)
+
+
+def portal_site_structures():
+    structure = {"type": "dross:portal_site", "biomes": "#minecraft:is_overworld", "spawn_overrides": {},
+                 "step": "surface_structures", "terrain_adaptation": "beard_thin"}
+    structure_set = {"structures": [{"structure": "dross:portal_site", "weight": 1}],
+                     "placement": {"type": "dross:portal_site", "salt": PORTAL_SITE_SALT}}
+    return structure, structure_set
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2282,6 +2298,9 @@ def main():
     write_json("structure", "dross_hub", hub)
     write_json("structure_set", "dross_hub", hub_set)
     write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "dross_hub.json"), hub_biomes)
+    site, site_set = portal_site_structures()
+    write_json("structure", "portal_site", site)
+    write_json("structure_set", "portal_site", site_set)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())

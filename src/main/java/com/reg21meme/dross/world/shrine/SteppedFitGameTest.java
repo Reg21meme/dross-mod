@@ -30,8 +30,9 @@ import org.slf4j.Logger;
 
 /**
  * Headless test (GameTest) that fitting the ground a step at a time gives <b>exactly</b> the same blocks as fitting it
- * all at once. The Dross hub and the Overworld's cathedral are built a step a tick ({@link ShrineDesign.FittedBuild},
- * {@link GroundFit.Fitting}), and must come out the same as before that. Run it with
+ * all at once ({@link ShrineDesign.FittedBuild}, {@link GroundFit.Fitting}). The Dross hub and the Overworld's cathedral were
+ * built that way until they became world-generation structures (November 4, 2026); the portal site's tidy-up still fells
+ * trees with {@link TreeFelling}, through the area it's given ({@link TreeFelling.Area}). Run it with
  * {@code .\gradlew.bat runGameTestServer --console=plain}; it only exists in the development environment.
  * <ul>
  *   <li>{@link #steppedFitMatchesAtOnce}: a patch of grass high in the Dross's sky, far from the hub, with a hill and a

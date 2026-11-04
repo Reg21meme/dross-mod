@@ -84,7 +84,7 @@ public final class TreeFelling
      * exactly the same as long as nothing else changes these blocks between the steps. Run it before the ground is
      * changed. Server thread only.
      */
-    static final class Felling
+    public static final class Felling
     {
         private enum Stage
         {
@@ -92,7 +92,7 @@ public final class TreeFelling
         }
 
         final ServerLevel level;
-        final GroundFit.Plan plan;
+        final Area area;
         final Set<BlockPos> logs = new HashSet<>();
         final List<BlockPos> touchedLeaves = new ArrayList<>();
         final Set<BlockPos> others = new HashSet<>();
@@ -133,8 +133,30 @@ public final class TreeFelling
 
         Felling(ServerLevel level, GroundFit.Plan plan)
         {
+            this(level, Area.of(plan));
+        }
+
+        /** A felling of what touches {@code area} (the portal site's tidy-up uses its own area: world-builder's {@code world.SiteTidy}). */
+        public Felling(ServerLevel level, Area area)
+        {
             this.level = level;
-            this.plan = plan;
+            this.area = area;
+        }
+
+        /**
+         * Does at most about {@link GroundFit#STEP_MILLIS} ms of the work (at least one piece).
+         *
+         * @return true once everything is removed ({@link #result})
+         */
+        public boolean step()
+        {
+            return step(GroundFit.Budget.millis(GroundFit.STEP_MILLIS));
+        }
+
+        /** True once it's done. */
+        public boolean done()
+        {
+            return stage == Stage.DONE;
         }
 
         /**
@@ -177,13 +199,13 @@ public final class TreeFelling
         }
 
         /** True once the first block has been removed. */
-        boolean changedWorld()
+        public boolean changedWorld()
         {
             return stage.ordinal() >= Stage.REMOVE_LOGS.ordinal();
         }
 
         /** What was removed; only once it's done. */
-        Result result()
+        public Result result()
         {
             if (result == null)
             {
@@ -208,16 +230,16 @@ public final class TreeFelling
         /** Finds every log, leaf, huge mushroom, ice spike and boulder in a touched column, above its ground. */
         private boolean scan(GroundFit.Budget budget)
         {
-            GroundFit.Survey s = plan.survey;
-            int total = s.sizeX * s.sizeZ;
+            int sizeZ = area.sizeZ();
+            int total = area.sizeX() * sizeZ;
             while (cursor < total)
             {
-                int i = cursor / s.sizeZ;
-                int k = cursor % s.sizeZ;
+                int i = cursor / sizeZ;
+                int k = cursor % sizeZ;
                 cursor++;
-                int x = s.minX + i;
-                int z = s.minZ + k;
-                if (!plan.isTouched(x, z))
+                int x = area.minX() + i;
+                int z = area.minZ() + k;
+                if (!area.isTouched(x, z))
                 {
                     continue;
                 }
@@ -235,13 +257,13 @@ public final class TreeFelling
         private void scanColumn(int x, int z)
         {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-            int natural = plan.naturalAt(x, z);
-            int ground = Math.min(natural, plan.targetAt(x, z));
+            int natural = area.groundAt(x, z);
+            int ground = area.scanFrom(x, z);
             int top = ShrineGround.topY(level, x, z);
             for (int y = ground + 1; y <= top; y++)
             {
                 BlockState state = level.getBlockState(pos.set(x, y, z));
-                if (state.isAir())
+                if (state.isAir() || area.keeps(pos))
                 {
                     continue;
                 }
@@ -400,7 +422,7 @@ public final class TreeFelling
                 BlockPos pos = entry.getKey();
                 int distance = entry.getValue();
                 BlockState state = level.getBlockState(pos);
-                if (state.is(BlockTags.LEAVES))
+                if (state.is(BlockTags.LEAVES) && !area.keeps(pos))
                 {
                     if (distance > LEAF_REACH)
                     {
@@ -471,28 +493,13 @@ public final class TreeFelling
         /** True for a block the earthwork will clear or bury: above the footprint's ground, or in the staircase's cut or fill. */
         private boolean destroyed(BlockPos pos)
         {
-            GroundFit.Survey s = plan.survey;
-            int x = pos.getX();
-            int z = pos.getZ();
-            if (!s.contains(x, z))
-            {
-                return false;
-            }
-            if (s.distance(x, z) == 0)
-            {
-                return pos.getY() > plan.groundY;
-            }
-            if (plan.isRingChanged(x, z))
-            {
-                return pos.getY() <= Math.max(plan.naturalAt(x, z), plan.targetAt(x, z));
-            }
-            return false;
+            return area.destroyed(pos);
         }
 
         /** Adds the tree (connected logs, corners included) that {@code start} belongs to, if it isn't in yet. */
         private void addTree(BlockPos start)
         {
-            if (logs.contains(start))
+            if (logs.contains(start) || area.keeps(start))
             {
                 return;
             }
@@ -511,7 +518,7 @@ public final class TreeFelling
                 }
                 for (BlockPos next : BlockPos.betweenClosed(log.offset(-1, -1, -1), log.offset(1, 1, 1)))
                 {
-                    if (!logs.contains(next) && level.getBlockState(next).is(BlockTags.LOGS))
+                    if (!logs.contains(next) && area.reaches(next) && !area.keeps(next) && level.getBlockState(next).is(BlockTags.LOGS))
                     {
                         BlockPos found = next.immutable();
                         logs.add(found);
@@ -539,7 +546,8 @@ public final class TreeFelling
                 for (Direction dir : DIRECTIONS)
                 {
                     BlockPos next = pos.relative(dir);
-                    if (next.getY() > aboveY && !others.contains(next) && kind.test(level.getBlockState(next)))
+                    if (next.getY() > aboveY && !others.contains(next) && area.reaches(next) && !area.keeps(next)
+                            && kind.test(level.getBlockState(next)))
                     {
                         others.add(next);
                         queue.add(next);
@@ -574,7 +582,8 @@ public final class TreeFelling
                         BlockState state = level.getBlockState(other);
                         if (state.is(BlockTags.LOGS))
                         {
-                            if (!logs.contains(other))
+                            // (a log the area keeps, a building's beam, isn't a tree's trunk)
+                            if (!logs.contains(other) && !area.keeps(other))
                             {
                                 found.add(other);
                             }
@@ -733,7 +742,8 @@ public final class TreeFelling
                     BlockState state = level.getBlockState(next);
                     if (state.is(BlockTags.LOGS))
                     {
-                        if (!logs.contains(next))
+                        // (a log the area keeps, a building's beam, holds no tree's leaves up)
+                        if (!logs.contains(next) && !area.keeps(next))
                         {
                             best = 1;
                             break;
@@ -778,6 +788,10 @@ public final class TreeFelling
             for (Direction dir : DIRECTIONS)
             {
                 BlockPos next = pos.relative(dir);
+                if (area.keeps(next))
+                {
+                    continue;
+                }
                 BlockState state = level.getBlockState(next);
                 if (state.getBlock() instanceof VineBlock)
                 {
@@ -797,6 +811,83 @@ public final class TreeFelling
                 }
             }
             return count;
+        }
+    }
+
+    /**
+     * What a felling works on: the columns it scans, which of them are touched, where each one's ground is, which blocks
+     * will be cleared anyway (their trees go too), and which blocks it must leave alone. A {@link GroundFit.Plan} is one
+     * ({@link #of}); the portal site's tidy-up after world generation is another (the cathedral's own blocks kept).
+     */
+    public interface Area
+    {
+        /** The scanned columns: X from {@link #minX} for {@link #sizeX} columns, Z likewise. */
+        int minX();
+
+        int minZ();
+
+        int sizeX();
+
+        int sizeZ();
+
+        /** True if what stands on this column is felled. */
+        boolean isTouched(int x, int z);
+
+        /** A touched column is scanned from the block above this one up. */
+        int scanFrom(int x, int z);
+
+        /** Ice spikes and boulders count above this height (the column's ground). */
+        int groundAt(int x, int z);
+
+        /** True for a block that will be cleared anyway: a leaf there held up by another trunk takes that trunk's tree too. */
+        boolean destroyed(BlockPos pos);
+
+        /** True for a block that's never removed or followed (a building's own logs and stone). None for a plan. */
+        default boolean keeps(BlockPos pos)
+        {
+            return false;
+        }
+
+        /** A tree, mushroom, spike or boulder is followed only this far (loaded land). Everywhere for a plan. */
+        default boolean reaches(BlockPos pos)
+        {
+            return true;
+        }
+
+        /** The area of a ground plan: its footprint and the columns its staircase changes. */
+        static Area of(GroundFit.Plan plan)
+        {
+            GroundFit.Survey s = plan.survey;
+            return new Area()
+            {
+                @Override public int minX() { return s.minX; }
+                @Override public int minZ() { return s.minZ; }
+                @Override public int sizeX() { return s.sizeX; }
+                @Override public int sizeZ() { return s.sizeZ; }
+                @Override public boolean isTouched(int x, int z) { return plan.isTouched(x, z); }
+                @Override public int scanFrom(int x, int z) { return Math.min(plan.naturalAt(x, z), plan.targetAt(x, z)); }
+                @Override public int groundAt(int x, int z) { return plan.naturalAt(x, z); }
+
+                @Override
+                public boolean destroyed(BlockPos pos)
+                {
+                    int x = pos.getX();
+                    int z = pos.getZ();
+                    if (!s.contains(x, z))
+                    {
+                        return false;
+                    }
+                    if (s.distance(x, z) == 0)
+                    {
+                        return pos.getY() > plan.groundY;
+                    }
+                    if (plan.isRingChanged(x, z))
+                    {
+                        return pos.getY() <= Math.max(plan.naturalAt(x, z), plan.targetAt(x, z));
+                    }
+                    return false;
+                }
+            };
         }
     }
 

@@ -20,6 +20,9 @@ import com.reg21meme.dross.dimension.sites.BossSitePlacement;
 import com.reg21meme.dross.portal.DrossHubPiece;
 import com.reg21meme.dross.portal.DrossHubPlacement;
 import com.reg21meme.dross.portal.DrossHubStructure;
+import com.reg21meme.dross.world.PortalSitePiece;
+import com.reg21meme.dross.world.PortalSitePlacement;
+import com.reg21meme.dross.world.PortalSiteStructure;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 import net.minecraft.world.level.levelgen.structure.placement.StructurePlacementType;
@@ -101,6 +104,16 @@ public final class ModStructures
             () -> (StructurePieceType.ContextlessType) DrossHubPiece::new);
     public static final RegistryObject<StructurePlacementType<DrossHubPlacement>> DROSS_HUB_PLACEMENT = STRUCTURE_PLACEMENTS.register("dross_hub",
             () -> () -> DrossHubPlacement.CODEC);
+
+    // World site area: dross:portal_site, the Overworld's portal site (the Fallen Cathedral round its unlit Dross frame;
+    // world/PortalSite*), one per world at the spot the seed picks, made with the land: the structure, its one piece, and its
+    // placement (only in the chunk holding the site column)
+    public static final RegistryObject<StructureType<PortalSiteStructure>> PORTAL_SITE = STRUCTURE_TYPES.register("portal_site",
+            () -> () -> PortalSiteStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> PORTAL_SITE_PIECE = STRUCTURE_PIECES.register("portal_site",
+            () -> (StructurePieceType.ContextlessType) PortalSitePiece::new);
+    public static final RegistryObject<StructurePlacementType<PortalSitePlacement>> PORTAL_SITE_PLACEMENT = STRUCTURE_PLACEMENTS.register("portal_site",
+            () -> () -> PortalSitePlacement.CODEC);
 
     private ModStructures() {}
 }

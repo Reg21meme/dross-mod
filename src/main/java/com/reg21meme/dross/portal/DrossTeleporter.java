@@ -4,7 +4,6 @@ import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.world.PortalSite;
-import com.reg21meme.dross.world.PortalSiteBuilder;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -46,9 +45,10 @@ import org.slf4j.Logger;
  *       in front of its exit portal (see {@link DrossHub}). The hub is made with the land: its chunks are
  *       loaded (the first time, generated) as the entity arrives, like a nether portal trip's.</li>
  *   <li><b>Out of the Dross</b> (the hub's exit portal): always the <b>castle portal</b> in the Overworld
- *       ({@link PortalSite}), wherever the entity came in. Lit or not, it lands in front of that frame.
- *       Nothing is ever built in the Overworld. If the castle frame can't be found, the entity lands safely
- *       on the ground near the site's X/Z and a warning is logged.</li>
+ *       ({@link PortalSite}), wherever the entity came in. Lit or not, it lands in front of that frame. The castle is
+ *       made with its land: its chunks are loaded (the first time, generated) as the entity arrives. If the castle frame
+ *       can't be found, the entity lands safely on the ground near the site's X/Z and a warning is logged; in a world with
+ *       no site (a superflat one), near the world spawn.</li>
  * </ul>
  * The entity is always placed on solid ground in free space next to the portal (or, if both sides are
  * blocked, inside the portal itself, standing on the frame), never inside blocks or over a drop.
@@ -113,9 +113,16 @@ public class DrossTeleporter implements ITeleporter
     {
         if (dest.dimension() == Level.OVERWORLD)
         {
-            // In a brand-new world the castle may not be built yet (it's placed far from spawn in the background):
-            // build it now. Does nothing once it exists.
-            PortalSiteBuilder.ensurePlaced(dest);
+            if (!PortalSite.isPlaced(dest))
+            {
+                // A world with no portal site (a superflat world whose list of structures leaves it out): the spawn instead.
+                BlockPos spawn = dest.getSharedSpawnPos();
+                LOGGER.warn("Dross portal: this world has no portal site; landing {} near the world spawn instead.", entity.getName().getString());
+                return safeLanding(dest, entity, spawn.getX(), spawn.getZ());
+            }
+            // The cathedral comes with its land (world site's dross:portal_site structure): its chunks are loaded now (the
+            // first time, generated) as a nether portal trip loads its destination.
+            PortalSite.loadAround(dest);
             Optional<PortalOpening> castle = findCastlePortal(dest);
             if (castle.isPresent())
             {

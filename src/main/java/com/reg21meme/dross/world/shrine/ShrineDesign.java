@@ -39,7 +39,9 @@ import org.slf4j.Logger;
  *   <li>{@link #buildFitted}: on ground that's already nearly flat, with a {@link GroundFit.Plan}: whole trees removed
  *       where they touch, the footprint levelled by a block or two, and a one-block-per-step staircase back to the
  *       natural terrain. {@link #startFitted} does the same work a step at a time ({@link FittedBuild}), one per server
- *       tick: the portal site's cathedral and the Dross hub are built that way, so no tick does much of it.</li>
+ *       tick. (The portal site's cathedral and the Dross hub were built that way until November 4, 2026; both are now
+ *       world-generation structures, made with their land, so nothing in the game uses these two any more but their
+ *       tests.)</li>
  * </ul>
  * The first two prepare the ground with {@link ShrineGround}: cut down and filled up to the ground level, sloped back
  * to the natural terrain around the footprint, and sealed against water and lava, so the design never floats or
@@ -352,7 +354,8 @@ public final class ShrineDesign
 
     /**
      * Gets {@link #buildFitted} ready to be done a step at a time ({@link FittedBuild#step}, one per server tick), so no
-     * single tick does much of it (the Overworld's cathedral and the Dross hub use this). Nothing is changed yet.
+     * single tick does much of it (nothing in the game does now: the cathedral and the hub come with their land). Nothing is
+     * changed yet.
      *
      * @return the build, or empty (and an error in the log) if the template file is missing, the plan was made for
      *         another footprint or ground level, or the design doesn't fit in the world's height at that ground level
