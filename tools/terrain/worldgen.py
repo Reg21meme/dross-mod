@@ -766,7 +766,8 @@ SPAWN_CATEGORIES = ["monster", "creature", "ambient", "axolotls", "underground_w
 # Cinder Hermit (dross:cinder_hermit, a crab about 6 blocks wide in one of eight shells) and the Pallbearer
 # (dross:pallbearer, 9.6 blocks tall), both monsters by category. The user's shares by count of mobs (November 2: the
 # hermits 10% fewer, one at a time: "it should be one Pallbearer or one hermit crab, not both [together]", and both more
-# spread out): stone golems 45, lava golems 13, Cinder Hermits 27, Pallbearers 12 (out of 97). A weight is picked, then
+# spread out): stone golems 45, lava golems 13, Cinder Hermits 27, Pallbearers 12 (out of 97; the hermits 24 out of 94
+# since November 5, 2026, the crowding budget below cut to match). A weight is picked, then
 # its group (fewest..most) spawns, so the share by count is weight x the group's average size; every group is one now.
 # (Near lava a lava golem is 13 / 58 of the golems, about 1 in 4.5; the top-up, WildLavaGolemTopUp, keeps it about 1 in
 # 5 round each player.) Their own spawn rules (boss/cinder/CinderMobs): a Pallbearer needs 10 blocks of open air over it
@@ -775,7 +776,7 @@ CINDER_STONE_GOLEM_WEIGHT = 45
 CINDER_LAVA_GOLEM_WEIGHT = 13
 CINDER_GOLEM_GROUP_MIN = 1      # golems per spawn: always one at a time (a group would bunch them up)
 CINDER_GOLEM_GROUP_MAX = 1
-CINDER_HERMIT_WEIGHT = 27
+CINDER_HERMIT_WEIGHT = 24        # 27 until November 5, 2026 (the user: about 10% fewer hermits, "no replacement")
 CINDER_HERMIT_GROUP_MIN = 1      # always alone (two at a time put two crabs side by side)
 CINDER_HERMIT_GROUP_MAX = 1
 CINDER_PALLBEARER_WEIGHT = 12
@@ -790,7 +791,10 @@ CINDER_PALLBEARER_GROUP_MAX = 1
 # Fewer golems: lower the budget (or raise the charge). The hermits and the Pallbearers share this push (every mob with
 # a spawn cost here counts against every other, the same budget and charge for all four), so the Cinder Wastes hold
 # about as many mobs as before, split by the shares above.
-CINDER_GOLEM_ENERGY_BUDGET = 0.12
+# November 5, 2026 (the user: about 10% fewer hermits, "no replacement"): the hermits' weight 27 -> 24 would hand their
+# share to the others, since the budget sets how many mobs the wastes hold; so the budget is cut by the same share of the
+# whole (94 / 97 of 0.12), keeping the golems and the Pallbearers at the numbers they had, and there are just fewer hermits.
+CINDER_GOLEM_ENERGY_BUDGET = 0.1163
 CINDER_GOLEM_CHARGE = 1.0
 
 # A biome listed here gets these spawn lists instead of the base lists: each category ("monster", "creature", "ambient",
@@ -1926,12 +1930,14 @@ SEWER_RAT_KING_SALT = 1610201626
 RAT_GROUP = (2, 4)              # rats come in groups of 2 to 4...
 ENRAGED_RAT_GROUP = (1, 2)      # ...enraged rats 1 or 2
 # Blightwood's surface (the user, October 17): no zombies, skeletons or endermen any more (like the Cinder Wastes), only
-# rats and witches, the witches in place of the endermen: 7 in 100 of the mobs spawning there. More Blightwood mobs will
-# come later.
-BLIGHTWOOD_WITCH_SHARE = 0.07          # witches: this share of the mobs spawning on Blightwood's surface, the rats the rest...
-BLIGHTWOOD_WITCH_WEIGHT = 35           # ...(the witches' weight, alone; the rats' weights are worked out from it)...
+# rats and witches, the witches in place of the endermen. More Blightwood mobs will come later. November 5, 2026 (the
+# user, after playing 0.3.0: "increase witch by 5%, decrease Plague Rat with that same 5%"): witches 12 in 100 of the mobs
+# (7 before), Plague Rats 69 (74), Plague Ravagers still 19.
+BLIGHTWOOD_WITCH_SHARE = 0.12          # witches: this share of the mobs spawning on Blightwood's surface, the rats the rest...
+BLIGHTWOOD_WITCH_WEIGHT = 60           # ...(the witches' weight, alone; the rats' weights are worked out from it)...
 WITCH_GROUP = (1, 1)                   # ...and a witch comes alone
-BLIGHTWOOD_ENRAGED_SHARE = 1.0 / 5.0   # about 1 in 5 of Blightwood's rats is enraged
+BLIGHTWOOD_RAVAGER_SHARE = 0.19        # Plague Ravagers: this share of all the mobs spawning there (as before)...
+BLIGHTWOOD_ENRAGED_SHARE = BLIGHTWOOD_RAVAGER_SHARE / (1.0 - BLIGHTWOOD_WITCH_SHARE)   # ...so this share of the rats
 SEWER_ENRAGED_SHARE = 3.0 / 5.0        # the sewers: only rats, 3 in 5 enraged and 2 in 5 regular...
 SEWER_RAT_WEIGHTS = 100                # ...(their two weights add up to this)
 RAT_CAVE_ENRAGED_SHARE = 3.0 / 5.0     # the rat cave: only rats, the same 3 in 5 enraged (the boss area makes its enraged

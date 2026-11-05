@@ -42,9 +42,9 @@ import static com.reg21meme.dross.boss.cinder.CinderMobTuning.*;
  *       {@link CinderMobTuning#HERMIT_CALL_RANGE} blocks.</li>
  *   <li>The <b>snap</b> (its big claw slammed shut on what's in front of it) and the <b>pinch</b> (two quick nips of its
  *       small claw).</li>
- *   <li><b>Hiding</b>: hurt, it may pull into its shell (more likely as it weakens). In there it takes 80% less damage
- *       and can't be knocked back; after 2-3 s it peeks out (its eyes on their stalks), then comes out and fights on
- *       (angry, it strikes at once; it only glances round before it does).</li>
+ *   <li><b>Hiding</b>: every quarter of its health it loses, it pulls into its shell. In there it takes half the damage
+ *       and can't be knocked back; after 2-3 s it peeks out (its eyes on their stalks, looking left and right), then comes
+ *       out and fights on (angry, it strikes at once).</li>
  * </ul>
  */
 public class CinderHermit extends CinderMob
@@ -515,8 +515,8 @@ public class CinderHermit extends CinderMob
                 }
                 case PEEKING ->
                 {
-                    // Angry, it only glances out; otherwise it has a good look round first.
-                    if (this.timer >= (self.getTarget() != null ? PEEK_ANGRY_TICKS : PEEK_TICKS))
+                    // It always has its whole look round (eyes out, left, right) first; angry, it strikes as it comes out.
+                    if (this.timer >= PEEK_TICKS)
                     {
                         self.shell = Shell.COMING_OUT;
                         this.timer = 0;

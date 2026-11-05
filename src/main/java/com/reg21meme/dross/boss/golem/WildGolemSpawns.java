@@ -4,6 +4,9 @@ import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.EntityType;
@@ -12,11 +15,13 @@ import net.minecraft.world.entity.SpawnPlacements;
 import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.ServerLevelAccessor;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraftforge.event.entity.SpawnPlacementRegisterEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
@@ -42,6 +47,8 @@ public final class WildGolemSpawns
 {
     /** A block that is (or holds) lava. */
     private static final Predicate<BlockState> LAVA = state -> state.getFluidState().is(FluidTags.LAVA);
+    /** A magma block (counted like lava inside a hermit crab cave). */
+    private static final Predicate<BlockState> MAGMA = state -> state.is(Blocks.MAGMA_BLOCK);
 
     private WildGolemSpawns() {}
 
@@ -61,12 +68,26 @@ public final class WildGolemSpawns
         return onDryGround(type, level, reason, pos, random);
     }
 
-    /** A lava golem: like a stone golem, and only with lava near it. */
+    /**
+     * A lava golem: like a stone golem, and only with lava near it; inside a hermit crab cave, magma counts like lava (the
+     * user, November 5, 2026: "count magma as a part a lava golem can spawn in, in the hermit cave").
+     */
     public static boolean checkLavaGolemSpawn(EntityType<LavaGolem> type, ServerLevelAccessor level, MobSpawnType reason,
                                               BlockPos pos, RandomSource random)
     {
-        return onDryGround(type, level, reason, pos, random) && (reason == MobSpawnType.SPAWNER || isLavaNear(level, pos));
+        return onDryGround(type, level, reason, pos, random) && (reason == MobSpawnType.SPAWNER || isLavaNear(level, pos)
+                || (inHermitCave(level, pos) && isNear(level, pos, MAGMA)));
     }
+
+    /** True if {@code pos} is inside a hermit crab cave (a piece of the boss area's {@code dross:hermit_cave} structure). */
+    public static boolean inHermitCave(ServerLevelAccessor level, BlockPos pos)
+    {
+        return level.getLevel().structureManager().getStructureWithPieceAt(pos, HERMIT_CAVE).isValid();
+    }
+
+    /** The hermit crab caves' structure ({@code data/dross/worldgen/structure/hermit_cave.json}). */
+    private static final ResourceKey<Structure> HERMIT_CAVE = ResourceKey.create(Registries.STRUCTURE,
+            new ResourceLocation(Dross.MODID, "hermit_cave"));
 
     /**
      * Vanilla's rule for monsters that ignore light (not Peaceful, standing on a block a mob may spawn on; a spawner
@@ -85,6 +106,12 @@ public final class WildGolemSpawns
      * blocks (most have none). Chunks that aren't loaded count as no lava (nothing is loaded for this).
      */
     public static boolean isLavaNear(LevelReader level, BlockPos pos)
+    {
+        return isNear(level, pos, LAVA);
+    }
+
+    /** Like {@link #isLavaNear}, for any kind of block. */
+    public static boolean isNear(LevelReader level, BlockPos pos, Predicate<BlockState> what)
     {
         int sideways = ColossusTuning.WILD_LAVA_SEARCH_SIDEWAYS;
         int upDown = ColossusTuning.WILD_LAVA_SEARCH_UP_DOWN;
@@ -110,11 +137,11 @@ public final class WildGolemSpawns
                 for (int sectionY = SectionPos.blockToSectionCoord(minY); sectionY <= SectionPos.blockToSectionCoord(maxY); sectionY++)
                 {
                     LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(sectionY));
-                    if (section.hasOnlyAir() || !section.maybeHas(LAVA))
+                    if (section.hasOnlyAir() || !section.maybeHas(what))
                     {
                         continue;
                     }
-                    if (sectionHasLava(section, Math.max(minX, SectionPos.sectionToBlockCoord(chunkX)),
+                    if (sectionHas(section, what, Math.max(minX, SectionPos.sectionToBlockCoord(chunkX)),
                             Math.min(maxX, SectionPos.sectionToBlockCoord(chunkX, 15)),
                             Math.max(minY, SectionPos.sectionToBlockCoord(sectionY)),
                             Math.min(maxY, SectionPos.sectionToBlockCoord(sectionY, 15)),
@@ -129,8 +156,9 @@ public final class WildGolemSpawns
         return false;
     }
 
-    /** True if any block of this chunk piece inside the box (world coordinates, all inside the piece) is lava. */
-    private static boolean sectionHasLava(LevelChunkSection section, int minX, int maxX, int minY, int maxY, int minZ, int maxZ)
+    /** True if any block of this chunk piece inside the box (world coordinates, all inside the piece) is one of these. */
+    private static boolean sectionHas(LevelChunkSection section, Predicate<BlockState> what, int minX, int maxX, int minY, int maxY,
+                                      int minZ, int maxZ)
     {
         for (int y = minY; y <= maxY; y++)
         {
@@ -138,7 +166,7 @@ public final class WildGolemSpawns
             {
                 for (int z = minZ; z <= maxZ; z++)
                 {
-                    if (section.getFluidState(x & 15, y & 15, z & 15).is(FluidTags.LAVA))
+                    if (what.test(section.getBlockState(x & 15, y & 15, z & 15)))
                     {
                         return true;
                     }

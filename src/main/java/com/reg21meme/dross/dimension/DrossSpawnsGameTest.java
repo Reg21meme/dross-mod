@@ -62,7 +62,7 @@ import org.slf4j.Logger;
  *       too, with a few moose among its animals; Rimefall lists only its own animals (the Pond Skater and lone moose; its
  *       Rimehorn herds are placed with the land);
  *       Blightwood keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
- *       witches 7% of the mobs spawning there, 1 in 5 of the rats enraged); the sewers
+ *       witches 12% of the mobs spawning there, Plague Ravagers 19%); the sewers
  *       biome under it and the rat cave list only rats (3 in 5 enraged); and the Cinder Wastes list only their own
  *       mobs (the user, October 31, 2026): the Cinder Colossus's stone and lava golems, the Cinder Hermit and the
  *       Pallbearer, all monsters, by count of mobs 45 / 13 / 30 / 12% (a weight times its group's average size), all
@@ -82,23 +82,24 @@ public final class DrossSpawnsGameTest
 
     /**
      * The user's shares for the Cinder Wastes (October 31, 2026), by count of mobs: stone golems 45%, lava golems 13%,
-     * Cinder Hermits 27, Pallbearers 12, out of 97 since November 2 (a list entry's weight times its group's average size; worldgen.py's
-     * SPAWN_OVERRIDES["cinder_wastes"]).
+     * Cinder Hermits 27, Pallbearers 12, out of 97 since November 2; the hermits 24, out of 94, since November 5 (a list
+     * entry's weight times its group's average size; worldgen.py's SPAWN_OVERRIDES["cinder_wastes"]).
      */
-    private static final double CINDER_STONE_SHARE = 45.0D / 97.0D;
-    private static final double CINDER_LAVA_SHARE = 13.0D / 97.0D;
-    private static final double CINDER_HERMIT_SHARE = 27.0D / 97.0D;
-    private static final double CINDER_PALLBEARER_SHARE = 12.0D / 97.0D;
+    private static final double CINDER_STONE_SHARE = 45.0D / 94.0D;
+    private static final double CINDER_LAVA_SHARE = 13.0D / 94.0D;
+    private static final double CINDER_HERMIT_SHARE = 24.0D / 94.0D;
+    private static final double CINDER_PALLBEARER_SHARE = 12.0D / 94.0D;
     /** Mobs the base lists must have, and the ones the user removed from them (slimes, creepers, spiders). */
     private static final List<EntityType<?>> BASE_MONSTERS_KEPT = List.of(EntityType.ZOMBIE, EntityType.SKELETON);
     private static final List<EntityType<?>> BASE_MONSTERS_REMOVED = List.of(EntityType.SLIME, EntityType.CREEPER, EntityType.SPIDER);
     /**
      * The user's rats (October 2026): on Blightwood's surface only rats and witches spawn (October 17: no zombies,
-     * skeletons or endermen), the witches 7% of the mobs, 1 in 5 of the rats enraged; in the sewers and the rat cave only
-     * rats, 3 in 5 enraged. (Counting group sizes; worldgen.py's SEWERS.)
+     * skeletons or endermen), the witches 12% of the mobs (7% until November 5, 2026), the Plague Ravagers 19% and the
+     * Plague Rats the rest; in the sewers and the rat cave only rats, 3 in 5 enraged. (Counting group sizes; worldgen.py's
+     * SEWERS.)
      */
-    private static final double BLIGHTWOOD_WITCH_SHARE = 0.07D;
-    private static final double BLIGHTWOOD_ENRAGED_SHARE = 1.0D / 5.0D;
+    private static final double BLIGHTWOOD_WITCH_SHARE = 0.12D;
+    private static final double BLIGHTWOOD_ENRAGED_SHARE = 0.19D / 0.88D;
     private static final double SEWER_ENRAGED_SHARE = 3.0D / 5.0D;
     private static final double RAT_CAVE_ENRAGED_SHARE = 3.0D / 5.0D;
     private static final double SHARE_TOLERANCE = 0.02D;
@@ -110,7 +111,7 @@ public final class DrossSpawnsGameTest
     /** At least this many stone golems must spawn on the site (it's 80 x 80 blocks; about 7 or 8 mobs do). */
     private static final int MIN_STONE_GOLEMS = 1;
     /**
-     * At most this many of the Cinder Wastes' mobs may spawn on the site: the crowding limit (charge 1.0, budget 0.12, the
+     * At most this many of the Cinder Wastes' mobs may spawn on the site: the crowding limit (charge 1.0, budget 0.1163, the
      * same for all four) allows about 7 or 8 there, so this is twice that. Without it, they would spawn at nearly every
      * attempt (they ignore light).
      */
@@ -259,7 +260,7 @@ public final class DrossSpawnsGameTest
 
     /**
      * Blightwood (the user's request, October 17): its monsters are only rats and witches, no zombies, skeletons or
-     * endermen; the witches are 7% of the mobs spawning there and 1 in 5 of the rats is enraged (counting group sizes:
+     * endermen; the witches are 12% of the mobs spawning there and the Plague Ravagers 19% (counting group sizes:
      * weight x average group). Its other lists (animals, bats) stay the base Dross lists.
      */
     private static void checkBlightwoodLists(MobSpawnSettings mobs, MobSpawnSettings baseMobs, List<String> problems)
@@ -296,7 +297,7 @@ public final class DrossSpawnsGameTest
         if (all <= 0.0D || rats <= 0.0D || Math.abs(witches / all - BLIGHTWOOD_WITCH_SHARE) > SHARE_TOLERANCE
                 || Math.abs(enragedRats / rats - BLIGHTWOOD_ENRAGED_SHARE) > SHARE_TOLERANCE)
         {
-            problems.add(String.format(Locale.ROOT, "in Blightwood witches should be 7%% of the mobs (they're %.1f%%), the rest rats, 1 in 5 of "
+            problems.add(String.format(Locale.ROOT, "in Blightwood witches should be 12%% of the mobs (they're %.1f%%), the rest rats, 19 in 88 of "
                     + "them enraged (%.1f%%): %s", 100.0D * witches / Math.max(1.0D, all), 100.0D * enragedRats / Math.max(1.0D, rats),
                     describe(mobs.getMobs(MobCategory.MONSTER))));
         }

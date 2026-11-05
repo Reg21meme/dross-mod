@@ -41,7 +41,7 @@
       },
       {
         "type": "dross:cinder_hermit",
-        "weight": 27,
+        "weight": 24,
         "minCount": 1,
         "maxCount": 1
       },
@@ -62,19 +62,19 @@
   },
   "spawn_costs": {
     "dross:stone_golem": {
-      "energy_budget": 0.12,
+      "energy_budget": 0.1163,
       "charge": 1.0
     },
     "dross:lava_golem": {
-      "energy_budget": 0.12,
+      "energy_budget": 0.1163,
       "charge": 1.0
     },
     "dross:cinder_hermit": {
-      "energy_budget": 0.12,
+      "energy_budget": 0.1163,
       "charge": 1.0
     },
     "dross:pallbearer": {
-      "energy_budget": 0.12,
+      "energy_budget": 0.1163,
       "charge": 1.0
     }
   },

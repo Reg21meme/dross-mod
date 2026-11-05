@@ -168,13 +168,13 @@ public final class CinderMobTuning
     /** In its shell it takes this share of the damage (the user: "in its shell your hits do half the damage"; a fifth
      *  until November 2), and it can't be knocked back. */
     public static final float HIDDEN_DAMAGE_TAKEN = 0.5F;
-    /** Its hide animation (1.2 s), then hidden for 2-3 s, then it peeks (its eyes out: the whole look round, 4.1 s, or
-     *  just a glance when it's angry), then comes out (2.45 s; out of its shell at 1.4 s). */
+    /** Its hide animation (1.2 s), then hidden for 2-3 s, then it peeks (its eyes out, looking left and right: the whole
+     *  4.1 s, angry or not; until November 5, 2026 an angry one only glanced, 1.7 s, and the user saw its eyes pop out
+     *  and it come straight out: "it needs to do its peek animation"), then comes out (2.45 s; out of its shell at 1.4 s). */
     public static final int HIDE_TICKS = 24;
     public static final int HIDDEN_MIN_TICKS = 40;
     public static final int HIDDEN_MAX_TICKS = 60;
     public static final int PEEK_TICKS = 82;
-    public static final int PEEK_ANGRY_TICKS = 34;
     public static final int COME_OUT_TICKS = 49;
     public static final int COME_OUT_FREE_TICK = 28;
 

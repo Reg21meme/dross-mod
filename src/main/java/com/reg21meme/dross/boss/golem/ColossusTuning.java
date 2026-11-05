@@ -225,6 +225,19 @@ public final class ColossusTuning
      */
     public static final float BREAK_ROAR_LEAD = 0.45F;
 
+    // ---------------------------------------------------------------- its death scream
+    // The death animation screams for 3.4 s in two waves (tools/golems/kit/anims.py DEATH_SCREAM: its jaw gapes widest
+    // at about 1.05 s and 2.35 s), but only its death cry played, once, as it died, so most of the scream was silent (the
+    // user, November 5, 2026: "at the end of his death the Cinder Colossus doesn't seem to do his death scream"). Now a
+    // deep roar comes as it rears back and its death cry again on the second wave, both loud (seconds into the death
+    // animation, after its blend in).
+    /** When the roar starts (seconds into the death animation), and its pitch (deeper than its fighting roars). */
+    public static final float DEATH_ROAR_AT = 0.3F;
+    public static final float DEATH_ROAR_PITCH = 0.7F;
+    /** When the second wave's cry starts, and its pitch. */
+    public static final float DEATH_CRY_AT = 1.7F;
+    public static final float DEATH_CRY_PITCH = 0.85F;
+
     // ---------------------------------------------------------------- pickaxes (the user's wish: they crack the shell)
 
     /**

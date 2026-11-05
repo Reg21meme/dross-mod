@@ -1014,6 +1014,15 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
                 }
             }
             case DEATH -> {
+                // its scream: a roar as it rears back, its cry again on the second wave (ColossusTuning, "its death scream")
+                if (elapsed == ANIMATION_BLEND_TICKS + Math.round(ColossusTuning.DEATH_ROAR_AT * 20.0F))
+                {
+                    this.playSound(ModSounds.COLOSSUS_ROAR.get(), LOUD, ColossusTuning.DEATH_ROAR_PITCH);
+                }
+                if (elapsed == ANIMATION_BLEND_TICKS + Math.round(ColossusTuning.DEATH_CRY_AT * 20.0F))
+                {
+                    this.playSound(ModSounds.COLOSSUS_DEATH.get(), LOUD, ColossusTuning.DEATH_CRY_PITCH);
+                }
                 if (elapsed == ANIMATION_BLEND_TICKS + Math.round(GolemDesigns.GLOW_FADE_START * 20.0F))
                 {
                     this.playSound(ModSounds.COLOSSUS_COOL.get(), 2.0F, 0.6F);
