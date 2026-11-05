@@ -87,7 +87,10 @@ SETS = {
                               "animations are in animations/. Its volcano is built in the game by the showcase, behind "
                               "the gallery. Rounds 1 and 2 are in round1/ and round2/. Round 4 (October 31-November 2): "
                               "the adult with less lava, then purple, in eight looks; the user picked E1C3 (violet and "
-                              "lava, November 3), which E1A now wears; the eight are in round4/.",
+                              "lava, November 3); the eight are in round4/. Round 5 (November 5, after playing it): "
+                              "E1C3 with its bill, horns and tail its body's shade and fewer lava spots, in three "
+                              "shades; the user picked E1B (the body's shade), which E1A now wears; the four are in "
+                              "round5/.",
                         # drawn by volcano_preview.py from the blocks the game placed (kept by the clean-up)
                         extras=(("volcano_front", "The volcano by day, from its front (where the path starts)"),
                                 ("volcano_back", "From behind (the lookout's side)"),

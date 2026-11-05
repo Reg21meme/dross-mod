@@ -1,7 +1,9 @@
 """No. E1 Emberdactyl: round 3, the user's pick (round 2's B, the half-moon crest) at 33 blocks across its wings,
-with the eyes the user picked from its eye studies (E1A2, the ember slit): E1A, the one in the game. Since November 3,
-2026 it wears the user's pick of round 4's looks, E1C3 (violet and lava): less lava on its body, its bill and jaw, half
-moon, horns and tail violet with lava veins (the other seven looks are archived in emberdactyl_round4/)."""
+with the eyes the user picked from its eye studies (E1A2, the ember slit): E1A, the one in the game. From November 3,
+2026 it wore the user's pick of round 4's looks, E1C3 (violet and lava; the other seven are archived in
+emberdactyl_round4/); since November 5 the user's pick of round 5's, E1B (the body's shade): its bill and jaw, half
+moon, horns and tail its body's dark obsidian with few lava spots (the other three are archived in
+emberdactyl_round5/)."""
 from firekit import emberdactyl as E
 
 NUMBER = 1
@@ -14,31 +16,20 @@ BLURB = ("The Fire Necromancer's volcanic pterosaur, round 3 (the user's look in
          "less lava on its scales. It nests on its volcano guarding its egg, fights mostly in the air and lands for "
          "melee (300 health); beaten, its young bursts out of the egg (150).")
 VARIANTS = (
-    # The user's pick of round 4 (November 3, 2026: "E1 C3 is the best"), its only look now: E1C3, violet and lava, as
-    # E1A. Its body and wings as E1C (a quarter of round 3's lava on its body and horns, its half moon's rim half cooled
-    # over, the wings unchanged), its bill and jaw, half moon, horns and tail violet obsidian with lava veins glowing
-    # through them (firekit/emberdactyl.py: BODY_LAVA "little", PURPLE "veins"). Round 4's eight looks (E1A round 3's,
-    # E1B-E1D less lava, E1C1-E1C4 purple) are archived in emberdactyl_round4/.
-    dict(letter="A", mood="violet and lava", density=0.85, lava="little", purple="veins",
-         note="A: the user's pick of round 4 (E1C3): a little lava on its body, its bill and jaw, half moon, horns and "
-              "tail violet obsidian with lava veins glowing through them; its wings as round 3's (the one in the game)."),
-    # Round 5 (the user, November 5, 2026, after playing it: "its beak and horns are way too purple compared to the
-    # body, it should be the same shade; too many lava spots on its beak and horns, and a little too much on the body;
-    # keep the wings as is, and remove some of the spots from the tail"): A's wings, a few less lava on its body, a
-    # fifth of the lava spots on its bill, jaw, half moon and horns and two fifths on its tail, in three shades
-    # (firekit/emberdactyl.py: BODY_LAVA "fewer", PURPLE "body", "hint", "dusk").
-    dict(letter="B", mood="body's shade", density=0.85, lava="fewer", purple="body",
-         note="B: its bill and jaw, half moon, horns and tail the same dark obsidian as its body; far fewer lava spots on "
-              "them, fewer on its tail, a few less on its body; its wings as A's."),
-    dict(letter="C", mood="hint of violet", density=0.85, lava="fewer", purple="hint",
-         note="C: as B, its bill and jaw, half moon, horns and tail its body's obsidian with a hint of violet."),
-    dict(letter="D", mood="violet tips", density=0.85, lava="fewer", purple="dusk",
-         note="D: as B, its bill and jaw, half moon, horns and tail its body's obsidian fading to a soft violet at "
-              "their tips."),
+    # The user's pick of round 5 (November 5, 2026, after playing 0.3.0: "e1b is the best"), its only look now: E1B,
+    # the body's shade, as E1A. Its wings as round 3's; a few less lava on its body than round 4's pick (E1C3); its
+    # bill and jaw, half moon, horns and tail its body's dark obsidian with a fifth of E1C3's lava spots on them and two
+    # fifths on its tail (firekit/emberdactyl.py: BODY_LAVA "fewer", PURPLE "body"). Round 5's four looks (E1A round
+    # 4's pick, E1B-E1D three shades) are archived in emberdactyl_round5/, round 4's eight in emberdactyl_round4/.
+    dict(letter="A", mood="body's shade", density=0.85, lava="fewer", purple="body",
+         note="A: the user's pick of round 5 (E1B): its bill and jaw, half moon, horns and tail the same dark obsidian "
+              "as its body, with few lava spots on them; a little lava on its body; its wings as round 3's (the one in "
+              "the game)."),
 )
 ONE_ROW = True          # its looks side by side in the gallery's front row (A, the one in the game, on the left)
-INDEX_EXTRA = ("<p>Round 4's eight looks of the adult (less lava, then purple; the user picked E1C3, now E1A): "
-               "<a href='round4/index.html'>round4/</a>.</p>")
+INDEX_EXTRA = ("<p>Round 5's four looks of the adult (its bill, horns and tail its body's shade; the user picked E1B, now "
+               "E1A): <a href='round5/index.html'>round5/</a>. Round 4's eight (less lava, then purple; the user picked "
+               "E1C3): <a href='round4/index.html'>round4/</a>.</p>")
 # Its ten eye studies (E1A1-E1A10, the user's second look of October 27) are archived in
 # emberdactyl_round3/e01_eye_studies.py: the user picked E1A2, the ember slit ("the evil-looking ones"),
 # now its own eyes (firekit/emberdactyl.py: ADULT_EYE).
