@@ -116,9 +116,9 @@ public final class CinderMobsGameTest
                     }
                     FireDesigns.Design shell = hermit.getShell();
                     if (!CinderHermit.SHELLS.contains(shell) || Math.abs(hermit.getBbHeight() - shell.height()) > 0.01F
-                            || Math.abs(hermit.getBbWidth() - shell.width()) > 0.01F)
+                            || Math.abs(hermit.getBbWidth() - CinderHermit.standWidth(shell)) > 0.01F)
                     {
-                        throw new GameTestAssertException("the hermit should wear one of its shells at that shell's size, but it's "
+                        throw new GameTestAssertException("the hermit should wear one of its shells, its box that shell's standing width, but it's "
                                 + shell.label() + " at " + hermit.getBbWidth() + " x " + hermit.getBbHeight());
                     }
                     expect(pallbearer.getMaxHealth(), (float) CinderMobTuning.PALLBEARER_HEALTH, "the Pallbearer's health");
@@ -289,7 +289,7 @@ public final class CinderMobsGameTest
                         throw new GameTestAssertException("couldn't make a hermit");
                     }
                     loaded.load(tag);
-                    if (loaded.getShell() != skull || Math.abs(loaded.getBbWidth() - skull.width()) > 0.01F)
+                    if (loaded.getShell() != skull || Math.abs(loaded.getBbWidth() - CinderHermit.standWidth(skull)) > 0.01F)
                     {
                         throw new GameTestAssertException("saved in the horned skull, it came back in " + loaded.getShell().label()
                                 + " (" + loaded.getBbWidth() + " wide)");
@@ -339,6 +339,83 @@ public final class CinderMobsGameTest
                         () -> "it's " + hidden[0].shellRoutine() + (peeked[0] ? " (it peeked)" : " (it never peeked)")))
                 .thenExecute(() -> run.step(() -> {
                     LOGGER.info("[cinder mobs test] the shell kept through a save; hidden it took a fifth of the damage, peeked and came out");
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
+     * Its hitboxes are its pieces (the user, November 5, 2026: "a box around each leg, then their giant claw, their
+     * shell"): nine of them, all shown while it's out, a blow on a leg hurts it, its own box can't be hit; in its shell
+     * its legs, claws and eyes are tucked inside the shell's box.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = BATCH, timeoutTicks = 2_000_000)
+    public static void hermitPiecesFollowIt(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 6);
+        run.watch(helper);
+        CinderHermit[] crab = new CinderHermit[1];
+        helper.startSequence()
+                .thenWaitUntil(run::ready)
+                .thenExecute(() -> run.step(() -> {
+                    run.floor();
+                    crab[0] = run.spawn(ModEntities.CINDER_HERMIT.get(), 0.0D, 0.0D, 0.0F);
+                    crab[0].setShell(shell("M2C"));
+                }))
+                .thenIdle(5)
+                .thenExecute(() -> run.step(() -> {
+                    CinderHermit h = crab[0];
+                    var parts = h.bodyParts();
+                    long shown = java.util.Arrays.stream(parts).filter(com.reg21meme.dross.boss.fire.ShapedPart::shown).count();
+                    if (parts.length != CinderHermit.PIECES.size() || shown != parts.length)
+                    {
+                        throw new GameTestAssertException("out of its shell it should have its " + CinderHermit.PIECES.size()
+                                + " pieces showing, but has " + parts.length + ", " + shown + " showing");
+                    }
+                    if (h.isPickable())
+                    {
+                        throw new GameTestAssertException("its own box shouldn't be hittable (only its pieces)");
+                    }
+                    var leg = parts[CinderHermit.PIECES.indexOf("leg_bl")];
+                    var shellBox = parts[CinderHermit.PIECES.indexOf("shell")].getBoundingBox();
+                    if (leg.getBoundingBox().getXsize() > 4.0D || shellBox.getXsize() < 2.0D)
+                    {
+                        throw new GameTestAssertException("its pieces are the wrong size: a leg " + leg.getBoundingBox() + ", the shell " + shellBox);
+                    }
+                    h.invulnerableTime = 0;
+                    float before = h.getHealth();
+                    leg.hurt(run.level.damageSources().magic(), 4.0F);
+                    if (h.getHealth() >= before)
+                    {
+                        throw new GameTestAssertException("a blow on its leg didn't hurt it");
+                    }
+                    h.hideNow();
+                }))
+                .thenIdle(40)
+                .thenExecute(() -> run.step(() -> {
+                    CinderHermit h = crab[0];
+                    var parts = h.bodyParts();
+                    var shellBox = parts[CinderHermit.PIECES.indexOf("shell")].getBoundingBox().inflate(0.75D);
+                    StringBuilder out = new StringBuilder();
+                    for (var part : parts)
+                    {
+                        if (part.name().equals("shell") || part.name().equals("body") || !part.shown())
+                        {
+                            continue;
+                        }
+                        var b = part.getBoundingBox();
+                        if (b.minX < shellBox.minX || b.maxX > shellBox.maxX || b.minZ < shellBox.minZ || b.maxZ > shellBox.maxZ
+                                || b.maxY > shellBox.maxY)
+                        {
+                            out.append(" ").append(part.name());
+                        }
+                    }
+                    if (!h.isHidden() || !out.isEmpty())
+                    {
+                        throw new GameTestAssertException("hidden (" + h.isHidden() + "), these pieces stick out of its shell's box:" + out);
+                    }
+                    LOGGER.info("[cinder mobs test] the hermit's {} pieces show and can be hit; in its shell they're tucked inside it",
+                            parts.length);
                     run.cleanUp();
                 }))
                 .thenSucceed();

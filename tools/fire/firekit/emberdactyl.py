@@ -141,6 +141,8 @@ EYE_STYLES = {
 BODY_LAVA = {
     "less": dict(keep=0.5, rim=0.0),
     "little": dict(keep=0.25, rim=0.62),
+    # (the user, November 5, 2026, of E1A: "a little too much on the body": a few less than "little")
+    "fewer": dict(keep=0.18, rim=0.62),
     "none": dict(keep=0.07, rim=0.92),
 }
 
@@ -169,7 +171,21 @@ PART_GROWS = {"beak": ((0.0, 0.0, -1.0), 0), "horn": ((0.0, 1.0, 1.0), 0), "moon
 # quarter of them, BODY_LAVA["little"]).
 PART_BASE = {"beak": ("beak", 1811, 1.7, 0.08), "horn": ("crest", 1819, 1.8, 0.12), "moon": ("crest", 1819, 1.8, 0.12),
              "tail": ("hide", 1801, 1.6, 0.14), "tailspike": ("spike", 1821, 1.8, 0.0)}
+# The user, November 5, 2026, of E1A (E1C3) in the game: "its beak and horns are way too purple compared to the body, it
+# should be the same shade; too many lava spots on its beak and horns, and a little too much on the body; keep the wings
+# as is, and remove some of the spots from the tail". Three looks of it (veins "cut": E1A's own amount of veins on each
+# part, only `keep` of them kept; the body "fewer"): its bill and jaw, half moon and horns keep a fifth of their veins,
+# its tail two fifths, and they are
+#   "body"   the body's own obsidian (fmats.OBSIDIAN, a purple-black), no other colour;
+#   "hint"   the body's obsidian with a hint of violet (DUSK: a third of the way to VIOLET);
+#   "dusk"   the body's obsidian at their roots fading to a soft violet (DUSK_TIP, half way) at their tips.
+DUSK = F.OBSIDIAN * (2.0 / 3.0) + VIOLET * (1.0 / 3.0)
+DUSK_TIP = F.OBSIDIAN * 0.5 + VIOLET * 0.5
+CUT_KEEP = {"beak": 0.2, "horn": 0.2, "moon": 0.2, "tail": 0.4, "tailspike": 1.0}
 PURPLE = {
+    "body": dict(pal=F.OBSIDIAN, gloss=1.6, veins="cut", keep=CUT_KEEP),
+    "hint": dict(pal=DUSK, gloss=1.7, veins="cut", keep=CUT_KEEP),
+    "dusk": dict(pal=DUSK_TIP, gloss=1.8, veins="cut", keep=CUT_KEEP, ramp=(0.35, 0.95), spike_ramp=None),
     # (fade, tips: w = how purple a texel is, 0 at the part's root .. 1 at its tip, from `ramp` (where it starts and
     # where it's all purple, as shares of the way out); the tail's spike is all purple, being its tip)
     "glossy": dict(pal=VIOLET, gloss=2.1, veins=None),
@@ -234,6 +250,8 @@ def purple_parts(look, base):
             v, keep = max(veins, spec.get("vein_floor", 0.0)), 1.0
         elif spec["veins"] == "kept":
             v, keep = veins, BODY_LAVA["little"]["keep"]
+        elif spec["veins"] == "cut":
+            v, keep = veins, spec["keep"][part]
         else:
             v, keep = 0.0, 1.0
         tip = F.obsidian(spec["pal"], seed=seed, gloss=spec["gloss"], veins=v, vein_keep=keep)

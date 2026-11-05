@@ -35,19 +35,10 @@ public class Emberdactyl extends EmberBoss
 {
     /** (server) set as it starts dying if it's its volcano's own Emberdactyl: only then does its egg hatch */
     private boolean ownsVolcano;
-    /** Its parts' sizes (width, height): head, neck, left wing, right wing, left wing tip, right wing tip, tail. */
-    private static final double[][] SIZES = {{4.5D, 4.5D}, {3.5D, 4.0D}, {7.0D, 7.0D}, {7.0D, 7.0D}, {6.0D, 8.0D},
-            {6.0D, 8.0D}, {3.0D, 3.0D}};
-    /** ...where they are flying (its own left +x, up from its feet, its front -z; measured from its hover and flight)... */
-    private static final double[][] FLY = {{0.0D, 11.0D, -12.5D}, {0.0D, 10.0D, -6.5D}, {6.6D, 9.0D, 0.9D},
-            {-6.6D, 9.0D, 0.9D}, {11.5D, 7.5D, 2.7D}, {-11.5D, 7.5D, 2.7D}, {0.0D, 5.0D, 7.0D}};
-    /** ...and standing (its wings folded up its sides). */
-    private static final double[][] GROUND = {{0.0D, 9.0D, -12.0D}, {0.0D, 6.5D, -6.0D}, {3.8D, 0.0D, 0.6D},
-            {-3.8D, 0.0D, 0.6D}, {4.7D, 4.0D, 2.1D}, {-4.7D, 4.0D, 2.1D}, {0.0D, 1.0D, 6.5D}};
 
     public Emberdactyl(EntityType<? extends Emberdactyl> type, Level level)
     {
-        super(type, level, ADULT, design("E1A"), SIZES, FLY, GROUND);
+        super(type, level, ADULT, design("E1A"));
         this.xpReward = ADULT_XP;
     }
 

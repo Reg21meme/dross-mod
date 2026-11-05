@@ -41,7 +41,7 @@ python tools/fire/volcano_preview.py          # the Emberdactyl's volcano previe
 python tools/fire/mobs.py                     # the designs that move: their skeletons, animations, previews
 python tools/fire/mobs.py hermit --no-gif     # one mob, without the GIFs (much quicker)
 python tools/fire/sounds.py                   # their sounds (after mobs.py: the moments come from the animations)
-python tools/fire/shapes.py                   # the Emberdactyl's collision boxes (after mobs.py): EmberShapes.java
+python tools/fire/hitboxes.py                 # the hitboxes that follow the animations (after mobs.py): assets/dross/hitboxes/
 python tools/fire/lava_looks.py               # E1A-E1D and E1C with E1C1-E1C4 side by side (after mobs.py emberdactyl)
 ```
 
@@ -116,22 +116,20 @@ peck in flight: a harder wingbeat, its neck drawn back and up, then a lunge forw
 surging forward), its jaw snapping shut at the strike (`hit`, 0.556 of the loop; the beak's clack and a flap are its
 sound cues), and back. It runs straight into itself, so the game can play it several times in a row.
 
-**Its collision shapes** (`shapes.py`; the user, October 31: its head, neck and wings went through walls): for the
-adult (E1A) and the young (E2A), boxes that together hold every corner of the model through every frame of its flying
-animations (all but perch, walk, snap and death) and, separately, its ground animations (perch, walk, snap), read from
-the game's own model and animation files (as `trophies.py` reads them) and posed with GeckoLib's maths. Its middle (body,
-legs, neck, head, horns, tail) is cut along its length at its joints, each piece at most 4 blocks long; each wing (its
-bones and membranes) is cut along x into slabs at most 3 blocks wide from its middle line out to its furthest tip, the
-two wings mirror images of each other; every box covers its part's whole sweep through the animations, grown by 0.15
-blocks. Frame: blocks, x its own left, y up from its feet, z its front at -z (the hitbox parts' frame, `Emberdactyl.java`
-FLY/GROUND, turned by `RimefallBodyPart.place`). Besides those unions it makes one set per animation (all but death),
-so the game can use the set of the animation it's playing (the screech's raised wings make the flying union 26.7
-blocks tall). `python tools/fire/shapes.py` writes the generated `boss/emberdactyl/EmberShapes.java`: the unions
-`ADULT_FLY`, `ADULT_GROUND`, `YOUNG_FLY`, `YOUNG_GROUND`, each animation's `ADULT_HOVER`, `YOUNG_GUST`... (the fly
-animation's `ADULT_FLY_ANIM`, `YOUNG_FLY_ANIM`), and `adult(String animation)` / `young(String animation)` giving an
-animation's set by name (the flying union for any other name); rows `{x0, y0, z0, x1, y1, z1}`. It checks every
-sampled point lies in a box; `--check` only prints them. Run it again after `mobs.py`
-changes either model or its animations.
+**Hitboxes that follow the animations** (`hitboxes.py`; the user, November 5, 2026: "make more specific boxes around
+them, not just 1 giant box: a box around each leg, then their giant claw, their shell; and the same with the
+Emberdactyl, its body and wings as it swings"): for the adult (E1A; its other looks share its skeleton), the young (E2A)
+and the Cinder Hermit in each of its eight shells, the box round each of its pieces every 0.1 s of every animation but
+its death, read from the game's own model and animation files (as `trophies.py` reads them) and posed with GeckoLib's
+maths. The pieces: the adult's bill, skull, each horn, neck, body, tail, each leg, and each wing by arm, forearm, hand
+and fingertip (a long piece cut along its length); the young's head (in three) and jaw instead of the bill, skull and
+horns; the hermit's shell, body, eyes, big claw, small claw and four legs. Frame: blocks, x its own left, y up from its
+feet, z its front at -z. It writes `src/main/resources/assets/dross/hitboxes/<model>.bin` (its format in the script),
+which the game reads (`boss/fire/FireHitboxes`): each piece is a hitbox following the animation (`boss/fire/ShapedPart`),
+and the Emberdactyl's are also what blocks stop (coming down, only its body and legs). `--check` only prints each model's
+pieces at rest. Run it again after `mobs.py` changes a model or its animations. (Until then `shapes.py` made
+`EmberShapes.java`: boxes covering each part's whole sweep through an animation, much bigger than the bird at any
+moment, which made it clunky and stood it on treetops.)
 
 The volcano is built by the game, not here; its previews are drawn from the blocks the game really placed. First the
 probe (it builds the volcano on a flat plain in a test world and writes what you could see to

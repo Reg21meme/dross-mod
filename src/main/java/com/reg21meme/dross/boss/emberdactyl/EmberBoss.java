@@ -7,7 +7,9 @@ import com.reg21meme.dross.boss.fire.FireDesigns;
 import com.reg21meme.dross.boss.golem.LavaPools;
 import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.boss.rage.RageLeader;
-import com.reg21meme.dross.boss.rimefall.RimefallBodyPart;
+import net.minecraft.tags.BlockTags;
+import com.reg21meme.dross.boss.fire.FireHitboxes;
+import com.reg21meme.dross.boss.fire.ShapedPart;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -81,8 +83,9 @@ import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
  *   <li>The Rage Wand ({@link RageLeader}): raged, it wakes and goes for the nearest raged mob of another team before
  *       any player (another Emberdactyl too: a fight in the air), and never hurts its own team.</li>
  * </ul>
- * Its hitboxes: its body (its own), and its head, neck, tail and wings ({@link RimefallBodyPart}s: hitting any hurts it),
- * placed for flying or for standing by its animation.
+ * Its hitboxes: its pieces ({@link ShapedPart}s, following its animations: its bill, skull, horns, neck, body, tail, legs
+ * and its wings in pieces; hitting any hurts it), which are also what blocks stop; its own box, only as wide as its feet,
+ * stands it on the ground and can't be hit.
  */
 public abstract class EmberBoss extends FireCandidate implements RageLeader
 {
@@ -108,11 +111,16 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     private static final String TAG_ENRAGED = "Enraged";
     private static final String TAG_PHASE = "Phase";
     private static final String TAG_HOSTILE = "Hostile";
-    /** Parts' sizes (width, height) and spots (its own left +x, up from its feet, its front -z), flying and standing:
-     *  head, neck, left wing, right wing, left wing tip, right wing tip, tail (measured from its model's poses). */
-    private final double[][] flySpots;
-    private final double[][] groundSpots;
-    private final RimefallBodyPart<EmberBoss>[] parts;
+    /** Its pieces, each a hitbox of its own following its animations (boss/fire/FireHitboxes: its bill, skull, horns,
+     *  neck, body, tail, legs and its wings in pieces; the user, November 5, 2026: "make more specific boxes around
+     *  them ... its body and wings as it swings"); until then seven boxes placed for flying or standing. */
+    private final ShapedPart<EmberBoss>[] parts;
+    /** Which of its pieces hold it up (its body and legs): the others never stop it coming down (its wings, neck and
+     *  head on a treetop held it up in the air: the user, November 5). Worked out for {@link #bearsOf}. */
+    @Nullable
+    private boolean[] bears;
+    @Nullable
+    private FireHitboxes.Shapes bearsOf;
 
     protected final Kind kind;
     protected Phase phase = Phase.REST;
@@ -189,8 +197,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     private int fallDelay;
 
     @SuppressWarnings("unchecked")
-    protected EmberBoss(EntityType<? extends EmberBoss> type, Level level, Kind kind, int design, double[][] sizes,
-                        double[][] flySpots, double[][] groundSpots)
+    protected EmberBoss(EntityType<? extends EmberBoss> type, Level level, Kind kind, int design)
     {
         super(type, level);
         this.kind = kind;
@@ -200,12 +207,12 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         // (it flew through blocks until October 30: the user saw the young "clip through walls", and both go up through
         // the bedrock arena's roof, where, inside it, they took its top for the ground; now blocks stop it like any mob)
         this.setDesign(design);
-        this.flySpots = flySpots;
-        this.groundSpots = groundSpots;
-        this.parts = new RimefallBodyPart[sizes.length];
-        for (int i = 0; i < sizes.length; i++)
+        FireHitboxes.Shapes shapes = this.pieceShapes();
+        List<String> pieces = shapes == null ? List.of() : shapes.pieces();
+        this.parts = new ShapedPart[pieces.size()];
+        for (int i = 0; i < this.parts.length; i++)
         {
-            this.parts[i] = new RimefallBodyPart<>(this, (float) sizes[i][0], (float) sizes[i][1]);
+            this.parts[i] = new ShapedPart<>(this, pieces.get(i));
         }
         this.setId(ENTITY_COUNTER.getAndAdd(this.parts.length + 1) + 1);
         this.orbitAngle = this.random.nextDouble() * Math.PI * 2.0D;
@@ -275,10 +282,24 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         return this.bar != null && this.bar.getPlayers().contains(player);
     }
 
-    /** Its head, neck, wings and tail (hitboxes of their own). */
-    public RimefallBodyPart<EmberBoss>[] bodyParts()
+    /** Its pieces (hitboxes of their own: {@link #parts}). */
+    public ShapedPart<EmberBoss>[] bodyParts()
     {
         return this.parts;
+    }
+
+    /** Its piece of that name ("wing_l_arm", "body"...), or null. */
+    @Nullable
+    public ShapedPart<EmberBoss> part(String name)
+    {
+        for (ShapedPart<EmberBoss> part : this.parts)
+        {
+            if (part.name().equals(name))
+            {
+                return part;
+            }
+        }
+        return null;
     }
 
     /** Whom it's fighting now (or null). */
@@ -393,7 +414,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     @Override
     public EntityDimensions getDimensions(Pose pose)
     {
-        return this.kind == null ? super.getDimensions(pose) : EntityDimensions.scalable(this.kind.width(), this.kind.height());
+        // (its own box only as wide as its feet stand: it's what stands on the ground; its pieces are what's hit and,
+        // flying, what blocks stop; the user, November 5: a box its body's width stood it on things beside its feet)
+        return this.kind == null ? super.getDimensions(pose)
+                : EntityDimensions.scalable(this.kind == ADULT ? ADULT_STAND_WIDTH : YOUNG_STAND_WIDTH, this.kind.height());
     }
 
     /** True while it's standing on the ground (its parts placed for standing). */
@@ -407,7 +431,14 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     public void aiStep()
     {
         super.aiStep();
-        RimefallBodyPart.place(this, this.parts, this.standing() ? this.groundSpots : this.flySpots, 1.0F);
+        ShapedPart.place(this, this.parts, this.isDeadOrDying() ? null : this.pieceBoxes());
+    }
+
+    /** Only its pieces can be hit (like the Ender Dragon: its own box is only where its feet stand). */
+    @Override
+    public boolean isPickable()
+    {
+        return false;
     }
 
     // ---------------------------------------------------------------- alive, not a statue
@@ -503,6 +534,12 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             want = this.steerClear(want);        // a wall ahead: it turns aside before it gets there
         }
+        if (!this.isDeadOrDying() && !this.isPassenger() && (this.grounded || this.standing()))
+        {
+            // on the ground it settles onto it, its body and legs on what's under them (the user, November 5: it lay
+            // "perched in the middle of the air", pecking from there)
+            want = new Vec3(want.x, Math.min(want.y, -SETTLE_FALL), want.z);
+        }
         Vec3 go = this.isDeadOrDying() ? want : this.shapesClip(want);
         boolean blocked = Math.abs(go.x - want.x) > 1.0E-7D || Math.abs(go.z - want.z) > 1.0E-7D;
         if (go != this.getDeltaMovement())
@@ -534,49 +571,78 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     /**
      * Its whole body is solid (the user, October 31: "make it so the wings count for the Emberdactyls like a physical box
      * ... those can't also clip through walls", then its head went through the bedrock: "his entire body"): the boxes
-     * round its head, neck, wings, body and tail through the animation it's playing ({@link EmberShapes}, measured from
-     * its model: its wings flat out in a glide, raised high in its screech), turned with it. Their lowest point is never
-     * under its feet (its body meets the ground).
+     * round its pieces as it's posed now ({@link FireHitboxes}: its wings where they are in this beat, not the whole
+     * sweep of the animation, which stopped it near any hill or tree and made it clunky: the user, November 5), turned
+     * with it. Their lowest point is never under its feet (its body meets the ground). A piece with nothing showing is
+     * null.
      */
     private List<AABB> shapesAt(Vec3 at, float yawDeg)
     {
-        String anim = this.animation();
-        double[][] shapes = this.dashes() ? EmberShapes.young(anim) : EmberShapes.adult(anim);
+        double[][] shapes = this.pieceBoxes();
+        if (shapes == null)
+        {
+            return List.of();
+        }
         float yaw = yawDeg * Mth.DEG_TO_RAD;
         double cos = Mth.cos(yaw);
         double sin = Mth.sin(yaw);
         List<AABB> boxes = new ArrayList<>(shapes.length);
         for (double[] s : shapes)
         {
-            double x0 = Double.MAX_VALUE, x1 = -Double.MAX_VALUE, z0 = Double.MAX_VALUE, z1 = -Double.MAX_VALUE;
-            for (double lx : new double[] {s[0], s[3]})
+            if (s == null)
             {
-                for (double lz : new double[] {s[2], s[5]})
-                {
-                    double x = lx * cos + lz * sin;
-                    double z = lx * sin - lz * cos;
-                    x0 = Math.min(x0, x);
-                    x1 = Math.max(x1, x);
-                    z0 = Math.min(z0, z);
-                    z1 = Math.max(z1, z);
-                }
+                boxes.add(null);
+                continue;
             }
-            boxes.add(new AABB(at.x + x0, at.y + Math.max(0.0D, s[1]), at.z + z0, at.x + x1, at.y + Math.max(0.05D, s[4]), at.z + z1));
+            AABB t = ShapedPart.turned(at.x, at.y, at.z, s, cos, sin);
+            boxes.add(new AABB(t.minX, Math.max(at.y, t.minY), t.minZ, t.maxX, Math.max(at.y + 0.05D, t.maxY), t.maxZ));
         }
         return boxes;
     }
 
+    /** Which of its pieces hold it up as it comes down: its body and legs (not its wings, neck, head or tail). */
+    private boolean bearsDown(int piece)
+    {
+        FireHitboxes.Shapes shapes = this.pieceShapes();
+        if (shapes != this.bearsOf || this.bears == null)
+        {
+            this.bearsOf = shapes;
+            List<String> names = shapes == null ? List.of() : shapes.pieces();
+            this.bears = new boolean[names.size()];
+            for (int i = 0; i < names.size(); i++)
+            {
+                this.bears[i] = names.get(i).startsWith("body") || names.get(i).startsWith("leg_");
+            }
+        }
+        return piece < this.bears.length && this.bears[piece];
+    }
+
     /** {@code move} cut short so none of its body's boxes runs into a block, as Minecraft does for an entity's own box. A
-     *  box already inside a block (it came down beside a hill) can still move out of it. */
+     *  box already inside a block (it came down beside a hill) can still move out of it. Coming down, only its body and
+     *  legs stop it (its wings never hold it up on a treetop). */
     private Vec3 shapesClip(Vec3 move)
     {
         if (move.lengthSqr() < 1.0E-10D)
         {
             return move;
         }
-        for (AABB box : this.shapesAt(this.position(), this.yBodyRot))
+        List<AABB> boxes = this.shapesAt(this.position(), this.yBodyRot);
+        for (int i = 0; i < boxes.size(); i++)
         {
-            move = Entity.collideBoundingBox(this, move, box, this.level(), List.of());
+            AABB box = boxes.get(i);
+            if (box == null)
+            {
+                continue;
+            }
+            if (move.y < 0.0D && !this.bearsDown(i))
+            {
+                Vec3 flat = Entity.collideBoundingBox(this, new Vec3(move.x, 0.0D, move.z), box, this.level(), List.of());
+                move = new Vec3(flat.x, move.y, flat.z);
+            }
+            else
+            {
+                move = Entity.collideBoundingBox(this, move, box, this.level(), List.of());
+            }
         }
         return move;
     }
@@ -588,7 +654,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         double room = reach;
         for (AABB box : this.shapesAt(this.position(), this.yBodyRot))
         {
-            room = Math.min(room, Entity.collideBoundingBox(this, sweep, box, this.level(), List.of()).length());
+            if (box != null)
+            {
+                room = Math.min(room, Entity.collideBoundingBox(this, sweep, box, this.level(), List.of()).length());
+            }
         }
         return Math.min(room, Entity.collideBoundingBox(this, sweep, this.getBoundingBox(), this.level(), List.of()).length());
     }
@@ -647,6 +716,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         Vec3 away = Vec3.ZERO;
         for (int i = 0; i < then.size(); i++)
         {
+            if (then.get(i) == null || now.get(i) == null)
+            {
+                continue;
+            }
             AABB box = then.get(i).deflate(0.01D);
             if (!this.level().noCollision(this, box) && this.level().noCollision(this, now.get(i).deflate(0.01D)))
             {
@@ -1212,7 +1285,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             case DIVE ->
             {
-                this.locked = this.target.position();
+                this.locked = this.landingSpot(this.target.position());
                 this.lineFrom = this.position();
                 this.playAnimation("dive");
                 this.ready.put(m, this.tickCount + this.cooldown(DIVE_COOLDOWN));
@@ -1355,6 +1428,43 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 this.start(Move.STUCK);
             }
         }
+    }
+
+    /**
+     * Where its dive lands: the nearest spot to {@code spot} (out to {@link EmberTuning#LAND_SEARCH} blocks) where its feet
+     * stand on the ground, not on a tree, and its body fits (the user, November 5: by a dead tree it came to rest on it,
+     * in the air, "it should recognise it has the space to drop down"); {@code spot} itself if there's none.
+     */
+    private Vec3 landingSpot(Vec3 spot)
+    {
+        for (double r = 0.0D; r <= LAND_SEARCH + 1.0E-6D; r += LAND_STEP)
+        {
+            int n = r < 1.0E-6D ? 1 : Math.max(8, (int) Math.ceil(Math.PI * 2.0D * r / LAND_STEP));
+            for (int k = 0; k < n; k++)
+            {
+                double a = Math.PI * 2.0D * k / n;
+                double x = spot.x + Math.cos(a) * r;
+                double z = spot.z + Math.sin(a) * r;
+                double y = this.groundAt(x, z);
+                if (this.standsAt(x, y, z))
+                {
+                    return new Vec3(x, y, z);
+                }
+            }
+        }
+        return spot;
+    }
+
+    /** True if, with its feet at (x, y, z), it stands on the ground (not a log or leaves) and its own box fits. */
+    private boolean standsAt(double x, double y, double z)
+    {
+        BlockState under = this.level().getBlockState(BlockPos.containing(x, y - 0.5D, z));
+        if (under.is(BlockTags.LOGS) || under.is(BlockTags.LEAVES) || !under.blocksMotion() || !this.inArena(x, z))
+        {
+            return false;
+        }
+        EntityDimensions size = this.getDimensions(this.getPose());
+        return this.level().noCollision(this, size.makeBoundingBox(x, y, z).deflate(0.01D));
     }
 
     /** Its crash: a ring of blasts and fire round where it lands; everything within {@link EmberTuning#DIVE_RADIUS} hurt
@@ -1850,7 +1960,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
         for (AABB box : this.shapesAt(spot, this.yBodyRot))
         {
-            if (!this.level().noCollision(this, box.deflate(0.01D)))
+            if (box != null && !this.level().noCollision(this, box.deflate(0.01D)))
             {
                 return false;
             }

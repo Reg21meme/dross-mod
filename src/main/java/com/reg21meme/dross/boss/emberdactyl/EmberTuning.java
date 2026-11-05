@@ -64,6 +64,19 @@ public final class EmberTuning
     public static final Kind YOUNG = new Kind(YOUNG_HEALTH, 6.0D, 0.55D * 2.5D, 1.4D * 2.5D, 4, 0.4D, 16.0D, 10.0D, 130.0D, 2,
             0.65F, 24, 3.5F, 9.5F, 23, (30.957D + 33.485D) / 16.0D, 4.5D, 20.0D);
 
+    // ---- Its own box, and landing (the user, November 5, 2026: it came to rest on a dead tree, in the air) ----
+
+    /** Its own box (only for standing on the ground: its pieces are what's hit and, flying, what blocks stop) is as wide
+     *  as its feet stand apart (its legs reach 1.7 blocks either side of its middle; the young's 1.15). */
+    public static final float ADULT_STAND_WIDTH = 3.5F;
+    public static final float YOUNG_STAND_WIDTH = 2.4F;
+    /** On the ground it settles at this many blocks a tick, until its body or legs rest on something. */
+    public static final double SETTLE_FALL = 0.5D;
+    /** Its dive lands on the nearest spot to its target, out to this many blocks, where its feet stand on the ground (not
+     *  a tree) and its body fits; tried this many blocks apart. */
+    public static final double LAND_SEARCH = 6.0D;
+    public static final double LAND_STEP = 1.5D;
+
     // ---- Waking ----
 
     /** It notices a player within this many blocks of its volcano's foot (the user: "within 60 blocks"); one from a

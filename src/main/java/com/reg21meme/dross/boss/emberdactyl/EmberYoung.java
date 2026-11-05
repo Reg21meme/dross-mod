@@ -31,16 +31,10 @@ import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
 public class EmberYoung extends EmberBoss
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final double[][] SIZES = {{3.2D, 3.2D}, {2.5D, 3.0D}, {5.0D, 5.0D}, {5.0D, 5.0D}, {4.5D, 6.0D},
-            {4.5D, 6.0D}, {2.2D, 2.2D}};
-    private static final double[][] FLY = {{0.0D, 9.5D, -9.0D}, {0.0D, 8.5D, -4.5D}, {4.1D, 7.0D, 1.4D},
-            {-4.1D, 7.0D, 1.4D}, {7.2D, 4.8D, 4.7D}, {-7.2D, 4.8D, 4.7D}, {0.0D, 4.5D, 5.0D}};
-    private static final double[][] GROUND = {{0.0D, 6.3D, -8.8D}, {0.0D, 4.8D, -4.5D}, {1.9D, 0.5D, 0.1D},
-            {-1.9D, 0.5D, 0.1D}, {3.3D, 3.0D, 3.6D}, {-3.3D, 3.0D, 3.6D}, {0.0D, 1.5D, 5.0D}};
 
     public EmberYoung(EntityType<? extends EmberYoung> type, Level level)
     {
-        super(type, level, YOUNG, design("E2A"), SIZES, FLY, GROUND);
+        super(type, level, YOUNG, design("E2A"));
         this.xpReward = YOUNG_XP;
     }
 

@@ -15,6 +15,7 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
+import net.minecraftforge.entity.PartEntity;
 
 import java.util.Optional;
 
@@ -51,10 +52,17 @@ public final class RageBurst
         LivingEntity best = null;
         Vec3 bestAt = stop;
         double bestD = eye.distanceToSqr(stop);
-        for (LivingEntity e : level.getEntitiesOfClass(LivingEntity.class,
-                new AABB(eye, stop).inflate(RageTuning.AIM_SLACK + 1.0D), e -> e != player && e.isAlive() && !e.isSpectator()))
+        // (the hitboxes of a mob made of pieces count as it: the Emberdactyl's wings, the hermit's claws; November 5)
+        for (Entity hit : level.getEntities((Entity) null, new AABB(eye, stop).inflate(RageTuning.AIM_SLACK + 1.0D),
+                e -> e != player && e.isAlive() && !e.isSpectator()))
         {
-            AABB box = e.getBoundingBox().inflate(RageTuning.AIM_SLACK);
+            LivingEntity e = hit instanceof LivingEntity living ? living
+                    : hit instanceof PartEntity<?> part && part.getParent() instanceof LivingEntity parent ? parent : null;
+            if (e == null || e == player || !e.isAlive())
+            {
+                continue;
+            }
+            AABB box = hit.getBoundingBox().inflate(RageTuning.AIM_SLACK);
             Optional<Vec3> on = box.contains(eye) ? Optional.of(eye) : box.clip(eye, stop);
             if (on.isPresent() && eye.distanceToSqr(on.get()) < bestD)
             {

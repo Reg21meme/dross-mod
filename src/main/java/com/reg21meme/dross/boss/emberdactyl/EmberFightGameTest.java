@@ -99,7 +99,7 @@ public final class EmberFightGameTest
                 .thenExecute(() -> run.guard(() -> {
                     float before = adult[0].getHealth();
                     adult[0].invulnerableTime = 0;
-                    adult[0].bodyParts()[2].hurt(run.player.damageSources().playerAttack(run.player), 20.0F);
+                    adult[0].part("wing_l_arm").hurt(run.player.damageSources().playerAttack(run.player), 20.0F);
                     if (adult[0].getHealth() >= before)
                     {
                         throw new GameTestAssertException("a blow on its wing didn't hurt it (" + before + " -> " + adult[0].getHealth() + ")");
@@ -751,6 +751,68 @@ public final class EmberFightGameTest
      * blocks off its glide in drops fire on the floor under it and turns into its dive once it's close; then a young
      * screeching in the air drops fire under itself.
      */
+    /**
+     * Its dive lands it on the ground (the user, November 5, 2026: by a dead tree it lay "perched in the middle of the
+     * air", pecking from there): diving at a cow beside a dead tree, it comes down on the floor beside the tree, its feet
+     * on the stone, not on the logs; and its pieces move with it (hovering, its wingtips go up and down with each beat).
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_land", timeoutTicks = 2_000_000)
+    public static void diveLandsBesideATree(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7400, -6600);
+        run.watch(helper);
+        Cow[] cow = new Cow[1];
+        Emberdactyl[] adult = new Emberdactyl[1];
+        double[] tipY = {Double.MAX_VALUE, -Double.MAX_VALUE};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    // a dead tree: a trunk 7 high with two branches, right beside where the cow stands
+                    BlockPos foot = BlockPos.containing(run.centre);
+                    for (int y = 0; y < 7; y++)
+                    {
+                        run.level.setBlock(foot.above(y), Blocks.OAK_LOG.defaultBlockState(), Block.UPDATE_CLIENTS);
+                    }
+                    run.level.setBlock(foot.above(5).east(), Blocks.OAK_LOG.defaultBlockState(), Block.UPDATE_CLIENTS);
+                    run.level.setBlock(foot.above(6).west(), Blocks.OAK_LOG.defaultBlockState(), Block.UPDATE_CLIENTS);
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.centre.x + 1.5D, run.centre.y, run.centre.z, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    cow[0].setNoAi(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), run.centre.add(-24.0D, 16.0D, 0.0D));
+                }))
+                .thenWaitUntil(() -> run.waitFor("its wingtips to beat", () -> {
+                    var tip = adult[0].part("wing_l_tip_1");
+                    if (tip != null && tip.shown())
+                    {
+                        tipY[0] = Math.min(tipY[0], tip.getBoundingBox().minY);
+                        tipY[1] = Math.max(tipY[1], tip.getBoundingBox().minY);
+                    }
+                    return tipY[1] - tipY[0] > 1.5D;
+                }, () -> "its wingtip went between " + tipY[0] + " and " + tipY[1] + " (" + adult[0].animation() + ")"))
+                .thenExecute(() -> run.guard(() -> adult[0].testMove(EmberBoss.Move.DIVE, cow[0])))
+                .thenWaitUntil(() -> run.waitFor("it to dive and lie stuck on the ground", () -> adult[0].move == EmberBoss.Move.STUCK
+                        && adult[0].moveTick > 15, () -> adult[0].move + " at " + adult[0].position()))
+                .thenExecute(() -> run.guard(() -> {
+                    Emberdactyl a = adult[0];
+                    BlockPos under = BlockPos.containing(a.getX(), a.getY() - 0.5D, a.getZ());
+                    boolean held = !run.level.noCollision(a, a.getBoundingBox().move(0.0D, -0.2D, 0.0D));
+                    if (a.getY() > run.centre.y + 0.6D || !held || run.level.getBlockState(under).is(net.minecraft.tags.BlockTags.LOGS))
+                    {
+                        throw new GameTestAssertException("after its dive it should lie on the floor (y " + run.centre.y + "), its feet on "
+                                + "the stone, but it's at " + a.position() + " on " + run.level.getBlockState(under) + (held ? "" : ", in the air"));
+                    }
+                    LOGGER.info("[ember test] its wingtips beat {} blocks up and down; diving at a cow by a dead tree it came down on the "
+                            + "floor at {} ({} from the cow)", String.format("%.1f", tipY[1] - tipY[0]), a.position(),
+                            String.format("%.1f", horizontal(a.position(), cow[0].position())));
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_glide", timeoutTicks = 2_000_000)
     public static void farGlideEndsInADiveAndTheYoungDropsFire(GameTestHelper helper)
     {

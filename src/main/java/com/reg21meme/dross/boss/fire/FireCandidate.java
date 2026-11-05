@@ -288,6 +288,46 @@ public class FireCandidate extends PathfinderMob implements GeoEntity
         return Math.max(0.0F, (this.tickCount + partialTick - this.animSeenTick - BLEND_TICKS) / 20.0F);
     }
 
+    // ---------------------------------------------------------------- its hitbox pieces (FireHitboxes)
+
+    /**
+     * The boxes round its pieces now ({@link FireHitboxes}: the animation it shows (on screens) or plays (on the server),
+     * how far into it), each {@code {x0, y0, z0, x1, y1, z1}} in its own frame or null where nothing of a piece shows; or
+     * null if it has no pieces (a statue, a mob with none).
+     */
+    @Nullable
+    public double[][] pieceBoxes()
+    {
+        FireHitboxes.Shapes shapes = this.pieceShapes();
+        FireAnims.Mob mob = this.anims();
+        if (shapes == null || mob == null)
+        {
+            return null;
+        }
+        String anim = this.level().isClientSide ? this.shownAnimation() : this.animation();
+        FireAnims.Anim a = mob.get(anim);
+        if (a == null)
+        {
+            return null;
+        }
+        double seconds = this.level().isClientSide ? this.animationSeconds(0.0F)
+                : (this.animStart < 0 ? this.tickCount : this.tickCount - this.animStart) / 20.0D;
+        return shapes.at(a.name(), seconds, a.loop());
+    }
+
+    /** Its pieces: its own model's, or its family's first look's (the Emberdactyl's other looks share its skeleton). */
+    @Nullable
+    public FireHitboxes.Shapes pieceShapes()
+    {
+        String id = this.getDesign().id();
+        FireHitboxes.Shapes shapes = FireHitboxes.of(id);
+        if (shapes == null && id.length() > 1)
+        {
+            shapes = FireHitboxes.of(id.substring(0, id.length() - 1) + "a");
+        }
+        return shapes;
+    }
+
     /** The hitbox: the design's measured size (the very wide ones get their body's width: a hitbox is square). */
     @Override
     public EntityDimensions getDimensions(Pose pose)

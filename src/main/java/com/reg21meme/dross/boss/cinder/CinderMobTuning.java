@@ -182,13 +182,16 @@ public final class CinderMobTuning
     public static final int HERMIT_CROWD = 3;
     public static final double HERMIT_CROWD_RANGE = 48.0D;
 
-    /** Its claws' own hitbox in front of its body (its body's is a square round its middle; the crab reaches about 6
-     *  blocks in front of its feet): its spot (its left +x, up, its front -z) and size; tucked into its shell while it
-     *  hides. */
-    public static final double[][] HERMIT_CLAW_SPOT = {{0.0D, 0.0D, -4.6D}};
-    public static final double[][] HERMIT_CLAW_SPOT_HIDDEN = {{0.0D, 0.0D, -1.0D}};
-    public static final float HERMIT_CLAW_WIDTH = 3.0F;
-    public static final float HERMIT_CLAW_HEIGHT = 2.6F;
+    /**
+     * Its hitboxes (the user, November 5, 2026: "the hermit crab hitbox needs to be more accurate ... a box around each
+     * leg, then their giant claw, their shell"): its shell, body, eyes, two claws and four legs each a hitbox of its own,
+     * following its animations (boss/fire/FireHitboxes, made by tools/fire/hitboxes.py; until then one box for its
+     * claws in front of a box its whole shell's size). Its own box can't be hit and is only for standing and walking: this
+     * share of its shell's width, at least HERMIT_STAND_MIN blocks, so its middle stands on the ground (a box its shell's
+     * size stood on a ledge's corner, the crab floating beside it).
+     */
+    public static final float HERMIT_STAND_SHARE = 0.6F;
+    public static final float HERMIT_STAND_MIN = 3.0F;
 
     private CinderMobTuning() {}
 }

@@ -2,7 +2,7 @@ package com.reg21meme.dross.boss.cinder;
 
 import com.reg21meme.dross.boss.BossChase;
 import com.reg21meme.dross.boss.fire.FireDesigns;
-import com.reg21meme.dross.boss.rimefall.RimefallBodyPart;
+import com.reg21meme.dross.boss.fire.ShapedPart;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtUtils;
@@ -14,6 +14,8 @@ import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
@@ -35,8 +37,9 @@ import static com.reg21meme.dross.boss.cinder.CinderMobTuning.*;
  * wears one of eight shells</b> ({@link #SHELLS}: the bronze bell, the iron brazier, the horned skull, the funerary urn,
  * the magma conch, the crystal geode, the giant lantern, the colossus shard), each as likely, picked when it's made
  * (natural spawns, the spawn egg, {@code /summon}), saved ({@code Shell}, its label: {@code {Shell:"M2C"}} picks one)
- * and synced; each shell's model has its own animations (it hides in its own shell). Its hitbox is its shell's measured
- * size, and its claws have one of their own in front of it.
+ * and synced; each shell's model has its own animations (it hides in its own shell). Its hitboxes are its pieces (its
+ * shell, body, eyes, claws and legs, following its animations: {@link #PIECES}); its own box, narrower than its shell, is
+ * only for standing and walking.
  * <ul>
  *   <li>Neutral ({@link CinderMob}); hurt, it fights back, and so do the other hermits within
  *       {@link CinderMobTuning#HERMIT_CALL_RANGE} blocks.</li>
@@ -63,7 +66,7 @@ public class CinderHermit extends CinderMob
     /** (server) where it is in its shell routine */
     enum Shell { OUT, HIDING, HIDDEN, PEEKING, COMING_OUT }
 
-    private final RimefallBodyPart<CinderHermit>[] parts;
+    private final ShapedPart<CinderHermit>[] parts;
     private Shell shell = Shell.OUT;
     /** (server) set when a hurt makes it want to hide (its hiding goal takes it from there) */
     private boolean wantsToHide;
@@ -77,8 +80,12 @@ public class CinderHermit extends CinderMob
     {
         super(type, level, HERMIT_XP, MAX_TURN);
         this.setDesign(SHELLS.get(this.random.nextInt(SHELLS.size())).number());
-        this.parts = new RimefallBodyPart[] {new RimefallBodyPart<>(this, HERMIT_CLAW_WIDTH, HERMIT_CLAW_HEIGHT)};
-        // Its claws' hitbox's id follows its own (like the Ender Dragon's parts).
+        this.parts = new ShapedPart[PIECES.size()];
+        for (int i = 0; i < this.parts.length; i++)
+        {
+            this.parts[i] = new ShapedPart<>(this, PIECES.get(i));
+        }
+        // Its hitboxes' ids follow its own (like the Ender Dragon's parts).
         this.setId(ENTITY_COUNTER.getAndAdd(this.parts.length + 1) + 1);
     }
 
@@ -134,7 +141,32 @@ public class CinderHermit extends CinderMob
         return this.shell;
     }
 
-    // ---------------------------------------------------------------- its claws' hitbox
+    // ---------------------------------------------------------------- its hitboxes
+
+    /** Its pieces, each a hitbox (in the order of its hitbox files, tools/fire/hitboxes.py: the same in every shell). */
+    public static final java.util.List<String> PIECES = java.util.List.of("shell", "body", "eyes", "claw_big", "claw_small",
+            "leg_al", "leg_bl", "leg_ar", "leg_br");
+
+    /** Its own box: only for standing and walking, narrower than its shell (CinderMobTuning.HERMIT_STAND_SHARE). */
+    @Override
+    public EntityDimensions getDimensions(Pose pose)
+    {
+        FireDesigns.Design design = this.getDesign();
+        return EntityDimensions.scalable(standWidth(design), design.height());
+    }
+
+    /** How wide its own box is in this shell. */
+    public static float standWidth(FireDesigns.Design shell)
+    {
+        return Math.max(HERMIT_STAND_MIN, shell.width() * HERMIT_STAND_SHARE);
+    }
+
+    /** Only its pieces can be hit (like the Ender Dragon: its own box isn't where it is). */
+    @Override
+    public boolean isPickable()
+    {
+        return false;
+    }
 
     @Override
     public void setId(int id)
@@ -161,8 +193,8 @@ public class CinderHermit extends CinderMob
         return this.parts;
     }
 
-    /** Its claws' hitbox. */
-    public RimefallBodyPart<CinderHermit>[] bodyParts()
+    /** Its hitboxes ({@link #PIECES}). */
+    public ShapedPart<CinderHermit>[] bodyParts()
     {
         return this.parts;
     }
@@ -171,7 +203,7 @@ public class CinderHermit extends CinderMob
     public void tick()
     {
         super.tick();
-        RimefallBodyPart.place(this, this.parts, this.isHidden() ? HERMIT_CLAW_SPOT_HIDDEN : HERMIT_CLAW_SPOT, 1.0F);
+        ShapedPart.place(this, this.parts, this.isDeadOrDying() ? null : this.pieceBoxes());
     }
 
     // ---------------------------------------------------------------- what it says
