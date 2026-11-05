@@ -76,6 +76,26 @@ public final class EmberTuning
      *  a tree) and its body fits; tried this many blocks apart. */
     public static final double LAND_SEARCH = 6.0D;
     public static final double LAND_STEP = 1.5D;
+    /**
+     * On the ground it stands on its feet and both wrists (its legs' and wings' pieces whose lowest point, as it perches,
+     * is this close to its feet: {@link #CONTACT_HEIGHT}; the adult's feet, wrists and forearms; the young's feet and its
+     * wrists half a block up; never its tail's tip), so a spot and a facing suit it where the ground under each of them is at
+     * most {@link #GROUND_FIT} blocks under it (half that over it, in the ground) (the user, November 5, 2026, after a fight
+     * on its volcano: "he stands up on one arm instead of his legs being his main [support]": on the slope it sat on one
+     * wrist in the hillside, its legs over lower ground). Its dive lands at the nearest spot (out to
+     * {@link #LAND_SEARCH}) where some facing suits it, its way in or up to {@link #LAND_TURNS} turns of
+     * {@link #LAND_TURN_STEP} degrees either side of it (else where it stands best); on the ground it never turns to a
+     * facing that suits it less (beyond that).
+     */
+    public static final double CONTACT_HEIGHT = 0.6D;
+    public static final double GROUND_FIT = 1.0D;
+    public static final float LAND_TURN_STEP = 15.0F;
+    public static final int LAND_TURNS = 6;
+    /** Before its dive the adult climbs this many blocks higher, its wings beating, at most this many ticks (a roof
+     *  stops it sooner) (the user, November 5, 2026: "the Emberdactyl should go up a little higher before he dives
+     *  down ... the younger one's height is good, I am talking about the adult": the young dives from where it is). */
+    public static final double DIVE_CLIMB = 10.0D;
+    public static final int DIVE_CLIMB_TICKS = 40;
 
     // ---- Waking ----
 

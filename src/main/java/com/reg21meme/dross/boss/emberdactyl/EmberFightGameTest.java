@@ -813,6 +813,90 @@ public final class EmberFightGameTest
                 .thenSucceed();
     }
 
+    /**
+     * On a hillside (the user, November 5, 2026, after a fight on its volcano: "he stands up on one arm instead of his
+     * legs being his main [support]", and "the Emberdactyl should go up a little higher before he dives down"): the adult
+     * climbs about {@link EmberTuning#DIVE_CLIMB} blocks before its dive; coming in side-on to a slope that rises a block
+     * every two, it lands facing up or down it, its feet and both wrists on the ground, and while it lies there it never
+     * turns to stand worse.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_slope", timeoutTicks = 2_000_000)
+    public static void diveLandsWellOnAHillside(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 7000, -6600);
+        run.watch(helper);
+        Cow[] cow = new Cow[1];
+        Emberdactyl[] adult = new Emberdactyl[1];
+        double[] climb = {Double.NaN, -Double.MAX_VALUE};       // where it started, the highest before its dive
+        double[] worst = {0.0D};
+        int[] stuckTicks = {0};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    // a hillside rising along x, a block every two, 20 high
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int dx = -FLOOR_HALF; dx <= FLOOR_HALF; dx++)
+                    {
+                        int h = Mth.clamp(Math.floorDiv(dx + 20, 2), 0, 20);
+                        for (int dz = -FLOOR_HALF; dz <= FLOOR_HALF; dz++)
+                        {
+                            for (int y = 1; y <= h; y++)
+                            {
+                                run.level.setBlock(pos.set(run.x + dx, FLOOR_Y + y, run.z + dz), Blocks.STONE.defaultBlockState(),
+                                        Block.UPDATE_CLIENTS);
+                            }
+                        }
+                    }
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.centre.x, FLOOR_Y + 11, run.centre.z, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    cow[0].setNoAi(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    // coming in along z: side-on to the slope
+                    adult[0] = run.spawn(ModEntities.EMBERDACTYL.get(), new Vec3(run.centre.x, FLOOR_Y + 30, run.centre.z - 26.0D));
+                }))
+                .thenWaitUntil(() -> run.waitFor("it to settle in the air", () -> adult[0].tickCount > 20, () -> "tick " + adult[0].tickCount))
+                .thenExecute(() -> run.guard(() -> {
+                    climb[0] = adult[0].getY();
+                    adult[0].testMove(EmberBoss.Move.DIVE, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("it to dive and lie stuck on the ground", () -> {
+                    Emberdactyl a = adult[0];
+                    if (a.move == EmberBoss.Move.DIVE && !a.animation().equals("dive"))
+                    {
+                        climb[1] = Math.max(climb[1], a.getY());
+                    }
+                    if (a.move == EmberBoss.Move.STUCK)
+                    {
+                        worst[0] = Math.max(worst[0], a.groundMiss(a.getX(), a.getY(), a.getZ(), a.yBodyRot));
+                        stuckTicks[0]++;
+                    }
+                    return a.move == EmberBoss.Move.STUCK && a.moveTick > 40;
+                }, () -> adult[0].move + " at " + adult[0].position()))
+                .thenExecute(() -> run.guard(() -> {
+                    Emberdactyl a = adult[0];
+                    if (climb[1] < climb[0] + EmberTuning.DIVE_CLIMB - 2.0D)
+                    {
+                        throw new GameTestAssertException("before its dive the adult should climb about " + EmberTuning.DIVE_CLIMB
+                                + " blocks, but it went from y " + String.format("%.1f", climb[0]) + " to " + String.format("%.1f", climb[1]));
+                    }
+                    boolean held = !run.level.noCollision(a, a.getBoundingBox().move(0.0D, -0.2D, 0.0D));
+                    if (worst[0] > EmberTuning.GROUND_FIT + 1.0E-6D || !held)
+                    {
+                        throw new GameTestAssertException("on the hillside its feet and wrists should meet the ground (within "
+                                + EmberTuning.GROUND_FIT + "), but they were up to " + String.format("%.2f", worst[0]) + " off it, facing "
+                                + String.format("%.0f", Mth.wrapDegrees(a.yBodyRot)) + " at " + a.position() + (held ? "" : ", in the air"));
+                    }
+                    LOGGER.info("[ember test] it climbed {} blocks before its dive; on the hillside it landed facing {} (way in 0), its "
+                            + "feet and wrists at most {} off the ground over {} ticks", String.format("%.1f", climb[1] - climb[0]),
+                            String.format("%.0f", Mth.wrapDegrees(a.yBodyRot)), String.format("%.2f", worst[0]), stuckTicks[0]);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_glide", timeoutTicks = 2_000_000)
     public static void farGlideEndsInADiveAndTheYoungDropsFire(GameTestHelper helper)
     {

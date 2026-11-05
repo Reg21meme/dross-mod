@@ -1515,7 +1515,10 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         always starts with a tornado even when you're far away ... instead make him do his fire glide thing then dive at
         you once he is closer"; it was strafe 35 / tornadoes 40 / dive 25; `EmberTuning` `CLOSE_`/`MID_`/`FAR_*`); a move
         on cooldown drops out): **glide in** (from far off: it glides at you 12 blocks over the ground, fire dropping off
-        it onto the ground every 3 ticks, and dives once it's within 22 blocks, `GLIDE_*`); **dive bomb** 7 within 7 blocks (5 until the user's first fight: "make the explosion
+        it onto the ground every 3 ticks, and dives once it's within 22 blocks, `GLIDE_*`); **dive bomb** (the adult first
+        climbs about 10 blocks higher, its wings beating, at most 2 s, a roof stopping it sooner: `DIVE_CLIMB`,
+        `DIVE_CLIMB_TICKS`; the user, November 5, 2026: "the Emberdactyl should go up a little higher before he dives down
+        ... the younger one's height is good"; the young dives from where it is) 7 within 7 blocks (5 until the user's first fight: "make the explosion
         when he dives much bigger, like a 5-7 block radius with knockback and knock-up"; the young's a little smaller), six
         blasts and a dozen patches of fire round it, everything thrown out and up hard (`DIVE_THROW` 1.6, `DIVE_LIFT`
         0.95, 60% of it at the edge; thrown even when the hit didn't count), then **stuck 3 s on the ground** (the melee
@@ -1728,7 +1731,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         (E1A round 3's, E1B-E1D, E1C1-E1C4) are archived: `firedesigns/emberdactyl_round4/` (their list and
         `lava_looks.py`), previews `boss-previews/cinder_wastes/emberdactyl/round4/`; their textures gone from the mod
         (about 3 MB). The designs renumbered once more: E1A 61, E2A 62, the eggs 63-67, the Cinder Wastes' mobs 68-76.
-      - **Round 5 of its colours** [built November 5, 2026, not yet looked at in-game] (the user, after playing 0.3.0:
+      - **Round 5 of its colours** [built November 5, 2026; the user picked E1B the same day] (the user, after playing 0.3.0:
         "its beak and horns are way too purple compared to the body, it should be the same shade; too many lava spots on
         its beak and horns, and a little too much on the body; keep the wings as is, and remove some of the spots from the
         tail"): three looks beside E1A (the one in the game) in its gallery's front row, each with a few less lava on its
@@ -1736,8 +1739,12 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         moon and horns and two fifths on its tail (`CUT_KEEP`), its wings as E1A's: **E1B body's shade** (its bill, horns
         and tail its body's own purple-black obsidian), **E1C hint of violet** (a third of the way to the violet),
         **E1D violet tips** (the body's obsidian fading to a soft violet at their tips) (`firekit/emberdactyl.py` PURPLE
-        "body", "hint", "dusk"). The designs renumbered: E1A 61, E1B-E1D 62-64, E2A 65, the eggs 66-70, the Cinder Wastes'
-        mobs 71-79. The user picks; the pick becomes E1A.
+        "body", "hint", "dusk"). **The user's pick: E1B** (November 5, after looking in-game: "e1b is the best"): the
+        Emberdactyl wears E1B's look, as E1A (`firedesigns/e01_emberdactyl.py`: its one look, lava "fewer", purple
+        "body"), so the fight, the volcano's hovering adult, the gallery, its trophies and every tool that reads the
+        adult's model use it. Round 5's four looks (E1A round 4's pick, E1B-E1D) are archived:
+        `firedesigns/emberdactyl_round5/`, previews `boss-previews/cinder_wastes/emberdactyl/round5/`. The designs
+        renumbered back: E1A 61, E2A 62, the eggs 63-67, the Cinder Wastes' mobs 68-76.
       - **Hitboxes that follow its animations** [built November 5, 2026, not yet tested in-game] (the user, after
         playing 0.3.0: "make more specific boxes around them, not just 1 giant box ... the Emberdactyl, its body and
         wings as it swings"; `tools/fire/hitboxes.py`, `boss/fire/FireHitboxes`, `boss/fire/ShapedPart`): its pieces,
@@ -1753,9 +1760,19 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         stop it, never its wings, neck, head or tail. **On the ground it settles** (`SETTLE_FALL` 0.5 a tick) until its
         body or legs rest on something, and its **dive lands on real ground**: the nearest spot to its target, out to 6
         blocks (`LAND_SEARCH`), where its feet stand on the ground, not a log or leaves, and its body fits (the user: by a
-        dead tree it lay "perched in the middle of the air", pecking from there). The Rage Wand's aim counts its pieces.
-        Headless test `EmberFightGameTest.diveLandsBesideATree` (its wingtips beat up and down; diving at a cow beside a
-        dead tree it lies on the floor, not the logs).
+        dead tree it lay "perched in the middle of the air", pecking from there). **It stands on its legs and both wrists**
+        (the user, the same day, after a fight on its volcano: "he stands up on one arm instead of his legs being his
+        main [support]": on the slope it sat with one wrist in the hillside, its legs over lower ground; only its middle
+        decided its height): its dive lands at the nearest of those spots, out to 6 blocks, where, facing its way in or up
+        to 90 degrees either side of it (`LAND_TURNS`, `LAND_TURN_STEP`), the ground under each of its feet and wrists
+        (its legs' and wings' pieces that touch the ground as it perches, `CONTACT_HEIGHT`; never its tail's tip, 4.5
+        blocks behind its feet, which no slope would suit) is at most a block under them or half a block
+        over them (`GROUND_FIT`), turning to face that way as it comes down (else the spot where they come nearest the
+        ground; on a hillside it faces up or down the slope); lying there it never turns to a facing that stands it
+        worse (`EmberBoss.groundMiss`, in `canTurn`). The Rage Wand's aim counts its pieces.
+        Headless tests `EmberFightGameTest.diveLandsBesideATree` (its wingtips beat up and down; diving at a cow beside a
+        dead tree it lies on the floor, not the logs) and `diveLandsWellOnAHillside` (it climbs about 10 blocks first;
+        coming in side-on to a slope rising a block every two, it lies with its feet and wrists on the ground).
       - **Commands** (`EmberCommands`, World site wires them): `/dross boss summon emberdactyl` (30 blocks ahead, alone,
         its home there), `/dross boss summon emberyoung`, `/dross boss arena emberdactyl` (its volcano built on the land
         in front of you, all at once, its egg and the adult perched; a few seconds' freeze), and a button in the bedrock
@@ -2290,7 +2307,7 @@ hermits 10% fewer, a monster limit of 18 in Silverwood Forest and the Gravecrags
 Colossus's death scream heard, the hermit's full peek and its cave's vent flush with the floor, hitboxes that follow the
 Emberdactyl's and the hermit's animations (their own boxes narrower and not hittable; the Emberdactyl's flight against
 blocks from its pose now, never held up by its wings, and its dive landing on real ground), and three colour looks of
-the adult to pick from (not yet tested in-game).
+the adult, of which the user picked E1B, now its look (not yet tested in-game but the pick).
 The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
@@ -2485,10 +2502,11 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   run away and they give up; in the Cinder Wastes hermits and the odd Pallbearer spawn among the golems, never half
   inside a bank; each hermit crab cave has 2-3 hermits in it (the showcase's too).
 - **The survivors' camp in the hub** (November 3): in a new world, go through the portal (or `/dross goto hub`) and out of the spire's gate: at the foot of its front steps, west of the road, camp 3A (the slab of the crown on its pillars, the blue fire, the benches) matching `shrine-previews/hub_camp/camp_3A_fallen_stones_a.png`; the Blind Oracle standing on his blue runner before his seat facing the road, the Ragged Seeker by his bed; they walk round the camp (the fire, the books, the tools, the road) and never up into the spire; knocked well out of the camp, they pop back; `/dross showcase hub_camps` builds one spire with 3A.
-- **The Emberdactyl in E1C3's look** (November 3): `/dross showcase boss_designs emberdactyl` shows one adult, E1A,
-  in the look the user picked (E1C3: its bill, jaw, half moon, horns and tail violet with lava veins, a little lava on
-  its body), as in `boss-previews/cinder_wastes/emberdactyl/E1A_emberdactyla.png`; the one hovering over the volcano,
-  the fight's adult (`/dross boss summon emberdactyl`) and its death's broken pieces wear it too.
+- **The Emberdactyl in E1B's look** (November 5): `/dross showcase boss_designs emberdactyl` shows one adult, E1A,
+  in the look the user picked (round 5's E1B: its bill, jaw, half moon, horns and tail its body's dark obsidian with few
+  lava spots, a little lava on its body), as in `boss-previews/cinder_wastes/emberdactyl/E1A_emberdactyla.png`; the one
+  hovering over the volcano, the fight's adult (`/dross boss summon emberdactyl`), its trophies and its death's broken
+  pieces wear it too.
 - **The Emberdactyl's ledge, any volcano** (November 3): `/dross boss arena emberdactyl` at night in the Overworld (or in
   the Dross): no zombie, skeleton or other mob ever turns up on the ledge it waits on, while they still spawn on the
   flanks lower down.
@@ -2666,9 +2684,9 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   (nothing in the way) and lava golems turn up by its magma; hit a hermit's leg, its big claw, its shell: each hit counts,
   but swinging at the air round its shell doesn't, and it never stands floating off a ledge; the Emberdactyl's wings,
   head, horns, tail and legs can each be hit as they move (its wingtips as they beat), flying near hills and trees it
-  turns smoothly (no stop-start), and its dive by a tree lands it on the ground beside it, never up on it;
-  `/dross showcase boss_designs emberdactyl` has E1B, E1C, E1D beside E1A to pick from (their bills, horns and tails the
-  body's dark shade, fewer lava spots).
+  turns smoothly (no stop-start), and its dive by a tree lands it on the ground beside it, never up on it; before
+  diving the adult climbs a little higher first (the young doesn't), and on the volcano's slopes it lands facing up or
+  down the slope, on its legs and both wrists (never propped on one arm with its legs in the air).
 
 ## Known bugs
 Minor issues found during the early-game build. None block playing. Fix them when that area is next changed, and remove the line once fixed.

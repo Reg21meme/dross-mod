@@ -151,6 +151,13 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     private Vec3 locked;
     @Nullable
     private Vec3 lineFrom;
+    /** Its dive: the adult still climbing first (to this height), and the way it faces as it lands. */
+    private boolean climbing;
+    private double climbTo;
+    private float landYaw;
+    /** Its pieces that touch the ground as it perches (its feet and wrists), in its own frame (made once). */
+    @Nullable
+    private double[][] contacts;
     @Nullable
     private LivingEntity carried;
     @Nullable
@@ -711,6 +718,12 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             return true;
         }
         Vec3 at = this.position();
+        // on the ground, never onto a facing where its feet or wrists stand worse (one in the hillside, its legs in the air)
+        if (this.grounded && this.groundMiss(at.x, at.y, at.z, yaw)
+                > Math.max(GROUND_FIT, this.groundMiss(at.x, at.y, at.z, this.yBodyRot)) + 1.0E-6D)
+        {
+            return false;
+        }
         List<AABB> now = this.shapesAt(at, this.yBodyRot);
         List<AABB> then = this.shapesAt(at, yaw);
         Vec3 away = Vec3.ZERO;
@@ -819,7 +832,18 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             return;
         }
-        float want = (float) (Mth.atan2(dir.z, dir.x) * Mth.RAD_TO_DEG) - 90.0F;
+        this.turnToYaw(yawOf(dir, this.getYRot()));
+    }
+
+    /** The yaw facing along {@code dir} ({@code otherwise} if it's straight up or down). */
+    private static float yawOf(Vec3 dir, float otherwise)
+    {
+        return dir.x * dir.x + dir.z * dir.z < 1.0E-6D ? otherwise : (float) (Mth.atan2(dir.z, dir.x) * Mth.RAD_TO_DEG) - 90.0F;
+    }
+
+    /** Turns towards facing {@code want}, at its turning speed (not into a wall, nor, on the ground, onto worse ground). */
+    private void turnToYaw(float want)
+    {
         float yaw = Mth.approachDegrees(this.getYRot(), want, TURN * (float) this.speedScale() * (this.dashes() ? 2.0F : 1.0F));
         if (!this.canTurn(yaw))
         {
@@ -1281,13 +1305,16 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         this.hitThisMove.clear();
         this.locked = null;
         this.lineFrom = null;
+        this.climbing = false;
         switch (m)
         {
             case DIVE ->
             {
-                this.locked = this.landingSpot(this.target.position());
-                this.lineFrom = this.position();
-                this.playAnimation("dive");
+                // the adult climbs higher first (the young dives from where it is)
+                this.climbing = this.kind == ADULT && !this.grounded;
+                this.climbTo = this.getY() + DIVE_CLIMB;
+                this.aimDive();
+                this.playAnimation(this.climbing ? "fly" : "dive");
                 this.ready.put(m, this.tickCount + this.cooldown(DIVE_COOLDOWN));
             }
             case TORNADO ->
@@ -1385,6 +1412,21 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     /** Dive bomb: wings swept back, the plunge onto where its target stood, the crash; then stuck on the ground. */
     private void dive()
     {
+        if (this.climbing)
+        {
+            // the adult climbs higher first, its wings beating, facing its target; then the dive itself starts
+            this.steer(new Vec3(this.getX(), this.climbTo, this.getZ()), this.kind.cruise(), 0.25D);
+            this.turnTo(this.target.position().subtract(this.position()));
+            if (this.getY() >= this.climbTo - 1.0D || this.moveTick >= DIVE_CLIMB_TICKS
+                    || this.verticalCollision && !this.verticalCollisionBelow)
+            {
+                this.climbing = false;
+                this.moveTick = 0;
+                this.aimDive();
+                this.playAnimation("dive");
+            }
+            return;
+        }
         int plungeStart = this.at("dive", 0.15D);
         int impact = this.at("dive", 0.62D);
         Vec3 spot = new Vec3(this.locked.x, this.groundAt(this.locked.x, this.locked.z), this.locked.z);
@@ -1396,10 +1438,15 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
         else if (this.moveTick < impact)
         {
+            if (this.moveTick == plungeStart)
+            {
+                this.lineFrom = this.position();      // (from where its gathering took it)
+            }
             double share = (double) (this.moveTick - plungeStart) / Math.max(1, impact - plungeStart);
             Vec3 pos = this.lineFrom.lerp(spot, share * share);
             this.setDeltaMovement(pos.subtract(this.position()));
-            this.turnTo(spot.subtract(this.lineFrom));
+            // facing its way down, turning to the way it will stand as it comes in
+            this.turnToYaw(Mth.rotLerp((float) share, yawOf(spot.subtract(this.lineFrom), this.getYRot()), this.landYaw));
         }
         else if (this.moveTick == impact)
         {
@@ -1409,6 +1456,9 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             if (this.canReach(spot))
             {
                 this.setPos(spot.x, spot.y, spot.z);
+                this.setYRot(this.landYaw);
+                this.yBodyRot = this.landYaw;
+                this.yHeadRot = this.landYaw;
             }
             else
             {
@@ -1430,13 +1480,33 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         }
     }
 
+    /** Where its dive is aimed: the spot it lands on (and the way it will face there), its line from where it is. */
+    private void aimDive()
+    {
+        Landing landing = this.landingSpot(this.target.position());
+        this.locked = landing.spot();
+        this.landYaw = landing.yaw();
+        this.lineFrom = this.position();
+    }
+
+    /** Where it lands, and the way it faces there. */
+    private record Landing(Vec3 spot, float yaw)
+    {
+    }
+
     /**
      * Where its dive lands: the nearest spot to {@code spot} (out to {@link EmberTuning#LAND_SEARCH} blocks) where its feet
      * stand on the ground, not on a tree, and its body fits (the user, November 5: by a dead tree it came to rest on it,
-     * in the air, "it should recognise it has the space to drop down"); {@code spot} itself if there's none.
+     * in the air, "it should recognise it has the space to drop down"), and where, facing its way in or a little either
+     * side of it, its feet and both wrists meet the ground (the user, November 5: on its volcano's slope "he stands up on
+     * one arm instead of his legs"): the nearest such spot and its best facing; else, of the spots where it stands, the
+     * one where they come nearest the ground; {@code spot} itself if it stands nowhere near.
      */
-    private Vec3 landingSpot(Vec3 spot)
+    private Landing landingSpot(Vec3 spot)
     {
+        float way = yawOf(spot.subtract(this.position()), this.getYRot());
+        Landing best = null;
+        double bestMiss = Double.MAX_VALUE;
         for (double r = 0.0D; r <= LAND_SEARCH + 1.0E-6D; r += LAND_STEP)
         {
             int n = r < 1.0E-6D ? 1 : Math.max(8, (int) Math.ceil(Math.PI * 2.0D * r / LAND_STEP));
@@ -1446,13 +1516,72 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 double x = spot.x + Math.cos(a) * r;
                 double z = spot.z + Math.sin(a) * r;
                 double y = this.groundAt(x, z);
-                if (this.standsAt(x, y, z))
+                if (!this.standsAt(x, y, z))
                 {
-                    return new Vec3(x, y, z);
+                    continue;
+                }
+                for (int i = 0; i <= 2 * LAND_TURNS; i++)
+                {
+                    float yaw = way + LAND_TURN_STEP * ((i + 1) / 2) * (i % 2 == 0 ? -1.0F : 1.0F);   // its way in first
+                    double miss = this.groundMiss(x, y, z, yaw);
+                    if (miss < bestMiss - 1.0E-6D)
+                    {
+                        bestMiss = miss;
+                        best = new Landing(new Vec3(x, y, z), yaw);
+                    }
                 }
             }
+            if (bestMiss <= GROUND_FIT)
+            {
+                return best;
+            }
         }
-        return spot;
+        return best != null ? best : new Landing(spot, way);
+    }
+
+    /**
+     * How badly it would stand at x, y, z facing {@code yawDeg}: how far the ground is from the furthest of its feet and
+     * wrists (its pieces that touch the ground as it perches), in blocks; one in the ground counts double.
+     */
+    double groundMiss(double x, double y, double z, float yawDeg)
+    {
+        float yaw = yawDeg * Mth.DEG_TO_RAD;
+        double cos = Mth.cos(yaw);
+        double sin = Mth.sin(yaw);
+        double worst = 0.0D;
+        for (double[] b : this.contacts())
+        {
+            AABB w = ShapedPart.turned(x, y, z, b, cos, sin);
+            double bottom = y + Math.max(0.0D, b[1] + FireHitboxes.PAD);     // (where it is, its box's padding off)
+            double ground = groundUnder(this.level(), (w.minX + w.maxX) / 2.0D, y, (w.minZ + w.maxZ) / 2.0D);
+            worst = Math.max(worst, ground > bottom ? (ground - bottom) * 2.0D : bottom - ground);
+        }
+        return worst;
+    }
+
+    /** Its legs' and wings' pieces that touch the ground as it perches (its feet and wrists), in its own frame (not its
+     *  tail's tip, which lies on the ground 4.5 blocks behind its feet: no slope would ever suit it). */
+    private double[][] contacts()
+    {
+        if (this.contacts == null)
+        {
+            List<double[]> out = new ArrayList<>();
+            FireHitboxes.Shapes shapes = this.pieceShapes();
+            if (shapes != null)
+            {
+                double[][] boxes = shapes.at("perch", 0.0D, true);
+                for (int i = 0; i < boxes.length; i++)
+                {
+                    String name = shapes.pieces().get(i);
+                    if (boxes[i] != null && boxes[i][1] < CONTACT_HEIGHT && (name.startsWith("leg_") || name.startsWith("wing_")))
+                    {
+                        out.add(boxes[i]);
+                    }
+                }
+            }
+            this.contacts = out.toArray(new double[0][]);
+        }
+        return this.contacts;
     }
 
     /** True if, with its feet at (x, y, z), it stands on the ground (not a log or leaves) and its own box fits. */

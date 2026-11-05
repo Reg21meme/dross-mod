@@ -28,6 +28,8 @@ public final class FireHitboxes
 {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final short HIDDEN = 32767;
+    /** Blocks every box is grown by round its piece (tools/fire/hitboxes.py's PAD). */
+    public static final double PAD = 0.1D;
     private static final Map<String, Optional<Shapes>> LOADED = new ConcurrentHashMap<>();
 
     /** One model's pieces and their boxes, frame by frame, for each of its animations. */
