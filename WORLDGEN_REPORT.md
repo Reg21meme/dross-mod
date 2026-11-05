@@ -680,3 +680,80 @@ of 132 pieces). The three failures are outside this change and are timing on the
 `igloosstandandnevermelt` (a room's floor read block light 0 before the light engine caught up, as in Known bugs),
 `rimeberrybushgrowstallandispickedfromeitherhalf` (its land not ready before its wait ran out) and the known flake
 `HuntsmanFightGameTest.theyAttackAtOnce` (stage CALM).
+
+### Stage 7: the settings file and the 0.3.0 check (November 5)
+
+The user: "merge them, fix the config stuff ... then do a massive check, everything spawns, some test worlds,
+performance etc., give me a final report; if all is good push". `worldgen-sites` was fast-forwarded into
+`fire-designs` and `main` first (a straight line: main, then fire-designs, then this branch).
+
+**The settings file**, `config/dross-common.toml` (`DrossConfig`, `DrossWorldSettings`; README "Settings"): the
+portal site's distances, the trader at a village or on his own (`atVillages = false`: no village is laid out for him,
+the stand-alone chapel at once) and how far his village may be, the letter's chance, the planner's threads and the lair
+and volcano builders' milliseconds a tick. The `portal_site` and `trader` values are saved in each world the first time
+it loads and read from there after, so changing the file never moves an existing world's cathedral or trader. A
+village whose layout throws (another mod's jigsaw) is now passed over instead of leaving the world without a trader.
+Version 0.3.0.
+
+**Full GameTest runs** (13 new worlds, 278 tests each; each a new seed, about 10 minutes):
+- 1: 277. `spotComesFromTheSeed`: working the spot out again took 2,060 ms against a 2,000 ms limit (a seed that looks at
+  742 spots, under the run's load). The limit is now 6 s (the old search took minutes).
+- 2: 276. `cathedralIsMadeWithTheLand`: 98.6% of the cathedral's blocks in place (99% needed). Rebuilt on its seed
+  (2943246284894409446) with only the site's tests: the site was on the last rung, in a bamboo jungle, and the jungle's
+  decoration (after the structures, as always) had turned about 220 of its ground blocks to podzol, 3 slabs to bamboo and
+  a block under a giant tree's trunk to dirt. Fixed: the tidy-up puts back any template block that is now soil, bamboo
+  or, for its plants, air (`SiteTidy.restore`: 215 on that seed, then 100% in place). The ring check behind it failed on
+  bamboo stalks counted as ground; it now skips bamboo (the land itself stepped back properly: all 5,172 columns).
+- 3: 275. The cathedral's ring (seed -7333280943263355806, a dark forest): a dirt block on the grass 5 blocks out, the
+  foot a 2 x 2 dark oak left on a slope (Minecraft's trees turn the block under each trunk column to dirt, in the air or
+  on the grass under the lower corners). Fixed: the felling takes a trunk's dirt above the ground with it
+  (`TreeFelling.Felling.isTrunkDirt`: 14 on that seed; the chapel's felling too), and the check skips a standing tree's.
+- 5: 277. The Colossus lair's way in steps 2 at its side edge (seed -4177293901661154794): real, cosmetic, in Known bugs.
+- 7: 275. A rat cave with 21 copper pipe blocks (30 expected) and a Rimefall lake's shore gap: both in Known bugs.
+- 12, 13: 277 each. A Rimehorn herd of 3 (6-8 expected): in Known bugs (a chunk crowded with trees has room for few).
+- Tests that failed on their own setup, fixed (each checked in the later runs): `theyAttackAtOnce` (runs 2, 3, 7, 9: in a
+  test world with no player the hunt breaks off by design after 3 minutes, and riding off the pair can leave the arena
+  and lose the zombie behind the land round it; the test starts the hunt again and puts them back); the rat cave's grand
+  entrance (run 3: the planner's spot from the noise's heights, the built pipe's from the land; the same x and z, the
+  height within 8); `gotoVolcano` (runs 10, 11: on a small patch the volcano's keep-clear circle can fill all the landing
+  looks at); the hermit caves (run 11: a small patch with a volcano has no room for a cave).
+- Runs 4, 6 and 8: all 278 passed.
+
+**Many seeds** (`dross_site_probe`, and the new `dross_trader_probe`, `villager/TraderVillageProbeGameTest`):
+- the cathedral, 16 seeds: all 3,526-4,492 blocks from the spawn point; rule 0: 4, rule 1: 9, rule 2: 2 (15 in a
+  forest, taiga or snowy area), rule 3: 1, no last resort; 979 ms on average, the slowest 1,334 ms.
+- the trader, 20 seeds: all 20 at a village (none on its own), on average 897 blocks from the spawn point, 1.4 possible
+  villages tried; 922 ms on average, the slowest 2,136 ms.
+
+**A real Forge server** (Forge 1.20.1-47.4.10's own installer, GeckoLib 4.8.4 and the built jar, nothing of the dev
+setup; driven through its console: the cathedral's, the trader's and the hub's land forceloaded and checked with
+commands, 6 areas of 256 Dross chunks and one of the Overworld generated, `forge tps` after each):
+- seed 8675309, the default settings: started in 16.6 s; the cathedral (rule 1, 3,783 out) its 20 frame blocks there 3 s
+  after its land was forced; one trader at his plains village (6 villagers), still one 20 s later; the hub's two
+  survivors and its 15 portal blocks; each Dross area made in 9-10 s, the Overworld's in 13 s; 0 errors, 0 exceptions.
+- seed 424242 with a changed file (site 1,000-1,500, `atVillages = false`, letter 0.5, 2 threads, 20 ms): the site 1,454
+  out, the chapel on its own 385 out (283 ms, no village laid out), one trader, the hub whole; 0 errors.
+- the same world opened again with the file back at its defaults: "This world keeps the settings it was made with";
+  the cathedral and the chapel exactly where they were.
+- The same server with Terralith, Tectonic, Biomes O' Plenty (TerraBlender, GlitchCore) and ChoiceTheorem's Overhauled
+  Village (Lithostitched): not run (the session's permission check didn't allow running downloaded mods).
+- the final jar (after the fixes below) on three more seeds, the jungle's and the dark forest's among them: all good each
+  (the cathedral's frame, one trader at his village, the hub whole; 0 errors, 0 exceptions).
+- "Can't keep up" lines came only while 169-256 chunks were forced at once (the Overworld's own area did the same).
+
+**The real game** (the world probe: a new default world, creative, Normal; each place by `/dross goto`, 25-90 s to load,
+25-30 s measured; the user's settings: render distance 24, simulation 16, fancy, vsync, max 120; then a second world in
+the same game):
+- everything came: the cathedral (a taiga; a forest on the other seeds), one trader at his village each world, the
+  hub's two survivors in their camp, each biome's own mobs (stone and lava golems, Cinder Hermits and Pallbearers in
+  the Cinder Wastes; rats in Blightwood; moose and Pond Skaters in Rimefall), the Colossus lair built on request, the Rat
+  King asleep in his cave, a sewer's 3 pipes, a lake with its holes, the Huntsman's village (63 Frostfolk, 7 penned
+  Rimehorns, him and his Alpha Moose riding their loop), the Emberdactyl's volcano built on request with it perched over
+  its egg, a hermit crab cave; the second world got its own cathedral and trader. No error in either game log.
+- frame rates: 68-75 fps in the Overworld and in the Dross's open places (the Gravecrags, Rimefall, the lairs, the
+  volcano, the lake); 41-50 at the hub, in Silverwood Forest and in the Frostfolk villages (last night's probe gave
+  74-78 there; the same seed today gave 44, so it isn't the seed: no client code changed since; most likely last night's
+  measured before the far chunks were in). A profile at the hub: the render thread mostly in Minecraft's own chunk
+  drawing (32%), the swap (22.5%) and entities (12%: about 140 mobs round the hub); the mod's code 5% (the 7 moose near
+  the hub, 197 boxes each, 4.6%; the sky glow 0.5%); on the Gravecrags under 2%. Server ticks 13-23 ms on average
+  everywhere.

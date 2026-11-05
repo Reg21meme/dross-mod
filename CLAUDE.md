@@ -2250,7 +2250,12 @@ Rift Chapel made by world generation, with the land (the cathedral one per world
 taiga or snowy area; nothing at world start); then, the user's word the same day, the cathedral 3,500-4,500 blocks out
 and one trader again, his chapel at the edge of a village the seed picks, with a path to its street, and never twice at
 one village (headless checks pass; the one trader at his village, the letter and the cathedral's distance checked in the
-game by the user, November 4).
+game by the user, November 4). Then (November 5) `worldgen-sites` merged into `fire-designs` and `main`, the settings file `config/dross-common.toml`
+(`DrossConfig`, `DrossWorldSettings`; version 0.3.0), and a release check: 13 full GameTest runs in fresh worlds, the
+cathedral and trader probes over 16 and 20 seeds, the built jar on a real Forge server (5 seeds, a changed settings
+file, a world reopened), the in-game probe in three worlds with a profile at the hub (`WORLDGEN_REPORT.md`, stage 7;
+`tools/release_check/`); its fixes: the cathedral's own blocks a jungle's decoration changed put back, a felled trunk's
+dirt bump gone, and five tests that failed on their own setup.
 The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
