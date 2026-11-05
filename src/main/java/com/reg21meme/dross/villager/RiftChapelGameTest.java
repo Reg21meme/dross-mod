@@ -48,7 +48,6 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
@@ -67,24 +66,26 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 import org.slf4j.Logger;
 
 /**
- * Headless tests (GameTests) for the Rift Chapels made by world generation ({@link RiftChapels}, the structure
- * {@code dross:rift_chapel}) and their traders. Run them with {@code .\gradlew.bat runGameTestServer --console=plain};
- * only these, in a brand-new world: set {@link #NAMESPACE} to {@code "dross_chapel"} and add
- * {@code -PgameTestNamespaces=dross_chapel -PgameTestWorld=<a new folder>}. The test server's Overworld is a normal world
- * with a random seed ({@code run/server.properties}). They only exist in the development environment.
+ * Headless tests (GameTests) for the Dross trader's one Rift Chapel, at the edge of a village the seed picks
+ * ({@link RiftChapels}, {@link TraderVillages}, the structure {@code dross:rift_chapel}), and its trader. Run them with
+ * {@code .\gradlew.bat runGameTestServer --console=plain}; only these, in a brand-new world: set {@link #NAMESPACE} to
+ * {@code "dross_chapel"} and add {@code -PgameTestNamespaces=dross_chapel -PgameTestWorld=<a new folder>}. The test
+ * server's Overworld is a normal world with a random seed ({@code run/server.properties}). They only exist in the
+ * development environment.
  * <ul>
- *   <li>{@link #nothingHappensAtWorldStart}: when the server had started, no search for a chapel had run (the old start-up
- *       village search and its chunk tickets are gone); what world generation made of chapels round the spawn is
- *       logged.</li>
- *   <li>{@link #nearestFindsChapels}: the world has chapels; how many within {@link RiftChapels#SEARCH_RADIUS} blocks of
- *       the spawn is logged; the nearest to a few places is the nearest of all of them; each one's spot worked out afresh
- *       on this thread and on another is the same; how long the searches take.</li>
- *   <li>{@link #chapelIsMadeWithTheLand}: the nearest chapel at least {@link #AWAY_FROM_SPAWN} blocks from the spawn (out
- *       of the always-loaded spawn chunks), its land loaded with a ticket (waited for by the clock, then its trader's
- *       tidy-up): its structure start; at least 99% of the design's blocks in place; its ground level; no tree's log or
- *       leaves in it; its broken frame unbreakable; exactly one trader in it, at home there, whose first right-click gives
- *       the opening speech; {@code /dross goto trader} lands at its door facing it; a Weathered Letter held there names
- *       it; after its land is unloaded and loaded again, still the one trader.</li>
+ *   <li>{@link #nothingHappensAtWorldStart}: when the server had started, the home had been worked out once (in the
+ *       background, nothing generated for it), and world generation had put at most one trader in at most one chapel.</li>
+ *   <li>{@link #homeComesFromTheSeed}: the world has its home; worked out again on another thread, it's the same; its
+ *       village is the one world generation really makes there (the village's start in its chunk, its pieces' boxes the
+ *       same as worked out); the chapel and its ring keep clear of every piece; its path runs through no house and ends on
+ *       a street; how long it all took (logged).</li>
+ *   <li>{@link #chapelIsMadeWithTheLand}: the chapel's land loaded with a ticket (waited for by the clock, then its
+ *       trader's tidy-up): its structure start; at least 99% of the design's blocks in place; its ground level; no tree's
+ *       log or leaves in it; its broken frame unbreakable; its path laid; exactly one trader in it, at home there, whose
+ *       first right-click gives the opening speech; {@code /dross goto trader} lands at its door facing it; a Weathered
+ *       Letter names it in the village's wording; the "once a village" rule turns away a second trader from its village
+ *       and one from another village, but not a spawn-egg trader; after its land is unloaded and loaded again (if it's out
+ *       of the spawn chunks), still the one trader.</li>
  * </ul>
  * A wait never fails by itself (Minecraft retries it until the test's tick limit): a wait that gives up keeps its failure
  * and a watchdog sequence fails the test with it ({@link Run#watch}).
@@ -109,24 +110,25 @@ public final class RiftChapelGameTest
     private static final long WAIT_MILLIS = 360_000L;
     /** The tests' tick limit, far past any wait (each wait ends by the clock first). */
     private static final int TIMEOUT_TICKS = 4_000_000;
-    /** The chapel checked is at least this far from the spawn (blocks), out of the spawn chunks Minecraft keeps loaded. */
-    private static final int AWAY_FROM_SPAWN = 400;
+    /** Chunks this near the spawn's chunk (or nearer) stay loaded: a chapel there isn't unloaded and loaded again. */
+    private static final int SPAWN_CHUNKS = 13;
+    /** At least this share of the path's columns must be paved (the rest: stone, a tree's roots, a village block...). */
+    private static final double PATH_MIN_PAVED = 0.7D;
+    /** How long the rule's extra traders are given to be turned away (ticks). */
+    private static final int RULE_TICKS = 20;
     /** At least this share of the design's own blocks (not air) must be in place. */
     private static final double DESIGN_MIN_MATCH = 0.99D;
-    /** How many more chapels {@link #moreChapelsAreMadeWell} checks. */
-    private static final int MORE_CHAPELS = 4;
     /** The land this many blocks round the chapel (or nearer) must be within that many blocks of its floor's level. */
     private static final int RING_CHECKED = 2;
     /** How far round the chapel the land's steps are logged (blocks). */
     private static final int RING_LOGGED = 6;
-    /** A search must take less than this (ms). */
-    private static final long SEARCH_MAX_MILLIS = 5_000L;
+    /** Working the home out again must take less than this (ms). */
+    private static final long PLAN_MAX_MILLIS = 20_000L;
 
     /** What was true when the server had started (before any test ran). */
     private static final class AtStart
     {
-        static long searches = -1L;
-        static long fits = -1L;
+        static boolean homeReady;
         static long[] built = new long[4];
         static int tradersLoaded = -1;
         static boolean available;
@@ -149,8 +151,7 @@ public final class RiftChapelGameTest
             registerEmpty(server, new ResourceLocation(NAMESPACE, EMPTY));
         }
         ServerLevel overworld = server.overworld();
-        AtStart.searches = RiftChapels.searchTiming()[0];
-        AtStart.fits = RiftChapels.fitTiming()[0];
+        AtStart.homeReady = RiftChapels.homeIfReady(overworld) != null;
         AtStart.built = RiftChapelPiece.timing();
         AtStart.available = RiftChapels.available(overworld);
         int traders = 0;
@@ -168,20 +169,21 @@ public final class RiftChapelGameTest
         {
             // (no region folder yet)
         }
-        LOGGER.info("[chapel test] When the server had started: {} chapel searches had run; world generation had worked out {} possible "
-                        + "chapel spots and built {} chapel chunks with {} traders round the spawn ({} loaded); chapels available: {}",
-                AtStart.searches, AtStart.fits, AtStart.built[0], AtStart.built[3], AtStart.tradersLoaded, AtStart.available);
+        LOGGER.info("[chapel test] When the server had started: the trader's home worked out: {}; world generation had built {} chapel "
+                        + "chunks with {} traders ({} loaded); a chapel available: {}",
+                AtStart.homeReady, AtStart.built[0], AtStart.built[3], AtStart.tradersLoaded, AtStart.available);
     }
 
     @GameTest(template = EMPTY, batch = BATCH)
     public static void nothingHappensAtWorldStart(GameTestHelper helper)
     {
         List<String> problems = new ArrayList<>();
-        expect(problems, AtStart.searches == 0L, AtStart.searches + " searches for a chapel had run when the server had started (none should)");
-        expect(problems, AtStart.available, "the world makes no Rift Chapels (Generate Structures off, or no dross:rift_chapel set)");
+        expect(problems, AtStart.available, "the world makes no Rift Chapel (Generate Structures off, or no dross:rift_chapel set)");
+        expect(problems, AtStart.homeReady, "the trader's home wasn't worked out yet when the server had started");
+        expect(problems, AtStart.built[3] <= 1L, "world generation had put " + AtStart.built[3] + " traders in chapels (one at most)");
         // (a chapel made in a chunk round the spawn that isn't fully loaded yet has its trader saved in it, not loaded)
         expect(problems, AtStart.tradersLoaded <= AtStart.built[3], AtStart.tradersLoaded + " traders were loaded at the start, but world "
-                + "generation had put only " + AtStart.built[3] + " in their chapels (there's no other way for one to come now)");
+                + "generation had put only " + AtStart.built[3] + " in their chapel (there's no other way for one to come now)");
         fail(problems);
         helper.succeed();
     }
@@ -190,86 +192,120 @@ public final class RiftChapelGameTest
     // Where they are, from the noise
     // ---------------------------------------------------------------------------------------------
 
-    @GameTest(template = EMPTY, batch = BATCH, timeoutTicks = 2000)
-    public static void nearestFindsChapels(GameTestHelper helper)
+    @GameTest(template = EMPTY, batch = BATCH, timeoutTicks = 20_000)
+    public static void homeComesFromTheSeed(GameTestHelper helper)
     {
         List<String> problems = new ArrayList<>();
         ServerLevel overworld = helper.getLevel().getServer().overworld();
-        BlockPos spawn = overworld.getSharedSpawnPos();
-        long[] fitsBefore = RiftChapels.fitTiming();
+        Optional<RiftChapels.Home> found = RiftChapels.home(overworld);
+        if (found.isEmpty())
+        {
+            throw new GameTestAssertException("the world has no home for the trader (see the log)");
+        }
+        RiftChapels.Home home = found.get();
+        LOGGER.info("[chapel test] The trader's home: {}", home.describe());
+        // Worked out again (nothing remembered) on another thread: the same.
+        TraderVillages.Context context = RiftChapels.context(overworld);
         long start = System.nanoTime();
-        Optional<RiftChapels.Chapel> nearest = RiftChapels.nearest(overworld, spawn, RiftChapels.SEARCH_RADIUS);
-        long nearestMillis = (System.nanoTime() - start) / 1_000_000L;
-        long[] fitsAfterNearest = RiftChapels.fitTiming();
-        start = System.nanoTime();
-        List<RiftChapels.Chapel> all = RiftChapels.within(overworld, spawn, RiftChapels.SEARCH_RADIUS);
-        long allMillis = (System.nanoTime() - start) / 1_000_000L;
-        long[] fitsAfterAll = RiftChapels.fitTiming();
-        start = System.nanoTime();
-        Optional<RiftChapels.Chapel> again = RiftChapels.nearest(overworld, spawn, RiftChapels.SEARCH_RADIUS);
-        long againMicros = (System.nanoTime() - start) / 1_000L;
-        LOGGER.info("[chapel test] {} Rift Chapels within {} blocks of the spawn {}; the nearest {} ({} blocks off), found in {} ms ({} spots "
-                        + "worked out, {} ms of noise); every spot of the {}-block radius in {} ms ({} more spots, {} ms of noise); asked again: {} us",
-                all.size(), RiftChapels.SEARCH_RADIUS, spawn.toShortString(), nearest.map(RiftChapels.Chapel::describe).orElse("none"),
-                nearest.map(c -> Math.round(Math.sqrt(c.distanceSqr(spawn)))).orElse(-1L), nearestMillis, fitsAfterNearest[0] - fitsBefore[0],
-                (fitsAfterNearest[1] - fitsBefore[1]) / 1_000_000L, RiftChapels.SEARCH_RADIUS, allMillis, fitsAfterAll[0] - fitsAfterNearest[0],
-                (fitsAfterAll[1] - fitsAfterNearest[1]) / 1_000_000L, againMicros);
-        long[] down = RiftChapels.turnedDown();
-        LOGGER.info("[chapel test] Spots turned down so far: {} for their biome, {} for water or land out of the height band, {} too steep, {} for a "
-                + "corner's biome, {} kept off a village or the portal site", down[0], down[1], down[2], down[3], down[4]);
-        expect(problems, !all.isEmpty(), "no Rift Chapel within " + RiftChapels.SEARCH_RADIUS + " blocks of the spawn");
-        expect(problems, nearest.equals(all.isEmpty() ? Optional.empty() : Optional.of(all.get(0))), "the nearest to the spawn is "
-                + nearest.map(RiftChapels.Chapel::describe).orElse("none") + ", but the nearest of all of them is "
-                + (all.isEmpty() ? "none" : all.get(0).describe()));
-        expect(problems, nearest.equals(again), "asked again, the nearest is " + again.map(RiftChapels.Chapel::describe).orElse("none"));
-        expect(problems, nearestMillis < SEARCH_MAX_MILLIS, "the nearest took " + nearestMillis + " ms");
-        // From a few other places: the search's answer is the nearest of all of them.
-        for (int[] offset : new int[][] {{1500, 0}, {-2200, 900}, {300, -2700}, {-1000, -1000}})
+        Optional<RiftChapels.Home> again = CompletableFuture.supplyAsync(() -> TraderVillages.plan(context)).join();
+        long millis = (System.nanoTime() - start) / 1_000_000L;
+        LOGGER.info("[chapel test] Worked out again on another thread in {} ms: {}", millis, again.map(RiftChapels.Home::describe).orElse("none"));
+        expect(problems, again.equals(found), "worked out again, the home is " + again.map(RiftChapels.Home::describe).orElse("none"));
+        expect(problems, millis < PLAN_MAX_MILLIS, "working the home out took " + millis + " ms");
+        expect(problems, home.pick() >= 1 && home.choices() <= TraderVillages.NEAREST, "the pick is No. " + home.pick() + " of " + home.choices());
+        // The quick answers: the chapel's own chunk is never one of the chunks answered "no" while the plan is worked out.
+        List<TraderVillages.Cell> possible = RiftChapels.possibleVillages(overworld);
+        expect(problems, !TraderVillages.neverHolds(context, possible, home.chapel().chunkX(), home.chapel().chunkZ()),
+                "the chapel's chunk would have been answered at once with no while the plan was worked out");
+        LOGGER.info("[chapel test] {} possible villages within {} blocks of the spawn point; the seed's order starts {}", possible.size(),
+                TraderVillages.SEARCH_RADIUS, TraderVillages.trialOrder(context, possible).stream().limit(TraderVillages.NEAREST)
+                        .map(c -> c.chunkX() + "," + c.chunkZ()).toList());
+        if (!home.inVillage())
         {
-            BlockPos from = spawn.offset(offset[0], 0, offset[1]);
-            Optional<RiftChapels.Chapel> found = RiftChapels.nearest(overworld, from, RiftChapels.SEARCH_RADIUS);
-            List<RiftChapels.Chapel> round = RiftChapels.within(overworld, from, RiftChapels.SEARCH_RADIUS);
-            expect(problems, found.equals(round.isEmpty() ? Optional.empty() : Optional.of(round.get(0))), "from " + from.toShortString()
-                    + " the nearest is " + found.map(RiftChapels.Chapel::describe).orElse("none") + ", not the nearest of all of them");
+            // (a seed with no village near its spawn point that has room: the chapel stands on its own; nothing more to check)
+            LOGGER.warn("[chapel test] No village near this seed's spawn point had room for the chapel; it stands on its own: {}", home.describe());
+            fail(problems);
+            helper.succeed();
+            return;
         }
-        // Each one worked out afresh (not remembered) on this thread and on another: the same.
-        ChunkGeneratorAccess access = new ChunkGeneratorAccess(overworld);
-        List<RiftChapels.Chapel> sample = all.subList(0, Math.min(all.size(), 12));
-        CompletableFuture<List<Optional<RiftChapels.Chapel>>> elsewhere = CompletableFuture.supplyAsync(() -> sample.stream()
-                .map(c -> RiftChapels.fit(access.generator, access.random, access.seed, c.chunkX(), c.chunkZ())).toList());
-        for (int i = 0; i < sample.size(); i++)
-        {
-            RiftChapels.Chapel c = sample.get(i);
-            Optional<RiftChapels.Chapel> here = RiftChapels.fit(access.generator, access.random, access.seed, c.chunkX(), c.chunkZ());
-            Optional<RiftChapels.Chapel> there = elsewhere.join().get(i);
-            expect(problems, here.equals(Optional.of(c)) && there.equals(Optional.of(c)), "worked out again, " + c.describe() + " is "
-                    + here.map(RiftChapels.Chapel::describe).orElse("none") + " here and " + there.map(RiftChapels.Chapel::describe).orElse("none")
-                    + " on another thread");
-        }
-        // Where to look from: the Nether's place for a spot is 8 times out; anywhere else the spawn.
-        ServerLevel nether = overworld.getServer().getLevel(Level.NETHER);
-        if (nether != null)
-        {
-            BlockPos inNether = RiftChapels.searchOrigin(overworld, nether, new BlockPos(100, 64, -50));
-            expect(problems, inNether.getX() == 800 && inNether.getZ() == -400, "the Nether's 100, -50 is searched from " + inNether.toShortString());
-        }
+        checkVillage(overworld, context, home, problems);
         fail(problems);
         helper.succeed();
     }
 
-    /** The Overworld's generator, noise and seed, as world generation reads them. */
-    private static final class ChunkGeneratorAccess
+    /**
+     * The home's village is the one world generation really makes: the start of a village in its chunk (made to the
+     * "structure starts" step here), its pieces' boxes those worked out from the seed; the chapel and its ring clear of
+     * every piece; the path through no house, ending on a street.
+     */
+    private static void checkVillage(ServerLevel overworld, TraderVillages.Context context, RiftChapels.Home home, List<String> problems)
     {
-        final net.minecraft.world.level.chunk.ChunkGenerator generator;
-        final net.minecraft.world.level.levelgen.RandomState random;
-        final long seed;
-
-        ChunkGeneratorAccess(ServerLevel overworld)
+        ChunkPos start = new ChunkPos(home.village());
+        TraderVillages.Village planned = null;
+        List<TraderVillages.VillageSet> sets = TraderVillages.villageSets(context.structures());
+        for (int i = 0; i < sets.size() && planned == null; i++)
         {
-            this.generator = overworld.getChunkSource().getGenerator();
-            this.random = overworld.getChunkSource().randomState();
-            this.seed = overworld.getChunkSource().getGeneratorState().getLevelSeed();
+            planned = TraderVillages.villageAt(context, sets.get(i), new TraderVillages.Cell(i, start.x, start.z, 0L));
         }
+        if (planned == null)
+        {
+            problems.add("worked out again, there's no village in chunk " + start);
+            return;
+        }
+        net.minecraft.world.level.chunk.ChunkAccess chunk = overworld.getChunk(start.x, start.z,
+                net.minecraft.world.level.chunk.ChunkStatus.STRUCTURE_STARTS, true);
+        StructureStart real = null;
+        for (Map.Entry<Structure, StructureStart> entry : chunk.getAllStarts().entrySet())
+        {
+            if (overworld.registryAccess().registryOrThrow(Registries.STRUCTURE).wrapAsHolder(entry.getKey()).is(net.minecraft.tags.StructureTags.VILLAGE)
+                    && entry.getValue().isValid())
+            {
+                real = entry.getValue();
+            }
+        }
+        if (real == null)
+        {
+            problems.add("world generation made no village in chunk " + start + " (worked out: " + planned.describe() + ")");
+            return;
+        }
+        List<BoundingBox> realBoxes = real.getPieces().stream().map(piece -> piece.getBoundingBox()).toList();
+        List<BoundingBox> plannedBoxes = new ArrayList<>();
+        // (the plan keeps houses and streets apart; compare as sets of boxes)
+        plannedBoxes.addAll(planned.houses());
+        plannedBoxes.addAll(planned.streets());
+        boolean same = realBoxes.size() == plannedBoxes.size() && new java.util.HashSet<>(realBoxes).equals(new java.util.HashSet<>(plannedBoxes));
+        LOGGER.info("[chapel test] The village in chunk {}: world generation made {} pieces, the plan worked out {} ({} streets): {}", start,
+                realBoxes.size(), plannedBoxes.size(), planned.streets().size(), same ? "the same" : "NOT the same");
+        expect(problems, same, "the village world generation made in chunk " + start + " has " + realBoxes.size() + " pieces, the plan's "
+                + plannedBoxes.size() + ", and their boxes differ");
+        // The chapel and its ring clear of every piece; the path through no house, ending on a street.
+        BoundingBox foot = home.chapel().footprint();
+        int keep = RiftChapelPiece.RING + TraderVillages.PIECE_MARGIN;
+        for (BoundingBox b : plannedBoxes)
+        {
+            boolean clear = b.maxX() < foot.minX() - keep || b.minX() > foot.maxX() + keep || b.maxZ() < foot.minZ() - keep
+                    || b.minZ() > foot.maxZ() + keep;
+            expect(problems, clear, "the chapel " + foot + " and its ring come within " + keep + " blocks of the village piece " + b);
+        }
+        for (long cell : RiftChapelPathPiece.cells(home.path(), TraderVillages.PATH_WIDTH / 2))
+        {
+            int x = ChunkPos.getX(cell);
+            int z = ChunkPos.getZ(cell);
+            for (BoundingBox house : planned.houses())
+            {
+                if (!planned.streets().isEmpty())
+                {
+                    expect(problems, !(x >= house.minX() && x <= house.maxX() && z >= house.minZ() && z <= house.maxZ()),
+                            "the path's column " + x + ", " + z + " is in the village piece " + house);
+                }
+            }
+        }
+        BlockPos end = home.path().get(home.path().size() - 1);
+        List<BoundingBox> targets = planned.streets().isEmpty() ? plannedBoxes : planned.streets();
+        expect(problems, targets.stream().anyMatch(b -> end.getX() >= b.minX() && end.getX() <= b.maxX() && end.getZ() >= b.minZ()
+                && end.getZ() <= b.maxZ()), "the path ends at " + end.getX() + ", " + end.getZ() + ", not on a street");
+        expect(problems, TraderVillages.pathLength(home.path()) <= TraderVillages.MAX_PATH, "the path is " + TraderVillages.pathLength(home.path())
+                + " blocks long");
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -279,7 +315,7 @@ public final class RiftChapelGameTest
     @GameTest(template = EMPTY, batch = BATCH, timeoutTicks = TIMEOUT_TICKS)
     public static void chapelIsMadeWithTheLand(GameTestHelper helper)
     {
-        Run run = new Run(helper, 0);
+        Run run = new Run(helper);
         run.watch();
         helper.startSequence()
                 .thenExecute(() -> run.guard(run::hold))
@@ -304,8 +340,17 @@ public final class RiftChapelGameTest
                     checkGround(run);
                     checkNoTrees(run);
                     checkFrame(run);
+                    checkPath(run);
                     run.traderId = checkOneTrader(run);
                     checkVisitor(run);
+                    run.spawnRuleTraders();
+                }))
+                .thenIdle(RULE_TICKS)
+                .thenExecute(() -> run.guard(() -> {
+                    if (!run.skipped)
+                    {
+                        checkRule(run);
+                    }
                 }))
                 .thenWaitUntil(() -> run.waitFor("the Weathered Letter's text", () -> run.skipped || run.letterWritten(), () -> "still blank"))
                 .thenExecute(() -> run.guard(() -> {
@@ -315,14 +360,21 @@ public final class RiftChapelGameTest
                     }
                     run.leave();
                 }))
-                // Its land unloaded (nobody near, the ticket gone), then loaded again: still the one trader.
+                // Its land unloaded (nobody near, the ticket gone), then loaded again: still the one trader. (Not in the spawn
+                // chunks, which never unload.)
                 .thenExecute(() -> run.guard(run::release))
-                .thenWaitUntil(() -> run.waitFor("the chapel's land to unload", () -> run.skipped || run.unloaded(), run::loadState))
+                .thenWaitUntil(() -> run.waitFor("the chapel's land to unload", () -> run.skipped || run.inSpawnChunks() || run.unloaded(), run::loadState))
                 .thenExecute(() -> run.guard(run::hold))
                 .thenWaitUntil(() -> run.waitFor("the chapel's land to load again", () -> run.skipped || run.loaded(), run::loadState))
                 .thenExecute(() -> run.guard(() -> {
                     if (run.skipped)
                     {
+                        return;
+                    }
+                    if (run.inSpawnChunks())
+                    {
+                        LOGGER.info("[chapel test] The chapel is in the spawn chunks (they never unload): not unloaded and loaded again");
+                        checkOneTrader(run);
                         return;
                     }
                     UUID again = checkOneTrader(run);
@@ -333,44 +385,6 @@ public final class RiftChapelGameTest
                     LOGGER.info("[chapel test] Unloaded and loaded again: still the one trader, {}", again);
                 }))
                 .thenExecute(() -> run.guard(run::release))
-                .thenSucceed();
-    }
-
-    /** The next four chapels (the 2nd to 5th nearest to the spawn out of its chunks): each made right, with its one trader. */
-    @GameTest(template = EMPTY, batch = BATCH, timeoutTicks = TIMEOUT_TICKS)
-    public static void moreChapelsAreMadeWell(GameTestHelper helper)
-    {
-        List<Run> runs = new ArrayList<>();
-        for (int which = 1; which <= MORE_CHAPELS; which++)
-        {
-            runs.add(new Run(helper, which));
-        }
-        Run first = runs.get(0);
-        first.watch();
-        helper.startSequence()
-                .thenExecute(() -> first.guard(() -> runs.forEach(Run::hold)))
-                .thenWaitUntil(() -> first.waitFor("the chapels' land and entities", () -> runs.stream().allMatch(Run::loaded),
-                        () -> runs.stream().map(Run::loadState).toList().toString()))
-                .thenWaitUntil(() -> first.waitFor("their traders' tidy-ups", () -> runs.stream().allMatch(Run::tidied),
-                        () -> runs.stream().map(Run::traderState).toList().toString()))
-                .thenExecute(() -> first.guard(() -> {
-                    try
-                    {
-                        for (Run run : runs)
-                        {
-                            checkStart(run);
-                            checkBlocks(run);
-                            checkGround(run);
-                            checkNoTrees(run);
-                            checkFrame(run);
-                            checkOneTrader(run);
-                        }
-                    }
-                    finally
-                    {
-                        runs.forEach(Run::release);
-                    }
-                }))
                 .thenSucceed();
     }
 
@@ -552,6 +566,71 @@ public final class RiftChapelGameTest
         fail(problems);
     }
 
+    /**
+     * The path laid: of its columns, at least {@value #PATH_MIN_PAVED} have the village's path block (or a plank on water)
+     * on their ground (the rest may be stone, a tree, a village block over it...). A chapel on its own has no path.
+     */
+    private static void checkPath(Run run)
+    {
+        if (run.home.path().isEmpty())
+        {
+            LOGGER.info("[chapel test] The chapel stands on its own: no path");
+            return;
+        }
+        int cells = 0;
+        int paved = 0;
+        List<String> not = new ArrayList<>();
+        for (long cell : RiftChapelPathPiece.cells(run.home.path(), TraderVillages.PATH_WIDTH / 2))
+        {
+            cells++;
+            int x = ChunkPos.getX(cell);
+            int z = ChunkPos.getZ(cell);
+            BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, run.overworld.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, x, z), z);
+            boolean found = false;
+            for (int i = 0; i < 12 && !found; i++)
+            {
+                BlockState state = run.overworld.getBlockState(pos.move(0, -1, 0));
+                found = state.is(run.home.pathBlock()) || state.is(Blocks.OAK_PLANKS) || state.is(Blocks.DIRT_PATH);
+            }
+            paved += found ? 1 : 0;
+            if (!found && not.size() < 8)
+            {
+                not.add(x + ", " + z + ": " + profile(run, x, run.home.chapel().center().getY() - 6, z, 14));
+            }
+        }
+        double share = cells == 0 ? 0.0D : paved / (double) cells;
+        LOGGER.info("[chapel test] The path ({} blocks long, of {}): {} of its {} columns paved ({}%); not paved, e.g. {}",
+                TraderVillages.pathLength(run.home.path()), name(run.home.pathBlock().defaultBlockState()), paved, cells,
+                String.format("%.1f", 100.0D * share), not);
+        if (share < PATH_MIN_PAVED)
+        {
+            throw new GameTestAssertException("only " + paved + " of the path's " + cells + " columns are paved: " + not);
+        }
+    }
+
+    /**
+     * The "once a village" rule ({@link TraderVillageData}): the world's trader is recorded with his village; of the extra
+     * traders the test put by the chapel, the one from the same village and the one from another village are removed on
+     * their first tick, the spawn-egg one stays (and is then removed by the test).
+     */
+    private static void checkRule(Run run)
+    {
+        List<String> problems = new ArrayList<>();
+        TraderVillageData data = TraderVillageData.get(run.overworld);
+        expect(problems, run.traderId != null && run.traderId.equals(data.trader()), "the world's trader is recorded as " + data.trader()
+                + ", not " + run.traderId);
+        expect(problems, data.hadTrader(run.home.village()), "his village isn't recorded as having had the trader");
+        expect(problems, run.sameVillage != null && run.sameVillage.isRemoved(), "a second trader from his village wasn't turned away");
+        expect(problems, run.otherVillage != null && run.otherVillage.isRemoved(), "a trader from another village wasn't turned away");
+        expect(problems, run.egg != null && !run.egg.isRemoved(), "a spawn-egg trader was turned away");
+        LOGGER.info("[chapel test] The rule: the world's trader {}, {} village(s) had him; the second trader from his village removed: {}, "
+                        + "the one from another village removed: {}, the spawn-egg trader kept: {}", data.trader(), data.villageCount(),
+                run.sameVillage != null && run.sameVillage.isRemoved(), run.otherVillage != null && run.otherVillage.isRemoved(),
+                run.egg != null && !run.egg.isRemoved());
+        run.removeRuleTraders();
+        fail(problems);
+    }
+
     /** Exactly one trader in and round the chapel (as far as he may wander), at home there; his UUID. */
     private static UUID checkOneTrader(Run run)
     {
@@ -634,7 +713,7 @@ public final class RiftChapelGameTest
         return false;
     }
 
-    /** The letter held at the door names the nearest chapel to there (this one), rounded to 50, in the chapel's wording. */
+    /** The letter names the trader's chapel, rounded to 50, in the village's wording (or the wilds', for a chapel on its own). */
     private static void checkLetter(Run run)
     {
         ItemStack letter = run.heldLetter();
@@ -651,14 +730,17 @@ public final class RiftChapelGameTest
         BlockPos spot = run.chapel.traderSpot();
         // (a page read back from its saved text has its numbers as text)
         String[] want = {String.valueOf(round50(spot.getX())), String.valueOf(round50(spot.getZ()))};
+        String suffix = run.home.inVillage() ? "" : "_wild";
         TranslatableContents where = keys.size() == 4 ? keys.get(3) : null;
-        boolean names = where != null && where.getKey().endsWith("location_wild") && where.getArgs().length == 3
-                && want[0].equals(String.valueOf(where.getArgs()[1])) && want[1].equals(String.valueOf(where.getArgs()[2]));
-        LOGGER.info("[chapel test] The Weathered Letter held at the door: {}", keys.stream().map(t -> t.getKey() + Arrays.toString(t.getArgs())).toList());
-        if (!names || !keys.get(1).getKey().endsWith("page2_intro_chapel"))
+        boolean names = where != null && ((where.getKey().endsWith(".location" + suffix) && where.getArgs().length == 3
+                && want[0].equals(String.valueOf(where.getArgs()[1])) && want[1].equals(String.valueOf(where.getArgs()[2])))
+                || (where.getKey().endsWith(".location_near_spawn" + suffix) && where.getArgs().length == 2
+                && want[0].equals(String.valueOf(where.getArgs()[0])) && want[1].equals(String.valueOf(where.getArgs()[1]))));
+        LOGGER.info("[chapel test] The Weathered Letter: {}", keys.stream().map(t -> t.getKey() + Arrays.toString(t.getArgs())).toList());
+        if (!names || !keys.get(1).getKey().endsWith(".page2_intro" + suffix))
         {
             throw new GameTestAssertException("the letter's pages are " + keys.stream().map(t -> t.getKey() + Arrays.toString(t.getArgs())).toList()
-                    + ", not the chapel's wording naming " + Arrays.toString(want));
+                    + ", not the " + (run.home.inVillage() ? "village's" : "wilds'") + " wording naming " + Arrays.toString(want));
         }
     }
 
@@ -684,6 +766,7 @@ public final class RiftChapelGameTest
     {
         final GameTestHelper helper;
         final ServerLevel overworld;
+        final RiftChapels.Home home;
         final RiftChapels.Chapel chapel;
         final ChunkPos middle;
         @Nullable
@@ -697,25 +780,72 @@ public final class RiftChapelGameTest
         TestPlayer visitor;
         @Nullable
         ItemStack letter;
+        /** The rule's extra traders: one from his village, one from another, a spawn-egg one. */
+        @Nullable
+        DrossTrader sameVillage;
+        @Nullable
+        DrossTrader otherVillage;
+        @Nullable
+        DrossTrader egg;
 
-        /** The {@code which}-th nearest chapel to the spawn at least {@value #AWAY_FROM_SPAWN} blocks from it (0 the nearest). */
-        Run(GameTestHelper helper, int which)
+        /** The world's chapel. */
+        Run(GameTestHelper helper)
         {
             this.helper = helper;
             this.overworld = helper.getLevel().getServer().overworld();
-            BlockPos spawn = this.overworld.getSharedSpawnPos();
-            List<RiftChapels.Chapel> away = RiftChapels.within(this.overworld, spawn, RiftChapels.SEARCH_RADIUS).stream()
-                    .filter(c -> c.distanceSqr(spawn) >= (long) AWAY_FROM_SPAWN * AWAY_FROM_SPAWN).toList();
-            if (away.size() <= which)
-            {
-                throw new GameTestAssertException("only " + away.size() + " Rift Chapels " + AWAY_FROM_SPAWN + "-" + RiftChapels.SEARCH_RADIUS
-                        + " blocks from the spawn");
-            }
-            this.chapel = away.get(which);
+            this.home = RiftChapels.home(this.overworld).orElseThrow(() -> new GameTestAssertException("the world has no home for the trader"));
+            this.chapel = this.home.chapel();
             this.middle = new ChunkPos(this.chapel.traderSpot());
-            LOGGER.info("[chapel test] Checking {}, {} blocks from the spawn, in {}", this.chapel.describe(),
-                    Math.round(Math.sqrt(this.chapel.distanceSqr(spawn))), this.overworld.getBiome(this.chapel.center()).unwrapKey()
-                            .map(key -> key.location().toString()).orElse("?"));
+            LOGGER.info("[chapel test] Checking {}, in {}", this.home.describe(), this.overworld.getBiome(this.chapel.center()).unwrapKey()
+                    .map(key -> key.location().toString()).orElse("?"));
+        }
+
+        /** True if the chapel's chunks are among those Minecraft keeps loaded round the spawn. */
+        boolean inSpawnChunks()
+        {
+            ChunkPos spawn = new ChunkPos(this.overworld.getSharedSpawnPos());
+            BoundingBox foot = this.chapel.footprint();
+            int dx = Math.min(Math.abs((foot.minX() >> 4) - spawn.x), Math.abs((foot.maxX() >> 4) - spawn.x));
+            int dz = Math.min(Math.abs((foot.minZ() >> 4) - spawn.z), Math.abs((foot.maxZ() >> 4) - spawn.z));
+            return Math.max(dx, dz) <= SPAWN_CHUNKS;
+        }
+
+        /** Puts the rule's three extra traders by the chapel's door. */
+        void spawnRuleTraders()
+        {
+            BlockPos at = this.chapel.doorstep().relative(this.chapel.facing(), 3);
+            this.sameVillage = this.extra(at, this.home.village());
+            this.otherVillage = this.extra(at.above(2), this.home.village() + 1L);
+            this.egg = this.extra(at.above(4), null);
+        }
+
+        @Nullable
+        private DrossTrader extra(BlockPos at, @Nullable Long village)
+        {
+            DrossTrader trader = com.reg21meme.dross.registry.ModEntities.TRADER.get().create(this.overworld);
+            if (trader == null)
+            {
+                return null;
+            }
+            if (village != null)
+            {
+                trader.setVillage(village);
+            }
+            trader.moveTo(at.getX() + 0.5D, at.getY(), at.getZ() + 0.5D, 0.0F, 0.0F);
+            this.overworld.addFreshEntity(trader);
+            return trader;
+        }
+
+        /** Removes the rule's extra traders (safe to call twice). */
+        void removeRuleTraders()
+        {
+            for (DrossTrader trader : new DrossTrader[] {this.sameVillage, this.otherVillage, this.egg})
+            {
+                if (trader != null && !trader.isRemoved())
+                {
+                    trader.discard();
+                }
+            }
         }
 
         /**
@@ -755,6 +885,7 @@ public final class RiftChapelGameTest
                 LOGGER.error("[chapel test] failed: {}", e.getMessage());
                 this.failure = e;
                 this.leave();
+                this.removeRuleTraders();
                 this.release();
                 throw e;
             }
@@ -860,7 +991,7 @@ public final class RiftChapelGameTest
         List<DrossTrader> traders()
         {
             AABB area = AABB.of(this.chapel.footprint()).inflate(64.0D, 16.0D, 64.0D);
-            return this.overworld.getEntitiesOfClass(DrossTrader.class, area);
+            return this.overworld.getEntitiesOfClass(DrossTrader.class, area, t -> t != this.sameVillage && t != this.otherVillage && t != this.egg);
         }
 
         boolean tidied()

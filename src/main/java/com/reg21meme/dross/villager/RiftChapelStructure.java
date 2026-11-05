@@ -8,12 +8,12 @@ import net.minecraft.world.level.levelgen.structure.Structure;
 import net.minecraft.world.level.levelgen.structure.StructureType;
 
 /**
- * The Rift Chapel as a world-generation structure (structure type {@code dross:rift_chapel}; the user's decision of
- * November 2, 2026): the Dross trader's chapel standing on its own in the countryside, made with the Overworld's land, its
- * trader in it. Its structure set's placement ({@link RiftChapelPlacement}) gives each grid cell one possible chunk; there
- * a chapel starts if the land fits ({@link RiftChapels#fit}, from the noise alone, so {@link RiftChapels#nearest} knows
- * where every one is). Its one piece ({@link RiftChapelPiece}) builds it chunk by chunk, in the "surface structures" step,
- * with Minecraft's terrain adaptation {@code beard_thin} (the land drawn to its floor, like a village house's).
+ * The Rift Chapel as a world-generation structure (structure type {@code dross:rift_chapel}): the Dross trader's one
+ * chapel, at the edge of the village the seed picked for him ({@link RiftChapels}, {@link TraderVillages}), made with the
+ * Overworld's land, its trader in it. Its structure set's placement ({@link RiftChapelPlacement}) starts it only in the
+ * chapel's own chunk. Its pieces build it chunk by chunk, in the "surface structures" step: the chapel
+ * ({@link RiftChapelPiece}, with Minecraft's terrain adaptation {@code beard_thin}: the land drawn to its floor, like a
+ * village house's), then its path to the village's nearest street ({@link RiftChapelPathPiece}).
  */
 public final class RiftChapelStructure extends Structure
 {
@@ -28,11 +28,21 @@ public final class RiftChapelStructure extends Structure
     protected Optional<GenerationStub> findGenerationPoint(GenerationContext context)
     {
         ChunkPos chunk = context.chunkPos();
-        return RiftChapels.fitCached(context.chunkGenerator(), context.randomState(), context.seed(), chunk.x, chunk.z)
-                .map(chapel -> new GenerationStub(chapel.center(), builder -> builder.addPiece(new RiftChapelPiece(chapel))));
+        RiftChapels.Home home = RiftChapels.homeOf(context.randomState());
+        if (home == null || home.chapel().chunkX() != chunk.x || home.chapel().chunkZ() != chunk.z)
+        {
+            return Optional.empty();
+        }
+        return Optional.of(new GenerationStub(home.chapel().center(), builder -> {
+            builder.addPiece(new RiftChapelPiece(home));
+            if (!home.path().isEmpty())
+            {
+                builder.addPiece(new RiftChapelPathPiece(home));
+            }
+        }));
     }
 
-    /** The fit has already checked its biomes, the same way {@link RiftChapels#nearest} does: never refused for it here. */
+    /** The home has already checked its land, the same way the commands and the letter see it: never refused for its biome here. */
     @Override
     public Optional<GenerationStub> findValidGenerationPoint(GenerationContext context)
     {

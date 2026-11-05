@@ -19,15 +19,15 @@ The Dross is a **mid-to-late game** place. You reach it after surviving the Neth
 
 How a player moves through the mod, from a normal survival world to the Dross.
 
-1. **Normal survival.** Nothing from the mod is needed at first. Somewhere 4,000–5,000 blocks from spawn, usually in a forest, taiga or snowy land, the **Fallen Cathedral** stands in ruins around an unlit blue portal frame, and the land around it is dying. Out in the countryside, away from the villages, stand small stone **Rift Chapels**, each with an old villager inside: a **Dross Trader**.
+1. **Normal survival.** Nothing from the mod is needed at first. Somewhere 3,500–4,500 blocks from spawn, usually in a forest, taiga or snowy land, the **Fallen Cathedral** stands in ruins around an unlit blue portal frame, and the land around it is dying. At the edge of one of the villages near spawn stands a small stone **Rift Chapel** with an old villager inside: the **Dross Trader**.
 2. **The Weathered Letter.** Every Nether Fortress and Bastion Remnant chest holds a Weathered Letter. It's a 4-page letter from an unnamed friend:
    - Blue portals from the Dross have been spilling into the world. "We" closed them, but the Dross is pressing to break through again.
    - An old villager, the writer's friend, is looking for someone strong enough to fight back.
-   - It gives a rough location for him, in the nearest Rift Chapel to where you first held the letter (in the Nether, the matching Overworld spot: your coordinates times 8): a direction from where the world began, and coordinates rounded to 50 blocks.
+   - It gives a rough location for his chapel at the edge of a village: a direction from where the world began, and coordinates rounded to 50 blocks.
    - It tells the reader to say an old friend sent them about the rift.
 
    Picking up the letter opens the **Dross** advancement tab.
-3. **Meeting the trader.** Any chapel's trader will do: your quest progress is your own. The first time you right-click him, he doubts you're strong enough and sends you for three tributes, one each from the Nether's fortresses, the deep dark's cities and the End. After that, each right-click reminds you what's still missing. His trading screen stays closed until the quest is done.
+3. **Meeting the trader.** There's one per world; your quest progress is your own. The first time you right-click him, he doubts you're strong enough and sends you for three tributes, one each from the Nether's fortresses, the deep dark's cities and the End. After that, each right-click reminds you what's still missing. His trading screen stays closed until the quest is done.
 4. **The three tributes** (any order). Right-click him while holding the full amount: **1 wither skeleton skull**, **3 echo shards** and **15 end stone**. If you hold too few, he tells you how many to bring. If you hold more, he takes exactly what he needs. Once all three are in, he gives you the **Dross Compass**, which points at the cathedral's portal. He says he knows how to forge a key but needs materials. *Advancement: Proven Worthy.*
 5. **The key materials** (any order, same rules): **1 trident**, **1 Heart of the Sea** and **8 amethyst shards**. He forges the **Rift Key**, tells you to be careful what you let out, and mentions he has books that can help in there. *Advancement: Keymaster.* His shop opens for you.
 6. **Opening the rift.** Follow the compass to the Fallen Cathedral and throw the Rift Key into the frame's opening. The key is used up and the portal lights, staying open for everyone, permanently.
@@ -157,7 +157,7 @@ Electric blue portal texture, blue particles, and a blue swirl over your screen 
 The cathedral is the only way into the Dross. There's one per world, and it's made by world generation (the structure `dross:portal_site`): it appears with the land the first time its chunks are generated, like a village. Nothing is built when a new world starts.
 
 - **Where:** worked out from the world's seed alone (in about a second, without loading or generating anything), so it's known from the start and is the same every time.
-  - **4,000–5,000 blocks from spawn**, in a direction the seed picks, then nudged to the nearest good spot: forest, dark forest, taiga, snowy plains or taiga, ice spikes or grove.
+  - **3,500–4,500 blocks from spawn**, in a direction the seed picks, then nudged to the nearest good spot: forest, dark forest, taiga, snowy plains or taiga, ice spikes or grove.
   - **Avoided:** ocean, river, beach, swamp, mountains, deep water, and villages and pillager outposts.
   - The land under it must be nearly flat to begin with: 5 blocks of variation or less.
   - If nothing passes, the rules relax step by step (more variation, further out, any dry land), so every world gets a site.
@@ -187,7 +187,7 @@ The site's position and the frame's direction are available to the rest of the m
   - Two seconds after the last note, you get the *Enter the Dross* advancement.
   - On your **first arrival only**, you get the **Dross Guide Book** (dropped at your feet if your inventory is full).
 - If the exit portal has gone out but its frame is whole, arriving lights it again.
-- With **Generate Structures** off there's no hub (nor cathedral or chapels): you'd land on safe ground near Dross 0,0.
+- With **Generate Structures** off there's no hub (nor cathedral or chapel): you'd land on safe ground near Dross 0,0.
 
 ### The survivors
 Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the Dross skins drawn for the trader's villager model (8 and 3).
@@ -203,13 +203,14 @@ Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Ora
 An old villager (`dross:dross_trader`) who knows about the rift. He wears an original electric blue skin, **The Archivist**: a bald scholar with glowing spectacles and a blue book.
 
 ### Where he lives
-- In a **Rift Chapel**: a small stone chapel made by world generation (the structure `dross:rift_chapel`), standing on its own in the Overworld's countryside, like an igloo or a witch hut. A world has **many** of them, roughly one every 500 × 500 blocks where the land suits (about 50 within 5,000 blocks of spawn), and **each has its own trader**, who comes with the chapel's land. Nothing of him happens when a new world starts.
-- **Where one fits:** forests, taigas, savannas, plains, snowy plains, desert, meadows and cherry groves, on dry land that's nearly flat (6 blocks of variation or less); never by an ocean, river, beach, swamp, jungle or peak, and never near a village or the cathedral. Its door faces a way the seed picks.
-- **Fitting into the land:** Minecraft's own terrain shaping draws the land to its floor, and the ground round it steps back to the land a block at a time over 6 blocks. Trees that grew into it are felled, whole, by its trader the first time its land is loaded.
-- Each time you join the world, a chat message gives the location of the chapel nearest you.
-- Your quest progress is your own, so any chapel's trader will do.
-- In a superflat world, or one made with **Generate Structures** off, there are no chapels (only spawn-egg traders).
-- (Until November 4, 2026 there was one trader per world, in a chapel at the edge of the nearest village to spawn, found by a search at world start that could freeze modded worlds.)
+- In the **Rift Chapel**: a small stone chapel made by world generation (the structure `dross:rift_chapel`) at the edge of a village. A world has **one** trader and one chapel. The village is one of the 5 nearest to spawn, picked at random by the seed (only one with room at its edge for the chapel). Nothing of him happens when a new world starts: the chapel and the trader come with the village's land, the first time it's made.
+- **At the village:** the chapel stands just clear of the village's houses and streets, its door facing the village, with a 3-wide path (dirt, or smooth sandstone at a desert village) to the nearest street. It needs nearly flat dry ground (6 blocks of variation or less). Which village and where is worked out from the seed while the world loads (about a second or two, in the background), the village laid out exactly as Minecraft will make it.
+- **Once a village:** every village that has had the trader is remembered in the save. A trader can never come to the same village twice, and a world never has a second one. If a chapel's land were ever made again, the extra trader would be removed at once.
+- **Fitting into the land:** Minecraft's own terrain shaping draws the land to its floor, and the ground round it steps back to the land a block at a time over 6 blocks. Trees that grew into it are felled, whole, by the trader the first time its land is loaded.
+- **No village with room** near spawn (a world of oceans, a modpack without villages): the chapel stands on its own on the nearest flat dry land at least 384 blocks from spawn, and the letter says so.
+- Each time you join the world, a chat message gives the chapel's location.
+- In a superflat world, or one made with **Generate Structures** off, there's no chapel (only spawn-egg traders).
+- (Until November 4, 2026 his chapel was built at the edge of the nearest village to spawn, found by a search at world start that could freeze modded worlds; for a few hours that day there were many chapels in the countryside, each with a trader.)
 - **The Rift Chapel** (9 wide, 13 deep, 18 tall):
   - **Outside:** deepslate and stone brick walls with lapis, buttresses, tall blue windows, a blue rose window over the dark oak door, and a steep roof. On top are an open belfry with a soul lantern and a spire with a copper lightning rod.
   - **Inside:** pews, blue banners and soul lanterns. Behind the altar is a broken piece of a real Dross portal frame, which leaks and hums but can't be lit.
@@ -244,7 +245,7 @@ Unlimited uses, no restocking, no XP.
 
 | Item | What it does |
 |---|---|
-| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in every Nether Fortress and Bastion Remnant chest (added with a global loot modifier, so other mods' loot still works). It comes out of its chest blank and is written the first time it's in your inventory, a moment later: a rough location of the nearest Rift Chapel to where you held it (in the Nether, the matching Overworld spot). |
+| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in every Nether Fortress and Bastion Remnant chest (added with a global loot modifier, so other mods' loot still works). It comes out of its chest blank and is written the first time it's in your inventory: a rough location of the trader's Rift Chapel, at the edge of a village. |
 | **Dross Compass** | Given by the trader after the three tributes. Points at the Fallen Cathedral's portal and re-aims itself every second, so it stays correct. Spins in other dimensions. |
 | **Rift Key** | Forged by the trader from the key materials. A crystal key with a blue heart. Throw it into a Dross frame to light the portal (it's used up). Fireproof, never despawns. |
 | **Dross Guide Book** | Given on your first arrival in the Dross, and sold by the trader. A readable 5-page guide to the dimension: endless night, the safe hub, the netherite-clad dead, and no way out but the hub. |
@@ -765,7 +766,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 |---|---|
 | `/dross goto cathedral` | Teleports you in front of the Fallen Cathedral's frame, facing it, generating its land first if needed. In a world with no site (superflat, or Generate Structures off), it says so instead. |
 | `/dross goto hub` | Teleports you to the hub (the Shattered Spire) in the Dross, onto the arrival step (the first time, its land is generated). |
-| `/dross goto trader` | Teleports you onto the doorstep of the nearest Rift Chapel (within 12,000 blocks), facing its door, generating its land first if needed. |
+| `/dross goto trader` | Teleports you onto the doorstep of the trader's Rift Chapel, facing its door, generating its land (and the village's) first if needed. |
 | `/dross goto biome <name>` | Teleports you to safe ground in the nearest example of a Dross biome: `silverwood_forest`, `cinder_wastes`, `blightwood`, `rimefall` or `gravecrags`. |
 | `/dross goto lair colossus` | Teleports you to the nearest Cinder Colossus lair's entrance. If it isn't built yet, it says so, builds it, and teleports you once it's ready. |
 | `/dross goto sewer` | Teleports you to the foot of the nearest regular sewer's pipe, facing it. |
@@ -869,7 +870,7 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 | `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators, the hub falloff and the filter that keeps features off the hub (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
 | `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (a world-generation structure fitted onto the terrain), the arrival sequence |
 | `world` | The portal site: its spot from the seed, the Fallen Cathedral as a world-generation structure, the tree tidy-up, ground fitting, the leak (`world/shrine` holds the shrine designs) |
-| `villager` | The trader, his Rift Chapels (a world-generation structure) and finding the nearest, dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
+| `villager` | The trader, his Rift Chapel (a world-generation structure at a village the seed picks; the "once a village" rule), dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
 | `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
 | `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
 | `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss` |

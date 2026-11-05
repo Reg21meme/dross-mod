@@ -46,10 +46,9 @@ import org.slf4j.Logger;
  * {@link RiftChapelGameTest#NAMESPACE} to {@code "dross_chapel"} and add {@code -PgameTestNamespaces=dross_chapel}). It only
  * exists in the development environment: in a normal game nothing here runs.
  * <ul>
- *   <li>A player who joins is told "Dross trader's hut is at X, Y, Z" once, a moment later (the search runs off the server
- *       thread; the test waits for it by the clock), with the trader's spot in the nearest Rift Chapel to him
- *       ({@link RiftChapels#nearest}); a second player who joins is told once too. If there's no chapel within the
- *       search's reach, nobody is told anything.</li>
+ *   <li>A player who joins is told "Dross trader's hut is at X, Y, Z" once (the test waits for it by the clock), with
+ *       the trader's spot in the world's one Rift Chapel ({@link RiftChapels#home}); a second player who joins is told
+ *       once too. If the world has no chapel, nobody is told anything.</li>
  *   <li>Then a spawn-egg trader and a {@code /summon}-style trader are spawned, and neither sends the message.</li>
  * </ul>
  * The wait always ends by itself, before the test's tick limit, so the stand-in players always leave.
@@ -101,7 +100,7 @@ public final class TraderAnnouncerGameTest
                 .thenSucceed();
     }
 
-    /** One stand-in player who joined: when, and the nearest chapel to where he came in. */
+    /** One stand-in player who joined: when, and the world's chapel. */
     private static final class Joined
     {
         @Nullable
@@ -113,11 +112,10 @@ public final class TraderAnnouncerGameTest
         {
             this.player = TestPlayer.join(helper.getLevel(), name);
             players.add(this.player);
-            BlockPos from = RiftChapels.searchOrigin(overworld, this.player.level(), this.player.blockPosition());
-            this.nearest = RiftChapels.nearest(overworld, from, RiftChapels.SEARCH_RADIUS);
+            this.nearest = RiftChapels.home(overworld).map(RiftChapels.Home::chapel);
             this.joinedAt = Util.getMillis();
-            LOGGER.info("[trader test] {} joined at {}; the nearest chapel to him: {}", name, from.toShortString(),
-                    this.nearest.map(RiftChapels.Chapel::describe).orElse("none within " + RiftChapels.SEARCH_RADIUS + " blocks"));
+            LOGGER.info("[trader test] {} joined at {}; the trader's chapel: {}", name, this.player.blockPosition().toShortString(),
+                    this.nearest.map(RiftChapels.Chapel::describe).orElse("none in this world"));
         }
 
         /** Waits (by the clock) until he's been told, or (no chapel near) a few quiet seconds have passed. */

@@ -2128,20 +2128,16 @@ def portal_site_structures():
     return structure, structure_set
 
 
-# The Dross trader's Rift Chapels (the villager area's villager/RiftChapel*; the user's decision of November 2, 2026): a
-# rare structure of its own in the Overworld's countryside, each with its trader, on a seeded grid like igloos and witch
-# huts (vanilla's random_spread, as dross:rift_chapel, which also keeps them off the portal site), made with the land in
-# the "surface structures" step, the land shaped to its floor (beard_thin). Not a Dross structure, but its JSON lives in
-# the folders this script owns, so it's written here (else remove_stale would delete it). Whether a grid cell's chunk gets
-# one (its biome in the tag below, its land dry and flat enough) is worked out from the noise (villager/RiftChapels.fit).
+# The Dross trader's one Rift Chapel (the villager area's villager/RiftChapel*; the user's decision of November 4, 2026:
+# "only 1 trader, and I still want him to be in villages"): at the edge of a village the seed picks among those nearest
+# the spawn point, with a path to its nearest street, made with the land in the "surface structures" step, the land
+# shaped to its floor (beard_thin). Its placement (dross:rift_chapel) starts it only in the chapel's own chunk; which
+# village and where are worked out from the seed (villager/TraderVillages). Not a Dross structure, but its JSON lives in
+# the folders this script owns, so it's written here (else remove_stale would delete it). (November 2-4 it was a rare
+# structure of its own in the countryside on a random_spread grid, many per world, each with its trader.)
 RIFT_CHAPEL_SALT = 1104202603           # (under 2^31: Minecraft reads a salt as an int)
-RIFT_CHAPEL_SPACING = 32                # chunks: one possible chapel in every 512 x 512 blocks (igloos' and witch huts')
-RIFT_CHAPEL_SEPARATION = 8              # chunks: at least 8 chunks (128 blocks) between two cells' spots
-# (40 / 12 was tried first, November 4: only about 1 cell in 10 got a chapel (the rest sea, steep, by a village...), so a
-# world had about 35 within 5,000 blocks of its spawn; on this grid, with 6 blocks of relief allowed, see WORLDGEN_REPORT.md)
-RIFT_CHAPEL_VILLAGE_CLEARANCE = 6       # chunks: never this close to a possible village's chunk (a village reaches ~5)
-# Dry, open Overworld land, by tag where there's one (so other mods' biomes count): never sea, river, beach, swamp or the
-# peaks (the fit's flatness and height checks keep it off steep groves, meadows and windswept savannas).
+# The biomes a chapel on its own may stand in (only when no village near the spawn point has room): dry, open Overworld
+# land, by tag where there's one (so other mods' biomes count): never sea, river, beach, swamp or the peaks.
 RIFT_CHAPEL_BIOMES = ["#minecraft:is_forest", "#minecraft:is_taiga", "#minecraft:is_savanna", "minecraft:plains",
                       "minecraft:sunflower_plains", "minecraft:snowy_plains", "minecraft:desert", "minecraft:meadow",
                       "minecraft:cherry_grove", {"id": "#forge:is_plains", "required": False},
@@ -2152,10 +2148,7 @@ def rift_chapel_structures():
     structure = {"type": "dross:rift_chapel", "biomes": "#dross:has_structure/rift_chapel", "spawn_overrides": {},
                  "step": "surface_structures", "terrain_adaptation": "beard_thin"}
     structure_set = {"structures": [{"structure": "dross:rift_chapel", "weight": 1}],
-                     "placement": {"type": "dross:rift_chapel", "spacing": RIFT_CHAPEL_SPACING,
-                                   "separation": RIFT_CHAPEL_SEPARATION, "salt": RIFT_CHAPEL_SALT,
-                                   "exclusion_zone": {"other_set": "minecraft:villages",
-                                                      "chunk_count": RIFT_CHAPEL_VILLAGE_CLEARANCE}}}
+                     "placement": {"type": "dross:rift_chapel", "salt": RIFT_CHAPEL_SALT}}
     return structure, structure_set, {"replace": False, "values": RIFT_CHAPEL_BIOMES}
 
 # =====================================================================================================================

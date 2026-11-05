@@ -8,18 +8,16 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import org.slf4j.Logger;
 
 /**
- * Tells each player who joins where the nearest Dross trader is: "Dross trader's hut is at X, Y, Z" (plain text), his
- * spot in the nearest Rift Chapel ({@link RiftChapels#nearest} within {@link RiftChapels#SEARCH_RADIUS} blocks: of them
- * in the Overworld, of the Overworld's place for them in the Nether, of the world spawn elsewhere), the same place the
- * Weathered Letter names for someone there. The search runs off the server thread, and the line comes a moment after
- * joining. Nothing is said if there's no chapel that near (or the world makes none). Spawn-egg (and {@code /summon})
- * traders never say anything.
+ * Tells each player who joins where the Dross trader is: "Dross trader's hut is at X, Y, Z" (plain text), his spot in the
+ * world's one Rift Chapel ({@link RiftChapels#home}), the same place the Weathered Letter names. It's known from the seed
+ * from the start (worked out in the background as the world loads; if a player joins before that's done, the line comes
+ * when it is), before the chapel's land is made. Nothing is said in a world that has no chapel. Spawn-egg (and
+ * {@code /summon}) traders never say anything.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class TraderAnnouncer
@@ -36,7 +34,7 @@ public final class TraderAnnouncer
         return Component.translatable(LOCATION_KEY, spot.getX(), spot.getY(), spot.getZ());
     }
 
-    /** A player joined: look for the nearest chapel to them (off the server thread), then tell them where it is. */
+    /** A player joined: tell them where the trader's chapel is (once it's worked out). */
     @SubscribeEvent
     public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event)
     {
@@ -52,26 +50,19 @@ public final class TraderAnnouncer
             {
                 return;
             }
-            BlockPos from = RiftChapels.searchOrigin(overworld, player.level(), player.blockPosition());
-            RiftChapels.nearestAsync(overworld, from, RiftChapels.SEARCH_RADIUS).thenAccept(found -> found.ifPresent(chapel -> server.execute(() -> {
-                // (back on the server thread; they may have left meanwhile)
+            RiftChapels.homeAsync(overworld).thenAccept(found -> found.ifPresent(home -> server.execute(() -> {
+                // (on the server thread; if it wasn't worked out yet, they may have left meanwhile)
                 if (server.getPlayerList().getPlayer(player.getUUID()) == player)
                 {
-                    player.sendSystemMessage(locationMessage(chapel));
+                    player.sendSystemMessage(locationMessage(home.chapel()));
                 }
             })));
         }
         catch (RuntimeException e)
         {
             // A problem with the message must never stop a player from joining.
-            LOGGER.warn("[Dross] Couldn't tell {} where the nearest Dross trader is ({}).", player.getGameProfile().getName(), e.toString());
+            LOGGER.warn("[Dross] Couldn't tell {} where the Dross trader is ({}).", player.getGameProfile().getName(), e.toString());
         }
-    }
-
-    @SubscribeEvent
-    public static void onServerStopped(ServerStoppedEvent event)
-    {
-        RiftChapels.forgetRequests();
     }
 
     private TraderAnnouncer() {}

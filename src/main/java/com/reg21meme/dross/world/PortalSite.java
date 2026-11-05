@@ -18,7 +18,7 @@ import org.slf4j.Logger;
  *
  * <p><b>Where:</b> the cathedral is a world-generation structure, {@code dross:portal_site}, one per world, made with the
  * land the first time its chunks are generated. Its spot comes from the seed alone ({@link SiteFinder}, the rules in
- * {@link SiteRules}): 4,000 to 5,000 blocks from the spawn point in a direction the seed picks, nudged into forests,
+ * {@link SiteRules}): 3,500 to 4,500 blocks from the spawn point in a direction the seed picks, nudged into forests,
  * taigas or snowy land, away from villages, on fairly flat dry ground. So every getter here is arithmetic on that spot:
  * the same before and after the cathedral's chunks exist, on any thread, and none of them loads a chunk.
  * <ul>

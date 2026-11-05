@@ -20,6 +20,7 @@ import com.reg21meme.dross.dimension.sites.BossSitePlacement;
 import com.reg21meme.dross.portal.DrossHubPiece;
 import com.reg21meme.dross.portal.DrossHubPlacement;
 import com.reg21meme.dross.portal.DrossHubStructure;
+import com.reg21meme.dross.villager.RiftChapelPathPiece;
 import com.reg21meme.dross.villager.RiftChapelPiece;
 import com.reg21meme.dross.villager.RiftChapelPlacement;
 import com.reg21meme.dross.villager.RiftChapelStructure;
@@ -118,15 +119,19 @@ public final class ModStructures
     public static final RegistryObject<StructurePlacementType<PortalSitePlacement>> PORTAL_SITE_PLACEMENT = STRUCTURE_PLACEMENTS.register("portal_site",
             () -> () -> PortalSitePlacement.CODEC);
 
-    // Villager area: dross:rift_chapel, the Dross trader's Rift Chapels (villager/RiftChapel*), rare in the Overworld's
-    // countryside on a seeded grid, each with its trader, made with the land: the structure, its one piece, and its
-    // placement (vanilla's random_spread, kept off the villages and the portal site)
+    // Villager area: dross:rift_chapel, the Dross trader's one Rift Chapel (villager/RiftChapel*), at the edge of the
+    // village the seed picks, with its trader, made with the land: the structure, its chapel piece, and its placement
+    // (only in the chapel's own chunk)
     public static final RegistryObject<StructureType<RiftChapelStructure>> RIFT_CHAPEL = STRUCTURE_TYPES.register("rift_chapel",
             () -> () -> RiftChapelStructure.CODEC);
     public static final RegistryObject<StructurePieceType> RIFT_CHAPEL_PIECE = STRUCTURE_PIECES.register("rift_chapel",
             () -> (StructurePieceType.ContextlessType) RiftChapelPiece::new);
     public static final RegistryObject<StructurePlacementType<RiftChapelPlacement>> RIFT_CHAPEL_PLACEMENT = STRUCTURE_PLACEMENTS.register("rift_chapel",
             () -> () -> RiftChapelPlacement.CODEC);
+    // Villager area: the path from the chapel's door to its village's nearest street (since November 4, 2026: the one
+    // trader's chapel stands at the edge of a village the seed picks)
+    public static final RegistryObject<StructurePieceType> RIFT_CHAPEL_PATH_PIECE = STRUCTURE_PIECES.register("rift_chapel_path",
+            () -> (StructurePieceType.ContextlessType) RiftChapelPathPiece::new);
 
     private ModStructures() {}
 }

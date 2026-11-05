@@ -83,7 +83,7 @@ import org.slf4j.Logger;
  * <ul>
  *   <li>{@link #nothingHappensAtWorldStart}: when the server had started, the spot was already worked out (on its
  *       background thread) and not one chunk of the site or round it was loaded, and no part of it built.</li>
- *   <li>{@link #spotComesFromTheSeed}: the spot is 4,000-5,000 blocks from the spawn point (or the rung's own distances,
+ *   <li>{@link #spotComesFromTheSeed}: the spot is 3,500-4,500 blocks from the spawn point (or the rung's own distances,
  *       with its WARN), its biomes in the rung's tag, no possible village or outpost start near it, its land as flat as the
  *       rung says; worked out again, on this thread (in under two seconds) and on another, it's the same.</li>
  *   <li>{@link #cathedralIsMadeWithTheLand}: once its chunks are made (a ticket loads them; waited for by the clock) and

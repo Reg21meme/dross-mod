@@ -19,17 +19,14 @@ import net.minecraft.world.phys.Vec3;
 /**
  * The trader's test commands. {@code DrossCommand} (the /dross root) hooks them up:
  * <ul>
- *   <li>{@code /dross goto trader}: teleports you to the door of the nearest Rift Chapel ({@link RiftChapels#nearest}: to
- *       you in the Overworld, to the Overworld's place for you in the Nether, to the world spawn elsewhere), facing it. Its
- *       chunks are loaded first (the first time, made: the chapel and its trader with them), as a nether portal trip loads
- *       its destination.</li>
+ *   <li>{@code /dross goto trader}: teleports you to the door of the world's one Rift Chapel ({@link RiftChapels#home}, at
+ *       the edge of the trader's village), facing it. Its chunks are loaded first (the first time, made: the chapel, its
+ *       trader and the village with them), as a nether portal trip loads its destination.</li>
  *   <li>{@code /dross trader sendhome}: the nearest trader whose land is loaded teleports home.</li>
  * </ul>
  */
 public final class TraderCommands
 {
-    /** {@code /dross goto trader} looks this far for a chapel (blocks). */
-    static final int GOTO_RADIUS = 12_000;
     /** The arrival's chunks are held this many chunks round it for a moment (vanilla's portal ticket). */
     private static final int ARRIVAL_TICKET_RADIUS = 3;
 
@@ -42,23 +39,24 @@ public final class TraderCommands
         ServerLevel overworld = source.getServer().overworld();
         if (!RiftChapels.available(overworld))
         {
-            source.sendFailure(Component.literal("This world has no Rift Chapels: Generate Structures is off, or its kind of world makes none."));
+            source.sendFailure(Component.literal("This world has no Rift Chapel: Generate Structures is off, or its kind of world makes none."));
             return 0;
         }
-        BlockPos from = RiftChapels.searchOrigin(overworld, player.level(), player.blockPosition());
-        Optional<RiftChapels.Chapel> found = RiftChapels.nearest(overworld, from, GOTO_RADIUS);
+        Optional<RiftChapels.Home> found = RiftChapels.home(overworld);
         if (found.isEmpty())
         {
-            source.sendFailure(Component.literal("There's no Rift Chapel within " + GOTO_RADIUS + " blocks of " + from.getX() + ", " + from.getZ() + "."));
+            source.sendFailure(Component.literal("This world has no place for the Rift Chapel (see the log)."));
             return 0;
         }
-        RiftChapels.Chapel chapel = found.get();
+        RiftChapels.Home home = found.get();
+        RiftChapels.Chapel chapel = home.chapel();
         BlockPos at = landing(overworld, chapel);
         player.teleportTo(overworld, at.getX() + 0.5D, at.getY(), at.getZ() + 0.5D, chapel.doorYaw(), 0.0F);
         BlockPos spot = chapel.traderSpot();
-        long distance = Math.round(Math.sqrt(chapel.distanceSqr(from)));
+        String where = home.inVillage() ? "at the edge of the village at " + home.villageMiddle().getX() + ", " + home.villageMiddle().getZ()
+                : "on its own (no village near the spawn had room)";
         source.sendSuccess(() -> Component.literal("Teleported to the Rift Chapel at " + spot.getX() + ", " + spot.getY() + ", " + spot.getZ()
-                + " (" + distance + " blocks from " + from.getX() + ", " + from.getZ() + ")"), true);
+                + ", " + where + " (" + home.distance() + " blocks from the spawn point)"), true);
         return 1;
     }
 
@@ -106,7 +104,7 @@ public final class TraderCommands
         }
         if (nearest == null)
         {
-            source.sendFailure(Component.literal("No Dross trader's land is loaded. /dross goto trader takes you to the nearest Rift Chapel."));
+            source.sendFailure(Component.literal("No Dross trader's land is loaded. /dross goto trader takes you to his Rift Chapel."));
             return 0;
         }
         nearest.teleportHome(overworld);

@@ -28,7 +28,7 @@ import net.minecraftforge.common.world.PieceBeardifierModifier;
 import org.slf4j.Logger;
 
 /**
- * Builds a Rift Chapel ({@link RiftChapelStructure}) a chunk at a time, with the land, and puts its trader in it. Before
+ * Builds the Rift Chapel ({@link RiftChapelStructure}) a chunk at a time, with the land, and puts its trader in it. Before
  * that, when the land's shape is worked out, Minecraft's terrain adaptation ({@code beard_thin}, through Forge's
  * {@link PieceBeardifierModifier}) has drawn the land to the chapel's floor over its footprint and smoothed it round it.
  * In each chunk, only its own part ({@link com.reg21meme.dross.villager.hut.HutDesign#build} with the chunk as its clip):
@@ -41,10 +41,12 @@ import org.slf4j.Logger;
  *   <li>water or lava in the chunk right beside the footprint, at the ground or a block over it, turned to dirt, so
  *       nothing pours in;</li>
  *   <li>in the chunk holding his spot in the aisle, the trader, his home the chapel (its footprint is his
- *       {@code HutBox}). A chunk is only made once, so a chapel only ever gets one.</li>
+ *       {@code HutBox}) and his village's key on him ({@link DrossTrader#setVillage}). A chunk is only made once, so a
+ *       chapel only ever gets one; and if it were ever made again, the trader it brought would be turned away on his first
+ *       tick, since a village gives the trader only once ({@link TraderVillageData}).</li>
  * </ol>
  * Trees grow after it, some into it: the trader fells those once, when the land round his chapel is loaded
- * ({@link DrossTrader}). Saved with its middle and the way its door faces.
+ * ({@link DrossTrader}). Saved with its middle, the way its door faces and its village.
  */
 public final class RiftChapelPiece extends StructurePiece implements PieceBeardifierModifier
 {
@@ -77,12 +79,17 @@ public final class RiftChapelPiece extends StructurePiece implements PieceBeardi
 
     private final BlockPos center;
     private final Direction facing;
+    /** Its village's key (the village's start chunk; the chapel's own for one on its own) and whether it's at a village. */
+    private final long village;
+    private final boolean inVillage;
 
-    RiftChapelPiece(RiftChapels.Chapel chapel)
+    RiftChapelPiece(RiftChapels.Home home)
     {
-        super(ModStructures.RIFT_CHAPEL_PIECE.get(), 0, box(chapel.center(), chapel.facing()));
-        this.center = chapel.center();
-        this.facing = chapel.facing();
+        super(ModStructures.RIFT_CHAPEL_PIECE.get(), 0, box(home.chapel().center(), home.chapel().facing()));
+        this.center = home.chapel().center();
+        this.facing = home.chapel().facing();
+        this.village = home.village();
+        this.inVillage = home.inVillage();
     }
 
     public RiftChapelPiece(CompoundTag tag)
@@ -90,6 +97,8 @@ public final class RiftChapelPiece extends StructurePiece implements PieceBeardi
         super(ModStructures.RIFT_CHAPEL_PIECE.get(), tag);
         this.center = new BlockPos(tag.getInt("CenterX"), tag.getInt("GroundY"), tag.getInt("CenterZ"));
         this.facing = Direction.from2DDataValue(tag.getInt("Facing"));
+        this.village = tag.getLong("Village");
+        this.inVillage = tag.getBoolean("InVillage");
     }
 
     /** The footprint and its ring, from the deepest foundation (or fill) up to its top. */
@@ -107,6 +116,8 @@ public final class RiftChapelPiece extends StructurePiece implements PieceBeardi
         tag.putInt("GroundY", this.center.getY());
         tag.putInt("CenterZ", this.center.getZ());
         tag.putInt("Facing", this.facing.get2DDataValue());
+        tag.putLong("Village", this.village);
+        tag.putBoolean("InVillage", this.inVillage);
     }
 
     // Minecraft's terrain adaptation: the land is drawn to the floor over the footprint
@@ -185,7 +196,7 @@ public final class RiftChapelPiece extends StructurePiece implements PieceBeardi
     }
 
     /** The land's own top in a column: under any water, plants, trees or snow; {@code top} itself if none is found. */
-    private static int groundUnder(WorldGenLevel level, BlockPos.MutableBlockPos pos, int x, int top, int z)
+    static int groundUnder(WorldGenLevel level, BlockPos.MutableBlockPos pos, int x, int top, int z)
     {
         for (int y = top; y > top - GROUND_SEARCH && y > level.getMinBuildHeight(); y--)
         {
@@ -197,7 +208,7 @@ public final class RiftChapelPiece extends StructurePiece implements PieceBeardi
         return top;
     }
 
-    private static boolean isGround(BlockState state)
+    static boolean isGround(BlockState state)
     {
         return !state.isAir() && state.getFluidState().isEmpty() && !state.canBeReplaced() && state.blocksMotion()
                 && !state.is(BlockTags.LEAVES) && !state.is(BlockTags.LOGS);
@@ -296,12 +307,14 @@ public final class RiftChapelPiece extends StructurePiece implements PieceBeardi
         }
         trader.setHome(spot, foot);
         trader.setChapel(this.center, this.facing);
+        trader.setVillage(this.village);
         trader.moveTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D, this.facing.toYRot(), 0.0F);
         trader.finalizeSpawn(level, level.getCurrentDifficultyAt(spot), MobSpawnType.STRUCTURE, null, null);
         trader.setPersistenceRequired();
         level.addFreshEntityWithPassengers(trader);
         TRADERS.incrementAndGet();
-        LOGGER.info("[Dross] A Dross trader came with the land, in the Rift Chapel at {}, {}, {}", spot.getX(), spot.getY(), spot.getZ());
+        LOGGER.info("[Dross] The Dross trader came with the land, in the Rift Chapel at {}, {}, {} ({})", spot.getX(), spot.getY(), spot.getZ(),
+                this.inVillage ? "at the edge of the village in chunk " + ChunkPos.getX(this.village) + ", " + ChunkPos.getZ(this.village) : "on its own");
     }
 
     /** {chunks built, total nanoseconds, the slowest one chunk's nanoseconds, traders put in} since the server started. */

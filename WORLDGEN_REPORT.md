@@ -14,8 +14,8 @@ the trader generating 5 villages at once).
 | Part | Before | Now |
 |---|---|---|
 | The hub (Shattered Spire at Dross 0,0) | built at world start in the background, its ~110 chunks held by tickets, finished on the server thread if anyone needed it early | a world-generation structure: made with the Dross land at 0,0, chunk by chunk, the first time those chunks are generated (when someone first enters the Dross); nothing at world start |
-| The Fallen Cathedral (the Overworld portal site) | a background search over ~1.4 million spots 3,000-10,000 blocks out, then the best spot checked by loading its chunks, then built a step a tick | a world-generation structure, ONE per world, 4,000-5,000 blocks from spawn in a direction picked by the seed, nudged into forest / dark forest / taiga / snowy biomes, kept away from villages, the ground shaped by Minecraft's terrain adaptation; the compass and `/dross goto cathedral` work its spot out from the seed |
-| The trader (the Rift Chapel) | one per world, at the edge of the nearest village with room (5 villages generated at once in the background) | the Rift Chapel as its own rare structure in the countryside, on a seeded grid like igloos and witch huts, so a world has many chapels and many traders; the Weathered Letter points to the nearest chapel |
+| The Fallen Cathedral (the Overworld portal site) | a background search over ~1.4 million spots 3,000-10,000 blocks out, then the best spot checked by loading its chunks, then built a step a tick | a world-generation structure, ONE per world, 4,000-5,000 blocks from spawn (3,500-4,500 since stage 6) in a direction picked by the seed, nudged into forest / dark forest / taiga / snowy biomes, kept away from villages, the ground shaped by Minecraft's terrain adaptation; the compass and `/dross goto cathedral` work its spot out from the seed |
+| The trader (the Rift Chapel) | one per world, at the edge of the nearest village with room (5 villages generated at once in the background) | the Rift Chapel as its own rare structure in the countryside, on a seeded grid like igloos and witch huts, so a world has many chapels and many traders; the Weathered Letter points to the nearest chapel | (stage 6, the user's change the same evening: ONE trader again, his chapel made by world generation at the edge of a village the seed picks, never twice at one village)
 
 ## Stages (each built, checked headlessly and committed on this branch)
 
@@ -25,6 +25,8 @@ the trader generating 5 villages at once).
 4. A full GameTest run; fixes.
 5. Performance in the real game (a temporary, environment-gated client hook): world creation, server tick times and
    frame rates at the busy places; easy fixes that change nothing a player sees.
+6. The user's change the same evening: one trader again, at the edge of a village the seed picks, never twice at one
+   village; the cathedral 3,500-4,500 blocks out.
 
 ## Choices made overnight (no one to ask)
 
@@ -615,3 +617,66 @@ test skips a kept chest but never a spawner. Run 3 (same seed, the arena fix): t
 run 4 (same seed, the test fix): the arena test passed, and the only failure was the known flake
 `HuntsmanFightGameTest.theyAttackAtOnce` (the pair calm again, as on November 3; it passed in runs 1-3). Each run took
 about 10 minutes.
+
+### Stage 6: one trader at a village again; the cathedral nearer (the user, November 4, evening)
+
+The user, after reading the report: "no, change the trader: it should only be 1 trader, and I still want him to be in
+villages; just make a rule where once a trader spawns in a random village it is impossible for him to spawn back in
+again that same village. Also make the cathedral 3.5k-4.5k."
+
+**The cathedral:** `SiteRules.MIN_DISTANCE` / `MAX_DISTANCE` 3,500 / 4,500 (were 4,000 / 5,000); the last relaxed rung
+3,000-5,000 (was 3,500-5,500).
+
+**The trader** (`villager/TraderVillages`, the new piece `RiftChapelPathPiece`, the saved rule `TraderVillageData`;
+`RiftChapels`, `RiftChapelPlacement`, `RiftChapelStructure`, `RiftChapelPiece`, `DrossTrader`, `TraderCommands`,
+`TraderAnnouncer`, `WeatheredLetterItem` reworked):
+- One chapel per world, at the edge of a village. Still made by world generation with the land; nothing at world start.
+- **Which village, from the seed alone** (worked out once, on a background thread when the Overworld loads): the
+  possible villages within 3,000 blocks of the spawn point, by a quick look at each village set's grid cell (placement
+  rules, biomes at a 3 x 3 spread); the seed shuffles the 5 nearest and tries them in that order, then the rest. Each one
+  tried is laid out exactly the way world generation will (the set's weighted choice of village type, its biome rule,
+  its whole jigsaw layout, by calling `Structure.generate` with the world's own generator, noise, registries and
+  templates); the first that is a village and has room at its edge is his. In the tests the village laid out this way had
+  exactly the pieces (same boxes) of the village world generation then made there: 129 of 129, 116 of 116.
+- **Where at the village:** along 16 lines out of the village's middle, the first spots where the chapel and its 6-block
+  ring keep 2 blocks clear of every piece; its door facing the village (or its nearest street); a 3-wide path straight
+  out, then round one corner, to the nearest street (at most 28 blocks, through no house). The best few by the noise's
+  smooth heights are read properly (dry, varying by 6 or less); the best by unevenness, path length and gap.
+- **The path** (`RiftChapelPathPiece`): laid with the land right after the chapel (the same structure, so the same
+  chunk step), following the ground: dirt paths (smooth sandstone at a desert village) over grass, dirt, sand, gravel,
+  snow; a plank over water. In the tests 33 of 33 and 39 of 39 of its columns were paved.
+- **The rule** (`TraderVillageData`, `data/dross_trader_village.dat`): every village that has had the trader, and the
+  world's trader, are remembered. A chapel trader is checked on his first tick: the world's own trader stays, the first
+  one ever stays if his village never had one, any other is removed. The test put a second trader from his village and
+  one from another village by the chapel: both were removed on their first tick; a spawn-egg trader stayed.
+- **No village with room:** a chapel on its own on the nearest flat dry land at least 384 blocks from the spawn point,
+  kept 6 chunks off possible villages (the old emergency chapel); the letter words it as one in the wilds.
+- The Weathered Letter, the join message and `/dross goto trader` all name the one chapel (known from the seed at once).
+  The letter is back to its village wording (`page2_intro`, `location`, `location_near_spawn`).
+
+**Its cost.** Laying out one village takes Minecraft's jigsaw about a second of the generator's heights (1.3-1.5 s on a
+quiet server; 4-9 s while the world was being created this evening, on a computer running several times slower than in
+the morning). A first version laid out every candidate village (6 of them: 19-30 s) and was replaced by the lazy order
+above (one or two layouts). While the plan is being worked out, a chunk that can't hold the chapel (further than 232
+blocks from every possible village and nearer the spawn point than a chapel on its own) is answered at once; others wait
+for it, so the spawn area only waits when a possible village is near the spawn.
+
+**Tests:** `RiftChapelGameTest` reworked: `nothingHappensAtWorldStart` (the home worked out by the time the server has
+started, at most one trader), `homeComesFromTheSeed` (the same home worked out again on another thread; its village the
+one world generation makes, piece for piece; the chapel and its ring clear of every piece; the path through no house,
+ending on a street; the quick answers never refuse the chapel's chunk), `chapelIsMadeWithTheLand` (the building, its
+ground, its path paved, its one trader, the rule, the letter's village wording, `goto trader`, `sendhome`, unloaded and
+loaded again); `moreChapelsAreMadeWell` removed. `TraderAnnouncerGameTest` names the one chapel. All 4 pass in a new
+world (`-PgameTestNamespaces=dross_chapel`).
+
+**Measured against the code before stage 6** (the same seed, a fresh world each, the GameTest server with no tests):
+run one after the other, the new code's spawn area looked about twice as slow (142-190 s against 57-86 s), but the
+computer was running 5-20 times slower than in the morning (11 s then) and slower with every run; thread dumps showed
+the world-generation threads mostly idle and no mod code on any stack. Run at the same time, the new code was the
+faster (244 s against 341 s). So no measurable cost; the plan itself finished before the spawn area started in every run.
+
+**Full GameTest run** (new world, 277 tests): 274 passed, including all of the trader's (its village matched again, 132
+of 132 pieces). The three failures are outside this change and are timing on the slowed computer:
+`igloosstandandnevermelt` (a room's floor read block light 0 before the light engine caught up, as in Known bugs),
+`rimeberrybushgrowstallandispickedfromeitherhalf` (its land not ready before its wait ran out) and the known flake
+`HuntsmanFightGameTest.theyAttackAtOnce` (stage CALM).

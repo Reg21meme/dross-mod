@@ -1,5 +1,6 @@
 package com.reg21meme.dross.villager;
 
+import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
@@ -49,12 +50,14 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,12 +70,13 @@ import java.util.List;
  * Right-click (main hand, not sneaking): see {@link #mobInteract}. Before a player has finished the quest
  * his trading screen never opens. All his lines are lang keys named {@code dross.trader.dialogue.*}.
  * <p>
- * He can be hurt and knocked back but can never die (each chapel only ever gets its one trader, so we don't want him
- * lost): at half health or less he teleports home and fully heals.
+ * He can be hurt and knocked back but can never die (a world only ever gets its one trader, so we don't want him lost):
+ * at half health or less he teleports home and fully heals.
  * <p>
- * He lives in a Rift Chapel ({@link TraderHut}, {@link RiftChapels}: they come with the land, each with its trader, so a
- * world has many of them; the quest is each player's, so any of them serves anyone) and wanders within {@link #LEASH}
- * blocks of it.
+ * He lives in the world's one Rift Chapel ({@link TraderHut}, {@link RiftChapels}: at the edge of a village the seed
+ * picks, made with the land, with him in it) and wanders within {@link #LEASH} blocks of it. On his first tick he's
+ * checked against the "once a village" rule ({@link TraderVillageData}): a second trader from a village that already had
+ * him (or while the world has its trader) is removed at once.
  * If he strays too far, falls, or ends up underground, he teleports back into the hut (home is his spot in it).
  * The hut's whole footprint is saved on him ({@code HutBox}), so a roof over his head never counts as
  * "underground". A trader from a spawn egg (or {@code /summon}) treats the spot he was spawned at as his home and,
@@ -83,6 +87,8 @@ import java.util.List;
  */
 public class DrossTrader extends AbstractVillager
 {
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     // ---- Shop prices (after the quest). Each costs emeralds plus one plain book. ----
     /** Emeralds for Necromancy level I (Necromancy has five levels; he sells only the lowest). */
     private static final int NECROMANCY_EMERALDS = 32;
@@ -114,6 +120,8 @@ public class DrossTrader extends AbstractVillager
     /** His chapel's middle (its ground block) and the way its door faces (a 2D direction number). */
     private static final String TAG_CHAPEL_CENTER = "ChapelCenter";
     private static final String TAG_CHAPEL_FACING = "ChapelFacing";
+    /** His village's key (its start chunk; his chapel's own chunk for one on its own): only a chapel's trader has it. */
+    private static final String TAG_VILLAGE = "TraderVillage";
 
     /** His spot inside his hut (or his spawn spot, for a spawn-egg trader). Set on his first tick if missing. */
     @Nullable
@@ -131,6 +139,11 @@ public class DrossTrader extends AbstractVillager
     /** The felling under way, if any (not saved: it starts again from the start, which gives the same result). */
     @Nullable
     private RiftChapelTidy tidy;
+    /** His village's key (null for a spawn-egg trader): what the "once a village" rule counts. */
+    @Nullable
+    private Long village;
+    /** True once he's been checked against the "once a village" rule this time he's loaded (not saved: checked every load). */
+    private boolean admitted;
 
     public DrossTrader(EntityType<? extends DrossTrader> type, Level level)
     {
@@ -185,6 +198,19 @@ public class DrossTrader extends AbstractVillager
         this.chapelFacing = facing;
     }
 
+    /** Which village he came to (its start chunk), set when his chapel is made with the land. */
+    public void setVillage(long village)
+    {
+        this.village = village;
+    }
+
+    /** His village's key, or null for a spawn-egg (or {@code /summon}) trader. */
+    @Nullable
+    public Long getVillage()
+    {
+        return this.village;
+    }
+
     /** His home (his spot in his chapel, or a spawn-egg trader's spawn spot), or null before his first tick. */
     @Nullable
     public BlockPos getHome()
@@ -213,6 +239,10 @@ public class DrossTrader extends AbstractVillager
         {
             return;
         }
+        if (!this.admitted && this.village != null && !this.admit(serverLevel))
+        {
+            return;
+        }
         if (this.home == null)
         {
             // A spawn-egg (or /summon) trader: wherever he first appears is his home.
@@ -229,6 +259,36 @@ public class DrossTrader extends AbstractVillager
         if (!this.chapelTidied && this.hutBox != null)
         {
             this.tidyChapel(serverLevel);
+        }
+    }
+
+    /**
+     * The "once a village" rule ({@link TraderVillageData#admit}): true if he may stay; otherwise he's removed (a village
+     * that already had the trader never gets another, and a world has only one).
+     */
+    private boolean admit(ServerLevel level)
+    {
+        this.admitted = true;
+        TraderVillageData data = TraderVillageData.get(level.getServer().overworld());
+        if (data.admit(this.getUUID(), this.village))
+        {
+            return true;
+        }
+        LOGGER.warn("[Dross] A second Dross trader came to {} (village chunk {}, {}): {}, so he's removed", this.blockPosition().toShortString(),
+                ChunkPos.getX(this.village), ChunkPos.getZ(this.village), data.hadTrader(this.village)
+                        ? "that village already had its trader" : "the world already has its trader, " + data.trader());
+        this.discard();
+        return false;
+    }
+
+    /** A chapel trader can only die by {@code /kill} (or the like): the world has no trader then ({@link TraderVillageData#forget}). */
+    @Override
+    public void die(DamageSource source)
+    {
+        super.die(source);
+        if (this.level() instanceof ServerLevel level && this.village != null)
+        {
+            TraderVillageData.get(level.getServer().overworld()).forget(this.getUUID());
         }
     }
 
@@ -406,6 +466,10 @@ public class DrossTrader extends AbstractVillager
             tag.put(TAG_CHAPEL_CENTER, NbtUtils.writeBlockPos(this.chapelCenter));
             tag.putInt(TAG_CHAPEL_FACING, this.chapelFacing.get2DDataValue());
         }
+        if (this.village != null)
+        {
+            tag.putLong(TAG_VILLAGE, this.village);
+        }
     }
 
     @Override
@@ -433,6 +497,7 @@ public class DrossTrader extends AbstractVillager
         {
             this.setChapel(NbtUtils.readBlockPos(tag.getCompound(TAG_CHAPEL_CENTER)), Direction.from2DDataValue(tag.getInt(TAG_CHAPEL_FACING)));
         }
+        this.village = tag.contains(TAG_VILLAGE, Tag.TAG_LONG) ? tag.getLong(TAG_VILLAGE) : null;
     }
 
     @Override

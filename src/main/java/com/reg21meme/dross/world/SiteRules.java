@@ -33,9 +33,9 @@ import net.minecraft.world.level.biome.Biomes;
 final class SiteRules
 {
     /** The seed's spot is at least this many blocks (flat distance) from the spawn point... */
-    static final int MIN_DISTANCE = 4000;
+    static final int MIN_DISTANCE = 3500;
     /** ...and at most this many. */
-    static final int MAX_DISTANCE = 5000;
+    static final int MAX_DISTANCE = 4500;
     /** Mixed into the world seed for the spot's direction and distance (any number; changing it moves every world's site). */
     static final long SPOT_SALT = 1104202602L;
 
@@ -114,7 +114,7 @@ final class SiteRules
 
     /**
      * Tried in order; every rung after the first logs a WARN when it's the one that finds the spot. The search reaches far
-     * from the seed's spot because 4,000-5,000 blocks out is often sea (measured over 16 seeds: within 384 blocks of it only
+     * from the seed's spot because 3,500-4,500 blocks out is often sea (measured over 16 seeds: within 384 blocks of it only
      * 3 found a forest, taiga or snowy spot, the rest turned down by oceans, rivers and beaches).
      */
     static final List<Rung> LADDER = List.of(
@@ -125,8 +125,8 @@ final class SiteRules
                     MIN_DISTANCE, MAX_DISTANCE),
             new Rung(3, "any dry-land biome (plains, desert, savanna...)", BiomeRule.ALLOWED, FALLBACK_VARIATION, 2048, 96,
                     MIN_DISTANCE, MAX_DISTANCE),
-            new Rung(4, "any land, steeper ground (" + FALLBACK_VARIATION_LAST + "), 3,500 to 5,500 from spawn",
-                    BiomeRule.LAND, FALLBACK_VARIATION_LAST, 2048, 128, 3500, 5500));
+            new Rung(4, "any land, steeper ground (" + FALLBACK_VARIATION_LAST + "), 3,000 to 5,000 from spawn",
+                    BiomeRule.LAND, FALLBACK_VARIATION_LAST, 2048, 128, 3000, 5000));
     /** The number given to the last resort: no rung found a spot, so the flattest dry land seen (or the seed's own spot). */
     static final int LAST_RESORT = 5;
     /** No spot is ever this much nearer the spawn point or further from it than the widest rung allows (for a quick "no"). */

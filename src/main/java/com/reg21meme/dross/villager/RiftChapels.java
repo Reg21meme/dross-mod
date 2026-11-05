@@ -2,18 +2,12 @@ package com.reg21meme.dross.villager;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
 import javax.annotation.Nullable;
@@ -28,67 +22,65 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.NoiseColumn;
 import net.minecraft.world.level.biome.Biome;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkGenerator;
-import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.LegacyRandomSource;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.WorldgenRandom;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.StructureSet;
-import net.minecraft.world.level.levelgen.structure.placement.RandomSpreadStructurePlacement;
 import org.slf4j.Logger;
 
 /**
- * The Rift Chapels, the Dross trader's homes, as world generation makes them (the user's decision of November 2, 2026): a
- * rare structure of its own in the countryside, {@code dross:rift_chapel}, on a seeded grid like Minecraft's igloos and
- * witch huts ({@link RiftChapelPlacement}: one possible spot in every {@code spacing} x {@code spacing} chunks), each with
- * its trader. Not part of the villages (a modpack that replaces Minecraft's villages would lose it).
+ * The Dross trader's home: <b>one Rift Chapel per world, at the edge of a village</b> (the user's decision of November 4,
+ * 2026: "only 1 trader, and I still want him to be in villages"), made by world generation with the village's land, its
+ * trader in it ({@code dross:rift_chapel}: {@link RiftChapelStructure}, {@link RiftChapelPiece}, {@link RiftChapelPathPiece}).
  * <p>
- * <b>Whether a possible spot gets a chapel</b> ({@link #fit}) is worked out from the generator's noise alone, the same on
- * every thread and at any time: its biome in {@link #BIOMES}, its land dry and flat enough. So {@link #nearest} can tell,
- * without generating or loading anything, where the nearest chapel is ({@code /dross goto trader}, the join message, the
- * Weathered Letter), and it's exactly where world generation puts one.
+ * <b>Which village</b> is worked out from the seed alone ({@link TraderVillages}): of the villages nearest the spawn point
+ * that have room at their edge, the seed picks one at random. Nothing is generated or loaded for it: it's worked out once
+ * on a background thread when the world loads ({@link #register}), and anything that asks before that's done waits for it.
+ * World generation then starts the chapel only in that one chunk ({@link RiftChapelPlacement}), so a world gets exactly one
+ * chapel and one trader, and {@code /dross goto trader}, the join message and the Weathered Letter know where it is from the
+ * start. A village gives the trader only once: {@link TraderVillageData}.
+ * <p>
+ * No chapel (and so no trader) in a world made with Generate Structures off, or one whose Overworld doesn't generate the
+ * chapel's structure set (a superflat world's own list of structures).
  */
 public final class RiftChapels
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** The structure set that places them ({@code data/dross/worldgen/structure_set/rift_chapel.json}). */
+    /** The structure set that places it ({@code data/dross/worldgen/structure_set/rift_chapel.json}). */
     public static final ResourceKey<StructureSet> SET = ResourceKey.create(Registries.STRUCTURE_SET, new ResourceLocation(Dross.MODID, "rift_chapel"));
-    /** The biomes a chapel may stand in: dry, open Overworld land ({@code data/dross/tags/worldgen/biome/has_structure/rift_chapel.json}). */
+    /** The biomes a chapel on its own (no village had room) may stand in ({@code data/dross/tags/worldgen/biome/has_structure/rift_chapel.json}). */
     public static final TagKey<Biome> BIOMES = TagKey.create(Registries.BIOME, new ResourceLocation(Dross.MODID, "has_structure/rift_chapel"));
 
     // ---- Tuning ----
-    /** {@link #nearest} looks this far (blocks) by default: the join message's and the Weathered Letter's search. */
-    public static final int SEARCH_RADIUS = 5000;
-    /** The chapel's middle is this many blocks into its chunk (X and Z): the chunk's middle. */
+    /** A chapel on its own has its middle this many blocks into its chunk (X and Z): the chunk's middle. */
     static final int IN_CHUNK = 8;
     /** The land is read this far round the footprint too (blocks), so its edges are dry and flat enough as well. */
     static final int FIT_EDGE = 2;
     /**
      * The land's highest and lowest read columns may differ by at most this many blocks (the floor cuts or fills the rest;
-     * Minecraft's terrain adaptation smooths the land round it). 5 turned about a fifth of the possible spots down as too
-     * steep.
+     * Minecraft's terrain adaptation smooths the land round it).
      */
     static final int MAX_RELIEF = 6;
     /** Heights are read in a band from this far under sea level... */
     static final int BAND_BELOW = 16;
     /** ...to this far over it (much quicker than the whole column; land higher than that is no place for it anyway). */
     static final int BAND_ABOVE = 112;
-    /** The salt of the seeded random that turns each chapel (its door faces one of the four ways). */
+    /** The salt of the seeded random that turns a chapel on its own (its door faces one of the four ways). */
     private static final int FACING_SALT = 1104202604;
     /** A ground read that found no ground in the band (land too high or too low) or water on it. */
-    private static final int NO_GROUND = Integer.MIN_VALUE;
+    static final int NO_GROUND = Integer.MIN_VALUE;
 
     /**
-     * One chapel: the chunk it starts in, its middle on its ground (the design's center: the ground block the floor
+     * A chapel: the chunk it starts in, its middle on its ground (the design's center: the ground block the floor
      * replaces), and the way its door faces.
      */
     public record Chapel(int chunkX, int chunkZ, BlockPos center, Direction facing)
@@ -138,41 +130,200 @@ public final class RiftChapels
         }
     }
 
-    // ---------------------------------------------------------------- the fit (from the noise alone)
-
-    /** Each world's answers so far, by start chunk (deterministic, so kept). Per world by its random state; weak. */
-    private static final Map<RandomState, Map<Long, Optional<Chapel>>> FITS = new WeakHashMap<>();
-    /** How many spots have been worked out, and how long that took in all (for the log and the tests). */
-    private static final AtomicLong FITS_READ = new AtomicLong();
-    private static final AtomicLong FIT_NANOS = new AtomicLong();
-
-    /** {@link #fit}, remembered: world generation and {@link #nearest} share the answers. Any thread. */
-    static Optional<Chapel> fitCached(ChunkGenerator generator, RandomState random, long seed, int chunkX, int chunkZ)
+    /**
+     * The world's trader's home: his chapel; whether it's at a village (else on its own), that village's start chunk
+     * ({@link #village}: the key of the "once a village" rule, the chapel's own chunk for one on its own), type and middle;
+     * the middle line of the path from its door to the village's nearest street (its corners; empty on its own) and what
+     * it's made of; and, for the log and the tests, its distance from the spawn point, its land's unevenness, which of how
+     * many villages the seed picked, and how many possible village chunks and villages were looked at.
+     */
+    public record Home(Chapel chapel, boolean inVillage, long village, @Nullable ResourceLocation villageType, @Nullable BlockPos villageMiddle,
+                       List<BlockPos> path, Block pathBlock, long distance, int relief, int pick, int choices, int looked, int villages)
     {
-        Map<Long, Optional<Chapel>> fits;
-        synchronized (FITS)
+        Home picked(int pick, int choices, int looked, int villages)
         {
-            fits = FITS.computeIfAbsent(random, r -> new ConcurrentHashMap<>());
+            return new Home(this.chapel, this.inVillage, this.village, this.villageType, this.villageMiddle, this.path, this.pathBlock,
+                    this.distance, this.relief, pick, choices, looked, villages);
         }
-        long key = ChunkPos.asLong(chunkX, chunkZ);
-        Optional<Chapel> known = fits.get(key);
-        if (known != null)
+
+        public String describe()
         {
-            return known;
+            return this.chapel.describe() + (this.inVillage ? ", at the edge of the " + this.villageType + " at " + this.villageMiddle.getX() + ", "
+                    + this.villageMiddle.getZ() + " (the No. " + this.pick + " nearest possible village; the seed tries the " + this.choices
+                    + " nearest in an order of its own), its path " + TraderVillages.pathLength(this.path) + " blocks to the nearest street"
+                    : ", on its own (no village had room)") + "; " + this.distance + " blocks from the spawn point, its land " + this.relief
+                    + " blocks uneven; " + this.looked + " possible village(s) tried, " + this.villages + " laid out";
         }
-        long start = System.nanoTime();
-        Optional<Chapel> made = fit(generator, random, seed, chunkX, chunkZ);
-        FIT_NANOS.addAndGet(System.nanoTime() - start);
-        FITS_READ.incrementAndGet();
-        Optional<Chapel> before = fits.putIfAbsent(key, made);
-        return before != null ? before : made;
+    }
+
+    // ---------------------------------------------------------------- the world's home (worked out once)
+
+    /** One world's context, its possible villages (for the quick answers) and its home, worked out on a thread of its own. */
+    private record Entry(TraderVillages.Context context, boolean available, List<TraderVillages.Cell> possible,
+                         CompletableFuture<Optional<Home>> home) {}
+
+    /** Per world, by its random state (one per server level; weak, so a closed world's goes). Guarded by itself. */
+    private static final Map<RandomState, Entry> ENTRIES = new WeakHashMap<>();
+
+    /**
+     * Remembers the server's Overworld and starts working its trader's home out in the background. Called when the level
+     * is made, before anything is generated in it ({@link RiftChapelEvents}).
+     */
+    static void register(ServerLevel overworld)
+    {
+        entry(overworld);
+    }
+
+    /** The Overworld's entry, made (and its work started) now if it hasn't been yet. Null only if its generator can't be read. */
+    @Nullable
+    private static Entry entry(ServerLevel overworld)
+    {
+        RandomState random = overworld.getChunkSource().randomState();
+        synchronized (ENTRIES)
+        {
+            Entry known = ENTRIES.get(random);
+            if (known != null)
+            {
+                return known;
+            }
+            TraderVillages.Context context;
+            boolean available;
+            List<TraderVillages.Cell> possible;
+            try
+            {
+                context = TraderVillages.Context.of(overworld);
+                // (Generate Structures off: no structure is made at all, like vanilla's villages, so no chapel either)
+                available = overworld.getServer().getWorldData().worldGenOptions().generateStructures()
+                        && context.structures().possibleStructureSets().stream().anyMatch(set -> set.is(SET));
+                long start = System.nanoTime();
+                possible = available ? TraderVillages.possibleVillages(context) : List.of();
+                LOGGER.info("[Dross] {} possible villages within {} blocks of the spawn point {}, {} (looked at in {} ms)", possible.size(),
+                        TraderVillages.SEARCH_RADIUS, context.spawnX(), context.spawnZ(), (System.nanoTime() - start) / 1_000_000L);
+            }
+            catch (RuntimeException e)
+            {
+                LOGGER.error("[Dross] Couldn't read the Overworld's generator, so the world has no Dross trader", e);
+                return null;
+            }
+            CompletableFuture<Optional<Home>> home = new CompletableFuture<>();
+            Entry made = new Entry(context, available, List.copyOf(possible), home);
+            ENTRIES.put(random, made);
+            if (!available)
+            {
+                LOGGER.info("[Dross] This world makes no Rift Chapel (Generate Structures is off, or its Overworld doesn't generate the "
+                        + "structure set {}), so it has no Dross trader", SET.location());
+                home.complete(Optional.empty());
+                return made;
+            }
+            Thread thread = new Thread(() -> {
+                try
+                {
+                    home.complete(TraderVillages.planLogged(context, made.possible()));
+                }
+                catch (Throwable e)
+                {
+                    LOGGER.error("[Dross] Working out the Dross trader's village failed, so the world has no trader", e);
+                    home.complete(Optional.empty());
+                }
+            }, "Dross trader's home");
+            thread.setDaemon(true);
+            thread.start();
+            return made;
+        }
+    }
+
+    @Nullable
+    private static Entry known(RandomState random)
+    {
+        synchronized (ENTRIES)
+        {
+            return ENTRIES.get(random);
+        }
+    }
+
+    /** True if world generation makes the trader's chapel in this world (see the class's description). */
+    public static boolean available(ServerLevel overworld)
+    {
+        Entry entry = entry(overworld);
+        return entry != null && entry.available();
+    }
+
+    /** The world's trader's home. Waits until it's worked out (normally long done: started with the world). */
+    public static Optional<Home> home(ServerLevel overworld)
+    {
+        Entry entry = entry(overworld);
+        return entry == null ? Optional.empty() : entry.home().join();
+    }
+
+    /** The home if it's already worked out, else null (never waits: for checks every few ticks). */
+    @Nullable
+    public static Optional<Home> homeIfReady(ServerLevel overworld)
+    {
+        Entry entry = entry(overworld);
+        if (entry == null)
+        {
+            return Optional.empty();
+        }
+        return entry.home().isDone() ? entry.home().join() : null;
+    }
+
+    /** The home, when it's worked out (at once if it already is). */
+    public static CompletableFuture<Optional<Home>> homeAsync(ServerLevel overworld)
+    {
+        Entry entry = entry(overworld);
+        return entry == null ? CompletableFuture.completedFuture(Optional.empty()) : entry.home();
+    }
+
+    /** The home of the world whose random state this is (the world-generation threads' way in; waits), or null. */
+    @Nullable
+    static Home homeOf(RandomState random)
+    {
+        Entry entry = known(random);
+        return entry == null || !entry.available() ? null : entry.home().join().orElse(null);
     }
 
     /**
-     * Why spots were turned down, since the server started (for the tests' log): {its biome, water or no ground in the band,
-     * too steep, a corner's biome, kept off a village or the portal site by the placement}.
+     * True if the chapel's structure starts in this chunk. Quick for every chunk out of its reach, and, while the home is
+     * still being worked out, for every chunk it can't be in ({@link TraderVillages#neverHolds}: no waiting); the others
+     * wait for it.
      */
-    private static final AtomicLongArray TURNED_DOWN = new AtomicLongArray(5);
+    static boolean isChapelChunk(RandomState random, int chunkX, int chunkZ)
+    {
+        Entry entry = known(random);
+        if (entry == null || !entry.available() || !entry.context().inReach(chunkX, chunkZ))
+        {
+            return false;
+        }
+        if (!entry.home().isDone() && TraderVillages.neverHolds(entry.context(), entry.possible(), chunkX, chunkZ))
+        {
+            return false;
+        }
+        Home home = entry.home().join().orElse(null);
+        return home != null && home.chapel().chunkX() == chunkX && home.chapel().chunkZ() == chunkZ;
+    }
+
+    /** The world's possible villages, nearest first (for the tests). */
+    static List<TraderVillages.Cell> possibleVillages(ServerLevel overworld)
+    {
+        Entry entry = entry(overworld);
+        return entry == null ? List.of() : entry.possible();
+    }
+
+    /** The context the world's home is worked out from (for the tests), or null. */
+    @Nullable
+    static TraderVillages.Context context(ServerLevel overworld)
+    {
+        Entry entry = entry(overworld);
+        return entry == null ? null : entry.context();
+    }
+
+    // ---------------------------------------------------------------- a chapel on its own (from the noise alone)
+
+    /** How many spots have been worked out, and how long that took in all (for the log and the tests). */
+    private static final AtomicLong FITS_READ = new AtomicLong();
+    private static final AtomicLong FIT_NANOS = new AtomicLong();
+    /** Why spots were turned down, since the server started: {its biome, water or no ground in the band, too steep, a corner's biome}. */
+    private static final AtomicLongArray TURNED_DOWN = new AtomicLongArray(4);
 
     static long[] turnedDown()
     {
@@ -191,8 +342,9 @@ public final class RiftChapels
     }
 
     /**
-     * Whether the chunk (a possible spot of the grid) gets a chapel, and where, from the generator's noise alone (no chunk
-     * is made or loaded). Its door faces a way the seed picks; its middle is the chunk's middle. The checks, cheapest first:
+     * Whether a chapel on its own fits in the chunk, and where, from the generator's noise alone (no chunk is made or
+     * loaded): the old "emergency chapel" when no village near the spawn has room ({@link TraderVillages}). Its door faces a
+     * way the seed picks; its middle is the chunk's middle. The checks, cheapest first:
      * <ol>
      *   <li>the biome where the land roughly is (two readings of the noise's large-scale depth) is in {@link #BIOMES};</li>
      *   <li>nine columns of the land (the middle, then the corners and the middles of the sides of the footprint grown by
@@ -204,6 +356,20 @@ public final class RiftChapels
      * The same answer on any thread, every time.
      */
     static Optional<Chapel> fit(ChunkGenerator generator, RandomState random, long seed, int chunkX, int chunkZ)
+    {
+        long start = System.nanoTime();
+        try
+        {
+            return fitUntimed(generator, random, seed, chunkX, chunkZ);
+        }
+        finally
+        {
+            FITS_READ.incrementAndGet();
+            FIT_NANOS.addAndGet(System.nanoTime() - start);
+        }
+    }
+
+    private static Optional<Chapel> fitUntimed(ChunkGenerator generator, RandomState random, long seed, int chunkX, int chunkZ)
     {
         Direction facing = facing(seed, chunkX, chunkZ);
         int x = (chunkX << 4) + IN_CHUNK;
@@ -253,7 +419,7 @@ public final class RiftChapels
         return Optional.of(new Chapel(chunkX, chunkZ, new BlockPos(x, groundY, z), facing));
     }
 
-    /** The way a chapel's door faces, picked by the seed for its chunk. */
+    /** The way a chapel on its own's door faces, picked by the seed for its chunk. */
     static Direction facing(long seed, int chunkX, int chunkZ)
     {
         WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(0L));
@@ -264,9 +430,9 @@ public final class RiftChapels
     /**
      * The land's smooth height at a column: where the noise's large-scale "depth" (which falls steadily with height)
      * crosses zero, from two readings (microseconds; a column of real heights costs about a millisecond). Sea level if the
-     * noise has no such depth. Only for where to look at the biome first.
+     * noise has no such depth. Only for a first guess (where to look at the biome, which spots to read properly).
      */
-    private static int smoothHeight(RandomState random, int seaLevel, int x, int z)
+    static int smoothHeight(RandomState random, int seaLevel, int x, int z)
     {
         DensityFunction depth = random.router().depth();
         int y0 = seaLevel;
@@ -288,7 +454,7 @@ public final class RiftChapels
     }
 
     /** The height band the land is read in (whole noise cells, so the readings are the generator's own). */
-    private static LevelHeightAccessor band(ChunkGenerator generator)
+    static LevelHeightAccessor band(ChunkGenerator generator)
     {
         int min = Math.max(generator.getMinY(), Math.floorDiv(generator.getSeaLevel() - BAND_BELOW, 8) * 8);
         int max = Math.min(generator.getMinY() + generator.getGenDepth(), Math.floorDiv(generator.getSeaLevel() + BAND_ABOVE + 7, 8) * 8);
@@ -299,7 +465,7 @@ public final class RiftChapels
      * A column of the land from the noise, in the band: its ground's top, or {@link #NO_GROUND} if water or lava lies on
      * it, or it has no ground in the band (land up to the band's top, or none in it).
      */
-    private static int ground(ChunkGenerator generator, RandomState random, LevelHeightAccessor band, int x, int z)
+    static int ground(ChunkGenerator generator, RandomState random, LevelHeightAccessor band, int x, int z)
     {
         NoiseColumn column = generator.getBaseColumn(x, z, band, random);
         int top = band.getMaxBuildHeight() - 1;
@@ -317,246 +483,6 @@ public final class RiftChapels
             return y;
         }
         return NO_GROUND;
-    }
-
-    // ---------------------------------------------------------------- where they are
-
-    /** What the searches read from a world: its generator and noise, its structure placements and the chapels' grid. */
-    private record Reader(ChunkGenerator generator, RandomState random, ChunkGeneratorStructureState structures, long seed,
-                          RandomSpreadStructurePlacement placement)
-    {
-        /** The chapel the grid puts in this chunk, if world generation makes one there. */
-        Optional<Chapel> chapelAt(int chunkX, int chunkZ)
-        {
-            if (!this.placement.isStructureChunk(this.structures, chunkX, chunkZ))
-            {
-                TURNED_DOWN.incrementAndGet(4);
-                return Optional.empty();
-            }
-            return fitCached(this.generator, this.random, this.seed, chunkX, chunkZ);
-        }
-
-        /** The possible spot of the grid cell (in cells). */
-        ChunkPos spotOfCell(int cellX, int cellZ)
-        {
-            int spacing = this.placement.spacing();
-            return this.placement.getPotentialStructureChunk(this.seed, cellX * spacing, cellZ * spacing);
-        }
-
-        int cellBlocks()
-        {
-            return this.placement.spacing() * 16;
-        }
-    }
-
-    /**
-     * The world's reader, or null if it makes no chapels: not the Overworld's kind of world (its list of structures leaves
-     * them out, as a superflat world's does), or Generate Structures is off. Any thread.
-     */
-    @Nullable
-    private static Reader reader(ServerLevel overworld)
-    {
-        if (!overworld.getServer().getWorldData().worldGenOptions().generateStructures())
-        {
-            return null;
-        }
-        ChunkGeneratorStructureState structures = overworld.getChunkSource().getGeneratorState();
-        for (Holder<StructureSet> set : structures.possibleStructureSets())
-        {
-            if (set.is(SET) && set.value().placement() instanceof RandomSpreadStructurePlacement placement)
-            {
-                return new Reader(overworld.getChunkSource().getGenerator(), overworld.getChunkSource().randomState(), structures,
-                        structures.getLevelSeed(), placement);
-            }
-        }
-        return null;
-    }
-
-    /** True if world generation makes Rift Chapels in this world (see {@link #reader}). */
-    public static boolean available(ServerLevel overworld)
-    {
-        return reader(overworld) != null;
-    }
-
-    /** How many searches have run and how long they took in all (for the log and the tests). */
-    private static final AtomicLong SEARCHES = new AtomicLong();
-    private static final AtomicLong SEARCH_NANOS = new AtomicLong();
-
-    /** {searches run, their nanoseconds in all} since the server started (for the tests). */
-    static long[] searchTiming()
-    {
-        return new long[] {SEARCHES.get(), SEARCH_NANOS.get()};
-    }
-
-    /**
-     * The nearest chapel to {@code from} (by his spot in it, across the land) within {@code radius} blocks, from the noise
-     * alone: nothing is generated or loaded. The grid's cells are looked at ring by ring outwards until no nearer one can
-     * be left. Empty if there's none that near, or the world makes none ({@link #available}). Any thread; the first look
-     * at a cell costs about a millisecond a column read (nine at most), then it's remembered.
-     */
-    public static Optional<Chapel> nearest(ServerLevel overworld, BlockPos from, int radius)
-    {
-        long start = System.nanoTime();
-        try
-        {
-            Reader reader = reader(overworld);
-            if (reader == null)
-            {
-                return Optional.empty();
-            }
-            int cell = reader.cellBlocks();
-            int cellX = Math.floorDiv(from.getX() >> 4, reader.placement().spacing());
-            int cellZ = Math.floorDiv(from.getZ() >> 4, reader.placement().spacing());
-            long radiusSqr = (long) radius * radius;
-            Chapel best = null;
-            long bestSqr = Long.MAX_VALUE;
-            for (int ring = 0; ; ring++)
-            {
-                // (every spot of a cell `ring` cells out is at least ring - 1 cells away)
-                long nearestPossible = (long) Math.max(0, ring - 1) * cell;
-                if (nearestPossible * nearestPossible > Math.min(bestSqr, radiusSqr))
-                {
-                    break;
-                }
-                for (int[] at : ring(cellX, cellZ, ring))
-                {
-                    ChunkPos spot = reader.spotOfCell(at[0], at[1]);
-                    Optional<Chapel> chapel = reader.chapelAt(spot.x, spot.z);
-                    if (chapel.isPresent())
-                    {
-                        long d = chapel.get().distanceSqr(from);
-                        if (d <= radiusSqr && d < bestSqr)
-                        {
-                            best = chapel.get();
-                            bestSqr = d;
-                        }
-                    }
-                }
-            }
-            return Optional.ofNullable(best);
-        }
-        finally
-        {
-            SEARCHES.incrementAndGet();
-            SEARCH_NANOS.addAndGet(System.nanoTime() - start);
-        }
-    }
-
-    /** The cells (in cells) of the square ring {@code ring} cells round {@code (cellX, cellZ)}; the cell itself for 0. */
-    private static List<int[]> ring(int cellX, int cellZ, int ring)
-    {
-        List<int[]> out = new ArrayList<>();
-        for (int dx = -ring; dx <= ring; dx++)
-        {
-            for (int dz = -ring; dz <= ring; dz++)
-            {
-                if (Math.max(Math.abs(dx), Math.abs(dz)) == ring)
-                {
-                    out.add(new int[] {cellX + dx, cellZ + dz});
-                }
-            }
-        }
-        return out;
-    }
-
-    /** Every chapel within {@code radius} blocks of {@code from} (by his spot), nearest first. For the tests and the log. */
-    public static List<Chapel> within(ServerLevel overworld, BlockPos from, int radius)
-    {
-        Reader reader = reader(overworld);
-        if (reader == null)
-        {
-            return List.of();
-        }
-        int cells = radius / reader.cellBlocks() + 2;
-        int cellX = Math.floorDiv(from.getX() >> 4, reader.placement().spacing());
-        int cellZ = Math.floorDiv(from.getZ() >> 4, reader.placement().spacing());
-        long radiusSqr = (long) radius * radius;
-        List<Chapel> out = new ArrayList<>();
-        for (int dx = -cells; dx <= cells; dx++)
-        {
-            for (int dz = -cells; dz <= cells; dz++)
-            {
-                ChunkPos spot = reader.spotOfCell(cellX + dx, cellZ + dz);
-                reader.chapelAt(spot.x, spot.z).filter(c -> c.distanceSqr(from) <= radiusSqr).ifPresent(out::add);
-            }
-        }
-        out.sort(Comparator.comparingLong(c -> c.distanceSqr(from)));
-        return out;
-    }
-
-    /**
-     * Where to search from for someone at {@code pos} in {@code level}: there in the Overworld; in the Nether the
-     * Overworld's place for it (its coordinates times the Nether's scale, 8); anywhere else the world spawn.
-     */
-    public static BlockPos searchOrigin(ServerLevel overworld, Level level, BlockPos pos)
-    {
-        if (level.dimension() == Level.OVERWORLD)
-        {
-            return pos;
-        }
-        if (level.dimension() == Level.NETHER)
-        {
-            double scale = DimensionType.getTeleportationScale(level.dimensionType(), overworld.dimensionType());
-            return BlockPos.containing(pos.getX() * scale, pos.getY(), pos.getZ() * scale);
-        }
-        return overworld.getSharedSpawnPos();
-    }
-
-    // ---------------------------------------------------------------- off the server thread
-
-    /** The searches the server thread asked for, run one at a time on a thread of their own. */
-    private static final ExecutorService SEARCH_THREAD = Executors.newSingleThreadExecutor(task -> {
-        Thread thread = new Thread(task, "Dross Rift Chapel search");
-        thread.setDaemon(true);
-        thread.setPriority(Thread.MIN_PRIORITY + 1);
-        return thread;
-    });
-    /** Searches asked for with {@link #nearestIfReady}, by the chunk they search from (only within {@link #SEARCH_RADIUS}). */
-    private static final Map<Long, CompletableFuture<Optional<Chapel>>> REQUESTS = new ConcurrentHashMap<>();
-    /** Done requests are forgotten past this many (they're quick to redo: the cells are remembered). */
-    private static final int MAX_REQUESTS = 64;
-
-    /** {@link #nearest} on the search thread. A problem completes it with nothing (and is logged). */
-    public static CompletableFuture<Optional<Chapel>> nearestAsync(ServerLevel overworld, BlockPos from, int radius)
-    {
-        BlockPos at = from.immutable();
-        return CompletableFuture.supplyAsync(() -> {
-            try
-            {
-                return nearest(overworld, at, radius);
-            }
-            catch (RuntimeException e)
-            {
-                LOGGER.warn("[Dross] Couldn't work out the nearest Rift Chapel to {} ({})", at.toShortString(), e.toString());
-                return Optional.<Chapel>empty();
-            }
-        }, SEARCH_THREAD);
-    }
-
-    /**
-     * The answer of a search within {@link #SEARCH_RADIUS} of {@code from}'s chunk if it's done; otherwise null, and the
-     * search is started (once) on the search thread. For a caller on the server thread that can ask again next tick.
-     */
-    @Nullable
-    public static Optional<Chapel> nearestIfReady(ServerLevel overworld, BlockPos from)
-    {
-        long key = ChunkPos.asLong(from.getX() >> 4, from.getZ() >> 4);
-        CompletableFuture<Optional<Chapel>> request = REQUESTS.get(key);
-        if (request == null)
-        {
-            if (REQUESTS.size() >= MAX_REQUESTS)
-            {
-                REQUESTS.values().removeIf(CompletableFuture::isDone);
-            }
-            request = REQUESTS.computeIfAbsent(key, k -> nearestAsync(overworld, from, SEARCH_RADIUS));
-        }
-        return request.isDone() ? request.join() : null;
-    }
-
-    /** Forgets the requests (when the server stops: the next world is another). */
-    static void forgetRequests()
-    {
-        REQUESTS.clear();
     }
 
     private RiftChapels() {}
