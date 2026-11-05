@@ -196,9 +196,10 @@ public final class RiftChapels
                 available = overworld.getServer().getWorldData().worldGenOptions().generateStructures()
                         && context.structures().possibleStructureSets().stream().anyMatch(set -> set.is(SET));
                 long start = System.nanoTime();
-                possible = available ? TraderVillages.possibleVillages(context) : List.of();
+                // (with atVillages off the chapel stands on its own, never at a village: no quick answers from them are needed)
+                possible = available && context.atVillages() ? TraderVillages.possibleVillages(context) : List.of();
                 LOGGER.info("[Dross] {} possible villages within {} blocks of the spawn point {}, {} (looked at in {} ms)", possible.size(),
-                        TraderVillages.SEARCH_RADIUS, context.spawnX(), context.spawnZ(), (System.nanoTime() - start) / 1_000_000L);
+                        context.searchRadius(), context.spawnX(), context.spawnZ(), (System.nanoTime() - start) / 1_000_000L);
             }
             catch (RuntimeException e)
             {

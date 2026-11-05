@@ -10,7 +10,7 @@ import net.minecraft.world.level.levelgen.structure.BoundingBox;
  * @param x         the site column's X: the middle of the cathedral's frame opening
  * @param z         the site column's Z
  * @param groundY   the cathedral's ground level (the Y of the ground block it stands on)
- * @param rung      which rung of {@link SiteRules#LADDER} found it (0 = the strict rules; {@link SiteRules#LAST_RESORT})
+ * @param rung      which rung of {@link SiteRules#ladder} found it (0 = the strict rules; {@link SiteRules#LAST_RESORT})
  * @param rungName  that rung's name, for the log
  * @param variation how much the land's heights under the footprint vary (the check grid's highest minus lowest)
  * @param distance  how far it is from the spawn point (flat blocks)

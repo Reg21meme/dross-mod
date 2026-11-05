@@ -17,7 +17,9 @@ import com.reg21meme.dross.registry.ModSounds;
 import com.reg21meme.dross.registry.ModStructures;
 import com.reg21meme.dross.registry.ModTreeDecorators;
 import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.config.ModConfig;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 
@@ -50,6 +52,7 @@ public class Dross
         ModStructures.STRUCTURE_PIECES.register(modEventBus);
         ModStructures.STRUCTURE_PLACEMENTS.register(modEventBus);
         ModStructures.STRUCTURE_PROCESSORS.register(modEventBus);
+        ModLoadingContext.get().registerConfig(ModConfig.Type.COMMON, DrossConfig.SPEC, "dross-common.toml");
 
         LOGGER.info("Dross is loading");
     }

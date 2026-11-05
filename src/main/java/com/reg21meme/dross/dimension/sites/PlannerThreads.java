@@ -19,8 +19,11 @@ final class PlannerThreads
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    /** How many helper threads: half the processors, 1 to 8 (world generation has the rest). */
-    static final int HELPERS = Math.max(1, Math.min(8, Runtime.getRuntime().availableProcessors() / 2));
+    /**
+     * How many helper threads: config/dross-common.toml's plannerThreads, by default (0) half the processors, 1 to 8 (world
+     * generation has the rest). Read once, when the planner first works.
+     */
+    static final int HELPERS = com.reg21meme.dross.DrossConfig.plannerThreads();
 
     private PlannerThreads() {}
 

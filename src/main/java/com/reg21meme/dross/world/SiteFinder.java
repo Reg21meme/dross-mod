@@ -1,5 +1,6 @@
 package com.reg21meme.dross.world;
 
+import com.reg21meme.dross.DrossWorldSettings;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
@@ -61,7 +62,8 @@ final class SiteFinder
      * measures from (the climate sampler's: where Minecraft starts looking for the world spawn).
      */
     record Context(ChunkGenerator generator, RandomState random, ChunkGeneratorStructureState structures, LevelHeightAccessor fullHeights,
-                   LevelHeightAccessor band, int seaLevel, List<SiteVillages.VillageSet> villages, boolean available, int spawnX, int spawnZ)
+                   LevelHeightAccessor band, int seaLevel, List<SiteVillages.VillageSet> villages, boolean available, int spawnX, int spawnZ,
+                   int minDistance, int maxDistance, List<SiteRules.Rung> ladder)
     {
         static Context of(ServerLevel overworld)
         {
@@ -79,16 +81,21 @@ final class SiteFinder
             boolean available = structures.possibleStructureSets().stream().anyMatch(set -> set.is(SET))
                     && overworld.getServer().getWorldData().worldGenOptions().generateStructures();
             ChunkPos spawn = new ChunkPos(random.sampler().findSpawnPosition());
+            // (the distances this world was made with: config/dross-common.toml when it was new)
+            DrossWorldSettings.Values settings = DrossWorldSettings.of(overworld);
+            int min = settings.siteMinDistance();
+            int max = Math.max(min, settings.siteMaxDistance());
             return new Context(generator, random, structures, full, LevelHeightAccessor.create(bandMin, bandMax - bandMin),
-                    overworld.getSeaLevel(), SiteVillages.villageSets(structures), available, spawn.getMinBlockX() + 8, spawn.getMinBlockZ() + 8);
+                    overworld.getSeaLevel(), SiteVillages.villageSets(structures), available, spawn.getMinBlockX() + 8, spawn.getMinBlockZ() + 8,
+                    min, max, SiteRules.ladder(min, max));
         }
 
         /** True if a spot in this chunk could ever be the site's (the widest rung's distances from the spawn point). */
         boolean inReach(int chunkX, int chunkZ)
         {
             double d = Math.sqrt(Mth.square((double) ((chunkX << 4) + 8 - spawnX)) + Mth.square((double) ((chunkZ << 4) + 8 - spawnZ)));
-            return d >= SiteRules.LADDER.get(SiteRules.LADDER.size() - 1).minDistance() - SiteRules.REACH_SLACK
-                    && d <= SiteRules.LADDER.get(SiteRules.LADDER.size() - 1).maxDistance() + SiteRules.REACH_SLACK;
+            SiteRules.Rung widest = ladder.get(ladder.size() - 1);
+            return d >= widest.minDistance() - SiteRules.REACH_SLACK && d <= widest.maxDistance() + SiteRules.REACH_SLACK;
         }
     }
 
@@ -262,7 +269,7 @@ final class SiteFinder
         // 1, 2, 3... would all point the same way)
         RandomSource rng = new XoroshiroRandomSource(ctx.structures().getLevelSeed() ^ SiteRules.SPOT_SALT);
         double angle = rng.nextDouble() * Math.PI * 2.0D;
-        int distance = SiteRules.MIN_DISTANCE + rng.nextInt(SiteRules.MAX_DISTANCE - SiteRules.MIN_DISTANCE + 1);
+        int distance = ctx.minDistance() + rng.nextInt(ctx.maxDistance() - ctx.minDistance() + 1);
         return new int[] {ctx.spawnX() + (int) Math.round(Math.cos(angle) * distance), ctx.spawnZ() + (int) Math.round(Math.sin(angle) * distance)};
     }
 
@@ -281,7 +288,7 @@ final class SiteFinder
         long start = System.nanoTime();
         int[] seeded = seedSpot(ctx);
         Search search = new Search(ctx);
-        for (SiteRules.Rung rung : SiteRules.LADDER)
+        for (SiteRules.Rung rung : ctx.ladder())
         {
             Candidate found = search.find(seeded[0], seeded[1], rung);
             if (found == null)

@@ -31,6 +31,34 @@
   a smoking vent, and shallow dens under mounds of ash with a loot room (pots, suspicious gravel, a barrel).
 - Spawn eggs for both.
 
+## No more freezes when a world starts
+
+Players with big modpacks saw the game freeze (or crash) when a new world started, while the mod searched for its portal
+site, built the hub and laid out villages for the trader. All of that is gone: the three are now made by world
+generation, with the land, like a village.
+
+- **The Fallen Cathedral** (the portal site): one per world, 3,500 to 4,500 blocks from spawn, preferring forests,
+  taigas and snowy land, away from villages. It's worked out from the seed as the world loads (about a second, in the
+  background) and built when its land is first made. The trees round it are cleared once its land is loaded.
+- **The hub** (the Shattered Spire at Dross 0,0, with the survivors' camp) is made with the Dross land the first time
+  anyone goes there. The land you'll arrive on starts being made the moment you step into the portal.
+- **The trader**: still one per world, in his Rift Chapel at the edge of a village near spawn (the seed picks which
+  one), with a path to the village's street. Once a village has had the trader, it never gets another.
+- With **Generate Structures off** (or in a superflat world) there's no cathedral or chapel: the hub's portal brings you
+  back near the world spawn.
+- New worlds only.
+
+## A settings file for modpacks: config/dross-common.toml
+
+- `portal_site`: how far from spawn the cathedral can be (3,500 to 4,500 by default).
+- `trader`: whether his chapel stands at a village (`atVillages`; turn it off if another mod's villages cause trouble,
+  and it stands on its own instead) and how far from spawn his village can be.
+- `quest`: how often a Nether Fortress or Bastion chest holds a Weathered Letter.
+- `performance`: how many threads the Dross's boss-site planner uses, and how many milliseconds a tick may go on
+  building a boss lair or volcano.
+- The cathedral's and the trader's settings are saved in each world when it's made, so changing the file later never
+  moves them in a world that already has them.
+
 ## Changes and fixes
 
 - The hub's two survivors, the Blind Oracle and the Ragged Seeker, now live in a camp of their own at the foot of the

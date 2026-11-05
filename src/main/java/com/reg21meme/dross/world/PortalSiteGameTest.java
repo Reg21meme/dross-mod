@@ -223,8 +223,9 @@ public final class PortalSiteGameTest
             throw new GameTestAssertException("the site has no spot");
         }
         List<String> problems = new ArrayList<>();
-        boolean laddered = spot.rung() < SiteRules.LADDER.size();
-        SiteRules.Rung rung = laddered ? SiteRules.LADDER.get(spot.rung()) : SiteRules.LADDER.get(SiteRules.LADDER.size() - 1);
+        List<SiteRules.Rung> ladder = ctx.ladder();
+        boolean laddered = spot.rung() < ladder.size();
+        SiteRules.Rung rung = laddered ? ladder.get(spot.rung()) : ladder.get(ladder.size() - 1);
         int d = SiteFinder.distanceFromSpawn(ctx, spot.x(), spot.z());
         expect(problems, d >= rung.minDistance() && d <= rung.maxDistance(), "the spot is " + d + " blocks from the spawn point, not "
                 + rung.minDistance() + "-" + rung.maxDistance());

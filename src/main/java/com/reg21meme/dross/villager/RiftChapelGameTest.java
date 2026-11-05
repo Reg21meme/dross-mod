@@ -1,5 +1,7 @@
 package com.reg21meme.dross.villager;
 
+import com.reg21meme.dross.DrossWorldSettings;
+import com.reg21meme.dross.DrossConfig;
 import com.mojang.authlib.GameProfile;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
@@ -218,7 +220,7 @@ public final class RiftChapelGameTest
         expect(problems, !TraderVillages.neverHolds(context, possible, home.chapel().chunkX(), home.chapel().chunkZ()),
                 "the chapel's chunk would have been answered at once with no while the plan was worked out");
         LOGGER.info("[chapel test] {} possible villages within {} blocks of the spawn point; the seed's order starts {}", possible.size(),
-                TraderVillages.SEARCH_RADIUS, TraderVillages.trialOrder(context, possible).stream().limit(TraderVillages.NEAREST)
+                context.searchRadius(), TraderVillages.trialOrder(context, possible).stream().limit(TraderVillages.NEAREST)
                         .map(c -> c.chunkX() + "," + c.chunkZ()).toList());
         if (!home.inVillage())
         {
@@ -311,6 +313,43 @@ public final class RiftChapelGameTest
     // ---------------------------------------------------------------------------------------------
     // A chapel, made with the land
     // ---------------------------------------------------------------------------------------------
+
+    /**
+     * The settings file's switches for the trader (config/dross-common.toml): this world's are the file's defaults, saved
+     * in it; and with {@code atVillages} off, the plan lays out no village and the chapel stands on its own, 384 to 1,536
+     * blocks from the spawn point, the same every time.
+     */
+    @GameTest(template = EMPTY, batch = BATCH, timeoutTicks = 20_000)
+    public static void configSwitchesTheTraderOffVillages(GameTestHelper helper)
+    {
+        ServerLevel overworld = helper.getLevel().getServer().overworld();
+        List<String> problems = new ArrayList<>();
+        DrossWorldSettings.Values settings = DrossWorldSettings.of(overworld);
+        expect(problems, settings.traderAtVillages() == DrossConfig.traderAtVillages()
+                        && settings.traderSearchRadius() == DrossConfig.traderSearchRadius()
+                        && settings.siteMinDistance() == DrossConfig.siteMinDistance() && settings.siteMaxDistance() == DrossConfig.siteMaxDistance(),
+                "the world's saved settings (" + settings + ") aren't the config file's (a test world is made with them)");
+        TraderVillages.Context c = RiftChapels.context(overworld);
+        expect(problems, c.atVillages() == settings.traderAtVillages() && c.searchRadius() == settings.traderSearchRadius(),
+                "the trader's plan doesn't use the world's settings: at villages " + c.atVillages() + ", radius " + c.searchRadius());
+        TraderVillages.Context off = new TraderVillages.Context(c.generator(), c.random(), c.structures(), c.registries(), c.templates(),
+                c.heights(), c.seed(), c.spawnX(), c.spawnZ(), false, c.searchRadius());
+        long start = System.nanoTime();
+        Optional<RiftChapels.Home> home = TraderVillages.plan(off, List.of());
+        long millis = (System.nanoTime() - start) / 1_000_000L;
+        Optional<RiftChapels.Home> again = TraderVillages.plan(off, List.of());
+        LOGGER.info("[chapel test] With atVillages off ({} ms): {}", millis, home.map(RiftChapels.Home::describe).orElse("none"));
+        expect(problems, home.isPresent(), "with atVillages off there's no chapel at all");
+        home.ifPresent(h -> {
+            expect(problems, !h.inVillage() && h.looked() == 0, "with atVillages off the chapel is at a village (" + h.describe() + ")");
+            expect(problems, h.distance() >= TraderVillages.FALLBACK_MIN && h.distance() <= TraderVillages.FALLBACK_RADIUS + 32,
+                    "with atVillages off the chapel is " + h.distance() + " blocks from the spawn point");
+        });
+        expect(problems, again.equals(home), "with atVillages off the plan isn't the same twice");
+        expect(problems, millis < PLAN_MAX_MILLIS, "with atVillages off the plan took " + millis + " ms");
+        fail(problems);
+        helper.succeed();
+    }
 
     @GameTest(template = EMPTY, batch = BATCH, timeoutTicks = TIMEOUT_TICKS)
     public static void chapelIsMadeWithTheLand(GameTestHelper helper)

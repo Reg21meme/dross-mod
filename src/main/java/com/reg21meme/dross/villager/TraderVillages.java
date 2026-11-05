@@ -1,5 +1,6 @@
 package com.reg21meme.dross.villager;
 
+import com.reg21meme.dross.DrossWorldSettings;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.longs.Long2IntOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
@@ -75,7 +76,7 @@ final class TraderVillages
 
     // ---- Tuning ----
     /** Villages are looked for this far from the spawn point (blocks, to the middle of a village's start chunk). */
-    static final int SEARCH_RADIUS = 3000;
+    static final int SEARCH_RADIUS = com.reg21meme.dross.DrossConfig.DEFAULT_TRADER_SEARCH_RADIUS;
     /** The seed tries this many possible villages nearest the spawn point first, in an order of its own (see {@link #trialOrder}). */
     static final int NEAREST = 5;
     /** Mixed into the world seed for that pick (any number; changing it moves every world's trader). */
@@ -125,7 +126,10 @@ final class TraderVillages
     static final int NEAR_VILLAGE = RAY_MAX + 64;
 
     /** A chapel is never further than this from the spawn point (blocks): for a quick "no" for every chunk out of reach. */
-    static final int REACH = Math.max(SEARCH_RADIUS + RAY_MAX + MAX_PATH + 32, FALLBACK_RADIUS + 32);
+    static int reach(int searchRadius)
+    {
+        return Math.max(searchRadius + RAY_MAX + MAX_PATH + 32, FALLBACK_RADIUS + 32);
+    }
 
     private TraderVillages() {}
 
@@ -136,24 +140,29 @@ final class TraderVillages
      * templates the jigsaw layouts are made from, its heights, and the spawn point measured from.
      */
     record Context(ChunkGenerator generator, RandomState random, ChunkGeneratorStructureState structures, RegistryAccess registries,
-                   StructureTemplateManager templates, LevelHeightAccessor heights, long seed, int spawnX, int spawnZ)
+                   StructureTemplateManager templates, LevelHeightAccessor heights, long seed, int spawnX, int spawnZ,
+                   boolean atVillages, int searchRadius)
     {
         static Context of(ServerLevel overworld)
         {
             RandomState random = overworld.getChunkSource().randomState();
             ChunkGeneratorStructureState structures = overworld.getChunkSource().getGeneratorState();
             ChunkPos spawn = new ChunkPos(random.sampler().findSpawnPosition());
+            // (what this world was made with: config/dross-common.toml when it was new)
+            DrossWorldSettings.Values settings = DrossWorldSettings.of(overworld);
             return new Context(overworld.getChunkSource().getGenerator(), random, structures, overworld.getServer().registryAccess(),
                     overworld.getServer().getStructureManager(), LevelHeightAccessor.create(overworld.getMinBuildHeight(), overworld.getHeight()),
-                    structures.getLevelSeed(), spawn.getMiddleBlockX(), spawn.getMiddleBlockZ());
+                    structures.getLevelSeed(), spawn.getMiddleBlockX(), spawn.getMiddleBlockZ(), settings.traderAtVillages(),
+                    settings.traderSearchRadius());
         }
 
-        /** True if a chapel could start in this chunk (it's within {@link #REACH} of the spawn point). */
+        /** True if a chapel could start in this chunk (it's within {@link #reach} of the spawn point). */
         boolean inReach(int chunkX, int chunkZ)
         {
             long dx = (chunkX << 4) + 8 - this.spawnX;
             long dz = (chunkZ << 4) + 8 - this.spawnZ;
-            return dx * dx + dz * dz <= (long) REACH * REACH;
+            long reach = reach(this.searchRadius);
+            return dx * dx + dz * dz <= reach * reach;
         }
 
         long distanceSqr(int x, int z)
@@ -241,7 +250,7 @@ final class TraderVillages
         else
         {
             LOGGER.error("[Dross] No place for the Dross trader's Rift Chapel was found within {} blocks of the spawn point {}, {} "
-                    + "({} ms): this world has no trader", Math.max(SEARCH_RADIUS, FALLBACK_RADIUS), ctx.spawnX(), ctx.spawnZ(), millis);
+                    + "({} ms): this world has no trader", Math.max(ctx.searchRadius(), FALLBACK_RADIUS), ctx.spawnX(), ctx.spawnZ(), millis);
         }
         return home;
     }
@@ -262,6 +271,12 @@ final class TraderVillages
     static Optional<RiftChapels.Home> plan(Context ctx, List<Cell> possible)
     {
         List<VillageSet> sets = villageSets(ctx.structures());
+        if (!ctx.atVillages())
+        {
+            LOGGER.info("[Dross] The Dross trader's chapel stands on its own in this world (config/dross-common.toml: atVillages = false "
+                    + "when it was made): no village is laid out for it");
+            return fallback(ctx, sets, 0, 0);
+        }
         List<Cell> order = trialOrder(ctx, possible);
         int tried = 0;
         int villages = 0;
@@ -269,9 +284,23 @@ final class TraderVillages
         {
             tried++;
             long start = System.nanoTime();
-            Village village = villageAt(ctx, sets.get(cell.set()), cell);
-            long laid = System.nanoTime();
-            Optional<RiftChapels.Home> spot = village == null ? Optional.empty() : spotIn(ctx, village);
+            Village village;
+            Optional<RiftChapels.Home> spot;
+            long laid;
+            try
+            {
+                village = villageAt(ctx, sets.get(cell.set()), cell);
+                laid = System.nanoTime();
+                spot = village == null ? Optional.empty() : spotIn(ctx, village);
+            }
+            catch (RuntimeException | LinkageError | StackOverflowError e)
+            {
+                // (laying a village out runs its jigsaw pools, other mods' too: one that fails here is passed over, and the
+                // trader goes to another village)
+                LOGGER.warn("[Dross] Trader's village, try {}: laying out the possible village chunk {}, {} failed; it's passed over", tried,
+                        cell.chunkX(), cell.chunkZ(), e);
+                continue;
+            }
             LOGGER.info("[Dross] Trader's village, try {}: the possible village chunk {}, {} ({} blocks from the spawn point, No. {} by distance): {}; "
                             + "laid out in {} ms, its edge looked at in {} ms", tried, cell.chunkX(), cell.chunkZ(), Math.round(Math.sqrt(cell.distanceSqr())),
                     possible.indexOf(cell) + 1, village == null ? "no village there" : village.describe() + (spot.isPresent() ? ", room for the chapel"
@@ -287,7 +316,7 @@ final class TraderVillages
             }
         }
         LOGGER.warn("[Dross] No village within {} blocks of the spawn point ({} possible village chunks, {} villages) has room for the Dross "
-                + "trader's chapel: it stands on its own", SEARCH_RADIUS, tried, villages);
+                + "trader's chapel: it stands on its own", ctx.searchRadius(), tried, villages);
         return fallback(ctx, sets, tried, villages);
     }
 
@@ -365,15 +394,16 @@ final class TraderVillages
     static List<Cell> cells(Context ctx, List<VillageSet> sets)
     {
         List<Cell> cells = new ArrayList<>();
-        long radiusSqr = (long) SEARCH_RADIUS * SEARCH_RADIUS;
+        int radius = ctx.searchRadius();
+        long radiusSqr = (long) radius * radius;
         for (int s = 0; s < sets.size(); s++)
         {
             RandomSpreadStructurePlacement placement = sets.get(s).placement();
             int spacing = placement.spacing();
-            int minCellX = Math.floorDiv((ctx.spawnX() - SEARCH_RADIUS) >> 4, spacing) - 1;
-            int maxCellX = Math.floorDiv((ctx.spawnX() + SEARCH_RADIUS) >> 4, spacing) + 1;
-            int minCellZ = Math.floorDiv((ctx.spawnZ() - SEARCH_RADIUS) >> 4, spacing) - 1;
-            int maxCellZ = Math.floorDiv((ctx.spawnZ() + SEARCH_RADIUS) >> 4, spacing) + 1;
+            int minCellX = Math.floorDiv((ctx.spawnX() - radius) >> 4, spacing) - 1;
+            int maxCellX = Math.floorDiv((ctx.spawnX() + radius) >> 4, spacing) + 1;
+            int minCellZ = Math.floorDiv((ctx.spawnZ() - radius) >> 4, spacing) - 1;
+            int maxCellZ = Math.floorDiv((ctx.spawnZ() + radius) >> 4, spacing) + 1;
             for (int cx = minCellX; cx <= maxCellX; cx++)
             {
                 for (int cz = minCellZ; cz <= maxCellZ; cz++)

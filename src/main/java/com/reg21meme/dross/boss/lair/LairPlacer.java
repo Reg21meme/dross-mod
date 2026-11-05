@@ -419,7 +419,7 @@ final class LairPlacer
                 }
                 build = LairBuilder.start(dross, x, z, heights);
             }
-            if (!build.step(LairBuilder.Budget.millis(STEP_MILLIS)))
+            if (!build.step(LairBuilder.Budget.millis(com.reg21meme.dross.DrossConfig.buildMillisPerTick())))
             {
                 return false;
             }

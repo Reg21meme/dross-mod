@@ -823,6 +823,25 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 
 ---
 
+## Settings (config/dross-common.toml)
+
+A settings file for modpack makers and server owners, made the first time the game starts. Every value defaults to the
+mod's own tuning.
+
+| Section | Setting | Default | What it does |
+|---|---|---|---|
+| `portal_site` | `minDistance`, `maxDistance` | 3500, 4500 | How far from the world spawn the Fallen Cathedral can be. |
+| `trader` | `atVillages` | true | His Rift Chapel at the edge of a village; `false`: on its own, 384-1,536 blocks from spawn, no village laid out for it. |
+| `trader` | `villageSearchRadius` | 3000 | How far from spawn his village can be. |
+| `quest` | `letterChance` | 1.0 | The chance a Nether Fortress or Bastion Remnant chest holds a Weathered Letter. |
+| `performance` | `plannerThreads` | 0 (automatic) | Helper threads for the Dross's boss-site planner (0: half the processors, 1 to 8; read at start). |
+| `performance` | `buildMillisPerTick` | 40 | How many milliseconds a server tick may spend building a boss lair or volcano. |
+
+The `portal_site` and `trader` values are saved in each world the first time it loads
+(`data/dross_world_settings.dat`, `DrossWorldSettings`), so changing the file never moves an existing world's cathedral
+or trader; the log says when a world keeps settings that differ from the file. The code is `DrossConfig` (each area
+reads its own values through it).
+
 ## Building and running
 
 From the project folder, on Windows:

@@ -413,7 +413,7 @@ final class VolcanoPlacer
                 build = plan.join().start(dross); // (its own tickets hold its chunks from here on)
                 return false;
             }
-            if (!build.step(STEP_MILLIS * 1_000_000L))
+            if (!build.step(com.reg21meme.dross.DrossConfig.buildMillisPerTick() * 1_000_000L))
             {
                 return false;
             }

@@ -24,7 +24,7 @@ import net.minecraft.world.level.biome.Biomes;
  *       round it; no possible village or pillager outpost start within {@link #VILLAGE_REACH} +
  *       {@link #VILLAGE_CLEARANCE} of it; the ground under the footprint varying by {@link #MAX_VARIATION} blocks or
  *       less; no water on it.</li>
- *   <li>If nothing fits, the rules are relaxed a rung at a time ({@link #LADDER}), each with a WARN, so a world always
+ *   <li>If nothing fits, the rules are relaxed a rung at a time ({@link #ladder}), each with a WARN, so a world always
  *       gets a site.</li>
  * </ul>
  * Minecraft's terrain adaptation ({@code beard_thin}) shapes the land to it; the structure's piece levels its footprint
@@ -32,10 +32,17 @@ import net.minecraft.world.level.biome.Biomes;
  */
 final class SiteRules
 {
-    /** The seed's spot is at least this many blocks (flat distance) from the spawn point... */
-    static final int MIN_DISTANCE = 3500;
+    /**
+     * The seed's spot is at least this many blocks (flat distance) from the spawn point... (the default; a world uses its
+     * own, from config/dross-common.toml when it was made: {@link com.reg21meme.dross.DrossWorldSettings})
+     */
+    static final int MIN_DISTANCE = com.reg21meme.dross.DrossConfig.DEFAULT_SITE_MIN_DISTANCE;
     /** ...and at most this many. */
-    static final int MAX_DISTANCE = 4500;
+    static final int MAX_DISTANCE = com.reg21meme.dross.DrossConfig.DEFAULT_SITE_MAX_DISTANCE;
+    /** The last rung's distances reach this much nearer the spawn point and further from it than the world's own. */
+    static final int LAST_RUNG_WIDER = 500;
+    /** ...but never nearer than this. */
+    static final int LAST_RUNG_NEAREST = 256;
     /** Mixed into the world seed for the spot's direction and distance (any number; changing it moves every world's site). */
     static final long SPOT_SALT = 1104202602L;
 
@@ -93,7 +100,7 @@ final class SiteRules
     /** The land's smooth height must be at least this far under the band's top (its bumps stay in the band). */
     static final int BAND_TOP_ROOM = 16;
 
-    /** Which biomes a rung of the {@link #LADDER} takes. */
+    /** Which biomes a rung of the {@link #ladder} takes. */
     enum BiomeRule
     {
         /** Every sample in {@link #PREFERRED}. */
@@ -113,20 +120,24 @@ final class SiteRules
     }
 
     /**
+     * The ladder for a world whose site is {@code min} to {@code max} blocks from the spawn point (3,500-4,500 by default).
      * Tried in order; every rung after the first logs a WARN when it's the one that finds the spot. The search reaches far
      * from the seed's spot because 3,500-4,500 blocks out is often sea (measured over 16 seeds: within 384 blocks of it only
      * 3 found a forest, taiga or snowy spot, the rest turned down by oceans, rivers and beaches).
      */
-    static final List<Rung> LADDER = List.of(
-            new Rung(0, "strict", BiomeRule.PREFERRED, MAX_VARIATION, 1024, 48, MIN_DISTANCE, MAX_DISTANCE),
-            new Rung(1, "rougher ground (" + FALLBACK_VARIATION + " blocks of variation)", BiomeRule.PREFERRED, FALLBACK_VARIATION,
-                    1024, 48, MIN_DISTANCE, MAX_DISTANCE),
-            new Rung(2, "further from the seed's spot (2,048 blocks)", BiomeRule.PREFERRED, FALLBACK_VARIATION, 2048, 96,
-                    MIN_DISTANCE, MAX_DISTANCE),
-            new Rung(3, "any dry-land biome (plains, desert, savanna...)", BiomeRule.ALLOWED, FALLBACK_VARIATION, 2048, 96,
-                    MIN_DISTANCE, MAX_DISTANCE),
-            new Rung(4, "any land, steeper ground (" + FALLBACK_VARIATION_LAST + "), 3,000 to 5,000 from spawn",
-                    BiomeRule.LAND, FALLBACK_VARIATION_LAST, 2048, 128, 3000, 5000));
+    static List<Rung> ladder(int min, int max)
+    {
+        int lastMin = Math.max(LAST_RUNG_NEAREST, min - LAST_RUNG_WIDER);
+        int lastMax = max + LAST_RUNG_WIDER;
+        return List.of(
+                new Rung(0, "strict", BiomeRule.PREFERRED, MAX_VARIATION, 1024, 48, min, max),
+                new Rung(1, "rougher ground (" + FALLBACK_VARIATION + " blocks of variation)", BiomeRule.PREFERRED, FALLBACK_VARIATION,
+                        1024, 48, min, max),
+                new Rung(2, "further from the seed's spot (2,048 blocks)", BiomeRule.PREFERRED, FALLBACK_VARIATION, 2048, 96, min, max),
+                new Rung(3, "any dry-land biome (plains, desert, savanna...)", BiomeRule.ALLOWED, FALLBACK_VARIATION, 2048, 96, min, max),
+                new Rung(4, "any land, steeper ground (" + FALLBACK_VARIATION_LAST + "), " + lastMin + " to " + lastMax + " from spawn",
+                        BiomeRule.LAND, FALLBACK_VARIATION_LAST, 2048, 128, lastMin, lastMax));
+    }
     /** The number given to the last resort: no rung found a spot, so the flattest dry land seen (or the seed's own spot). */
     static final int LAST_RESORT = 5;
     /** No spot is ever this much nearer the spawn point or further from it than the widest rung allows (for a quick "no"). */
