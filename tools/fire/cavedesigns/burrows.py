@@ -9,13 +9,18 @@ import cavekit as K
 
 
 def vent_mound(cave, x, z, stand):
-    """A little mound of basalt and magma (3 x 3, one block high, on the floor) with a Cinder Vent on top."""
+    """A Cinder Vent set into the floor, magma and basalt round it (3 x 3), all flush with the floor. (Until November 5,
+    2026 a little mound one block high with the vent on top, which stood in the way: the user, "make this magma and then
+    the lava vent into the ground, not popping up taking space in the hallway".)"""
     for dx in (-1, 0, 1):
         for dz in (-1, 0, 1):
-            if (dx, dz) != (0, 0):
-                cave.fill(x + dx, stand, z + dz, "magma_block" if (x + dx + z + dz) % 2 else K.BASALT)
-    cave.fill(x, stand, z, K.BASALT)
-    cave.fill(x, stand + 1, z, "dross:cinder_vent")
+            if cave.is_open(x + dx, stand - 1, z + dz):
+                continue
+            if (dx, dz) == (0, 0):
+                block = "dross:cinder_vent"
+            else:
+                block = "magma_block" if (x + dx + z + dz) % 2 else K.BASALT
+            cave.g.set(x + dx, stand - 1, z + dz, block, force=True)
 
 
 def floor_vents(cave, cx, cz, stand, offsets):

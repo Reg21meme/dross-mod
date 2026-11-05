@@ -51,7 +51,7 @@ def build(seed=24):
     cave.support_ramp(heights, C - 2, C + 2)
     cave.cover(over=1, run=1.6)
     cave.foundation()
-    # the vent on its mound in the den; a second on the mound's top outside, smoking
+    # the vent in the den's floor, ringed with magma; a second on the mound's top outside, smoking
     B.vent_mound(cave, hx, hz, STAND)
     top = max(y for y in range(1, cave.ABOVE + 1) if cave.get(hx, y, hz) not in (None, "minecraft:air"))
     cave.g.set(hx, top, hz, "dross:cinder_vent", force=True)

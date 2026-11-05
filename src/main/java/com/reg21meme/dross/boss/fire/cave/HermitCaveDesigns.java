@@ -73,18 +73,18 @@ public final class HermitCaveDesigns
     /** Every cave, in order (their numbers, 1 the Long Gallery, 2 the Ash Mound Den, 3 the Twin Hump Den). */
     public static final List<Cave> CAVES = List.of(
             new Cave("long_gallery", "Long Gallery", Kind.HILLSIDE,
-                    "A wide mouth in the hillside onto a long gallery dug along the hill, two pillars holding its roof and two Cinder Vents on their mounds; a pool of lava at its west end, a midden of spare shells at its east end, and the crab's nest in a burrow back into the hill.",
-                    33, 33, 14, 4, 16, 32, 13, 5, 18, 6, 13,
+                    "A wide mouth in the hillside onto a long gallery dug along the hill, two pillars holding its roof and two Cinder Vents set into its floor, ringed with magma; a pool of lava at its west end, a midden of spare shells at its east end, and the crab's nest in a burrow back into the hill.",
+                    33, 33, 14, 4, 16, 32, 19, 5, 32, 6, 13,
                     List.of(new BlockPos(16, 5, 8)),
                     List.of(new BlockPos(16, 5, 22), new BlockPos(16, 5, 8), new BlockPos(6, 5, 22), new BlockPos(26, 5, 22))),
             new Cave("ash_mound", "Ash Mound Den", Kind.UNDERGROUND,
                     "A cutting slopes down a block every two into a den 3 blocks under the ground round its Cinder Vent, its roof a low mound of ash with a second vent smoking on top; off it the crab's nest, a pool of lava, and behind a crawl the crab can't follow, a little loot room of decorated pots, suspicious gravel and a barrel.",
-                    37, 37, 17, 7, 18, 36, 20, 5, 28, 3, 14,
+                    37, 37, 17, 7, 18, 36, 21, 4, 10, 3, 14,
                     List.of(new BlockPos(10, 5, 20)),
                     List.of(new BlockPos(18, 5, 20), new BlockPos(10, 5, 20), new BlockPos(26, 5, 20), new BlockPos(18, 4, 9))),
             new Cave("twin_hump", "Twin Hump Den", Kind.UNDERGROUND,
                     "Two humps of ash over a shallow den: a cutting slopes down to a vent chamber 3 blocks under the ground, the crab's nest under the bigger hump, a pool of lava to the north, and through a crawl the crab can't follow, a loot room of decorated pots, suspicious gravel and a barrel.",
-                    37, 37, 18, 7, 18, 36, 29, 4, 22, 3, 17,
+                    37, 37, 18, 7, 18, 36, 10, 5, 13, 3, 17,
                     List.of(new BlockPos(11, 5, 17)),
                     List.of(new BlockPos(18, 5, 22), new BlockPos(11, 5, 17), new BlockPos(18, 5, 13), new BlockPos(27, 4, 20))));
 

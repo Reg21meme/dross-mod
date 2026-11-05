@@ -1,6 +1,6 @@
 """5. Twin Hump Den (round 2, underground): on flat land, two humps of ash over a shallow den. A cutting slopes down a
-full block every two (no stairs) to a small vent chamber 3 blocks under the ground, its Cinder Vent on a mound of basalt
-and magma; west of it, under the bigger hump, the crab's nest; north, a pool of lava; east, through a crawl the crab
+full block every two (no stairs) to a small vent chamber 3 blocks under the ground, its Cinder Vent set into the floor
+in a ring of basalt and magma; west of it, under the bigger hump, the crab's nest; north, a pool of lava; east, through a crawl the crab
 can't follow and a step down, the loot room: decorated pots with fire sherds, suspicious gravel to brush and a barrel."""
 from cavedesigns import burrows as B
 

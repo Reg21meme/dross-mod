@@ -1,5 +1,5 @@
 """2. Long Gallery (round 2, hillside): a wide mouth in the hillside opens onto a long gallery dug along the hill behind
-it, its low roof held up by two pillars of polished basalt, two Cinder Vents puffing on their mounds along it and glowing
+it, its low roof held up by two pillars of polished basalt, two Cinder Vents puffing in its floor along it, ringed with magma and glowing
 cracks in its floor; at its west end a pool of lava, at its east end a midden of the crab's spare shells, and from its
 middle a burrow back into the hill to the crab's nest.
 
@@ -14,7 +14,7 @@ ID = "long_gallery"
 NAME = "Long Gallery"
 KIND = K.HILLSIDE
 LORE = ("A wide mouth in the hillside onto a long gallery dug along the hill, two pillars holding its roof and two Cinder "
-        "Vents on their mounds; a pool of lava at its west end, a midden of spare shells at its east end, and the crab's "
+        "Vents set into its floor, ringed with magma; a pool of lava at its west end, a midden of spare shells at its east end, and the crab's "
         "nest in a burrow back into the hill.")
 
 SIZE = 33                  # its template's width and depth (the other hillside caves were 29)
