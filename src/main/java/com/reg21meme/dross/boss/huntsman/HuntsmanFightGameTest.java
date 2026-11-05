@@ -876,17 +876,45 @@ public final class HuntsmanFightGameTest
         level.addFreshEntity(zombie);
         hit(m, level.damageSources().mobAttack(zombie), 1.0F);
         String[] seen = {null};
+        int[] lost = {0};
         helper.startSequence()
                 .thenWaitUntil(() ->
                 {
                     clearFoesNearBut(level, m, zombie);
+                    if (m.stage() == HuntStage.CALM)
+                    {
+                        // (the test world has no player, so 3 minutes of game time after the hit the fight is broken off by
+                        // design, and the fast test server gets there in about half a minute: the zombie starts it again)
+                        hit(m, level.damageSources().mobAttack(zombie), 1.0F);
+                    }
+                    else if (m.getTarget() == null && h.getTarget() == null && !m.hasLineOfSight(zombie))
+                    {
+                        // (riding off or circling, they can leave the test's arena for the hills and trees round it and lose
+                        // the zombie, a mob they can't see being no foe (a player always is one): after 2 s like that the
+                        // pair and the zombie are put back in the arena and the zombie hits again)
+                        if (++lost[0] >= 40)
+                        {
+                            lost[0] = 0;
+                            Vec3 home = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE));
+                            m.teleportTo(home.x, home.y, home.z);
+                            zombie.teleportTo(at.x, at.y, at.z);
+                            hit(m, level.damageSources().mobAttack(zombie), 1.0F);
+                        }
+                    }
+                    else
+                    {
+                        lost[0] = 0;
+                    }
                     if (m.stage() == HuntStage.WILD_HUNT && h.isMounted() && m.busy() && h.busy())
                     {
                         seen[0] = "the moose " + m.current().name() + ", him " + h.current().name();
                         return;
                     }
                     throw new GameTestAssertException("waiting for both of them to be in a move at once (the moose plays "
-                            + m.current().name() + ", he plays " + h.current().name() + ", stage " + m.stage() + ")");
+                            + m.current().name() + ", he plays " + h.current().name() + ", stage " + m.stage() + "; the moose's target "
+                            + (m.getTarget() == null ? "none" : m.getTarget().getType().toShortString()) + ", his "
+                            + (h.getTarget() == null ? "none" : h.getTarget().getType().toShortString()) + "; the zombie "
+                            + (zombie.isAlive() ? "there" : "gone") + ", the moose " + (m.hasLineOfSight(zombie) ? "sees" : "doesn't see") + " it)");
                 })
                 .thenExecute(() ->
                 {

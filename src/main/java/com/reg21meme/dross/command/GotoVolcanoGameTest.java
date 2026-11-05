@@ -329,6 +329,14 @@ public final class GotoVolcanoGameTest
             Optional<Vec3> spot = landing.find(DrossHub.CENTER.atY(SAMPLE_Y), aim);
             if (spot.isEmpty())
             {
+                if (landing.keptClearOfAll())
+                {
+                    // (on a small patch the volcano's keep-clear circle can fill all of it that the landing looks at: it
+                    // found nowhere, rightly, and never landed on it; seen November 5)
+                    LOGGER.info("[goto volcano test] a Cinder Wastes landing aimed at the volcano found no spot: everywhere it looked "
+                            + "in the biome is kept clear ({})", landing.describe());
+                    return;
+                }
                 throw new GameTestAssertException("a Cinder Wastes landing aimed at the volcano found no spot (" + landing.describe() + ")");
             }
             double d = volcano.distanceTo(spot.get().x, spot.get().z);

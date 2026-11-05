@@ -1167,8 +1167,12 @@ public final class ColossusLairGameTest
                 double allowed = s > mouth ? OUTSIDE_STEP : PLAYER_STEP;
                 if (step > allowed + 1.0E-6D)
                 {
+                    int px = tx(s + 1, l);
+                    int pz = tz(s + 1, l);
                     problems.add(String.format("a step of %.1f blocks on the way in at %d %.1f %d (%d blocks out, %d to the side; at most "
-                            + "%.1f there)", here - previous, x, here, z, s, l, allowed));
+                            + "%.1f there; the column before it, %d %d, is %.1f by the walk, its real top y %d, %s)", here - previous, x, here, z,
+                            s, l, allowed, px, pz, previous, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px, pz),
+                            level.getBlockState(new net.minecraft.core.BlockPos(px, level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, px, pz) - 1, pz))));
                     return;
                 }
                 steps += step > 1.0E-6D ? 1 : 0;

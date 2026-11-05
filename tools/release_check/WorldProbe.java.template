@@ -1,0 +1,436 @@
+package com.reg21meme.dross.perf.client;
+
+import com.mojang.logging.LogUtils;
+import com.reg21meme.dross.Dross;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.Screenshot;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.Mob;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.WorldDataConfiguration;
+import net.minecraft.world.level.levelgen.WorldOptions;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.minecraftforge.api.distmarker.Dist;
+import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.event.TickEvent;
+import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.common.Mod;
+import org.slf4j.Logger;
+
+/**
+ * TEMPORARY test helper (a template in tools/release_check: copied into src for a check, deleted after, never committed
+ * there): with DROSS_PROBE set, the client makes a new
+ * default world (seed DROSS_PROBE_SEED), visits every Dross place with /dross goto, and at each stop waits for it to load,
+ * measures frame times and the integrated server's tick times, counts the entities within 128 blocks by type, takes a
+ * screenshot (run/screenshots/probe_*.png) and writes run/perf/probe_report.txt; then it quits.
+ */
+@Mod.EventBusSubscriber(modid = Dross.MODID, value = Dist.CLIENT)
+public final class WorldProbe
+{
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final String TAG = System.getenv("DROSS_PROBE");
+    private static final long SEED = parseSeed(System.getenv("DROSS_PROBE_SEED"));
+    /** The second world, made in the same game after leaving the first (a few stops: its own site, trader and hub). */
+    private static final long SEED2 = SEED * 31L + 7L;
+    private static int world;
+
+    /** One place: the commands that take you there, how long to let it load and settle, how long to measure. */
+    private record Stop(String name, List<String> commands, int loadSeconds, int measureSeconds) {}
+
+    private static final List<Stop> STOPS = new ArrayList<>();
+    private static final List<String> REPORT = new ArrayList<>();
+    private static final List<String> CHAT = new ArrayList<>();
+    private static final ConcurrentLinkedQueue<Long> TICK_NANOS = new ConcurrentLinkedQueue<>();
+    private static final List<Long> FRAME_NANOS = new ArrayList<>();
+    private static volatile long tickStart;
+    private static volatile boolean measuring;
+    private static volatile String counted;
+
+    private static boolean worldStarted;
+    private static long worldStartMillis;
+    private static long inWorldMillis;
+    private static int stop = -1;
+    private static long phaseStart;
+    private static int phase;
+    private static long lastFrame;
+    private static String shot;
+    private static int shotDelay;
+
+    private static long parseSeed(String s)
+    {
+        try
+        {
+            return s == null ? 20261105L : Long.parseLong(s.trim());
+        }
+        catch (NumberFormatException e)
+        {
+            return s.hashCode();
+        }
+    }
+
+    private static void stops()
+    {
+        if ("hub".equals(System.getenv("DROSS_PROBE_ONLY")))
+        {
+            add("spawn", List.of(), 5, 10);
+            add("hub_profile", List.of("dross goto hub"), 30, 90);
+            add("gravecrags_profile", List.of("dross goto biome gravecrags"), 30, 60);
+            add("overworld_forest", List.of("execute in minecraft:overworld run tp @s 0 200 0", "locate biome minecraft:dark_forest"), 10, 5);
+            return;
+        }
+        add("spawn", List.of(), 5, 20);
+        add("cathedral", List.of("dross goto cathedral"), 25, 25);
+        add("trader", List.of("dross goto trader"), 25, 25);
+        add("hub", List.of("dross goto hub"), 25, 25);
+        for (String biome : new String[] {"silverwood_forest", "cinder_wastes", "blightwood", "rimefall", "gravecrags"})
+        {
+            add("biome_" + biome, List.of("dross goto biome " + biome), 25, 30);
+        }
+        add("lair_colossus", List.of("dross goto lair colossus"), 75, 25);
+        add("lair_ratking", List.of("dross goto lair ratking"), 30, 25);
+        add("sewer", List.of("dross goto sewer"), 25, 25);
+        add("lake", List.of("dross goto lake"), 25, 30);
+        add("lair_huntsman", List.of("dross goto lair huntsman"), 35, 25);
+        add("village", List.of("dross goto village"), 30, 25);
+        add("lair_emberdactyl", List.of("dross goto lair emberdactyl"), 90, 25);
+        add("hermit_cave", List.of("dross goto hermit_cave"), 30, 25);
+        add("hub_again", List.of("dross goto hub"), 20, 20);
+    }
+
+    private static void add(String name, List<String> commands, int load, int measure)
+    {
+        STOPS.add(new Stop(name, commands, load, measure));
+    }
+
+    @SubscribeEvent
+    public static void onClientTick(TickEvent.ClientTickEvent event)
+    {
+        if (TAG == null || TAG.isEmpty() || event.phase != TickEvent.Phase.END)
+        {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (!worldStarted && mc.screen instanceof TitleScreen && mc.level == null)
+        {
+            worldStarted = true;
+            long seed = world == 0 ? SEED : SEED2;
+            String name = "Dross Probe " + seed;
+            LOGGER.info("World probe: creating world {}", name);
+            worldStartMillis = System.currentTimeMillis();
+            LevelSettings settings = new LevelSettings(name, GameType.CREATIVE, false, Difficulty.NORMAL, true, new GameRules(),
+                    WorldDataConfiguration.DEFAULT);
+            mc.createWorldOpenFlows().createFreshLevel(name, settings, new WorldOptions(seed, true, false),
+                    access -> access.registryOrThrow(Registries.WORLD_PRESET).getHolderOrThrow(WorldPresets.NORMAL).value()
+                            .createWorldDimensions());
+            return;
+        }
+        if (mc.level == null || mc.player == null)
+        {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        if (inWorldMillis == 0)
+        {
+            inWorldMillis = now;
+            note("world " + (world + 1) + " made and joined in " + (now - worldStartMillis) + " ms (seed " + (world == 0 ? SEED : SEED2) + ")");
+            STOPS.clear();
+            stop = -1;
+            if (world == 0)
+            {
+                stops();
+            }
+            else
+            {
+                add("w2_spawn", List.of(), 5, 15);
+                add("w2_cathedral", List.of("dross goto cathedral"), 25, 15);
+                add("w2_trader", List.of("dross goto trader"), 25, 15);
+                add("w2_hub", List.of("dross goto hub"), 25, 15);
+            }
+            mc.options.hideGui = true;
+            mc.player.connection.sendCommand("gamerule doDaylightCycle false");
+            mc.player.connection.sendCommand("time set 18000");
+            mc.player.connection.sendCommand("gamerule doWeatherCycle false");
+            phaseStart = now;
+            return;
+        }
+        if (stop < 0)
+        {
+            if (now - phaseStart > 8000)
+            {
+                begin(mc, 0, now);
+            }
+            return;
+        }
+        Stop s = STOPS.get(stop);
+        if (phase == 0 && now - phaseStart >= s.loadSeconds() * 1000L)
+        {
+            phase = 1;
+            phaseStart = now;
+            synchronized (FRAME_NANOS)
+            {
+                FRAME_NANOS.clear();
+            }
+            TICK_NANOS.clear();
+            measuring = true;
+        }
+        else if (phase == 1 && now - phaseStart >= s.measureSeconds() * 1000L)
+        {
+            measuring = false;
+            phase = 2;
+            phaseStart = now;
+            counted = null;
+            MinecraftServer server = mc.getSingleplayerServer();
+            if (server != null)
+            {
+                server.execute(WorldProbe::count);
+            }
+            shot = s.name();
+            shotDelay = 3;
+        }
+        else if (phase == 2 && counted != null && shot == null)
+        {
+            finish(mc, s);
+            if (stop + 1 < STOPS.size())
+            {
+                begin(mc, stop + 1, now);
+            }
+            else if (world == 0 && !"hub".equals(System.getenv("DROSS_PROBE_ONLY")))
+            {
+                note("leaving world 1 for a second world in the same game");
+                world = 1;
+                worldStarted = false;
+                inWorldMillis = 0;
+                mc.level.disconnect();
+                mc.clearLevel(new net.minecraft.client.gui.screens.GenericDirtMessageScreen(
+                        net.minecraft.network.chat.Component.literal("Saving")));
+                mc.setScreen(new TitleScreen());
+            }
+            else
+            {
+                write();
+                LOGGER.info("World probe: done");
+                mc.stop();
+            }
+        }
+        else if (phase == 2 && now - phaseStart > 30_000L)
+        {
+            note("  (the count never came back)");
+            counted = "?";
+        }
+    }
+
+    private static void begin(Minecraft mc, int index, long now)
+    {
+        stop = index;
+        phase = 0;
+        phaseStart = now;
+        if (index > 0)
+        {
+            synchronized (CHAT)
+            {
+                CHAT.clear();
+            }
+        }
+        Stop s = STOPS.get(index);
+        LOGGER.info("World probe: stop {} ({})", index, s.name());
+        for (String c : s.commands())
+        {
+            mc.player.connection.sendCommand(c);
+        }
+    }
+
+    private static void finish(Minecraft mc, Stop s)
+    {
+        long[] frames;
+        synchronized (FRAME_NANOS)
+        {
+            frames = FRAME_NANOS.stream().mapToLong(Long::longValue).toArray();
+        }
+        long[] ticks = TICK_NANOS.stream().mapToLong(Long::longValue).toArray();
+        String pos = String.format(Locale.ROOT, "%s %.0f %.0f %.0f", mc.level.dimension().location(), mc.player.getX(), mc.player.getY(),
+                mc.player.getZ());
+        String biome = mc.level.getBiome(mc.player.blockPosition()).unwrapKey().map(k -> k.location().toString()).orElse("?");
+        note(s.name() + ": at " + pos + " (" + biome + ")");
+        synchronized (CHAT)
+        {
+            for (String c : CHAT)
+            {
+                note("  chat: " + c);
+            }
+        }
+        note("  frames: " + stats(frames) + ", fps " + (frames.length == 0 ? "?" : String.format(Locale.ROOT, "%.0f", 1e9 / mean(frames))));
+        note("  server ticks: " + stats(ticks));
+        note("  within 128 blocks: " + counted);
+        if (s.name().equals("overworld_forest"))
+        {
+            synchronized (CHAT)
+            {
+                for (String c : CHAT)
+                {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\[(-?\\d+), ~, (-?\\d+)\\]").matcher(c);
+                    if (m.find())
+                    {
+                        String x = m.group(1);
+                        String z = m.group(2);
+                        STOPS.add(new Stop("dark_forest", List.of("tp @s " + x + " 120 " + z, "spreadplayers " + x + " " + z + " 0 1 false @s"), 30, 60));
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    private static void count()
+    {
+        MinecraftServer server = Minecraft.getInstance().getSingleplayerServer();
+        ServerPlayer player = server == null ? null : server.getPlayerList().getPlayers().stream().findFirst().orElse(null);
+        if (player == null)
+        {
+            counted = "no player";
+            return;
+        }
+        ServerLevel level = player.serverLevel();
+        Map<String, Integer> byType = new TreeMap<>();
+        Map<String, Integer> near = new TreeMap<>();
+        Map<String, Integer> bosses = new TreeMap<>();
+        int all = 0;
+        for (Entity e : level.getAllEntities())
+        {
+            String id = BuiltInRegistries.ENTITY_TYPE.getKey(e.getType()).toString().replace("minecraft:", "");
+            if (id.contains("rat_king") || id.contains("colossus") || id.contains("huntsman") || id.contains("alpha_moose")
+                    || id.contains("ember") || id.contains("dross_trader") || id.contains("survivor"))
+            {
+                bosses.merge(id + String.format(Locale.ROOT, "@%.0f,%.0f,%.0f", e.getX(), e.getY(), e.getZ()), 1, Integer::sum);
+            }
+            if (e == player || e.distanceToSqr(player) > 128 * 128 || !(e instanceof Mob))
+            {
+                continue;
+            }
+            all++;
+            byType.merge(id, 1, Integer::sum);
+            double dx = e.getX() - player.getX();
+            double dz = e.getZ() - player.getZ();
+            if (dx * dx + dz * dz <= 32 * 32 && Math.abs(e.getY() - player.getY()) <= 16)
+            {
+                near.merge(id, 1, Integer::sum);
+            }
+        }
+        counted = all + " mobs " + byType + "; within 32 (same level): " + near + "; bosses and keepers loaded: " + bosses;
+    }
+
+    private static String stats(long[] nanos)
+    {
+        if (nanos.length == 0)
+        {
+            return "none";
+        }
+        long[] sorted = nanos.clone();
+        Arrays.sort(sorted);
+        double p99 = sorted[Math.min(sorted.length - 1, (int) Math.floor(sorted.length * 0.99))] / 1e6;
+        return String.format(Locale.ROOT, "%d, mean %.1f ms, p99 %.1f ms, max %.1f ms", nanos.length, mean(nanos) / 1e6, p99,
+                sorted[sorted.length - 1] / 1e6);
+    }
+
+    private static double mean(long[] nanos)
+    {
+        return Arrays.stream(nanos).average().orElse(0);
+    }
+
+    @SubscribeEvent
+    public static void onRenderTick(TickEvent.RenderTickEvent event)
+    {
+        if (TAG == null || TAG.isEmpty() || event.phase != TickEvent.Phase.END)
+        {
+            return;
+        }
+        long now = System.nanoTime();
+        if (measuring && lastFrame != 0)
+        {
+            synchronized (FRAME_NANOS)
+            {
+                FRAME_NANOS.add(now - lastFrame);
+            }
+        }
+        lastFrame = now;
+        if (shot != null && shotDelay-- <= 0)
+        {
+            Minecraft mc = Minecraft.getInstance();
+            Screenshot.grab(mc.gameDirectory, "probe_" + SEED + "_" + String.format(Locale.ROOT, "%02d", stop) + "_" + shot + ".png", mc.getMainRenderTarget(),
+                    message -> { });
+            shot = null;
+        }
+    }
+
+    @SubscribeEvent
+    public static void onServerTick(TickEvent.ServerTickEvent event)
+    {
+        if (TAG == null || TAG.isEmpty())
+        {
+            return;
+        }
+        if (event.phase == TickEvent.Phase.START)
+        {
+            tickStart = System.nanoTime();
+        }
+        else if (measuring && tickStart != 0)
+        {
+            TICK_NANOS.add(System.nanoTime() - tickStart);
+        }
+    }
+
+    @SubscribeEvent
+    public static void onChat(ClientChatReceivedEvent event)
+    {
+        if (TAG == null || TAG.isEmpty())
+        {
+            return;
+        }
+        synchronized (CHAT)
+        {
+            String text = event.getMessage().getString();
+            CHAT.add(text.length() > 220 ? text.substring(0, 220) + "..." : text);
+        }
+    }
+
+    private static void note(String line)
+    {
+        LOGGER.info("World probe: {}", line);
+        REPORT.add(line);
+    }
+
+    private static void write()
+    {
+        try
+        {
+            Path dir = Minecraft.getInstance().gameDirectory.toPath().resolve("perf");
+            Files.createDirectories(dir);
+            Files.write(dir.resolve("probe_report_" + SEED + ".txt"), REPORT, StandardCharsets.UTF_8);
+        }
+        catch (IOException e)
+        {
+            LOGGER.error("World probe: couldn't write the report", e);
+        }
+    }
+
+    private WorldProbe() {}
+}

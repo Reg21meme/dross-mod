@@ -522,6 +522,15 @@ public final class GotoBiome
             return x >= this.hubZone.minX() && x <= this.hubZone.maxX() && z >= this.hubZone.minZ() && z <= this.hubZone.maxZ();
         }
 
+        /**
+         * True if every column it looked at in the biome was turned down for being by a Colossus lair or an Emberdactyl
+         * volcano (none was checked): for the tests.
+         */
+        boolean keptClearOfAll()
+        {
+            return this.byTheLair > 0 && this.chunks.isEmpty();
+        }
+
         /** True if (x, z) is in a circle kept clear round a Colossus lair ({@link GotoBiome#lairZones}). */
         private boolean isByTheLair(int x, int z)
         {
@@ -554,7 +563,7 @@ public final class GotoBiome
         {
             return this.checked + " column(s) checked in " + this.chunks.size() + " chunk(s)" + (this.gaveUp ? " (gave up: chunk limit)" : "")
                     + "; turned down: " + this.unsafe + " unsafe, " + this.otherBiome + " another biome where you'd stand (a border), "
-                    + this.raised + " on top of something, " + this.byTheHub + " by the hub, " + this.byTheLair + " by the Colossus lair";
+                    + this.raised + " on top of something, " + this.byTheHub + " by the hub, " + this.byTheLair + " by a Colossus lair or an Emberdactyl volcano";
         }
     }
 }

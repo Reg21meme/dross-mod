@@ -387,7 +387,11 @@ public final class HermitCaveGameTest
             caves += plan.size();
             seconds += plan.size() > 1 ? 1 : 0;
             rolled += HermitCaveSites.wantsTwo(sites, patch) ? 1 : 0;
-            if (plan.isEmpty() && patch.depth() >= 2 * HermitCaveTuning.MIN_DEPTH)
+            // (a patch with a boss site of its own, a Colossus lair or an Emberdactyl volcano, keeps its caves
+            // RELAXED_BOSS_CLEARANCE from it: a small one has no room left, seen November 5 on a 64-deep patch with a volcano)
+            boolean bossed = sites.site(BossSites.COLOSSUS_LAIR, patch).isPresent() || sites.site(BossSites.EMBER_VOLCANO, patch).isPresent();
+            if (plan.isEmpty() && patch.depth() >= 2 * HermitCaveTuning.MIN_DEPTH
+                    && (!bossed || patch.depth() >= HermitCaveTuning.RELAXED_BOSS_CLEARANCE + HermitCaveTuning.MIN_DEPTH))
             {
                 problems.add(patch + " (" + Math.round(patch.depth()) + " deep) has no cave");
             }

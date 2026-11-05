@@ -1,0 +1,14 @@
+[portal_site]
+	minDistance = 1000
+	maxDistance = 1500
+
+[trader]
+	atVillages = false
+	villageSearchRadius = 3000
+
+[quest]
+	letterChance = 0.5
+
+[performance]
+	plannerThreads = 2
+	buildMillisPerTick = 20
