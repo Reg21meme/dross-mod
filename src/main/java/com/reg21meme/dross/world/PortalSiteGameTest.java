@@ -529,7 +529,10 @@ public final class PortalSiteGameTest
                 if (Math.abs(top - g) > d)
                 {
                     wrong++;
-                    firstWrong = firstWrong != null ? firstWrong : x + ", " + z + " (" + d + " out) at y " + top;
+                    firstWrong = firstWrong != null ? firstWrong : x + ", " + z + " (" + d + " out) at y " + top + ", "
+                            + name(run.overworld.getBlockState(new BlockPos(x, top, z))) + " over "
+                            + name(run.overworld.getBlockState(new BlockPos(x, top - 1, z))) + " over "
+                            + name(run.overworld.getBlockState(new BlockPos(x, top - 2, z)));
                 }
             }
         }
@@ -564,7 +567,10 @@ public final class PortalSiteGameTest
                 margin - 1, furthest, g, steepest, steepestOut);
     }
 
-    /** The ground's top in a column: under trees, plants, bamboo, snow layers and boulders (water counts as its top). */
+    /**
+     * The ground's top in a column: under trees (and the dirt a trunk stands on above the ground), plants, bamboo, snow
+     * layers and boulders (water counts as its top).
+     */
     private static int groundTop(ServerLevel level, int x, int z)
     {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z);
@@ -573,7 +579,8 @@ public final class PortalSiteGameTest
             BlockState state = level.getBlockState(pos);
             if (state.isAir() || state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS) || state.is(Blocks.MOSSY_COBBLESTONE)
                     || state.is(Blocks.MUSHROOM_STEM) || state.is(Blocks.RED_MUSHROOM_BLOCK) || state.is(Blocks.BROWN_MUSHROOM_BLOCK)
-                    || state.is(Blocks.BEE_NEST) || state.is(Blocks.BAMBOO) || state.is(Blocks.BAMBOO_SAPLING) || (state.canBeReplaced() && state.getFluidState().isEmpty()) || !state.blocksMotion()
+                    || state.is(Blocks.BEE_NEST) || state.is(Blocks.BAMBOO) || state.is(Blocks.BAMBOO_SAPLING)
+                    || com.reg21meme.dross.world.shrine.TreeFelling.Felling.isTrunkDirt(level, pos) || (state.canBeReplaced() && state.getFluidState().isEmpty()) || !state.blocksMotion()
                     && state.getFluidState().isEmpty())
             {
                 continue;

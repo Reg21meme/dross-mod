@@ -58,14 +58,16 @@ public final class TreeFelling
      * @param truncated true if a piece was bigger than its safety limit
      */
     public record Result(int trees, int logs, int leaves, int leavesFixed, int mushrooms, int mushroomBlocks, int spikes,
-                         int spikeBlocks, int rocks, int rockBlocks, int attached, int rounds, LongSet columns, boolean truncated)
+                         int spikeBlocks, int rocks, int rockBlocks, int attached, int rounds, LongSet columns, boolean truncated,
+                         int trunkDirt)
     {
         public String summary()
         {
             return "removed " + trees + " trees (" + logs + " logs, " + leaves + " leaves; " + leavesFixed + " leaves of other trees "
                     + "re-measured), " + mushrooms + " huge mushrooms (" + mushroomBlocks + " blocks), " + spikes + " ice spikes ("
                     + spikeBlocks + " blocks), " + rocks + " boulders (" + rockBlocks + " blocks), " + attached
-                    + " vines/bee nests/snow on them" + (truncated ? " (a piece hit its size limit)" : "");
+                    + " vines/bee nests/snow on them, " + trunkDirt + " dirt blocks a trunk stood on above the ground"
+                    + (truncated ? " (a piece hit its size limit)" : "");
         }
     }
 
@@ -123,6 +125,8 @@ public final class TreeFelling
         private final LongSet columns = new LongOpenHashSet();
         private int leavesRemoved;
         private int leavesFixed;
+        /** Dirt a trunk stood on that its tree put above the ground (see {@link #isTrunkDirt}), removed with the trunk. */
+        private int trunkDirt;
         private int attached;
         /** Which removed blocks the vines and nests are looked for round: 0 the logs, 1 the leaves, 2 the other pieces. */
         private int attachedPart;
@@ -402,6 +406,12 @@ public final class TreeFelling
                 BlockPos log = logList.get(cursor++);
                 level.setBlock(log, Blocks.AIR.defaultBlockState(), GroundFit.FLAGS);
                 columns.add(BlockPos.asLong(log.getX(), 0, log.getZ()));
+                BlockPos under = log.below();
+                if (!logs.contains(under) && isTrunkDirt(level, under) && !area.keeps(under))
+                {
+                    level.setBlock(under, Blocks.AIR.defaultBlockState(), GroundFit.FLAGS);
+                    trunkDirt++;
+                }
                 if (cursor < logList.size() && budget.spent())
                 {
                     return false;
@@ -485,9 +495,28 @@ public final class TreeFelling
                 }
             }
             result = new Result(trees, logs.size(), leavesRemoved, leavesFixed, mushrooms, mushroomBlocks, spikes, spikeBlocks,
-                    rocks, rockBlocks, attached, rounds, columns, truncated);
+                    rocks, rockBlocks, attached, rounds, columns, truncated, trunkDirt);
             stage = Stage.DONE;
             return true;
+        }
+
+        /**
+         * True if the block under a trunk's lowest log is dirt its tree put above the ground: Minecraft's trees turn the
+         * block under every trunk column to dirt (a dark oak's 2 x 2 trunk on a slope too, so under its lower corners the
+         * dirt goes into the air or onto the grass). Dirt or rooted dirt over air, a plant or snow, or a surface soil
+         * (grass, podzol, mycelium, moss, coarse dirt, the Dross's Silvermoss...), never plain dirt or rooted dirt, which is
+         * the ground's own. Felled with the trunk it would be left standing as a bump.
+         */
+        public static boolean isTrunkDirt(ServerLevel level, BlockPos pos)
+        {
+            BlockState state = level.getBlockState(pos);
+            if (!state.is(Blocks.DIRT) && !state.is(Blocks.ROOTED_DIRT))
+            {
+                return false;
+            }
+            BlockState below = level.getBlockState(pos.below());
+            return below.isAir() || below.canBeReplaced() && below.getFluidState().isEmpty()
+                    || below.is(net.minecraft.tags.BlockTags.DIRT) && !below.is(Blocks.DIRT) && !below.is(Blocks.ROOTED_DIRT);
         }
 
         /** True for a block the earthwork will clear or bury: above the footprint's ground, or in the staircase's cut or fill. */
