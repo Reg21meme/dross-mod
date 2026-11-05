@@ -118,8 +118,11 @@ public final class PortalSiteGameTest
     private static final long WAIT_MILLIS = 360_000L;
     /** The tests' tick limit, far past any wait (each wait ends by the clock first). */
     private static final int TIMEOUT_TICKS = 4_000_000;
-    /** Working out the spot must take less than this (ms). */
-    private static final long SPOT_MAX_MILLIS = 2_000L;
+    /**
+     * Working out the spot must take less than this (ms): about a second on its own; a seed that looks at many spots
+     * (742) took 2.1 s under a full test run's load (November 5, 2026). The old search took minutes.
+     */
+    private static final long SPOT_MAX_MILLIS = 6_000L;
     /** The real world spawn is within this of the spawn point the site measures from (Minecraft looks 5 chunks round it). */
     private static final int SPAWN_SLACK = 150;
     /** At least this share of the cathedral's template blocks (not air) must be in place. */
@@ -422,8 +425,9 @@ public final class PortalSiteGameTest
         int solid = blocks.size() - air;
         double share = solid == 0 ? 0.0D : same / (double) solid;
         expect(problems, solid > 0, "the cathedral's template is empty or missing");
-        expect(problems, share >= TEMPLATE_MIN_MATCH, String.format(Locale.ROOT, "only %.2f%% of its %d template blocks are in place (%s)",
-                100.0D * share, solid, firstWrong));
+        expect(problems, share >= TEMPLATE_MIN_MATCH, String.format(Locale.ROOT, "only %.2f%% of its %d template blocks are in place (%s; "
+                + "the others: %s)", 100.0D * share, solid, firstWrong, wrongs.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed()).limit(8).map(w -> w.getKey() + " " + w.getValue()).toList()));
         expect(problems, cracked > 0, "no stone brick near the frame was cracked by the leak");
         fail(problems);
         LOGGER.info(String.format(Locale.ROOT, "[site test] %.2f%% of the cathedral's %d template blocks are in place (%d stone bricks cracked "
@@ -560,7 +564,7 @@ public final class PortalSiteGameTest
                 margin - 1, furthest, g, steepest, steepestOut);
     }
 
-    /** The ground's top in a column: under trees, plants, snow layers and boulders (water counts as its top). */
+    /** The ground's top in a column: under trees, plants, bamboo, snow layers and boulders (water counts as its top). */
     private static int groundTop(ServerLevel level, int x, int z)
     {
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z);
@@ -569,7 +573,7 @@ public final class PortalSiteGameTest
             BlockState state = level.getBlockState(pos);
             if (state.isAir() || state.is(BlockTags.LEAVES) || state.is(BlockTags.LOGS) || state.is(Blocks.MOSSY_COBBLESTONE)
                     || state.is(Blocks.MUSHROOM_STEM) || state.is(Blocks.RED_MUSHROOM_BLOCK) || state.is(Blocks.BROWN_MUSHROOM_BLOCK)
-                    || state.is(Blocks.BEE_NEST) || (state.canBeReplaced() && state.getFluidState().isEmpty()) || !state.blocksMotion()
+                    || state.is(Blocks.BEE_NEST) || state.is(Blocks.BAMBOO) || state.is(Blocks.BAMBOO_SAPLING) || (state.canBeReplaced() && state.getFluidState().isEmpty()) || !state.blocksMotion()
                     && state.getFluidState().isEmpty())
             {
                 continue;

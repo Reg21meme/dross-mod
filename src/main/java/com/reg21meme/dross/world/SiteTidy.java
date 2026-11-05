@@ -42,6 +42,8 @@ import org.slf4j.Logger;
  * <ol>
  *   <li>every tree, huge mushroom and ice spike that touches the footprint is felled whole ({@link TreeFelling}, with the
  *       cathedral's own blocks kept: its beams of dark oak and spruce, its mossy cobblestone and blue ice);</li>
+ *   <li>the cathedral's own blocks that the world's decoration changed after it was built are put back
+ *       ({@link #restore}: a jungle's podzol and bamboo over its ground, the dirt a tree's trunk leaves under it);</li>
  *   <li>anything in the frame's opening is cleared (so the Rift Key can light it);</li>
  *   <li>the Dross leaks out round the frame ({@link SiteLeak}: dead plants, coarse dirt, cracked bricks).</li>
  * </ol>
@@ -229,6 +231,7 @@ public final class SiteTidy
         long nanos;
         long longestNanos;
         int openingCleared;
+        int restored;
         String leak = "";
 
         Job(ServerLevel level, SiteSpot spot)
@@ -251,6 +254,7 @@ public final class SiteTidy
             }
             else if (stage == 1)
             {
+                restored = restore(level, spot);
                 openingCleared = clearOpening(level, spot.frame());
                 leak = SiteLeak.apply(level, spot.frame());
                 stage = 2;
@@ -269,9 +273,75 @@ public final class SiteTidy
 
         String summary()
         {
-            return felling.result().summary() + "; " + openingCleared + " blocks cleared out of the frame's opening; " + leak
+            return felling.result().summary() + "; " + restored + " of its own blocks put back (the world's podzol, bamboo, dirt); "
+                    + openingCleared + " blocks cleared out of the frame's opening; " + leak
                     + String.format("; %d ms of work in %d steps, the longest %d ms", nanos / 1_000_000L, steps, longestNanos / 1_000_000L);
         }
+    }
+
+    /**
+     * Puts back the cathedral's own blocks that the world's decoration changed after it was built (Minecraft decorates a
+     * chunk after its structures): where its template has a block (not air, not a chest or other block entity) and the
+     * world now has soil (podzol, dirt, rooted dirt, moss, mud...), bamboo or a felled tree's air in its place. A jungle's
+     * bamboo spreads podzol over the dirt round it, and a giant tree turns the block under its trunk to dirt. The leak
+     * comes after, as before. Returns how many were put back.
+     */
+    private static int restore(ServerLevel level, SiteSpot spot)
+    {
+        Optional<StructureTemplate> found = level.getStructureManager().get(PortalCathedral.design().template());
+        if (found.isEmpty())
+        {
+            return 0;
+        }
+        CompoundTag tag = found.get().save(new CompoundTag());
+        ListTag palette = tag.contains("palette", Tag.TAG_LIST) ? tag.getList("palette", Tag.TAG_COMPOUND)
+                : tag.getList("palettes", Tag.TAG_LIST).getList(0);
+        BlockState[] states = new BlockState[palette.size()];
+        for (int i = 0; i < palette.size(); i++)
+        {
+            states[i] = NbtUtils.readBlockState(BuiltInRegistries.BLOCK.asLookup(), palette.getCompound(i));
+        }
+        BlockPos origin = PortalCathedral.templateOrigin(spot.x(), spot.z(), spot.groundY());
+        ListTag blocks = tag.getList("blocks", Tag.TAG_COMPOUND);
+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+        int restored = 0;
+        for (int i = 0; i < blocks.size(); i++)
+        {
+            CompoundTag block = blocks.getCompound(i);
+            BlockState want = states[block.getInt("state")];
+            if (want.isAir() || want.is(Blocks.STRUCTURE_VOID) || block.contains("nbt") || want.hasBlockEntity())
+            {
+                continue;
+            }
+            ListTag p = block.getList("pos", Tag.TAG_INT);
+            pos.set(origin.getX() + p.getInt(0), origin.getY() + p.getInt(1), origin.getZ() + p.getInt(2));
+            if (!level.isLoaded(pos))
+            {
+                continue;
+            }
+            BlockState there = level.getBlockState(pos);
+            if (there.getBlock() == want.getBlock() || !decorated(there, want))
+            {
+                continue;
+            }
+            level.setBlock(pos, want, FLAGS);
+            restored++;
+        }
+        return restored;
+    }
+
+    /**
+     * True if this is what the world's decoration (not the cathedral, its leak, or the world's ores and stone blobs) leaves
+     * in a cell of the template: soil over its own ground, bamboo, or air where a plant of the template was (a plant on the
+     * soil it changed popped off).
+     */
+    private static boolean decorated(BlockState there, BlockState want)
+    {
+        if (there.is(BlockTags.DIRT) || there.is(Blocks.BAMBOO) || there.is(Blocks.BAMBOO_SAPLING))
+        {
+            return true;
+        }
+        return there.isAir() && (want.is(Blocks.DEAD_BUSH) || want.is(BlockTags.REPLACEABLE_BY_TREES));
     }
 
     /** Anything in the frame's opening (leaves, a trunk, snow) but its own portal, should it already be lit, goes. */

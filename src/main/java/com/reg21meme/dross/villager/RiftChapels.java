@@ -151,7 +151,7 @@ public final class RiftChapels
             return this.chapel.describe() + (this.inVillage ? ", at the edge of the " + this.villageType + " at " + this.villageMiddle.getX() + ", "
                     + this.villageMiddle.getZ() + " (the No. " + this.pick + " nearest possible village; the seed tries the " + this.choices
                     + " nearest in an order of its own), its path " + TraderVillages.pathLength(this.path) + " blocks to the nearest street"
-                    : ", on its own (no village had room)") + "; " + this.distance + " blocks from the spawn point, its land " + this.relief
+                    : this.looked == 0 ? ", on its own (no village looked at)" : ", on its own (no village had room)") + "; " + this.distance + " blocks from the spawn point, its land " + this.relief
                     + " blocks uneven; " + this.looked + " possible village(s) tried, " + this.villages + " laid out";
         }
     }
