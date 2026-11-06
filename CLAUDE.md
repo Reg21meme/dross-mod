@@ -1626,7 +1626,18 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         it glides only to a resting place with nothing between; and one whose home is in a bedrock test arena (summoned
         or spawned in it) is kept inside its walls and under its roof (`EmberBoss.keepInArena`). Headless test
         `EmberFightGameTest.staysInItsArena` (in an arena, it goes for a cow outside the wall for 300 ticks and never
-        leaves it) and `volcanoRemembersItsOwn`.
+        leaves it) and `volcanoRemembersItsOwn`. **Never stuck against rock** (the user, November 6, 2026: "the young
+        Emberdactyl is now stuck going into a wall forever ... it's doing its glide thing and moving into the volcano and
+        not stopping": hatched in its crater, its wings under the jagged rim and against the walls, it could neither
+        climb, go on nor turn, only bob against the rock): a piece of it already inside a block (a pose change can swing a
+        wing into the rock) never stops it (`EmberBoss.inBlock`), and when, flying, it gets less than a quarter of the way
+        it's told to go over 1.5 s with blocks stopping it at least half that time (`STUCK_*`; chasing a quick enemy round
+        in open air gets it little further too, but nothing stops it: a first try without that rule had the adult fly off
+        from its fight with the young), it frees itself for 2 s (`FREE_*`): its pieces don't stop it (its own box still
+        does), and it slides to the nearest spot with open sky over all of its own box, out to 12 blocks, climbing.
+        Headless tests `youngClimbsOutOfACrater` (from the bottom of a pit narrower than its wings under a lip of rock,
+        out in about 8-11 s of game time; before, still there after 20) and `youngGetsOverAVolcano` (over a cone 49 high
+        as steep as a volcano's flank).
       - **Its death on the ground** (the user's first fight: dying in the air it "seems to be falling from the floor ...
         glitches when they die"; over the steep volcano half of it sank into the rock): its death animation screams with
         its body at flying height, then drops it onto the floor (1.9 s in, the young's 1.15 s: `Kind.deathFall`); it
@@ -1769,7 +1780,9 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         blocks behind its feet, which no slope would suit) is at most a block under them or half a block
         over them (`GROUND_FIT`), turning to face that way as it comes down (else the spot where they come nearest the
         ground; on a hillside it faces up or down the slope); lying there it never turns to a facing that stands it
-        worse (`EmberBoss.groundMiss`, in `canTurn`). The Rage Wand's aim counts its pieces.
+        worse (`EmberBoss.groundMiss`, in `canTurn`). Its dive stopped short of its spot (the hillside in the way) lands
+        at the nearest spot round there it can get to that suits it the same way, settling onto the ground from the
+        moment it crashes (it hung a block up until its dive was over). The Rage Wand's aim counts its pieces.
         Headless tests `EmberFightGameTest.diveLandsBesideATree` (its wingtips beat up and down; diving at a cow beside a
         dead tree it lies on the floor, not the logs) and `diveLandsWellOnAHillside` (it climbs about 10 blocks first;
         coming in side-on to a slope rising a block every two, it lies with its feet and wrists on the ground).
@@ -2686,7 +2699,8 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   head, horns, tail and legs can each be hit as they move (its wingtips as they beat), flying near hills and trees it
   turns smoothly (no stop-start), and its dive by a tree lands it on the ground beside it, never up on it; before
   diving the adult climbs a little higher first (the young doesn't), and on the volcano's slopes it lands facing up or
-  down the slope, on its legs and both wrists (never propped on one arm with its legs in the air).
+  down the slope, on its legs and both wrists (never propped on one arm with its legs in the air); the young hatched in
+  the crater flies out over the rim to you, never stuck pressing into the volcano.
 
 ## Known bugs
 Minor issues found during the early-game build. None block playing. Fix them when that area is next changed, and remove the line once fixed.
@@ -2694,6 +2708,13 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   (world `gt_play_a`) `PortalSiteGameTest.cathedralIsMadeWithTheLand` failed with "1 of 5172 columns round the site are
   further from its ground level y 70 than they are from it (the first: -2916, 2699 (1 out) at y 67, diorite over diorite
   over diorite)": one column of stone a block too low in the staircase blend. Cosmetic. Not looked into yet.
+- **The bedrock arena test once found a spot for a zombie on its roof** (Boss area, found November 6): in a full fresh
+  run `BedrockArenaGameTest.nothingSpawnsInTheBedrockArena` failed with "a minecraft:zombie could spawn on the arena at
+  35, 50, 66" (on its roof's top); the arena leaves blocks with a block entity alone (a chest, a bee nest) by design, so
+  one of the test world's own at the roof's height stays and something can stand on it. The world's land, not the arena.
+- **The portal site's spot once had a beach beside it** (World site, found November 6): in a full fresh run
+  `PortalSiteGameTest.spotComesFromTheSeed` failed with "1 places under it are an ocean, river, beach or swamp
+  (minecraft:beach at -1744, -3075)"; seed-dependent, like the cathedral's blend column. Not looked into yet.
 - **`/dross goto biome cinder_wastes` near a small volcano area** (World site, found November 5): a landing keeps clear of
   every Emberdactyl volcano, and on a small Cinder Wastes patch the volcano's circle can fill all of it the landing looks
   at (the place and three more along the line from where you stand, `GotoBiome.Landing.find`): standing nearest such a
@@ -2762,7 +2783,8 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   `HuntsmanFightGameTest.eggBringsHimInTheSaddleCalm` failed with "left alone they should stay calm, him in the saddle"
   (247 of 249 passed); the next fresh run passed all 249. Like the creative-player test above, probably a foe of a
   neighbouring test within his 30-block sight. Again on October 30 (250 of 251; the next fresh run passed all 251):
-  worth a look.
+  worth a look. And on November 6 `HuntsmanFightGameTest.thePatrolGoesRound` ("3 of 4 points reached ... stage
+  WILD_HUNT"): the same, a foe of another test starting his fight mid-patrol.
 - **A Colossus lair with a patchy obsidian floor, on one seed** (Boss area, found October 29): in the same run
   `ColossusLairGameTest.lairsAreBuiltWhenAPlayerComesNear` failed with "the lair of group 2 isn't right: only 522 of the
   floor's 1313 blocks are obsidian"; the next fresh run passed. Not looked into yet.

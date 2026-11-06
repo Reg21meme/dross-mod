@@ -158,6 +158,18 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     /** Its pieces that touch the ground as it perches (its feet and wrists), in its own frame (made once). */
     @Nullable
     private double[][] contacts;
+    /** Stuck against rock: where it was when it started watching, the ticks watched and the way it was told to go in
+     *  them; then the ticks left of freeing itself and where it's going to. */
+    @Nullable
+    private Vec3 stuckFrom;
+    private int stuckWatch;
+    private int stuckHits;
+    private double stuckAsked;
+    /** This tick's look ahead found no clear way round a wall. */
+    private boolean walled;
+    int freeTicks;
+    @Nullable
+    private Vec3 freeTo;
     @Nullable
     private LivingEntity carried;
     @Nullable
@@ -537,7 +549,14 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             this.setDeltaMovement(Vec3.ZERO);
         }
         Vec3 want = this.getDeltaMovement();
-        if (!this.isDeadOrDying() && !this.standing())
+        this.walled = false;
+        boolean flying = !this.isDeadOrDying() && !this.isPassenger() && !this.grounded && !this.standing();
+        boolean freeing = flying && this.freeTicks > 0;
+        if (freeing)
+        {
+            want = this.freeing();               // stuck: to open sky, its pieces not stopping it
+        }
+        else if (!this.isDeadOrDying() && !this.standing())
         {
             want = this.steerClear(want);        // a wall ahead: it turns aside before it gets there
         }
@@ -547,7 +566,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             // "perched in the middle of the air", pecking from there)
             want = new Vec3(want.x, Math.min(want.y, -SETTLE_FALL), want.z);
         }
-        Vec3 go = this.isDeadOrDying() ? want : this.shapesClip(want);
+        Vec3 go = this.isDeadOrDying() || freeing ? want : this.shapesClip(want);
         boolean blocked = Math.abs(go.x - want.x) > 1.0E-7D || Math.abs(go.z - want.z) > 1.0E-7D;
         if (go != this.getDeltaMovement())
         {
@@ -572,7 +591,121 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
             Vec3 v = this.getDeltaMovement();
             this.setDeltaMovement(v.x, Math.max(v.y, CLIMB_ON_BUMP), v.z);
         }
+        boolean hit = blocked || this.horizontalCollision || (this.verticalCollision && !this.verticalCollisionBelow) || this.walled;
+        this.watchForStuck(flying, freeing, want.length(), hit);
         this.calculateEntityAnimation(true);
+    }
+
+    /**
+     * Watches it fly, {@link EmberTuning#STUCK_TICKS} ticks at a time: told to go at least {@link EmberTuning#STUCK_ASKED}
+     * blocks a tick on the whole, it got less than {@link EmberTuning#STUCK_PROGRESS} of that far from where it was, and
+     * blocks stopped it (or no way round them was clear) in at least {@link EmberTuning#STUCK_HIT_SHARE} of those ticks:
+     * held against rock, or bobbing against it, so it frees itself. (Chasing a quick enemy round and round in open air
+     * gets it little further either, but nothing stops it.)
+     */
+    private void watchForStuck(boolean flying, boolean freeing, double asked, boolean hit)
+    {
+        if (freeing)
+        {
+            if (--this.freeTicks <= 0)
+            {
+                this.freeTo = null;
+            }
+            this.stuckFrom = null;
+            return;
+        }
+        if (!flying)
+        {
+            this.stuckFrom = null;
+            return;
+        }
+        if (this.stuckFrom == null)
+        {
+            this.stuckFrom = this.position();
+            this.stuckWatch = 0;
+            this.stuckHits = 0;
+            this.stuckAsked = 0.0D;
+        }
+        this.stuckWatch++;
+        this.stuckAsked += asked;
+        if (hit)
+        {
+            this.stuckHits++;
+        }
+        if (this.stuckWatch >= STUCK_TICKS)
+        {
+            if (this.stuckAsked > STUCK_ASKED * this.stuckWatch && this.stuckHits >= STUCK_HIT_SHARE * this.stuckWatch
+                    && this.position().distanceTo(this.stuckFrom) < STUCK_PROGRESS * this.stuckAsked)
+            {
+                this.freeTicks = FREE_TICKS;
+                this.freeTo = this.openSky();
+            }
+            this.stuckFrom = null;
+        }
+    }
+
+    /** Freeing itself: across to the spot with open sky over it, climbing (its own box still stops it). */
+    private Vec3 freeing()
+    {
+        Vec3 h = Vec3.ZERO;
+        if (this.freeTo != null)
+        {
+            Vec3 across = new Vec3(this.freeTo.x - this.getX(), 0.0D, this.freeTo.z - this.getZ());
+            double d = across.length();
+            if (d > 0.3D)
+            {
+                h = across.scale(Math.min(FREE_SPEED, d) / d);
+            }
+        }
+        return new Vec3(h.x, FREE_CLIMB, h.z);
+    }
+
+    /** The nearest spot (out to {@link EmberTuning#FREE_SEARCH} blocks round) with nothing over any of its own box from
+     *  where it flies up (its corners and middle open to the sky), where that box fits; null if none. */
+    @Nullable
+    private Vec3 openSky()
+    {
+        double half = this.getBbWidth() / 2.0D;
+        for (int r = 0; r <= FREE_SEARCH; r++)
+        {
+            int n = r == 0 ? 1 : Math.max(8, r * 6);
+            for (int k = 0; k < n; k++)
+            {
+                double a = Math.PI * 2.0D * k / n;
+                double x = this.getX() + Math.cos(a) * r;
+                double z = this.getZ() + Math.sin(a) * r;
+                if (this.skyOver(x, z, half) && this.level().noCollision(this,
+                        this.getBoundingBox().move(x - this.getX(), 0.0D, z - this.getZ()).deflate(BODY_CLEAR)))
+                {
+                    return new Vec3(x, this.getY(), z);
+                }
+            }
+        }
+        return null;
+    }
+
+    /** True if nothing stands over its height anywhere under its box at x, z (half its width round). */
+    private boolean skyOver(double x, double z, double half)
+    {
+        for (double dx : new double[] {-half, 0.0D, half})
+        {
+            for (double dz : new double[] {-half, 0.0D, half})
+            {
+                int top = this.level().getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(x + dx), Mth.floor(z + dz));
+                if (top > this.getY() + 0.5D)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /** True if this box of its body is inside a block already (a pose change can swing a wing into the rock: it mustn't
+     *  hold it there). */
+    private boolean inBlock(AABB box)
+    {
+        return !this.level().noCollision(this, box.deflate(0.01D));
     }
 
     /**
@@ -637,9 +770,9 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         for (int i = 0; i < boxes.size(); i++)
         {
             AABB box = boxes.get(i);
-            if (box == null)
+            if (box == null || this.inBlock(box))
             {
-                continue;
+                continue;                       // (a piece already in a block doesn't hold it there)
             }
             if (move.y < 0.0D && !this.bearsDown(i))
             {
@@ -661,7 +794,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         double room = reach;
         for (AABB box : this.shapesAt(this.position(), this.yBodyRot))
         {
-            if (box != null)
+            if (box != null && !this.inBlock(box))
             {
                 room = Math.min(room, Entity.collideBoundingBox(this, sweep, box, this.level(), List.of()).length());
             }
@@ -703,6 +836,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 }
             }
         }
+        this.walled = true;
         return new Vec3(v.x * AVOID_SLOW, Math.max(v.y, CLIMB_ON_BUMP), v.z * AVOID_SLOW);
     }
 
@@ -713,9 +847,9 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
      */
     private boolean canTurn(float yaw)
     {
-        if (this.isDeadOrDying() || this.isPassenger())
+        if (this.isDeadOrDying() || this.isPassenger() || this.freeTicks > 0)
         {
-            return true;
+            return true;                        // (freeing itself, it turns as it must)
         }
         Vec3 at = this.position();
         // on the ground, never onto a facing where its feet or wrists stand worse (one in the hillside, its legs in the air)
@@ -1451,14 +1585,18 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         else if (this.moveTick == impact)
         {
             // onto its spot only if it can get there (a wall between: it crashes where the wall stopped it; the user,
-            // November 2: snapped onto a player outside the bedrock arena, it was out of it)
+            // November 2: snapped onto a player outside the bedrock arena, it was out of it); on the ground from now on,
+            // so stopped a little short and over it, it settles at once rather than hanging there till its dive is over
             this.setDeltaMovement(Vec3.ZERO);
-            if (this.canReach(spot))
+            this.grounded = true;
+            Landing near = this.canReach(spot) ? new Landing(spot, this.landYaw) : this.landingSpot(this.position(), true);
+            if (near != null)
             {
-                this.setPos(spot.x, spot.y, spot.z);
-                this.setYRot(this.landYaw);
-                this.yBodyRot = this.landYaw;
-                this.yHeadRot = this.landYaw;
+                // on its spot, or (stopped short) the nearest one round there it can reach where it stands well
+                this.setPos(near.spot().x, near.spot().y, near.spot().z);
+                this.setYRot(near.yaw());
+                this.yBodyRot = near.yaw();
+                this.yHeadRot = near.yaw();
             }
             else
             {
@@ -1483,7 +1621,12 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     /** Where its dive is aimed: the spot it lands on (and the way it will face there), its line from where it is. */
     private void aimDive()
     {
-        Landing landing = this.landingSpot(this.target.position());
+        Vec3 at = this.target.position();
+        Landing landing = this.landingSpot(at, false);
+        if (landing == null)
+        {
+            landing = new Landing(at, yawOf(at.subtract(this.position()), this.getYRot()));
+        }
         this.locked = landing.spot();
         this.landYaw = landing.yaw();
         this.lineFrom = this.position();
@@ -1500,9 +1643,11 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
      * in the air, "it should recognise it has the space to drop down"), and where, facing its way in or a little either
      * side of it, its feet and both wrists meet the ground (the user, November 5: on its volcano's slope "he stands up on
      * one arm instead of his legs"): the nearest such spot and its best facing; else, of the spots where it stands, the
-     * one where they come nearest the ground; {@code spot} itself if it stands nowhere near.
+     * one where they come nearest the ground; null if it stands nowhere near. {@code reachable}: only spots it can get to
+     * from where it is (its dive stopped short by the hillside: it settles near where it was stopped).
      */
-    private Landing landingSpot(Vec3 spot)
+    @Nullable
+    private Landing landingSpot(Vec3 spot, boolean reachable)
     {
         float way = yawOf(spot.subtract(this.position()), this.getYRot());
         Landing best = null;
@@ -1516,7 +1661,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 double x = spot.x + Math.cos(a) * r;
                 double z = spot.z + Math.sin(a) * r;
                 double y = this.groundAt(x, z);
-                if (!this.standsAt(x, y, z))
+                if (!this.standsAt(x, y, z) || reachable && !this.canReach(new Vec3(x, y, z)))
                 {
                     continue;
                 }
@@ -1536,12 +1681,14 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
                 return best;
             }
         }
-        return best != null ? best : new Landing(spot, way);
+        return best;
     }
 
     /**
      * How badly it would stand at x, y, z facing {@code yawDeg}: how far the ground is from the furthest of its feet and
-     * wrists (its pieces that touch the ground as it perches), in blocks; one in the ground counts double.
+     * wrists (its pieces that touch the ground as it perches), in blocks; one in the ground counts double. The ground
+     * under one is the highest under its middle and half way out to its corners (what it rests on: a wrist across the
+     * edge of a step rests on the higher one, never seen as hanging over the lower one by a hair's turn).
      */
     double groundMiss(double x, double y, double z, float yawDeg)
     {
@@ -1553,11 +1700,22 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             AABB w = ShapedPart.turned(x, y, z, b, cos, sin);
             double bottom = y + Math.max(0.0D, b[1] + FireHitboxes.PAD);     // (where it is, its box's padding off)
-            double ground = groundUnder(this.level(), (w.minX + w.maxX) / 2.0D, y, (w.minZ + w.maxZ) / 2.0D);
+            double cx = (w.minX + w.maxX) / 2.0D;
+            double cz = (w.minZ + w.maxZ) / 2.0D;
+            double hx = (w.maxX - w.minX) / 4.0D;
+            double hz = (w.maxZ - w.minZ) / 4.0D;
+            double ground = -Double.MAX_VALUE;
+            for (double[] o : CONTACT_POINTS)
+            {
+                ground = Math.max(ground, groundUnder(this.level(), cx + o[0] * hx, y, cz + o[1] * hz));
+            }
             worst = Math.max(worst, ground > bottom ? (ground - bottom) * 2.0D : bottom - ground);
         }
         return worst;
     }
+
+    /** Where under a foot or wrist the ground is read: its middle and half way out to each corner. */
+    private static final double[][] CONTACT_POINTS = {{0.0D, 0.0D}, {-1.0D, -1.0D}, {-1.0D, 1.0D}, {1.0D, -1.0D}, {1.0D, 1.0D}};
 
     /** Its legs' and wings' pieces that touch the ground as it perches (its feet and wrists), in its own frame (not its
      *  tail's tip, which lies on the ground 4.5 blocks behind its feet: no slope would ever suit it). */

@@ -897,6 +897,158 @@ public final class EmberFightGameTest
                 .thenSucceed();
     }
 
+    /**
+     * Over a volcano (the user, November 6, 2026: "the young Emberdactyl is now stuck going into a wall forever ... it's
+     * doing its glide thing and moving into the volcano and not stopping"): gliding at a cow on the far side of a cone of
+     * stone as steep as a volcano's flank and 49 high, the young gets over or round it to the cow, never held against the
+     * rock for 3 s.
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_cone", timeoutTicks = 2_000_000)
+    public static void youngGetsOverAVolcano(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 6800, -6600);
+        run.watch(helper);
+        Cow[] cow = new Cow[1];
+        EmberBoss[] young = new EmberBoss[1];
+        int[] still = {0, 0};          // ticks in a row it hardly moved while it meant to fly on, and the most of those
+        Vec3[] last = {null};
+        int[] ticks = {0};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int dx = -CONE_FOOT; dx <= CONE_FOOT; dx++)
+                    {
+                        for (int dz = -CONE_FOOT; dz <= CONE_FOOT; dz++)
+                        {
+                            int h = (int) Math.round((CONE_FOOT - Math.hypot(dx, dz)) * CONE_SLOPE);
+                            for (int y = 1; y <= Math.min(h, CONE_HEIGHT); y++)
+                            {
+                                run.level.setBlock(pos.set(run.x + dx, FLOOR_Y + y, run.z + dz), Blocks.STONE.defaultBlockState(),
+                                        Block.UPDATE_CLIENTS);
+                            }
+                        }
+                    }
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.centre.x + CONE_FOOT + 6.0D, FLOOR_Y + 1, run.centre.z, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    cow[0].setNoAi(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    young[0] = run.spawn(ModEntities.EMBERYOUNG.get(), new Vec3(run.centre.x - CONE_FOOT - 8.0D, FLOOR_Y + 14, run.centre.z));
+                    young[0].testMove(EmberBoss.Move.GLIDE, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("the young to get over the cone to the cow", () -> {
+                    EmberBoss y = young[0];
+                    ticks[0]++;
+                    boolean flying = y.move == EmberBoss.Move.GLIDE || y.move == EmberBoss.Move.NONE;
+                    if (flying && last[0] != null && y.position().distanceTo(last[0]) < 0.05D)
+                    {
+                        still[0]++;
+                        still[1] = Math.max(still[1], still[0]);
+                    }
+                    else
+                    {
+                        still[0] = 0;
+                    }
+                    last[0] = y.position();
+                    if (still[0] > 60)
+                    {
+                        run.giveUp("it was held against the cone for 3 s at " + String.format("%.1f, %.1f, %.1f", y.getX() - run.x,
+                                y.getY() - FLOOR_Y, y.getZ() - run.z) + " from its foot's middle (" + y.animation() + ", " + y.move + ")");
+                        return true;
+                    }
+                    return y.getX() > run.centre.x + 20.0D;
+                }, () -> young[0].move + " at " + young[0].position()))
+                .thenExecute(() -> run.guard(() -> {
+                    LOGGER.info("[ember test] the young got over a cone 49 high to the cow in {} ticks (held still at most {} ticks)",
+                            ticks[0], still[1]);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /**
+     * Out of a crater (the young hatches in its volcano's crater, under its jagged rim): from the bottom of a stone pit
+     * narrower than its wings, under a lip of rock reaching in over it, the young gets out to the cow outside within 20 s
+     * (its wings under the lip, against the walls and unable to turn, it had nowhere to go and pressed into the rock for
+     * ever).
+     */
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_crater", timeoutTicks = 2_000_000)
+    public static void youngClimbsOutOfACrater(GameTestHelper helper)
+    {
+        Run run = new Run(helper.getLevel(), 6800, -6800);
+        run.watch(helper);
+        Cow[] cow = new Cow[1];
+        EmberBoss[] young = new EmberBoss[1];
+        int[] ticks = {0};
+        helper.startSequence()
+                .thenWaitUntil(() -> run.guard(run::ready))
+                .thenExecute(() -> run.guard(() -> {
+                    run.floor();
+                    BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    for (int dx = -PIT_WALL; dx <= PIT_WALL; dx++)
+                    {
+                        for (int dz = -PIT_WALL; dz <= PIT_WALL; dz++)
+                        {
+                            double r = Math.hypot(dx, dz);
+                            for (int y = 1; y <= PIT_DEPTH; y++)
+                            {
+                                boolean wall = r >= PIT_RADIUS && r <= PIT_WALL;
+                                boolean lip = r >= PIT_LIP && r <= PIT_WALL && y > PIT_DEPTH - 3;
+                                if (wall || lip)
+                                {
+                                    run.level.setBlock(pos.set(run.x + dx, FLOOR_Y + y, run.z + dz), Blocks.STONE.defaultBlockState(),
+                                            Block.UPDATE_CLIENTS);
+                                }
+                            }
+                        }
+                    }
+                    cow[0] = EntityType.COW.create(run.level);
+                    cow[0].moveTo(run.centre.x + PIT_WALL + 14.0D, FLOOR_Y + 1, run.centre.z, 0.0F, 0.0F);
+                    cow[0].setInvulnerable(true);
+                    cow[0].setNoAi(true);
+                    run.level.addFreshEntity(cow[0]);
+                    run.extras.add(cow[0]);
+                    young[0] = run.spawn(ModEntities.EMBERYOUNG.get(), new Vec3(run.centre.x, FLOOR_Y + 2, run.centre.z));
+                    young[0].testMove(EmberBoss.Move.GLIDE, cow[0]);
+                }))
+                .thenWaitUntil(() -> run.waitFor("the young to get out of the pit", () -> {
+                    EmberBoss y = young[0];
+                    if (++ticks[0] > 400)
+                    {
+                        run.giveUp("after 20 s the young is still in the pit, at " + String.format("%.1f, %.1f, %.1f", y.getX() - run.x,
+                                y.getY() - FLOOR_Y, y.getZ() - run.z) + " from its floor's middle (" + y.animation() + ", " + y.move + ", freeing "
+                                + y.freeTicks + ")");
+                        return true;
+                    }
+                    if (ticks[0] % 40 == 0)
+                    {
+                        LOGGER.info("[ember test] pit: tick {} at {}, {}, {} ({}, freeing {})", ticks[0], String.format("%.1f", y.getX() - run.x),
+                                String.format("%.1f", y.getY() - FLOOR_Y), String.format("%.1f", y.getZ() - run.z), y.move, y.freeTicks);
+                    }
+                    return y.getY() > FLOOR_Y + PIT_DEPTH + 1 || Math.hypot(y.getX() - run.centre.x, y.getZ() - run.centre.z) > PIT_WALL + 2;
+                }, () -> young[0].move + " at " + young[0].position()))
+                .thenExecute(() -> run.guard(() -> {
+                    LOGGER.info("[ember test] the young got out of a pit {} round under a lip in {} ticks", PIT_RADIUS, ticks[0]);
+                    run.cleanUp();
+                }))
+                .thenSucceed();
+    }
+
+    /** The pit in {@link #youngClimbsOutOfACrater}: open this far round, its wall out to this far, its lip in to this far
+     *  over the top 3 blocks, this deep. */
+    private static final int PIT_RADIUS = 9;
+    private static final int PIT_WALL = 13;
+    private static final int PIT_LIP = 5;
+    private static final int PIT_DEPTH = 24;
+
+    /** The cone in {@link #youngGetsOverAVolcano}: this far round at its foot, rising this much a block in, at most this high. */
+    private static final int CONE_FOOT = 28;
+    private static final double CONE_SLOPE = 1.75D;
+    private static final int CONE_HEIGHT = 49;
+
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_glide", timeoutTicks = 2_000_000)
     public static void farGlideEndsInADiveAndTheYoungDropsFire(GameTestHelper helper)
     {

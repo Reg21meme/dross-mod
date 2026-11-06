@@ -96,6 +96,26 @@ public final class EmberTuning
      *  down ... the younger one's height is good, I am talking about the adult": the young dives from where it is). */
     public static final double DIVE_CLIMB = 10.0D;
     public static final int DIVE_CLIMB_TICKS = 40;
+    /**
+     * Stuck, it frees itself (the user, November 6, 2026: "the young Emberdactyl is now stuck going into a wall forever
+     * ... moving into the volcano and not stopping": hatched in its crater, its wings under the jagged rim's overhang and
+     * against the walls, it could neither climb, go on nor turn, only bob against the rock). Flying, told to go at least
+     * {@link #STUCK_ASKED} blocks a tick on the whole over {@link #STUCK_TICKS} ticks but ending up less than
+     * {@link #STUCK_PROGRESS} of that far from where it was, blocks stopping it in at least {@link #STUCK_HIT_SHARE} of
+     * those ticks (chasing a quick enemy round in open air isn't being stuck): for {@link #FREE_TICKS} ticks its pieces
+     * don't stop it (its
+     * own box still does), and it slides at up to
+     * {@link #FREE_SPEED} blocks a tick to the nearest spot within {@link #FREE_SEARCH} blocks with open sky over all of it,
+     * climbing {@link #FREE_CLIMB} a tick. (A piece already inside a block never stops it either.)
+     */
+    public static final double STUCK_ASKED = 0.15D;
+    public static final double STUCK_PROGRESS = 0.25D;
+    public static final double STUCK_HIT_SHARE = 0.5D;
+    public static final int STUCK_TICKS = 30;
+    public static final int FREE_TICKS = 40;
+    public static final double FREE_SPEED = 0.6D;
+    public static final double FREE_CLIMB = 0.5D;
+    public static final int FREE_SEARCH = 12;
 
     // ---- Waking ----
 
