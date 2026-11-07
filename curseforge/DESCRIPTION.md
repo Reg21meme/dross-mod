@@ -1,4 +1,4 @@
-![The Dross](https://media.forgecdn.net/attachments/2107/192/dross_banner-png.png)
+![The Dross](https://media.forgecdn.net/attachments/2160/107/dross_banner-png.png)
 
 **Blue portals have appeared across the world, in shapes no one built. Something on the other side wants in.**
 
@@ -30,15 +30,15 @@ The Dross is a dangerous dimension for the mid-to-late game.
 
 <div class="spoiler">
 <p>The Dross is always night. Five biomes, each with its own ground, plants and fog.</p>
-<p><img src="biome_silverwood_forest.png" alt="Silverwood Forest"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/102/biome_silverwood_forest-png.png" alt="Silverwood Forest"></p>
 <p><b>Silverwood Forest</b>: the dark forest round the hub, its silverwood trees hung with glowing Stormvine.</p>
-<p><img src="biome_cinder_wastes.png" alt="Cinder Wastes"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/99/biome_cinder_wastes-png.png" alt="Cinder Wastes"></p>
 <p><b>Cinder Wastes</b>: ash, basalt, smoking vents and pools of lava under towering volcanoes.</p>
-<p><img src="biome_blightwood.png" alt="Blightwood"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/98/biome_blightwood-png.png" alt="Blightwood"></p>
 <p><b>Blightwood</b>: a rotting forest of giant mushrooms under a sickly green fog, with a maze of sewers beneath it.</p>
-<p><img src="biome_rimefall.png" alt="Rimefall"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/101/biome_rimefall-png.png" alt="Rimefall"></p>
 <p><b>Rimefall</b>: snowfields, frost-covered dead trees, great frozen lakes and villages of igloos.</p>
-<p><img src="biome_gravecrags.png" alt="The Gravecrags"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/100/biome_gravecrags-png.png" alt="The Gravecrags"></p>
 <p><b>The Gravecrags</b>: snow-capped peaks and cliffs, far out from the hub.</p>
 </div>
 
@@ -47,13 +47,13 @@ The Dross is a dangerous dimension for the mid-to-late game.
 <div class="spoiler">
 <p>Each boss guards its own lair, and once beaten, it never comes back. Travel further out and you'll find more.</p>
 <p><b>Trophies</b>: every player who helps beat a boss gets a trophy. Right-click it to change its pose.</p>
-<p><img src="https://media.forgecdn.net/attachments/2065/943/boss_cinder_colossus-png.png" alt="The Cinder Colossus"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/103/boss_cinder_colossus-png.png" alt="The Cinder Colossus"></p>
 <p><b>The Cinder Colossus</b>: a hulking golem with volcanoes on its back that cracks open into a molten core as you fight it.</p>
-<p><img src="https://media.forgecdn.net/attachments/2107/195/boss_rat_king-png.png" alt="The Rat King"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/106/boss_rat_king-png.png" alt="The Rat King"></p>
 <p><b>The Rat King</b>: he sleeps on his hoard of gold at the end of the sewers, until you wake him.</p>
-<p><img src="https://media.forgecdn.net/attachments/2107/191/boss_huntsman-png.png" alt="The Huntsman"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/105/boss_huntsman-png.png" alt="The Huntsman"></p>
 <p><b>The Huntsman</b>: he rides his Alpha Moose through frozen Rimefall, and when you knock him off, you fight them both at once.</p>
-<p><img src="boss_emberdactyl.png" alt="The Emberdactyl"></p>
+<p><img src="https://media.forgecdn.net/attachments/2160/104/boss_emberdactyl-png.png" alt="The Emberdactyl"></p>
 <p><b>The Emberdactyl</b>: it circles its volcano in the Cinder Wastes, guarding its egg. Bring it down and the egg hatches.</p>
 </div>
 
@@ -72,4 +72,4 @@ The Dross is a dangerous dimension for the mid-to-late game.
 
 This mod is in beta development.
 
-![Thank you!](https://media.forgecdn.net/attachments/2107/194/thank_you-png.png)
+![Thank you!](https://media.forgecdn.net/attachments/2160/109/thank_you-png.png)
