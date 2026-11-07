@@ -6,30 +6,27 @@ The Dross is a dangerous dimension for the mid-to-late game.
 
 ## New update
 
-- **A new boss: the Emberdactyl.** A giant volcanic pterosaur that nests on its own volcano in the Cinder Wastes. Bring it down and its egg hatches.
-- **Tougher bosses.** More health, the Rat King's staff poisons, damage limits,
-  and bosses grow stronger with every extra player in the fight.
+- **A new boss: the Emberdactyl.** A giant volcanic pterosaur that nests on its own volcano in the Cinder Wastes.
+- **Tougher bosses.** More health, the Rat King's staff poisons, damage limits, and bosses grow stronger with every extra player.
 - **New mobs in the Cinder Wastes:** the Pallbearer, and the Cinder Hermit in eight different shells.
-- **No more freezes when a world starts.** The portal site, the hub and the trader's chapel are now made with the world, like villages.
+- **No more freezes when a world starts.** The portal site, the hub and the trader's chapel are now made with the world.
 - **A settings file for modpacks:** `config/dross-common.toml`.
 
 ## Upcoming
 
-- **A new quest system** inside the Dross.
-- **The Dross reaches into the Overworld.** How you interact with the Dross will change before you even step through the portal.
+**A new quest system** inside the Dross. New Dross ruins will appear throughout the world.
 
 ## Getting in
 
-- **Find a Weathered Letter** 
-- **Meet the Dross Trader** 
-- **Forge the Rift Key.** 
-- **Light the portal.** 
-
+1. **Find a Weathered Letter**
+2. **Meet the Dross Trader**
+3. **Forge the Rift Key.**
+4. **Light the portal.**
 
 ## Biomes
 
 <div class="spoiler">
-<p>The Dross is always night. Five biomes, each with its own ground, plants and fog.</p>
+<p>The Dross is always night. Five biomes, each with its own landscapes, treasures, and dangers.</p>
 <p><img src="https://media.forgecdn.net/attachments/2160/102/biome_silverwood_forest-png.png" alt="Silverwood Forest"></p>
 <p><b>Silverwood Forest</b>: the dark forest round the hub, its silverwood trees hung with glowing Stormvine.</p>
 <p><img src="https://media.forgecdn.net/attachments/2160/99/biome_cinder_wastes-png.png" alt="Cinder Wastes"></p>
