@@ -1,5 +1,7 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.boss.BossScale;
+import com.reg21meme.dross.boss.DrossBoss;
 import com.reg21meme.dross.boss.rage.RageLeader;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
@@ -54,7 +56,7 @@ import java.util.UUID;
  * animal's or a man's pace ({@link HuntMoveControl}). Raging one with the Rage Wand rages its partner onto the same team
  * ({@link RageLeader}).
  */
-public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLeader
+public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLeader, DrossBoss
 {
     /** A move's last frame is held this many ticks before it goes back to standing (on show). */
     public static final int HOLD_AFTER = 20;
@@ -139,6 +141,8 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     boolean angry;
     int stageTicks;
     int lonelyTicks;
+    /** Its share of the bosses' rules (boss/BossRules: the extra players' bonus, kept the same on both of them). Saved. */
+    private final BossScale bossScale = new BossScale();
     @Nullable
     ServerBossEvent bar;
     @Nullable
@@ -388,6 +392,10 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             if (!this.showcase)
             {
                 HuntFight.tick(this);
+                if (this.isAlive())
+                {
+                    this.bossScale.tick(this);
+                }
             }
             else
             {
@@ -607,6 +615,79 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         return speed > TRAIL_MAX_SPEED ? move.scale(TRAIL_MAX_SPEED / speed) : move;
     }
 
+    // ---------------------------------------------------------------- the bosses' rules (boss/BossRules)
+
+    @Override
+    public BossScale bossScale()
+    {
+        return this.bossScale;
+    }
+
+    @Override
+    public double bossBarRange()
+    {
+        return HuntsmanTuning.BOSS_BAR_RANGE;
+    }
+
+    @Override
+    public boolean followsBossRules()
+    {
+        return !this.showcase;
+    }
+
+    /** In the Wild Hunt a hit is capped against their shared bar's full health, after it each against its own. */
+    @Override
+    public float hitCapHealth()
+    {
+        return this.stage.sharesBar() ? HuntFight.wildHuntMax(this) : this.getMaxHealth();
+    }
+
+    /**
+     * More players (or the bonus dropped): its own health keeps its share, and so does the Wild Hunt's bar (the moose
+     * keeps it); its partner gets the same bonus.
+     */
+    @Override
+    public void bonusChanged(double oldFactor, double newFactor)
+    {
+        BossScale.applyHealth(this, this.bossScale.extraPlayers());
+        if (this instanceof AlphaMoose && oldFactor > 0.0D)
+        {
+            this.wildHunt *= (float) (newFactor / oldFactor);
+        }
+        HuntMob partner = HuntFight.partner(this);
+        if (partner != null && partner.isAlive())
+        {
+            int extra = this.bossScale.extraPlayers();
+            if (extra > partner.bossScale.extraPlayers())
+            {
+                partner.bossScale.raiseTo(partner, extra);
+            }
+            else if (extra == 0 && partner.bossScale.extraPlayers() > 0)
+            {
+                partner.bossScale.drop(partner);
+            }
+        }
+    }
+
+    /** Only while calm: a fight is broken off by its own rule ({@link HuntFight}, the same 3 minutes), which drops the
+     * bonus too. */
+    @Override
+    public boolean canResetNow()
+    {
+        return this.stage == HuntStage.CALM && this.isAlive();
+    }
+
+    /** Calm, nobody near for 3 minutes: the bonus is gone, both at their own full health again. */
+    @Override
+    public void resetFight()
+    {
+        this.setHealth(this.getMaxHealth());
+        if (this instanceof AlphaMoose)
+        {
+            this.wildHunt = HuntFight.wildHuntMax(this);
+        }
+    }
+
     // ---------------------------------------------------------------- being hurt, dying
 
     /** On show only {@code /kill} hurts them; fighting, the split's moment can't be hurt either. */
@@ -776,6 +857,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         }
         tag.putString(TAG_STAGE, this.stage.name());
         tag.putFloat(TAG_WILD_HUNT, this.wildHunt);
+        this.bossScale.save(tag);
         tag.putBoolean(TAG_ANGRY, this.angry);
         if (this.home != null)
         {
@@ -865,7 +947,9 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         {
             this.stage = HuntStage.DUEL;
         }
-        this.wildHunt = tag.contains(TAG_WILD_HUNT) ? tag.getFloat(TAG_WILD_HUNT) : HuntsmanTuning.WILD_HUNT_HEALTH;
+        this.bossScale.load(tag);
+        this.wildHunt = tag.contains(TAG_WILD_HUNT) ? tag.getFloat(TAG_WILD_HUNT)
+                : HuntsmanTuning.WILD_HUNT_HEALTH * (float) this.bossScale.healthFactor();
         this.angry = tag.getBoolean(TAG_ANGRY);
         if (tag.contains(TAG_HOME))
         {

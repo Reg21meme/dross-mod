@@ -25,6 +25,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MobSpawnType;
@@ -88,7 +89,7 @@ public final class EmberFightGameTest
                     {
                         throw new GameTestAssertException("it's fighting before anyone came near");
                     }
-                    if (Math.abs(adult[0].getMaxHealth() - EmberTuning.ADULT_HEALTH) > 0.01F)
+                    if (Math.abs(adult[0].getAttribute(Attributes.MAX_HEALTH).getBaseValue() - EmberTuning.ADULT_HEALTH) > 0.01D)
                     {
                         throw new GameTestAssertException("its health is " + adult[0].getMaxHealth());
                     }
@@ -104,7 +105,7 @@ public final class EmberFightGameTest
                     {
                         throw new GameTestAssertException("a blow on its wing didn't hurt it (" + before + " -> " + adult[0].getHealth() + ")");
                     }
-                    adult[0].setHealth(EmberTuning.ADULT_HEALTH * EmberTuning.ENRAGE_AT + 5.0F);
+                    adult[0].setHealth(adult[0].getMaxHealth() * EmberTuning.ENRAGE_AT + 5.0F);
                     adult[0].invulnerableTime = 0;
                     adult[0].hurt(run.player.damageSources().playerAttack(run.player), 30.0F);
                     if (!adult[0].isEnraged())
@@ -176,6 +177,7 @@ public final class EmberFightGameTest
                 .thenIdle(5)
                 .thenExecute(() -> run.guard(() -> {
                     adult[0].invulnerableTime = 0;
+                    adult[0].setHealth(1.0F); // (a hit takes at most a fifteenth of its health: boss/BossRules)
                     adult[0].hurt(run.player.damageSources().playerAttack(run.player), 10000.0F);
                     if (adult[0].isAlive())
                     {
@@ -191,7 +193,7 @@ public final class EmberFightGameTest
                     return young[0] != null && egg[0].isHatched();
                 }, () -> "hatched " + egg[0].isHatched() + ", young " + (young[0] != null) + ", adult dead for " + adult[0].deathTime))
                 .thenExecute(() -> run.guard(() -> {
-                    if (Math.abs(young[0].getMaxHealth() - EmberTuning.YOUNG_HEALTH) > 0.01F)
+                    if (Math.abs(young[0].getAttribute(Attributes.MAX_HEALTH).getBaseValue() - EmberTuning.YOUNG_HEALTH) > 0.01D)
                     {
                         throw new GameTestAssertException("the young's health is " + young[0].getMaxHealth());
                     }
@@ -214,6 +216,7 @@ public final class EmberFightGameTest
                         throw new GameTestAssertException("\"Wings Clipped\" already, before the young was beaten");
                     }
                     young[0].invulnerableTime = 0;
+                    young[0].setHealth(1.0F);
                     young[0].hurt(run.player.damageSources().playerAttack(run.player), 10000.0F);
                 }))
                 .thenWaitUntil(() -> run.waitFor("\"Wings Clipped\"", () -> DrossAdvancements.has(run.player, DrossAdvancements.WINGS_CLIPPED),

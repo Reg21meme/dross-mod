@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.fire.client;
 
+import com.reg21meme.dross.boss.ShowcaseOnly;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.reg21meme.dross.boss.fire.FireCandidate;
@@ -44,6 +45,10 @@ public class FireCandidateRenderer extends GeoEntityRenderer<FireCandidate>
     public void render(FireCandidate candidate, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource bufferSource, int packedLight)
     {
+        if (!ShowcaseOnly.has(candidate.getDesign()))
+        {
+            return; // a showcase-only model the released jar leaves out (boss/ShowcaseOnly): nothing to draw
+        }
         this.shadowRadius = candidate.getDesign().shadow();
         super.render(candidate, entityYaw, partialTick, poseStack, bufferSource, packedLight);
     }

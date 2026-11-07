@@ -1,5 +1,6 @@
 package com.reg21meme.dross.command;
 
+import com.reg21meme.dross.boss.ShowcaseOnly;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.DrossColors;
@@ -175,6 +176,13 @@ public final class RimefallShowcase
     public static int buildGallery(CommandContext<CommandSourceStack> context)
     {
         CommandSourceStack source = context.getSource();
+        if (!ShowcaseOnly.rimefallStatues())
+        {
+            // (the released jar leaves the showcase-only models out: boss/ShowcaseOnly)
+            source.sendFailure(Component.literal("The Rimefall gallery's statues aren't in this build of the mod "
+                    + "(they're only in the project, for the dev runs)."));
+            return 0;
+        }
         ServerLevel level = source.getLevel();
         Vec3 position = source.getPosition();
         Direction look = Direction.fromYRot(source.getRotation().y);

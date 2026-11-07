@@ -221,6 +221,38 @@ tasks.named('jar', Jar).configure {
     exclude 'com/reg21meme/dross/dimension/TerrainSurvey*.class'
     exclude 'com/reg21meme/dross/enchant/RisenTestWait*.class'
 
+    // Showcase-only models (the user, November 7, 2026: "do not include the showcase galleries ... remove it from the
+    // jar file, you can keep it in my system"): the Rimefall candidates' statues, the fire servant candidates (but the
+    // Firestorm's first look, the fire tornado's), the Emberdactyl egg's looks the fight never wears, and the frozen
+    // copies of the moving fire designs (the game draws those from firemob/). The dev runs and the tests still have
+    // them; in the jar their galleries aren't offered (boss/ShowcaseOnly). About 12 MB.
+    exclude 'assets/dross/geo/entity/rimefall/**', 'assets/dross/textures/entity/rimefall/**'
+    exclude 'assets/dross/animations/entity/rimefall/**'
+    exclude 'assets/dross/geo/entity/fire/widow*', 'assets/dross/textures/entity/fire/widow*'
+    exclude 'assets/dross/geo/entity/fire/toad*', 'assets/dross/textures/entity/fire/toad*'
+    exclude 'assets/dross/geo/entity/fire/scarab*', 'assets/dross/textures/entity/fire/scarab*'
+    exclude 'assets/dross/geo/entity/fire/haze*', 'assets/dross/textures/entity/fire/haze*'
+    exclude 'assets/dross/geo/entity/fire/effigy*', 'assets/dross/textures/entity/fire/effigy*'
+    exclude 'assets/dross/geo/entity/fire/glasswright*', 'assets/dross/textures/entity/fire/glasswright*'
+    exclude 'assets/dross/geo/entity/fire/lamplighter*', 'assets/dross/textures/entity/fire/lamplighter*'
+    exclude 'assets/dross/geo/entity/fire/kiln*', 'assets/dross/textures/entity/fire/kiln*'
+    exclude 'assets/dross/geo/entity/fire/roc*', 'assets/dross/textures/entity/fire/roc*'
+    exclude 'assets/dross/geo/entity/fire/smith*', 'assets/dross/textures/entity/fire/smith*'
+    exclude 'assets/dross/geo/entity/fire/pallbearer*', 'assets/dross/textures/entity/fire/pallbearer*'
+    exclude 'assets/dross/geo/entity/fire/starborn*', 'assets/dross/textures/entity/fire/starborn*'
+    exclude 'assets/dross/geo/entity/fire/hermit*', 'assets/dross/textures/entity/fire/hermit*'
+    exclude 'assets/dross/geo/entity/fire/moth*', 'assets/dross/textures/entity/fire/moth*'
+    exclude 'assets/dross/geo/entity/fire/firestormb*', 'assets/dross/textures/entity/fire/firestormb*'
+    exclude 'assets/dross/geo/entity/fire/firestormc*', 'assets/dross/textures/entity/fire/firestormc*'
+    exclude 'assets/dross/geo/entity/fire/firestormd*', 'assets/dross/textures/entity/fire/firestormd*'
+    exclude 'assets/dross/geo/entity/fire/emberegga*', 'assets/dross/textures/entity/fire/emberegga*'
+    exclude 'assets/dross/geo/entity/fire/embereggc*', 'assets/dross/textures/entity/fire/embereggc*'
+    exclude 'assets/dross/geo/entity/fire/embereggd*', 'assets/dross/textures/entity/fire/embereggd*'
+    exclude 'assets/dross/geo/entity/fire/emberdactyla*', 'assets/dross/textures/entity/fire/emberdactyla*'
+    exclude 'assets/dross/geo/entity/fire/emberyounga*', 'assets/dross/textures/entity/fire/emberyounga*'
+    exclude 'assets/dross/geo/entity/fire/mobhermit*', 'assets/dross/textures/entity/fire/mobhermit*'
+    exclude 'assets/dross/geo/entity/fire/mobpallbearer*', 'assets/dross/textures/entity/fire/mobpallbearer*'
+
     // This is the preferred method to reobfuscate your jar file
     finalizedBy 'reobfJar'
 }

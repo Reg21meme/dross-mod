@@ -471,6 +471,15 @@ public final class HuntFight
         }
     }
 
+    /** The Wild Hunt's bar when full: {@link HuntsmanTuning#WILD_HUNT_HEALTH}, more with more players (the moose's
+     * bonus, boss/BossRules). */
+    static float wildHuntMax(HuntMob mob)
+    {
+        AlphaMoose moose = mooseOf(mob);
+        HuntMob holder = moose != null ? moose : mob;
+        return HuntsmanTuning.WILD_HUNT_HEALTH * (float) holder.bossScale().healthFactor();
+    }
+
     /** What either of them lost in stage 1, off the bar they share. */
     static void damageWildHunt(HuntMob mob, float amount)
     {
@@ -798,6 +807,7 @@ public final class HuntFight
         }
         for (HuntMob m : new HuntMob[] {leader, partner})
         {
+            m.bossScale().drop(m);                  // (boss/BossRules: the extra players' bonus goes with the reset)
             m.stage = HuntStage.CALM;
             m.stageTicks = 0;
             m.lonelyTicks = 0;
@@ -818,7 +828,7 @@ public final class HuntFight
         AlphaMoose moose = mooseOf(leader);
         if (moose != null)
         {
-            moose.wildHunt = HuntsmanTuning.WILD_HUNT_HEALTH;
+            moose.wildHunt = wildHuntMax(moose);
         }
         if (h != null && moose != null && h.getVehicle() != moose)
         {
@@ -1676,7 +1686,7 @@ public final class HuntFight
         {
             mob.bar.setName(name);
         }
-        float progress = look.equals("wild_hunt") ? mob.wildHunt / HuntsmanTuning.WILD_HUNT_HEALTH
+        float progress = look.equals("wild_hunt") ? mob.wildHunt / wildHuntMax(mob)
                 : mob.getHealth() / mob.getMaxHealth();
         mob.bar.setProgress(Mth.clamp(progress, 0.0F, 1.0F));
         double range = HuntsmanTuning.BOSS_BAR_RANGE;

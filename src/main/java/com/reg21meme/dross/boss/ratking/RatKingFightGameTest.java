@@ -112,6 +112,8 @@ public final class RatKingFightGameTest
     private static final float YAW_EAST = -90.0F;
     private static final float HUGE_HIT = 1000.0F;
     private static final float SMALL_HIT = 10.0F;
+    /** Health just over a burrow's or the rage's line, less than a capped hit (boss/BossRules: a fifteenth of his). */
+    private static final float JUST_OVER = 5.0F;
     private static final float HEALTH_TOLERANCE = 0.01F;
     /** Waits after something should have happened. */
     private static final int AFTER = 4;
@@ -328,12 +330,12 @@ public final class RatKingFightGameTest
         king.startFightNow();
         king.setTarget(target);
         helper.startSequence()
-                // The first burrow, at 175.
-                .thenExecute(() -> hitIntoBurrow(helper, king, max - RatKingTuning.BURROW_EVERY))
+                // The first burrow, at about 219 of 250.
+                .thenExecute(() -> hitIntoBurrow(helper, king, burrowAt(king, 1, false)))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.BURROWED))
                 .thenExecute(() -> {
                     under[0] = level.getGameTime();
-                    checkUnderground(helper, king, max - RatKingTuning.BURROW_EVERY);
+                    checkUnderground(helper, king, burrowAt(king, 1, false));
                 })
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
                 .thenExecute(() -> {
@@ -345,18 +347,18 @@ public final class RatKingFightGameTest
                     checkRats(helper, king, rats.get(0), false);
                     checkPopup(helper, king, target);
                 })
-                // The second, at 150.
+                // The second, at about 188.
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
-                .thenExecute(() -> hitIntoBurrow(helper, king, max - 2 * RatKingTuning.BURROW_EVERY))
+                .thenExecute(() -> hitIntoBurrow(helper, king, burrowAt(king, 2, false)))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
                 .thenExecute(() -> checkRats(helper, king, rats.get(0) + rats.get(1), false))
-                // The third, at 125: there's no limit, so he calls a full (bigger) set again.
+                // The third, at about 156: there's no limit, so he calls a full (bigger) set again.
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
-                .thenExecute(() -> hitIntoBurrow(helper, king, max - 3 * RatKingTuning.BURROW_EVERY))
+                .thenExecute(() -> hitIntoBurrow(helper, king, burrowAt(king, 3, false)))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
                 .thenExecute(() -> {
                     checkRats(helper, king, rats.get(0) + rats.get(1) + rats.get(2), false);
-                    LOGGER.info("[rat king test] three burrows at 175, 150 and 125 health, {} rats (no limit)", rats);
+                    LOGGER.info("[rat king test] three burrows an eighth of his health apart, {} rats (no limit)", rats);
                     cleanUp(helper, king, target);
                 })
                 .thenSucceed();
@@ -383,11 +385,11 @@ public final class RatKingFightGameTest
         king.skipToRage();
         king.setTarget(target);
         helper.startSequence()
-                .thenExecute(() -> hitIntoBurrow(helper, king, rageAt - RatKingTuning.RAGE_BURROW_EVERY))
+                .thenExecute(() -> hitIntoBurrow(helper, king, burrowAt(king, 1, true)))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.BURROWED))
                 .thenExecute(() -> {
                     under[0] = level.getGameTime();
-                    checkUnderground(helper, king, rageAt - RatKingTuning.RAGE_BURROW_EVERY);
+                    checkUnderground(helper, king, burrowAt(king, 1, true));
                 })
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
                 .thenExecute(() -> {
@@ -400,31 +402,43 @@ public final class RatKingFightGameTest
                     checkRats(helper, king, rats.get(0), true);
                     checkPopup(helper, king, target);
                 })
-                // The second, at 50, and the third and last, at 25: more enraged rats each time (the last burrow's 10
+                // The second, at about 63, and the third and last, at about 31: more enraged rats each time (the last burrow's 10
                 // come out a little faster, to all be out in its 50 ticks under the ground).
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
-                .thenExecute(() -> hitIntoBurrow(helper, king, rageAt - 2 * RatKingTuning.RAGE_BURROW_EVERY))
+                .thenExecute(() -> hitIntoBurrow(helper, king, burrowAt(king, 2, true)))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
                 .thenExecute(() -> checkRats(helper, king, rats.get(0) + rats.get(1), true))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.IDLE))
-                .thenExecute(() -> hitIntoBurrow(helper, king, rageAt - 3 * RatKingTuning.RAGE_BURROW_EVERY))
+                .thenExecute(() -> hitIntoBurrow(helper, king, burrowAt(king, 3, true)))
                 .thenWaitUntil(() -> waitFor(helper, king, RatKingAction.POPUP))
                 .thenExecute(() -> {
                     checkRats(helper, king, rats.get(0) + rats.get(1) + rats.get(2), true);
                     if (king.checkpointBelow(king.getHealth()) != 0.0F)
                     {
-                        helper.fail("after the Rage's third burrow (at 25) there should be no more, but the next is at "
+                        helper.fail("after the Rage's third burrow there should be no more, but the next is at "
                                 + king.checkpointBelow(king.getHealth()));
                     }
-                    LOGGER.info("[rat king test] three Rage burrows at 75, 50 and 25 health, {} enraged rats", rats);
+                    LOGGER.info("[rat king test] three Rage burrows an eighth of his health apart, {} enraged rats", rats);
                 })
                 .thenExecute(() -> cleanUp(helper, king, target))
                 .thenSucceed();
     }
 
-    /** A huge hit: it should stop at {@code checkpoint} and start a burrow. */
+    /** His {@code n}th burrow's health in the first phase (or the Rage): an eighth of his full health apart. */
+    private static float burrowAt(RatKing king, int n, boolean rage)
+    {
+        float max = king.getMaxHealth();
+        return rage ? king.rageHealth() - n * RatKingTuning.RAGE_BURROW_EVERY * max
+                : max - n * RatKingTuning.BURROW_EVERY * max;
+    }
+
+    /**
+     * A huge hit just over the checkpoint (one hit takes at most a fifteenth of his health: boss/BossRules): it should
+     * stop at {@code checkpoint} and start a burrow.
+     */
     private static void hitIntoBurrow(GameTestHelper helper, RatKing king, float checkpoint)
     {
+        king.setHealth(checkpoint + JUST_OVER);
         king.invulnerableTime = 0;
         king.hurt(helper.getLevel().damageSources().generic(), HUGE_HIT);
         expectHealth(helper, king, checkpoint, "a huge hit before a burrow (it stops at the burrow)");
@@ -879,11 +893,28 @@ public final class RatKingFightGameTest
         target.getAttribute(Attributes.MAX_HEALTH).setBaseValue(SWEEP_TEST_HEALTH);
         king.startFightNow();
         king.setTarget(target);
+        // His staff poisons (Poison II): noted here and taken off at once, so the blows are measured on their own.
+        boolean[] poisoned = {false};
+        helper.onEachTick(() -> {
+            MobEffectInstance poison = target.getEffect(MobEffects.POISON);
+            if (poison != null)
+            {
+                poisoned[0] |= poison.getAmplifier() == RatKingTuning.STAFF_POISON_LEVEL;
+                target.removeEffect(MobEffects.POISON);
+            }
+        });
         GameTestSequence sequence = helper.startSequence();
         chargeHit(helper, sequence, king, target, from, false);
         sequence.thenExecute(() -> king.skipToRage());
         chargeHit(helper, sequence, king, target, from, true);
-        sequence.thenExecute(() -> cleanUp(helper, king, target)).thenSucceed();
+        sequence.thenExecute(() -> {
+                    if (!poisoned[0])
+                    {
+                        helper.fail("his staff's blows should poison (Poison II)");
+                    }
+                    cleanUp(helper, king, target);
+                })
+                .thenSucceed();
     }
 
     /** One charge that hits: the jab's damage, straight into a sweep and its damage, then the sweep's cooldown. */
@@ -1172,6 +1203,7 @@ public final class RatKingFightGameTest
                     // The fight's script: a burrow, his rage, a burrow in the Rage (each once he's free for it).
                     if (k == FACING_BURROW_AT)
                     {
+                        king.setHealth(king.healthFloor() + JUST_OVER);
                         king.invulnerableTime = 0;
                         king.hurt(level.damageSources().generic(), HUGE_HIT);
                     }
@@ -1185,6 +1217,7 @@ public final class RatKingFightGameTest
                     if (k >= FACING_RAGE_BURROW_AT && raged[0] && !rageBurrowed[0] && !king.isBusy())
                     {
                         rageBurrowed[0] = true;
+                        king.setHealth(king.healthFloor() + JUST_OVER);
                         king.invulnerableTime = 0;
                         king.hurt(level.damageSources().generic(), HUGE_HIT);
                     }

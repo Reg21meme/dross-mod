@@ -15,8 +15,11 @@ public final class RatKingTuning
 {
     // ---------------------------------------------------------------- his stats
 
-    /** His health (100 hearts). */
-    public static final double MAX_HEALTH = 200.0D;
+    /**
+     * His health (125 hearts; the user's boss buff, November 6, 2026: 250, from 200; more with more players, a hit capped
+     * and a reset when nobody's near: boss/BossRules).
+     */
+    public static final double MAX_HEALTH = 250.0D;
     /** His armour (iron armour is 15). */
     public static final double ARMOR = 6.0D;
     /** How much knockback he shrugs off (0 none, 1 all). */
@@ -66,6 +69,14 @@ public final class RatKingTuning
     /** Ticks before he can sweep again (first phase, Rage; the user, October 16: sooner than the first version's 30 / 22). */
     public static final int SWEEP_COOLDOWN = 22;
     public static final int RAGE_SWEEP_COOLDOWN = 16;
+    /**
+     * His staff poisons what it hits, the sweep and the spear charge's jab (the user's boss buff, November 6, 2026: "3 to
+     * 4 hearts of poison damage"): Poison II (the effect's level, 0 being Poison I) for this many ticks, first phase and
+     * Rage (4 s and 5 s: Poison II hurts every 12 ticks, about 3 and 4 hearts).
+     */
+    public static final int STAFF_POISON_LEVEL = 1;
+    public static final int STAFF_POISON_TICKS = 80;
+    public static final int RAGE_STAFF_POISON_TICKS = 100;
 
     // ---------------------------------------------------------------- the spear charge (the user's request, October 16)
 
@@ -188,11 +199,13 @@ public final class RatKingTuning
     // ---------------------------------------------------------------- burrowing and summoning his rats
 
     /**
-     * He burrows every time he has lost this much health: in the first phase (at 175, 150 and 125, then the rage at 100),
-     * and in the Rage, counted from the rage (at 75, 50 and 25). The user, October 17: every 25 in both (from 30 and 20).
+     * He burrows every time he has lost this share of his full health: in the first phase (at 250: about 219, 188 and
+     * 156, then the rage at 125), and in the Rage, counted from the rage (about 94, 63 and 31). Still three burrows in
+     * each phase (the user, November 6, 2026: an eighth of his health, so they stay three as his health grows; every 25
+     * of his 200 from October 17, from 30 and 20).
      */
-    public static final float BURROW_EVERY = 25.0F;
-    public static final float RAGE_BURROW_EVERY = 25.0F;
+    public static final float BURROW_EVERY = 0.125F;
+    public static final float RAGE_BURROW_EVERY = 0.125F;
     /** Ticks he stays under the ground (first phase, Rage). */
     public static final int UNDERGROUND_TICKS = 80;
     public static final int RAGE_UNDERGROUND_TICKS = 50;

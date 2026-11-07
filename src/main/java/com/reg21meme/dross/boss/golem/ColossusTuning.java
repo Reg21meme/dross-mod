@@ -11,15 +11,18 @@ public final class ColossusTuning
 {
     // ---------------------------------------------------------------- health and stages
 
-    /** Its health (a player has 20). */
-    public static final float MAX_HEALTH = 300.0F;
     /**
-     * The Cracking stage starts at this share of its health (the user, October 17: a shorter Shell, from 60%; the three
-     * stages now take about the same number of hits)...
+     * Its health (a player has 20; the user's boss buff, November 6, 2026: 375, from 300; more with more players, a hit
+     * capped and a reset when nobody's near: boss/BossRules).
      */
-    public static final float CRACKING_AT = 0.70F;
-    /** ...and the Lava Core stage at this share. A big hit never skips a stage: the damage stops at the threshold. */
-    public static final float LAVA_CORE_AT = 0.35F;
+    public static final float MAX_HEALTH = 375.0F;
+    /**
+     * The Cracking stage starts at this share of its health (the user, November 6, 2026: 75%, from 70%, which was from
+     * 60% until October 17; at 375 its Shell is 375-281, Cracking 281-150, the Lava Core 150-0)...
+     */
+    public static final float CRACKING_AT = 0.75F;
+    /** ...and the Lava Core stage at this share (40%, from 35%). A big hit never skips a stage: it stops at the threshold. */
+    public static final float LAVA_CORE_AT = 0.40F;
     /** It can't be knocked back at all (1 = fully resistant). */
     public static final double KNOCKBACK_RESISTANCE = 1.0D;
     /** How far it notices and follows players (it must see them first). */

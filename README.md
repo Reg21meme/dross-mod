@@ -343,6 +343,20 @@ Both are **swords only** and **treasure enchantments**. They never come from the
 
 ---
 
+## Every boss: the rules
+
+Every boss (the Cinder Colossus, the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young)
+follows the same three rules (`boss/BossRules.java`, the numbers there):
+
+- **No hit takes more than a fifteenth of its health.** So it takes at least 15 hits, however strong your weapon.
+  `/kill` and the Admin Sword aren't capped.
+- **More players, a stronger boss.** Every extra player in its fight (within its boss bar's range, not in creative or
+  spectator mode) gives it **50% more health** and **20% more damage**. Someone joining mid-fight raises its health
+  but keeps its bar where it was (half full stays half full), and the bonus never goes down until it resets.
+- **It resets** when nobody has been within 64 blocks for 3 minutes (and no foe it's fighting is that near): back to
+  full health, its bonus gone, and back to resting. The Rat King goes back to sleep, the Colossus goes dormant in its
+  Shell, the Emberdactyl back to its perch, and the Huntsman calm in the saddle.
+
 ## The Cinder Colossus (mini-boss)
 
 A golem mini-boss that serves the Fire Necromancer: a huge, gorilla-like brute about 5.5 blocks tall, hunched over and
@@ -378,19 +392,19 @@ and lights set in the floor.
 - Previews: `boss-previews/cinder_wastes/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
 
 ### The fight
-It has **300 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
+It has **375 health** and a boss bar of its own (drawn by the mod: Minecraft's bars have no orange), shown to players
 within 40 blocks. The fight has three stages:
-1. **Shell** (down to 70% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
+1. **Shell** (down to 75% health; the bar is obsidian purple): heavy, but not slow to follow you (about 1.5 blocks a
    second; 2 in the Cracking stage and 2.8 in the Lava Core stage). It swipes at you up close, tears rocks
    out of the ground and throws them (they shatter; they never place a block), raises both fists for a moment and
    slams the ground (the shockwave hurts and throws you about 20 blocks), and charges on all fours, head first, from up
    to 32 blocks away, running all the way to where you stood half a second before it set off.
-2. **Cracking** (70% to 35%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
+2. **Cracking** (75% to 40%; purple with glowing orange cracks): its volcanoes erupt (it can't be hurt while they do)
    and its shell starts breaking up, plates knocked loose and lava glowing through, more with every hit. A bit faster
    and more aggressive. Its volcanoes also spit **lava blobs** that land near you (never on you) and leave small pools
    of lava for 20-40 seconds, and it pounds the ground to raise **three stone golems** (left, right, in front of it). As it enters this stage,
    **four stone golems** climb out at once, and from now on its charge leaves a short **trail of fire**.
-3. **Lava Core** (35% to 0%; lava red): its shell bursts off (it can't be hurt while it does). Faster and angrier:
+3. **Lava Core** (40% to 0%; lava red): its shell bursts off (it can't be hurt while it does). Faster and angrier:
    **every hit sets you on fire**, its charge leaves a longer **trail of fire**, it stops throwing rocks, and it raises
    **lava golems**, which blow up a few seconds later unless you kill them first. Its lobs now spit **four** lava
    blobs instead of two. As it enters this stage its volcanoes spew **four lava blobs** round you.
@@ -419,7 +433,7 @@ anything. The minions are quick on their feet: stone golems walk about 3 blocks 
 (any pickaxe, modded ones too) does **twice** its damage; in the Lava Core it's a normal hit. The Colossus keeps facing
 the player it's fighting nearly all the time, except while it gallops.
 
-A big hit never skips a stage: its health stops at 70% and at 35%. When it dies it screams, sinks down and **cools
+A big hit never skips a stage: its health stops at 75% and at 40%. When it dies it screams, sinks down and **cools
 into an obsidian statue**, which stands for 2 minutes and then crumbles; its minions crumble with it. It drops 50
 experience. The player who killed it, and everyone within 40 blocks, get the challenge advancement **"Set in Stone"**
 and **a trophy each** (below). Removed with `/kill`, it gives neither.
@@ -494,10 +508,11 @@ each attack sound for the fight, to pick from later.
 - **Asleep:** he starts curled up asleep. Come within 12 blocks (8 if you sneak) or hit him and he wakes (that hit does
   no damage, and he can't be hurt while he gets up). Then his boss bar appears: a rusty sewer pipe with a rat peeking
   over it (the user's pick of nine designs), shown within 40 blocks.
-- **200 health**, armour 6, quick on his feet (about 4.7 blocks a second, 6.2 in his Rage; you walk at 4.3). He keeps
+- **250 health**, armour 6, quick on his feet (about 4.7 blocks a second, 6.2 in his Rage; you walk at 4.3). He keeps
   facing you.
 - **Staff sweep** up close: 4.5 blocks in front of him, 9 damage (11 in his Rage), with a strong knockback, about
-  every second.
+  every second. **His staff is poisoned**: the sweep and the spear charge give Poison II for 4 seconds (5 in his Rage),
+  about 3 to 4 hearts more.
 - **Spear charge** from 5 to 24 blocks: he crouches for 0.4 s with his staff levelled like a spear, then dashes at
   9 blocks a second (11 in his Rage) to where you were standing. If he catches you it's 6 damage (8) and straight into
   a sweep; if you dodge, he skids and needs half a second to turn round.
@@ -505,12 +520,12 @@ each attack sound for the fight, to pick from later.
   steady Poison I while you stand in it); in his Rage, a fan of three.
 - **How often:** at 5-16 blocks he charges 60%, throws poison 25% and runs in 15% (Rage: 60 / 35 / 5); at 16-24
   blocks charge 40, poison 30, run in 30 (Rage: 35 / 35 / 30); up close always the sweep.
-- **Burrow:** every 25 health he loses (at 175, 150 and 125 of his 200), he digs and dives into the ground. While he
+- **Burrow:** every eighth of his health he loses (at about 219, 188 and 156 of his 250), he digs and dives into the ground. While he
   tunnels towards you (a dirt trail moves over the ground) he can't be hurt, and his rats burst out of the ground round
   you: **10, then 12, then 14** Plague Rats, however many of his rats are already about. Then he pops straight up
   4 blocks from you, facing you, without knocking you back.
-- **Rage** at half health, 100 (he can't be hurt while it plays): stomping, red eyes, steam and the train whistle.
-  Then he's faster and hits harder, throws three balls at once, and burrows three more times (at 75, 50 and 25),
+- **Rage** at half health, 125 (he can't be hurt while it plays): stomping, red eyes, steam and the train whistle.
+  Then he's faster and hits harder, throws three balls at once, and burrows three more times (at about 94, 63 and 31),
   calling **8, then 9, then 10 Plague Ravagers**, whose bites poison for 2.5 seconds.
 - **Death:** a silly death; his rats crumble, he vanishes after 10 seconds; no drops except a trophy (below). The advancement **Down the Drain**
   ("End the Rat King's reign beneath Blightwood.") goes to whoever killed him and everyone within 40 blocks.
@@ -557,7 +572,7 @@ the edge) with a chat button to summon him.
   moose sees a foe within 30
   blocks: a player (not in creative or spectator), a hostile mob (he hunts those too) or, raged with the Rage Wand, a
   mob of another team. A hit starts it too.
-- **Stage 1, The Wild Hunt** (one bar of 250 for both; hitting either of them takes it down). The two attack at the
+- **Stage 1, The Wild Hunt** (one bar of 275 for both; hitting either of them takes it down). The two attack at the
   same time, each on its own timer. From the saddle he uses whatever fits where you are: right next to the moose mostly
   his spear, two bow shots wherever you are (ahead past the moose's head, to either side, or back over his shoulder;
   his arrows lead you as you run, and every one frosts and slows you), the Horn of the Hunt ahead (a cone of icy wind
@@ -566,7 +581,7 @@ the edge) with a chat button to summon him.
   the sky close round you with no warning, steering after you as they fall: half a heart each, and you take several). He hunts Pond Skaters, grown Rimehorns and grown moose too (never their calves). Meanwhile the moose rams, tosses you, stomps, bellows and stamps
   cracks across the snow up close, charges (6.5 hearts) and circles you further out, and kicks anyone behind it (4.5).
 - **The split:** at 0 the moose rears with a neigh, and once it's up on its hind legs he leaps off and blows his horn;
-  neither can be hurt for 2 seconds. Then each has his own bar of 150: **The Huntsman** and **Alpha Moose**. (While he
+  neither can be hurt for 2 seconds. Then each has his own bar: **The Huntsman** (175) and **Alpha Moose** (200). (While he
   rides, the two are drawn as one model, so he moves exactly with the moose; they become two at the split.)
 - **Stage 2:** on foot (about 4 blocks to the top of his hood) he uses spear combos, a leaping strike, a thrown spear
   (it comes back to his hand), an aimed shot after a frost glint (it freezes you for a moment), a backstep and shot (he
@@ -848,7 +863,7 @@ From the project folder, on Windows:
 
 | Task | Command |
 |---|---|
-| Build the mod jar (`build/libs/dross-<version>.jar`) | `.\gradlew.bat build --console=plain` |
+| Build the mod jar (`build/libs/dross-<version>.jar`; the tests and the design galleries' models stay out of it) | `.\gradlew.bat build --console=plain` |
 | Run the game with the mod | `.\gradlew.bat runClient --console=plain` |
 | Run the automated in-game checks | `.\gradlew.bat runGameTestServer --console=plain` |
 | The same checks in a brand-new world | `.\gradlew.bat runGameTestServer -PgameTestWorld=world_check_1 --console=plain` (pick a folder name under `run/` that doesn't exist yet) |

@@ -7,14 +7,16 @@ The Dross is a dangerous dimension for the mid-to-late game.
 ## New update
 
 - **A new boss: the Emberdactyl.** A giant volcanic pterosaur that nests on its own volcano in the Cinder Wastes. Bring it down and its egg hatches.
-- **New mobs in the Cinder Wastes:** the Pallbearer, and the Cinder Hermit in eight different shells, with hermit crab caves to explore.
+- **Tougher bosses.** More health, the Rat King's staff poisons, damage limits,
+  and bosses grow stronger with every extra player in the fight.
+- **New mobs in the Cinder Wastes:** the Pallbearer, and the Cinder Hermit in eight different shells.
 - **No more freezes when a world starts.** The portal site, the hub and the trader's chapel are now made with the world, like villages.
 - **A settings file for modpacks:** `config/dross-common.toml`.
 
 ## Upcoming
 
 - **A new quest system** inside the Dross.
-- **The Dross reaches into the Overworld.** How you deal with the Dross before you ever step through the portal will start to change your world.
+- **The Dross reaches into the Overworld.** How you interact with the Dross will change before you even step through the portal.
 
 ## Getting in
 
@@ -27,15 +29,15 @@ The Dross is a dangerous dimension for the mid-to-late game.
 ## Biomes
 
 <div class="spoiler">
-<p>The Dross is always night. Five biomes, each with its own ground, plants, fog and mobs.</p>
+<p>The Dross is always night. Five biomes, each with its own ground, plants and fog.</p>
 <p><img src="biome_silverwood_forest.png" alt="Silverwood Forest"></p>
-<p><b>Silverwood Forest</b>: the dark forest round the hub, its silverwood trees hung with glowing Stormvine. Moose wander under them.</p>
+<p><b>Silverwood Forest</b>: the dark forest round the hub, its silverwood trees hung with glowing Stormvine.</p>
 <p><img src="biome_cinder_wastes.png" alt="Cinder Wastes"></p>
-<p><b>Cinder Wastes</b>: ash, basalt and lava pools. Stone and lava golems, the Pallbearer and Cinder Hermits in their shells roam here, and it's home to the Cinder Colossus and the Emberdactyl.</p>
+<p><b>Cinder Wastes</b>: ash, basalt, smoking vents and pools of lava under towering volcanoes.</p>
 <p><img src="biome_blightwood.png" alt="Blightwood"></p>
-<p><b>Blightwood</b>: a rotting fungal forest full of plague rats. Under it, the sewers lead to the Rat King.</p>
+<p><b>Blightwood</b>: a rotting forest of giant mushrooms under a sickly green fog, with a maze of sewers beneath it.</p>
 <p><img src="biome_rimefall.png" alt="Rimefall"></p>
-<p><b>Rimefall</b>: frozen lakes, Rimehorn herds, moose and Pond Skaters, and the villages of the Frostfolk, where the Huntsman rides.</p>
+<p><b>Rimefall</b>: snowfields, frost-covered dead trees, great frozen lakes and villages of igloos.</p>
 <p><img src="biome_gravecrags.png" alt="The Gravecrags"></p>
 <p><b>The Gravecrags</b>: snow-capped peaks and cliffs, far out from the hub.</p>
 </div>

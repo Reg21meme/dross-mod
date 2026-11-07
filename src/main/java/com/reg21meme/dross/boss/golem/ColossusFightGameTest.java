@@ -229,6 +229,7 @@ public final class ColossusFightGameTest
         int shellRoar = CinderColossus.ANIMATION_BLEND_TICKS + design.burstTicks();
         float[] before = {player.getHealth()};
         player.setDeltaMovement(Vec3.ZERO);
+        golem.setHealth(golem.getMaxHealth() * ColossusTuning.CRACKING_AT + 5.0F); // (a hit is capped: boss/BossRules)
         golem.hurt(level.damageSources().generic(), HUGE_HIT);
         if (golem.getAction() != GolemAction.ERUPT || player.getDeltaMovement().horizontalDistance() > SPEED_TOLERANCE)
         {
@@ -267,11 +268,12 @@ public final class ColossusFightGameTest
                     player.invulnerableTime = 0;
                     before[0] = player.getHealth();
                     golem.invulnerableTime = 0;
+                    golem.setHealth(golem.getMaxHealth() * ColossusTuning.LAVA_CORE_AT + 5.0F);
                     golem.hurt(level.damageSources().generic(), HUGE_HIT);
                     if (golem.getAction() != GolemAction.BREAK_SHELL)
                     {
                         cleanUp(helper, golem, players);
-                        helper.fail("a hit down to 35% should burst the shell, but it's " + golem.getAction());
+                        helper.fail("a hit down to 40% should burst the shell, but it's " + golem.getAction());
                     }
                 })
                 .thenWaitUntil(() -> helper.assertTrue(player.getDeltaMovement().horizontalDistance() > THROWN,

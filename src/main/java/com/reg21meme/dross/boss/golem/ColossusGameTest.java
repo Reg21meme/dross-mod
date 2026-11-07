@@ -117,6 +117,8 @@ public final class ColossusGameTest
     private static final int ROOF_Y = ARENA_HEIGHT + 1;
     /** Far more damage than it has health. */
     private static final float HUGE_HIT = 1000.0F;
+    /** Health just over a stage's line (or over 0), less than a capped hit (boss/BossRules: a fifteenth of its health). */
+    private static final float JUST_OVER = 5.0F;
     /** Ticks to wait after a stage change has finished playing. */
     private static final int AFTER = 4;
     /** How long a dead Colossus is checked to still stand (vanilla removes a dead mob after 20 ticks). */
@@ -177,11 +179,13 @@ public final class ColossusGameTest
         int burst = CinderColossus.ANIMATION_BLEND_TICKS + design.breakTicks() + AFTER + 10;
         helper.startSequence()
                 .thenExecute(() -> {
+                    // (a hit takes at most a fifteenth of its health, boss/BossRules: just over the line first)
+                    golem.setHealth(max * ColossusTuning.CRACKING_AT + JUST_OVER);
                     golem.hurt(level.damageSources().generic(), HUGE_HIT);
                     expectHealth(helper, golem, max * ColossusTuning.CRACKING_AT, "after the first huge hit");
                     if (golem.getAction() != GolemAction.ERUPT || golem.stage() != ColossusStage.SHELL)
                     {
-                        helper.fail("a hit down to 70% should start the eruption, but it's " + golem.getAction());
+                        helper.fail("a hit down to 75% should start the eruption, but it's " + golem.getAction());
                     }
                     golem.invulnerableTime = 0;
                     golem.hurt(level.damageSources().generic(), HUGE_HIT);
@@ -198,11 +202,12 @@ public final class ColossusGameTest
                         helper.fail("its armour should be the Cracking stage's");
                     }
                     golem.invulnerableTime = 0;
+                    golem.setHealth(max * ColossusTuning.LAVA_CORE_AT + JUST_OVER);
                     golem.hurt(level.damageSources().generic(), HUGE_HIT);
                     expectHealth(helper, golem, max * ColossusTuning.LAVA_CORE_AT, "after the second huge hit");
                     if (golem.getAction() != GolemAction.BREAK_SHELL)
                     {
-                        helper.fail("a hit down to 35% should burst the shell, but it's " + golem.getAction());
+                        helper.fail("a hit down to 40% should burst the shell, but it's " + golem.getAction());
                     }
                 })
                 .thenExecuteAfter(burst, () -> {
@@ -211,6 +216,7 @@ public final class ColossusGameTest
                         helper.fail("after the shell bursts it should be in the Lava Core stage, but it's " + golem.getPhase());
                     }
                     golem.invulnerableTime = 0;
+                    golem.setHealth(JUST_OVER);
                     golem.hurt(level.damageSources().generic(), HUGE_HIT);
                     if (!golem.isDeadOrDying() || golem.getAction() != GolemAction.DEATH)
                     {
@@ -752,6 +758,7 @@ public final class ColossusGameTest
                                               List<ServerPlayer> players)
     {
         golem.setPhase(GolemPhase.CORE);
+        golem.setHealth(JUST_OVER); // (a hit takes at most a fifteenth of its health: boss/BossRules)
         golem.hurt(helper.getLevel().damageSources().playerAttack(killer), HUGE_HIT);
         if (!golem.isDeadOrDying())
         {

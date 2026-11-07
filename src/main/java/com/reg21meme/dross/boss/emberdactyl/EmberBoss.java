@@ -1,6 +1,9 @@
 package com.reg21meme.dross.boss.emberdactyl;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.BossRules;
+import com.reg21meme.dross.boss.BossScale;
+import com.reg21meme.dross.boss.DrossBoss;
 import com.reg21meme.dross.boss.fire.FireAnims;
 import com.reg21meme.dross.boss.fire.FireCandidate;
 import com.reg21meme.dross.boss.fire.FireDesigns;
@@ -87,7 +90,7 @@ import static com.reg21meme.dross.boss.emberdactyl.EmberTuning.*;
  * and its wings in pieces; hitting any hurts it), which are also what blocks stop; its own box, only as wide as its feet,
  * stands it on the ground and can't be hit.
  */
-public abstract class EmberBoss extends FireCandidate implements RageLeader
+public abstract class EmberBoss extends FireCandidate implements RageLeader, DrossBoss
 {
     /** Where it is in its life. */
     protected enum Phase
@@ -138,6 +141,8 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     protected boolean enraged;
     /** From a spawn egg or a summon command: it fights from the moment it comes and never goes back to resting. */
     private boolean hostile;
+    /** Its share of the bosses' rules (boss/BossRules: the extra players' bonus, its reset). Saved. */
+    private final BossScale bossScale = new BossScale();
     /** (its tick) when its flight's loop last changed by its speed */
     private int flightLoopSince = -1000;
     @Nullable
@@ -1090,6 +1095,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         {
             return;
         }
+        this.bossScale.tick(this);
         this.updateBar();
         switch (this.phase)
         {
@@ -2875,6 +2881,69 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
     {
     }
 
+    // ---------------------------------------------------------------- the bosses' rules (boss/BossRules)
+
+    @Override
+    public BossScale bossScale()
+    {
+        return this.bossScale;
+    }
+
+    @Override
+    public double bossBarRange()
+    {
+        return BAR_RANGE;
+    }
+
+    @Override
+    public boolean followsBossRules()
+    {
+        return true;
+    }
+
+    @Nullable
+    @Override
+    public LivingEntity bossTarget()
+    {
+        return this.target;
+    }
+
+    /** Not while it carries someone or is dying. */
+    @Override
+    public boolean canResetNow()
+    {
+        return this.phase != Phase.DYING && this.carried == null && this.isAlive() && !this.isDeadOrDying();
+    }
+
+    /**
+     * Nobody near for 3 minutes ({@link BossRules}): back to full health, calm again (the adult's half-health rage gone),
+     * and back to resting on its perch or over its home (one from a spawn egg or a summon command never rests: it stays
+     * ready to fight, at full health).
+     */
+    @Override
+    public void resetFight()
+    {
+        if (this.phase == Phase.REST && this.getHealth() >= this.getMaxHealth() && !this.enraged)
+        {
+            return;
+        }
+        if (this.move != Move.NONE)
+        {
+            this.endMove();
+        }
+        this.target = null;
+        this.noTargetTicks = 0;
+        this.grounded = false;
+        this.enraged = false;
+        this.setLastHurtByMob(null);
+        this.setHealth(this.getMaxHealth());
+        if (!this.hostile)
+        {
+            this.phase = Phase.REST;
+        }
+        this.dropBar();
+    }
+
     // ---------------------------------------------------------------- its boss bar
 
     private void updateBar()
@@ -3173,6 +3242,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         tag.putLong(TAG_VOLCANO, this.volcano);
         tag.putBoolean(TAG_ENRAGED, this.enraged);
         tag.putBoolean(TAG_HOSTILE, this.hostile);
+        this.bossScale.save(tag);
         tag.putString(TAG_PHASE, this.phase == Phase.FIGHT || this.phase == Phase.WAKE ? "fight" : "rest");
     }
 
@@ -3187,6 +3257,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader
         this.volcano = tag.getLong(TAG_VOLCANO);
         this.enraged = tag.getBoolean(TAG_ENRAGED);
         this.hostile = tag.getBoolean(TAG_HOSTILE);
+        this.bossScale.load(tag);
         this.phase = "fight".equals(tag.getString(TAG_PHASE)) ? Phase.FIGHT : Phase.REST;
         this.setDesign(this.designNumber());
         this.refreshDimensions();

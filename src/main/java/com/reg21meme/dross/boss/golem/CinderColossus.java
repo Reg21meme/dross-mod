@@ -8,6 +8,9 @@ import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.BossRules;
+import com.reg21meme.dross.boss.BossScale;
+import com.reg21meme.dross.boss.DrossBoss;
 import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -100,14 +103,16 @@ import java.util.UUID;
  * (drawn by {@code boss.client.DrossBossBars}). When it dies it cools into an obsidian statue that stands for
  * {@link ColossusTuning#STATUE_TICKS} ticks and then crumbles; its minions crumble at once. The player who killed it
  * (or whose arrow or risen undead did) and every player within the boss bar's range get the "Set in Stone"
- * advancement. It never despawns (except on Peaceful, like every monster) and never spawns by itself.
+ * advancement. It never despawns (except on Peaceful, like every monster) and never spawns by itself. It follows
+ * {@link BossRules} ({@link DrossBoss}): a hit takes at most a fifteenth of its health, more players make it stronger,
+ * and with nobody near for 3 minutes it goes back to full health, dormant in its Shell ({@link #resetFight}).
  * <p>
  * <b>Showcase golems</b> ({@link #spawnShowcase}, saved with {@code Showcase}) stand frozen (no AI), make no sound,
  * can't be pushed, never despawn (not even on Peaceful) and can't be hurt except by {@code /kill}. They never fight,
  * have no boss bar and never grant the advancement. Right-clicking one moves it on to its next stage (dormant: erupts;
  * erupted: breaks out of its shell; lava or statue: dormant again); sneak + right-click makes it die.
  */
-public class CinderColossus extends Monster implements GeoEntity, RageLeader
+public class CinderColossus extends Monster implements GeoEntity, RageLeader, DrossBoss
 {
     private static final EntityDataAccessor<Integer> DATA_DESIGN = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_PHASE = SynchedEntityData.defineId(CinderColossus.class, EntityDataSerializers.INT);
@@ -231,6 +236,8 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
     private boolean firstHitRoared;
     /** Server: its roar's ring of dust rolling outwards: ticks since the roar (0: none). */
     private int roarRing;
+    /** Server: its share of the bosses' rules (the extra players' bonus, its reset). Saved. */
+    private final BossScale bossScale = new BossScale();
 
     public CinderColossus(EntityType<? extends Monster> type, Level level)
     {
@@ -895,7 +902,67 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
         }
         if (!this.isShowcase() && this.isAlive())
         {
+            this.bossScale.tick(this);
             this.updateBossBar();
+        }
+    }
+
+    // ---------------------------------------------------------------- the bosses' rules (boss/BossRules)
+
+    @Override
+    public BossScale bossScale()
+    {
+        return this.bossScale;
+    }
+
+    @Override
+    public double bossBarRange()
+    {
+        return ColossusTuning.BOSS_BAR_RANGE;
+    }
+
+    @Override
+    public boolean followsBossRules()
+    {
+        return !this.isShowcase();
+    }
+
+    /** Not in the middle of a stage change (it finishes it first), and not dying. */
+    @Override
+    public boolean canResetNow()
+    {
+        return !this.isTransforming() && this.isAlive() && !this.isDeadOrDying();
+    }
+
+    /**
+     * Nobody near for 3 minutes ({@link BossRules}): back to full health, dormant in its Shell (the first stage's look,
+     * armour and speed), its target and minions gone, ready to roar at its first hit again.
+     */
+    @Override
+    public void resetFight()
+    {
+        boolean hurt = this.getHealth() < this.getMaxHealth() || this.getPhase() != GolemPhase.DORMANT
+                || this.firstHitRoared || this.getTarget() != null;
+        if (!hurt)
+        {
+            return;
+        }
+        if (this.attackGoal != null)
+        {
+            this.attackGoal.interrupt();
+        }
+        this.getNavigation().stop();
+        this.setTarget(null);
+        this.setLastHurtByMob(null);
+        this.crumbleMinions();
+        this.setPhase(GolemPhase.DORMANT);
+        this.startAction(GolemAction.IDLE);
+        this.applyStage(ColossusStage.SHELL);
+        this.setHealth(this.getMaxHealth());
+        this.firstHitRoared = false;
+        if (this.bossBar != null)
+        {
+            this.bossBar.removeAllPlayers();
         }
     }
 
@@ -1786,6 +1853,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
         {
             tag.putBoolean(TAG_ROARED, true);
         }
+        this.bossScale.save(tag);
     }
 
     @Override
@@ -1794,6 +1862,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader
         super.readAdditionalSaveData(tag);
         this.entityData.set(DATA_SHOWCASE, tag.getBoolean(TAG_SHOWCASE));
         this.firstHitRoared = tag.getBoolean(TAG_ROARED);
+        this.bossScale.load(tag);
         if (tag.contains(TAG_DESIGN))
         {
             this.setDesign(tag.getInt(TAG_DESIGN));

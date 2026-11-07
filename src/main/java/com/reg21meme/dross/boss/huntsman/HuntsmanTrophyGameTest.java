@@ -196,6 +196,8 @@ public final class HuntsmanTrophyGameTest
         helper.runAfterDelay(HuntsmanTuning.SPLIT_INVULNERABLE_TICKS + 10, () ->
         {
             String problem = null;
+            m.setHealth(1.0F);                       // (a hit takes at most a fifteenth of its health: boss/BossRules)
+            h.setHealth(1.0F);
             hit(m, level.damageSources().playerAttack(killer), HUGE_HIT);
             hit(h, level.damageSources().playerAttack(killer), HUGE_HIT);
             if (!m.isDeadOrDying() || !h.isDeadOrDying())

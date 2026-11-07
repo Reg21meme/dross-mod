@@ -589,6 +589,7 @@ public class RatKingAttackGoal extends Goal
             if (victim.hurt(this.king.blow(), damage) && victim instanceof LivingEntity living)
             {
                 living.knockback(RatKingTuning.SWEEP_KNOCKBACK, this.king.getX() - victim.getX(), this.king.getZ() - victim.getZ());
+                this.king.staffPoison(living);
             }
         }
         this.king.sound(ModSounds.RAT_KING_ATTACK_STAFF.get(), SWEEP_VOLUME, 1.0F);
@@ -811,6 +812,7 @@ public class RatKingAttackGoal extends Goal
         if (victim.hurt(this.king.blow(), damage) && victim instanceof LivingEntity living)
         {
             living.knockback(RatKingTuning.CHARGE_KNOCKBACK, this.king.getX() - victim.getX(), this.king.getZ() - victim.getZ());
+            this.king.staffPoison(living);
         }
         this.king.sound(ModSounds.RAT_KING_ATTACK_STAFF.get(), JAB_VOLUME, JAB_PITCH);
         this.endDash(victim, false);

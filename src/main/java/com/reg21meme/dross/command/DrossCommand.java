@@ -1,5 +1,7 @@
 package com.reg21meme.dross.command;
 
+import com.reg21meme.dross.boss.ShowcaseOnly;
+
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -231,19 +233,8 @@ public final class DrossCommand
                 .then(Commands.literal("showcase")
                         .requires(source -> source.hasPermission(2))
                         // Boss area's designs, one literal per boss.
-                        .then(Commands.literal("boss_designs")
-                                .then(colossusDesignShowcase())
-                                .then(ratKingDesignShowcase())
-                                // The Rimefall boss candidates (22 frozen models in a gallery; RimefallShowcase).
-                                .then(Commands.literal("rimefall").executes(RimefallShowcase::buildGallery))
-                                // The fire servant candidates (fifteen bosses, each with its variations behind it;
-                                // FireShowcase).
-                                .then(Commands.literal("cinder_wastes").executes(FireShowcase::buildGallery))
-                                // The Emberdactyl's looks (the adult, its young, its eggs) and its volcano
-                                // (FireShowcase, with the boss area's EmberVolcano), and their animations.
-                                .then(emberdactylShowcase())
-                                // The Huntsman and his Alpha Moose and their animations (HuntsmanShowcase).
-                                .then(huntsmanDesignShowcase()))
+                        // Boss area's designs, one literal per boss (bossDesignShowcases).
+                        .then(bossDesignShowcases())
                         // Boss area's Rat King's rats (regular and enraged), with their controls (RatShowcase).
                         .then(ratShowcase())
                         // Boss area's Cinder Wastes mobs: the Pallbearer and the Cinder Hermit's eight shells (FireShowcase).
@@ -343,6 +334,31 @@ public final class DrossCommand
                     EntityArgument.getEntities(context, "targets"), team)));
         }
         return targets;
+    }
+
+    /**
+     * {@code /dross showcase boss_designs <boss>}: the boss area's designs, one literal per boss. The Rimefall statues'
+     * and the fire servants' galleries only where their models are (the released jar leaves them out:
+     * {@link ShowcaseOnly}).
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> bossDesignShowcases()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> designs = Commands.literal("boss_designs")
+                .then(colossusDesignShowcase())
+                .then(ratKingDesignShowcase());
+        if (ShowcaseOnly.rimefallStatues())
+        {
+            // The Rimefall boss candidates (frozen models in a gallery; RimefallShowcase).
+            designs.then(Commands.literal("rimefall").executes(RimefallShowcase::buildGallery));
+        }
+        if (ShowcaseOnly.fireServants())
+        {
+            // The fire servant candidates (fifteen bosses, each with its variations behind it; FireShowcase).
+            designs.then(Commands.literal("cinder_wastes").executes(FireShowcase::buildGallery));
+        }
+        // The Emberdactyl's looks (the adult, its young, its eggs) and its volcano (FireShowcase, with the boss area's
+        // EmberVolcano), and their animations; the Huntsman and his Alpha Moose and theirs (HuntsmanShowcase).
+        return designs.then(emberdactylShowcase()).then(huntsmanDesignShowcase());
     }
 
     /**

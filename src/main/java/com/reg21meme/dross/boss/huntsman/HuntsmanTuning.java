@@ -13,9 +13,9 @@ public final class HuntsmanTuning
 
     // ---------------------------------------------------------------- health and the stages
 
-    /** Stage 1, the Wild Hunt: one bar for both of them (the user, October 23, 2026: "increase the Wild Hunt's health
-     * by 50"; 200 before). */
-    public static final float WILD_HUNT_HEALTH = 250.0F;
+    /** Stage 1, the Wild Hunt: one bar for both of them (the user's boss buff, November 6, 2026: 275, from 250, which
+     * was 200 until October 23; more with more players, a hit capped and a reset when nobody's near: boss/BossRules). */
+    public static final float WILD_HUNT_HEALTH = 275.0F;
     /** At home in his village (since October 23, 2026), calm, they wander at most this far from their yard. */
     public static final int HOME_WANDER = 24;
     /** A fight broken off this far or more from home: they go back home (the user: "walk away: they're back home"). */
@@ -38,9 +38,10 @@ public final class HuntsmanTuning
      * minutes if I happen to leave, then can't fight him again".) */
     public static final double CHASE_PAST_LOOP = 60.0D;
     public static final double HOLD_RANGE = 40.0D;
-    /** Stage 2: each of them on his own bar. */
-    public static final float HUNTSMAN_HEALTH = 150.0F;
-    public static final float MOOSE_HEALTH = 150.0F;
+    /** Stage 2: each of them on his own bar (the user's boss buff, November 6, 2026: him 175 and the Alpha Moose 200,
+     * from 150 each). */
+    public static final float HUNTSMAN_HEALTH = 175.0F;
+    public static final float MOOSE_HEALTH = 200.0F;
     /** At the split neither can be hurt for this long (the moose rears, he leaps off, the horn). */
     public static final int SPLIT_INVULNERABLE_TICKS = 40;
     /** The Huntsman's horn at the split, this long after he lands. */

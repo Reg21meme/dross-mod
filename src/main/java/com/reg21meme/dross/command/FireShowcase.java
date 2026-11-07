@@ -1,5 +1,6 @@
 package com.reg21meme.dross.command;
 
+import com.reg21meme.dross.boss.ShowcaseOnly;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
@@ -152,7 +153,8 @@ public final class FireShowcase
 
         Gallery(List<FireDesigns.Design> designs, String title, String where, String command)
         {
-            this.designs = designs;
+            // (the released jar leaves the showcase-only models out: boss/ShowcaseOnly)
+            this.designs = designs.stream().filter(ShowcaseOnly::has).toList();
             this.title = title;
             this.where = where;
             this.command = command;
@@ -355,6 +357,12 @@ public final class FireShowcase
 
     private static int build(CommandSourceStack source, Gallery gallery)
     {
+        if (gallery.designs.isEmpty())
+        {
+            source.sendFailure(Component.literal("The " + gallery.title + "'s models aren't in this build of the mod "
+                    + "(they're only in the project, for the dev runs)."));
+            return 0;
+        }
         ServerLevel level = source.getLevel();
         Vec3 position = source.getPosition();
         Direction look = Direction.fromYRot(source.getRotation().y);

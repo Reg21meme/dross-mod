@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.rimefall.client;
 
+import com.reg21meme.dross.boss.ShowcaseOnly;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.reg21meme.dross.boss.rimefall.RimefallCandidate;
@@ -43,6 +44,10 @@ public class RimefallCandidateRenderer extends GeoEntityRenderer<RimefallCandida
     public void render(RimefallCandidate candidate, float entityYaw, float partialTick, PoseStack poseStack,
                        MultiBufferSource bufferSource, int packedLight)
     {
+        if (!ShowcaseOnly.has(candidate.getDesign()))
+        {
+            return; // a showcase-only statue the released jar leaves out (boss/ShowcaseOnly): nothing to draw
+        }
         this.shadowRadius = candidate.getDesign().shadow();
         super.render(candidate, entityYaw, partialTick, poseStack, bufferSource, packedLight);
     }

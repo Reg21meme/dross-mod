@@ -9,6 +9,9 @@ import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModParticles;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.BossRules;
+import com.reg21meme.dross.boss.BossScale;
+import com.reg21meme.dross.boss.DrossBoss;
 import com.reg21meme.dross.boss.SteadyController;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -39,6 +42,8 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.SpawnGroupData;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -116,7 +121,7 @@ import java.util.UUID;
  * can't be hurt except by {@code /kill}. Right-clicking one plays his next animation (sleep, wake up, walk, burrow, pop
  * up, rage, the spear charge on the spot, die, stand); sneak + right-click: he dies. They never fight.
  */
-public class RatKing extends Monster implements GeoEntity, RageLeader
+public class RatKing extends Monster implements GeoEntity, RageLeader, DrossBoss
 {
     private static final EntityDataAccessor<Integer> DATA_DESIGN = SynchedEntityData.defineId(RatKing.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> DATA_ACTION = SynchedEntityData.defineId(RatKing.class, EntityDataSerializers.INT);
@@ -229,6 +234,8 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
     @Nullable
     private UUID creditPlayer;
     private int creditTick;
+    /** His share of the bosses' rules (the extra players' bonus, his reset). Saved. */
+    private final BossScale bossScale = new BossScale();
 
     public RatKing(EntityType<? extends RatKing> type, Level level)
     {
@@ -621,7 +628,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
     {
         boolean rage = this.isEnraged();
         float start = rage ? this.rageHealth() : this.getMaxHealth();
-        float every = rage ? RatKingTuning.RAGE_BURROW_EVERY : RatKingTuning.BURROW_EVERY;
+        float every = (rage ? RatKingTuning.RAGE_BURROW_EVERY : RatKingTuning.BURROW_EVERY) * this.getMaxHealth();
         int steps = Mth.floor((start - health) / every + EPSILON) + 1;
         float checkpoint = start - steps * every;
         float bottom = rage ? 0.0F : this.rageHealth();
@@ -764,6 +771,87 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
     public void onRaged()
     {
         this.wakeUp();
+    }
+
+    /**
+     * His staff's poison on what it hits (the sweep, the spear charge's jab): Poison II for
+     * {@link RatKingTuning#STAFF_POISON_TICKS} ({@link RatKingTuning#RAGE_STAFF_POISON_TICKS} in the Rage).
+     */
+    public void staffPoison(LivingEntity victim)
+    {
+        int ticks = this.isEnraged() ? RatKingTuning.RAGE_STAFF_POISON_TICKS : RatKingTuning.STAFF_POISON_TICKS;
+        victim.addEffect(new MobEffectInstance(MobEffects.POISON, ticks, RatKingTuning.STAFF_POISON_LEVEL), this);
+    }
+
+    // ---------------------------------------------------------------- the bosses' rules (boss/BossRules)
+
+    @Override
+    public BossScale bossScale()
+    {
+        return this.bossScale;
+    }
+
+    @Override
+    public double bossBarRange()
+    {
+        return RatKingTuning.BOSS_BAR_RANGE;
+    }
+
+    @Override
+    public boolean followsBossRules()
+    {
+        return !this.isShowcase();
+    }
+
+    /** More players: his health keeps its share, and his burrows' checkpoints follow it (still three a phase). */
+    @Override
+    public void bonusChanged(double oldFactor, double newFactor)
+    {
+        BossScale.applyHealth(this, this.bossScale.extraPlayers());
+        this.burrowAt = Float.NaN;
+        if (this.burrow.isActive())
+        {
+            this.burrow.rescale(newFactor / oldFactor);
+        }
+    }
+
+    /** Not while he's waking, raging or burrowing (he finishes it first), and not dying. */
+    @Override
+    public boolean canResetNow()
+    {
+        RatKingAction action = this.getAction();
+        return this.isAlive() && !this.isDeadOrDying() && !this.burrow.isActive()
+                && action != RatKingAction.WAKE && action != RatKingAction.RAGE;
+    }
+
+    /**
+     * Nobody near for 3 minutes ({@link BossRules}): his rats crumble and he lies down to sleep again on the spot, at full
+     * health, calm (his red eyes gone), to be woken as at first.
+     */
+    @Override
+    public void resetFight()
+    {
+        if (!this.awake && this.isAsleep() && this.getHealth() >= this.getMaxHealth())
+        {
+            return;
+        }
+        if (this.attackGoal != null)
+        {
+            this.attackGoal.interrupt();
+        }
+        this.getNavigation().stop();
+        this.setTarget(null);
+        this.setLastHurtByMob(null);
+        this.crumbleRats();
+        this.awake = false;
+        this.burrowAt = Float.NaN;
+        this.setHealth(this.getMaxHealth());
+        this.play(RatKingAction.SLEEP); // (sleeping calms him: his red eyes go)
+        this.applyStats();
+        if (this.bossBar != null)
+        {
+            this.bossBar.removeAllPlayers();
+        }
     }
 
     /** His rats crumble when he dies. */
@@ -1159,6 +1247,10 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
             }
             default -> {
             }
+        }
+        if (this.isAlive())
+        {
+            this.bossScale.tick(this);
         }
         if (this.isFightActive())
         {
@@ -1716,6 +1808,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
             return;
         }
         tag.putBoolean(TAG_AWAKE, this.awake);
+        this.bossScale.save(tag);
         if (!Float.isNaN(this.burrowAt))
         {
             tag.putFloat(TAG_BURROW_AT, this.burrowAt);
@@ -1734,6 +1827,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader
             this.setDesign(tag.getInt(TAG_DESIGN));
         }
         this.awake = tag.getBoolean(TAG_AWAKE);
+        this.bossScale.load(tag);
         this.burrowAt = tag.contains(TAG_BURROW_AT) ? tag.getFloat(TAG_BURROW_AT) : Float.NaN;
         // An action that was halfway through when he was saved picks up where it would have ended (a fight move
         // starts again from standing; a fighting king halfway down his hole carries on under the ground).

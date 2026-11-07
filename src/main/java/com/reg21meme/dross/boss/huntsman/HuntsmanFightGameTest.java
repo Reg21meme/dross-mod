@@ -212,7 +212,7 @@ public final class HuntsmanFightGameTest
             float afterMoose = m.wildHunt;
             hit(h, byZombie(level, h), HIT);
             float afterHim = m.wildHunt;
-            if (Math.abs(afterMoose - (HuntsmanTuning.WILD_HUNT_HEALTH - HIT)) > 0.01F
+            if (Math.abs(afterMoose - (HuntFight.wildHuntMax(m) - HIT)) > 0.01F
                     || Math.abs(afterHim - (afterMoose - HIT)) > 0.01F)
             {
                 throw new GameTestAssertException("their hits should come off the Wild Hunt's bar: " + afterMoose + " then "
@@ -635,9 +635,10 @@ public final class HuntsmanFightGameTest
                 problem = "after the split they should fight on their own, but they're " + h.stage() + " and " + m.stage();
             }
             else if (h.getHealth() < h.getMaxHealth() || m.getHealth() < m.getMaxHealth()
-                    || h.getMaxHealth() != HuntsmanTuning.HUNTSMAN_HEALTH || m.getMaxHealth() != HuntsmanTuning.MOOSE_HEALTH)
+                    || h.getAttribute(Attributes.MAX_HEALTH).getBaseValue() != HuntsmanTuning.HUNTSMAN_HEALTH
+                    || m.getAttribute(Attributes.MAX_HEALTH).getBaseValue() != HuntsmanTuning.MOOSE_HEALTH)
             {
-                problem = "each should start stage 2 on a full bar of 150";
+                problem = "each should start stage 2 on a full bar of his own (175 and 200)";
             }
             else if (!(HuntsmanBarShowcase.KEY_PREFIX + "huntsman").equals(barKey(h))
                     || !(HuntsmanBarShowcase.KEY_PREFIX + "alpha_moose").equals(barKey(m)))
@@ -675,6 +676,7 @@ public final class HuntsmanFightGameTest
             List<ServerPlayer> players = List.of(killer, near, far);
             String problem = null;
             double speed = h.getAttributeValue(Attributes.MOVEMENT_SPEED);
+            m.setHealth(1.0F);                       // (a hit takes at most a fifteenth of its health: boss/BossRules)
             hit(m, level.damageSources().playerAttack(killer), HUGE);
             if (!m.isDeadOrDying())
             {
@@ -690,6 +692,7 @@ public final class HuntsmanFightGameTest
             }
             else
             {
+                h.setHealth(1.0F);
                 hit(h, level.damageSources().playerAttack(killer), HUGE);
                 if (!h.isDeadOrDying())
                 {
@@ -1078,6 +1081,7 @@ public final class HuntsmanFightGameTest
         hit(m, byZombie(level, m), HIT);
         helper.runAfterDelay(HuntsmanTuning.SPLIT_INVULNERABLE_TICKS + 10, () ->
         {
+            m.setHealth(1.0F);                       // (a hit takes at most a fifteenth of its health: boss/BossRules)
             hit(m, byZombie(level, m), HUGE);
             hit(h, byZombie(level, h), HIT * 3.0F);
             if (!m.isDeadOrDying() || h.getHealth() >= h.getMaxHealth())

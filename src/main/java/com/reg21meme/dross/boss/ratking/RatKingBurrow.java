@@ -97,6 +97,12 @@ final class RatKingBurrow
         return this.floor;
     }
 
+    /** His full health changed (more players in the fight): the checkpoint keeps its share of it. */
+    void rescale(double ratio)
+    {
+        this.floor *= (float) ratio;
+    }
+
     /** A burrow starts at this checkpoint (the dig and dive play now). */
     void begin(float checkpoint)
     {
@@ -195,7 +201,7 @@ final class RatKingBurrow
     {
         List<Integer> counts = rage ? RatKingTuning.RAGE_RATS_PER_BURROW : RatKingTuning.RATS_PER_BURROW;
         float start = rage ? RatKingTuning.RAGE_AT * maxHealth : maxHealth;
-        float every = rage ? RatKingTuning.RAGE_BURROW_EVERY : RatKingTuning.BURROW_EVERY;
+        float every = (rage ? RatKingTuning.RAGE_BURROW_EVERY : RatKingTuning.BURROW_EVERY) * maxHealth;
         int burrow = Math.round((start - checkpoint) / every) - 1; // 0 for the phase's first
         return counts.get(Mth.clamp(burrow, 0, counts.size() - 1));
     }

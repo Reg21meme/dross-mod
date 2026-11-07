@@ -19,6 +19,19 @@
 - Beat the young for the challenge advancement **Wings Clipped** and a trophy (five poses: right-click to change).
 - Its own boss bars, sounds (a kaiju-sized screech), spawn eggs (the adult and the young) and trophies.
 
+## Tougher bosses
+
+- **More health:** the Cinder Colossus 375 (from 300; its stages now change at 75% and 40%), the Rat King 250 (from
+  200; still three burrows before his Rage and three after), the Wild Hunt 275 (from 250), and after the split the
+  Huntsman 175 and the Alpha Moose 200 (from 150 each).
+- **The Rat King's staff is poisoned:** his sweep and his spear charge give Poison II for 4 seconds (5 in his Rage).
+- **No hit takes more than a fifteenth of a boss's health,** so a boss always takes at least 15 hits, whatever your
+  weapon. (`/kill` and the creative Admin Sword aren't capped.)
+- **More players, a stronger boss:** every extra player in its fight gives it 50% more health and 20% more damage. Someone
+  joining mid-fight keeps its bar where it was, and the bonus stays until it resets.
+- **Bosses reset:** with nobody within 64 blocks for 3 minutes, a boss is back to full health, its bonus gone, and back
+  to resting (the Rat King asleep, the Colossus dormant, the Emberdactyl on its perch, the Huntsman calm in the saddle).
+
 ## New mobs in the Cinder Wastes
 
 - **The Pallbearer**: a 9-block skeleton carrying a burning coffin. It's neutral: hit it and it roars, swipes and slams

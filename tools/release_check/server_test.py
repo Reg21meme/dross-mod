@@ -259,6 +259,15 @@ else:
     tps("overworld far")
     ask("forceload remove all", r"forceload|Unmarked|chunk")
 
+    # ---- the showcase-only galleries are left out of the jar (boss/ShowcaseOnly; November 7, 2026): their commands too
+    for gallery, built in (("cinder_wastes", "Built the fire servant gallery"), ("rimefall", "Rimefall gallery|Built the Rimefall")):
+        time.sleep(2)  # (the last command's lines all in first: drained before this one)
+        r = ask("dross showcase boss_designs " + gallery, r"Unknown or incomplete command|Incorrect argument|" + built, 20)
+        if r and ("Unknown" in r or "Incorrect" in r):
+            note("showcase gallery %s: not offered (its models aren't in the jar)" % gallery)
+        else:
+            note("FAIL: the showcase gallery %s is still offered by the jar: %s" % (gallery, r))
+
     t0 = time.time()
     send("save-all")
     wait_for(r"Saved the game", 300)
