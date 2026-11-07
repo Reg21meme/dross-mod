@@ -77,7 +77,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
 1. **Dross dimension** (`dross:dross`) [built]: real terrain (below), permanent night (`fixed_time` 18000), normal hostile mob spawn rates.
    - Zombies spawn in full netherite armor + netherite sword. Skeletons spawn in full netherite armor and keep their bows. Nothing is enchanted (including the bow). None of this gear drops on death. Risen undead (step 6) are skipped by this rule: their gear comes only from Deathforged.
    - Slimes, creepers and spiders are removed from the spawn list. **The Cinder Wastes** have their own list: only their own mobs, the Colossus's stone and lava golems (step 8), the Cinder Hermit and the Pallbearer (step 16). **Blightwood** has no zombies, skeletons or endermen either: only rats and witches (step 11). **Rimefall** has its own list too: only its animals, moose and Pond Skaters, and its few Rimehorn herds placed with the land (step 14).
-   - **A lower monster limit in Silverwood Forest and the Gravecrags** [built November 5, 2026, not yet tested in-game] (the user, after playing 0.3.0: the netherite zombies and skeletons "like they are invading dimensions", "a 75% nerf ... specifically limit Silverwood Forest and the Gravecrags for now, as we will return that number once we get actual mobs for them"; `dimension/DrossMonsterLimit`): a monster spawns naturally in those two biomes only while fewer than 18 monsters (a quarter of vanilla's 70) are within 128 blocks of the spot; the other biomes keep the normal limit. (Skipping 3 in 4 of their spawns was talked over and dropped: it only slows the limit filling up.)
+   - **A lower monster limit in Silverwood Forest and the Gravecrags** [built November 5, 2026, tested in-game by the user November 6] (the user, after playing 0.3.0: the netherite zombies and skeletons "like they are invading dimensions", "a 75% nerf ... specifically limit Silverwood Forest and the Gravecrags for now, as we will return that number once we get actual mobs for them"; `dimension/DrossMonsterLimit`): a monster spawns naturally in those two biomes only while fewer than 18 monsters (a quarter of vanilla's 70) are within 128 blocks of the spot; the other biomes keep the normal limit. (Skipping 3 in 4 of their spawns was talked over and dropped: it only slows the limit filling up.)
    - Players see the dimension named **"The Dross"** (lang key `dimension.dross.dross`).
    - **Terrain** [built] (Terrain v1, October 2026; design `tools/terrain/TERRAIN_DESIGN.md`, tuning guide `tools/terrain/README.md`, report `TERRAIN_REPORT.md`): Minecraft's noise generator, set up in data files written by `tools/terrain/worldgen.py` (every tuning number a labeled constant). A 2D height field: no caves, overhangs or floating land (the only underground spaces are Blightwood's sewers, step 11). Rolling hills, cliff steps (9 and 18) and knolls in rocky areas, Cinder mesas, and the Gravecrags' snow-capped ridged peaks (about y 230-260). Five biomes, regions about 600-670 blocks across: **Silverwood Forest** (about 42%, always round the hub), **Cinder Wastes**, **Blightwood**, **Rimefall** and **The Gravecrags** (never within about 750 blocks of the hub). (There was a sixth, the **Nether Scar**, until October 17, 2026: the user had it removed. Its land went to the biomes round it without moving any other border, and its four blocks, Scarred Netherrack, Scar Roots, Soulwick and Scar Vent, are kept as building blocks that no longer generate.) Each biome has its own ground cover, features (trees, plants, ponds, lava pools, giant mushrooms, dead trees, lichen, boulders), fog/sky/water colours, particles and sounds; ores (coal, gold nuggets, Moonsilver, Stormite) lie under every biome. New worlds only: the old flat `dross_flats` biome was removed (October 17 cleanup).
    - **Blocks** [built]: 38 terrain blocks and 3 materials (listed in "Terrain v1" below), plus the sewers' Sewer Sludge and Blight Vent (step 11).
@@ -1756,7 +1756,7 @@ The Dross is a **mid-to-late game** place: players reach it after proving they s
         adult's model use it. Round 5's four looks (E1A round 4's pick, E1B-E1D) are archived:
         `firedesigns/emberdactyl_round5/`, previews `boss-previews/cinder_wastes/emberdactyl/round5/`. The designs
         renumbered back: E1A 61, E2A 62, the eggs 63-67, the Cinder Wastes' mobs 68-76.
-      - **Hitboxes that follow its animations** [built November 5, 2026, not yet tested in-game] (the user, after
+      - **Hitboxes that follow its animations** [built November 5, 2026, tested in-game by the user November 6] (the user, after
         playing 0.3.0: "make more specific boxes around them, not just 1 giant box ... the Emberdactyl, its body and
         wings as it swings"; `tools/fire/hitboxes.py`, `boss/fire/FireHitboxes`, `boss/fire/ShapedPart`): its pieces,
         each a hitbox of its own, the box round each piece every 0.1 s of every animation but its death, read from the
@@ -2320,7 +2320,8 @@ hermits 10% fewer, a monster limit of 18 in Silverwood Forest and the Gravecrags
 Colossus's death scream heard, the hermit's full peek and its cave's vent flush with the floor, hitboxes that follow the
 Emberdactyl's and the hermit's animations (their own boxes narrower and not hittable; the Emberdactyl's flight against
 blocks from its pose now, never held up by its wings, and its dive landing on real ground), and three colour looks of
-the adult, of which the user picked E1B, now its look (not yet tested in-game but the pick).
+the adult, of which the user picked E1B, now its look; then the adult climbing before its dive and landing on its legs
+and wrists, and the young never stuck against rock (all tested in-game by the user, November 6: "all good").
 The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
@@ -2689,18 +2690,6 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   out of the claw's way (never through it); hide, then peek on each shell: the claw drops a little, the eyes come out
   of the mouth (never through the shell's top or rim), grow to full size, then swing and look clearly left, then right;
   come_out takes them back in the same way.
-
-- **The play test fixes of November 5** (a new world): in Silverwood Forest and the Gravecrags at night far fewer netherite
-  zombies and skeletons (a quarter of the crowd), the other biomes as before; in Blightwood more witches; in the Cinder
-  Wastes a few fewer hermits; the Cinder Colossus screams loud through its whole death (a deep roar, then its cry again);
-  a hermit always looks left and right before it comes out of its shell; in a hermit crab cave the vent is in the floor
-  (nothing in the way) and lava golems turn up by its magma; hit a hermit's leg, its big claw, its shell: each hit counts,
-  but swinging at the air round its shell doesn't, and it never stands floating off a ledge; the Emberdactyl's wings,
-  head, horns, tail and legs can each be hit as they move (its wingtips as they beat), flying near hills and trees it
-  turns smoothly (no stop-start), and its dive by a tree lands it on the ground beside it, never up on it; before
-  diving the adult climbs a little higher first (the young doesn't), and on the volcano's slopes it lands facing up or
-  down the slope, on its legs and both wrists (never propped on one arm with its legs in the air); the young hatched in
-  the crater flies out over the rim to you, never stuck pressing into the volcano.
 
 ## Known bugs
 Minor issues found during the early-game build. None block playing. Fix them when that area is next changed, and remove the line once fixed.

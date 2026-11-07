@@ -69,12 +69,18 @@ CARD_TITLE_PIXEL = 12
 CARD_BOX = (470, 560)     # each pose fits in this box
 CARD_LABEL_PIXEL = 5
 CARD_YAW, CARD_ELEVATION = -30.0, 10.0
+EVEN_GAPS = "even gaps"   # a boss's `centres`: its figures spaced so the room at the sides and between them is the same
 # The thank-you banner (as wide as the banner).
 THANKS_TITLE = "THANK YOU!"
 THANKS_TOP = 300          # the bosses' room starts under the title...
-THANKS_FIGURE_H = 500     # ...and the tallest of them is this many pixels tall
-THANKS_FIGURE_W = 480     # (and the widest this many pixels wide; each gets its figure's width of ground and an equal
-                          # share of the rest)
+THANKS_ROOM_H = 500       # ...and the ground is this far under it
+THANKS_FIGURE_H = 400     # the tallest boss on the ground is this many pixels tall (500 until the user's "a little
+                          # smaller", November 6, 2026)...
+THANKS_FIGURE_W = 400     # ...and the widest this many pixels wide; each gets its figure's width of ground and an
+                          # equal share of the rest
+THANKS_BEHIND = (1300, 560)  # a boss flying behind the others (the Emberdactyl) fits in this box (its wings reach up
+                             # behind the title)...
+THANKS_BEHIND_LIFT = 60      # ...its foot this far over the ground
 THANKS_BLOCK = 64         # a block of the ground (16 texels of 4 pixels): each boss's biome's block over Duskstone
 THANKS_FEET = 10          # the bosses stand this far into the ground's top row (it's seen from a little above)
 THANKS_PLANTS = (0.13, 0.87)  # where a plant of its biome grows, in each boss's stretch of ground (shares of it)
@@ -173,9 +179,11 @@ class Boss:
     biome = ""     # its home biome (its box's colours)
     ground = ()    # its biome's ground on the thank-you banner: (its top block's texture, a plant of its biome)
     happy_yaw = 0.0  # how it's turned on the thank-you banner (degrees; +: its face to the picture's left)
-    centres = None # where its poses stand on its picture (shares of its width; None: evenly spaced)
+    centres = None # where its poses stand on its picture (shares of its width; None: evenly spaced; EVEN_GAPS: the
+                   # same room either side of its figures and between them, whatever their widths)
     card_box = CARD_BOX  # each of its poses fits in this box on its picture
     own_scale = False  # True: too big to stand at the others' scale on the thank-you banner (it's fitted on its own)
+    behind = False     # True: on the thank-you banner it flies behind the others, with no ground of its own
 
     def __init__(self):
         self._built = False
@@ -370,9 +378,10 @@ class Huntsman(Boss):
     ground = ("hoarfrost_side", "frostbloom")
     # the two bosses his fight splits into, big (the user's pick, October 24, 2026: the Wild Hunt riding left them small)
     poses = ("THE HUNTSMAN", "ALPHA MOOSE")
-    card_box = (700, 600)          # (two poses: each has half the picture's width; their antlers rise beside the title)
-    centres = (0.2, 0.69)          # (he's narrow and the moose wide: the same room on either side and between them)
-    BELLOW_AT = 1.1                # seconds into the moose's bellow: its head up, its antlers spread
+    card_box = (780, 600)          # (two poses: each has half the picture's width; the moose standing, its head out
+                                   # in front)
+    centres = EVEN_GAPS            # (he's narrow and the moose wide; the user, November 6, 2026: "even or centered")
+    MOOSE_POSE = ("idle", 0.0)     # the moose standing (the user, November 6, 2026: not in its bellow, its neigh)
     happy_yaw = 20.0               # (on the thank-you banner: on the right, turned towards the middle)
     # his wave on the thank-you banner (Bedrock degrees, like his rig's R.arm: -z swings his left arm out to his side):
     # his free (left) arm out to his side at his shoulder's height, its forearm turned on up beside his head
@@ -405,8 +414,8 @@ class Huntsman(Boss):
         for bone in hood.bones:
             bone.cubes = [c for c in bone.cubes if c.mat != "antler"]
         self.hood = (hood, head_tex["head"])
-        # only the animations his pictures need: him standing and the moose's bellow
-        self.anims = {"bellow": alpha_moose.animations(mobkit.MobRig(moose, alpha_moose))["bellow"],
+        # only the animations his pictures need: him and the moose standing
+        self.anims = {"moose": alpha_moose.animations(mobkit.MobRig(moose, alpha_moose))[self.MOOSE_POSE[0]],
                       "idle": huntsman.idle(mobkit.MobRig(foot, huntsman))}
 
     def _frame(self, layers, poses, yaw, elevation):
@@ -443,7 +452,7 @@ class Huntsman(Boss):
             part = whole if kind == "head" else self._draw([self.hood], [None], scale, yaw, elevation, frame)
             return part.crop(whole.getbbox())
         if kind == "ALPHA MOOSE":
-            image = self._draw([self.moose], [a["bellow"].sample(self.BELLOW_AT)], scale, CARD_YAW, CARD_ELEVATION)
+            image = self._draw([self.moose], [a["moose"].sample(self.MOOSE_POSE[1])], scale, CARD_YAW, CARD_ELEVATION)
         elif kind == "HAPPY":
             pose = dict(a["idle"].sample(0.0))
             for bone, rotation in self.WAVE.items():
@@ -501,22 +510,48 @@ class Emberdactyl(Boss):
     poses = ("THE SKY THAT BURNS", "THE EMBER THAT REMAINS")
     card_box = (760, 525)              # (two poses, the adult the bigger: the young is drawn at its scale; its wing
                                        # tip just under the title)
-    centres = (0.29, 0.75)
+    centres = EVEN_GAPS                # (the user, November 6, 2026: "even or centered")
     own_scale = True                   # (33 blocks across its wings: at the others' scale it would fill the banner)
-    happy_yaw = -45.0                  # (on the thank-you banner: on the left, turned towards the middle)
+    behind = True                      # (on the thank-you banner it flies behind the others: the user, November 6, 2026)
+    happy_yaw = -30.0                  # (on the thank-you banner: turned a little towards you)
     STEP = 16                          # its pictures' scale counts sixteenths of a pixel a texture pixel (a giant: at a
                                        # whole pixel a texel it's already 528 pixels across its wings)
     TURN, LIFT = -50.0, 12.0           # its picture's view: side-on enough for its wings, its bill and its crest
     ADULT = ("emberdactyla", "emberdactyl", "hover", 0.0)    # (model, animations, the pose: animation, second)
     YOUNG = ("emberyounga", "emberyoung", "hover", 1.4)      # (its wings up: not the adult's pose again)
-    HAPPY = ("screech", 0.3)           # its wings flung up in a V, its beak up and open: a cheer...
-    HAPPY_TURNS = {"head": (20.0, 0.0, 0.0)}  # ...its head tipped a little forward (Bedrock degrees, added to the
-                                              # pose), so its blade horns rise behind it instead of crossing its chest
-    HEAD_TURN = (-40.0, 20.0)          # its head on the banner, seen from a little higher than the others' (its crest
-                                       # stands clear of its horns)
-    SKULL_FILL = 0.8                   # its head (not its horns or neck) fills this share of what a head may fill,
-    SKULL_Y = 0.55                     # its middle this far down its frame (its horns and neck reach off to the side)
+    HAPPY = ("hover", 0.5)             # its wings spread wide behind the others...
+    HAPPY_TURNS = {"head": (0.0, -45.0, 0.0)}  # ...its head turned side-on to you (Bedrock degrees, added to the
+                                               # pose), so its happy eye shows
+    HAPPY_LIFT = 0.0                   # (seen from level with it: from above its brow hid its eye)
+    HEAD_TURN = (-25.0, 15.0)          # its head on the banner, turned a little more towards you than the others' (its
+                                       # neck runs down behind it into its body)
+    SKULL_FILL = 1.15 * 0.85           # its head (not its horns or neck) fills this share of what a head may fill (0.8
+                                       # until the user's "make it bigger", November 6, 2026; then 1.15, and the same
+                                       # day 15% smaller, the user's pick of 5-20% smaller, for the banner and the icon),
+    SKULL_Y = 0.42                     # its middle this far down its frame (its horns, neck and body reach off the
+                                       # frame's edges)
     HORNS = ("horn_l", "horn_r")
+    # its head on the banner runs down its neck into its body (the user, November 6, 2026: "connected to his body"; a
+    # head and neck alone looked cut off): all of it but its wings and legs
+    BUST_LEAVES_OUT = ("arm_l", "arm_r", "leg_l", "leg_r")
+    # its happy eyes on the thank-you banner (like the Colossus's): each glowing eye an upside-down U, in its eye's own
+    # glow colours (the user, November 6, 2026)
+    HAPPY_EYE = ["..........",
+                 "..........",
+                 "...*##*...",
+                 "..######..",
+                 "..##..##..",
+                 "..##..##..",
+                 "..#....#..",
+                 "..........",
+                 "..........",
+                 ".........."]
+    HAPPY_EYE_COLOURS = {"#": (255, 170, 68), "*": (255, 216, 144)}
+    HAPPY_EYE_DARK = (18, 10, 12)      # the rest of the eye (its amber iris made the arch hard to see)
+    HAPPY_EYE_TURNS = {"lid_l": 3, "lid_r": 1}  # quarter turns (anticlockwise on the texture) so each eye's U stands
+                                                # upright (each eye's texels run their own way; found by drawing them)
+    SOCKET_REACH = 8.0                 # the boxes round each eye (its deep socket and heavy brow, which hid half the U)
+                                       # are left off the happy picture: the head's boxes centred this close to its eye
     BRIGHT = 1.35                      # its lit (not glowing) colours times this
 
     def build(self):
@@ -531,8 +566,50 @@ class Emberdactyl(Boss):
             anims = trophies.load_anims(str(Path(trophies.FIRE_ANIM) / f"{mob}.animation.json"), f"animation.{mob}.")
             self.mobs[key] = (model, trophies.load_textures(model_id), anims)
         adult = self.mobs["adult"][0]
-        self.head = keeping(adult, of("neck"))
+        self.head = keeping(adult, lambda bone: not of(*self.BUST_LEAVES_OUT)(bone))
         self.skull = keeping(adult, lambda bone: of("head")(bone) and not of(*self.HORNS)(bone))
+        self.happy = self._happy_eyes(Path(trophies.FIRE_GEO) / f"{self.ADULT[0]}.geo.json", self.mobs["adult"][1])
+        self.happy_model = copy.deepcopy(adult)
+        lids = [np.array(bone.pivot, dtype=float) for bone in self.happy_model.bones if bone.name in ("lid_l", "lid_r")]
+        head = next(bone for bone in self.happy_model.bones if bone.name == "head")
+
+        def socket(cube):
+            centre = np.array(cube.origin) + np.array(cube.size) / 2
+            return any(0.5 < np.abs(centre - lid).max() <= self.SOCKET_REACH for lid in lids)
+
+        head.cubes = [cube for cube in head.cubes if not socket(cube)]
+
+    def _happy_eyes(self, geo_path, textures):
+        """Its textures with each eye painted happy. Its eyes are the head's boxes centred on its eyelids' pivots (the
+        lids are hidden in them until it dies); each face of them that glows is painted again."""
+        geo = json.loads(Path(geo_path).read_text(encoding="utf-8"))["minecraft:geometry"][0]
+        bones = {bone["name"]: bone for bone in geo["bones"]}
+        out = {name: array.copy() for name, array in textures.items()}
+        painted = 0
+        for lid in ("lid_l", "lid_r"):
+            pivot = np.array(bones[lid]["pivot"], dtype=float)
+            for cube in bones["head"].get("cubes", []):
+                centre = np.array(cube["origin"], dtype=float) + np.array(cube["size"], dtype=float) / 2
+                if np.abs(centre - pivot).max() > 0.5:
+                    continue
+                for face in cube["uv"].values():
+                    (u, v), (w, h) = (int(round(c)) for c in face["uv"]), (int(round(c)) for c in face["uv_size"])
+                    if not out["glow"][v:v + h, u:u + w, 3].any():
+                        continue
+                    out["glow"][v:v + h, u:u + w] = 0
+                    face_base = out["base"][v:v + h, u:u + w]
+                    face_base[face_base[..., 3] > 0, :3] = self.HAPPY_EYE_DARK
+                    pattern = np.rot90(np.array([list(row) for row in self.HAPPY_EYE]), self.HAPPY_EYE_TURNS[lid])
+                    for y in range(h):
+                        row = pattern[y * len(pattern) // h]
+                        for x in range(w):
+                            mark = row[x * len(row) // w]
+                            if mark in self.HAPPY_EYE_COLOURS:
+                                out["glow"][v + y, u + x] = self.HAPPY_EYE_COLOURS[mark] + (255,)
+                    painted += 1
+        if painted < 2:
+            raise SystemExit(f"draw_page_art: found {painted} of the Emberdactyl's eyes to paint happy")
+        return out
 
     def _pose(self, key, animation, second):
         anims = self.mobs[key][2]
@@ -566,11 +643,13 @@ class Emberdactyl(Boss):
             animation, second = (self.ADULT if key == "adult" else self.YOUNG)[2:]
             yaw = self.TURN
         model, textures, _anims = self.mobs[key]
+        if kind == "HAPPY":
+            model, textures = self.happy_model, self.happy
         pose = self._pose(key, animation, second)
         for bone, add in turns.items():
             rotation, position, size = pose.get(bone, ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)))
             pose[bone] = (tuple(r + d for r, d in zip(rotation, add)), position, size)
-        image = self._draw(model, textures, pose, scale, yaw, self.LIFT)
+        image = self._draw(model, textures, pose, scale, yaw, self.HAPPY_LIFT if kind == "HAPPY" else self.LIFT)
         return image.crop(image.getbbox())
 
     def framed_head(self, size, fill, angle=None):
@@ -585,14 +664,15 @@ class Emberdactyl(Boss):
         return head.crop((left, top, left + size, top + size))
 
     def box_colours(self):
-        """A burning sky: its embers' own colour in the middle, the biome's fog at the edges (its obsidian head stands
-        out dark against it; the Colossus's box, of the same biome, is the darker one)."""
-        return mix(biome_colour(self.biome, "fog_color"), NIGHT, 0.25), colour(self.glow)
+        """The Colossus's colours, its biome's (the user, November 6, 2026: the same background as the other boss of
+        the Cinder Wastes; its own bright ember orange stood out from the rest)."""
+        edge = biome_colour(self.biome, "fog_color")
+        return mix(edge, NIGHT, 0.25), mix(edge, colour(CinderColossus.glow), 0.5)
 
 
 # The bosses in the game, in the order their boxes come on the banner (a new boss: add its class here).
 BOSSES = [CinderColossus, RatKing, Huntsman, Emberdactyl]
-# Their order on the thank-you banner (the Emberdactyl beside the Colossus: the two share the Cinder Wastes' ash).
+# Their order on the thank-you banner, left to right (the Emberdactyl flies behind them all, in the middle).
 THANKS_ORDER = [Emberdactyl, CinderColossus, RatKing, Huntsman]
 
 
@@ -768,11 +848,20 @@ def card(boss):
     place(image, label(boss.name, CARD_TITLE_PIXEL, tint), CARD_W / 2, top=30)
     scale = min(fitted(boss, kind, boss.card_box) for kind in boss.poses)
     baseline = CARD_H - 120
-    centres = boss.centres or [(i + 0.5) / len(boss.poses) for i in range(len(boss.poses))]
-    for kind, share in zip(boss.poses, centres):
+    pictures = [boss.picture(kind, scale) for kind in boss.poses]
+    if boss.centres == EVEN_GAPS:
+        # the same room at the picture's sides as between its figures, whatever their widths
+        gap, x, centres = (CARD_W - sum(p.width for p in pictures)) / (len(pictures) + 1), 0.0, []
+        for picture in pictures:
+            x += gap
+            centres.append((x + picture.width / 2) / CARD_W)
+            x += picture.width
+    else:
+        centres = boss.centres or [(i + 0.5) / len(boss.poses) for i in range(len(boss.poses))]
+    for kind, picture, share in zip(boss.poses, pictures, centres):
         cx = CARD_W * share
         layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
-        place(layer, boss.picture(kind, scale), cx, bottom=baseline)
+        place(layer, picture, cx, bottom=baseline)
         image.alpha_composite(glow(layer, tint, 26, 0.55))
         image.alpha_composite(layer)
         place(image, label(kind, CARD_LABEL_PIXEL, WHITE), cx, top=baseline + 28)
@@ -791,13 +880,21 @@ def block_texture(name, size):
 def thanks(bosses):
     """The thank-you banner (the user's request, October 24, 2026): THANK YOU! in the portal frame's stone, and the
     bosses happy (the Colossus's eyes upside-down U's, the Rat King and the Huntsman waving, the Emberdactyl's wings
-    flung up), each on its own biome's ground: its block over a row of Duskstone, a plant of its biome either side.
-    They stand at one scale, the tallest THANKS_FIGURE_H tall; a boss too big for that (`own_scale`: the Emberdactyl)
-    is fitted on its own."""
+    flung up and its eyes upside-down U's), each on its own biome's ground: its block over a row of Duskstone, a plant
+    of its biome either side. They stand at one scale, the tallest THANKS_FIGURE_H tall; a boss too big for that
+    (`own_scale`) is fitted on its own, and one that flies (`behind`: the Emberdactyl) flies behind them, in the
+    middle, with no ground of its own."""
     w, b = BANNER_W, THANKS_BLOCK
-    top = THANKS_TOP + THANKS_FIGURE_H           # the ground's top
+    top = THANKS_TOP + THANKS_ROOM_H             # the ground's top
     image = night(w, top + 2 * b)
+    for boss in (boss for boss in bosses if boss.behind):
+        layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+        place(layer, boss.picture("HAPPY", fitted(boss, "HAPPY", THANKS_BEHIND)), w / 2,
+              bottom=top - THANKS_BEHIND_LIFT)
+        image.alpha_composite(glow(layer, colour(boss.glow), 26, 0.55))
+        image.alpha_composite(layer)
     place(image, stone_title(THANKS_TITLE, TITLE_PIXEL, TITLE_DEPTH), w / 2, top=TITLE_TOP - 40)
+    bosses = [boss for boss in bosses if not boss.behind]
     room = (THANKS_FIGURE_W, THANKS_FIGURE_H)
     scale = min(fitted(boss, "HAPPY", room) for boss in bosses if not boss.own_scale)
     figures = [boss.picture("HAPPY", fitted(boss, "HAPPY", room) if boss.own_scale else scale) for boss in bosses]

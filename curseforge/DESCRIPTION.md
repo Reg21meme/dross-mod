@@ -4,6 +4,18 @@
 
 The Dross is a dangerous dimension for the mid-to-late game.
 
+## New update
+
+- **A new boss: the Emberdactyl.** A giant volcanic pterosaur that nests on its own volcano in the Cinder Wastes. Bring it down and its egg hatches.
+- **New mobs in the Cinder Wastes:** the Pallbearer, and the Cinder Hermit in eight different shells, with hermit crab caves to explore.
+- **No more freezes when a world starts.** The portal site, the hub and the trader's chapel are now made with the world, like villages.
+- **A settings file for modpacks:** `config/dross-common.toml`.
+
+## Upcoming
+
+- **A new quest system** inside the Dross.
+- **The Dross reaches into the Overworld.** How you deal with the Dross before you ever step through the portal will start to change your world.
+
 ## Getting in
 
 - **Find a Weathered Letter** 
