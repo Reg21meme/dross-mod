@@ -3205,7 +3205,12 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - **One column beside the cathedral not stepped back, on one seed** (World site, found November 5): in a full fresh run
   (world `gt_play_a`) `PortalSiteGameTest.cathedralIsMadeWithTheLand` failed with "1 of 5172 columns round the site are
   further from its ground level y 70 than they are from it (the first: -2916, 2699 (1 out) at y 67, diorite over diorite
-  over diorite)": one column of stone a block too low in the staircase blend. Cosmetic. Not looked into yet.
+  over diorite)": one column of stone a block too low in the staircase blend. Cosmetic. Not looked into yet. Again on
+  November 19 (world `gt_knights_1119c`: 5 of 5172 columns, the first 11 out at 3582, -2948, 12 under the ground level
+  y 126).
+- **The portal site's spot past 4,500 blocks, on one seed** (World site, found November 19): in a full fresh run (world
+  `gt_knights_1119c`) `PortalSiteGameTest.spotComesFromTheSeed` failed with "the spot is 4667 blocks from the world
+  spawn" (its rules want 3,500-4,500 unless relaxed). Not looked into yet.
 - **The bedrock arena test once found a spot for a zombie on its roof** (Boss area, found November 6): in a full fresh
   run `BedrockArenaGameTest.nothingSpawnsInTheBedrockArena` failed with "a minecraft:zombie could spawn on the arena at
   35, 50, 66" (on its roof's top); the arena leaves blocks with a block entity alone (a chest, a bee nest) by design, so
