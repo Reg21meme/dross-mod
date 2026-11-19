@@ -129,9 +129,9 @@ giants at all in the forests")**: a probe (`boss/giant/GiantSpawnProbeGameTest`,
 `dross_spawn_probe`: a survival player in the forest, spawning on, 10 minutes) found no moose could spawn at any of 3,000
 spots (Minecraft's own rule for an animal wants daylight, and the Dross is always night: `Moose.checkSpawnRules` now
 leaves it to `RimefallAnimals.checkMooseSpawn`) and only one giant within 128 blocks (kept 96 apart). Now giants keep
-64 apart, never while 4 stand within 128 blocks, and 96 off the hub (`GiantTuning.SPAWN_SPACING`, `SPAWN_AREA_CAP`,
-`SPAWN_AREA`, `HUB_CLEARANCE`); a moose never spawns by itself within 128 blocks of another in the Silverwood Forest, 80
-elsewhere (`RimefallMobTuning.MOOSE_SPAWN_SPACING_SILVERWOOD`, `MOOSE_SPAWN_SPACING`: moose never despawn, and at 40 the
+62.5 apart (64 until the user's "increase 5%" the same day), never while 4 stand within 128 blocks, and 96 off the hub (`GiantTuning.SPAWN_SPACING`, `SPAWN_AREA_CAP`,
+`SPAWN_AREA`, `HUB_CLEARANCE`); a moose never spawns by itself within 98 blocks of another in the Silverwood Forest, 70
+elsewhere (the user's numbers the same day; 128 and 80 before) (`RimefallMobTuning.MOOSE_SPAWN_SPACING_SILVERWOOD`, `MOOSE_SPAWN_SPACING`: moose never despawn, and at 40 the
 game filled the land round the hub to its animal limit, 9 within 128 blocks in two minutes). Measured in the game (a
 temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 giants and 6 moose (calves too) within
 128 blocks. Headless test `RimefallAnimalsGameTest.mooseSpawnRules`. So the netherite zombies and skeletons now spawn only in **the Gravecrags**. The spawn lists are data read as a world loads, so older worlds' Silverwood Forest loses its zombies and skeletons too.
@@ -2564,8 +2564,8 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       - **Where** (`SilverwoodGiants`; the monster list in `tools/terrain/worldgen.py`, Dimension's): weight **40** in
         the Silverwood Forest's monsters (endermen 10, witch 5; zombies, zombie villagers and skeletons gone), always
         alone; a natural spawn only in the Silverwood Forest, on the ground, in any light, never in a fluid, never on
-        Peaceful, **never within 64 blocks of another giant, nor while 4 stand within 128 blocks** (`SPAWN_SPACING`,
-        `SPAWN_AREA_CAP`; 96 apart until November 19), **never within 96 blocks of the hub** (128 until then)
+        Peaceful, **never within 62.5 blocks of another giant, nor while 4 stand within 128 blocks** (`SPAWN_SPACING`,
+        `SPAWN_AREA_CAP`; 96 apart until November 19, then 64), **never within 96 blocks of the hub** (128 until then)
         (`HUB_CLEARANCE`), and only with **5 blocks of open air over the 3 x 3** round where it stands
         (`SPAWN_HEADROOM`): a few roam within sight of you (measured in the game: 5 within 128 blocks).
         Those rules, not the weight, set how many there are. Spawn eggs and commands skip them.

@@ -143,9 +143,10 @@ public final class GiantTuning
     /**
      * Never within this many blocks of another giant, so a few roam within sight of you (since November 19, 2026, the
      * user: "I don't see any ... giants at all in the forests"; at 96 a probe found one within 128 blocks of a player, out
-     * of sight in the trees)...
+     * of sight in the trees; then 64, and on November 19 the user: "increase 5%": a giant takes up about the square of
+     * this, so 62.5 packs about 5% more into the forest)...
      */
-    public static final double SPAWN_SPACING = 64.0D;
+    public static final double SPAWN_SPACING = 62.5D;
     /**
      * ...and never while this many giants already stand within {@link #SPAWN_AREA} blocks (with only the spacing, the
      * game's own two minutes near the hub gave 8 within 128 blocks: too many)...

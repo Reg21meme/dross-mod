@@ -151,7 +151,7 @@ tree carried over his shoulder and swung overhead).
   blocks) but only at someone it's angry with, and only G1, the Boulder-Hurler (the other two fight up close).
 - **Slow:** it runs slower than you walk, its anger runs out after about 30 seconds, and it gives up a chase 24 blocks
   from where it began and walks back. So you can always get away.
-- **Where:** only in the Silverwood Forest, never within 64 blocks of another giant (and at most 4 within 128), never within 96 blocks of the hub,
+- **Where:** only in the Silverwood Forest, never within about 62 blocks of another giant (and at most 4 within 128), never within 96 blocks of the hub,
   and only where there's room for its size: a few roam within sight of you. No drops; 18 XP. It dies the way
   Minecraft's mobs do (it tips over, flashing red).
 - Its sounds are all original (`tools/forest_giant/sounds.py`): a deep, monstrous voice that carries. Its spawn egg is
