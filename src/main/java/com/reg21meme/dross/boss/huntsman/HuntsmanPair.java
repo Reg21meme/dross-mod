@@ -34,6 +34,53 @@ public final class HuntsmanPair
         return h;
     }
 
+    /**
+     * A village's pair asleep at home (until the Oracle's quest of a player near reaches him: {@code village/HuntsmanAsleep}):
+     * the Alpha Moose lying in its stall at {@code stall}, facing {@code stallYaw}, the Huntsman on his bed at {@code bed}
+     * (his middle; his feet the way {@code bedYaw} faces), partners, not in the saddle. Null if either couldn't be made.
+     */
+    @Nullable
+    public static Huntsman spawnAsleep(ServerLevel level, Vec3 bed, float bedYaw, Vec3 stall, float stallYaw)
+    {
+        AlphaMoose moose = newMoose(level, stall, stallYaw);
+        if (moose == null)
+        {
+            return null;
+        }
+        Huntsman h = newHuntsman(level, bed, bedYaw);
+        if (h == null)
+        {
+            moose.discard();
+            return null;
+        }
+        HuntFight.link(h, moose);
+        moose.setAsleep(true);
+        h.setAsleep(true);
+        moose.moveTo(stall.x, stall.y, stall.z, stallYaw, 0.0F);       // (its box changed: back on its spot)
+        h.moveTo(bed.x, bed.y, bed.z, bedYaw, 0.0F);
+        return h;
+    }
+
+    /**
+     * Wakes a sleeping pair onto their patrol: both stand at {@code at} facing {@code yaw}, him in the saddle. False (and
+     * nothing done) if his moose isn't there to wake with him.
+     */
+    public static boolean wake(Huntsman h, Vec3 at, float yaw)
+    {
+        if (!(HuntFight.partner(h) instanceof AlphaMoose moose) || !moose.isAlive())
+        {
+            return false;
+        }
+        moose.setAsleep(false);
+        h.setAsleep(false);
+        moose.moveTo(at.x, at.y, at.z, yaw, 0.0F);
+        moose.setYBodyRot(yaw);
+        moose.setYHeadRot(yaw);
+        h.moveTo(at.x, at.y, at.z, yaw, 0.0F);
+        h.startRiding(moose, true);
+        return true;
+    }
+
     /** A new Alpha Moose in the world (not yet anyone's partner). */
     @Nullable
     static AlphaMoose newMoose(ServerLevel level, Vec3 at, float yaw)

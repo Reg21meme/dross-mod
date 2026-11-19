@@ -73,7 +73,7 @@ public final class HuntsmanFightGameTest
 
     private HuntsmanFightGameTest() {}
 
-    private static Huntsman pair(GameTestHelper helper, BlockPos at, float yaw)
+    static Huntsman pair(GameTestHelper helper, BlockPos at, float yaw)
     {
         Huntsman h = HuntsmanPair.spawn(helper.getLevel(), helper.absoluteVec(Vec3.atBottomCenterOf(at)), yaw);
         if (h == null || !(h.getVehicle() instanceof AlphaMoose))
@@ -83,7 +83,7 @@ public final class HuntsmanFightGameTest
         return h;
     }
 
-    private static AlphaMoose moose(Huntsman h)
+    static AlphaMoose moose(Huntsman h)
     {
         AlphaMoose m = HuntFight.mooseOf(h);
         if (m == null)
@@ -107,13 +107,13 @@ public final class HuntsmanFightGameTest
     }
 
     /** Hits {@code mob} (its last hit's cool-down cleared so every hit counts). */
-    private static boolean hit(HuntMob mob, DamageSource source, float amount)
+    static boolean hit(HuntMob mob, DamageSource source, float amount)
     {
         mob.invulnerableTime = 0;
         return mob.hurt(source, amount);
     }
 
-    private static void clear(HuntMob... mobs)
+    static void clear(HuntMob... mobs)
     {
         for (HuntMob m : mobs)
         {
@@ -1252,6 +1252,8 @@ public final class HuntsmanFightGameTest
         }
         ServerPlayer player = ColossusGameTest.joinPlayer(helper, "hunt-escaper", MIDDLE.offset(6, 0, 0), 90.0F);
         player.setGameMode(GameType.SURVIVAL);
+        // (a village's pair is locked behind his Oracle quest: this player's has reached him, so the hit counts)
+        com.reg21meme.dross.boss.BossLockGameTest.allow(player, com.reg21meme.dross.quest.oracle.OracleBoss.HUNTSMAN);
         hit(m, level.damageSources().playerAttack(player), HIT);
         boolean[] targeted = {false};
         helper.startSequence()

@@ -24,6 +24,11 @@ Animations (animation.huntsman.*; hits and releases at the seconds in their meta
   horn_blow       (once)  the Horn of the Hunt held to his lips for a long call
   land            (once)  landing from the leap off the moose
   death           (once)  he staggers, sinks to his knees and falls
+  sleep           (loop)  asleep on his back in his bed (before the Oracle's quest reaches him: the game keeps him in his
+                          lodge), his hands at rest, his chin on his chest so his antlers rise off the pillow, his
+                          chest rising and falling with each slow snore; no spear or bow (they lie outside his door).
+                          The model lies centred on its origin (its middle over the entity's spot, its back on the
+                          floor): meta "length" and "width" are how far it reaches (blocks)
 """
 import math
 
@@ -743,6 +748,71 @@ def death(rig):
     return a
 
 
+SNORE = 5.0                      # one slow breath in and out while he sleeps (the game's snore comes with each)
+SLEEP_HEAD = 26.0                # his chin towards his chest (degrees): his antlers rise off the pillow
+# His legs (degrees at the hips): straight out, lying flat on the rug (the user, after seeing him on his bed with his legs
+# bent down past its end: "make him sleep on the floor ... just that carpet")
+SLEEP_LEGS = 0.0
+SLEEP_BACK = None                              # what rests on the floor: the lowest of all of him
+
+
+def sleep(rig):
+    """
+    Asleep on his back on the rug of his bedroom (the user, November 18, 2026: "before he's unlocked he should be sleeping inside his
+    home ... you can hear him snoring"): lying as he does at the end of his death, but at rest: his arms at his sides
+    (the death's last pose, checked clear of his body there), his chin on his chest so his antlers rise off the pillow,
+    turned a little to one side; his chest rises and falls with each slow breath (SNORE). His spear and the bow on his
+    back aren't with him: they lie outside his door. The whole of him is moved so his middle is over the model's origin
+    and the lowest of him rests on its floor, so the game can put him (his spot) on the rug at his bed's foot.
+    """
+    T = SNORE
+    arms = {side: DEATH_ARMS[side][-1][1] for side in ("l", "r")}
+    every = R.LEG_BONES + ("hand_l", "hand_r", "forearm_l", "forearm_r", "chest", "head", "arm_l", "arm_r", "hips",
+                           "cape")
+
+    def posed(t):
+        p = Pose()
+        w = 2 * math.pi * t / T
+        breath = 0.5 - 0.5 * math.cos(w)              # in over the first half, out over the second
+        for side in ("l", "r"):
+            R.arm(p, side, **arms[side])
+        p.rot("root", -90.0, 0.0, 0.0)
+        p.rot("chest", -2.4 * breath, 0.0, 0.0)
+        p.rot("head", SLEEP_HEAD - 3.0 * breath, 9.0, 0.0)
+        p.rot("cape", 1.5 * breath, 0.0, 0.0)
+        for side in ("l", "r"):
+            p.rot(f"thigh_{side}", SLEEP_LEGS, 0.0, 0.0)
+        R.show(p)
+        p.scale("spear", 0.0)                          # (his spear and his bow lie outside his door)
+        p.scale("bow_back", 0.0)
+        return p
+
+    def extent(p, bones=every):
+        from kit.clipping import _box_frame
+        mats = rig.m.pose_matrices(p.as_geo())
+        pts = np.concatenate([mobkit._grid(_box_frame(mats, c)) for b in bones for c in rig.m[b].cubes])
+        return pts.min(axis=0) * 16.0, pts.max(axis=0) * 16.0
+
+    # where to move him so he lies on the floor and his middle is over the origin (from his pose at rest: the breath
+    # moves him by a fraction of a unit)
+    lo, hi = extent(posed(0.0))
+    back, _hi = extent(posed(0.0), SLEEP_BACK or every)
+    shift = (-(lo[0] + hi[0]) / 2.0, -back[1], -(lo[2] + hi[2]) / 2.0)
+
+    def frame(t):
+        p = posed(t)
+        p.pos("root", -shift[0], shift[1], shift[2])   # (the kit's x is mirrored in a bone's position)
+        return p
+
+    a = mobkit.record(rig, "sleep", T, frame)
+    lo2, hi2 = extent(frame(0.0))
+    a.meta.update(length=round(float(max(hi2[0] - lo2[0], hi2[2] - lo2[2]) / 16.0), 2),
+                  width=round(float(min(hi2[0] - lo2[0], hi2[2] - lo2[2]) / 16.0), 2),
+                  middle=[round(float((lo2[i] + hi2[i]) / 32.0), 2) for i in range(3)],
+                  floor=round(float(lo2[1] / 16.0), 3), back=round(float(extent(frame(0.0), SLEEP_BACK or every)[0][1] / 16.0), 3))
+    return a
+
+
 def _spear_falls(p, t, state, slip, lands, hands, rig):
     """
     The dropped spear (the user: "he moves his spear a little bit, remove that; make his spear in front of him drop
@@ -843,4 +913,5 @@ def animations(rig):
         "horn_blow": horn_blow(rig),
         "land": land(rig),
         "death": death(rig),
+        "sleep": sleep(rig),
     }

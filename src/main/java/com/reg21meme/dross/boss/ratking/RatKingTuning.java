@@ -352,6 +352,32 @@ public final class RatKingTuning
     /** The snores are looked after every this many ticks. */
     public static final int RAT_CAVE_SNORE_CHECK_TICKS = 10;
 
+    // ---------------------------------------------------------------- his snores down his sewer's pipes
+
+    /*
+     * The user, November 9, 2026: "I should be able to hear the snoring from the outside of his cavern while I am in the
+     * Rat King pipes; it gets louder to its regular volume as I get closer". While a cave's king is asleep (or hasn't
+     * appeared yet and hasn't been beaten), everyone in his sewer (its tunnels, pipes, junctions and cave: the network's
+     * pieces) hears each of his snores, from the way of his nest, as loud as this for how far off they are (lair/
+     * RatKingSnores.loudness): his own loudness on the nest within PIPE_SNORE_NEAR blocks, then falling off as
+     * (PIPE_SNORE_NEAR / distance) ^ PIPE_SNORE_FALLOFF (16 blocks off about 0.30, 48 about 0.16, 100 about 0.10), never
+     * under PIPE_SNORE_FAINTEST. Anyone within PIPE_SNORE_HEARD_AROUND blocks of him hears it the same way, in the sewer
+     * or not.
+     */
+    /** His own snore on the nest is this loud (as {@code RatKing.SNORE_VOLUME}). */
+    public static final float PIPE_SNORE_LOUDEST = 0.7F;
+    public static final double PIPE_SNORE_NEAR = 4.0D;
+    public static final double PIPE_SNORE_FALLOFF = 0.6D;
+    public static final float PIPE_SNORE_FAINTEST = 0.06F;
+    public static final double PIPE_SNORE_HEARD_AROUND = 16.0D;
+    /** Far off it's a little deeper, echoing down the pipes: its pitch goes from 1 beside him to this at the faintest. */
+    public static final float PIPE_SNORE_FAR_PITCH = 0.88F;
+    /**
+     * Each snore is sent to each player from this many blocks away from them towards his nest (so it comes from his way
+     * and its loudness is what's worked out: Minecraft fades a sound out over 16 blocks).
+     */
+    public static final double PIPE_SNORE_SOURCE_GAP = 2.0D;
+
     // ---------------------------------------------------------------- the rats' spawn light in the sewers
 
     /**

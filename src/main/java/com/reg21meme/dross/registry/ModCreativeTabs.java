@@ -156,6 +156,8 @@ public final class ModCreativeTabs
                         // Boss area: the Cinder Wastes' Pallbearer and Cinder Hermit
                         output.accept(ModItems.PALLBEARER_SPAWN_EGG.get());
                         output.accept(ModItems.CINDER_HERMIT_SPAWN_EGG.get());
+                        // Boss area: the Silverwood Giant
+                        output.accept(ModItems.SILVERWOOD_GIANT_SPAWN_EGG.get());
 
                         // 5. Weapons and tools
                         // Villager area: the test-only Admin Sword

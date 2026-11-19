@@ -1,5 +1,6 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.boss.BossLocks;
 import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophies;
 import com.reg21meme.dross.boss.huntsman.village.HuntsmanVillages;
 import com.reg21meme.dross.boss.rage.Rage;
@@ -672,7 +673,9 @@ public final class HuntFight
         boolean near = false;
         for (ServerPlayer player : level.players())
         {
-            if (!player.isSpectator() && player.isAlive() && player.distanceToSqr(leader) <= range * range)
+            // (a player a village's pair is locked for doesn't keep it from breaking off: boss/BossLocks)
+            if (!player.isSpectator() && player.isAlive() && player.distanceToSqr(leader) <= range * range
+                    && !BossLocks.isLockedFor(leader, player))
             {
                 near = true;
                 break;
@@ -851,11 +854,12 @@ public final class HuntFight
     /**
      * A foe of theirs: a player in survival or adventure, a hostile mob (they hunt those too: the user's answer, October
      * 22, 2026), or a raged mob of another team; never each other, a raged teammate, another Huntsman or Alpha Moose, or a
-     * mob on show (no AI).
+     * mob on show (no AI). A village's pair never counts a player it's locked for ({@code boss.BossLocks}: their Oracle
+     * quest hasn't reached it), whatever their Rage team: to it they're nobody.
      */
     static boolean isFoe(HuntMob mob, @Nullable Entity e)
     {
-        if (!(e instanceof LivingEntity living) || !living.isAlive() || isPartner(mob, e))
+        if (!(e instanceof LivingEntity living) || !living.isAlive() || isPartner(mob, e) || BossLocks.isLockedFor(mob, e))
         {
             return false;
         }
@@ -967,7 +971,7 @@ public final class HuntFight
             // (never a player in creative: the user, October 30, "he even seems to attack me in creative")
             if (last != null && last.isAlive() && last.canBeSeenAsEnemy() && !isPartner(mob, last)
                     && !Rage.areTeammates(mob, last) && last.distanceToSqr(mob) <= range * range
-                    && !(last instanceof Player p && gotAway(mob, p)))
+                    && !(last instanceof Player p && (gotAway(mob, p) || BossLocks.isLockedFor(mob, p))))
             {
                 return last;
             }

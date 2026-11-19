@@ -74,6 +74,15 @@ public final class ColossusLair
         return new Lair(e.id(), e.group(), center, middle, e.entrance(), e.entranceYaw(), e.tunnel());
     }
 
+    /**
+     * True for a lair's own Colossus (it rose in a lair, which it carries in its saved data): a Colossus at home, locked
+     * behind its Oracle quest ({@code boss.BossLocks}). Server side.
+     */
+    public static boolean isLairColossus(CinderColossus boss)
+    {
+        return LairKeeper.lairOf(boss) != null;
+    }
+
     /** Every lair built so far in this world. */
     public static List<Lair> all(MinecraftServer server)
     {

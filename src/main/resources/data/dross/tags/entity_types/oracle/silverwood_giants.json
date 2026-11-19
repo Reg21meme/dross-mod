@@ -1,0 +1,9 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "dross:silverwood_giant",
+      "required": false
+    }
+  ]
+}

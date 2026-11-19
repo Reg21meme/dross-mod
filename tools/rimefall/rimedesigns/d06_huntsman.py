@@ -173,6 +173,11 @@ def antlers(s, root_y, root_z, mount):
             s.cone(q, q + np.array([0, -7 - 3 * (k % 2), 0]), 3, "icicle", steps=2)
 
 
+# Where its eyelids wait inside its head, out from its middle (units; its eyes' middles are 8.5 out, the head's side about
+# 8.5 there): the lid (2 wide) from 5.5 to 7.5, all of it inside
+LID_IN = 6.5
+
+
 def mount(s, v):
     """The Alpha Moose: the animal and its tack."""
     moose_body(s, v)
@@ -228,6 +233,11 @@ def moose_body(s, v):
     hy = head_top
     for x in (-1, 1):
         head.box((8.5 * x, hy - 8, eye_z), (2, 3, 3), "eye")
+        if v.get("lids"):
+            # its eyelids (the Alpha Moose's, the user, November 18, 2026: "make sure his moose actually closes his eyes"
+            # as it sleeps): a lid of fur on a bone of its own, hidden inside its head just behind each eye, which the
+            # sleep slides out over the eye (LID_OUT in rimemobs/alpha_moose.py)
+            whole.part("lid_l" if x > 0 else "lid_r").box((LID_IN * x, hy - 8, eye_z), (2, 3.4, 3.4), fur)
         ears[x].plate((10 * x, hy + 1, ear_z), (x, 0.3, -0.2), (x * 0.6, 1, 0.2), 6, 11, 2, fur)
         head.box((5 * x, (88 if moose else 122) - 1, (-108 if moose else -109)), (2, 3, 2), "mouth")   # nostrils
     # The bone plate on its face, its eye holes glowing (the Huntsman's; a wild moose has none).

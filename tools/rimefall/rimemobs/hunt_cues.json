@@ -60,6 +60,10 @@
    "arrows": [],
    "moments": {}
   },
+  "sleep": {
+   "arrows": [],
+   "moments": {}
+  },
   "stomp": {
    "arrows": [],
    "moments": {
@@ -352,6 +356,10 @@
    }
   },
   "run": {
+   "arrows": [],
+   "moments": {}
+  },
+  "sleep": {
    "arrows": [],
    "moments": {}
   },

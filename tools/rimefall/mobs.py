@@ -268,7 +268,7 @@ MOOSE_FRONT = ("antlers", "head", "ear_l", "ear_r")
 MOOSE_BACK = ("body", "tail", "leg_hl", "leg_hr", "shin_hl", "shin_hr")
 CAPE_GAP = 0.05                                  # units the cloak keeps off the moose's back, everywhere, always
                                                  # (October 22, 2026: it keeps at least 0.09 off)
-CAPE_SKIP = ("rear", "death")                    # (he's off the moose for these)
+CAPE_SKIP = ("rear", "death", "sleep")           # (he's off the moose for these; nobody rides a sleeping moose)
 CAPE_STEP = 0.05                                 # seconds between the moments checked
 
 

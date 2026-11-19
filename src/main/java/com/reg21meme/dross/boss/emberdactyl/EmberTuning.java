@@ -262,6 +262,17 @@ public final class EmberTuning
      *  the user's third look: peck more: 0.6 until then). The adult's chance to screech there (0.4 until then: "the 1st
      *  stage screeches too much"), the young's. */
     public static final float STUCK_SNAP_CHANCE = 0.85F;
+    /**
+     * On the ground after its dive (lying stuck, and pecking) it stays where it landed but turns round where it lies to
+     * face where its target was this many ticks ago (a second: so a quick step aside dodges a peck), at this many
+     * degrees a tick (the young twice as fast), however uneven the ground under it (only a wing or its tail swinging into
+     * a block stops the turn there: November 18, the young pivoting its wings into a crater's rock got stuck) (the user, November 9, 2026: "when he does his pecking attack he should be able to
+     * turn around in all directions to attack where the player was like a second ago; it should stick to one place after
+     * it lands"; until then it turned towards where they were that moment, only where its wings and feet allowed, so on
+     * a hillside or by trees it hardly turned).
+     */
+    public static final int PECK_AIM_DELAY = 20;
+    public static final float PECK_TURN = 12.0F;
     public static final float STUCK_SCREECH_CHANCE = 0.08F;
     public static final float YOUNG_STUCK_SCREECH_CHANCE = 0.1F;
 

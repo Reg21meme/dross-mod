@@ -2,7 +2,9 @@ package com.reg21meme.dross.boss.lair;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.BossLocks;
 import com.reg21meme.dross.boss.golem.CinderColossus;
+import com.reg21meme.dross.quest.oracle.OracleBoss;
 import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.registry.ModSounds;
 import java.util.ArrayList;
@@ -40,7 +42,8 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
  * Looks after every built lair's Colossus (server side):
  * <ul>
  *   <li><b>It rises</b> in the middle of the floor, facing them, when a player (not a spectator; creative counts, so
- *       testers see it) walks into the cavern and the lair has no living Colossus and has never been beaten. Never on
+ *       testers see it) whose Oracle quest has reached it ({@code boss.BossLocks}: anyone else counts as nobody, and the
+ *       cavern's ward, {@link LairWard}, bounces them out) walks into the cavern and the lair has no living Colossus and has never been beaten. Never on
  *       Peaceful. It's the same fighting Colossus as {@code /dross boss summon colossus} makes
  *       ({@link CinderColossus#spawnBoss}), with a rumble, a roar and a burst of rock dust.</li>
  *   <li><b>Beaten</b>: any death counts, its normal death (statue, trophies, "Set in Stone") and {@code /kill} too (which
@@ -57,8 +60,11 @@ import static com.reg21meme.dross.boss.lair.LairTuning.*;
 public final class LairKeeper
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    /** A lair Colossus carries its lair's id in its own saved data under this name (besides the UUID in the lair's data). */
-    static final String LAIR_TAG = "DrossLairColossus";
+    /**
+     * A lair Colossus carries its lair's id in its own saved data under this name (besides the UUID in the lair's data).
+     * Public for the tests (a Colossus with it counts as at home: {@code boss.BossLocks}).
+     */
+    public static final String LAIR_TAG = "DrossLairColossus";
     /** The rock dust it rises in. */
     private static final int RISE_DUST = 160;
     private static final int RISE_SMOKE = 40;
@@ -263,20 +269,31 @@ public final class LairKeeper
         {
             return; // no respawn: a beaten lair stays empty for good
         }
-        ServerPlayer walker = null;
-        for (ServerPlayer player : dross.players())
-        {
-            if (!player.isSpectator() && player.isAlive() && lair.inCavern(player.position()))
-            {
-                walker = player;
-                break;
-            }
-        }
+        ServerPlayer walker = walkerIn(dross, lair);
         if (walker == null || !lair.entitiesLoaded(dross) || (entry.boss() != null && isAliveColossus(dross, entry.boss())))
         {
             return;
         }
         rise(dross, data, entry, lair, walker, now);
+    }
+
+    /**
+     * The first player standing in the lair's cavern who makes its Colossus rise: alive, not a spectator, and one it may
+     * fight (their Oracle quest has reached it, or they're in creative: {@code boss.BossLocks}); null if none. A player
+     * it's locked for counts as nobody (and the cavern's ward bounces them out).
+     */
+    @Nullable
+    static ServerPlayer walkerIn(ServerLevel dross, Volume lair)
+    {
+        for (ServerPlayer player : dross.players())
+        {
+            if (!player.isSpectator() && player.isAlive() && lair.inCavern(player.position())
+                    && BossLocks.mayMeet(player, OracleBoss.COLOSSUS))
+            {
+                return player;
+            }
+        }
+        return null;
     }
 
     private static boolean isAliveColossus(ServerLevel dross, UUID id)

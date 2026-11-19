@@ -54,7 +54,10 @@ import static com.reg21meme.dross.boss.ratking.RatKingTuning.*;
  * otherwise:
  * <ul>
  *   <li><b>He appears</b> asleep on the cave's nest of carpets (his feet on the top carpet, facing the cave's arrival
- *       tunnel) when a player (not a spectator; creative counts, so testers see him) comes within
+ *       tunnel) when a player (not a spectator; creative counts, so testers see him; one he's locked for counts too, so
+ *       they can look in from a tunnel and see him asleep: the user, November 9, 2026, "for the rat king I should be able
+ *       [to see] it sleeping"; the cave's ward, {@link RatCaveWard}, keeps them out of the cave, and he never wakes for
+ *       them: {@code boss.BossLocks}) comes within
  *       {@link com.reg21meme.dross.boss.ratking.RatKingTuning#RAT_CAVE_KING_RANGE} blocks of the nest and the cave has no
  *       Rat King and has never had one beaten. Never on Peaceful. Only once every chunk of the cave is loaded with its entities (so "no king" really means none),
  *       and never in view: not while a player who was already in the cave at the last look is still in it
@@ -84,8 +87,11 @@ import static com.reg21meme.dross.boss.ratking.RatKingTuning.*;
 public final class RatKingLairKeeper
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    /** A cave's king carries his cave in his own saved data under this name: its id, his nest and the cave's box. */
-    static final String HOME_TAG = "DrossRatCave";
+    /**
+     * A cave's king carries his cave in his own saved data under this name: its id, his nest and the cave's box. Public
+     * for the tests (a king with it counts as at home: {@code boss.BossLocks}).
+     */
+    public static final String HOME_TAG = "DrossRatCave";
     /** Who was in a cave at its last look only counts if that look was at most this many looks ago (else nobody was). */
     private static final int WATCH_FRESH_LOOKS = 2;
 
@@ -138,6 +144,8 @@ public final class RatKingLairKeeper
         Map<Long, RatCaves.RatCave> near = new LinkedHashMap<>();
         for (ServerPlayer player : dross.players())
         {
+            // (a player he's locked for counts too: he appears asleep, for them to see from a tunnel; the cave's ward
+            // keeps them out and he never wakes for them: boss/BossLocks)
             if (!counts(player))
             {
                 continue;
@@ -293,7 +301,7 @@ public final class RatKingLairKeeper
     }
 
     /** Where his feet go on his nest: the middle of its top carpet. */
-    static Vec3 nestFeet(RatCaves.RatCave cave)
+    public static Vec3 nestFeet(RatCaves.RatCave cave)
     {
         BlockPos nest = cave.nest();
         return new Vec3(nest.getX() + 0.5D, nest.getY() + RAT_CAVE_NEST_CARPET, nest.getZ() + 0.5D);
@@ -333,7 +341,10 @@ public final class RatKingLairKeeper
         return true;
     }
 
-    /** The players (who count) in the cave: its box, and {@code RAT_CAVE_WATCH_MARGIN} past it (the doorways). */
+    /**
+     * The players (who count) in the cave: its box, and {@code RAT_CAVE_WATCH_MARGIN} past it (the doorways). A player he's
+     * locked for counts too (he appears for them, so he mustn't pop into view in front of one at a doorway either).
+     */
     private static Set<UUID> playersInside(ServerLevel dross, RatCaves.RatCave cave)
     {
         AABB box = AABB.of(cave.bounds()).inflate(RAT_CAVE_WATCH_MARGIN);
@@ -375,7 +386,7 @@ public final class RatKingLairKeeper
     }
 
     /** The id of the cave this king belongs to, or empty. */
-    static Optional<Long> caveOf(RatKing king)
+    public static Optional<Long> caveOf(RatKing king)
     {
         CompoundTag home = king.getPersistentData().getCompound(HOME_TAG);
         return home.isEmpty() ? Optional.empty() : Optional.of(home.getLong("Id"));

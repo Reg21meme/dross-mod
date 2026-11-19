@@ -1,0 +1,28 @@
+{
+  "parent": "dross:oracle_plea",
+  "display": {
+    "icon": {
+      "item": "dross:silverwood_giant_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.dross.giant_slayer.title"
+    },
+    "description": {
+      "translate": "advancements.dross.giant_slayer.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "giants": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "giants"
+    ]
+  ]
+}

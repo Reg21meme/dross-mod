@@ -113,12 +113,38 @@ public class Huntsman extends HuntMob
         return vehicle instanceof AlphaMoose ? vehicle.position() : this.position();
     }
 
-    /** His hitbox: in the saddle over the moose's back, a little wider than the moose's; on foot his own. */
+    /** His hitbox: in the saddle over the moose's back, a little wider than the moose's; asleep, low round his middle
+     * as he lies on his bed; on foot his own. */
     @Override
     public EntityDimensions getDimensions(Pose pose)
     {
+        if (this.asleepNow)
+        {
+            return EntityDimensions.scalable(HuntsmanTuning.SLEEP_WIDTH, HuntsmanTuning.SLEEP_HEIGHT);
+        }
         return this.isMounted() ? EntityDimensions.scalable(HuntsmanTuning.RIDER_WIDTH, HuntsmanTuning.RIDER_HEIGHT)
                 : super.getDimensions(pose);
+    }
+
+    @Override
+    protected SoundEvent snore()
+    {
+        return ModSounds.HUNTSMAN_SNORE.get();
+    }
+
+    @Override
+    protected float snoreVolume()
+    {
+        return HuntsmanTuning.HUNTSMAN_SNORE_VOLUME;
+    }
+
+    /** His head lies behind his spot (his feet the way he faces). */
+    @Override
+    protected Vec3 sleepingHead()
+    {
+        Vec3 ahead = Vec3.directionFromRotation(0.0F, this.getYRot());
+        return this.position().add(-ahead.x * HuntsmanTuning.SLEEP_HEAD_BACK, HuntsmanTuning.SLEEP_HEAD_UP,
+                -ahead.z * HuntsmanTuning.SLEEP_HEAD_BACK);
     }
 
     @Override

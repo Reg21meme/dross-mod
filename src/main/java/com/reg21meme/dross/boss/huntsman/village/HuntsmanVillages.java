@@ -2,6 +2,7 @@ package com.reg21meme.dross.boss.huntsman.village;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.BossLocks;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.HuntMob;
 import com.reg21meme.dross.boss.huntsman.Huntsman;
@@ -12,6 +13,8 @@ import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.dimension.rimefall.RimefallVillages;
 import com.reg21meme.dross.dimension.sites.BossSites;
 import com.reg21meme.dross.dimension.sites.Site;
+import com.reg21meme.dross.quest.oracle.OracleBoss;
+import com.reg21meme.dross.quest.oracle.OracleProgress;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -39,7 +42,8 @@ import java.util.Set;
  * pick, "home, simple"):
  * <ul>
  *   <li><b>He comes</b> with his Alpha Moose, him in the saddle, calm, when a player (not a spectator; creative
- *       counts, so testers see him) comes within {@link #APPEAR_RANGE} blocks of his yard in front of his lodge
+ *       counts, so testers see him) whose Oracle quest has reached him ({@link #bringsHim}: anyone else counts as
+ *       nobody, and the pair never fights them) comes within {@link #APPEAR_RANGE} blocks of his yard in front of his lodge
  *       ({@link RimefallVillages.VillagePlan#home}) and its ground is loaded and ticking: on his patrol round the
  *       village ({@link #patrolLoop}), at its loaded point furthest from the nearest player, riding on to the next (the
  *       user, October 23, 2026: "the Huntsman should be patrolling the village ... when he comes into view he should
@@ -52,6 +56,12 @@ import java.util.Set;
  *   <li><b>One pair per village</b>: his UUID is kept for the village ({@link HuntsmanVillageData}) and his village on
  *       both of them, with the pair's number; an older pair that loads after a newer one came is removed as it
  *       loads.</li>
+ *   <li><b>Asleep at home</b> (the user, November 18, 2026: "before he's unlocked he should be sleeping inside his home
+ *       ... the moose sleeps ... once [the] quest [is] complete all Huntsmen across the map are now in patrol mode"):
+ *       with no player near whose Oracle quest has reached him ({@link #wakesHim}; creative doesn't count), the pair
+ *       comes asleep instead: him on his bed in his lodge, the Alpha Moose lying in its stall, his gear lying in front of
+ *       his door ({@link HuntsmanAsleep}). The first time a player near has reached his quest they wake onto their
+ *       patrol, and they never go back to sleep.</li>
  *   <li><b>Beaten</b>: both of them dead, any way ({@code /kill} too): the village stays empty for good (no respawn,
  *       like the other bosses). Removed without dying (Peaceful) isn't beaten: the next player near finds a new pair.</li>
  * </ul>
@@ -91,7 +101,8 @@ public final class HuntsmanVillages
         }
     }
 
-    /** One look: every Huntsman's village with a player near its yard gets its pair if it should. */
+    /** One look: every Huntsman's village with a player near its yard gets its pair if it should (asleep, or on his
+     * patrol once a player near has reached his quest). */
     public static void check(ServerLevel dross)
     {
         BossSites sites = BossSites.forLevel(dross);
@@ -119,6 +130,40 @@ public final class HuntsmanVillages
         }
     }
 
+    /**
+     * True if this player is one he may meet (and fight) at home: alive, not a spectator, and their Oracle quest has
+     * reached him, or they're in creative ({@code boss.BossLocks}). A player he's locked for counts as nobody in his
+     * fight.
+     */
+    public static boolean bringsHim(ServerPlayer player)
+    {
+        return !player.isSpectator() && player.isAlive() && BossLocks.mayMeet(player, OracleBoss.HUNTSMAN);
+    }
+
+    /**
+     * True if this player near wakes him (and his moose) onto their patrol: alive, not a spectator, their Oracle quest at
+     * or past his ("The Hunter Hunted": First Frost handed in). Creative alone doesn't (testers see him asleep until their
+     * quest gets there: {@code /dross quest set the_hunter_hunted}).
+     */
+    public static boolean wakesHim(ServerPlayer player)
+    {
+        return !player.isSpectator() && player.isAlive() && OracleProgress.isAtOrPast(player, OracleBoss.HUNTSMAN.quest());
+    }
+
+    /** True if a player within {@link #APPEAR_RANGE} of the village's yard wakes him ({@link #wakesHim}). */
+    static boolean anyWaker(ServerLevel dross, RimefallVillages.VillagePlan plan)
+    {
+        Vec3 home = Vec3.atBottomCenterOf(plan.home());
+        for (ServerPlayer p : dross.players())
+        {
+            if (wakesHim(p) && p.position().distanceToSqr(home) <= APPEAR_RANGE * APPEAR_RANGE)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /** The village's pair, if it should have one now: there already, beaten, or brought now. */
     static void keep(ServerLevel dross, RimefallVillages.VillagePlan plan)
     {
@@ -133,9 +178,18 @@ public final class HuntsmanVillages
         {
             return;                                       // (its ground isn't loaded with its entities yet)
         }
+        boolean awake = anyWaker(dross, plan);
         if (entry != null && entry.huntsman() != null)
         {
             Entity there = dross.getEntity(entry.huntsman());
+            if (there instanceof Huntsman h && h.isAlive() && h.isAsleep())
+            {
+                if (awake)
+                {
+                    HuntsmanAsleep.wake(dross, plan, h);    // (once: they never go back to sleep)
+                }
+                return;
+            }
             if (there != null && there.isAlive())
             {
                 return;                                   // he's there (or out chasing someone, loaded)
@@ -145,7 +199,14 @@ public final class HuntsmanVillages
                 return;                                   // he may be out of loaded land with someone: not yet
             }
         }
-        bring(dross, plan, data);
+        if (awake)
+        {
+            bring(dross, plan, data);
+        }
+        else
+        {
+            HuntsmanAsleep.bring(dross, plan, data);
+        }
     }
 
     /** True if no player is far enough from the village that the pair could be with them in land not loaded. */
@@ -186,10 +247,41 @@ public final class HuntsmanVillages
         return out;
     }
 
-    /** Brings the village a new pair, calm, him in the saddle: on his patrol, at its loaded point furthest from the
-     * nearest player (a spot there the moose fits), riding on to the next; else round his yard. */
+    /** Where a pair starts on its patrol: the spot, the way it faces, the point it rides to next, the loop. */
+    record Start(Vec3 at, float yaw, int next, List<BlockPos> loop)
+    {
+    }
+
+    /** Brings the village a new pair, calm, him in the saddle: on his patrol ({@link #patrolStart}). */
     @Nullable
     static Huntsman bring(ServerLevel dross, RimefallVillages.VillagePlan plan, HuntsmanVillageData data)
+    {
+        Start start = patrolStart(dross, plan);
+        if (start == null)
+        {
+            return null;
+        }
+        Huntsman h = HuntsmanPair.spawn(dross, start.at(), start.yaw());
+        if (h == null)
+        {
+            return null;
+        }
+        int generation = data.spawned(plan.id(), h.getUUID());
+        h.setHome(plan.id(), plan.home(), generation);
+        h.setPatrol(start.loop(), start.next());           // (his too: it's the chase's leash, whichever is left)
+        if (h.getVehicle() instanceof AlphaMoose moose)
+        {
+            moose.setHome(plan.id(), plan.home(), generation);
+            moose.setPatrol(start.loop(), start.next());
+        }
+        LOGGER.info("Hunter villages: the Huntsman came home to his village at {}", plan.ground().toShortString());
+        return h;
+    }
+
+    /** Where a pair starts its patrol: at the loop's loaded point furthest from the nearest player (a spot there the
+     * moose fits), riding on to the next; else round his yard. Null if there's no room. */
+    @Nullable
+    static Start patrolStart(ServerLevel dross, RimefallVillages.VillagePlan plan)
     {
         List<BlockPos> loop = patrolLoop(plan);
         Vec3 homeAt = Vec3.atBottomCenterOf(plan.home());
@@ -241,21 +333,7 @@ public final class HuntsmanVillages
         Vec3 at = Vec3.atBottomCenterOf(spot.get());
         BlockPos toward = startIndex >= 0 ? loop.get((startIndex + 1) % loop.size()) : plan.wayIn();
         float yaw = (float) (Math.atan2(toward.getZ() - at.z, toward.getX() - at.x) * 180.0D / Math.PI) - 90.0F;
-        Huntsman h = HuntsmanPair.spawn(dross, at, yaw);
-        if (h == null)
-        {
-            return null;
-        }
-        int generation = data.spawned(plan.id(), h.getUUID());
-        h.setHome(plan.id(), plan.home(), generation);
-        h.setPatrol(loop, startIndex + 1);                // (his too: it's the chase's leash, whichever is left)
-        if (h.getVehicle() instanceof AlphaMoose moose)
-        {
-            moose.setHome(plan.id(), plan.home(), generation);
-            moose.setPatrol(loop, startIndex + 1);
-        }
-        LOGGER.info("Hunter villages: the Huntsman came home to his village at {}", plan.ground().toShortString());
-        return h;
+        return new Start(at, yaw, startIndex + 1, loop);
     }
 
     /** The nearest spot round {@code home} where the Alpha Moose stands on the ground with room round it. */

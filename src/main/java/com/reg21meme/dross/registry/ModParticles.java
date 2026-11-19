@@ -17,5 +17,12 @@ public final class ModParticles
     // Boss area: the "Z" that floats up from a sleeping Rat King's head
     public static final RegistryObject<SimpleParticleType> ZZZ = PARTICLE_TYPES.register("zzz", () -> new SimpleParticleType(false));
 
+    // Dimension area: the edge of a land the player's Oracle quest hasn't opened yet (dimension/ward/client/LandWardEdge):
+    // thin streaks of light rising off the border, and the glowing runes drifting up them
+    public static final RegistryObject<SimpleParticleType> WARD_STREAK = PARTICLE_TYPES.register("ward_streak", () -> new SimpleParticleType(false));
+    public static final RegistryObject<SimpleParticleType> WARD_RUNE = PARTICLE_TYPES.register("ward_rune", () -> new SimpleParticleType(false));
+    // ...and its shards, falling when the barrier breaks (dimension/ward/client/LandWardFall).
+    public static final RegistryObject<SimpleParticleType> WARD_SHARD = PARTICLE_TYPES.register("ward_shard", () -> new SimpleParticleType(true));
+
     private ModParticles() {}
 }

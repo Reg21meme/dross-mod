@@ -106,6 +106,34 @@ public final class EmberVolcano
         return plan;
     }
 
+    /**
+     * The phases of the lobes a volcano shaped from {@code seed} has (its foot and crest pushed in and out round it), from
+     * the seed alone: the same draws its plan makes first (its rivers' jitter and phase, then these). The crater's ward
+     * ({@link CraterWard}) reads the crest's shape this way, since a built volcano's plan isn't kept.
+     */
+    public static double[] lobePhases(long seed)
+    {
+        java.util.Random random = new java.util.Random(seed);
+        for (int k = 0; k < RIVERS; k++)
+        {
+            random.nextDouble(); // its jitter
+            random.nextDouble(); // its phase
+        }
+        double[] phases = new double[3];
+        for (int i = 0; i < phases.length; i++)
+        {
+            phases[i] = random.nextDouble() * 2.0D * Math.PI;
+        }
+        return phases;
+    }
+
+    /** How far the cone is pushed out at {@code angle} (a share of its radius: its foot's and its crest's alike). */
+    public static double lobes(double[] phases, double angle)
+    {
+        return 1.0D + LOBE_3 * Math.sin(3.0D * angle + phases[0]) + LOBE_5 * Math.sin(5.0D * angle + phases[1])
+                + LOBE_2 * Math.sin(2.0D * angle + phases[2]);
+    }
+
     /** One point of the path's line: where (blocks from the middle), its height, how far along it is. */
     private record PathPoint(double x, double z, int height, double along)
     {
@@ -362,8 +390,13 @@ public final class EmberVolcano
         /** The cone's foot is pushed in and out round it: its radius there, as a share of BASE_RADIUS. */
         private double lobes(double angle)
         {
-            return 1.0D + LOBE_3 * Math.sin(3.0D * angle + this.lobePhase[0]) + LOBE_5 * Math.sin(5.0D * angle + this.lobePhase[1])
-                    + LOBE_2 * Math.sin(2.0D * angle + this.lobePhase[2]);
+            return EmberVolcano.lobes(this.lobePhase, angle);
+        }
+
+        /** {@link #lobes} for the tests (the crater's ward works them out from the seed alone: {@link #lobePhases}). */
+        double lobesAt(double angle)
+        {
+            return this.lobes(angle);
         }
 
         /** The smooth cone (no ridges, gullies, bumps or notch) at a distance from the middle measured in lobes. */

@@ -167,6 +167,10 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
      *  them; then the ticks left of freeing itself and where it's going to. */
     @Nullable
     private Vec3 stuckFrom;
+    /** Where its target has been, the last {@link EmberTuning#PECK_AIM_DELAY} ticks (oldest first), and whose. */
+    private final java.util.ArrayDeque<Vec3> trail = new java.util.ArrayDeque<>();
+    @Nullable
+    private java.util.UUID trailOf;
     private int stuckWatch;
     private int stuckHits;
     private double stuckAsked;
@@ -852,13 +856,19 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
      */
     private boolean canTurn(float yaw)
     {
+        return this.canTurn(yaw, false);
+    }
+
+    /** {@link #canTurn(float)}; {@code anyGround}: on the ground, turning onto worse ground is allowed too (its pecks). */
+    private boolean canTurn(float yaw, boolean anyGround)
+    {
         if (this.isDeadOrDying() || this.isPassenger() || this.freeTicks > 0)
         {
             return true;                        // (freeing itself, it turns as it must)
         }
         Vec3 at = this.position();
         // on the ground, never onto a facing where its feet or wrists stand worse (one in the hillside, its legs in the air)
-        if (this.grounded && this.groundMiss(at.x, at.y, at.z, yaw)
+        if (!anyGround && this.grounded && this.groundMiss(at.x, at.y, at.z, yaw)
                 > Math.max(GROUND_FIT, this.groundMiss(at.x, at.y, at.z, this.yBodyRot)) + 1.0E-6D)
         {
             return false;
@@ -962,6 +972,57 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
         {
             this.turnTo(this.target.position().subtract(this.position()));
         }
+    }
+
+    /** Remembers where its target is, each tick of the fight, for {@link #targetBefore} (forgotten for a new target). */
+    private void recordTrail()
+    {
+        if (!this.target.getUUID().equals(this.trailOf))
+        {
+            this.trail.clear();
+            this.trailOf = this.target.getUUID();
+        }
+        this.trail.addLast(this.target.position());
+        while (this.trail.size() > PECK_AIM_DELAY + 1)
+        {
+            this.trail.removeFirst();
+        }
+    }
+
+    /** Where its target was {@link EmberTuning#PECK_AIM_DELAY} ticks ago (or as long ago as it's been watching them). */
+    private Vec3 targetBefore()
+    {
+        Vec3 then = this.trail.peekFirst();
+        return then != null ? then : this.target.position();
+    }
+
+    /**
+     * On the ground after its dive: turns where it lies (it doesn't move) towards where its target was a second ago
+     * ({@link #targetBefore}), at {@link EmberTuning#PECK_TURN} a tick, however uneven the ground under it is, but never
+     * swinging a wing or its tail into a block.
+     */
+    private void pivotToAim()
+    {
+        Vec3 dir = this.targetBefore().subtract(this.position());
+        if (dir.x * dir.x + dir.z * dir.z < 1.0E-6D)
+        {
+            return;
+        }
+        float yaw = Mth.approachDegrees(this.getYRot(), yawOf(dir, this.getYRot()),
+                PECK_TURN * (float) this.speedScale() * (this.dashes() ? 2.0F : 1.0F));
+        if (!this.canTurn(yaw, true))
+        {
+            // never a wing swung into a wall (the user's rule: blocks stop its whole body), only uneven ground is no bar
+            float half = Mth.approachDegrees(this.getYRot(), yaw, Math.abs(Mth.wrapDegrees(yaw - this.getYRot())) * 0.5F);
+            if (!this.canTurn(half, true))
+            {
+                return;
+            }
+            yaw = half;
+        }
+        this.setYRot(yaw);
+        this.yBodyRot = yaw;
+        this.yHeadRot = yaw;
     }
 
     /** Turns its body and head towards {@code dir} (along the ground), at most {@link EmberTuning#TURN} a tick. */
@@ -1127,10 +1188,12 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
     }
 
     /** A player it could fight: alive, not creative or a spectator, near enough its home (or a raged enemy, never a
-     *  teammate or its own kind otherwise). */
+     *  teammate or its own kind otherwise). At its volcano, never a player it's locked for ({@code boss.BossLocks}: to it
+     *  they're nobody, so they don't wake it either). */
     protected boolean canFight(LivingEntity e)
     {
-        if (e == null || !e.isAlive() || e.level() != this.level() || e == this || Rage.areTeammates(this, e))
+        if (e == null || !e.isAlive() || e.level() != this.level() || e == this || Rage.areTeammates(this, e)
+                || com.reg21meme.dross.boss.BossLocks.isLockedFor(this, e))
         {
             return false;
         }
@@ -1288,6 +1351,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
             return;
         }
         this.noTargetTicks = 0;
+        this.recordTrail();
         if (this.move == Move.NONE)
         {
             // round its target, over the ground under it (a flying one too: two Emberdactyls circling each other's
@@ -1810,7 +1874,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
     {
         this.setDeltaMovement(Vec3.ZERO);
         this.grounded = true;
-        this.turnTo(this.target.position().subtract(this.position()));
+        this.pivotToAim();
         if (this.moveTick >= this.kind.stuck())
         {
             // its bill and wings if its target is near, then up again
@@ -2545,7 +2609,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
     }
 
     /** Beak snap (on the ground): {@link EmberTuning#SNAP_PECKS} pecks one after another, its bill lunging at whatever's
-     *  in front of it, turning to its target between them. */
+     *  in front of it, turning where it lies between them to where its target was a second ago ({@link #pivotToAim}). */
     private void snap()
     {
         this.setDeltaMovement(Vec3.ZERO);
@@ -2560,7 +2624,7 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
         int hit = this.at("snap", SNAP_HIT_SHARE);
         if (peckTick < hit - 2)
         {
-            this.turnTo(this.target.position().subtract(this.position()));
+            this.pivotToAim();
         }
         if (peckTick == hit)
         {
@@ -2899,6 +2963,17 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
     public boolean followsBossRules()
     {
         return true;
+    }
+
+    /**
+     * One of a world volcano (the adult perched on it, and its young) is locked behind its Oracle quest
+     * ({@code boss.BossLocks}); one from a spawn egg, a summon command or a test arena's volcano (its volcano 0) never is.
+     */
+    @Nullable
+    @Override
+    public com.reg21meme.dross.quest.oracle.OracleBoss lockedAs()
+    {
+        return this.volcano != 0L ? com.reg21meme.dross.quest.oracle.OracleBoss.EMBERDACTYL : null;
     }
 
     @Nullable

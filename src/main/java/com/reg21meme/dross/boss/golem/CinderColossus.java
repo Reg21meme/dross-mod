@@ -8,10 +8,13 @@ import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.BossLocks;
 import com.reg21meme.dross.boss.BossRules;
 import com.reg21meme.dross.boss.BossScale;
 import com.reg21meme.dross.boss.DrossBoss;
 import com.reg21meme.dross.boss.SteadyController;
+import com.reg21meme.dross.boss.lair.ColossusLair;
+import com.reg21meme.dross.quest.oracle.OracleBoss;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -925,6 +928,21 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader, Dr
     public boolean followsBossRules()
     {
         return !this.isShowcase();
+    }
+
+    /** A lair's Colossus is locked behind its Oracle quest ({@link BossLocks}); a summoned or spawn-egg one never is. */
+    @Override
+    @Nullable
+    public OracleBoss lockedAs()
+    {
+        return !this.isShowcase() && ColossusLair.isLairColossus(this) ? OracleBoss.COLOSSUS : null;
+    }
+
+    /** At home it never goes for a player it's locked for ({@link BossLocks}): its target goals skip them. */
+    @Override
+    public boolean canAttack(LivingEntity target)
+    {
+        return !BossLocks.isLockedFor(this, target) && super.canAttack(target);
     }
 
     /** Not in the middle of a stage change (it finishes it first), and not dying. */

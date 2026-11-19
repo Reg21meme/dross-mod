@@ -18,6 +18,27 @@ public final class HuntsmanTuning
     public static final float WILD_HUNT_HEALTH = 275.0F;
     /** At home in his village (since October 23, 2026), calm, they wander at most this far from their yard. */
     public static final int HOME_WANDER = 24;
+
+    // ---------------------------------------------------------------- asleep at home (until the Oracle's quest reaches him)
+    // (the user, November 18, 2026: "before he's unlocked he should be sleeping inside his home ... you can hear him
+    // snoring ... the moose sleeps and snores too"; village/HuntsmanAsleep, HuntMob.isAsleep)
+    /** A Zzz rises from a sleeper's head this often (ticks). */
+    public static final int SLEEP_ZZZ_TICKS = 30;
+    /** How loud their snores are (a volume of 1 is heard 16 blocks off): his from outside his lodge's door, the moose's
+     * from his yard. */
+    public static final float HUNTSMAN_SNORE_VOLUME = 2.5F;
+    public static final float MOOSE_SNORE_VOLUME = 2.2F;
+    /** His hitbox lying on his bed (blocks; round his middle), and where his head is from his spot (behind it: he lies
+     * with his feet the way he faces) and how high. */
+    public static final float SLEEP_WIDTH = 2.4F;
+    public static final float SLEEP_HEIGHT = 1.4F;
+    public static final double SLEEP_HEAD_BACK = 1.6D;
+    public static final double SLEEP_HEAD_UP = 1.4D;
+    /** The moose's hitbox lying in its stall, and where its head is (ahead of its spot) and how high. */
+    public static final float MOOSE_SLEEP_WIDTH = 3.0F;
+    public static final float MOOSE_SLEEP_HEIGHT = 2.8F;
+    public static final double MOOSE_SLEEP_HEAD_AHEAD = 3.3D;
+    public static final double MOOSE_SLEEP_HEAD_UP = 2.0D;
     /** A fight broken off this far or more from home: they go back home (the user: "walk away: they're back home"). */
     public static final double HOME_RETURN = 16.0D;
     /** His patrol round his village (the user, October 23, 2026: "the Huntsman should be patrolling the village"): a

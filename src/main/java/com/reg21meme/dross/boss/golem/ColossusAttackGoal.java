@@ -993,7 +993,10 @@ public class ColossusAttackGoal extends Goal
         boolean ragedFight = Rage.areEnemies(this.golem, target);
         for (Player player : ragedFight ? List.<Player>of() : this.playersNear(ColossusTuning.BOSS_BAR_RANGE))
         {
-            centres.add(player.position());
+            if (!com.reg21meme.dross.boss.BossLocks.isLockedFor(this.golem, player)) // (at home: only the players it fights)
+            {
+                centres.add(player.position());
+            }
         }
         if (centres.isEmpty() && target != null && target.isAlive())
         {

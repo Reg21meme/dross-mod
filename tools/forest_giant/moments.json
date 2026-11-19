@@ -1,0 +1,348 @@
+{
+ "note": "Written by tools/forest_giant/mobs.py: don't edit by hand. Seconds (and ticks, 20 a second) from the start of each animation's own clock (GeckoLib starts an animation only after its controller's blend, so the game should time these by the animation's own time). Points and directions are in blocks in the giant's own frame: x its left (+) / right (-), y up from its feet, z forward (the way it faces). hit: the blow lands (smash, sweep, stomp), hit_point: where (the fist, G2's shield, G3's club's broken end, the stomping foot) at that moment; side (smash, sweep): the arm that swings (the sweep knocks you out to its left); warn: flare (its eyes flare), huff, stamp; throw: release (the boulder leaves its hands: spawn the projectile at release_point going release_direction; the model's own boulder is hidden from then on), thrown_bone (the bone holding it: G1's 'weapon', G2's and G3's 'rock'), regrab (G1 tears a new boulder out of the ground), tear (G2 and G3 tear their rock out); death: roar, knees (it drops onto its knees), thud (it hits the ground; it holds its last pose); walk/run: blocks_per_loop and blocks_per_second at the animation's own speed (play it faster or slower to match how fast it really moves), step_l and step_r (each foot comes down). hidden_bones: bones the renderer should hide outside the throw (G2's and G3's rock: every animation but the throw already scales it to nothing).",
+ "entity": "dross:silverwood_giant",
+ "default_look": "hurler",
+ "animation_prefix": "animation.forest_giant.",
+ "looks": {
+  "hurler": {
+   "label": "G1",
+   "mood": "boulder-hurler",
+   "model": "geo/entity/forest_giant/hurler.geo.json",
+   "texture": "textures/entity/forest_giant/hurler.png",
+   "animations": "animations/entity/forest_giant/hurler.animation.json",
+   "hidden_bones": [],
+   "anims": {
+    "idle": {
+     "length": 6.0,
+     "ticks": 120,
+     "loop": true,
+     "breaths": 3
+    },
+    "walk": {
+     "length": 2.0,
+     "ticks": 40,
+     "loop": true,
+     "blocks_per_loop": 2.5,
+     "blocks_per_second": 1.25,
+     "step_l": 0.0,
+     "step_l_tick": 0,
+     "step_r": 1.0,
+     "step_r_tick": 20
+    },
+    "run": {
+     "length": 1.0,
+     "ticks": 20,
+     "loop": true,
+     "blocks_per_loop": 3.618,
+     "blocks_per_second": 3.618,
+     "step_l": 0.0,
+     "step_l_tick": 0,
+     "step_r": 0.5,
+     "step_r_tick": 10
+    },
+    "warn": {
+     "length": 2.4,
+     "ticks": 48,
+     "loop": false,
+     "flare": 0.35,
+     "flare_tick": 7,
+     "huff": 0.85,
+     "huff_tick": 17,
+     "stamp": 1.45,
+     "stamp_tick": 29
+    },
+    "smash": {
+     "length": 2.0,
+     "ticks": 40,
+     "loop": false,
+     "hit": 1.25,
+     "hit_tick": 25,
+     "side": "left",
+     "hit_point": [
+      0.776,
+      1.042,
+      1.884
+     ]
+    },
+    "sweep": {
+     "length": 1.6,
+     "ticks": 32,
+     "loop": false,
+     "hit": 0.8,
+     "hit_tick": 16,
+     "side": "left",
+     "hit_point": [
+      1.96,
+      2.078,
+      0.289
+     ]
+    },
+    "stomp": {
+     "length": 1.8,
+     "ticks": 36,
+     "loop": false,
+     "hit": 1.05,
+     "hit_tick": 21,
+     "hit_point": [
+      -0.531,
+      0.006,
+      0.5
+     ]
+    },
+    "throw": {
+     "length": 4.6,
+     "ticks": 92,
+     "loop": false,
+     "release": 1.55,
+     "release_tick": 31,
+     "regrab": 2.6,
+     "regrab_tick": 52,
+     "thrown_bone": "weapon",
+     "release_point": [
+      -0.125,
+      5.375,
+      1.874
+     ],
+     "release_direction": [
+      0.055,
+      0.055,
+      0.997
+     ]
+    },
+    "hurt": {
+     "length": 0.5,
+     "ticks": 10,
+     "loop": false
+    }
+   }
+  },
+  "brawler": {
+   "label": "G2",
+   "mood": "the brawler",
+   "model": "geo/entity/forest_giant/brawler.geo.json",
+   "texture": "textures/entity/forest_giant/brawler.png",
+   "animations": "animations/entity/forest_giant/brawler.animation.json",
+   "hidden_bones": [
+    "rock"
+   ],
+   "anims": {
+    "idle": {
+     "length": 6.0,
+     "ticks": 120,
+     "loop": true,
+     "breaths": 3
+    },
+    "walk": {
+     "length": 2.0,
+     "ticks": 40,
+     "loop": true,
+     "blocks_per_loop": 2.5,
+     "blocks_per_second": 1.25,
+     "step_l": 0.0,
+     "step_l_tick": 0,
+     "step_r": 1.0,
+     "step_r_tick": 20
+    },
+    "run": {
+     "length": 1.0,
+     "ticks": 20,
+     "loop": true,
+     "blocks_per_loop": 3.618,
+     "blocks_per_second": 3.618,
+     "step_l": 0.0,
+     "step_l_tick": 0,
+     "step_r": 0.5,
+     "step_r_tick": 10
+    },
+    "warn": {
+     "length": 2.4,
+     "ticks": 48,
+     "loop": false,
+     "flare": 0.35,
+     "flare_tick": 7,
+     "huff": 0.85,
+     "huff_tick": 17,
+     "stamp": 1.45,
+     "stamp_tick": 29
+    },
+    "smash": {
+     "length": 2.0,
+     "ticks": 40,
+     "loop": false,
+     "hit": 1.25,
+     "hit_tick": 25,
+     "side": "left",
+     "hit_point": [
+      0.776,
+      1.042,
+      1.884
+     ]
+    },
+    "sweep": {
+     "length": 1.6,
+     "ticks": 32,
+     "loop": false,
+     "hit": 0.8,
+     "hit_tick": 16,
+     "side": "left",
+     "hit_point": [
+      1.96,
+      2.078,
+      0.289
+     ]
+    },
+    "stomp": {
+     "length": 1.8,
+     "ticks": 36,
+     "loop": false,
+     "hit": 1.05,
+     "hit_tick": 21,
+     "hit_point": [
+      -0.531,
+      0.006,
+      0.5
+     ]
+    },
+    "throw": {
+     "length": 3.6,
+     "ticks": 72,
+     "loop": false,
+     "release": 2.2,
+     "release_tick": 44,
+     "tear": 0.7,
+     "tear_tick": 14,
+     "thrown_bone": "rock",
+     "release_point": [
+      1.438,
+      5.0,
+      1.749
+     ],
+     "release_direction": [
+      -0.055,
+      0.0,
+      0.998
+     ]
+    },
+    "hurt": {
+     "length": 0.5,
+     "ticks": 10,
+     "loop": false
+    }
+   }
+  },
+  "treebearer": {
+   "label": "G3",
+   "mood": "the tree-bearer",
+   "model": "geo/entity/forest_giant/treebearer.geo.json",
+   "texture": "textures/entity/forest_giant/treebearer.png",
+   "animations": "animations/entity/forest_giant/treebearer.animation.json",
+   "hidden_bones": [
+    "rock"
+   ],
+   "anims": {
+    "idle": {
+     "length": 6.0,
+     "ticks": 120,
+     "loop": true,
+     "breaths": 3
+    },
+    "walk": {
+     "length": 2.0,
+     "ticks": 40,
+     "loop": true,
+     "blocks_per_loop": 2.5,
+     "blocks_per_second": 1.25,
+     "step_l": 0.0,
+     "step_l_tick": 0,
+     "step_r": 1.0,
+     "step_r_tick": 20
+    },
+    "run": {
+     "length": 1.0,
+     "ticks": 20,
+     "loop": true,
+     "blocks_per_loop": 3.618,
+     "blocks_per_second": 3.618,
+     "step_l": 0.0,
+     "step_l_tick": 0,
+     "step_r": 0.5,
+     "step_r_tick": 10
+    },
+    "warn": {
+     "length": 2.4,
+     "ticks": 48,
+     "loop": false,
+     "flare": 0.35,
+     "flare_tick": 7,
+     "huff": 0.85,
+     "huff_tick": 17,
+     "stamp": 1.45,
+     "stamp_tick": 29
+    },
+    "smash": {
+     "length": 2.0,
+     "ticks": 40,
+     "loop": false,
+     "hit": 1.25,
+     "hit_tick": 25,
+     "side": "right",
+     "hit_point": [
+      -0.474,
+      1.307,
+      5.114
+     ]
+    },
+    "sweep": {
+     "length": 1.6,
+     "ticks": 32,
+     "loop": false,
+     "hit": 0.8,
+     "hit_tick": 16,
+     "side": "left",
+     "hit_point": [
+      1.96,
+      2.078,
+      0.289
+     ]
+    },
+    "stomp": {
+     "length": 1.8,
+     "ticks": 36,
+     "loop": false,
+     "hit": 1.05,
+     "hit_tick": 21,
+     "hit_point": [
+      -0.531,
+      0.006,
+      0.5
+     ]
+    },
+    "throw": {
+     "length": 3.6,
+     "ticks": 72,
+     "loop": false,
+     "release": 2.2,
+     "release_tick": 44,
+     "tear": 0.7,
+     "tear_tick": 14,
+     "thrown_bone": "rock",
+     "release_point": [
+      1.438,
+      5.0,
+      1.749
+     ],
+     "release_direction": [
+      -0.055,
+      0.0,
+      0.998
+     ]
+    },
+    "hurt": {
+     "length": 0.5,
+     "ticks": 10,
+     "loop": false
+    }
+   }
+  }
+ }
+}

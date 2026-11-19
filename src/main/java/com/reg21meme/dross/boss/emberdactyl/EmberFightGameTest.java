@@ -1116,8 +1116,9 @@ public final class EmberFightGameTest
 
     // ---------------------------------------------------------------- the runner
 
-    /** One test's place, stand-in and what it made; everything goes at the end or on a failure. */
-    private static final class Run
+    /** One test's place, stand-in and what it made; everything goes at the end or on a failure. (Also the lock test's,
+     *  {@link EmberLockGameTest}.) */
+    static final class Run
     {
         final ServerLevel level;
         final int x;

@@ -106,6 +106,10 @@ public final class ModItems
     public static final RegistryObject<Item> CINDER_HERMIT_SPAWN_EGG = ITEMS.register("cinder_hermit_spawn_egg",
             () -> new ForgeSpawnEggItem(ModEntities.CINDER_HERMIT, DrossColors.CINDER_HERMIT_EGG_BASE,
                     DrossColors.CINDER_HERMIT_EGG_SPOTS, new Item.Properties()));
+    // Boss area: the Silverwood Giant (QUEST_PLAN.md: its look G1, the Boulder-Hurler, until the user picks)
+    public static final RegistryObject<Item> SILVERWOOD_GIANT_SPAWN_EGG = ITEMS.register("silverwood_giant_spawn_egg",
+            () -> new ForgeSpawnEggItem(ModEntities.SILVERWOOD_GIANT, DrossColors.SILVERWOOD_GIANT_EGG_BASE,
+                    DrossColors.SILVERWOOD_GIANT_EGG_SPOTS, new Item.Properties()));
     // Boss area: the Frostfolk, one egg for each kind (warriors, workers, the elder), each bringing a calling of it at random
     public static final Map<FolkRole.Kind, RegistryObject<Item>> FROSTFOLK_SPAWN_EGGS = frostfolkEggs();
 

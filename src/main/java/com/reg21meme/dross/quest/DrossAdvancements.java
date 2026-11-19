@@ -19,8 +19,12 @@ import java.util.List;
  * <p>Example (from any area): {@code DrossAdvancements.grant(player, DrossAdvancements.RISE);}</p>
  *
  * <p>The Dross tab, in order: {@link #ROOT} (silent, unlocks the tab) → {@link #WEATHERED_LETTER} →
- * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose children are {@link #RISE},
- * {@link #SET_IN_STONE}, {@link #DOWN_THE_DRAIN} and {@link #THE_HUNTER_HUNTED}.</p>
+ * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose children are {@link #RISE} and the
+ * Blind Oracle's chain (QUEST_PLAN.md): {@link #ORACLE_PLEA} → {@link #GIANT_SLAYER} → {@link #INTO_THE_ASHES} →
+ * {@link #SET_IN_STONE} → {@link #BENEATH_THE_ROT} → {@link #DOWN_THE_DRAIN} → {@link #FIRST_FROST} →
+ * {@link #THE_HUNTER_HUNTED} → {@link #WINGS_CLIPPED} → {@link #DEFEAT_THE_DROSS}.
+ * The Oracle's own (regular) ones and "Defeat the Dross" are granted by {@code quest.oracle}; the bosses' by the boss
+ * area, as before.</p>
  */
 public final class DrossAdvancements
 {
@@ -38,16 +42,29 @@ public final class DrossAdvancements
     public static final String ENTERED_THE_DROSS = "entered_the_dross";
     /** "Rise!": the enchantments area grants it the first time a player raises undead. */
     public static final String RISE = "rise";
-    /** "Set in Stone": the boss area grants it when a player defeats the Cinder Colossus. Not part of the quest. */
+    /** "Set in Stone": the boss area grants it when a player defeats the Cinder Colossus. It also finishes the Oracle's quest for that boss. */
     public static final String SET_IN_STONE = "set_in_stone";
-    /** "Down the Drain": the boss area grants it when a player defeats the Rat King. Not part of the quest. */
+    /** "Down the Drain": the boss area grants it when a player defeats the Rat King. It also finishes the Oracle's quest for that boss. */
     public static final String DOWN_THE_DRAIN = "down_the_drain";
     /** "The Hunter Hunted" (the user's pick of name): the boss area grants it when a player helps beat the Huntsman and
-     * his Alpha Moose. Not part of the quest. */
+     * his Alpha Moose. It also finishes the Oracle's quest for that boss. */
     public static final String THE_HUNTER_HUNTED = "the_hunter_hunted";
     /** "Wings Clipped" (the user's name): the boss area grants it when a player helps beat the Emberdactyl's young
-     * reborn, the end of its fight (the user: only for killing the young). Not part of the quest. */
+     * reborn, the end of its fight (the user: only for killing the young). It also finishes the Oracle's quest for that boss. */
     public static final String WINGS_CLIPPED = "wings_clipped";
+
+    /** "The Oracle's Plea" (regular): the end of the Blind Oracle's story, his first quest. */
+    public static final String ORACLE_PLEA = "oracle_plea";
+    /** "Giant Slayer" (regular): three Silverwood Giants (the boss area's {@code dross:silverwood_giant}) killed for the Oracle. */
+    public static final String GIANT_SLAYER = "giant_slayer";
+    /** "Into the Ashes" (regular): three of the Cinder Wastes' mobs killed for the Oracle. */
+    public static final String INTO_THE_ASHES = "into_the_ashes";
+    /** "Beneath the Rot" (regular): five rats killed for the Oracle. */
+    public static final String BENEATH_THE_ROT = "beneath_the_rot";
+    /** "First Frost" (regular): two of Rimefall's grown beasts hunted for the Oracle. */
+    public static final String FIRST_FROST = "first_frost";
+    /** "Defeat the Dross" (challenge, with blue fireworks): the Oracle's last words, after the Emberdactyl. */
+    public static final String DEFEAT_THE_DROSS = "defeat_the_dross";
 
     /** The advancements {@code /dross quest reset} takes away ("Rise!", "Set in Stone" and "Down the Drain" stay: they're about Necromancy and the bosses, not the quest). */
     static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, PROVEN_WORTHY, KEYMASTER, ENTERED_THE_DROSS);

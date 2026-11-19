@@ -1,0 +1,47 @@
+<!doctype html><html><head><meta charset='utf-8'><title>Silverwood Giant animations</title>
+<style>body{background:#0c0f1c;color:#e6ecf8;font-family:Segoe UI,Arial,sans-serif;margin:20px}h1{color:#7fa8ff}h2{color:#a9c6ff;margin-top:34px}p{color:#aab4c8;max-width:1100px}.grid{display:flex;flex-wrap:wrap;gap:12px}figure{margin:0;background:#151b2e;padding:8px;border-radius:6px}figcaption{font-size:13px;margin-top:4px;color:#c8d4ea}img{display:block}table{border-collapse:collapse;margin:8px 0}td,th{padding:3px 10px;border-bottom:1px solid #23304f;text-align:left;font-size:14px}code{color:#cfe0ff}</style></head><body>
+<h1>The Silverwood Giants: their animations</h1>
+<p>Made by <code>tools/forest_giant/mobs.py</code> (the moves in <code>giantkit/moves.py</code>). Every look has the same ten animations, each worked out on its own rest pose. The walk and run play on the spot here; in the game they move along. The moments the game acts on are in <code>tools/forest_giant/moments.json</code>. <a href='../index.html'>Back to the looks</a>.</p>
+<h2>No. G1: boulder-hurler</h2>
+<p><a href='G1_hurler_animations.png'>every animation as a filmstrip</a></p>
+<table><tr><th>animation</th><th>length</th><th>moments</th></tr><tr><td>idle</td><td>6.00 s (loop)</td><td>breaths 3</td></tr><tr><td>walk</td><td>2.00 s (loop)</td><td>blocks_per_loop 2.5; blocks_per_second 1.25; step_l 0.0; step_r 1.0</td></tr><tr><td>run</td><td>1.00 s (loop)</td><td>blocks_per_loop 3.618; blocks_per_second 3.618; step_l 0.0; step_r 0.5</td></tr><tr><td>warn</td><td>2.40 s</td><td>flare 0.35; huff 0.85; stamp 1.45</td></tr><tr><td>smash</td><td>2.00 s</td><td>hit 1.25; side left; hit_point [0.776, 1.042, 1.884]</td></tr><tr><td>sweep</td><td>1.60 s</td><td>hit 0.8; side left; hit_point [1.96, 2.078, 0.289]</td></tr><tr><td>stomp</td><td>1.80 s</td><td>hit 1.05; hit_point [-0.531, 0.006, 0.5]</td></tr><tr><td>throw</td><td>4.60 s</td><td>release 1.55; regrab 2.6; thrown_bone weapon; release_point [-0.125, 5.375, 1.874]; release_direction [0.055, 0.055, 0.997]</td></tr><tr><td>hurt</td><td>0.50 s</td><td></td></tr></table>
+<div class='grid'>
+<figure><img src='G1_hurler_idle.gif' loading='lazy'><figcaption>hurler_idle</figcaption></figure>
+<figure><img src='G1_hurler_walk.gif' loading='lazy'><figcaption>hurler_walk</figcaption></figure>
+<figure><img src='G1_hurler_run.gif' loading='lazy'><figcaption>hurler_run</figcaption></figure>
+<figure><img src='G1_hurler_warn.gif' loading='lazy'><figcaption>hurler_warn</figcaption></figure>
+<figure><img src='G1_hurler_smash.gif' loading='lazy'><figcaption>hurler_smash</figcaption></figure>
+<figure><img src='G1_hurler_sweep.gif' loading='lazy'><figcaption>hurler_sweep</figcaption></figure>
+<figure><img src='G1_hurler_stomp.gif' loading='lazy'><figcaption>hurler_stomp</figcaption></figure>
+<figure><img src='G1_hurler_throw.gif' loading='lazy'><figcaption>hurler_throw</figcaption></figure>
+<figure><img src='G1_hurler_hurt.gif' loading='lazy'><figcaption>hurler_hurt</figcaption></figure>
+</div>
+<h2>No. G2: the brawler</h2>
+<p><a href='G2_brawler_animations.png'>every animation as a filmstrip</a></p>
+<table><tr><th>animation</th><th>length</th><th>moments</th></tr><tr><td>idle</td><td>6.00 s (loop)</td><td>breaths 3</td></tr><tr><td>walk</td><td>2.00 s (loop)</td><td>blocks_per_loop 2.5; blocks_per_second 1.25; step_l 0.0; step_r 1.0</td></tr><tr><td>run</td><td>1.00 s (loop)</td><td>blocks_per_loop 3.618; blocks_per_second 3.618; step_l 0.0; step_r 0.5</td></tr><tr><td>warn</td><td>2.40 s</td><td>flare 0.35; huff 0.85; stamp 1.45</td></tr><tr><td>smash</td><td>2.00 s</td><td>hit 1.25; side left; hit_point [0.776, 1.042, 1.884]</td></tr><tr><td>sweep</td><td>1.60 s</td><td>hit 0.8; side left; hit_point [1.96, 2.078, 0.289]</td></tr><tr><td>stomp</td><td>1.80 s</td><td>hit 1.05; hit_point [-0.531, 0.006, 0.5]</td></tr><tr><td>throw</td><td>3.60 s</td><td>release 2.2; tear 0.7; thrown_bone rock; release_point [1.438, 5.0, 1.749]; release_direction [-0.055, 0.0, 0.998]</td></tr><tr><td>hurt</td><td>0.50 s</td><td></td></tr></table>
+<div class='grid'>
+<figure><img src='G2_brawler_idle.gif' loading='lazy'><figcaption>brawler_idle</figcaption></figure>
+<figure><img src='G2_brawler_walk.gif' loading='lazy'><figcaption>brawler_walk</figcaption></figure>
+<figure><img src='G2_brawler_run.gif' loading='lazy'><figcaption>brawler_run</figcaption></figure>
+<figure><img src='G2_brawler_warn.gif' loading='lazy'><figcaption>brawler_warn</figcaption></figure>
+<figure><img src='G2_brawler_smash.gif' loading='lazy'><figcaption>brawler_smash</figcaption></figure>
+<figure><img src='G2_brawler_sweep.gif' loading='lazy'><figcaption>brawler_sweep</figcaption></figure>
+<figure><img src='G2_brawler_stomp.gif' loading='lazy'><figcaption>brawler_stomp</figcaption></figure>
+<figure><img src='G2_brawler_throw.gif' loading='lazy'><figcaption>brawler_throw</figcaption></figure>
+<figure><img src='G2_brawler_hurt.gif' loading='lazy'><figcaption>brawler_hurt</figcaption></figure>
+</div>
+<h2>No. G3: the tree-bearer</h2>
+<p><a href='G3_treebearer_animations.png'>every animation as a filmstrip</a></p>
+<table><tr><th>animation</th><th>length</th><th>moments</th></tr><tr><td>idle</td><td>6.00 s (loop)</td><td>breaths 3</td></tr><tr><td>walk</td><td>2.00 s (loop)</td><td>blocks_per_loop 2.5; blocks_per_second 1.25; step_l 0.0; step_r 1.0</td></tr><tr><td>run</td><td>1.00 s (loop)</td><td>blocks_per_loop 3.618; blocks_per_second 3.618; step_l 0.0; step_r 0.5</td></tr><tr><td>warn</td><td>2.40 s</td><td>flare 0.35; huff 0.85; stamp 1.45</td></tr><tr><td>smash</td><td>2.00 s</td><td>hit 1.25; side right; hit_point [-0.474, 1.307, 5.114]</td></tr><tr><td>sweep</td><td>1.60 s</td><td>hit 0.8; side left; hit_point [1.96, 2.078, 0.289]</td></tr><tr><td>stomp</td><td>1.80 s</td><td>hit 1.05; hit_point [-0.531, 0.006, 0.5]</td></tr><tr><td>throw</td><td>3.60 s</td><td>release 2.2; tear 0.7; thrown_bone rock; release_point [1.438, 5.0, 1.749]; release_direction [-0.055, 0.0, 0.998]</td></tr><tr><td>hurt</td><td>0.50 s</td><td></td></tr></table>
+<div class='grid'>
+<figure><img src='G3_treebearer_idle.gif' loading='lazy'><figcaption>treebearer_idle</figcaption></figure>
+<figure><img src='G3_treebearer_walk.gif' loading='lazy'><figcaption>treebearer_walk</figcaption></figure>
+<figure><img src='G3_treebearer_run.gif' loading='lazy'><figcaption>treebearer_run</figcaption></figure>
+<figure><img src='G3_treebearer_warn.gif' loading='lazy'><figcaption>treebearer_warn</figcaption></figure>
+<figure><img src='G3_treebearer_smash.gif' loading='lazy'><figcaption>treebearer_smash</figcaption></figure>
+<figure><img src='G3_treebearer_sweep.gif' loading='lazy'><figcaption>treebearer_sweep</figcaption></figure>
+<figure><img src='G3_treebearer_stomp.gif' loading='lazy'><figcaption>treebearer_stomp</figcaption></figure>
+<figure><img src='G3_treebearer_throw.gif' loading='lazy'><figcaption>treebearer_throw</figcaption></figure>
+<figure><img src='G3_treebearer_hurt.gif' loading='lazy'><figcaption>treebearer_hurt</figcaption></figure>
+</div>
+</body></html>

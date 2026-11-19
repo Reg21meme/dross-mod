@@ -152,6 +152,34 @@ def hu_ambient(rng, kind):
     return S.reverb(S.place(1.5, (0.0, a * 0.7), (0.55, b * 0.7)), 0.15)
 
 
+def rattle(rng, dur, f0, flutter, level=1.0, lo=60.0, hi=900.0):
+    """A snore's rattle: breath drawn over a fluttering soft palate (`flutter` beats a second), a low buzz of voice
+    under it (`f0`), swelling as the breath goes in."""
+    n = S.n_of(dur)
+    t = np.arange(n) / S.SR
+    flap = np.abs(np.sin(2 * math.pi * flutter * t)) ** 1.6
+    rasp = S.bandpass(S.noise(n, rng, "pink"), lo, hi) * flap
+    buzz = S.voice(dur, [(0.0, f0), (dur, f0 * 1.12)], [(0.0, "aw"), (dur, "uh")], rng, scale=0.95, breath=0.55,
+                   rough=0.7, rough_hz=flutter)
+    return (rasp * 0.9 + buzz * 0.45) * env([(0.0, 0.0), (dur * 0.55, 0.7), (dur * 0.88, 1.0), (dur, 0.0)], dur) * level
+
+
+def hu_snore(rng, kind):
+    """His snore (the user, November 18, 2026: "you can hear him snoring"; one with each slow breath of his sleep, 5 s):
+    a deep rattle drawn in through his hood, then his breath let out."""
+    if kind == 1:        # a deep rattling snore and a long breath out, a little whistle of frost on it
+        draw = rattle(rng, 1.7, 68.0, 24.0)
+        out = breath_out(rng, 1.4, 0.55, 300.0, 1800.0)
+        return S.reverb(S.place(3.6, (0.05, draw), (1.85, out)), 0.12)
+    # a snore that catches in a snort at its end, then a sigh with a low hum in it
+    draw = rattle(rng, 1.4, 62.0, 20.0)
+    snort = sniff(rng, 0.14, 0.9) * 0.7
+    sigh = V.voice(1.1, [(0.0, 96.0), (1.1, 78.0)], [(0.0, "ah"), (1.1, "uh")], rng, oq=0.5, breath=0.5,
+                   amp=[(0.0, 0.0), (0.15, 0.7), (0.7, 0.5), (1.1, 0.0)])
+    return S.reverb(S.place(3.6, (0.05, draw), (1.45, snort), (1.85, sigh * 0.5),
+                            (1.85, breath_out(rng, 1.2, 0.35, 300.0, 1500.0))), 0.12)
+
+
 def hu_man_howl(rng):
     """A man's wolf howl: low, sliding up, held, falling off (the user's first pick for his war cry)."""
     howl = man(rng, 1.8, [(0.0, 140.0), (0.35, 290.0), (1.2, 275.0), (1.8, 170.0)],
@@ -470,6 +498,21 @@ def am_ambient(rng, kind):
     # a low nasal moan, wavering
     moan = am_call(rng, 1.3, [(0.0, 120.0), (0.3, 138.0), (1.3, 96.0)], [(0.0, "mm"), (0.3, "aw"), (1.3, "uh")])
     return S.reverb(moan, 0.2)
+
+
+def am_snore(rng, kind):
+    """The Alpha Moose's snore (the user, November 18, 2026: "the moose snores"; one with each slow breath of its sleep,
+    5 s): a huge, deep rattle in through its nose, then a blowing snort out through its lips."""
+    if kind == 1:        # a huge deep rattle, then it blows out through its lips: brrrfff
+        draw = rattle(rng, 1.9, 46.0, 16.0, lo=40.0, hi=650.0)
+        n = S.n_of(1.2)
+        t = np.arange(n) / S.SR
+        lips = S.bandpass(S.noise(n, rng, "pink"), 120.0, 1200.0) * (0.55 + 0.45 * np.sin(2 * math.pi * 31.0 * t))
+        lips = lips * env([(0.0, 0.0), (0.08, 1.0), (0.6, 0.6), (1.2, 0.0)], 1.2)
+        return S.reverb(S.place(3.8, (0.05, draw), (2.05, lips * 0.8), (2.1, frost(rng, 0.8, 0.12))), 0.15)
+    # a slower, wheezing rattle and a big wet snort out
+    draw = rattle(rng, 2.2, 42.0, 13.0, lo=40.0, hi=550.0)
+    return S.reverb(S.place(3.8, (0.05, draw), (2.3, big_snort(rng, 0.9, 0.9)), (2.4, frost(rng, 0.7, 0.1))), 0.15)
 
 
 def am_bellow(rng, kind):
@@ -824,6 +867,10 @@ EVENTS = [
                                                                      "nngh... aaah, letting go",
                                                                      "two gasps, then a long sigh")),
           "Huntsman dies", HUNTSMAN, "Death", picks=(1,)),
+    # asleep in his lodge until the Oracle's quest reaches him (November 18, 2026; not picked yet: both play)
+    Event("entity.huntsman.snore", HU, versions("snore", hu_snore, ("a deep rattling snore and a long breath out",
+                                                                     "a snore that catches in a snort, then a sigh")),
+          "Huntsman snores", HUNTSMAN, "Snoring, asleep in his lodge"),
     Event("entity.huntsman.step", HU, versions("step", hu_step, ("a boot in the snow", "a softer one")),
           "Footsteps", HUNTSMAN, "Footsteps", volume=0.6, picks=(1,)),
     Event("entity.huntsman.land", HU, versions("land", hu_land, ("landing in the snow", "landing, more frost")),
@@ -863,6 +910,9 @@ EVENTS = [
                                                                               "a big frosty snort",
                                                                               "a low wavering moan")),
           "Alpha Moose grunts", MOOSE, "Idle", picks=(1, 2)),
+    Event("entity.alpha_moose.snore", AM, versions("snore", am_snore, ("a huge rattle, then it blows out: brrrfff",
+                                                                        "a slow wheezing rattle and a wet snort")),
+          "Alpha Moose snores", MOOSE, "Snoring, asleep in its barn"),
     Event("entity.alpha_moose.hurt", AM, versions("hurt", am_hurt, ("a rough bray", "a deeper one")),
           "Alpha Moose brays", MOOSE, "Hurt", picks=(1,)),
     Event("entity.alpha_moose.death", AM, versions("death", am_death, ("a last bellow and the crash",

@@ -140,6 +140,9 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_DEATH = register("entity.alpha_moose.death");
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_STEP = register("entity.alpha_moose.step");
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_GALLOP = register("entity.alpha_moose.gallop");
+    // asleep at home until the Oracle's quest reaches the Huntsman (November 18, 2026)
+    public static final RegistryObject<SoundEvent> HUNTSMAN_SNORE = register("entity.huntsman.snore");
+    public static final RegistryObject<SoundEvent> ALPHA_MOOSE_SNORE = register("entity.alpha_moose.snore");
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_BELLOW = register("entity.alpha_moose.bellow");
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_REAR = register("entity.alpha_moose.rear");
     public static final RegistryObject<SoundEvent> ALPHA_MOOSE_KICK = register("entity.alpha_moose.kick");
@@ -157,6 +160,36 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> FROSTFOLK_ELDER_TALK = register("entity.frostfolk_elder.talk");
     public static final RegistryObject<SoundEvent> FROSTFOLK_ELDER_HURT = register("entity.frostfolk_elder.hurt");
     public static final RegistryObject<SoundEvent> FROSTFOLK_ELDER_DEATH = register("entity.frostfolk_elder.death");
+
+    // Boss area: the Silverwood Giant (original, tools/forest_giant/sounds.py; each event plays its versions at random).
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_AMBIENT = register("entity.silverwood_giant.ambient");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_WARN = register("entity.silverwood_giant.warn");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_STAMP = register("entity.silverwood_giant.stamp");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_ROAR = register("entity.silverwood_giant.roar");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_HURT = register("entity.silverwood_giant.hurt");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_DEATH = register("entity.silverwood_giant.death");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_FALL = register("entity.silverwood_giant.fall");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_STEP = register("entity.silverwood_giant.step");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_SMASH = register("entity.silverwood_giant.smash");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_SWEEP = register("entity.silverwood_giant.sweep");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_STOMP = register("entity.silverwood_giant.stomp");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_THROW = register("entity.silverwood_giant.throw");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_TEAR = register("entity.silverwood_giant.tear");
+    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_BOULDER_HIT = register("entity.silverwood_giant.boulder_hit");
+
+    // Quest area: the Blind Oracle's spell (quest/client/OracleSpellEffects; vanilla sounds pitched down, sounds.json).
+    public static final RegistryObject<SoundEvent> ORACLE_SPELL_CHARGE = register("entity.oracle.spell_charge");
+    public static final RegistryObject<SoundEvent> ORACLE_SPELL_BEAM = register("entity.oracle.spell_beam");
+    public static final RegistryObject<SoundEvent> ORACLE_SPELL_SURGE = register("entity.oracle.spell_surge");
+    public static final RegistryObject<SoundEvent> ORACLE_SPELL_STRIKE = register("entity.oracle.spell_strike");
+    public static final RegistryObject<SoundEvent> ORACLE_SPELL_BOOM = register("entity.oracle.spell_boom");
+    public static final RegistryObject<SoundEvent> ORACLE_SPELL_RUMBLE = register("entity.oracle.spell_rumble");
+    public static final RegistryObject<SoundEvent> ORACLE_SPELL_SHATTER = register("entity.oracle.spell_shatter");
+
+    // Dimension area: a land's barrier falling the first time a player comes to it after it opened (dimension/ward/client/LandWardFall).
+    public static final RegistryObject<SoundEvent> LAND_WARD_FALL_CRACK = register("block.land_ward.fall_crack");
+    public static final RegistryObject<SoundEvent> LAND_WARD_FALL_SHATTER = register("block.land_ward.fall_shatter");
+    public static final RegistryObject<SoundEvent> LAND_WARD_FALL_RUMBLE = register("block.land_ward.fall_rumble");
 
     private static RegistryObject<SoundEvent> register(String name)
     {

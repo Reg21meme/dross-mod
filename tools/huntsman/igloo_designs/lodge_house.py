@@ -92,8 +92,9 @@ def _trophy_corridor(g, hall):
 
 def _outside(g, cx, cz, hall):
     """His trophy corridor; the Alpha Moose's skull hung over his doorway (until October 22, 2026 a moose head built of
-    blocks), his banners either side of it on poles, facing out."""
+    blocks), his banners either side of it on poles, facing out; the clear ice window over his bed."""
     _trophy_corridor(g, hall)
+    _bed_window(g, cx, cz)
     t = hall.tunnel_shape
     hx, hz = t.f.xz(0, t.v1 - 1)
     Frame(g, hx, hz, "south").set(0, DOOR_TALL + 1, 2, props.skull_on_wall("alpha_moose_skull"))
@@ -103,6 +104,40 @@ def _outside(g, cx, cz, hall):
             g.set(x, y, z, "spruce_fence", force=True)
         g.set(x, 6, z, "brown_banner[rotation=0]", force=True)
         g.block_nbt[(x, 6, z)] = SIGIL
+
+
+# The window over his bed (the user, November 18, 2026: "a see-through ice window ... so you can see him" sleeping, "use
+# the stuff on top of the [igloo] ... regular ice since it's see-through"): his bedroom's roof over his bed and the
+# rug south of it, where he lies on the floor (the user: "make him sleep on the floor ... just that carpet"; the rug runs
+# from the bed's foot to the bedroom's south wall, 4 rows, just his length lying down) (BED_WINDOW: the lodge's own columns, from its middle), clear ice through and
+# through, so from the roof you look down on him asleep. The lanterns by his bed are soul lanterns (light 10), so it
+# never melts (the build's check).
+BED_WINDOW_X = (-13, -11)
+BED_WINDOW_Z = (-4, 1)
+SHELL = ("snow_block", "packed_ice", "blue_ice", "snow")
+
+
+def _bed_window(g, cx, cz):
+    """His roof over his bed made clear ice: in each of the window's columns, every block of the roof from its top down
+    to the room under it (a layer of snow lying on top goes)."""
+    for dx in range(BED_WINDOW_X[0], BED_WINDOW_X[1] + 1):
+        for dz in range(BED_WINDOW_Z[0], BED_WINDOW_Z[1] + 1):
+            x, z = cx + dx, cz + dz
+            roof = False
+            for y in range(g.H - g.G - 1, 1, -1):
+                s = g.get(x, y, z)
+                if s is None or mc.is_air(s):
+                    if roof:
+                        break                         # (the room under the roof)
+                    continue
+                b = mc.base(s)
+                if b == "snow":
+                    g.set(x, y, z, AIR, force=True)
+                    continue
+                if b not in SHELL:
+                    break
+                g.set(x, y, z, "ice", force=True)
+                roof = True
 
 
 def _rug(cols, a="g", b="n"):
@@ -126,8 +161,8 @@ LODGE = Igloo(
         -3: (-15, 15, {-13: "b", -12: "b", -11: "b", -1: "e", 0: "e", 1: "e", 15: "C"}),
         -2: (-15, 15, {-15: "C", **_rug(range(-13, -10)), 15: "A"}),
         -1: (-15, 15, {**_rug(range(-13, -10), "n", "g"), **sym({3: "i"}), 15: "I"}),
-        0: (-14, 14, {-14: "O", **sym({3: "i"}), 0: "F", 14: "U"}),
-        1: ([(-13, -11), (-7, 7), (11, 13)], {**sym({3: "i"}), 11: "O", 13: "O"}),
+        0: (-14, 14, {-14: "O", **_rug(range(-13, -10)), **sym({3: "i"}), 0: "F", 14: "U"}),
+        1: ([(-13, -11), (-7, 7), (11, 13)], {**_rug(range(-13, -10), "n", "g"), **sym({3: "i"}), 11: "O", 13: "O"}),
         2: (-7, 7, {-6: "J", 6: "S"}),
         3: (-6, 6, {-6: "J", 6: "M"}),
         4: (-6, 6, sym({6: "J"})),
@@ -138,7 +173,10 @@ LODGE = Igloo(
     }), 2: L(15, {
         -7: (None, None, {**sym({2: "%"}), -1: "J", 1: "J"}),
         -6: (None, None, sym({3: "4"})),
-        -4: (None, None, {-14: "L", -10: "L", **sym({6: "s"}), 14: "L"}),
+        # (soul lanterns either side of his bed since November 18, 2026, the user: "use blue soul lanterns": the clear
+        # ice of the window over it melts by a plain lantern)
+        -4: (None, None, {-14: "l", -10: "l", **sym({6: "s"}), 14: "L"}),
+        0: (None, None, {-14: "l"}),       # (a soul lantern on the barrel by his bed's foot: soul ones are dimmer)
         2: (None, None, {-6: "R"}),
         3: (None, None, {-6: "R"}),
         4: (None, None, sym({6: "s"})),

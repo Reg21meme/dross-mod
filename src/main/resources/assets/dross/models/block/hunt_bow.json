@@ -1,0 +1,11 @@
+{
+  "loader": "forge:obj",
+  "model": "dross:models/block/hunt_bow.obj",
+  "flip_v": false,
+  "automatic_culling": false,
+  "render_type": "minecraft:cutout",
+  "textures": {
+    "gear": "dross:block/hunt_bow",
+    "particle": "dross:block/hunt_bow"
+  }
+}

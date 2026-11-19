@@ -32,8 +32,9 @@ How a player moves through the mod, from a normal survival world to the Dross.
 5. **The key materials** (any order, same rules): **1 trident**, **1 Heart of the Sea** and **8 amethyst shards**. He forges the **Rift Key**, tells you to be careful what you let out, and mentions he has books that can help in there. *Advancement: Keymaster.* His shop opens for you.
 6. **Opening the rift.** Follow the compass to the Fallen Cathedral and throw the Rift Key into the frame's opening. The key is used up and the portal lights, staying open for everyone, permanently.
 7. **The Dross.** Stepping through takes you to the **Shattered Spire**, the hub at Dross 0,0. The words "The Dross" fade in over four low piano notes. *Advancement: Enter the Dross*, the main achievement. On your first arrival you also get the **Dross Guide Book**. Two survivors, the Blind Oracle and the Ragged Seeker, keep watch at the spire.
-8. **Exploring.** Round the hub lies the Silverwood Forest; further out are the Cinder Wastes, Blightwood, Rimefall and the Gravecrags' peaks. Somewhere in the Cinder Wastes a volcano holds the **Cinder Colossus**. *Advancement: Set in Stone.*
-9. **Necromancy.** The trader sells the Necromancy and Deathforged enchanted books, and Deathforged books also drop in the Dross. Raising your first undead earns *Rise!*
+8. **The Blind Oracle's quests.** At the survivors' camp the Blind Oracle tells you his story and asks for your help, then sends you out one quest at a time: three of the Silverwood Forest's giants first, then for each boss a hunt in its land and then the boss itself (the Cinder Colossus, the Rat King, the Huntsman, the Emberdactyl), ending in *Defeat the Dross*. See [The Blind Oracle's quests](#the-blind-oracles-quests).
+9. **Exploring.** Round the hub lies the Silverwood Forest; further out are the Cinder Wastes, Blightwood, Rimefall and the Gravecrags' peaks. The Cinder Wastes, Blightwood and Rimefall stay locked until the Oracle's quests reach them. Somewhere in the Cinder Wastes a volcano holds the **Cinder Colossus**. *Advancement: Set in Stone.*
+10. **Necromancy.** The trader sells the Necromancy and Deathforged enchanted books, and Deathforged books also drop in the Dross. Raising your first undead earns *Rise!*
 
 **Lost items:**
 - If you lose the compass, the trader gives you a new one for free.
@@ -47,7 +48,8 @@ How a player moves through the mod, from a normal survival world to the Dross.
 - **Dimension ID:** `dross:dross`, shown in game as **"The Dross"**.
 - **Terrain:** real land, surface only (no caves, except Blightwood's sewers, below): rolling hills, cliff steps and rocky knolls, mesas in the Cinder Wastes, and snow-capped mountain peaks (about y 230-260) in the Gravecrags. It's Minecraft's own terrain generator, set up in data files (`data/dross/dimension/`, `dimension_type/`, `worldgen/`) written by `tools/terrain/worldgen.py`, where every tuning number lives.
 - **Five biomes**, regions about 600-670 blocks across:
-  - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds.
+  - **Silverwood Forest** (the main biome, always round the hub): a dense, dark forest of silverwood trees with glowing Stormvine, Glimmer Ferns, Wispblooms, mossy boulders, fallen logs and dark ponds. No zombies or skeletons: its only monsters are the **Silverwood Giants** (below), and its only animal the odd moose: no witches, endermen,
+    farm animals or bats.
   - **Cinder Wastes**: ash, basalt and magma, enclosed lava pools, basalt spires, charred trees, Emberweed and Cinder Vents. Home of the Cinder Colossus's volcano.
   - **Blightwood**: poison-green and maroon giant mushrooms on bone-beige stems, Gloomcaps, Sporepods, murky ponds and thick green fog. No zombies, skeletons or endermen: the mobs here are rats (Plague Rats, and about 1 in 5 Plague Ravagers) and the odd witch (7 in 100). Underneath are **the sewers** (below).
   - **Rimefall**: frozen ground, frost-covered dead trees with icicles, ice spikes, Frostblooms and frozen ponds, and one **big frozen lake** in every Rimefall area. Its only mobs are its own animals: Rimehorn herds, moose and Pond Skaters (below).
@@ -60,6 +62,7 @@ How a player moves through the mod, from a normal survival world to the Dross.
 - **Mobs:** normal hostile spawn rates, but no slimes, creepers or spiders. The **Cinder Wastes** are different: only their own mobs spawn there: the Cinder Colossus's **stone golems**, **lava golems** (always next to lava), the **Cinder Hermit** and the **Pallbearer**. Wild golems don't crumble, and a wild lava golem only lights its fuse when you're close.
 - **The Cinder Hermit** is a 6-block hermit crab in one of eight shells (a bronze bell, an iron brazier, a horned skull, a funerary urn, a magma conch, a crystal geode, a giant lantern or a piece of the Colossus). It leaves you alone until you hit it, then snaps and pinches, and its neighbours join in; every time it loses a quarter of its health it hides in its shell (hits there do half damage), peeks out and comes back out. Each Cinder Wastes area has one or two **hermit crab caves**, each with its own hermit, who keeps to its den: a long gallery dug into a hillside with smoking vents and a pool of lava, or shallow dens under a mound of ash with a loot room behind a crawl (decorated pots, suspicious gravel to brush, a barrel) (`/dross goto hermit_cave`).
 - **The Pallbearer** is a towering skeleton (nearly 10 blocks) carrying a burning coffin. It also leaves you alone until hit; then it roars (slowing you), swipes and slams its coffin down.
+- **The netherite dead of the Gravecrags.** Since the Silverwood Giants came (November 9, 2026), the Gravecrags are the only part of the Dross with zombies and skeletons (the Silverwood Forest has its giants instead, and Blightwood, the Cinder Wastes and Rimefall have their own mobs). Older worlds' Silverwood Forest loses its zombies and skeletons too.
   - **Zombies** spawn in full netherite armor with a netherite sword.
   - **Skeletons** spawn in full netherite armor and keep their bows.
   - None of it is enchanted, and none of it drops when they die.
@@ -97,7 +100,10 @@ half the time. That repeats outwards forever, so there are many of both, never t
   walls and ceiling pouring into drains, sludge patches all over its floor, and in the middle the **Rat King's nest**
   of piled carpets, surrounded by his hoard of gold (about 70% Dross gold ore, 30% gold blocks). He's **asleep there
   when you arrive** and wakes as you come near, like in his fight. Plague Ravagers that spawn in the rat cave are
-  tougher than usual (1.5 times the health and bite).
+  tougher than usual (1.5 times the health and bite). Until your Blind Oracle quest reaches him, the cave is warded:
+  you can see him asleep on his nest from the tunnel, but he doesn't wake for you (see
+  [Locked bosses](#locked-bosses)). While he sleeps you hear his snoring all through his sewer, faint far off and
+  louder as you get closer to his cave.
 
 `/dross goto lair ratking` takes you to the nearest rat cave and `/dross goto sewer` to the nearest regular sewer
 (Minecraft's `/locate` can't find them). Sewers only appear in newly generated chunks.
@@ -126,6 +132,32 @@ half the time. That repeats outwards forever, so there are many of both, never t
   Frostfolk, the Huntsman, his Alpha Moose, moose and Rimehorns (which fight back).
 - Every one of their sounds is original (`/dross showcase mob_sounds rimefall`). Spawn eggs for all three are in the
   Dross tab, and `/dross showcase rimefall_mobs` lines them up with animation buttons.
+
+### The Silverwood Giant
+
+A giant warrior of the Silverwood Forest, about 4.5 blocks tall with glowing blue eyes: the giants of the Odyssey (the
+Laestrygonians, who hurled boulders at Odysseus's ships), in the Dross's dress. It took the place of the forest's
+zombies and skeletons (November 9, 2026). It wears no armour, and comes in three looks, like members of one tribe, each
+giant one of them at random: **G1 the Boulder-Hurler** (wild hair and beard, woad on his bare chest, a boulder on his
+shoulder), **G2 the Brawler** (shaved sides and a long braid, woad down his chest, nothing in his bare fists) and **G3
+the Tree-Bearer** (the oldest, grown over by the forest: a cloak of moss, glowing Stormvine, a whole uprooted silverwood
+tree carried over his shoulder and swung overhead).
+
+- **Neutral, with patience.** Walk or run past one and it does nothing. Stay within about 7 blocks of it: after about
+  4 seconds it turns to stare at you, its eyes flare and it huffs and stamps (a warning); after about 8 seconds it
+  attacks. Moving off calms it again. Hit it and it fights back.
+- **Strong:** 100 health and heavy armour. It **smashes** (5 hearts), **sweeps** you away to its left (3.5 hearts),
+  **stomps** and throws everyone round it into the air (3 hearts), and **hurls a boulder** (4 hearts, from 8 to 28
+  blocks) but only at someone it's angry with, and only G1, the Boulder-Hurler (the other two fight up close).
+- **Slow:** it runs slower than you walk, its anger runs out after about 30 seconds, and it gives up a chase 24 blocks
+  from where it began and walks back. So you can always get away.
+- **Where:** only in the Silverwood Forest, never within 96 blocks of another giant, never within 128 blocks of the hub,
+  and only where there's room for its size: about one every hundred blocks or so. No drops; 18 XP. It dies the way
+  Minecraft's mobs do (it tips over, flashing red).
+- Its sounds are all original (`tools/forest_giant/sounds.py`): a deep, monstrous voice that carries. Its spawn egg is
+  in the Dross tab (a random look each time; `/summon dross:silverwood_giant ~ ~ ~ {Look:"brawler"}` for G2,
+  `"treebearer"` for G3, `"hurler"` for G1), and `/dross showcase silverwood_giants` lines up the three looks with
+  animation buttons. Previews: `boss-previews/silverwood/mobs/forest_giant/`.
 
 ---
 
@@ -192,9 +224,91 @@ The site's position and the frame's direction are available to the rest of the m
 ### The survivors
 Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the Dross skins drawn for the trader's villager model (8 and 3).
 - They live in their **camp** at the foot of the spire's front steps, west of the road: a slab of the spire's broken crown on four broken pillars behind a windbreak of masonry, the Oracle's seat by a humming shard of a Dross frame among his books and candles, the Seeker's bed among his crates and tools, and a blue soul fire with benches in front. They walk together round the camp (the fire, the books, the tools, the road), never more than 6 blocks outside it. They come with the hub's land, once per world.
-- Right-click one and he says his next line in chat.
+- Right-click the **Blind Oracle** and he gives you his quests, a line a click, with a marker over his head (see [The Blind Oracle's quests](#the-blind-oracles-quests)); once they're all done he talks to you as an old friend (7 new lines, in turn). Right-click the **Ragged Seeker** and he says his next line in chat; while you're after one of the big bosses (the Colossus, the Rat King, the Huntsman, the Emberdactyl) he jokes about it instead, and has a line for you once it's beaten.
 - Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them, and Necromancy never raises undead from hitting them.
 - No trades.
+
+---
+
+## The Blind Oracle's quests
+
+The Dross's main quests. **The Blind Oracle**, at the survivors' camp at the foot of the spire's steps, gives them one
+at a time, always in the same order. Each player has their own quests.
+
+| # | Quest | He asks you to | Advancement |
+|---|---|---|---|
+| 0 | The Oracle's Plea | hear his story | The Oracle's Plea |
+| 1 | The Forest Giants | kill 3 Silverwood Giants | Giant Slayer |
+| 2 | Into the Ashes | kill 3 of the Cinder Wastes' mobs (golems, Cinder Hermits, Pallbearers) | Into the Ashes |
+| 3 | The Cinder Colossus | beat it | *Set in Stone* (challenge) |
+| 4 | Beneath the Rot | kill 3 of Blightwood's creatures (rats or witches) | Beneath the Rot |
+| 5 | The Rat King | beat him | *Down the Drain* (challenge) |
+| 6 | First Frost | hunt 3 of Rimefall's grown beasts (a Pond Skater, a moose or a Rimehorn; calves don't count) | First Frost |
+| 7 | The Huntsman | beat him and his Alpha Moose | *The Hunter Hunted* (challenge) |
+| 8 | The Emberdactyl | beat it and its young | *Wings Clipped* (challenge) |
+| 9 | Defeat the Dross | hear his last words | *Defeat the Dross* (challenge, with blue fireworks) |
+
+There's a kill quest only the first time you go into a land; after that he sends you straight after its next boss.
+
+- **Talking to him:** each right-click is his next line in chat (`<Blind Oracle> ...`, only you see it). A new quest is
+  a few lines; after the last one it's yours. While it's going, a right-click reminds you how far you've got. When
+  it's done, go back to him: he thanks you, and the next quest is waiting. If you walk off mid-talk, he carries on where
+  he stopped.
+- **The marker over his head** (only you see yours): a red **?** (a new quest is waiting), a yellow **...** (it's
+  going), a green **!** (it's done: go back to him). Seen from about 48 blocks.
+- **Kills that count:** only while that quest is going: your own kills (a blow, an arrow, a thrown spear), your tamed
+  wolf's and your Necromancy risen undead's. Each one shows your progress above the hotbar ("Into the Ashes: 2 / 3").
+- **Bosses:** a boss quest is done when you get the boss's advancement. If you already beat that boss (say with a
+  friend before your quest got there), the quest is done as soon as he gives it.
+- After "Defeat the Dross" ("You've beaten everything the Dross has to offer. Come back later to face more dangerous
+  foes.") he has no more quests, and says his old lines again.
+
+### Locked lands
+
+Like the Twilight Forest, the Dross's lands open as your quests go on. After the war barriers were raised across the
+Dross, one ringing the forest round the hub, and the Blind Oracle breaks them for you: **the Cinder Wastes** and **the
+Gravecrags** when you hand in the giants, **Blightwood** (and its sewers) when you've beaten the Cinder Colossus,
+**Rimefall** when you've beaten the Rat King. So you can't leave the Silverwood Forest until the giants are dead. Each
+boss's home opens the same way: when you hand in the land's kill quest (the Emberdactyl's when you hand in the
+Huntsman).
+
+- **His spell:** each time, he says his last thanks line, waits a few seconds so you can read it, then raises his arms:
+  a great rune circle opens on the ground round him and light gathers into his hands, a beam of blue light bursts up into
+  the sky with three thinner beams winding up into it, then it bends out towards the barrier, and far off over the land a
+  flash, shock rings and a pillar of light burst, then the boom and its echo. It lasts about 12 seconds, and anyone near
+  sees it. After a boss, he uses its dying energy. (`/dross showcase oracle_spell` shows it.)
+- **The barrier falling:** a land he has opened still shows its curtain until you first come to its edge; then it cracks
+  and falls in shards in front of you, once. (`/dross showcase barrier_fall` shows it.)
+
+- **Inside a land that's locked for you:** Slowness V, Mining Fatigue V and Hunger II for as long as you stay (gone the moment you step
+  out), and "This land rejects you. You cannot enter yet." in chat as you come in and every 20 seconds. It goes by the
+  ground you're over, so flying over or digging under a land doesn't get round it.
+- **Its edge:** a shimmering curtain at the border, only for the players it's locked for: thin electric-blue streaks of
+  light rising from the ground and fading high up, with the Dross's glowing runes drifting up them (none with particles
+  on Minimal).
+- Creative and spectator players are never affected.
+
+### Locked bosses
+
+A boss **at home** (the Colossus in its lair, the Rat King in his rat cave, the Huntsman at his village, the
+Emberdactyl on its volcano) only fights players whose quest has reached it (they've heard its quest from the Oracle).
+To anyone else it acts as if they weren't there: it doesn't rise, wake or come home for them, never attacks them,
+their hits (and their pets' and risen undead's) do nothing to it, and they don't make it stronger or keep it from
+resetting. Its arena is **warded**: walk into the Colossus's cavern, the Rat King's cave or onto the Emberdactyl's
+volcano (anywhere from its foot up) too early and you're bounced back out, with a flash of runes and a soft chime (an
+ender pearl in: you're sent back to where you were). The Rat King still lies asleep on his nest where you can see him
+from the tunnel. The Huntsman has no arena: until your quest reaches him he **sleeps at home**: him on the rug at his
+bed's foot in his lodge (look down at him through the clear ice window in its roof), his Alpha Moose lying in its barn
+with its eyes shut, both snoring,
+his spear, bow, bola and arrows lying before his door, and magic keeps them from harm. Once your quest reaches him (First
+Frost handed in) they wake and ride their patrol round his village, and they never sleep again. Spawn eggs, `/dross boss summon`, the test
+arenas and the showcases are never locked, and neither are creative players.
+
+**Magic protects** the bosses' homes: until you've beaten a boss you can't break the blocks of its home (the
+Colossus's lair volcanoes, the Rat King's whole sewer with his cave and gold, the Huntsman's villages, the
+Emberdactyl's volcanoes). Mining one says "Magic protects this block." and gives you Mining Fatigue so strong nothing
+breaks, and explosions leave them alone. The **hub** at Dross 0,0 is protected the same way, for good. Once you've beaten that boss you can dig there freely (its gold included).
+Creative players are never stopped.
 
 ---
 
@@ -257,13 +371,14 @@ Unlimited uses, no restocking, no XP.
 | **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
 | **Huntsman Trophy** | A one-block miniature of the Huntsman and his Alpha Moose in one of five poses: Riding Down, Rain of Arrows, The Rearing, The Rearing Shot and The Parting Shot (the tooltip names it). Right-click a placed one to change its pose. Beating the pair gives one to every player who helped. Fireproof, never despawns (see [The Huntsman](#the-huntsman)). |
 | **Stone Golem / Lava Golem Spawn Eggs** | Spawn a wild stone or lava golem (like the ones in the Cinder Wastes): it doesn't crumble, and a lava golem only blows up when you get close. |
+| **Silverwood Giant Spawn Egg** | Spawns a Silverwood Giant (look G1, the Boulder-Hurler), neutral like a wild one (see [The Silverwood Giant](#the-silverwood-giant)). |
 | **Dross terrain blocks** | The 38 blocks of the Dross's land: Duskstone and its four ores; the silverwood wood set (log, wood, stripped log and wood, planks, leaves, sapling; four saplings in a square grow a great silverwood) and Stormvine; and each biome's ground covers and plants (Silvermoss, Glimmer Fern, Wispbloom; Ash, Ash Layer, Charred Log, Emberweed, Cinder Vent; Sporeloam, Blightcap blocks, Gloomcap, Sporepod; Hoarfrost, Frostbitten Log, Frostbloom, Icicle; Scarred Netherrack, Scar Roots, Soulwick, Scar Vent (from the old Nether Scar: building blocks now, they no longer generate); Cragstone, Storm Lichen, Crag Thistle); and from Blightwood's sewers **Sewer Sludge** (it slows you down, less than soul sand) and the **Blight Vent** (glows poison green and puffs spores). |
 | **Raw Moonsilver, Moonsilver Ingot, Stormite Shard** | Materials from the Dross's ores. Raw Moonsilver smelts into an ingot, and the ingot makes the Moonsilver Spear; Stormite is for gear that comes later. |
 | **Moonsilver Spear** | The Huntsman's spear, for players: two sticks on a diagonal with a Moonsilver Ingot at the top right. It stabs for 8, and held back and let go it's thrown like a trident (8) and flies back to you. Whatever it hits is frozen for 4 seconds (frost, shaking, slowed). 500 uses, repaired with Moonsilver Ingots. Enchantments: Sharpness or Smite, Impaling (for its throw, on anything), Looting, Knockback, Channeling, Unbreaking, Mending. |
 | **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
 | **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer, the Cinder Hermit, then the Silverwood Giant), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -340,6 +455,7 @@ Both are **swords only** and **treasure enchantments**. They never come from the
 ### Getting them
 - **From the trader**, after the quest: Necromancy (lowest level) and Deathforged I.
 - **As drops in the Dross:** Deathforged books drop only from the netherite-clad zombies and skeletons of the Dross, when a player hit them recently. The chance is 5% per kill, plus 1% per Looting level. Higher levels are rarer (weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1).
+- **Since November 9, 2026** the Silverwood Forest has no zombies or skeletons (the Silverwood Giants took their place), so in the Dross only **the Gravecrags** still have them: that's where the books drop and, inside the Dross, the only place to gather Necromancy souls (zombies and skeletons anywhere else, like the Overworld's, still give souls). New ways to get both will come later.
 
 ---
 
@@ -356,6 +472,9 @@ follows the same three rules (`boss/BossRules.java`, the numbers there):
 - **It resets** when nobody has been within 64 blocks for 3 minutes (and no foe it's fighting is that near): back to
   full health, its bonus gone, and back to resting. The Rat King goes back to sleep, the Colossus goes dormant in its
   Shell, the Emberdactyl back to its perch, and the Huntsman calm in the saddle.
+- **Locked until your quest reaches it.** At home, a boss ignores a player whose Blind Oracle quest hasn't reached it,
+  and its arena is warded against them (see [Locked bosses](#locked-bosses)): they don't make it stronger and don't keep
+  it from resetting either.
 
 ## The Cinder Colossus (mini-boss)
 
@@ -387,8 +506,9 @@ and lights set in the floor.
 - **Inside:** a domed cavern about 41 blocks across under the crater, with an obsidian and magma floor, lava glowing
   through sealed fissures below it, and obsidian stalactites. No lava can be reached from the floor, and nothing
   spawns inside by itself.
-- **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful). Once it's beaten, that
-  lair stays empty for good: no respawn.
+- **The boss:** the Colossus **rises when a player steps onto the floor** (not on Peaceful), a player whose Blind Oracle
+  quest has reached it: until then its cavern is warded against them (see [Locked bosses](#locked-bosses)). Once it's
+  beaten, that lair stays empty for good: no respawn.
 - Previews: `boss-previews/cinder_wastes/cinder_colossus/lair_outside.png` and `lair_cutaway.png`. Numbers: `boss/lair/LairTuning.java`.
 
 ### The fight
@@ -553,7 +673,8 @@ each attack sound for the fight, to pick from later.
 
 One of the Ice Necromancer's three servants: a hunter in a wolf-head hood with a stag's antlers, riding his **Alpha
 Moose**. He lives in **his own hunter village** in Rimefall (below): walk near it and he and the moose are already riding
-their patrol round it, a loop just outside its lights, calm. He also comes from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`, and
+their patrol round it, a loop just outside its lights, calm (only for a player whose Blind Oracle quest has reached him;
+before that he and the moose sleep at home: see [Locked bosses](#locked-bosses)). He also comes from the **Huntsman Spawn Egg** or `/dross boss summon huntsman`, and
 `/dross boss arena huntsman` builds a round snowy arena (41 blocks across, patches of packed ice, lantern posts round
 the edge) with a chat button to summon him.
 
@@ -663,7 +784,8 @@ never spills), and a lit path winding up to a lookout over the crater. `/dross g
 foot of its path.
 
 **The fight** (400 health): it perches on a rock ledge on the crater's rim, facing out, guarding its egg. Come within 60
-blocks of the volcano's foot and it screeches (you hear it from far off), takes off and its boss bar appears. It fights
+blocks of the volcano's foot (once your Blind Oracle quest has reached it: until then it ignores you and its crater is
+warded, see [Locked bosses](#locked-bosses)) and it screeches (you hear it from far off), takes off and its boss bar appears. It fights
 mostly in the air, circling you, and never strays more than 100 blocks from its nest:
 - **Glide in**: from far off it glides at you low, fire dropping off it onto the ground, and dives once it's close.
 - **Dive bomb** (7 hearts within 7 blocks of where it crashes, a ring of blasts and fire, everything thrown out and up):
@@ -751,10 +873,20 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | Keymaster | Have the trader forge the Rift Key | |
 | **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
 | Rise! | Raise the undead with Necromancy | Challenge |
-| Set in Stone | Defeat the Cinder Colossus | Challenge, under *Enter the Dross*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
-| Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Enter the Dross*. Goes to the player who killed him and everyone within 40 blocks when he dies |
-| The Hunter Hunted | Bring down the Huntsman and his Alpha Moose | Challenge, under *Enter the Dross*. Goes to the player with the last kill and everyone within 40 blocks |
-| Wings Clipped | Bring down the Emberdactyl and the young reborn from its egg | Challenge, under *Enter the Dross*. Goes to the player who kills the young and everyone within 64 blocks |
+| The Oracle's Plea | Hear the Blind Oracle's story | Under *Enter the Dross*: the start of the Oracle's chain |
+| Giant Slayer | Bring down three of the Silverwood Giants | The Oracle's quest (the kills count only while it's going) |
+| Into the Ashes | Slay three creatures of the Cinder Wastes | The Oracle's quest |
+| Set in Stone | Defeat the Cinder Colossus | Challenge, under *Into the Ashes*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
+| Beneath the Rot | Kill three of Blightwood's creatures | The Oracle's quest |
+| Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Beneath the Rot*. Goes to the player who killed him and everyone within 40 blocks when he dies |
+| First Frost | Hunt three of Rimefall's grown beasts | The Oracle's quest |
+| The Hunter Hunted | Bring down the Huntsman and his Alpha Moose | Challenge, under *First Frost*. Goes to the player with the last kill and everyone within 40 blocks |
+| Wings Clipped | Bring down the Emberdactyl and the young reborn from its egg | Challenge, under *The Hunter Hunted*. Goes to the player who kills the young and everyone within 64 blocks |
+| **Defeat the Dross** | Hear the Blind Oracle's last words, after the Emberdactyl | Challenge, with blue fireworks: "You've beaten everything the Dross has to offer. Come back later to face more dangerous foes." |
+
+The Oracle's quests make one chain under *Enter the Dross*, from *The Oracle's Plea* to *Defeat the Dross*, with the
+four bosses' challenges in it (until November 9, 2026 those hung straight off *Enter the Dross*). *Rise!* stays beside
+it.
 
 ---
 
@@ -792,9 +924,11 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross locate villages` | A test tool for now: lists the 5 nearest hunter villages (which kind, where, how far, how many igloos), each with a [go] button. |
 | `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
 | `/dross trader sendhome` | Sends the nearest trader whose land is loaded home. |
-| `/dross quest status` | Shows your quest progress. |
-| `/dross quest reset` | Clears your quest progress and the Guide Book flag, and revokes the Dross advancements (except *Rise!*, *Set in Stone* and *Down the Drain*). |
-| `/dross quest complete` | Finishes the quest for you. |
+| `/dross quest status` | Shows your quest progress, the Blind Oracle's quest too (which one, how far, the marker over him). |
+| `/dross quest reset` | Clears your quest progress, the Guide Book flag and the Blind Oracle's quests, and revokes the Dross advancements (except *Rise!* and the four bosses': *Set in Stone*, *Down the Drain*, *The Hunter Hunted*, *Wings Clipped*). |
+| `/dross quest complete` | Finishes the trader's quest for you. |
+| `/dross quest skip` | Finishes the Blind Oracle's quest step you're on (with its own advancement; a boss's only comes from beating it) and makes the next quest wait for you. |
+| `/dross quest set <quest>` | Jumps you to one of the Blind Oracle's quests, by its advancement's name (`oracle_plea`, `giant_slayer`, `into_the_ashes`, `set_in_stone`, `beneath_the_rot`, `down_the_drain`, `first_frost`, `the_hunter_hunted`, `wings_clipped`, `defeat_the_dross`), waiting to be given: its land or boss opens once you've heard him offer it. |
 | `/dross showcase boss_designs colossus` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
 | `/dross showcase boss_designs colossus dormant` / `erupted` / `core` | Puts every showcase golem nearby into that stage. |
 | `/dross showcase boss_designs colossus erupt` / `break` / `die` | Replays the volcanoes erupting / the shell breaking off / the death (cooling into an obsidian statue). |
@@ -818,6 +952,10 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase boss_designs emberdactyl <animation>` | Plays one animation on the Emberdactyl and its young near you (with its sounds). |
 | `/dross showcase cinder_mobs` | Lines up the Cinder Wastes' mobs with signs: the Pallbearer and the Cinder Hermit in eight shells; chat buttons play their animations (idle, walk, swipe, slam, roar, snap, pinch, hide, peek, come_out, death). |
 | `/dross showcase cinder_mobs <animation>` | Plays one animation on the Cinder Wastes' mobs near you (with its sounds). |
+| `/dross showcase oracle_spell` | The Blind Oracle's spell: the nearest Blind Oracle casts it at once towards where you look (with none near, it's cast from the ground in front of you). Nobody's quest changes. |
+| `/dross showcase barrier_fall` | A stretch of a land's barrier falls in front of you, as it does the first time you come to a land the Oracle has opened. |
+| `/dross showcase silverwood_giants` | Lines up the Silverwood Giant's three looks (G1, G2, G3), frozen, on Silvermoss with signs; right-click one to play its next animation. Running it again replaces the row. |
+| `/dross showcase silverwood_giants <animation>` | Plays that animation on the three (idle, walk, run, warn, smash, sweep, stomp, throw, hurt, death), with its sounds. |
 | `/dross showcase boss_sounds emberdactyl` | Lists the Emberdactyl's and its young's sounds (its screech, wingbeats, gust, dive...) with play buttons. |
 | `/dross showcase bossbars emberdactyl` | Shows the Emberdactyl's boss bar (a volcano between two burning wings) for a minute, the adult's over its young's, draining and filling. |
 | `/dross showcase trophies emberdactyl` | Places the Emberdactyl's five trophies in a row on pedestals with signs (right-click one to turn it through the poses). |
@@ -876,9 +1014,10 @@ From the project folder, on Windows:
 - **`tools/shrines/`:** generates the two grand shrine designs, the Fallen Cathedral and the Shattered Spire (the user's picks from ten; the other eight were removed).
   - It writes their structure templates (`data/dross/structures/shrine/*.nbt`), renders the previews in `shrine-previews/`, and `gen_java.py` writes `ShrineDesigns.java`.
   - See `tools/shrines/README.md`.
-- **`tools/skins/`:** draws the 4 villager-model skins (`textures/entity/trader/`: 1 Hooded Watcher, kept for later; 2 The Archivist, the trader; 3 Ragged Seeker and 8 Blind Oracle, the survivors) and renders the front and back previews in `skin-previews/`.
+- **`tools/skins/`:** draws the 4 villager-model skins (`textures/entity/trader/`: 1 Hooded Watcher, kept for later; 2 The Archivist, the trader; 3 Ragged Seeker and 8 Blind Oracle, the survivors) and renders the front and back previews in `skin-previews/`; `quest_markers.py` draws the markers over the Blind Oracle's head (`textures/gui/quest_markers.png`, preview `skin-previews/quest_markers.png`).
 - **`tools/terrain/`:** the Dross's terrain and blocks.
   - `worldgen.py` writes all the terrain data files (noise, biomes, ground cover, features, ores, spawn lists), and the structure files of the hub, the Fallen Cathedral and the Rift Chapels; every tuning number is a labeled constant at its top (among them how far trees, plants and ores keep off the hub).
+  - `ward_particles.py` draws the locked lands' edge, its streaks and runes (`textures/particle/ward_*`), with a preview in `terrain-previews/ward_edge.png`.
   - `draw_blocks.py` draws the terrain blocks' textures and `block_data.py` writes their models, block states, loot, tags and recipes; previews go to `block-previews/`.
   - Top-down maps of a generated area are in `terrain-previews/`.
   - See `tools/terrain/README.md` (and `TERRAIN_DESIGN.md` for the design).
@@ -890,6 +1029,9 @@ From the project folder, on Windows:
 - **`tools/ratking/`:** generates the Rat King design candidates and his rats (models, animations, textures, the Zzz
   particle, `RatKingDesigns.java` and `RatDesigns.java`) and renders the previews in `boss-previews/blightwood/rat_king/`; its
   `sounds.py` makes all their sounds from scratch. It reuses the golem kit. See `tools/ratking/README.md`.
+- **`tools/forest_giant/`:** the Silverwood Giant: `build.py` its three looks (models, textures, checks and previews in
+  `boss-previews/silverwood/mobs/forest_giant/`), `mobs.py` its animations (and the moments the game reads), `sounds.py`
+  its sounds, all made from scratch. It reuses the golem, Rimefall and fire kits.
 - **Making a new boss:** follow `BOSS_GUIDE.md` (the whole process, from design candidates to the user's pick).
   Every boss's previews go in its own folder under `boss-previews/`.
 
@@ -901,13 +1043,13 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 
 | Package | What's in it |
 |---|---|
-| `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators, the hub falloff and the filter that keeps features off the hub (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone |
+| `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators, the hub falloff and the filter that keeps features off the hub (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone, the locked lands (`dimension/ward`) |
 | `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (a world-generation structure fitted onto the terrain), the arrival sequence |
 | `world` | The portal site: its spot from the seed, the Fallen Cathedral as a world-generation structure, the tree tidy-up, ground fitting, the leak (`world/shrine` holds the shrine designs) |
-| `villager` | The trader, his Rift Chapel (a world-generation structure at a village the seed picks; the "once a village" rule), dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors |
+| `villager` | The trader, his Rift Chapel (a world-generation structure at a village the seed picks; the "once a village" rule), dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors (the Blind Oracle's quest talk and the marker over him) |
 | `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
-| `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book |
-| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss` |
+| `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book; the Blind Oracle's quest line (`quest/oracle`: the quests, their progress, kill counting, the rules for the locked lands and bosses) |
+| `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss`; the locked bosses and their warded arenas (`BossLocks`, `BossWards`); the Silverwood Giant (`boss/giant`) |
 | `command` | The `/dross` command and its showcases |
 | `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, world generation features, tree decorators, density functions, placement modifiers, structures, the creative tab |
 

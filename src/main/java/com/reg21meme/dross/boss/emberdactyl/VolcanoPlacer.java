@@ -241,7 +241,13 @@ final class VolcanoPlacer
     /** The seed a site's volcano is shaped from (fixed by the world and its patch). */
     static long shapeSeed(ServerLevel level, Site site)
     {
-        return level.getSeed() * 0x9E3779B97F4A7C15L ^ site.patch().id() ^ 0x456D626572566F6CL;
+        return shapeSeed(level, site.patch().id());
+    }
+
+    /** The seed the volcano of this patch (a built volcano's id) is shaped from. */
+    static long shapeSeed(ServerLevel level, long patchId)
+    {
+        return level.getSeed() * 0x9E3779B97F4A7C15L ^ patchId ^ 0x456D626572566F6CL;
     }
 
     // ---------------------------------------------------------------- who's near which site

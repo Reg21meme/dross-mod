@@ -9,10 +9,13 @@ import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModParticles;
 import com.reg21meme.dross.registry.ModSounds;
+import com.reg21meme.dross.boss.BossLocks;
 import com.reg21meme.dross.boss.BossRules;
 import com.reg21meme.dross.boss.BossScale;
 import com.reg21meme.dross.boss.DrossBoss;
 import com.reg21meme.dross.boss.SteadyController;
+import com.reg21meme.dross.boss.ratking.lair.RatKingLairKeeper;
+import com.reg21meme.dross.quest.oracle.OracleBoss;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
@@ -534,6 +537,12 @@ public class RatKing extends Monster implements GeoEntity, RageLeader, DrossBoss
     @Override
     public boolean hurt(DamageSource source, float amount)
     {
+        // At home in his cave, a hit from a player he's locked for does nothing at all (boss/BossLocks; asleep, it doesn't
+        // even wake him).
+        if (!this.level().isClientSide && BossLocks.refusesHit(this, source))
+        {
+            return false;
+        }
         // Asleep: anything that hurts him only wakes him (no damage, no knockback).
         if (!this.level().isClientSide && this.isAsleep() && this.isAlive() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)
                 && !this.isInvulnerableTo(source))
@@ -801,6 +810,21 @@ public class RatKing extends Monster implements GeoEntity, RageLeader, DrossBoss
     public boolean followsBossRules()
     {
         return !this.isShowcase();
+    }
+
+    /** A rat cave's king is locked behind his Oracle quest ({@link BossLocks}); a summoned or spawn-egg one never is. */
+    @Override
+    @Nullable
+    public OracleBoss lockedAs()
+    {
+        return !this.isShowcase() && RatKingLairKeeper.isCaveKing(this) ? OracleBoss.RAT_KING : null;
+    }
+
+    /** At home he never goes for a player he's locked for ({@link BossLocks}): his target goals skip them. */
+    @Override
+    public boolean canAttack(LivingEntity target)
+    {
+        return !BossLocks.isLockedFor(this, target) && super.canAttack(target);
     }
 
     /** More players: his health keeps its share, and his burrows' checkpoints follow it (still three a phase). */
@@ -1265,7 +1289,10 @@ public class RatKing extends Monster implements GeoEntity, RageLeader, DrossBoss
         return (int) Math.ceil(RatKingTuning.CHARGE_MAX_DISTANCE / slowest) + RatKingTuning.CHARGE_SLACK_TICKS;
     }
 
-    /** Asleep: a player (not a spectator) close enough wakes him; a sneaking one has to come closer. */
+    /**
+     * Asleep: a player (not a spectator) close enough wakes him; a sneaking one has to come closer. At home in his cave, a
+     * player he's locked for ({@link BossLocks}) counts as nobody.
+     */
     private void checkWake()
     {
         if (!this.isAlive())
@@ -1274,7 +1301,7 @@ public class RatKing extends Monster implements GeoEntity, RageLeader, DrossBoss
         }
         for (Player player : this.level().players())
         {
-            if (player.isSpectator() || !player.isAlive())
+            if (player.isSpectator() || !player.isAlive() || BossLocks.isLockedFor(this, player))
             {
                 continue;
             }
@@ -1293,7 +1320,18 @@ public class RatKing extends Monster implements GeoEntity, RageLeader, DrossBoss
         switch (this.getAction())
         {
             case SLEEP -> {
-                if (t >= 0 && t % d.sleepTicks() == SNORE_AT) this.sound(ModSounds.RAT_KING_SNORE.get(), SNORE_VOLUME);
+                if (t >= 0 && t % d.sleepTicks() == SNORE_AT)
+                {
+                    if (com.reg21meme.dross.boss.ratking.lair.RatKingLairKeeper.isCaveKing(this))
+                    {
+                        // a cave's king is heard all through his sewer (lair/RatKingSnores)
+                        com.reg21meme.dross.boss.ratking.lair.RatKingSnores.kingSnores(this);
+                    }
+                    else
+                    {
+                        this.sound(ModSounds.RAT_KING_SNORE.get(), SNORE_VOLUME);
+                    }
+                }
             }
             case WAKE -> {
                 if (t == d.wakeStartle()) this.sound(ModSounds.RAT_KING_STARTLE.get(), 1.0F);

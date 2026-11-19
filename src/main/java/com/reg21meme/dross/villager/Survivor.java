@@ -1,5 +1,7 @@
 package com.reg21meme.dross.villager;
 
+import com.reg21meme.dross.quest.oracle.OracleDialogue;
+import com.reg21meme.dross.quest.oracle.SeekerDialogue;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModParticles;
@@ -53,7 +55,8 @@ import net.minecraft.world.phys.Vec3;
 /**
  * One of the two <b>survivors</b> who live at the hub in the Dross (the Shattered Spire at Dross 0,0): the
  * <b>Blind Oracle</b>, the mentor, and the <b>Ragged Seeker</b>, his student ({@link SurvivorRole}). They have no trades;
- * right-clicking one makes it say its next line in chat. They spawn once per world ({@link SurvivorSpawner}).
+ * right-clicking one makes it say its next line in chat (the Oracle's are his quests while the player has any left:
+ * {@link #mobInteract}). They spawn once per world ({@link SurvivorSpawner}).
  * <ul>
  *   <li><b>Together:</b> the Oracle wanders the hub slowly, in and around the spire and out of its front gate, to the
  *       places in his {@link SurvivorGrounds} and short strolls between them, resting at his spot now and then; he waits
@@ -162,6 +165,8 @@ public class Survivor extends PathfinderMob
     @Nullable
     private Player listener;
     private int listenUntil;
+    /** Until when (its tickCount) the Blind Oracle casts his spell: he stands still and says nothing. Not saved. */
+    private int castingUntil;
     private int lostTicks;
     /** How many times it has popped back since it was loaded (for the headless tests). */
     private int timesPoppedBack;
@@ -435,6 +440,11 @@ public class Survivor extends PathfinderMob
             BlockPos here = this.blockPosition();
             this.setHome(here, this.getYRot(), new BoundingBox(here).inflatedBy(SurvivorGrounds.AREA_MARGIN), List.of(), null);
         }
+        if (this.isCasting())
+        {
+            this.getNavigation().stop(); // the Blind Oracle casting his spell stays where he stands
+            this.setDeltaMovement(0.0D, this.getDeltaMovement().y, 0.0D);
+        }
         if (this.isPassenger())
         {
             this.stopRiding(); // never rides anything (a boat, a minecart, /ride...)
@@ -631,8 +641,17 @@ public class Survivor extends PathfinderMob
 
     /**
      * Right-click (main hand only; sneaking falls through to vanilla, which does nothing here): it says its next line
-     * in chat, with its name as the speaker ({@code <Blind Oracle> ...}), then stands still and looks at the player for
-     * a moment. Each player hears its lines in order, then from the first again. There's never a trading screen.
+     * in chat, with its name as the speaker ({@code <Blind Oracle> ...}), only to that player, then stands still and
+     * looks at the player for a moment. There's never a trading screen.
+     * <ul>
+     *   <li><b>The Blind Oracle</b> gives the quests (QUEST_PLAN.md, "Talking to the Oracle"): each click is his next
+     *       quest line for that player, from the quest area ({@link OracleDialogue#talk}), which also does what that
+     *       click does (starts a quest, hands one in, grants its advancement). Once every quest is done he talks to
+     *       them as an old friend ({@code dross.oracle.after.<n>}).</li>
+     *   <li><b>The Ragged Seeker</b> never touches the quest: while that player is after one of the big bosses he jokes
+     *       about it ({@link SeekerDialogue#talk}), otherwise he says his lore lines.</li>
+     * </ul>
+     * Each player hears the lore lines in order, then from the first again.
      */
     @Override
     protected InteractionResult mobInteract(Player player, InteractionHand hand)
@@ -645,7 +664,7 @@ public class Survivor extends PathfinderMob
         {
             return InteractionResult.PASS;
         }
-        if (player instanceof ServerPlayer serverPlayer && this.isAlive())
+        if (player instanceof ServerPlayer serverPlayer && this.isAlive() && !this.isCasting())
         {
             this.speakTo(serverPlayer);
         }
@@ -655,13 +674,50 @@ public class Survivor extends PathfinderMob
     private void speakTo(ServerPlayer player)
     {
         SurvivorRole role = this.getRole();
-        int index = Math.floorMod(this.nextLine.getOrDefault(player.getUUID(), 0), role.lineCount());
-        this.nextLine.put(player.getUUID(), (index + 1) % role.lineCount());
-        Component line = Component.translatable(role.lineKey(index + 1));
+        Component line = role == SurvivorRole.MENTOR ? OracleDialogue.talk(player, this).orElse(null)
+                : SeekerDialogue.talk(player).orElse(null);
+        if (line == null)
+        {
+            line = this.nextLoreLine(player, role);
+        }
         player.sendSystemMessage(Component.translatable("chat.type.text", this.getDisplayName(), line));
         this.playSound(SoundEvents.VILLAGER_AMBIENT, 1.0F, this.getVoicePitch());
         this.listener = player;
-        this.listenUntil = this.tickCount + LISTEN_TICKS;
+        this.listenUntil = Math.max(this.listenUntil, this.tickCount + LISTEN_TICKS);
+    }
+
+    /** Its next lore line for this player ({@code dross.survivor.<role>.line.<n>}), in a cycle. */
+    private Component nextLoreLine(ServerPlayer player, SurvivorRole role)
+    {
+        int index = Math.floorMod(this.nextLine.getOrDefault(player.getUUID(), 0), role.lineCount());
+        this.nextLine.put(player.getUUID(), (index + 1) % role.lineCount());
+        return Component.translatable(role.lineKey(index + 1));
+    }
+
+    /**
+     * Stands still for this many ticks (looking at whoever last spoke to it): the Blind Oracle while he casts his spell
+     * (quest/oracle/OracleSpell). Never shortens a wait already longer.
+     */
+    public void holdStill(int ticks)
+    {
+        this.listenUntil = Math.max(this.listenUntil, this.tickCount + ticks);
+    }
+
+    /**
+     * The Blind Oracle casts his spell for this many ticks (quest/oracle/OracleSpell: the pause after his line, then the
+     * spell): he stands still where he is ({@link #isCasting}: no walking, whoever talked to him or not) and says nothing
+     * to a right-click meanwhile, so his next quest's lines don't come over his spell.
+     */
+    public void castSpell(int ticks)
+    {
+        this.castingUntil = Math.max(this.castingUntil, this.tickCount + ticks);
+        this.getNavigation().stop();
+    }
+
+    /** True while he casts his spell (and the pause before it). */
+    public boolean isCasting()
+    {
+        return this.tickCount < this.castingUntil;
     }
 
     /** The player it's listening to (for a moment after a right-click), or null. */

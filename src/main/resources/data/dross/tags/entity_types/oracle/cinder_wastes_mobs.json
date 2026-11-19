@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "dross:stone_golem",
+      "required": false
+    },
+    {
+      "id": "dross:lava_golem",
+      "required": false
+    },
+    {
+      "id": "dross:cinder_hermit",
+      "required": false
+    },
+    {
+      "id": "dross:pallbearer",
+      "required": false
+    }
+  ]
+}

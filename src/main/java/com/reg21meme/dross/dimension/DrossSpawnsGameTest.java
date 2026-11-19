@@ -58,8 +58,8 @@ import org.slf4j.Logger;
  * <ul>
  *   <li>{@link #spawnListsPerBiome}: the Gravecrags have the Dross's base spawn lists exactly (worldgen.py's
  *       {@code BASE_MONSTERS}, {@code BASE_CREATURES}, {@code BASE_AMBIENT}: the plains monsters minus slimes, creepers and
- *       spiders, the plains animals, bats; the reference the others are checked against); Silverwood Forest has them
- *       too, with a few moose among its animals; Rimefall lists only its own animals (the Pond Skater and lone moose; its
+ *       spiders, the plains animals, bats; the reference the others are checked against); Silverwood Forest lists only
+ *       the Silverwood Giant and the odd lone moose (November 18, 2026: no vanilla mobs or animals, no bats); Rimefall lists only its own animals (the Pond Skater and lone moose; its
  *       Rimehorn herds are placed with the land);
  *       Blightwood keeps its animals and bats, but its monsters are only rats and witches (no zombies, skeletons or endermen:
  *       witches 12% of the mobs spawning there, Plague Ravagers 19%); the sewers
@@ -127,7 +127,7 @@ public final class DrossSpawnsGameTest
     public static void spawnListsPerBiome(GameTestHelper helper)
     {
         Registry<Biome> biomes = helper.getLevel().registryAccess().registryOrThrow(Registries.BIOME);
-        // The base lists, as the Gravecrags have them (Silverwood Forest has them too, plus the odd moose since October 19).
+        // The base lists, as the Gravecrags have them.
         Biome reference = biomes.get(DrossBiomes.GRAVECRAGS);
         if (reference == null)
         {
@@ -180,7 +180,7 @@ public final class DrossSpawnsGameTest
             }
             else if (key.equals(DrossBiomes.SILVERWOOD_FOREST))
             {
-                checkSilverwoodLists(biome.getMobSettings(), baseMobs, problems);
+                checkSilverwoodLists(biome.getMobSettings(), problems);
             }
             else if (!key.equals(DrossBiomes.GRAVECRAGS))
             {
@@ -229,7 +229,7 @@ public final class DrossSpawnsGameTest
         helper.succeed();
     }
 
-    /** Every list, every spawn cost and the animal chance exactly as the base lists (Silverwood Forest's) have them. */
+    /** Every list, every spawn cost and the animal chance exactly as the base lists (the Gravecrags') have them. */
     private static void checkSameAsBase(String name, MobSpawnSettings mobs, MobSpawnSettings baseMobs, List<String> problems)
     {
         for (MobCategory category : MobCategory.values())
@@ -318,39 +318,31 @@ public final class DrossSpawnsGameTest
     }
 
     /**
-     * Silverwood Forest: the base lists, and the moose among its animals, alone and rarely (the user, October 19: moose
-     * "in the main Dross forest too, with less probability").
+     * Silverwood Forest: only the Dross's own mobs (the user, November 18, 2026: "remove witches and like Minecraft
+     * regular mobs and cows and stuff from the Silverwood forests"): its monsters only the Silverwood Giant, alone (no
+     * zombies, skeletons, endermen or witches); its animals only the moose, alone and rarely (the user, October 19: "in
+     * the main Dross forest too, with less probability"; fewer tries than vanilla's 0.1); nothing else, no bats.
      */
-    private static void checkSilverwoodLists(MobSpawnSettings mobs, MobSpawnSettings baseMobs, List<String> problems)
+    private static void checkSilverwoodLists(MobSpawnSettings mobs, List<String> problems)
     {
         for (MobCategory category : MobCategory.values())
         {
-            if (category != MobCategory.CREATURE && !describe(mobs.getMobs(category)).equals(describe(baseMobs.getMobs(category))))
+            List<MobSpawnSettings.SpawnerData> list = mobs.getMobs(category).unwrap();
+            EntityType<?> only = category == MobCategory.MONSTER ? ModEntities.SILVERWOOD_GIANT.get()
+                    : category == MobCategory.CREATURE ? ModEntities.MOOSE.get() : null;
+            boolean right = only == null ? list.isEmpty()
+                    : list.size() == 1 && list.get(0).type == only && list.get(0).minCount == 1 && list.get(0).maxCount == 1;
+            if (!right)
             {
-                problems.add("Silverwood Forest's " + category.getName() + " list should be the base Dross list");
+                problems.add("Silverwood Forest's " + category.getName() + " list should be "
+                        + (only == null ? "empty" : "only " + EntityType.getKey(only) + ", alone") + ", but it's "
+                        + describe(mobs.getMobs(category)));
             }
         }
-        List<String> animals = new ArrayList<>(describe(mobs.getMobs(MobCategory.CREATURE)));
-        List<String> base = describe(baseMobs.getMobs(MobCategory.CREATURE));
-        int total = 0;
-        int moose = 0;
-        for (MobSpawnSettings.SpawnerData data : mobs.getMobs(MobCategory.CREATURE).unwrap())
+        if (!(mobs.getCreatureProbability() > 0.0F && mobs.getCreatureProbability() < 0.01F))
         {
-            total += data.getWeight().asInt();
-            if (data.type == ModEntities.MOOSE.get())
-            {
-                moose += data.getWeight().asInt();
-                if (data.maxCount != 1)
-                {
-                    problems.add("Silverwood Forest's moose should come alone, but it's " + data.minCount + "-" + data.maxCount);
-                }
-            }
-        }
-        animals.removeIf(s -> s.startsWith(EntityType.getKey(ModEntities.MOOSE.get()).toString()));
-        if (moose == 0 || !animals.equals(base) || moose * 10 > total)
-        {
-            problems.add("Silverwood Forest's animals should be the base list and a few moose (under a tenth of the weight), but they're "
-                    + describe(mobs.getMobs(MobCategory.CREATURE)));
+            problems.add("Silverwood Forest's moose should be rare (an animal chance under 0.01), but it's "
+                    + mobs.getCreatureProbability());
         }
     }
 

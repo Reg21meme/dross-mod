@@ -62,13 +62,19 @@ public final class HuntAnims
     /** The Alpha Moose with the Huntsman in its saddle, as one model. */
     public static final String WILD = "wild_hunt";
 
+    /** Asleep at home (his lodge's bed, the moose's stall) until the Oracle's quest reaches him: lying down, a slow
+     * breath (and a snore) every 5 seconds. The model lies centred on the entity's spot ({@code rimemobs/huntsman.py}'s
+     * and {@code alpha_moose.py}'s {@code sleep}). */
+    public static final String SLEEP = "sleep";
+
     /** The Huntsman on foot (stage 2 of his fight). The first is the one he plays when nothing else is. */
     public static final List<Anim> HUNTSMAN = List.of(
             loop(FOOT, "idle", 4.0), loop(FOOT, "walk", 1.1), loop(FOOT, "run", 0.62),
             once(FOOT, "spear_combo", 1.9), once(FOOT, "thrust_sweep", 1.4), once(FOOT, "leap_strike", 1.7),
             once(FOOT, "throw_spear", 1.3), once(FOOT, "catch_spear", 0.8), once(FOOT, "aimed_shot", 2.9),
             once(FOOT, "quick_shot", 1.9), once(FOOT, "backstep_shoot", 2.4), once(FOOT, "arrow_rain", 4.2), once(FOOT, "bola_throw", 1.5),
-            once(FOOT, "horn_blow", 3.7), once(FOOT, "land", 0.7), last(FOOT, "death", 4.6));
+            once(FOOT, "horn_blow", 3.7), once(FOOT, "land", 0.7), last(FOOT, "death", 4.6),
+            loop(FOOT, SLEEP, 5.0));
 
     /** The Huntsman in the saddle (stage 1, the Wild Hunt). */
     public static final List<Anim> RIDING = List.of(
@@ -88,7 +94,7 @@ public final class HuntAnims
             loop(MOOSE, "idle", 6.0), loop(MOOSE, "walk", 1.7), loop(MOOSE, "run", 0.6), loop(MOOSE, "charge", 0.56),
             once(MOOSE, "ram", 1.1), once(MOOSE, "back_kick", 1.2), once(MOOSE, "antler_toss", 1.3),
             once(MOOSE, "stomp", 1.2), once(MOOSE, "bellow", 2.2), once(MOOSE, "crack_stamp", 2.2),
-            once(MOOSE, "rear", 2.4), once(MOOSE, "eat", 6.0), last(MOOSE, "death", 4.6));
+            once(MOOSE, "rear", 2.4), once(MOOSE, "eat", 6.0), last(MOOSE, "death", 4.6), loop(MOOSE, SLEEP, 5.0));
 
     /**
      * The saddle's motion while the moose plays {@code moose} ({@code carry_<name>} in the Wild Hunt's file), looped

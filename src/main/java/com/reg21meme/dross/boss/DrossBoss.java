@@ -54,4 +54,15 @@ public interface DrossBoss
      * and its resting state.
      */
     void resetFight();
+
+    /**
+     * The quest boss it's locked behind while it's at home ({@link BossLocks}: the Colossus of a lair, the Rat King of a
+     * rat cave, the Huntsman's pair of a village, the Emberdactyl of a world volcano), or null when it isn't locked (a
+     * spawn egg's, a summoned one, a test arena's, a showcase one). Server side.
+     */
+    @Nullable
+    default com.reg21meme.dross.quest.oracle.OracleBoss lockedAs()
+    {
+        return null;
+    }
 }

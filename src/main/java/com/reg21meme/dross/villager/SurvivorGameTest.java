@@ -26,15 +26,12 @@ import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtUtils;
 import net.minecraft.network.Connection;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.network.protocol.PacketFlow;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.memory.MemoryModuleType;
@@ -72,9 +69,9 @@ import org.slf4j.Logger;
  *       then stay within 6 for another 200, without popping back.</li>
  *   <li>{@link #hostileMobsIgnoreThem}: a zombie or skeleton told to target one doesn't; one "hurt" by it doesn't go for
  *       it either, and an angry piglin (the brain's way of picking a target) never gets it as its attack target.</li>
- *   <li>{@link #rightClickSaysALine}: right-clicking says the next line in chat with its name as the speaker, in order;
- *       the off hand and sneaking do nothing; no menu opens.</li>
  * </ul>
+ * Their right-click (their lines, and the Blind Oracle's quests) is tested in {@link SurvivorTalkGameTest}, which shares
+ * this class's arena and helpers.
  * The test-made survivors live in a closed test arena (floor, barrier walls and roof) and never touch the saved data;
  * they're removed with {@code discard()} at the end (they can't be killed).
  *
@@ -94,7 +91,7 @@ public final class SurvivorGameTest
     private static final String BATCH = "dross_survivor";
 
     // ---- The arena: a smooth stone floor inside barrier walls under a barrier roof, made in memory ----
-    private static final String ARENA = "survivor_test_arena";
+    static final String ARENA = "survivor_test_arena";
     private static final ResourceLocation ARENA_ID = new ResourceLocation(Dross.MODID, ARENA);
     /** Width and depth, walls included (the floor inside is 21 x 21). */
     private static final int ARENA_SIZE = 23;
@@ -103,7 +100,7 @@ public final class SurvivorGameTest
     /** The test's structure block is at relative y 0, so the template's floor (layer 0) is at relative y 1... */
     private static final int FLOOR_Y = 1;
     /** ...they stand at relative y 2... */
-    private static final int STAND_Y = FLOOR_Y + 1;
+    static final int STAND_Y = FLOOR_Y + 1;
     /** ...and the roof is at this relative y. */
     private static final int ROOF_Y = FLOOR_Y + ARENA_LAYERS - 1;
     /** The inside of the walls, relative X and Z. */
@@ -122,7 +119,7 @@ public final class SurvivorGameTest
      * {@link #LOAD_TIMEOUT_MILLIS} (the test server can run several hundred ticks a second while it waits). A wait gives
      * up by itself when it gets here, so its test still cleans up.
      */
-    private static final int LOAD_BACKSTOP_TICKS = 1_000_000;
+    static final int LOAD_BACKSTOP_TICKS = 1_000_000;
 
     // ---- The real pair ----
     /**
@@ -552,93 +549,11 @@ public final class SurvivorGameTest
     }
 
     // ---------------------------------------------------------------------------------------------
-    // Right-click
-    // ---------------------------------------------------------------------------------------------
-
-    @GameTest(template = ARENA, batch = BATCH, timeoutTicks = LOAD_BACKSTOP_TICKS + 40)
-    public static void rightClickSaysALine(GameTestHelper helper)
-    {
-        if (waitForArena(helper, SurvivorGameTest::rightClickSaysALine))
-        {
-            return;
-        }
-        BoundingBox area = insideArea(helper);
-        Survivor mentor = spawn(helper, SurvivorRole.MENTOR, new BlockPos(6, STAND_Y, 6), new BlockPos(6, STAND_Y, 6), area);
-        Survivor student = spawn(helper, SurvivorRole.STUDENT, new BlockPos(7, STAND_Y, 6), new BlockPos(7, STAND_Y, 6), area);
-        pair(mentor, student);
-        TestPlayer player = TestPlayer.join(helper.getLevel(), "survivor-test-player");
-        helper.startSequence()
-                .thenExecute(() -> {
-                    try
-                    {
-                        List<String> problems = new ArrayList<>();
-                        expectLine(problems, player, mentor, InteractionHand.MAIN_HAND, "dross.survivor.mentor.line.1", "entity.dross.survivor.blind_oracle");
-                        expectLine(problems, player, mentor, InteractionHand.MAIN_HAND, "dross.survivor.mentor.line.2", "entity.dross.survivor.blind_oracle");
-                        expectLine(problems, player, student, InteractionHand.MAIN_HAND, "dross.survivor.student.line.1",
-                                "entity.dross.survivor.ragged_seeker");
-                        expectLine(problems, player, mentor, InteractionHand.OFF_HAND, null, null);
-                        player.setShiftKeyDown(true);
-                        expectLine(problems, player, mentor, InteractionHand.MAIN_HAND, null, null);
-                        player.setShiftKeyDown(false);
-                        expectLine(problems, player, mentor, InteractionHand.MAIN_HAND, "dross.survivor.mentor.line.3", "entity.dross.survivor.blind_oracle");
-                        expect(problems, player.containerMenu == player.inventoryMenu, "a menu opened: " + player.containerMenu);
-                        fail(problems);
-                        LOGGER.info("[survivor test] Right-clicks: the Blind Oracle said lines 1, 2 and 3 and the Ragged Seeker line 1, in chat with "
-                                + "their names; the off hand and sneaking said nothing; no menu opened");
-                    }
-                    finally
-                    {
-                        player.leave();
-                        mentor.discard();
-                        student.discard();
-                    }
-                })
-                .thenSucceed();
-    }
-
-    /**
-     * Right-clicks with that hand. With a key, it must answer (the action is used up) with exactly one new chat line,
-     * "<name> line", whose name has {@code nameKey} and whose line has {@code lineKey}; without one, nothing must happen.
-     */
-    private static void expectLine(List<String> problems, TestPlayer player, Survivor survivor, InteractionHand hand, @Nullable String lineKey,
-                                   @Nullable String nameKey)
-    {
-        int before = player.messages.size();
-        InteractionResult result = survivor.interact(player, hand);
-        List<Component> said = player.messages.subList(before, player.messages.size());
-        String what = survivor.getRole().id() + " (" + hand + (player.isShiftKeyDown() ? ", sneaking" : "") + ")";
-        if (lineKey == null)
-        {
-            expect(problems, !result.consumesAction() && said.isEmpty(), "right-clicking the " + what + " should do nothing, but it gave "
-                    + result + " and said " + said.size() + " line(s)");
-            return;
-        }
-        expect(problems, result.consumesAction(), "right-clicking the " + what + " gave " + result);
-        if (said.size() != 1)
-        {
-            problems.add("right-clicking the " + what + " said " + said.size() + " lines, not 1");
-            return;
-        }
-        Component message = said.get(0);
-        if (!(message.getContents() instanceof TranslatableContents chat) || !"chat.type.text".equals(chat.getKey()) || chat.getArgs().length != 2)
-        {
-            problems.add("the " + what + "'s line isn't a chat line with a speaker: " + message);
-            return;
-        }
-        Object name = chat.getArgs()[0];
-        Object line = chat.getArgs()[1];
-        expect(problems, name instanceof Component speaker && speaker.getContents() instanceof TranslatableContents key && nameKey.equals(key.getKey()),
-                "the " + what + "'s speaker is " + name + ", not " + nameKey);
-        expect(problems, line instanceof Component text && text.getContents() instanceof TranslatableContents key && lineKey.equals(key.getKey()),
-                "the " + what + " said " + line + ", not " + lineKey);
-    }
-
-    // ---------------------------------------------------------------------------------------------
     // Helpers
     // ---------------------------------------------------------------------------------------------
 
     /** A test survivor in the arena: its rest spot and start (relative), its area (absolute). */
-    private static Survivor spawn(GameTestHelper helper, SurvivorRole role, BlockPos rest, BlockPos start, BoundingBox area)
+    static Survivor spawn(GameTestHelper helper, SurvivorRole role, BlockPos rest, BlockPos start, BoundingBox area)
     {
         ServerLevel level = helper.getLevel();
         Survivor survivor = Survivor.create(level, role);
@@ -656,14 +571,14 @@ public final class SurvivorGameTest
         return survivor;
     }
 
-    private static void pair(Survivor mentor, Survivor student)
+    static void pair(Survivor mentor, Survivor student)
     {
         mentor.setPartner(student.getUUID());
         student.setPartner(mentor.getUUID());
     }
 
     /** The whole inside of the arena, from the floor to under the roof (absolute). */
-    private static BoundingBox insideArea(GameTestHelper helper)
+    static BoundingBox insideArea(GameTestHelper helper)
     {
         return BoundingBox.fromCorners(helper.absolutePos(new BlockPos(INSIDE_MIN, STAND_Y, INSIDE_MIN)),
                 helper.absolutePos(new BlockPos(INSIDE_MAX, ROOF_Y - 1, INSIDE_MAX)));
@@ -690,7 +605,7 @@ public final class SurvivorGameTest
         }
     }
 
-    private static void expect(List<String> problems, boolean ok, String problem)
+    static void expect(List<String> problems, boolean ok, String problem)
     {
         if (!ok)
         {
@@ -698,7 +613,7 @@ public final class SurvivorGameTest
         }
     }
 
-    private static void fail(List<String> problems)
+    static void fail(List<String> problems)
     {
         if (!problems.isEmpty())
         {
@@ -762,7 +677,7 @@ public final class SurvivorGameTest
      *
      * @return true if it's still loading (the test is run again from the start later, so the caller just returns)
      */
-    private static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
+    static boolean waitForArena(GameTestHelper helper, Consumer<GameTestHelper> test)
     {
         if (arenaStillLoading(helper) == null)
         {
@@ -816,7 +731,7 @@ public final class SurvivorGameTest
     // The stand-in player (an in-memory network channel: vanilla's makeMockServerPlayerInLevel crashes under Forge)
     // ---------------------------------------------------------------------------------------------
 
-    private static final class TestPlayer extends ServerPlayer
+    static final class TestPlayer extends ServerPlayer
     {
         final List<Component> messages = new ArrayList<>();
 
@@ -871,7 +786,7 @@ public final class SurvivorGameTest
         template.load(event.getServer().registryAccess().lookupOrThrow(Registries.BLOCK), arenaTag());
     }
 
-    private static CompoundTag arenaTag()
+    static CompoundTag arenaTag()
     {
         CompoundTag tag = new CompoundTag();
         tag.put("size", intList(ARENA_SIZE, ARENA_LAYERS, ARENA_SIZE));

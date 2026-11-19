@@ -1,0 +1,28 @@
+{
+  "parent": "dross:down_the_drain",
+  "display": {
+    "icon": {
+      "item": "dross:pond_skater_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.dross.first_frost.title"
+    },
+    "description": {
+      "translate": "advancements.dross.first_frost.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "beasts": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "beasts"
+    ]
+  ]
+}

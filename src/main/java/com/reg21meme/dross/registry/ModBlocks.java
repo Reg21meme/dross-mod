@@ -151,6 +151,17 @@ public final class ModBlocks
     public static final RegistryObject<Block> HUNT_ICE_SPIKE = BLOCKS.register("hunt_ice_spike",
             () -> new Block(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().noOcclusion().noCollission()
                     .noLootTable().strength(-1.0F, 3600000.0F)));
+    // The Huntsman's gear lying before his door while he sleeps (only shown as block displays, no item:
+    // boss/huntsman/village/HuntsmanAsleep; models by tools/huntsman/hunt_gear.py)
+    public static final RegistryObject<Block> HUNT_BOW = BLOCKS.register("hunt_bow",
+            () -> new Block(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().noOcclusion().noCollission()
+                    .noLootTable().strength(-1.0F, 3600000.0F)));
+    public static final RegistryObject<Block> HUNT_ARROW = BLOCKS.register("hunt_arrow",
+            () -> new Block(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().noOcclusion().noCollission()
+                    .noLootTable().strength(-1.0F, 3600000.0F)));
+    public static final RegistryObject<Block> HUNT_BOLA = BLOCKS.register("hunt_bola",
+            () -> new Block(net.minecraft.world.level.block.state.BlockBehaviour.Properties.of().noOcclusion().noCollission()
+                    .noLootTable().strength(-1.0F, 3600000.0F)));
 
     // Boss area: the villages' fires (a campfire to look at, light and crackle, but no block entity and only a wisp of
     // smoke now and then: 40-odd real campfires' smoke cost a village its frames), and their soft soul kind

@@ -1,0 +1,11 @@
+{
+  "loader": "forge:obj",
+  "model": "dross:models/block/hunt_arrow.obj",
+  "flip_v": false,
+  "automatic_culling": false,
+  "render_type": "minecraft:translucent",
+  "textures": {
+    "gear": "dross:block/hunt_arrow",
+    "particle": "dross:block/hunt_arrow"
+  }
+}

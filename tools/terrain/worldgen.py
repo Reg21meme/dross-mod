@@ -836,7 +836,7 @@ SPAWN_OVERRIDES = {
 # dimension/rimefall: RimefallTuning.HERDS). The Pond Skaters spawn only on a patch's big frozen lake (2 at most) or a
 # frozen pond at least 30 blocks across (1 at most: RimefallAreas.skaterMayAppear). The moose keep about the share of
 # the creature tries they had (RIMEFALL_MOOSE_CHANCE: 0.02 x 5/13 before) and spawn in Silverwood Forest too, less often
-# (SILVERWOOD_MOOSE_WEIGHT, below).
+# (SILVERWOOD_MOOSE_CHANCE, below).
 RIMEFALL_MOOSE_CHANCE = 0.008
 RIMEFALL_SKATER_WEIGHT = 100
 RIMEFALL_SKATER_GROUP_MIN = 1
@@ -850,11 +850,28 @@ SPAWN_OVERRIDES["rimefall"] = {
     ],
     "creature_spawn_probability": RIMEFALL_MOOSE_CHANCE,
 }
-# Moose in Silverwood Forest (the user: "in the main Dross forest but with less probability"): one more entry in its
-# animals' list (the base list, weights 46 in all); with Minecraft's 0.1 creature tries a chunk that's 0.1 x 2 / 48,
-# about half Rimefall's chance (the spawn rule keeps them out of the hub's safe zone: boss/rimefall/RimefallAnimals).
-SILVERWOOD_MOOSE_WEIGHT = 2
-SPAWN_REPLACEMENTS["silverwood_forest"] = {"creature": BASE_CREATURES + [("dross:moose", SILVERWOOD_MOOSE_WEIGHT, 1, 1)]}
+# Silverwood Forest's own lists (the user, November 18, 2026: "can you remove witches and like Minecraft regular mobs and
+# cows and stuff from the Silverwood forests"): only the Dross's own mobs, like Rimefall. Its monsters: the Silverwood
+# Giant alone (boss area, dross:silverwood_giant; QUEST_PLAN.md, "Silverwood's monster list", November 9, 2026, when the
+# zombies, zombie villagers and skeletons left it; now the endermen and witches go too). Its own spawn rules
+# (boss/giant/SilverwoodGiants) keep it apart: never within 96 blocks of another giant, never within 128 of the hub,
+# only where its 1.8 x 4.4 body fits; those rules, not its weight, set how many there are (about one every hundred
+# blocks or so), and every monster try picks one, so you meet them as you explore. Its animals: only moose (the user,
+# October 19: "in the main Dross forest but with less probability"), alone; no sheep, pigs, chickens, cows, horses or
+# donkeys, and no bats. The moose keep the chance they had among the old animals (2 of 48 in the weights, with
+# Minecraft's 0.1 creature tries a chunk: about half Rimefall's; the spawn rule keeps them out of the hub's safe zone:
+# boss/rimefall/RimefallAnimals).
+SILVERWOOD_MOOSE_CHANCE = 0.1 * 2 / 48
+SILVERWOOD_GIANT_WEIGHT = 40
+SPAWN_OVERRIDES["silverwood_forest"] = {
+    "creature": [
+        ("dross:moose", 1, 1, 1),
+    ],
+    "monster": [
+        ("dross:silverwood_giant", SILVERWOOD_GIANT_WEIGHT, 1, 1),
+    ],
+    "creature_spawn_probability": SILVERWOOD_MOOSE_CHANCE,
+}
 
 MOOD_SOUND = "minecraft:ambient.cave"   # the occasional cave sound in the dark, in every biome (like the Overworld)
 MOOD_DELAY = 6000

@@ -64,6 +64,23 @@ public final class DrossColors {
     /** Trader spawn egg spot color. Used in registry/ModItems. */
     public static final int TRADER_EGG_SPOTS = PALETTE_MAIN;
 
+    // The marker over the Blind Oracle's head (each player sees their own; QUEST_PLAN.md). The game tints the marker
+    // texture (textures/gui/quest_markers.png, drawn by tools/skins/quest_markers.py) with these, so changing one here
+    // needs no new texture; run the tool again only to see it in skin-previews/quest_markers.png.
+    // Used in villager/client/OracleMarkerRenderer.
+
+    /** The red "?": a new quest is waiting, talk to him (the user's pick of red). */
+    public static final int QUEST_MARKER_NEW = 0xFF4B3E;
+
+    /** The yellow "...": the quest is going (the user's pick of yellow). */
+    public static final int QUEST_MARKER_ACTIVE = 0xFFD93D;
+
+    /** The green "!": it's done, go back to him (the user's pick of green; the same green as ORACLE_DONE_TEXT). */
+    public static final int QUEST_MARKER_DONE = 0x6EE07A;
+
+    /** The faint glow round each marker's outline: the Dross's light blue. */
+    public static final int QUEST_MARKER_GLOW = PALETTE_HIGHLIGHT;
+
     // ---------------------------------------------------------------- Enchantments (enchant-builder)
 
     /** Soul wisp that flies from a killed mob to the player. Used in enchant/NecromancyEvents. */
@@ -79,6 +96,37 @@ public final class DrossColors {
 
     /** The "Right-click to read" tooltip line on the Weathered Letter and the Dross Guide Book. Used in quest/ReadableItem. */
     public static final ChatFormatting READABLE_TOOLTIP = ChatFormatting.GRAY;
+
+    /** A kill quest's progress above the hotbar ("Into the Ashes: 2 / 3"). Used in quest/oracle/OracleProgress. */
+    public static final int ORACLE_PROGRESS_TEXT = PALETTE_HIGHLIGHT;
+
+    /** The line above the hotbar when an Oracle quest is done ("... go back to the Blind Oracle"): the green of his "!"
+     * marker. Used in quest/oracle/OracleProgress. */
+    public static final int ORACLE_DONE_TEXT = QUEST_MARKER_DONE;
+
+    /** "Defeat the Dross"'s fireworks: their main color. Used in quest/oracle/OracleFireworks. */
+    public static final int ORACLE_FIREWORK_MAIN = PALETTE_MAIN;
+
+    /** "Defeat the Dross"'s fireworks: their light sparks. Used in quest/oracle/OracleFireworks. */
+    public static final int ORACLE_FIREWORK_SPARK = PALETTE_HIGHLIGHT;
+
+    /** "Defeat the Dross"'s fireworks: the color they fade to. Used in quest/oracle/OracleFireworks. */
+    public static final int ORACLE_FIREWORK_FADE = PALETTE_DEEP_COBALT;
+
+    /** The Oracle's spell: the hot middle of his beam and the flash far off (almost white, blue). Used in quest/client/OracleSpellEffects. */
+    public static final int ORACLE_SPELL_CORE = 0xDDE8FF;
+
+    /** The Oracle's spell: its glow, the beam's edges and the shock ring (pale electric blue). Used in quest/client/OracleSpellEffects. */
+    public static final int ORACLE_SPELL_GLOW = PALETTE_HIGHLIGHT;
+
+    /** The Oracle's spell: the big rune circle on the ground (electric blue). Used in quest/client/OracleSpellEffects. */
+    public static final int ORACLE_SPELL_CIRCLE = PALETTE_MAIN;
+
+    /** The Oracle's spell: the small inner ring turning the other way (pale electric blue). Used in quest/client/OracleSpellEffects. */
+    public static final int ORACLE_SPELL_RING = PALETTE_HIGHLIGHT;
+
+    /** The Oracle's spell: the sparks the beam shatters into, as they fall (deep cobalt). Used in quest/client/OracleSpellEffects. */
+    public static final int ORACLE_SPELL_SPARK = PALETTE_DEEP_COBALT;
 
     // ---------------------------------------------------------------- World site (world-builder)
 
@@ -100,6 +148,9 @@ public final class DrossColors {
      * Dross's electric blue: the Rimefall bosses serve the Ice Necromancer. Used in command/RimefallShowcase.
      */
     public static final int RIMEFALL_SHOWCASE_BUTTON = 0xA6D8F2;
+    /** /dross showcase silverwood_giants (command/SilverwoodGiantShowcase): its animation buttons, a silvery moss green.
+     */
+    public static final int SILVERWOOD_GIANT_SHOWCASE_BUTTON = 0x9FD3B4;
 
     /**
      * The clickable [go] buttons of /dross showcase boss_designs cinder_wastes (the fire servant candidates). Ember
@@ -283,6 +334,34 @@ public final class DrossColors {
     public static final int PREVIEW_GROUP_LINE = PALETTE_HIGHLIGHT;
     /** Boss sites map: the land that isn't a boss biome (dark grey-blue). */
     public static final int PREVIEW_OTHER_LAND = 0x23262F;
+
+    // The land wards (dimension/ward/): a land the player's Oracle quest hasn't opened yet (QUEST_PLAN.md, "Locked
+    // lands"). The particles' sprites are white; these tint them (tools/terrain/ward_particles.py reads them too, for its
+    // preview, terrain-previews/ward_edge.png).
+
+    /** The chat line "This land rejects you. You cannot enter yet." (pale electric blue). Used in dimension/ward/LandWard. */
+    public static final int LAND_WARD_TEXT = PALETTE_HIGHLIGHT;
+
+    /** The ward's edge: a streak of light as it leaves the ground (pale electric blue). Used in dimension/ward/client/WardStreakParticle. */
+    public static final int LAND_WARD_STREAK = PALETTE_HIGHLIGHT;
+
+    /** A streak half way up (electric blue). Used in dimension/ward/client/WardStreakParticle. */
+    public static final int LAND_WARD_STREAK_MID = PALETTE_MAIN;
+
+    /** A streak high up, where it fades out (deep cobalt). Used in dimension/ward/client/WardStreakParticle. */
+    public static final int LAND_WARD_STREAK_FADE = PALETTE_DEEP_COBALT;
+
+    /** The ward's edge: a rune drifting up it, at its brightest (pale electric blue). Used in dimension/ward/client/WardRuneParticle. */
+    public static final int LAND_WARD_RUNE = PALETTE_HIGHLIGHT;
+
+    /** A rune as it dims between its pulses (electric blue). Used in dimension/ward/client/WardRuneParticle. */
+    public static final int LAND_WARD_RUNE_DIM = PALETTE_MAIN;
+
+    /** A falling barrier: a shard of it as it breaks off (pale electric blue). Used in dimension/ward/client/WardShardParticle. */
+    public static final int LAND_WARD_SHARD = PALETTE_HIGHLIGHT;
+
+    /** A falling barrier: a shard as it fades out on the way down (deep cobalt). Used in dimension/ward/client/WardShardParticle. */
+    public static final int LAND_WARD_SHARD_FADE = PALETTE_DEEP_COBALT;
 
     // ---------------------------------------------------------------- Boss (boss-builder)
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
@@ -552,6 +631,13 @@ public final class DrossColors {
      *  registry/ModItems. */
     public static final int CINDER_HERMIT_EGG_BASE = 0x8A6232;
     public static final int CINDER_HERMIT_EGG_SPOTS = 0xC9381A;
+    /** The Silverwood Giant's spawn egg (boss/giant): its ashen, cold-grey skin with spots of its glowing electric blue
+     *  eyes (the Dross's main blue). Used in registry/ModItems. */
+    public static final int SILVERWOOD_GIANT_EGG_BASE = 0x6F737B;
+    public static final int SILVERWOOD_GIANT_EGG_SPOTS = PALETTE_MAIN;
+    /** "Magic protects this block." over the hotbar, mining a boss's home before beating it (pale electric blue, like
+     *  the land wards' line). Used in boss/BossGrounds. */
+    public static final int BOSS_GROUNDS_TEXT = PALETTE_HIGHLIGHT;
 
     // ---------------------------------------------------------------- Helpers
 

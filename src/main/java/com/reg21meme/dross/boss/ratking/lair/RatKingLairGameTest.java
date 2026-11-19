@@ -842,6 +842,8 @@ public final class RatKingLairGameTest
                 throw new GameTestAssertException("a player " + FAR_LISTENER + " blocks from the grand entrance heard the snores");
             }
             // He's beaten: the pipe goes quiet.
+            // (Beaten, he's gone: a king another test's player brought to his nest meanwhile would snore on there.)
+            cave.clear();
             RatKingLairData.get(server).recordDefeat(cave.cave.id());
             heardWhenBeaten = RatKingSnores.snoresHeardBy(near);
             LOGGER.info("[rat king snore test] {} snore(s) came up the grand entrance at {}; nobody {} blocks off heard any. He's beaten now.",
@@ -911,7 +913,7 @@ public final class RatKingLairGameTest
     }
 
     /** The test's rat cave, its chunks generated and kept loaded (forced) until {@link #release}. */
-    private static final class TestCave
+    static final class TestCave
     {
         final ServerLevel dross;
         final RatCaves.RatCave cave;
@@ -995,7 +997,7 @@ public final class RatKingLairGameTest
      * far-off Overworld land is generated for him) and is teleported in at once. He gets an in-memory network channel
      * like the other areas' stand-ins; he isn't ticked.
      */
-    private static ServerPlayer joinPlayer(ServerLevel dross, String name, Vec3 feet)
+    static ServerPlayer joinPlayer(ServerLevel dross, String name, Vec3 feet)
     {
         MinecraftServer server = dross.getServer();
         BlockPos spawn = server.overworld().getSharedSpawnPos();
@@ -1013,7 +1015,7 @@ public final class RatKingLairGameTest
         return player;
     }
 
-    private static void logOut(@Nullable ServerPlayer player)
+    static void logOut(@Nullable ServerPlayer player)
     {
         if (player != null && player.server.getPlayerList().getPlayer(player.getUUID()) == player)
         {

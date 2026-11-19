@@ -10,6 +10,9 @@ import com.reg21meme.dross.boss.emberdactyl.Emberdactyl;
 import com.reg21meme.dross.boss.emberdactyl.FireTornado;
 import com.reg21meme.dross.boss.golem.CinderColossus;
 import com.reg21meme.dross.boss.golem.ColossusRock;
+import com.reg21meme.dross.boss.giant.GiantBoulder;
+import com.reg21meme.dross.boss.giant.GiantTuning;
+import com.reg21meme.dross.boss.giant.SilverwoodGiant;
 import com.reg21meme.dross.boss.golem.LavaBlob;
 import com.reg21meme.dross.boss.golem.LavaGolem;
 import com.reg21meme.dross.boss.golem.StoneGolem;
@@ -300,6 +303,19 @@ public final class ModEntities
                     .fireImmune()
                     .clientTrackingRange(10)
                     .build("cinder_hermit"));
+
+    // Boss area: the Silverwood Giant (QUEST_PLAN.md), the Silverwood Forest's neutral giant warrior, and its boulder
+    public static final RegistryObject<EntityType<SilverwoodGiant>> SILVERWOOD_GIANT = ENTITY_TYPES.register("silverwood_giant",
+            () -> EntityType.Builder.<SilverwoodGiant>of(SilverwoodGiant::new, MobCategory.MONSTER)
+                    .sized(1.8F, 4.4F)
+                    .clientTrackingRange(GiantTuning.TRACKING_CHUNKS)
+                    .build("silverwood_giant"));
+    public static final RegistryObject<EntityType<GiantBoulder>> GIANT_BOULDER = ENTITY_TYPES.register("giant_boulder",
+            () -> EntityType.Builder.<GiantBoulder>of(GiantBoulder::new, MobCategory.MISC)
+                    .sized(1.0F, 1.0F)
+                    .clientTrackingRange(6)
+                    .updateInterval(10)
+                    .build("giant_boulder"));
 
     private ModEntities() {}
 }

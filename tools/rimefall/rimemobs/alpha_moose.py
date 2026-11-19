@@ -18,6 +18,9 @@ Animations (animation.alpha_moose.*):
   crack_stamp   (once)  it paws the ground three times, then stamps (the cracks start at CRACK_HIT)
   rear          (once)  the split: it rears up on its hind legs, front hooves pawing the air, and comes down (2.4 s)
   eat           (once)  it kneels on its front knees to graze (like the wild moose)
+  sleep         (loop)  asleep in its stall (before the Oracle's quest reaches the Huntsman): lying down, its front legs
+                        folded under it, its hind legs tucked under its belly, its neck low and its chin resting on the
+                        straw, its sides rising and falling with each slow snore
   death         (once)  its own death (the user's request): it rears up high with a last great bellow, front hooves
                         thrashing, crashes down onto its front knees, its hind legs give way and it rolls over onto its
                         side, legs out; they kick feebly, it lifts its head once and lays it down, and it's still
@@ -53,11 +56,12 @@ class _Design:
         return H.materials(v)
 
 
-ALPHA = dict(letter="A2", mood="alpha moose", mount="moose", parts=("moose",), pose="ride")
+ALPHA = dict(letter="A2", mood="alpha moose", mount="moose", parts=("moose",), pose="ride", lids=True)
 DESIGN = _Design
 BUILD_VARIANT = ALPHA
 VARIANTS = (dict(name="alpha_moose", design=ALPHA, hidden=()),)
-BONES = M.BONES
+# (its eyelids on bones of their own, on its head, at its eyes; d06_huntsman's LID_IN)
+BONES = M.BONES + [("lid_l", (8.5, 104, -76), "head"), ("lid_r", (-8.5, 104, -76), "head")]
 LEGS = M.LEGS
 ROUTES = {}
 FREE = ()
@@ -416,6 +420,57 @@ def death(rig):
 
 RESTS_ON = ("fur", "mane", "leg", "leg2", "muzzle", "hoof")
 
+SNORE = 5.0                     # one slow breath in and out while it sleeps (the game's snore comes with each)
+# Lying down: its body this far lower (units), its legs folded under it (degrees: upper leg, shin, hoof), found by a
+# search for the fold whose lowest point rests on the floor inside the body's length, its belly a few units over the
+# straw (November 18, 2026; four candidates were drawn and this one looked most like a resting moose)
+# (its front and hind legs touch by about 3 units under its belly, out of sight; less folded, they held it up)
+SLEEP_DROP = 28.0
+FRONT_TUCK = (50.0, 40.0, -90.0)
+HIND_TUCK = (-70.0, 0.0, 30.0)
+SLEEP_NECK = 0.55               # its neck and head lowered this share of the way they go to graze (its chin on the straw)
+
+
+# How far its eyelids slide out over its eyes as it sleeps (design units): from inside its head (2 wide, out to 7.5) to
+# 7.7-9.7, a little over each eye (out to 9.5)
+LID_OUT = 2.2
+
+
+def sleep(rig):
+    """
+    Asleep in its stall (the user, November 18, 2026: "the moose sleeps ... and snores"): lying down the way a moose
+    does, its front legs folded under it (as it kneels to graze) and its hind legs tucked under its belly, its belly on
+    the straw, its neck lowered and its chin resting on the straw before it; its sides rise and fall with each slow
+    breath (SNORE), its ears drooping back, its eyes shut (its lids slid out over them).
+    """
+    T = SNORE
+    rot, _kpitch, _kdrop = M.kneel_pose(rig)          # (for the neck and head: how far down they go to graze)
+    body_cubes = [c for b in rig.m.bones if b.name not in ("antlers", "ear_l", "ear_r") for c in b.cubes
+                  if c.mat in RESTS_ON]
+
+    def frame(t):
+        p = Pose()
+        w = 2 * math.pi * t / T
+        breath = 0.5 - 0.5 * math.cos(w)
+        for side in ("l", "r"):
+            for i, part in enumerate(("leg", "shin", "foot")):
+                p.rot(f"{part}_f{side}", FRONT_TUCK[i], 0.0, 0.0)
+                p.rot(f"{part}_h{side}", HIND_TUCK[i], 0.0, 0.0)
+        p.rot("body", 0.8 * breath, 0.0, 0.0)
+        p.pos("body", 0.0, -SLEEP_DROP + 0.5 * breath, 0.0)
+        p.rot("neck", rot["neck"][0] * SLEEP_NECK, 0.0, 0.0)
+        p.rot("head", rot["head"][0] * SLEEP_NECK + 2.0 * breath, 0.0, 0.0)
+        _ears_back(p, 0.6)
+        for side, x in (("l", 1.0), ("r", -1.0)):       # its eyes shut (each lid slid out its own way)
+            p.pos(f"lid_{side}", x * LID_OUT * K, 0.0, 0.0)
+        # down onto the straw: its lowest point (body, legs, muzzle; an antler may dig in) on the floor
+        mats = rig.m.pose_matrices(p.as_geo())
+        low = _lowest_of(mats, body_cubes)
+        p.pos("root", 0.0, -low, 0.0)
+        return p
+
+    return mobkit.record(rig, "sleep", T, frame)
+
 
 def _lowest_of(mats, cubes):
     from kit.clipping import _box_frame
@@ -437,4 +492,5 @@ def animations(rig):
         "rear": rear(rig),
         "eat": M.eat(rig),
         "death": death(rig),
+        "sleep": sleep(rig),
     }

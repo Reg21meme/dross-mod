@@ -60,6 +60,8 @@ public final class GotoVillage
     static final String HUNTSMAN_NOT_FOUND = "commands.dross.goto.lair.huntsman.not_found";
     static final String HUNTSMAN_SUCCESS = "commands.dross.goto.lair.huntsman.success";
     static final String HUNTSMAN_READY = "commands.dross.goto.lair.huntsman.ready";
+    /** He sleeps in his lodge until your Oracle quest reaches him (village/HuntsmanAsleep). */
+    private static final String HUNTSMAN_ASLEEP = "commands.dross.goto.lair.huntsman.asleep";
     static final String HUNTSMAN_BEATEN = "commands.dross.goto.lair.huntsman.beaten";
     static final String HUNTSMAN_PEACEFUL = "commands.dross.goto.lair.huntsman.peaceful";
     static final String LIST_HEADER = "commands.dross.locate.villages.header";
@@ -102,7 +104,8 @@ public final class GotoVillage
             return 0;
         }
         Component note = Component.translatable(HuntsmanVillages.isBeaten(dross, plan) ? HUNTSMAN_BEATEN
-                : dross.getDifficulty() == Difficulty.PEACEFUL ? HUNTSMAN_PEACEFUL : HUNTSMAN_READY);
+                : dross.getDifficulty() == Difficulty.PEACEFUL ? HUNTSMAN_PEACEFUL
+                : HuntsmanVillages.wakesHim(player) ? HUNTSMAN_READY : HUNTSMAN_ASLEEP);
         BlockPos at = feet.get();
         source.sendSuccess(() -> Component.translatable(HUNTSMAN_SUCCESS, at.getX(), at.getY(), at.getZ(), note), true);
         return 1;

@@ -1,5 +1,6 @@
 package com.reg21meme.dross.quest;
 
+import com.reg21meme.dross.quest.oracle.OracleRecord;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
@@ -45,6 +46,8 @@ public class QuestProgressData extends SavedData
         int keysForged;
         /** They already got the Dross Guide Book on their first arrival. */
         boolean guideBookGiven;
+        /** Their Oracle quest line (changed only by {@code quest.oracle.OracleProgress}). */
+        OracleRecord oracle = new OracleRecord();
     }
 
     public static QuestProgressData get(ServerLevel overworld)
@@ -56,6 +59,15 @@ public class QuestProgressData extends SavedData
     PlayerQuest get(UUID player)
     {
         return players.computeIfAbsent(player, id -> new PlayerQuest());
+    }
+
+    /**
+     * This player's Oracle quest progress (a fresh one if they haven't started). Read freely; only
+     * {@code quest.oracle.OracleProgress} changes it, and calls {@link #setDirty()} after.
+     */
+    public OracleRecord oracle(UUID player)
+    {
+        return get(player).oracle;
     }
 
     /** Forgets everything about this player. */
@@ -87,6 +99,7 @@ public class QuestProgressData extends SavedData
             quest.keyGiven = entry.getBoolean("KeyGiven");
             quest.keysForged = entry.getInt("KeysForged");
             quest.guideBookGiven = entry.getBoolean("GuideBookGiven");
+            quest.oracle = OracleRecord.read(entry);
             data.players.put(entry.getUUID("Id"), quest);
         }
         return data;
@@ -109,6 +122,7 @@ public class QuestProgressData extends SavedData
             entry.putBoolean("KeyGiven", quest.keyGiven);
             entry.putInt("KeysForged", quest.keysForged);
             entry.putBoolean("GuideBookGiven", quest.guideBookGiven);
+            quest.oracle.write(entry);
             list.add(entry);
         }
         tag.put("Players", list);

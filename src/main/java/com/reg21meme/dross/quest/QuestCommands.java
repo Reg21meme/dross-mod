@@ -1,12 +1,23 @@
 package com.reg21meme.dross.quest;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.reg21meme.dross.quest.QuestRequirement.Group;
+import com.reg21meme.dross.quest.oracle.OracleProgress;
+import com.reg21meme.dross.quest.oracle.OracleQuest;
+import com.reg21meme.dross.quest.oracle.OracleQuests;
+import com.reg21meme.dross.quest.oracle.OracleState;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
+
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * The logic for the {@code /dross quest} test commands. The world-builder area's {@code DrossCommand}
@@ -16,13 +27,22 @@ import net.minecraft.server.level.ServerPlayer;
  *         .requires(source -> source.hasPermission(2))
  *         .then(Commands.literal("status").executes(QuestCommands::status))
  *         .then(Commands.literal("reset").executes(QuestCommands::reset))
- *         .then(Commands.literal("complete").executes(QuestCommands::complete)))
+ *         .then(Commands.literal("complete").executes(QuestCommands::complete))
+ *         .then(Commands.literal("skip").executes(QuestCommands::skip))
+ *         .then(Commands.literal("set")
+ *                 .then(Commands.argument(QuestCommands.QUEST_ARGUMENT, StringArgumentType.word())
+ *                         .suggests(QuestCommands::suggestQuests)
+ *                         .executes(QuestCommands::set))))
  * </pre>
+ * {@code status}, {@code reset}, {@code skip} and {@code set} cover the Blind Oracle's quests too ({@code quest.oracle}).
  * Each works on the player running the command. The overloads that take a {@link ServerPlayer}
  * are there in case a player argument is added later.
  */
 public final class QuestCommands
 {
+    /** The name of {@code /dross quest set}'s argument (a quest id: {@link OracleQuests#ids()}). */
+    public static final String QUEST_ARGUMENT = "quest";
+
     private QuestCommands() {}
 
     /** {@code /dross quest status}: shows your quest progress. */
@@ -41,6 +61,25 @@ public final class QuestCommands
     public static int complete(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
     {
         return complete(context.getSource(), context.getSource().getPlayerOrException());
+    }
+
+    /** {@code /dross quest skip}: finishes the Oracle quest step you're on and moves on to the next quest. */
+    public static int skip(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
+    {
+        return skip(context.getSource(), context.getSource().getPlayerOrException());
+    }
+
+    /** {@code /dross quest set <quest>}: jumps you to that Oracle quest (waiting to be given, nothing counted). */
+    public static int set(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
+    {
+        return set(context.getSource(), context.getSource().getPlayerOrException(),
+                StringArgumentType.getString(context, QUEST_ARGUMENT));
+    }
+
+    /** Tab completion for {@code /dross quest set}: every Oracle quest's id, in order. */
+    public static CompletableFuture<Suggestions> suggestQuests(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder)
+    {
+        return SharedSuggestionProvider.suggest(OracleQuests.ids(), builder);
     }
 
     public static int status(CommandSourceStack source, ServerPlayer player)
@@ -69,6 +108,7 @@ public final class QuestCommands
         line(text, "Rift Key given (Keymaster): " + yesNo(QuestProgress.isQuestComplete(player))
                 + " (keys forged: " + QuestProgress.getKeysForged(player) + ")");
         line(text, "Dross Guide Book given: " + yesNo(QuestProgress.hasReceivedGuideBook(player)));
+        oracleStatus(text, player);
         source.sendSuccess(() -> text, false);
         return 1;
     }
@@ -77,7 +117,8 @@ public final class QuestCommands
     {
         QuestProgress.reset(player);
         source.sendSuccess(() -> Component.literal("Reset the Dross quest for ").append(player.getDisplayName())
-                .append(" (progress, Guide Book flag and quest advancements). Items they hold were not taken."), true);
+                .append(" (progress, Guide Book flag, the Blind Oracle's quests and the quest advancements; the bosses' "
+                        + "advancements stay). Items they hold were not taken."), true);
         return 1;
     }
 
@@ -87,6 +128,66 @@ public final class QuestCommands
         source.sendSuccess(() -> Component.literal("Completed the Dross quest for ").append(player.getDisplayName())
                 .append(" (as if the Rift Key was given; no items given)."), true);
         return 1;
+    }
+
+    public static int skip(CommandSourceStack source, ServerPlayer player)
+    {
+        OracleQuest was = OracleProgress.current(player);
+        OracleState wasState = OracleProgress.state(player);
+        if (!OracleProgress.skip(player))
+        {
+            source.sendFailure(Component.literal("Every one of the Blind Oracle's quests is already done for ")
+                    .append(player.getDisplayName()).append("."));
+            return 0;
+        }
+        source.sendSuccess(() -> Component.literal("Skipped " + was.id() + " (" + stateName(wasState) + ") for ")
+                .append(player.getDisplayName()).append(". Now: " + oracleLine(player)), true);
+        return 1;
+    }
+
+    public static int set(CommandSourceStack source, ServerPlayer player, String questId)
+    {
+        OracleQuest quest = OracleQuests.byId(questId.toLowerCase(Locale.ROOT));
+        if (quest == null)
+        {
+            source.sendFailure(Component.literal("No Oracle quest called \"" + questId + "\". The quests: "
+                    + String.join(", ", OracleQuests.ids())));
+            return 0;
+        }
+        OracleProgress.setQuest(player, quest);
+        source.sendSuccess(() -> Component.literal("Set ").append(player.getDisplayName())
+                .append("'s Oracle quest to " + oracleLine(player)), true);
+        return 1;
+    }
+
+    private static void oracleStatus(MutableComponent text, ServerPlayer player)
+    {
+        text.append("\n Blind Oracle: " + oracleLine(player));
+        line(text, "Marker over him: " + OracleProgress.marker(player).name().toLowerCase(Locale.ROOT));
+    }
+
+    /** "2 into_the_ashes (Into the Ashes), going, kills 1 / 3". */
+    private static String oracleLine(ServerPlayer player)
+    {
+        OracleQuest quest = OracleProgress.current(player);
+        OracleState state = OracleProgress.state(player);
+        String line = quest.index() + " " + quest.id() + " (" + quest.displayName().getString() + "), " + stateName(state);
+        if (quest.kind() == OracleQuest.Kind.KILL && state != OracleState.AVAILABLE)
+        {
+            line += ", kills " + OracleProgress.kills(player) + " / " + quest.count();
+        }
+        return line;
+    }
+
+    private static String stateName(OracleState state)
+    {
+        return switch (state)
+        {
+            case AVAILABLE -> "waiting to be given";
+            case ACTIVE -> "going";
+            case DONE -> "done, to hand in";
+            case FINISHED -> "every quest finished";
+        };
     }
 
     private static void requirementLine(MutableComponent text, ServerPlayer player, QuestRequirement requirement)

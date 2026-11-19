@@ -1,0 +1,28 @@
+{
+  "parent": "dross:set_in_stone",
+  "display": {
+    "icon": {
+      "item": "dross:rat_spawn_egg"
+    },
+    "title": {
+      "translate": "advancements.dross.beneath_the_rot.title"
+    },
+    "description": {
+      "translate": "advancements.dross.beneath_the_rot.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "rats": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "rats"
+    ]
+  ]
+}

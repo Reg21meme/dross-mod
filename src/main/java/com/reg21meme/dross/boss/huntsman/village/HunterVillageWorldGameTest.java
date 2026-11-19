@@ -283,23 +283,34 @@ public final class HunterVillageWorldGameTest
                         throw new GameTestAssertException("the Huntsman's village at " + plan.ground().toShortString() + " isn't right: "
                                 + String.join("; ", problems.subList(0, Math.min(8, problems.size()))));
                     }
-                    // his yard's land loaded with its entities, for the keeper
-                    ChunkPos home = new ChunkPos(plan.home());
-                    for (int dx = -1; dx <= 1; dx++)
+                    // his yard's land loaded with its entities, for the keeper, and his bed's and his moose's stall's
+                    // (where they come asleep: about 26 blocks off it)
+                    for (BlockPos at : List.of(plan.home(), BlockPos.containing(HuntsmanAsleep.at(dross, plan, HuntsmanAsleep.BED)),
+                            BlockPos.containing(HuntsmanAsleep.at(dross, plan, HuntsmanAsleep.STALL))))
                     {
-                        for (int dz = -1; dz <= 1; dz++)
+                        ChunkPos middle = new ChunkPos(at);
+                        for (int dx = -1; dx <= 1; dx++)
                         {
-                            ChunkPos c = new ChunkPos(home.x + dx, home.z + dz);
-                            dross.setChunkForced(c.x, c.z, true);
-                            forced.add(c);
+                            for (int dz = -1; dz <= 1; dz++)
+                            {
+                                ChunkPos c = new ChunkPos(middle.x + dx, middle.z + dz);
+                                if (!forced.contains(c))
+                                {
+                                    dross.setChunkForced(c.x, c.z, true);
+                                    forced.add(c);
+                                }
+                            }
                         }
                     }
                     HuntsmanVillageData.get(dross).forget(plan.id());
                 })
                 .thenWaitUntil(() -> {
-                    if (!dross.isPositionEntityTicking(village[0].home()) && Util.getMillis() < deadline)
+                    boolean ticking = dross.isPositionEntityTicking(village[0].home())
+                            && dross.isPositionEntityTicking(BlockPos.containing(HuntsmanAsleep.at(dross, village[0], HuntsmanAsleep.BED)))
+                            && dross.isPositionEntityTicking(BlockPos.containing(HuntsmanAsleep.at(dross, village[0], HuntsmanAsleep.STALL)));
+                    if (!ticking && Util.getMillis() < deadline)
                     {
-                        throw new GameTestAssertException("waiting for his yard to tick");
+                        throw new GameTestAssertException("waiting for his yard, his bed and the stall to tick");
                     }
                 })
                 .thenExecute(() -> {
@@ -380,6 +391,63 @@ public final class HunterVillageWorldGameTest
         return String.format(Locale.ROOT, "%d of %d packed ice and snow blocks in place", matched, sampled);
     }
 
+    /** The pair asleep at home (village/HuntsmanAsleep), then woken onto their patrol. Null if all's well. */
+    private static String checkAsleep(ServerLevel dross, RimefallVillages.VillagePlan plan, Huntsman h)
+    {
+        if (!h.isAsleep() || h.isPassenger())
+        {
+            return "with nobody near whose quest has reached him, he should come asleep on his rug (asleep " + h.isAsleep()
+                    + ", riding " + h.isPassenger() + ")";
+        }
+        if (!(h.partnerMob() instanceof AlphaMoose moose) || !moose.isAsleep())
+        {
+            return "the Alpha Moose should come asleep in its stall";
+        }
+        net.minecraft.world.phys.Vec3 bed = HuntsmanAsleep.at(dross, plan, HuntsmanAsleep.BED);
+        BlockPos rug = BlockPos.containing(bed.x, bed.y - 0.03D, bed.z);
+        if (!(dross.getBlockState(rug).getBlock() instanceof net.minecraft.world.level.block.CarpetBlock))
+        {
+            return "his rug should be under him at " + rug.toShortString() + " (" + dross.getBlockState(rug) + ")";
+        }
+        double off = Math.hypot(h.getX() - bed.x, h.getZ() - bed.z);
+        if (off > 0.3D || Math.abs(h.getY() - bed.y) > 0.05D)
+        {
+            return String.format(Locale.ROOT, "he should lie on his rug: he's %.1f blocks off his spot, at y %.2f (the rug's "
+                    + "top %.2f)", off, h.getY(), bed.y);
+        }
+        if (moose.position().distanceTo(HuntsmanAsleep.at(dross, plan, HuntsmanAsleep.STALL)) > 1.0D)
+        {
+            return "the Alpha Moose should lie in its stall";
+        }
+        int gear = gearNear(dross, h);
+        if (gear != HuntsmanAsleep.GEAR.size())
+        {
+            return "his " + HuntsmanAsleep.GEAR.size() + " things should lie before his door (" + gear + ")";
+        }
+        float health = h.getHealth();
+        h.hurt(dross.damageSources().generic(), 10.0F);
+        if (h.getHealth() < health)
+        {
+            return "asleep, nothing should hurt him";
+        }
+        if (!HuntsmanAsleep.wake(dross, plan, h) || h.isAsleep() || moose.isAsleep())
+        {
+            return "he should wake onto his patrol";
+        }
+        if (gearNear(dross, h) != 0)
+        {
+            return "woken, his gear should be gone";
+        }
+        return null;
+    }
+
+    /** His gear's displays within 64 blocks of {@code near}. */
+    private static int gearNear(ServerLevel dross, Entity near)
+    {
+        return dross.getEntitiesOfClass(net.minecraft.world.entity.Display.class, near.getBoundingBox().inflate(64.0D),
+                d -> d.getTags().contains(HuntsmanAsleep.GEAR_TAG)).size();
+    }
+
     /** The keeper: he comes home, once; removed without dying a new pair comes; beaten, never again. */
     private static String checkKeeper(ServerLevel dross, RimefallVillages.VillagePlan plan)
     {
@@ -390,6 +458,13 @@ public final class HunterVillageWorldGameTest
         if (!(first instanceof Huntsman h))
         {
             return "no Huntsman came to his village at " + plan.home().toShortString();
+        }
+        // asleep first (nobody near whose Oracle quest has reached him): him on his bed, the moose in its stall, his gear
+        // before his door; nothing hurts them; woken, onto their patrol, his gear gone
+        String asleep = checkAsleep(dross, plan, h);
+        if (asleep != null)
+        {
+            return asleep;
         }
         if (!(h.getVehicle() instanceof AlphaMoose moose))
         {

@@ -53,13 +53,16 @@ public final class BossRules
         return player.isAlive() && !player.isSpectator() && !player.isCreative();
     }
 
-    /** The players in a fight (see {@link #inFight}) within {@code range} blocks of the boss. */
+    /**
+     * The players in a fight (see {@link #inFight}) within {@code range} blocks of the boss. A player a boss at home is
+     * locked for ({@link BossLocks}) doesn't count.
+     */
     public static int playersNear(LivingEntity boss, ServerLevel level, double range)
     {
         int count = 0;
         for (ServerPlayer player : level.players())
         {
-            if (inFight(player) && player.distanceToSqr(boss) <= range * range)
+            if (inFight(player) && player.distanceToSqr(boss) <= range * range && !BossLocks.isLockedFor(boss, player))
             {
                 count++;
             }
@@ -67,12 +70,16 @@ public final class BossRules
         return count;
     }
 
-    /** True if any player but a spectator (creative ones too: they're there) is within {@code range} blocks. */
+    /**
+     * True if any player but a spectator (creative ones too: they're there) is within {@code range} blocks. A player a
+     * boss at home is locked for ({@link BossLocks}) doesn't count: they don't keep it from its reset.
+     */
     public static boolean anyoneNear(LivingEntity boss, ServerLevel level, double range)
     {
         for (ServerPlayer player : level.players())
         {
-            if (player.isAlive() && !player.isSpectator() && player.distanceToSqr(boss) <= range * range)
+            if (player.isAlive() && !player.isSpectator() && player.distanceToSqr(boss) <= range * range
+                    && !BossLocks.isLockedFor(boss, player))
             {
                 return true;
             }

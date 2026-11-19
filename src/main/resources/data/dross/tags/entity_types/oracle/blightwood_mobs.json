@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "dross:rat",
+      "required": false
+    },
+    {
+      "id": "dross:enraged_rat",
+      "required": false
+    },
+    {
+      "id": "minecraft:witch",
+      "required": false
+    }
+  ]
+}

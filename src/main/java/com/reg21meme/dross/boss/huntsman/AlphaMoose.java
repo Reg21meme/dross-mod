@@ -9,9 +9,11 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.FloatGoal;
@@ -21,6 +23,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.entity.PartEntity;
 import software.bernie.geckolib.core.animation.AnimatableManager;
 import software.bernie.geckolib.core.animation.AnimationState;
@@ -201,6 +204,35 @@ public class AlphaMoose extends HuntMob
     public List<HuntAnims.Anim> animations()
     {
         return HuntAnims.ALPHA_MOOSE;
+    }
+
+    /** Lying asleep in its stall, a lower box. */
+    @Override
+    public EntityDimensions getDimensions(Pose pose)
+    {
+        return this.asleepNow ? EntityDimensions.scalable(HuntsmanTuning.MOOSE_SLEEP_WIDTH, HuntsmanTuning.MOOSE_SLEEP_HEIGHT)
+                : super.getDimensions(pose);
+    }
+
+    @Override
+    protected SoundEvent snore()
+    {
+        return ModSounds.ALPHA_MOOSE_SNORE.get();
+    }
+
+    @Override
+    protected float snoreVolume()
+    {
+        return HuntsmanTuning.MOOSE_SNORE_VOLUME;
+    }
+
+    /** Its head lies ahead of its spot, its chin on the straw. */
+    @Override
+    protected Vec3 sleepingHead()
+    {
+        Vec3 ahead = Vec3.directionFromRotation(0.0F, this.getYRot());
+        return this.position().add(ahead.x * HuntsmanTuning.MOOSE_SLEEP_HEAD_AHEAD, HuntsmanTuning.MOOSE_SLEEP_HEAD_UP,
+                ahead.z * HuntsmanTuning.MOOSE_SLEEP_HEAD_AHEAD);
     }
 
     @Override

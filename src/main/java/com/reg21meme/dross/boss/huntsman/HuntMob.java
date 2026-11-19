@@ -1,16 +1,24 @@
 package com.reg21meme.dross.boss.huntsman;
 
+import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.BossScale;
 import com.reg21meme.dross.boss.DrossBoss;
 import com.reg21meme.dross.boss.rage.RageLeader;
+import com.reg21meme.dross.registry.ModParticles;
 import com.reg21meme.dross.registry.ModSounds;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerBossEvent;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -80,6 +88,9 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     private static final String TAG_WILD_HUNT = "WildHunt";
     private static final String TAG_ANGRY = "Angry";
     private static final String TAG_HOME = "DrossHome";
+    private static final String TAG_ASLEEP = "Asleep";
+    /** What a player who hits one asleep is told. */
+    public static final String ASLEEP_KEY = "dross.huntsman.asleep";
 
     /** The anchor is synced in thousandths of a tick. */
     private static final double ANCHOR_UNITS = 1000.0D;
@@ -92,8 +103,12 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             EntityDataSerializers.LONG);
     private static final EntityDataAccessor<Float> DATA_PACE = SynchedEntityData.defineId(HuntMob.class,
             EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> DATA_ASLEEP = SynchedEntityData.defineId(HuntMob.class,
+            EntityDataSerializers.BOOLEAN);
 
     private final AnimatableInstanceCache animationCache = GeckoLibUtil.createInstanceCache(this);
+    /** {@link #isAsleep} as last set or synced, for the hitbox (read before the synced data exists). */
+    protected boolean asleepNow;
     private int seenCount = -1;
     private int playing;
     private String later;
@@ -180,6 +195,97 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         this.entityData.define(DATA_COUNT, 0);
         this.entityData.define(DATA_ANCHOR, 0L);
         this.entityData.define(DATA_PACE, 1.0F);
+        this.entityData.define(DATA_ASLEEP, false);
+    }
+
+    // ---------------------------------------------------------------- asleep at home
+
+    /**
+     * True while it sleeps at home (a village's pair, until the Oracle's quest of a player near reaches the Huntsman:
+     * {@code village/HuntsmanVillages}; the user, November 18, 2026: "before he's unlocked he should be sleeping inside
+     * his home ... the moose sleeps and snores too"): lying where it was put (the Huntsman on his bed, the moose in its
+     * stall), no goals, no fight, nothing hurts it ({@code /kill} aside), a snore with every slow breath. Both sides.
+     */
+    /** Its partner (alive or a body still lying there), or null: for the village keeper. */
+    @Nullable
+    public HuntMob partnerMob()
+    {
+        return HuntFight.partner(this);
+    }
+
+    public boolean isAsleep()
+    {
+        return this.entityData.get(DATA_ASLEEP);
+    }
+
+    /** Puts it to sleep where it is (or wakes it, standing). */
+    public void setAsleep(boolean asleep)
+    {
+        if (asleep == this.isAsleep())
+        {
+            return;
+        }
+        this.entityData.set(DATA_ASLEEP, asleep);
+        this.asleepNow = asleep;
+        if (!this.showcase)
+        {
+            this.setNoAi(asleep);
+        }
+        this.getNavigation().stop();
+        this.setDeltaMovement(Vec3.ZERO);
+        this.refreshDimensions();
+        if (asleep)
+        {
+            this.play(HuntAnims.SLEEP);
+        }
+        else
+        {
+            this.entityData.set(DATA_ANIM, "");
+            this.entityData.set(DATA_COUNT, this.entityData.get(DATA_COUNT) + 1);
+            this.restartClock();
+            this.playing = 0;
+        }
+    }
+
+    /** Its snore and how loud (heard from outside its home). */
+    protected abstract SoundEvent snore();
+
+    protected abstract float snoreVolume();
+
+    /** Where its Zzz rise from (its head as it lies), from its spot. */
+    protected abstract Vec3 sleepingHead();
+
+    /** Asleep (server side): a snore at the start of each slow breath of its sleep, its Zzz rising. */
+    private void sleepTick()
+    {
+        HuntAnims.Anim sleep = HuntAnims.named(this.animations(), HuntAnims.SLEEP);
+        if (sleep != null && !HuntAnims.SLEEP.equals(this.animName()))
+        {
+            this.play(HuntAnims.SLEEP);                 // (its animations changed under it: it was in the saddle)
+        }
+        long breath = Math.round(sleep != null ? sleep.length() : 100.0D);
+        long since = this.level().getGameTime() - Math.round(this.anchor());
+        if (since >= 0 && since % breath == 0)
+        {
+            this.level().playSound(null, this.getX(), this.getY(), this.getZ(), this.snore(), SoundSource.HOSTILE,
+                    this.snoreVolume(), 0.95F + this.random.nextFloat() * 0.1F);
+        }
+        if (this.tickCount % HuntsmanTuning.SLEEP_ZZZ_TICKS == 0 && this.level() instanceof ServerLevel server)
+        {
+            Vec3 head = this.sleepingHead();
+            server.sendParticles(ModParticles.ZZZ.get(), head.x, head.y, head.z, 1, 0.15D, 0.05D, 0.15D, 0.0D);
+        }
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key)
+    {
+        super.onSyncedDataUpdated(key);
+        if (DATA_ASLEEP.equals(key))
+        {
+            this.asleepNow = this.isAsleep();
+            this.refreshDimensions();
+        }
     }
 
     /** On show: frozen and unhurtable (the showcase sets it before it adds them). */
@@ -238,7 +344,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
     @Override
     public int getAmbientSoundInterval()
     {
-        return this.showcase ? Integer.MAX_VALUE / 2 : this.idleSoundInterval();
+        return this.showcase || this.isAsleep() ? Integer.MAX_VALUE / 2 : this.idleSoundInterval();
     }
 
     /** How often (ticks, on average about this and more) it makes its idle sound while fighting or calm. */
@@ -389,7 +495,11 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
                     this.onMoveEnded(a);
                 }
             }
-            if (!this.showcase)
+            if (!this.showcase && this.isAsleep())
+            {
+                this.sleepTick();
+            }
+            else if (!this.showcase)
             {
                 HuntFight.tick(this);
                 if (this.isAlive())
@@ -635,6 +745,17 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         return !this.showcase;
     }
 
+    /**
+     * A village's pair (the Huntsman and his Alpha Moose at home) is locked behind its Oracle quest
+     * ({@code boss.BossLocks}); a summoned or spawn-egg pair never is.
+     */
+    @Override
+    @javax.annotation.Nullable
+    public com.reg21meme.dross.quest.oracle.OracleBoss lockedAs()
+    {
+        return !this.showcase && this.homeVillage != 0L ? com.reg21meme.dross.quest.oracle.OracleBoss.HUNTSMAN : null;
+    }
+
     /** In the Wild Hunt a hit is capped against their shared bar's full health, after it each against its own. */
     @Override
     public float hitCapHealth()
@@ -698,7 +819,8 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         {
             return super.isInvulnerableTo(source);
         }
-        return this.showcase || this.stage == HuntStage.SPLIT || this.stage == HuntStage.WON || super.isInvulnerableTo(source);
+        return this.showcase || this.isAsleep() || this.stage == HuntStage.SPLIT || this.stage == HuntStage.WON
+                || super.isInvulnerableTo(source);
     }
 
     @Override
@@ -707,6 +829,16 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         if (this.showcase || this.level().isClientSide)
         {
             return super.hurt(source, amount);
+        }
+        if (this.isAsleep() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
+        {
+            // asleep, a spell keeps them (the user, November 18, 2026: "magic protects his house while he sleeps")
+            if (source.getEntity() instanceof ServerPlayer player)
+            {
+                player.displayClientMessage(Component.translatable(ASLEEP_KEY)
+                        .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(DrossColors.BOSS_GROUNDS_TEXT))), true);
+            }
+            return false;
         }
         if (HuntFight.friendly(this, source))
         {
@@ -872,6 +1004,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
             tag.putLongArray("Patrol", this.patrol.stream().mapToLong(BlockPos::asLong).toArray());
             tag.putInt("PatrolNext", this.patrolNext);
         }
+        tag.putBoolean(TAG_ASLEEP, this.isAsleep());
     }
 
     /** Its patrol round its village (its points' heights are the ground's, found as it goes). */
@@ -963,6 +1096,10 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         }
         this.setPatrol(loop, tag.getInt("PatrolNext"));
         this.restartClock();                         // (a move left half played plays again from its start)
+        if (tag.getBoolean(TAG_ASLEEP))
+        {
+            this.setAsleep(true);
+        }
     }
 
     /** Where it stands (its feet's block). */

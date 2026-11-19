@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "dross:pond_skater",
+      "required": false
+    },
+    {
+      "id": "dross:moose",
+      "required": false
+    },
+    {
+      "id": "dross:rimehorn",
+      "required": false
+    }
+  ]
+}

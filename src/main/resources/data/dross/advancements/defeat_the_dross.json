@@ -1,0 +1,28 @@
+{
+  "parent": "dross:wings_clipped",
+  "display": {
+    "icon": {
+      "item": "minecraft:firework_rocket"
+    },
+    "title": {
+      "translate": "advancements.dross.defeat_the_dross.title"
+    },
+    "description": {
+      "translate": "advancements.dross.defeat_the_dross.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "defeated": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "defeated"
+    ]
+  ]
+}
