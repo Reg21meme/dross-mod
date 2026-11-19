@@ -3256,7 +3256,9 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - **One column beside the cathedral not stepped back, on one seed** (World site, found November 5): in a full fresh run
   (world `gt_play_a`) `PortalSiteGameTest.cathedralIsMadeWithTheLand` failed with "1 of 5172 columns round the site are
   further from its ground level y 70 than they are from it (the first: -2916, 2699 (1 out) at y 67, diorite over diorite
-  over diorite)": one column of stone a block too low in the staircase blend. Cosmetic. Not looked into yet.
+  over diorite)": one column of stone a block too low in the staircase blend. Cosmetic. Not looked into yet. Again on November 19
+  (world `gt_icearrow_1119`), bigger: 125 of 5172 columns off round a site on packed ice (the first at -1606, 4097, 7
+  out, y 76 against its ground y 67): a snowy site's blend, worth a look.
 - **The bedrock arena test once found a spot for a zombie on its roof** (Boss area, found November 6): in a full fresh
   run `BedrockArenaGameTest.nothingSpawnsInTheBedrockArena` failed with "a minecraft:zombie could spawn on the arena at
   35, 50, 66" (on its roof's top); the arena leaves blocks with a block entity alone (a chest, a bee nest) by design, so
@@ -3283,7 +3285,7 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - **A rat cave with few pipes, on one seed** (Dimension area, found November 5): in a full fresh run (seed
   5873622258956192267, the cave at -402, 35, 596) `SewersGameTest.ratCaveHasNestHoardAndDrains` failed with "21 copper
   pipe blocks and 2 waterfalls into drains" (30 copper blocks expected); the other runs that day passed. Cosmetic (fewer
-  pipes along its wall and roof). Not looked into yet.
+  pipes along its wall and roof). Not looked into yet. Again on November 19 (world `gt_icearrow_1119`: 18 copper blocks).
 - **A Rimehorn herd with no Rimehorns on some seeds** (Dimension area, found October 20): in one fresh GameTest world `RimefallLakeGameTest.rimehornHerdsAreThere` waited its full 10 minutes and found 0 Rimehorns at the nearest herd spot (-344, 280; chunk -22, 17), in a tiny Rimefall patch (16,896 blocks², 58 deep): perhaps no spot near it had Rimefall ground with room for them. Other seeds passed. Not looked into yet.
 - **The Cinder Wastes' regions a little too big on one seed** (Dimension area, found October 29): in one full fresh run
   `terrainfromthenoise` failed with "cinder_wastes's regions are 835 blocks across (area-weighted median; 400 to 800)";
