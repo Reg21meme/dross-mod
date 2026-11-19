@@ -520,7 +520,8 @@ public class ElementalKnight extends Monster implements GeoEntity
             case WRECK ->
             {
                 // the anchor slam (his first move is the throw: its release)
-                Vec3 at = this.position().add(this.forward().scale(3.0D));
+                // (where the anchor's crown comes down: ahead of him and a little to his right)
+                Vec3 at = this.at(2.2D, 0.8D, 0.0D);
                 this.play("anchor_slam", 2.4F);
                 LightningBolt bolt = EntityType.LIGHTNING_BOLT.create(level);
                 if (bolt != null)
@@ -595,7 +596,8 @@ public class ElementalKnight extends Monster implements GeoEntity
         {
             case BLIGHT_WARDEN ->
             {
-                Vec3 from = this.at(1.2D, 0.6D, 4.4D);
+                // (from the globe at the end of his staff as he whips it forward)
+                Vec3 from = this.at(3.0D, 0.8D, 4.7D);
                 double d = from.distanceTo(aimAt);
                 int ticks = Mth.clamp((int) Math.round(d * KnightTuning.CAST_TICKS_PER_BLOCK), KnightTuning.CAST_TICKS_MIN,
                         KnightTuning.CAST_TICKS_MAX);
@@ -607,13 +609,15 @@ public class ElementalKnight extends Monster implements GeoEntity
             case FLAMEHAND ->
             {
                 boolean great = this.move == 1;
-                Vec3 from = great ? this.at(0.6D, 0.0D, 5.4D) : this.at(1.3D, -0.5D, 3.3D);
+                // (from where it shows as it leaves him: the orb over his head, his right fist at the end of the punch)
+                Vec3 from = great ? this.at(1.5D, 0.0D, 5.3D) : this.at(2.2D, 0.1D, 3.4D);
                 level.addFreshEntity(KnightFireball.shoot(level, this, from, aimAt, great));
                 this.play(great ? "great_fireball" : "fireball", great ? 2.0F : 1.2F);
             }
             case WRECK ->
             {
-                Vec3 from = this.at(1.0D, -0.9D, 3.4D);
+                // (from where the anchor leaves his hands, over his right shoulder)
+                Vec3 from = this.at(0.2D, 1.1D, 4.8D);
                 level.addFreshEntity(KnightAnchor.thrown(level, this, from, aimAt));
                 this.setAnchorOut(true);
                 this.anchorThrownAt = this.tickCount;
@@ -621,7 +625,8 @@ public class ElementalKnight extends Monster implements GeoEntity
             }
             case ROCKFALL ->
             {
-                Vec3 from = this.at(0.6D, 0.0D, 5.6D);
+                // (where the boulder is in his hands as he lets it go: 2.3 blocks ahead of him and 4.6 up)
+                Vec3 from = this.at(2.3D, 0.0D, 4.6D);
                 double d = from.distanceTo(aimAt);
                 int ticks = Mth.clamp((int) Math.round(d * KnightTuning.BOULDER_TICKS_PER_BLOCK),
                         KnightTuning.BOULDER_TICKS_MIN, KnightTuning.BOULDER_TICKS_MAX);

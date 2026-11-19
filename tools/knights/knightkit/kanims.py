@@ -588,7 +588,7 @@ def chop(rig, kn, name="swing", T=1.15, hit=0.5, raise_to=125.0, strike=40.0, he
     return a
 
 
-def overhead_slam(rig, kn, name="smash", T=1.85, hit=1.0, head_hit=150.0, both=False, strike=58.0):
+def overhead_slam(rig, kn, name="smash", T=1.85, hit=1.0, head_hit=150.0, both=False, strike=58.0, inward=0.0):
     """Its weapon raised high over its head, hanging there a moment at the top, and slammed into the ground in front of
     it (a small recoil as it bites), held there, then hauled back up (the weapon's weight following the arm)."""
     hv = kn.heavy
@@ -606,7 +606,10 @@ def overhead_slam(rig, kn, name="smash", T=1.85, hit=1.0, head_hit=150.0, both=F
     k_lfwd = sh([(0.0, 0.0), (top, 30.0), (hit, -15.0), (hold, -10.0), (T, 0.0)], 0.07)
     k_lout = sh([(0.0, 0.0), (top, 20.0), (hit, 6.0), (T, 0.0)], 0.07)
     k_both_out = [(0.0, 0.0), (top, -18.0), (hit, -12.0), (hold, -12.0), (T, 0.0)]
-    k_out = [(0.0, 0.0), (top, 6.0), (0.9, 12.0), (hit, 8.0), (hold, 8.0), (mid, 16.0), (T, 0.0)]   # (clear of its flank)
+    # (out from its flank as it comes down, then in across its front so the blow lands before it, not off to its
+    # right: `inward` degrees at the blow; a knight holding its weapon far out at its side needs more)
+    k_out = [(0.0, 0.0), (top, 6.0), (0.9, 12.0 - 0.4 * inward), (hit, 8.0 - inward), (hold, 8.0 - inward),
+             (mid, 16.0 - 0.3 * inward), (T, 0.0)]
 
     def frame(t):
         p = Pose()
@@ -640,7 +643,7 @@ def thrust(rig, kn, name="thrust", T=1.15, hits=(0.45,), level=88.0, back=18.0, 
     k_lean = sh([(0.0, 0.0), (h - 0.1, -2.0), (h, 7.0, "hit"), (h + 0.3, 4.0), (T, 0.0)], -ld)
     k_lunge = sh([(0.0, 0.0), (h - 0.1, 0.12), (h, 0.85, "hit"), (h + 0.25, 0.75), (T, 0.0)], -ld * 0.5)
     k_left = sh([(0.0, 0.0), (0.25, 22.0), (T - 0.25, 18.0), (T, 0.0)], 0.05)
-    k_out = [(0.0, 0.0), (h, 2.0), (h + 0.18, 15.0), (h + 0.4, 10.0), (T, 0.0)]      # (drawn back clear of his side)
+    k_out = [(0.0, 0.0), (h, 0.0), (h + 0.18, -15.0), (h + 0.4, -6.0), (T, 0.0)]      # (drawn back across, clear of his side)
 
     def frame(t):
         p = Pose()
@@ -846,12 +849,13 @@ def punch(rig, kn):
     T = 0.9
     rel = 0.4
     ld = lead(kn)
-    k_rfwd = [(0.0, 0.0), (0.22, -22.0), (0.27, -26.0), (rel, 28.0, "hit"), (rel + 0.06, 32.0), (0.58, 25.0),
+    # (a deeper draw and more turn of the body since November 19, 2026: the first punch moved his fist less than a block)
+    k_rfwd = [(0.0, 0.0), (0.22, -34.0), (0.27, -38.0), (rel, 32.0, "hit"), (rel + 0.06, 37.0), (0.58, 28.0),
               (T, 0.0)]
-    k_rout = [(0.0, 0.0), (0.25, 10.0), (rel, -12.0), (0.6, -8.0), (T, 0.0)]
-    k_lfwd = sh([(0.0, 0.0), (0.25, 12.0), (rel, -15.0), (0.6, -10.0), (T, 0.0)], 0.04)
-    k_tw = sh([(0.0, 0.0), (0.25, 20.0), (rel, -18.0, "hit"), (0.6, -12.0), (T, 0.0)], -ld)
-    k_lean = sh([(0.0, 0.0), (0.25, -3.0), (rel, 8.0, "hit"), (0.6, 6.0), (T, 0.0)], -ld)
+    k_rout = [(0.0, 0.0), (0.25, 14.0), (rel, -12.0), (0.6, -8.0), (T, 0.0)]
+    k_lfwd = sh([(0.0, 0.0), (0.25, 16.0), (rel, -22.0), (0.6, -14.0), (T, 0.0)], 0.04)
+    k_tw = sh([(0.0, 0.0), (0.25, 30.0), (rel, -24.0, "hit"), (0.6, -16.0), (T, 0.0)], -ld)
+    k_lean = sh([(0.0, 0.0), (0.25, -5.0), (rel, 10.0, "hit"), (0.6, 7.0), (T, 0.0)], -ld)
     k_lunge = sh([(0.0, 0.0), (0.25, 0.1), (rel, 0.8, "hit"), (0.6, 0.7), (T, 0.0)], -ld * 0.5)
 
     def frame(t):
@@ -1000,6 +1004,13 @@ def pick_strike(rig, kn):
     return chop(rig, kn, name="pick", T=1.25, hit=0.55, raise_to=110.0, strike=35.0, head_back=-20.0, head_hit=120.0)
 
 
+def up_arm(p, side, fwd):
+    """A raised arm (the Rockfall Knight's, holding his boulder over his head) swung `fwd` degrees forward. (A raised arm
+    tips forward the opposite way to a hanging one: his first moves, made with `arm`, threw the boulder back over his
+    head and brought the rockfall's boulder down behind him.)"""
+    arm(p, side, -fwd)
+
+
 def boulder_throw(rig, kn):
     """E4: the boulder drawn back over his head, his weight sinking back, and heaved forward; a new one grows in his
     hands, stone knitting together."""
@@ -1015,8 +1026,8 @@ def boulder_throw(rig, kn):
     def frame(t):
         p = Pose()
         fwd = curve(t, k_fwd)
-        arm(p, "r", fwd)
-        arm(p, "l", fwd)
+        up_arm(p, "r", fwd)
+        up_arm(p, "l", fwd)
         lean = curve(t, k_lean)
         p.rot("body", lean, 0.0, 0.0)
         p.rot("head", -lean * 0.6, 0.0, 0.0)
@@ -1047,8 +1058,8 @@ def boulder_smash(rig, kn):
     def frame(t):
         p = Pose()
         fwd = curve(t, k_fwd)
-        arm(p, "r", fwd)
-        arm(p, "l", fwd)
+        up_arm(p, "r", fwd)
+        up_arm(p, "l", fwd)
         lean = curve(t, k_lean)
         p.rot("body", lean, 0.0, 0.0)
         p.rot("head", -lean * 0.7, 0.0, 0.0)

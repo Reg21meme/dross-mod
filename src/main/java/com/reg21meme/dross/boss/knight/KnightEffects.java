@@ -177,7 +177,7 @@ final class KnightEffects
                 if (move == 1 && phase > 0.2)
                 {
                     // flames drawn in to the fireball between his raised hands
-                    Vec3 orb = k.at(0.6D, 0.0D, 5.4D);
+                    Vec3 orb = k.at(1.5D, 0.0D, 5.3D);
                     for (int i = 0; i < 2; i++)
                     {
                         double a = r.nextDouble() * Math.PI * 2.0D;
@@ -189,7 +189,7 @@ final class KnightEffects
                 }
                 else if (move == 0 && phase > 0.3)
                 {
-                    Vec3 fist = k.at(0.9D, -0.6D, 3.1D);
+                    Vec3 fist = k.at(1.0D, 1.2D, 2.5D);
                     level.sendParticles(ParticleTypes.FLAME, fist.x, fist.y, fist.z, 2, 0.15D, 0.15D, 0.15D, 0.02D);
                 }
             }
@@ -207,7 +207,7 @@ final class KnightEffects
                     }
                     if (phase > 0.6)
                     {
-                        Vec3 at = k.at(3.0D, 0.0D, 0.0D);
+                        Vec3 at = k.at(2.2D, 0.8D, 0.0D);
                         double gy = k.groundY(at.x, at.z, k.getY());
                         level.sendParticles(ParticleTypes.ELECTRIC_SPARK, at.x, gy + 0.15D, at.z, 3, 0.7D, 0.05D, 0.7D, 0.1D);
                     }
@@ -253,7 +253,7 @@ final class KnightEffects
             case ROCKFALL ->
             {
                 // grit falling off the boulder over his head
-                Vec3 boulder = k.at(0.0D, 0.0D, 5.6D);
+                Vec3 boulder = k.at(0.0D, 0.0D, 5.1D);
                 level.sendParticles(new BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.GRAVEL.defaultBlockState()),
                         boulder.x, boulder.y, boulder.z, 1, 0.6D, 0.3D, 0.6D, 0.0D);
                 LivingEntity target = k.getTarget();
