@@ -2483,6 +2483,58 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
           animals get the same saving. The server: the probe `boss/knight/KnightPerfProbeGameTest` (its own namespace,
           `-PgameTestNamespaces=dross_knight_probe`) has the ten knights fight ten iron golems: 2.42 ms a tick
           against 2.53 with them standing still (nothing to measure), at most 27 spikes and crystals at once.
+      - **The user's look after the overnight pass (November 19, 2026)** [built, not yet tested in-game] (the user:
+        the Geode Knight's pick "just doesn't look right ... his arm needs to pull and extend itself, full restart and
+        fix it"; the Cinder Knight "use both arms when swinging", the scythe "both hands and hold the scythe better", the
+        axeman's "arms are so weird when he swings", "make the melee attacks for dudes with weapons less clunky", the
+        Stormblade "do cooler stuff with his daggers"; Flamehand's first move "should do some damage" and his explosion
+        more; the rockfall "if you're in the area it does damage instead of a rock hitting you"; the spearman's shield in
+        the axe's ice "instead of this white stone"; the spearman's two moves and the Stormblade's cuts slow you; the
+        thunder, fire and rock knights immune to fire, the poison ones to poison and wither, "clear immunities for the
+        rest"):
+        - **Elbows**: every knight's arm bends at its elbow now (bones `fore_r`/`fore_l` between `arm_` and `hand_`,
+          their pivots each knight's elbow, `elbow_r`/`elbow_l` in `mobs.py`; `mobs.split_arms` moves each arm box nearer
+          the forearm onto it). The moves that don't use it are as they were.
+        - **Arms that reach** (`tools/knights/knightkit/kreach.py`): two-bone IK puts a fist on a spot (spots keyed from
+          between the shoulders in arm's reaches, so one set fits every knight), the elbow bending a given way; a
+          two-handed weapon's left fist on its haft below the right, both fists moving round the grip's middle; every
+          limit eased in (`soft_cap`), the arms never quite dead straight (`REACH` 0.93: the elbow whips round there).
+        - **Two-handed swings**: the Cinder Knight's hammer swing, the Thawed axe's swing and the Sporebound's reap
+          (`two_hand_sweep`): both hands come together on the haft, drawn back past his right shoulder as his body winds
+          round, swung flat across in front, arms reaching out at the hit (the scythe low, at the waist), round to his
+          left, then lifted upright in front of him and carried back to rest (carried any other way, a long haft's lower
+          end swept through him). Their slams stay one-handed: the Cinder hammer's and the axe's hafts run about two
+          blocks below the fist, and over his head two-handed that end goes through his body.
+        - **The Geode Knight's pick, redone** (`two_hand_chop`): the left hand comes up onto the haft, both lift it off
+          his shoulder high behind his head as he rears back, then pull it over and down in front, his arms reaching out
+          straight as the spike strikes at your body's height, held a moment, then back onto his shoulder.
+        - **The Stormblade's cuts** (`blade_cuts`): both blades raised high and wide as he rears, whipped down crossing in
+          front of him (an X) as he drops into a lunge, then flung out wide to his sides (a scissor cut) as he springs
+          up; lightning arcs along each (`ElementalKnight`, the X's two crossing, the wide cut's two outward).
+        - **The spearman's shield** (`tools/rimefall/rimedesigns/d09_thawed.py`): a disc of the axe's clear ice in
+          strips, a rim and boss of glowing edge-ice, two leather straps across (it was pale hide with a bone rim and
+          cross). The Rimefall gallery's 9D statue and the knight design gallery keep the old one until rebuilt.
+        - **Slowness**: the spearman's thrust Slowness II 3 s, each shield-wall poke Slowness I 2 s, each Stormblade cut
+          Slowness I 1.5 s (`KnightTuning.THRUST_SLOW_*`, `POKE_SLOW_TICKS`, `SLASH_SLOW_TICKS`).
+        - **Flamehand**: his fireballs did nothing to anyone moving (aimed at where you stood): each now leads its foe
+          (every knight watches how its foe really moves, `ElementalKnight.watchTarget`: the server never knows a
+          player's own motion; the plague ball and the boulder lead with it too), hits anything within half a block of
+          its path, 7 damage (5) and 4 s burning; one landing on the ground splashes fire 1.8 blocks round (4). The great
+          fireball 20 (14), 5.5 blocks round (4.5), 14 fires (10).
+        - **The rockfall's circle**: the rocks hurt nobody now (they fly through); from the first rock's landing to the
+          last, every half second everything inside the circle (its 5.5 blocks and 0.75 more, up to 4 over the ground)
+          takes 3, its edge marked with stone dust while it lasts (`ROCKFALL_PULSE_*`, `ROCKFALL_ZONE_*`;
+          `ColossusRock` with no damage hits only the ground).
+        - **Immunities** (`ElementalKnight.immuneTo`, `canBeAffected`; `KnightKind.Element.fireproof`): the fire, thunder
+          and earth knights never burn (fire, lava, magma: their entity types are fire-immune); the thunder knights take
+          no lightning; the earth knights no fall, no suffocating in a wall, nothing falling on them; the ice knights no
+          freezing, no Slowness or Mining Fatigue; the poison knights no Poison or Wither.
+        - **The audit** (`tools/knights/audit.py`) skips, in the two-handed swings, the fists meeting on the haft and the
+          arms lying against the chest (`GRIP_PAIRS`; the Thawed Soldiers' thick arms press about 4.6 units into it),
+          and the Stormblade's crossed forearms in his X (`CROSSED`). Still flagged: the swings' handles grazing the
+          chest or cape by 1.9-2.9 units, the Sporebound's scythe brushing his cap and helm by about 2, and a few
+          one-frame quickenings of the left arm as a swing comes round (Thawed axe, Sporebound) and of the Geode
+          Knight's elbow; the other six knights pass clean.
     - **Next**: the user looks at the ruins (`/dross showcase knight_ruins <element>`) and picks; then "the different
       kind of ruin stuff" (variations of the picked layouts) and the ruins in the world, each in its area's biomes, the
       knights at home. The Blightwood bosses (step 17) wait meanwhile.
@@ -2723,6 +2775,13 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 
 ## Verify over time
 Built and passing the headless check, but not yet tested in-game. Check these during future play tests and remove each line once confirmed.
+- **The knights' moves after the user's look** (November 19, afternoon): the Cinder Knight, the Thawed axeman and the
+  Sporebound swing with both hands on the haft (wound back, swung flat across, arms reaching out); the Geode Knight
+  lifts his pick off his shoulder with both hands and pulls it down, arms stretching out; the Stormblade's X-cut then
+  his wide scissor cut; nothing of a long haft through a knight's body; the spearman's shield clear ice; the spear's
+  hits and the Stormblade's cuts slow you; Flamehand's fireballs hit you while you move, the great one hurts more;
+  standing in the rockfall's dusty circle hurts, the rocks themselves don't; fire, lava and magma never hurt the fire,
+  thunder or earth knights, poison and wither never the poison ones.
 - **The knights' overnight pass** (November 19): every move's wind-up shows its element on the weapon and the big
   ones show where they'll land (the Warden's dark cloud gathering, dust falling where the rocks will come down, sparks
   where the anchor's lightning will strike); every slam sends a ring of the ground's own blocks rolling out; a blow
