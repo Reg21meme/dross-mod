@@ -2331,7 +2331,19 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
         off-arm and cape trailing, a weight and walk speed for each knight so its stride matches its real speed, 40
         frames a second; the game blends 3 ticks into a move, 6 between idle and walk, and holds the walk 5 ticks
         before going back to idle; each move's moments include the blend, so the blow on screen lands on the
-        server's tick); previews `boss-previews/knights/mobs/<model>_animations.png`; files
+        server's tick); then the same evening, from the user's next look ("add more personality to the walk ...
+        per each element or even each knight"; the pick and the anchor "clipping through his shoulder"; the scythe's
+        blade "not vertical, it needs to be horizontal", the same for 9C, the Geode pick and the Cinder hammer): each
+        knight's own walk (`walk_style` in `mobs.py`, `WALK_STYLE` in `kanims.py`: the Thawed axeman's hunched
+        stomping trudge and the spearman's wary scan, both shivering; the Blight Warden limping on his staff; the
+        Sporebound shambling, head lolling, his Blightcap swelling each step; the Cinder Knight's proud stomp;
+        Flamehand bouncing with his fists up like a boxer; the Wreck Knight's rolling sailor's gait; the Stormblade's
+        low prowl, blades trailing; the Geode Knight's hunched miner's trudge; the Rockfall Knight's giant stomp, his
+        boulder heaving), the pick and the anchor carried ON the right shoulder (`kbody.CARRY_FIST`, `arm_carry`; the
+        Geode Knight's right-shoulder crystals moved to its back so the haft lies on top), and the four melee blows
+        flat sweeps (`kanims.flat_sweep`, `aim_hand`: every frame the hand turned so the haft points where it's keyed
+        and the blade, spike or hammer face squares to the way the sweep goes); previews
+        `boss-previews/knights/mobs/<model>_animations.png`; files
         `geo|animations|textures/entity/knightmob/` (in the jar), the generated `boss/knight/KnightAnims` (each move's
         hit and release moments). The Wreck Knight's thrown anchor has its own model, `knightmob/wreck_anchor`
         (`tools/knights/props.py`).
@@ -2361,7 +2373,14 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
         boulder of mossy stone 1.5 blocks across, knobs of stone, andesite, tuff and moss on a mossy cobblestone core,
         tumbling and shedding gravel dust, bursting into stone and moss: `ColossusRock.boulder`, the user, November 18,
         "the rock dude should throw ... some cobblestone alternative ... make this look better") and
-        the rockfall (his boulder brought down, a shockwave, then 7 rocks raining down round you). The spikes are block
+        the rockfall (his boulder brought down, a shockwave, then 16 rocks raining down round you; 7 until the user,
+        November 18: "his move 2 needs to do more throws").
+        **Fixes from the user's look of November 18**: every melee blow lands a block past its reach and 30 degrees
+        wider (`KnightTuning.REACH_SLACK`, `ARC_SLACK`: a foe that stepped back in the wind-up was missed though the
+        blow looked to land); the boulder hits whatever it's drawn touching (`BossProjectile.hitMargin`; its box is
+        the Colossus rock's 0.8) and flies smoothly (`colossus_rock` sent every 2 ticks, was 10); the Blight Warden's
+        rain falls from its cloud all the way to the ground (it hung in the air over him); the Cinder Knight's slam
+        leaves 34 patches of fire (16) out to 7 blocks and burning longer, his hammer swing 5 more along its arc. The spikes are block
         displays (`KnightSpikes`); the fireballs `KnightFireball`. **Spawn eggs**: one for each knight, at the end of
         the Dross tab's spawn eggs (colours `DrossColors.KNIGHT_*_EGG_*`). Headless test
         `boss/knight/KnightFightGameTest`: each knight's two moves each hurt an iron golem.
@@ -2668,7 +2687,11 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   great fireball, the Wreck Knight's anchor flying on its chain and hauling you in (the anchor gone from his shoulder
   meanwhile), the Stormblade's lightning dash and trail, the amethyst burst, the rocks raining down; their animations
   match `boss-previews/knights/mobs/`; nothing of the world broken or set alight but the Colossus's own fire, which
-  goes out; no boss bar shows; the knights move smoothly (no stop-start, the walk's feet don't slide, the blow lands
+  goes out; each knight walks its own way (the Warden's limp on his staff, Flamehand's boxer's guard, the Wreck
+  Knight's roll...); the Geode Knight's pick and the Wreck Knight's anchor lie on top of the shoulder, never through
+  it; the scythe, 9C's axe, the Geode pick and the Cinder hammer swing flat, the blade leading; a swing that looks
+  as if it lands hurts; the boulder hits when it touches you; the Warden's rain reaches the ground; the Cinder
+  Knight's slam leaves a wide ring of fire; no boss bar shows; the knights move smoothly (no stop-start, the walk's feet don't slide, the blow lands
   as the weapon hits); the Rockfall Knight's boulder a lumpy mossy rock; their voices nothing like the Frostfolk's.
   `/dross showcase knights`: the ten real knights frozen on five plots, the [move1] and [move2] buttons play their
   attacks. `/dross showcase knight_ruins` builds all 76 picked ruins, the five elements side by side; one element
@@ -3046,7 +3069,7 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   the other 11 had 6-8): a Rimehorn is 3.4 blocks wide and the herd stays inside its chunk
   (`RimehornHerdFeature.spawnHerd`, 15 tries near its spot, then 40 anywhere in the chunk), so a chunk crowded with
   trees and boulders has room for few. Not fixed yet (letting it use the chunks round it would need care with world
-  generation's write limits). Again on November 9 ("the herd at [-9, 43] has 4 Rimehorns").
+  generation's write limits). Again on November 9 ("the herd at [-9, 43] has 4 Rimehorns"). On November 19 one with none ("the herd at [19, -31] has 0 Rimehorns").
 - **A Rimefall lake's shore wall with a gap on some seeds** (Dimension area, found October 23): in one fresh GameTest world `RimefallLakeGameTest.rimefallLakeIsBuilt` failed with "the Rimefall lake at 648, 81, 312 isn't right: the shore at 607, 81, 356 is Air (the water could get out)" (and 608, 80-81, 356); 204 of the other 205 tests passed. Not looked into yet.
 
 - **A Rimefall lake's shore wall with a gap, again** (October 26): in a fresh full run `rimefallLakeIsBuilt` failed
