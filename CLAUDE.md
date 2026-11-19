@@ -2440,6 +2440,49 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
         `KnightAnchor`, the fireballs' blast in `KnightFireball`). **`/dross showcase boss_sounds knights`**
         (`command/KnightSoundShowcase`); the page `boss-previews/knights/sounds/index.html`. Headless test
         `boss/knight/KnightSoundsGameTest`.
+      - **The overnight pass of November 19, 2026** [built, not yet tested in-game] (the user: "collision tests,
+        performance ... make sure stuff looks fluid ... interactions between body parts that shouldn't collide ...
+        attacks look nice, add some more effects, make some attacks look better"):
+        - **The animations' audit** (`tools/knights/audit.py`, run after any change to a knight's animations): every
+          part of every knight going into another or the floor (deeper than as it stands, plus 1.6 units: a block
+          limb bending at its joint grazes that much), snaps (a frame where a part's tip changes speed far more than
+          round it), the loops' seams, and the game's blends into and out of each move (an angle a turn or more away
+          spins a part round). All ten pass. What it found and what was fixed: the Thawed axe's and the Geode pick's
+          swings ended a full turn round, so the blend back to standing spun the weapon once (their recovery now
+          unwinds the way it came); the anchor slam and the crystal burst ended with the weapon pointing forward at
+          head height (a weapon carried lying back along the shoulder turns 222 degrees to come down, `CARRY_SLAM`;
+          an upright one 150); the anchor's shank stuck 8 units past his fist and cut into his shoulder plate (now
+          gripped near its ring, the statue too); the walk's stomp dipped the body as the legs passed instead of as a
+          foot lands, and drove the Cinder hammer into the ground (it lands with the foot now, a weapon that nearly
+          touches the ground lifted a little as it walks); the back boot under the floor in every lunge, the
+          Stormblade's feet 1.8 under it in his dash, a cape's hem as a knight leans back; the spore burst's cap
+          swelling over the scythe.
+        - **The Rockfall Knight's moves went backwards**: a raised arm tips forward the other way to a hanging one, so
+          his throw flung the boulder back over his head and his rockfall brought it down behind him (`up_arm` now:
+          drawn back behind his head, flung forward; slammed onto the ground before him).
+        - **Slams land before them**: the overhead slams swing in across the front (`inward`) so the hammer, axe and
+          anchor land ahead, not two blocks off to the right; the Cinder Knight's slam comes down at a slant, its head
+          on the ground 2.7 blocks ahead (it came down nearly upright, the butt of his long haft standing up past his
+          head); Flamehand's punch draws back further and turns into it.
+        - **What leaves a knight's hands starts where the model shows it**: the thrown boulder (2.3 ahead, 4.6 up), both
+          fireballs (his fist, the orb over his head), the plague ball (the globe at the end of the staff), the thrown
+          anchor (over his right shoulder); the anchor slam's lightning strikes where the anchor lands.
+        - **More effects** (`boss/knight/KnightEffects`, particles only): each move's wind-up gathers its element on
+          the weapon and the big moves show where they'll land (the Warden's cloud gathering over him before it rains,
+          dust trickling out of the sky where the rocks will fall, the ground glinting in a ring before the crystals
+          burst, sparks where the anchor's lightning will strike, smoke where the hammer will land); a shockwave of the
+          ground's own blocks rolls out from every slam; a blow bursts its element on what it hits; the sweeps leave an
+          arc of their element, the thrust a streak of frost, the Stormblade's cuts arcs of lightning, the pick a spray
+          of amethyst; a knight's element bursts out of it as it dies; and on the client the Cinder Knight sheds
+          embers, Flamehand's fists burn, the Thawed Soldiers' breath frosts, the Warden's globe drips, spores drift off
+          the Sporebound, sparks crawl on the thunder knights' steel, amethyst glints on the Geode Knight, grit falls
+          off the boulder.
+        - **Performance**: `boss/client/PartLayer` draws an extra pass box by box now (only the boxes that show in its
+          texture), and the knights use it for their glow, ice and ice-glow passes (each pass drew the whole model
+          again): 6,226 boxes a frame for the ten down to 2,928, and the Frostfolk, the Huntsman and the Rimefall
+          animals get the same saving. The server: the probe `boss/knight/KnightPerfProbeGameTest` (its own namespace,
+          `-PgameTestNamespaces=dross_knight_probe`) has the ten knights fight ten iron golems: 2.42 ms a tick
+          against 2.53 with them standing still (nothing to measure), at most 27 spikes and crystals at once.
     - **Next**: the user looks at the ruins (`/dross showcase knight_ruins <element>`) and picks; then "the different
       kind of ruin stuff" (variations of the picked layouts) and the ruins in the world, each in its area's biomes, the
       knights at home. The Blightwood bosses (step 17) wait meanwhile.
@@ -2680,6 +2723,15 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 
 ## Verify over time
 Built and passing the headless check, but not yet tested in-game. Check these during future play tests and remove each line once confirmed.
+- **The knights' overnight pass** (November 19): every move's wind-up shows its element on the weapon and the big
+  ones show where they'll land (the Warden's dark cloud gathering, dust falling where the rocks will come down, sparks
+  where the anchor's lightning will strike); every slam sends a ring of the ground's own blocks rolling out; a blow
+  that lands bursts its element on you; a knight dying bursts into its element; up close the Cinder Knight sheds
+  embers, Flamehand's fists burn, the Thawed Soldiers' breath frosts; the Rockfall Knight throws his boulder forward
+  and slams it down in front of him; the Wreck Knight's anchor and the Geode Knight's pick slam down into the ground in
+  front; the hammer, axe and anchor land in front of the knight, not off to its right; no weapon spins round as a swing
+  ends; the fireballs, plague ball, anchor and boulder leave from the hand or orb you see; the game no slower in a
+  crowd of knights.
 - **The real elemental knights and their ruins** (November 18): in a superflat world (survival, cheats on) each knight's
   spawn egg (the end of the Dross tab's spawn eggs) brings a knight that comes for you with its boss bar; each uses
   both its moves (step 18's list) and they look right: the axeman's line of ice spikes, the spearman's shield up,

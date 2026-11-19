@@ -766,6 +766,13 @@ own, voices that ring inside a helm rather than a person's, the heavy Wreck Knig
 their ruin candidates from `tools/knights/ruins.py`. See the ten with `/dross showcase knights` (with buttons that make
 them play their moves), hear them with `/dross showcase boss_sounds knights`.
 
+You can see each big move coming: its weapon gathers its element as the knight winds up, and the biggest moves show
+where they'll land (a poison cloud gathering, dust falling where rocks will drop, sparks where lightning will strike).
+Every slam sends a ring of the ground's blocks rolling out, a blow that lands bursts its element on you, and a knight
+bursts into its element as it dies. Up close they're alive with it: the Cinder Knight sheds embers, Flamehand's fists
+burn, the Thawed Soldiers' breath frosts, spores drift off the Sporebound. `tools/knights/audit.py` checks their
+animations for parts passing through each other or the floor, snaps and spins.
+
 **Their ruins** (candidates, not in the world yet): every area of each element's biomes has its own 4-5 small fight
 spots round a broken portal frame, built from that area's blocks: 76 in all (the user's picks). Ice: snowy plains, taiga, frozen shore.
 Poison: swamp, mushroom fields, dark forest, jungle, forest. Fire: desert, savanna, badlands. Thunder: warm shore, cold
