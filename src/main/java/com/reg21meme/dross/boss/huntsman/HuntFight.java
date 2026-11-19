@@ -1374,7 +1374,7 @@ public final class HuntFight
         Vec3 from = land.add(back.scale(HuntsmanTuning.RAIN_HEIGHT * HuntsmanTuning.RAIN_SLANT))
                 .add(0.0D, HuntsmanTuning.RAIN_HEIGHT, 0.0D);
         Vec3 v = launch(from, land, fall);
-        Arrow arrow = new Arrow(level, from.x, from.y, from.z);
+        Arrow arrow = IceArrow.at(level, from.x, from.y, from.z);
         arrow.setOwner(shooter);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
         arrow.setBaseDamage(HuntsmanTuning.RAIN_BASE_DAMAGE * damageScale(shooter));

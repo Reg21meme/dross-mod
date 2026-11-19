@@ -642,7 +642,7 @@ public abstract class HuntMob extends PathfinderMob implements GeoEntity, RageLe
         Vec3 dir = right.scale(shot.dirRight()).add(0.0D, shot.dirUp(), 0.0D).add(ahead.scale(shot.dirAhead()))
                 .normalize();
         boolean volley = shot.dirUp() > VOLLEY_UP;
-        Arrow arrow = new Arrow(this.level(), from.x, from.y, from.z);
+        Arrow arrow = IceArrow.at(this.level(), from.x, from.y, from.z);
         arrow.setOwner(this);
         arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
         LivingEntity target = this.shotTarget;

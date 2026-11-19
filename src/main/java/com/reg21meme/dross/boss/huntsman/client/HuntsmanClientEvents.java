@@ -32,5 +32,7 @@ public final class HuntsmanClientEvents
         event.registerEntityRenderer(ModEntities.HUNT_SPEAR.get(),
                 context -> new SpearRenderer<>(context, SpearTuning.HUNTSMAN_SPEAR_SCALE));
         event.registerEntityRenderer(ModEntities.MOONSILVER_SPEAR.get(), context -> new SpearRenderer<>(context, 1.0F));
+        // his arrows: a head of clear ice
+        event.registerEntityRenderer(ModEntities.ICE_ARROW.get(), IceArrowRenderer::new);
     }
 }

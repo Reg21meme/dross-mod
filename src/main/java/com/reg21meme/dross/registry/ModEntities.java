@@ -19,6 +19,7 @@ import com.reg21meme.dross.boss.golem.StoneGolem;
 import com.reg21meme.dross.boss.huntsman.AlphaMoose;
 import com.reg21meme.dross.boss.huntsman.Bola;
 import com.reg21meme.dross.boss.huntsman.HuntSpear;
+import com.reg21meme.dross.boss.huntsman.IceArrow;
 import com.reg21meme.dross.boss.frostfolk.FolkRole;
 import com.reg21meme.dross.boss.frostfolk.Frostfolk;
 import com.reg21meme.dross.boss.huntsman.spear.ThrownMoonsilverSpear;
@@ -275,6 +276,13 @@ public final class ModEntities
                     .clientTrackingRange(6)
                     .updateInterval(20)
                     .build("hunt_spear"));
+    // Boss area: the Huntsman's arrows (a plain arrow with a head of clear ice; as vanilla's arrow is tracked)
+    public static final RegistryObject<EntityType<IceArrow>> ICE_ARROW = ENTITY_TYPES.register("ice_arrow",
+            () -> EntityType.Builder.<IceArrow>of(IceArrow::new, MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(4)
+                    .updateInterval(20)
+                    .build("ice_arrow"));
 
     // Boss area: a thrown Moonsilver Spear (a player's: it comes back to its thrower, like a trident with Loyalty)
     public static final RegistryObject<EntityType<ThrownMoonsilverSpear>> MOONSILVER_SPEAR = ENTITY_TYPES.register("moonsilver_spear",
