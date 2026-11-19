@@ -19,7 +19,7 @@ import numpy as np
 
 from rimekit.mobkit import Pose
 
-from .kanims import (STEP, _euler, _frame3, _g, _min_rotation, _slerp_dir, _ungecko, _unit, body, cape, curve, lead,
+from .kanims import (STEP, _euler, _nearest, _other, _frame3, _g, _min_rotation, _slerp_dir, _ungecko, _unit, body, cape, curve, lead,
                      lunge, record, sh, show, vkeys)
 
 
@@ -152,8 +152,8 @@ def soft_cap(x, cap, width):
 
 def two_hand_spot(Sr, rr, Sl, rl, want, D, c, zmax):
     """
-    Where the right fist goes (at rest's coordinates) for a two-handed grip: as near `want` as it can be with both fists
-    in reach (the left one `c` back down the haft from it, along -D) and both in front of the chest (z <= zmax), every
+    Where the right fist goes for a two-handed grip: as near `want` as it can be with both fists in reach (the left one
+    `c` back down the haft from it, along -D) and (unless `zmax` is None) both in front of the chest (z <= zmax), every
     limit eased in (soft_cap) so the fists glide along it.
     """
     R = np.array(want, dtype=float)
@@ -167,36 +167,74 @@ def two_hand_spot(Sr, rr, Sl, rl, want, D, c, zmax):
         n = float(np.linalg.norm(v))
         if n > 1e-6:
             R = Sl + v * soft_cap(n, rl, 0.18 * rl) / n + D * c
-        lim = min(zmax, zmax + float(D[2]) * c)
-        R[2] = soft_cap(float(R[2]), lim, 0.1 * rr)
+        if zmax is not None:
+            lim = min(zmax, zmax + float(D[2]) * c)
+            R[2] = soft_cap(float(R[2]), lim, 0.1 * rr)
     return R
 
 
-# ---------------------------------------------------------------- a two-handed blow
+# ---------------------------------------------------------------- a blow with the weapon held in one or both hands
+#
+# The user, November 19, 2026, after the first two-handed swings: the Cinder Knight "does a weird flick with his hands
+# that's really fast at the end", the Thawed axe's "flick back" and the Sporebound's ("the scythe is going through the
+# body"). What it was: each blow carried the weapon on round past its rest and then, in its last tenth of a second,
+# turned every angle straight back to rest; the hand had turned on round 300-470 degrees by then, so it spun that far
+# in a tenth of a second. Now every blow comes back the way it went (the weapon turned back as it turned out), slowly,
+# and only a few degrees are left to tidy away at its very end (a warning if more).
 
 
 def two_handed(rig, kn, name, T, hit, haft_rest, head_rest, k_hand, k_haft, k_lead, k_lw, k_grip, c, k_tw, k_lean,
-               k_lunge, pole_r=(-0.55, -0.8, 0.25), pole_l=(0.55, -0.8, 0.25), two_faced=False, hits=None):
+               k_lunge, pole_r=(-0.55, -0.8, 0.25), pole_l=(0.55, -0.8, 0.25), two_faced=False, hits=None,
+               world=False, k_slide=None, rest_grip=False, k_left=None, k_lpole=None, k_gap=None):
     """
-    A two-handed blow: the right fist along `k_hand` (spots: see the top), the haft along `k_haft` (ways, the body's
-    frame), its striking side turned `k_lw` of the way to `k_lead` (keys of ways, or "sweep": the way a swing to his
-    left goes), the left fist on the haft `c` reaches below the right as much as `k_grip` says (0 its own rest, 1
-    holding on). Both start and end at rest (the first and last keys of the hand and haft are taken as rest, whatever
-    they say), and the last moment eases every arm angle the rest of the way back (the game's blend never spins one).
+    A blow with the weapon in the right hand, the left on its haft as `k_grip` says (0 its own way, 1 holding on).
+    `k_hand`: spots for the middle of the grip (the right fist, when the left lets go; see the top for spots); the
+    first and last are taken as rest. `k_haft`: the haft's way (from the fist towards its head). With `world`, spots and
+    ways are in the model's own frame (fixed to the ground: a blow into the ground), else in the body's (they turn with
+    it: a swing round it). `k_lead`: "sweep" (its striking side leading a swing round him), "chop" (leading a blow down
+    in front of him) or keys of ways; `k_lw` how much (0 as little turn about the haft as can be). `k_slide`: units the
+    weapon slides along the haft through the fists towards its head (the hands going down it to the butt; mobs.Knight
+    `slide`). `rest_grip`: both hands hold it at rest (the Thawed axe; then `c` is the gap between the fists at rest).
+    `k_left`: spots for the left fist while it isn't holding on. `k_gap`: units between the fists along the haft
+    (the left hand sliding up it to the right; the first and last are taken as at rest).
     """
     Sr, Er, Fr, rr = rest_arm(rig, "r")
     Sl, El, Fl, rl = rest_arm(rig, "l")
     C, r = frame_of(rig)
     hr = _unit(haft_rest)
-    hand = [(k[0], tuple(Fr) if i in (0, len(k_hand) - 1) else tuple(C + r * np.asarray(k[1], dtype=float)))
-            + tuple(k[2:]) for i, k in enumerate(k_hand)]
-    haft = [(k_haft[0][0], tuple(hr))] + [(k[0], tuple(_unit(k[1]))) + tuple(k[2:]) for k in k_haft[1:-1]] \
-        + [(k_haft[-1][0], tuple(hr))]
+    if rest_grip:
+        c = float(np.linalg.norm(Fr - Fl)) / r
+    gap = c * r
+    rest_spot = (Fr - hr * (0.5 * gap)) if rest_grip else Fr
+    # (a key of None, and the first and last keys, are as it rests)
+    def rest_or(i, k, n, rest, f):
+        return tuple(rest) if (i in (0, n - 1) or k[1] is None) else f(k[1])
+
+    def spot(v):
+        return tuple(C + r * np.asarray(v, dtype=float))
+
+    hand = [(k[0], rest_or(i, k, len(k_hand), rest_spot, spot)) + tuple(k[2:]) for i, k in enumerate(k_hand)]
+    haft = [(k[0], rest_or(i, k, len(k_haft), hr, lambda v: tuple(_unit(v)))) + tuple(k[2:])
+            for i, k in enumerate(k_haft)]
+    gaps = None if k_gap is None else [(k[0], gap if (i in (0, len(k_gap) - 1) or k[1] is None) else float(k[1]))
+                                       + tuple(k[2:]) for i, k in enumerate(k_gap)]
+    left = None if k_left is None else [(k[0], rest_or(i, k, len(k_left), Fl, spot)) for i, k in enumerate(k_left)]
     rest_pr, rest_pl = rest_pole(rig, "r"), rest_pole(rig, "l")
-    zmax = C[2] - 0.6 * r          # (a fist's middle well out in front of the breastplate)
-    rec0 = T - 0.12
+    lpoles = None if k_lpole is None else [(k[0], rest_or(i, k, len(k_lpole), rest_pl, lambda v: tuple(_unit(v))))
+                                           for i, k in enumerate(k_lpole)]
+    # (a fist's middle well out in front of the breastplate, but never further out than where the fists rest)
+    zmax = None if world else max(C[2] - 0.6 * r, max(Fr[2], Fl[2]) + 3.0)
+    # (how far each fist may go from its shoulder: never short of where it rests, which a nearly straight arm at rest
+    # was, so it never quite got back to rest)
+    rr_cap = max(rr * REACH, float(np.linalg.norm(Fr - Sr)) / 0.8)
+    rl_cap = max(rl * REACH, float(np.linalg.norm(Fl - Sl)) / 0.8)
+    tidy = T - 0.08
     state = {}
     bones = ("arm_r", "fore_r", "hand_r", "arm_l", "fore_l")
+    m = rig.m
+
+    def to_body(B, v):
+        return _ungecko(B.T @ _g(v))
 
     def frame(t):
         if t <= 0.0:
@@ -206,46 +244,76 @@ def two_handed(rig, kn, name, T, hit, haft_rest, head_rest, k_hand, k_haft, k_le
         cape(p, curve(t - 0.1, k_lean))
         lunge(p, curve(t, k_lunge), kn.hip)
         show(p, kn)
-        g = min(max(curve(t, k_grip), 0.0), 1.0)
-        D = vkeys(t, haft)
-        # (the keys give the middle of the grip: both fists move round it as the haft turns, as a swing does; keyed
-        # on the right fist, the left one whipped round it)
-        want = pkeys(t, hand) + D * (0.5 * c * r * g)
-        R = want + (two_hand_spot(Sr, rr * REACH, Sl, rl * REACH, want, D, c * r, zmax) - want) * g
-        mats = rig.m.pose_matrices(p)
-        bend = _smootherstep(3.0 * float(np.linalg.norm(R - Fr)) / r)
-        state["r"] = arm_ik(rig, p, "r", body_point(rig, mats, R),
-                            _unit(rest_pr * (1.0 - bend) + np.asarray(pole_r) * bend), state.get("r"))
+        if k_slide is not None:
+            p.pos("weapon_r", *(hr * curve(t, k_slide)))
+        g = 1.0 if k_grip is None else min(max(curve(t, k_grip), 0.0), 1.0)
+        gp = gap if gaps is None else curve(t, gaps)
+        mats = m.pose_matrices(p)
+        B = mats["body"][:3, :3]
+        Dk = vkeys(t, haft)
+        Db = to_body(B, Dk) if world else Dk
+        want = pkeys(t, hand) + Dk * (0.5 * gp * g)
+        if world:
+            Srn = np.asarray(m.point(mats, "arm_r", tuple(Sr)), dtype=float)
+            Sln = np.asarray(m.point(mats, "arm_l", tuple(Sl)), dtype=float)
+            R = want + (two_hand_spot(Srn, rr_cap, Sln, rl_cap, want, Dk, gp, None) - want) * g
+            target = R
+            far = float(np.linalg.norm(R - np.asarray(m.point(mats, "body", tuple(Fr)), dtype=float)))
+        else:
+            R = want + (two_hand_spot(Sr, rr_cap, Sl, rl_cap, want, Dk, gp, zmax) - want) * g
+            target = body_point(rig, mats, R)
+            far = float(np.linalg.norm(R - Fr))
+        # (the elbow's way eases from how it rests to the blow's over the fist's first reach out of rest: over its first
+        # third it snapped round, and the forearm unwound 57 degrees in the blow's last tenth of a second)
+        bend = _smootherstep(far / r)
+        state["r"] = arm_ik(rig, p, "r", target, _unit(rest_pr * (1.0 - bend) + np.asarray(pole_r) * bend),
+                            state.get("r"))
         w = curve(t, k_lw)
-        if k_lead == "sweep":
-            # (a swing's way is level and square to the haft: with the haft upright it has none, so the turn towards
-            # it fades out as the haft stands up)
-            side = np.cross(D, [0.0, 1.0, 0.0])
+        if k_lead in ("sweep", "chop"):
+            axis = to_body(B, (0.0, 1.0, 0.0)) if k_lead == "sweep" else np.array([1.0, 0.0, 0.0])
+            side = np.cross(Db, axis)
+            # (with the haft along the axis its way is undefined: the turn towards it fades out there)
             w *= _smootherstep((float(np.linalg.norm(side)) - 0.25) / 0.45)
-            lead_way = _unit(side) if np.linalg.norm(side) > 1e-6 else np.array([1.0, 0.0, 0.0])
+            lead_way = _unit(side) if np.linalg.norm(side) > 1e-6 else state.get("lead", np.array([1.0, 0.0, 0.0]))
         else:
             lead_way = vkeys(t, k_lead)
+        state["lead"] = lead_way
         if two_faced:
-            # (either face will do, but the one it took stays taken: picked fresh every frame, it flipped over)
-            if "face" not in state:
-                head0 = _min_rotation(hr, D) @ _unit(head_rest)
+            # (either face will do, but the one it took stays taken: picked fresh every frame, it flipped over; and it's
+            # picked only once the blow has a way to lead, as the face nearer how the head is turned then: picked at
+            # rest, with the haft upright and no way to speak of, it was as often the far one, and the hammer turned on
+            # round through half a turn and back the other side as it came back to rest)
+            if "face" not in state and w > 0.05:
+                head0 = _min_rotation(hr, Db) @ _unit(head_rest)
                 state["face"] = lead_way if float(np.dot(lead_way, head0)) >= 0.0 else -lead_way
-            if float(np.dot(lead_way, state["face"])) < 0.0:
-                lead_way = -lead_way
-            state["face"] = lead_way
-        state["h"] = aim_weapon(rig, p, "r", hr, head_rest, D, lead_way, w, state.get("h"), False)
-        mats = rig.m.pose_matrices(p)
+            if "face" in state:
+                if float(np.dot(lead_way, state["face"])) < 0.0:
+                    lead_way = -lead_way
+                state["face"] = lead_way
+        state["h"] = aim_weapon(rig, p, "r", hr, head_rest, Db, lead_way, w, state.get("h"), False)
+        mats = m.pose_matrices(p)
         haft_now = _ungecko(mats["hand_r"][:3, :3] @ _g(hr))
-        grip = np.asarray(rig.m.point(mats, "hand_r", tuple(Fr)), dtype=float) - haft_now * c * r
-        rest_l = body_point(rig, mats, Fl)
-        state["l"] = arm_ik(rig, p, "l", rest_l + (grip - rest_l) * g,
-                            _unit(rest_pl * (1.0 - g) + np.asarray(pole_l) * g), state.get("l"))
-        if t > rec0:
-            # the last moment: every arm angle eased the rest of the way to rest (the game's blend never spins one)
-            k = 1.0 - _smootherstep((t - rec0) / (T - rec0))
+        grip = np.asarray(m.point(mats, "hand_r", tuple(Fr)), dtype=float) - haft_now * gp
+        if left is not None:
+            lp = pkeys(t, left)
+            own = lp if world else body_point(rig, mats, lp)
+        else:
+            own = body_point(rig, mats, Fl)
+        lpole = rest_pl * (1.0 - g) + np.asarray(pole_l) * g
+        if lpoles is not None and g < 1.0:
+            lpole = lpole * g + vkeys(t, lpoles) * (1.0 - g)
+        state["l"] = arm_ik(rig, p, "l", own + (grip - own) * g, _unit(lpole), state.get("l"))
+        if t > tidy:
+            # the last moment: what's left of every arm angle tidied away (a few degrees: the game's blend back to
+            # standing never spins a part)
+            if "resid" not in state:
+                state["resid"] = max(abs(x) for b in bones for x in tidy_angles(p.get3(b)[0]))
+                if state["resid"] > 8.0:
+                    print(f"  WARNING {kn.ID} {name}: {state['resid']:.0f} degrees left to tidy at its end")
+            k = 1.0 - _smootherstep((t - tidy) / (T - tidy))
             for b in bones:
                 ang = p.get3(b)[0]
-                ang[:] = [x * k for x in ang]
+                ang[:] = [x * k for x in tidy_angles(ang)]
         return p
 
     a = record(rig, name, T, frame, loop=False)
@@ -253,44 +321,186 @@ def two_handed(rig, kn, name, T, hit, haft_rest, head_rest, k_hand, k_haft, k_le
     return a
 
 
-def two_hand_sweep(rig, kn, name, haft_rest, head_rest, T=1.3, hit=0.62, c=0.4, low=0.0, two_faced=False):
+def tidy_angles(e):
+    """The same turn written as near 0 as it can be (of its two sets of angles, a turn more or less of each)."""
+    best = None
+    for v in (list(e), _other(e)):
+        v = _nearest(v, (0.0, 0.0, 0.0))
+        if best is None or sum(x * x for x in v) < sum(x * x for x in best):
+            best = v
+    return best
+
+
+def swing_round(rig, kn, name, haft_rest, head_rest, T=2.0, hit=0.66, c=0.42, low=0.0, two_faced=False,
+                rest_grip=False, slide=0.0, gap=None):
     """
-    A flat two-handed swing (the Cinder Knight's hammer, the Thawed axe, the Sporebound's scythe): both hands come
-    together on the haft, the weapon drawn back past his right shoulder as his whole body winds round, then swung flat
-    across in front (`low` lower than chest height: the scythe at the waist), his hips first and his arms reaching out
-    straight at the hit, flowing on round to his left, the left hand letting go as it comes back to rest.
+    A flat two-handed swing (the Cinder Knight's hammer, the Thawed axe, the Sporebound's scythe): both hands on the
+    haft, the weapon drawn back past his right shoulder as his whole body winds round, swung flat across in front (`low`
+    lower than chest height: the scythe at the waist), his hips first and his arms reaching out at the hit, on round to
+    his left; then, slowly, back the way it came to the front and up to rest (the left hand letting go as it rises,
+    unless both hold it at rest). `slide`: units the weapon slides through his fists as he winds up (his hands going
+    down the haft towards its butt, as for any big swing of a long haft), `gap` the units between his fists then.
     """
     hv = kn.heavy
     ld = lead(kn)
-    top = hit * 0.6
-    hold = hit + 0.26 + 0.06 * hv
-    rel = hold + 0.4 * (T - hold)
-    # (on the way back the weapon comes up upright in front of him, its butt clear of his legs, its head well over his
-    # helm, and is carried across to his right side like that: a long haft carried any other way swept through him)
+    top = hit * 0.62
     mid = 0.5 * (top + hit)
-    after = 0.5 * (hold + rel)
-    k_hand = [(0.0, None), (top * 0.5, (-0.34, -0.3, -0.62)), (top, (-0.26, -0.3 - low * 0.5, -0.66)),
-              (mid, (-0.24, -0.38 - low * 0.8, -0.8)), (hit, (-0.2, -0.42 - low, -0.86), "hit"), (hold, (0.1, -0.42 - low, -0.86)),
-              (after, (0.0, -0.3, -0.82)), (rel, (-0.12, -0.2, -0.82)), (T, None)]
+    hold = hit + 0.26 + 0.06 * hv
+    back = hold + 0.4 * (T - hold)
+    rest = T - 0.15                    # (everything back at rest by here, held to the end)
+    rise = back + 0.55 * (rest - back)
+    _s, _e, Fr, _r = rest_arm(rig, "r")
+    _s, _e, Fl, _r = rest_arm(rig, "l")
+    C, r = frame_of(rig)
+    hr = _unit(haft_rest)
+    g0 = float(np.linalg.norm(Fr - Fl)) if rest_grip else c * r
+    rest_mid = ((Fr - hr * (0.5 * g0)) if rest_grip else Fr) - C
+    rest_mid = rest_mid / r
+    b_spot = np.array((-0.14, -0.4 - low * 0.8, -0.84))
+    b_haft = _unit((0.25, -0.02 - low * 0.4, -0.97))
+    # (a weapon held at rest by one hand goes up to rest at his right side, its haft leaning in a little and its butt out
+    # past his hip: lifted upright before him, its long butt end swung down through his belly and his right leg)
+    rise_haft = _unit(b_haft + (hr - b_haft) * 0.6) if rest_grip else _unit(b_haft * 0.4 + hr * 0.6 + np.array([0.3, 0.0, 0.0]))
+    k_hand = [(0.0, None), (top * 0.5, (-0.3, -0.3, -0.62)), (top, (-0.26, -0.3 - low * 0.5, -0.66)),
+              (mid, (-0.24, -0.38 - low * 0.8, -0.8)), (hit, (-0.2, -0.42 - low, -0.86), "hit"),
+              (hold, (0.1, -0.42 - low, -0.86)), (back, tuple(b_spot)),
+              (rise, tuple(b_spot + (rest_mid - b_spot) * (0.6 if rest_grip else 0.78))), (rest, None), (T, None)]
+    # (on the way up to rest the haft turns through the way half way between level ahead and how it rests, its head
+    # kept well out in front of him: the first way back carried it up past his face and round, and its butt end through
+    # his body)
     k_haft = [(0.0, None), (top * 0.5, (-0.62, 0.75, 0.2)), (top, (-0.85, 0.3 - low * 0.6, 0.45)),
               (mid, (-0.92, 0.05 - low * 0.55, -0.38)), (hit, (0.3, -0.05 - low * 0.5, -0.95)),
-              (hold, (0.85, -0.15 - low * 0.4, -0.5)), (after, (0.55, 0.62, -0.55)), (rel, (0.05, 0.97, 0.15)),
-              (T, None)]
-    k_lw = [(0.0, 0.0), (top * 0.8, 1.0), (hold + 0.05, 1.0), (rel, 0.0), (T, 0.0)]
-    k_grip = [(0.0, 0.0), (top * 0.55, 1.0), (rel - 0.05, 1.0), (rel + 0.18, 0.0), (T, 0.0)]
+              (hold, (0.85, -0.15 - low * 0.4, -0.5)), (back, tuple(b_haft)),
+              (rise, tuple(rise_haft)), (rest, None), (T, None)]
+    k_lw = [(0.0, 0.0), (top * 0.8, 1.0), (back, 1.0), (rise, 0.5 if rest_grip else 0.25), (rest, 0.0), (T, 0.0)]
+    k_grip = None if rest_grip else [(0.0, 0.0), (top * 0.55, 1.0), (back, 1.0), (rise, 0.3), (rest, 0.0), (T, 0.0)]
+    k_slide = None
+    k_gap = None
+    if slide:
+        k_slide = [(0.0, 0.0), (top * 0.6, slide * 0.4), (top, slide), (back, slide), (rise, slide * 0.7), (rest, 0.0), (T, 0.0)]
+    if gap is not None:
+        k_gap = [(0.0, None), (top * 0.6, g0 + (gap - g0) * 0.8), (top, gap), (back, gap),
+                 (rise, g0 + (gap - g0) * 0.6), (rest, None), (T, None)]
     k_tw = sh([(0.0, 0.0), (top - 0.05, 52.0), (top + 0.05, 55.0), (hit, -6.0, "hit"), (hold, -48.0),
-               (hold + 0.1, -45.0), (T, 0.0)], -ld)
+               (hold + 0.1, -45.0), (back, -8.0), (rise, -3.0), (rest, 0.0), (T, 0.0)], -ld)
     k_lean = sh([(0.0, 0.0), (top, 3.0 + 4.0 * low), (hit, 9.0 + 3.0 * hv + 10.0 * low, "hit"),
-                 (hold, 7.0 + 8.0 * low), (T, 0.0)], -ld)
-    k_lunge = sh([(0.0, 0.0), (top, 0.2), (hit, 0.75, "hit"), (hold, 0.65), (T, 0.0)], -ld * 0.5)
+                 (hold, 7.0 + 8.0 * low), (back, 4.0 + 4.0 * low), (rest, 0.0), (T, 0.0)], -ld)
+    k_lunge = sh([(0.0, 0.0), (top, 0.2), (hit, 0.75, "hit"), (hold, 0.65), (back, 0.35), (rest, 0.0), (T, 0.0)], -ld * 0.5)
+    # (letting go, the left hand goes back to his side out round his hip, not straight through it)
+    k_left = None if rest_grip else [(0.0, None), (back, (0.6, -0.55, -0.75)), (rise, (0.9, -0.72, -0.55)),
+                                     (rest, None), (T, None)]
     # (the elbows out to the sides: the left arm reaching across his chest would otherwise lie on it)
     return two_handed(rig, kn, name, T, hit, haft_rest, head_rest, k_hand, k_haft, "sweep", k_lw, k_grip, c,
-                      k_tw, k_lean, k_lunge, pole_r=(-0.8, -0.5, 0.3), pole_l=(0.85, -0.45, 0.25), two_faced=two_faced)
+                      k_tw, k_lean, k_lunge, pole_r=(-0.8, -0.5, 0.3), pole_l=(0.85, -0.45, 0.25), two_faced=two_faced,
+                      rest_grip=rest_grip, k_slide=k_slide, k_gap=k_gap, k_left=k_left)
+
+
+def chop_down(rig, kn, name, haft_rest, head_rest, T=2.0, hit=0.95, low=-0.55, ahead=1.05, angle=50.0, side=-0.12,
+              rest_grip=False, c=0.3, slide=0.0, gap=None, two_faced=False, lean_hit=18.0, crouch=1.0, pull_x=None,
+              pull_slide=None):
+    """
+    A two-handed blow over the top into the ground in front of him (the Thawed axe's smash, the Cinder Knight's slam):
+    the left hand comes onto the haft, both raise it up past his right shoulder and over his head, its head hanging
+    behind him a beat as he rears back, then brought over the top and down, his weight following it, its blade (or
+    hammer face) leading and striking the ground: at the blow his hands are `ahead` reaches out and `low` below his
+    shoulders, the haft `angle` degrees below level. Held a moment, pulled out and carried back to rest. The ground,
+    not his body, sets where things go (`world`): his lean and crouch carry his shoulders down after his hands.
+    `slide`, `gap`: the weapon sliding through his fists as he raises it (his hands going down to the butt).
+    """
+    hv = kn.heavy
+    ld = lead(kn)
+    lift = hit * 0.3
+    top = hit * 0.62
+    over = hit * 0.84
+    hold = hit + 0.22 + 0.08 * hv
+    rest = T - 0.15
+    free = hold + 0.25 * (rest - hold)
+    pull = hold + 0.65 * (rest - hold)
+    a = math.radians(angle)
+    a2 = math.radians(angle * 0.4)
+    # (at the top his hands are up before his right shoulder, the head of the weapon back over it, up behind his
+    # head, as a woodsman's: his short arms can't both reach over his head, and tried, they went round his helm)
+    k_hand = [(0.0, None), (lift, (-0.3, 0.0, -0.5)), (top, (-0.38, 0.14, -0.4)), (top + 0.08, (-0.36, 0.17, -0.44)),
+              (over, (side, 0.32, -0.95)), (hit, (side, low, -ahead), "hit"), (hold, (side, low - 0.03, -ahead + 0.03)),
+              (free, (side, low + 0.12, -ahead + 0.02)), (pull, (side * 0.6 if pull_x is None else pull_x, -0.15, -0.95)), (rest, None), (T, None)]
+    k_haft = [(0.0, None), (lift, (-0.25, 0.9, 0.35)), (top, (-0.15, 0.58, 0.8)), (top + 0.08, (-0.14, 0.68, 0.72)),
+              (over, (-0.04, 0.92, -0.4)), (hit, (-0.02, -math.sin(a), -math.cos(a)), "hit"),
+              (hold, (-0.02, -math.sin(a) - 0.04, -math.cos(a))), (free, (-0.04, -math.sin(a2), -math.cos(a2))),
+              (pull, (-0.1, 0.95, -0.3)), (rest, None), (T, None)]
+    k_lw = [(0.0, 0.0), (lift, 1.0), (pull, 1.0), (rest, 0.0), (T, 0.0)]
+    # (the left hand lets go as he lifts it back upright, and drifts back to his side: let go at the end, it swung)
+    k_grip = None if rest_grip else [(0.0, 0.0), (lift * 0.8, 1.0), (free, 1.0), (pull - 0.08, 0.25), (pull, 0.0),
+                                     (rest, 0.0), (T, 0.0)]
+    # (`pull_slide`: lifting it back upright he holds it by the very end of its haft, so its butt doesn't swing
+    # through him, then lets it slide down through his fist till the butt rests on the ground)
+    k_slide = None if not slide else [(0.0, 0.0), (lift, slide * 0.5), (top, slide), (free, slide),
+                                      (pull, slide if pull_slide is None else pull_slide), (rest, 0.0), (T, 0.0)]
+    k_gap = None
+    if gap is not None:
+        _s, _e, Fr, _r = rest_arm(rig, "r")
+        _s, _e, Fl, _r = rest_arm(rig, "l")
+        C, r = frame_of(rig)
+        g0 = float(np.linalg.norm(Fr - Fl)) if rest_grip else c * r
+        k_gap = [(0.0, None), (lift, g0 + (gap - g0) * 0.5), (top, gap), (pull, gap), (rest, None), (T, None)]
+    k_tw = sh([(0.0, 0.0), (top, 10.0), (hit, -4.0, "hit"), (hold, -4.0), (rest, 0.0), (T, 0.0)], -ld)
+    k_lean = sh([(0.0, 0.0), (top, -9.0 - 3.0 * hv), (top + 0.08, -10.0 - 3.0 * hv), (hit, lean_hit + 4.0 * hv, "hit"),
+                 (hold, lean_hit - 2.0 + 3.0 * hv), (pull, 8.0), (rest, 0.0), (T, 0.0)], -ld)
+    k_lunge = sh([(0.0, 0.0), (top, 0.1), (hit, crouch, "hit"), (hold, crouch * 0.95), (pull, 0.4), (rest, 0.0),
+                  (T, 0.0)], -ld * 0.5)
+    return two_handed(rig, kn, name, T, hit, haft_rest, head_rest, k_hand, k_haft, "chop", k_lw, k_grip, c,
+                      k_tw, k_lean, k_lunge, pole_r=(-0.85, -0.45, 0.25), pole_l=(0.85, -0.45, 0.25),
+                      two_faced=two_faced, world=True, k_slide=k_slide, rest_grip=rest_grip, k_gap=k_gap)
+
+
+def one_hand_chop(rig, kn, name, haft_rest, head_rest, T=2.4, hit=0.85, low=-1.15, ahead=0.78, angle=18.0,
+                  side=-0.5, lean_hit=28.0, crouch=1.2):
+    """
+    A one-handed blow over the top into the ground (the Geode Knight's pick; the user, November 19, 2026: "his
+    pickaxe needs to hit the ground ... just do a one-hand thing"): the weapon swung up off his shoulder, back over
+    it, its head hanging behind him a beat, then over the top and down, his weight going in after it, the spike (or
+    blade) leading and driving into the ground before him, the haft near level as it bites; held, pulled free and
+    shouldered again. His free arm swings out ahead for balance as he winds up and back as he strikes. `world`, like
+    chop_down: the ground sets where the blow lands.
+    """
+    hv = kn.heavy
+    ld = lead(kn)
+    lift = hit * 0.32
+    top = hit * 0.62
+    over = hit * 0.84
+    hold = hit + 0.2 + 0.08 * hv
+    rest = T - 0.15
+    free = hold + 0.22 * (rest - hold)
+    up = hold + 0.55 * (rest - hold)
+    pull = hold + 0.8 * (rest - hold)
+    a = math.radians(angle)
+    k_hand = [(0.0, None), (lift, (-0.58, 0.62, -0.4)), (top, (-0.52, 0.78, -0.2)), (top + 0.07, (-0.5, 0.78, -0.26)),
+              (over, (side, 0.45, -0.72)), (hit, (side, low, -ahead), "hit"), (hold, (side, low - 0.02, -ahead + 0.02)),
+              (free, (side, low + 0.25, -ahead + 0.05)), (up, (-0.52, 0.2, -0.62)), (pull, (-0.6, 0.28, -0.55)),
+              (rest, None), (T, None)]
+    k_haft = [(0.0, None), (lift, (-0.05, 0.8, 0.6)), (top, (-0.06, 0.25, 0.97)), (top + 0.07, (-0.06, 0.4, 0.92)),
+              (over, (-0.03, 0.9, -0.43)), (hit, (-0.02, -math.sin(a), -math.cos(a)), "hit"),
+              (hold, (-0.02, -math.sin(a) - 0.03, -math.cos(a))), (free, (-0.03, 0.2, -0.98)),
+              (up, (-0.02, 0.96, -0.28)), (pull, (0.08, 0.85, 0.52)), (rest, None), (T, None)]
+    k_lw = [(0.0, 0.0), (lift, 1.0), (up, 1.0), (pull, 0.5), (rest, 0.0), (T, 0.0)]
+    k_grip = [(0.0, 0.0), (T, 0.0)]
+    k_left = [(0.0, None), (top, (0.75, -0.25, -0.75)), (hit, (1.0, -0.7, 0.15)), (hold, (1.0, -0.72, 0.12)),
+              (pull, (0.95, -0.8, -0.2)), (rest, None), (T, None)]
+    k_tw = sh([(0.0, 0.0), (top, 14.0), (hit, -6.0, "hit"), (hold, -5.0), (rest, 0.0), (T, 0.0)], -ld)
+    k_lean = sh([(0.0, 0.0), (top, -8.0 - 3.0 * hv), (hit, lean_hit + 4.0 * hv, "hit"), (hold, lean_hit + 2.0 * hv),
+                 (pull, 6.0), (rest, 0.0), (T, 0.0)], -ld)
+    k_lunge = sh([(0.0, 0.0), (top, 0.15), (hit, crouch, "hit"), (hold, crouch * 0.95), (pull, 0.3), (rest, 0.0),
+                  (T, 0.0)], -ld * 0.5)
+    return two_handed(rig, kn, name, T, hit, haft_rest, head_rest, k_hand, k_haft, "chop", k_lw, k_grip, 0.3,
+                      k_tw, k_lean, k_lunge, pole_r=(-0.85, -0.45, 0.25), pole_l=(0.85, -0.45, 0.25), world=True,
+                      k_left=k_left, k_lpole=[(0.0, None), (top, (0.9, -0.4, 0.2)), (pull, (0.9, -0.4, 0.2)), (rest, None),
+                                              (T, None)])
 
 
 def two_hand_chop(rig, kn, name, haft_rest, head_rest, T=1.35, hit=0.7, c=0.38, down=0.45, reach=0.95, ground=False,
                   two_faced=False):
     """
+    (Not used since November 19, 2026, evening: the Geode pick is one_hand_chop now, the two-handed blows into the
+    ground chop_down. Kept for reference.)
     A two-handed overhead blow (the Geode Knight's pick; with `ground`, a slam into the ground): the left hand comes up
     onto the haft, both raise it high behind his head as he rears back, then pull it over and down in front, his arms
     reaching out straight (`reach` of their length ahead) as it strikes, its head driven down (`down`: the haft's droop

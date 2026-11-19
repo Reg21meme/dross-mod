@@ -579,11 +579,16 @@ public class ElementalKnight extends Monster implements GeoEntity
                 if (this.move == 0)
                 {
                     this.play("pick", 1.3F);
-                    KnightEffects.arc(level, this, KnightTuning.PICK_REACH * 0.75D, 1.7D, 75.0D, -75.0D, 14,
-                            new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_AMETHYST_DUST), 1.4F), 0.0D);
-                    Vec3 bite = this.at(KnightTuning.PICK_REACH * 0.8D, 0.0D, 1.4D);
+                    // (where its spike bites the ground: rock and amethyst thrown up, a small ring of dust)
+                    Vec3 bite = this.at(KnightTuning.PICK_BITE_FORWARD, KnightTuning.PICK_BITE_RIGHT, 0.0D);
+                    double gy = this.groundY(bite.x, bite.z, this.getY());
                     level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.AMETHYST_BLOCK.defaultBlockState()),
-                            bite.x, bite.y, bite.z, 14, 0.4D, 0.3D, 0.4D, 0.2D);
+                            bite.x, gy + 0.2D, bite.z, 18, 0.3D, 0.25D, 0.3D, 0.2D);
+                    level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK,
+                            level.getBlockState(BlockPos.containing(bite.x, gy - 0.5D, bite.z))), bite.x, gy + 0.2D, bite.z,
+                            22, 0.4D, 0.2D, 0.4D, 0.25D);
+                    KnightEffects.shockwave(level, this, new Vec3(bite.x, gy, bite.z), 2.2D,
+                            new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_AMETHYST_DUST), 1.3F));
                     this.strike(KnightTuning.PICK_ARC, KnightTuning.PICK_REACH, KnightTuning.PICK_DAMAGE,
                             KnightTuning.PICK_KNOCK);
                 }
@@ -700,7 +705,7 @@ public class ElementalKnight extends Monster implements GeoEntity
     private void iceSmash(ServerLevel level, @Nullable LivingEntity target)
     {
         this.play("smash", 1.6F);
-        Vec3 start = this.position().add(this.forward().scale(2.0D));
+        Vec3 start = this.at(KnightTuning.SMASH_FORWARD, KnightTuning.SMASH_RIGHT, 0.0D);
         KnightEffects.shockwave(level, this, start, 3.0D, ParticleTypes.SNOWFLAKE);
         Vec3 end = target != null && target.distanceTo(this) <= KnightTuning.SMASH_LINE_MAX
                 ? target.position() : this.position().add(this.forward().scale(8.0D));
@@ -795,7 +800,7 @@ public class ElementalKnight extends Monster implements GeoEntity
 
     private void fireSlam(ServerLevel level)
     {
-        Vec3 at = this.position().add(this.forward().scale(KnightTuning.SLAM_FORWARD));
+        Vec3 at = this.at(KnightTuning.SLAM_FORWARD, KnightTuning.SLAM_RIGHT, 0.0D);
         double r = KnightTuning.SLAM_RADIUS;
         this.play("slam", 2.4F);
         level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.5D, at.z, 3, 1.0D, 0.2D, 1.0D, 0.0D);
@@ -819,7 +824,7 @@ public class ElementalKnight extends Monster implements GeoEntity
             double a = 2.0D * Math.PI * (i + this.random.nextDouble() * 0.5D) / KnightTuning.SLAM_FIRES;
             double d = KnightTuning.SLAM_FIRE_NEAR + this.random.nextDouble()
                     * (KnightTuning.SLAM_FIRE_FAR - KnightTuning.SLAM_FIRE_NEAR);
-            BlockPos spot = BlockPos.containing(this.getX() + Math.cos(a) * d, this.getY() + 0.5D, this.getZ() + Math.sin(a) * d);
+            BlockPos spot = BlockPos.containing(at.x + Math.cos(a) * d, this.getY() + 0.5D, at.z + Math.sin(a) * d);
             LavaPools.placeFire(level, spot, false, KnightTuning.SLAM_FIRE_MIN_TICKS, KnightTuning.SLAM_FIRE_MAX_TICKS);
         }
     }
@@ -827,6 +832,14 @@ public class ElementalKnight extends Monster implements GeoEntity
     private void crystalBurst(ServerLevel level, @Nullable LivingEntity target)
     {
         this.play("crystal_burst", 2.0F);
+        // the stomp: his right foot coming down hard, a heavy thud and the ground's dust thrown up round it
+        Vec3 foot = this.at(0.1D, KnightTuning.STOMP_RIGHT, 0.0D);
+        this.sound(ModSounds.COLOSSUS_SLAM.get(), 2.6F, 0.9F);
+        this.sound(knightSound(this.kind, "step"), 3.0F, 0.55F);
+        level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK,
+                level.getBlockState(BlockPos.containing(foot.x, this.getY() - 0.5D, foot.z))), foot.x, this.getY() + 0.2D,
+                foot.z, 60, 0.7D, 0.25D, 0.7D, 0.3D);
+        level.sendParticles(ParticleTypes.EXPLOSION, foot.x, this.getY() + 0.4D, foot.z, 1, 0.0D, 0.0D, 0.0D, 0.0D);
         Vec3 middle = this.position();
         KnightEffects.shockwave(level, this, middle, KnightTuning.BURST_OUTER + 1.0D,
                 new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_AMETHYST_DUST), 1.5F));

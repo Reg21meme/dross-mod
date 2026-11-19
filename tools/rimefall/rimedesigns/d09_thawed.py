@@ -88,36 +88,70 @@ def body(s):
     # (The slabs of glacier that were on his shoulder and his back are gone: the user's note after round 2.)
 
 
+# The axe held at the ready in both hands (the user, November 19, 2026: "instead of holding it with one hand, in a
+# neutral state, make him hold it with an angle with two hands ... the sharp part needs to be facing toward where he's
+# facing ... make the axe a little thicker"; it was held upright in his right fist, its blade out to his side): the haft
+# across him at 45 degrees, his left fist low on it before his left hip, his right fist up before his right breast, the
+# head up past his right shoulder with its blade pointing ahead.
+AXE_L = np.array([10.0, 36.0, -16.0])       # (unscaled, the design's units before BIG)
+AXE_R = np.array([-6.0, 52.0, -17.0])
+AXE_BUTT = 10.0                             # the haft runs this far below the left fist ...
+AXE_TOP = 65.0                              # ... and this far above it
+AXE_BLADE = (35.0, 62.0)                    # the blade along it, from the left fist
+SHOULDER_R = np.array([-18.0, 55.0, 0.0])
+SHOULDER_L = np.array([18.0, 55.0, 0.0])
+
+
+def elbow(S, W, la, lb, pole):
+    """Where an elbow goes for the arm from shoulder S to wrist W (upper arm la, forearm lb), bending towards `pole`."""
+    S, W = np.asarray(S, dtype=float), np.asarray(W, dtype=float)
+    d = float(np.linalg.norm(W - S))
+    u = (W - S) / d
+    d = min(d, la + lb - 0.05)
+    x = (la * la - lb * lb + d * d) / (2.0 * d)
+    h = math.sqrt(max(la * la - x * x, 0.0))
+    v = np.asarray(pole, dtype=float)
+    v = v - u * float(np.dot(v, u))
+    v = v / np.linalg.norm(v)
+    return S + u * x + v * h
+
+
+AXE_ELBOW_R = elbow(SHOULDER_R, AXE_R, 14.5, 13.0, (-1.0, -0.5, 0.3))
+AXE_ELBOW_L = elbow(SHOULDER_L, AXE_L, 14.5, 13.0, (1.0, -0.4, 0.4))
+
+
 def axe(s):
-    # Right arm: the axe held upright beside him, its blade up by his shoulder.
-    s.part("arm_r").taper([(-18, 55, 0), (-25, 43, -4), (-21, 38, -14)], [10, 9, 8], "skin")
-    s.part("hand_r").rbox((-21, 38, -15), (8, 8, 8), "skin", c=2)
-    s.part("arm_r").ring((-25, 43, -4), (0.6, -0.8, -0.2), 4.6, 2, 3, "leather", n=6)
-    body, s = s, s.part("hand_r")
-    h0 = np.array([-21.0, 8.0, -18.0])
-    h1 = np.array([-21.0, 80.0, -13.0])
-    s.seg(h0, h1, 3, 3, "bone")
-    d = (h1 - h0) / np.linalg.norm(h1 - h0)
-    for t in (0.36, 0.45):
-        s.ring(h0 + (h1 - h0) * t, d, 2.2, 1, 2, "leather", n=6)
-    # The blade: a crescent of clear ice out to his right, set in a whale's jawbone along the haft, its edge glowing.
-    z = h1[2] - 0.5
+    body, h = s, s.part("hand_r")
+    L = AXE_L
+    u = (AXE_R - AXE_L) / np.linalg.norm(AXE_R - AXE_L)          # up the haft
+    f = np.array([0.0, 0.0, -1.0])
+    f = f - u * float(np.dot(f, u))
+    f = f / np.linalg.norm(f)                                      # the way the blade points: ahead
+    for side, S, E, F in ((-1, SHOULDER_R, AXE_ELBOW_R, AXE_R), (1, SHOULDER_L, AXE_ELBOW_L, AXE_L)):
+        wrist = F + (E - F) / np.linalg.norm(E - F) * 1.0
+        body.part("arm_r" if side < 0 else "arm_l").taper([S, E, wrist], [10, 9, 8], "skin")
+        body.part("arm_r" if side < 0 else "arm_l").ring(E, (wrist - E) / np.linalg.norm(wrist - E), 4.6, 2, 3,
+                                                          "leather", n=6)
+        body.part("hand_r" if side < 0 else "hand_l").rbox(F, (8, 8, 8), "skin", c=2)
+    h.seg(L - u * AXE_BUTT, L + u * AXE_TOP, 4, 4, "bone")
+    for t in (-6.5, 30.5):
+        h.ring(L + u * t, u, 2.8, 1, 2, "leather", n=6)
+    # The blade: a crescent of clear ice pointing ahead, set in a whale's jawbone along the haft, its edge glowing (a
+    # third thicker than it was).
     edge = []
     for k in range(9):
-        y = 54 + k * 3 + 1.5                                    # strips 3 tall, touching (never overlapping)
         t = k / 8.0
-        reach = round(9 + 9 * math.sin(math.pi * t) + 3 * t)    # how far the blade sticks out at this height
-        xe = -22.5 - reach
-        s.seg((-22.5, y, z), (xe, y, z), 3, 2, "blade")
-        edge.append(np.array([xe, y, z]))
-    s.curve([edge[0] + np.array([2, -3, 0])] + edge[::2] + [edge[-1] + np.array([3, 3, 0])], 8, [2, 3, 3, 3, 3, 3, 2],
-            "edge", depths=[3] * 7)
-    s.curve([(-21, 50, z), (-23.5, 62, z), (-23.5, 74, z), (-21, 84, z)], 5, [4, 5, 5, 3], "bone", depths=[4, 4, 4, 3])
-    for y in (58, 64, 70, 76):
-        s.box((-25.5, y, z), (2, 2, 3), "bone")                  # the jaw's teeth, gripping the ice
-    # Left arm hanging, a fist (the chunk of glacier ice round it is gone: the user's note after round 2).
-    body.part("arm_l").taper([(18, 55, 0), (22, 42, -4), (20, 31, -10)], [10, 9, 8], "skin")
-    body.part("hand_l").rbox((20, 28, -11), (8, 8, 8), "skin", c=2)
+        sk = AXE_BLADE[0] + k * 3.0 + 1.5                          # strips 3 along the haft, touching (never overlapping)
+        reach = round(9 + 9 * math.sin(math.pi * t) + 3 * t)       # how far the blade sticks out here
+        p0 = L + u * sk + f * 1.5
+        h.seg(p0, p0 + f * reach, 3, 3, "blade", side=u)
+        edge.append(p0 + f * reach)
+    h.curve([edge[0] - f * 2.0 - u * 3.0] + edge[::2] + [edge[-1] - f * 3.0 + u * 3.0], 8, [2, 3, 3, 3, 3, 3, 2],
+            "edge", depths=[4] * 7, side=f)
+    h.curve([L + u * 31.0, L + u * 43.0 + f * 2.5, L + u * 55.0 + f * 2.5, L + u * 65.0], 5, [4, 5, 5, 3], "bone",
+            depths=[5, 5, 5, 4], side=f)
+    for sk in (39.0, 45.0, 51.0, 57.0):                            # the jaw's teeth, gripping the ice
+        h.seg(L + u * sk + f * 3.5, L + u * sk + f * 5.5, 2, 4, "bone", side=u)
 
 
 def spear(s):

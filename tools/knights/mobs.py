@@ -58,8 +58,13 @@ class Knight:
     def __init__(self, key, label, name, design, hand_r, hand_l, moves, variant=None, k=1.0, shoulder=(14.5, 49.0),
                  neck=53.0, hip=30.0, leg_x=K.LEG_X, cape=(0.0, 50.0, 10.0), props=(), extra=None, extra_mats=None,
                  gear="pole", heavy=0.5, speed=0.25, walk_t=1.2, walk_lean=0.0, walk_style=None,
-                 elbow_r=(-22.0, 42.0, -4.0), elbow_l=(21.0, 40.0, -2.0)):
+                 elbow_r=(-22.0, 42.0, -4.0), elbow_l=(21.0, 40.0, -2.0), slide=False):
         self.ID = key
+        # (slide: what its right hand holds goes on a bone of its own, weapon_r, that can slide along the haft through
+        # its fist, as a hand slides down a long haft to the butt for a big blow: the Cinder Knight's slam)
+        self.slide = slide
+        if slide:
+            props = tuple(props) + (("weapon_r", tuple(hand_r), "hand_r"),)
         self.heavy = heavy               # 0 light and quick (the Stormblade) .. 1 heavy and slow (the Wreck Knight)
         # how fast it really walks after its foe, blocks a second (a mob on the ground at full speed moves about
         # 31.9 x its speed attribute squared a second: KnightKind's speed)
@@ -111,6 +116,8 @@ class Knight:
         if self._extra:
             self._extra(s)
         split_arms(s.m)
+        if self.slide:
+            split_weapon(s.m)
 
     def materials(self, v):
         mats = dict(self.mod.materials(v) if v is not None else self.mod.materials())
@@ -144,6 +151,21 @@ def split_arms(m):
         arm.cubes[:] = keep
 
 
+def split_weapon(m):
+    """What the right hand holds onto its own bone (weapon_r, its pivot the fist): every box on hand_r but the fist's."""
+    hand, wpn = m["hand_r"], m["weapon_r"]
+    F = np.array(hand.pivot, dtype=float)
+    keep = []
+    for c in hand.cubes:
+        q = np.array(c.center(), dtype=float)
+        if float(np.linalg.norm(q - F)) < 1.5 and max(c.size) <= 10.0:
+            keep.append(c)
+        else:
+            c.bone = wpn
+            wpn.cubes.append(c)
+    hand.cubes[:] = keep
+
+
 def thawed_variant(letter):
     mod = importlib.import_module("rimedesigns.d09_thawed")
     return next(v for v in mod.VARIANTS if v["letter"] == letter)
@@ -169,15 +191,15 @@ ORB = (0.0, 86.0, -6.0)
 
 from knightkit.kanims import (  # noqa: E402,F401
     anchor_throw, boulder_smash, boulder_throw, cast, chop, dash, great_fireball, hammer_swing, idle, overhead_slam,
-    pick_strike, punch, reap, shield_wall, slash, spore_burst, staff_raise, thrust, walk)
+    pick_strike, punch, reap, shield_wall, slash, spore_burst, staff_raise, stomp, thrust, walk)
 from knightkit import kanims  # noqa: E402
 from knightkit.kanims import flat_sweep  # noqa: E402,F401
-from knightkit.kreach import blade_cuts, two_hand_chop, two_hand_sweep  # noqa: E402
+from knightkit.kreach import blade_cuts, chop_down, one_hand_chop, swing_round  # noqa: E402
 
 # The flat swings (the user, November 18, 2026: their edges should lead into you, "not vertical ... horizontal"): each
 # weapon's haft (from its fist towards its head) and the way its striking side faces, as it rests.
 SCYTHE = dict(haft_rest=(0.0, 77.0, 2.0), head_rest=(0.0, 0.0, -1.0))
-THAWED_AXE = dict(haft_rest=(0.0, 72.0, 5.0), head_rest=(-1.0, 0.0, 0.0))
+THAWED_AXE = dict(haft_rest=(-16.0, 16.0, -1.0), head_rest=(0.0, 0.0, -1.0))   # (the two-handed guard: d09_thawed)
 FIRE_HAMMER = dict(haft_rest=(-2.6, 62.5, 1.6), head_rest=(1.0, 0.0, 0.0), two_faced=True)
 
 
@@ -199,15 +221,18 @@ def thawed(letter):
 
 
 THAWED_K = 4.6 / 5.31     # rimedesigns/d09_thawed.BIG: the big ones (as tall as the knights)
+THAWED = importlib.import_module("rimedesigns.d09_thawed")
 
 KNIGHTS = [
     Knight("thawedaxe", "9C", "Thawed Soldier (axe)", "rimedesigns.d09_thawed", variant=thawed("C"), k=THAWED_K,
-           hand_r=(-21.0, 38.0, -15.0), hand_l=(20.0, 28.0, -11.0), shoulder=(18.0, 55.0), neck=60.0, hip=30.0,
-           leg_x=7.5, cape=(0.0, 58.0, 12.0), heavy=0.6, speed=0.25, walk_t=1.15,
+           hand_r=tuple(THAWED.AXE_R), hand_l=tuple(THAWED.AXE_L), shoulder=(18.0, 55.0), neck=60.0, hip=30.0,
+           leg_x=7.5, cape=(0.0, 58.0, 12.0), heavy=0.6, speed=0.25, walk_t=1.15, gear="two_hand",
            walk_style=dict(stomp=0.6, hunch=8.0, shiver=1.2, arms=0.6, sway=0.6, nod=1.3),
-           elbow_r=(-25.0, 43.0, -4.0), elbow_l=(22.0, 42.0, -4.0),
-           moves={"swing": lambda r, k: two_hand_sweep(r, k, "swing", T=1.25, hit=0.62, c=0.42, **THAWED_AXE),
-                  "smash": lambda r, k: overhead_slam(r, k, name="smash", head_hit=145.0, inward=25.0)}),
+           elbow_r=tuple(THAWED.AXE_ELBOW_R), elbow_l=tuple(THAWED.AXE_ELBOW_L), slide=True,
+           moves={"swing": lambda r, k: swing_round(r, k, "swing", T=2.1, hit=0.66, rest_grip=True, slide=16.0, gap=7.0,
+                                                     low=-0.15, **THAWED_AXE),
+                  "smash": lambda r, k: chop_down(r, k, "smash", T=2.5, hit=1.0, rest_grip=True, slide=18.0, gap=8.0, low=-0.27, angle=36.0,
+                                                   **THAWED_AXE)}),
     Knight("thawedspear", "9D", "Thawed Soldier (spear)", "rimedesigns.d09_thawed", variant=thawed("D"), k=THAWED_K,
            hand_r=(-21.0, 38.0, -15.0), hand_l=(14.0, 42.0, -18.0), shoulder=(18.0, 55.0), neck=60.0, hip=30.0,
            leg_x=7.5, cape=(0.0, 58.0, 12.0), heavy=0.5, speed=0.25, walk_t=1.15,
@@ -221,13 +246,15 @@ KNIGHTS = [
            leg_x=K.LEG_X * 1.05, props=(("cap", K.CHEST + np.array([0.0, 4.0, 7.5]), "body"),),
            heavy=0.45, speed=0.26, walk_t=1.15,
            walk_style=dict(loll=9.0, sway=1.2, cap_pulse=0.06, roll=1.8, twist=0.6, arms=1.5, nod=1.6),
-           moves={"reap": lambda r, k: two_hand_sweep(r, k, "reap", T=1.35, hit=0.66, c=0.62, low=0.3, **SCYTHE),
+           moves={"reap": lambda r, k: swing_round(r, k, "reap", T=2.2, hit=0.66, c=0.62, low=0.3, **SCYTHE),
                   "spore_burst": lambda r, k: spore_burst(r, k)}),
-    Knight("cinder", "F1B", "Cinder Knight", "knightdesigns.f01_cinder", variant=None, hand_r=(-24.0, 37.0, -13.0),
+    Knight("cinder", "F1B", "Cinder Knight", "knightdesigns.f01_cinder", variant=None, hand_r=(-24.0, 37.0, -13.0), slide=True,
            hand_l=K.HANG_FIST, heavy=0.9, speed=0.24, walk_t=1.3, walk_lean=2.0,
            walk_style=dict(stomp=1.0, roll=1.2, twist=1.5, arms=1.3, nod=1.2),
-           moves={"swing": lambda r, k: two_hand_sweep(r, k, "swing", T=1.35, hit=0.68, c=0.42, **FIRE_HAMMER),
-                  "slam": lambda r, k: overhead_slam(r, k, name="slam", head_hit=130.0, strike=50.0, inward=25.0)}),
+           moves={"swing": lambda r, k: swing_round(r, k, "swing", T=2.15, hit=0.68, c=0.42, **FIRE_HAMMER),
+                  "slam": lambda r, k: chop_down(r, k, "slam", T=2.7, hit=1.05, slide=24.0, gap=8.0, c=0.42, low=-0.95,
+                                                  angle=20.0, lean_hit=30.0, crouch=1.3, pull_x=-0.6, pull_slide=28.0,
+                                                  **FIRE_HAMMER)}),
     Knight("flamehand", "F5", "Flamehand", "knightdesigns.f05_flamehand", hand_r=(-12.0, 44.0, -21.0),
            hand_l=(16.0, 52.0, -16.0), props=(("orb", ORB, "body"),), extra=flamehand_orb, gear="fists",
            heavy=0.1, speed=0.27, walk_t=0.95, walk_lean=2.0,
@@ -249,10 +276,9 @@ KNIGHTS = [
            gear="shoulder", heavy=0.85, speed=0.23, walk_t=1.35, walk_lean=2.0,
            walk_style=dict(stomp=0.7, hunch=6.0, carry=5.0, roll=1.3, arms=1.2),
            elbow_r=tuple(K.CARRY_ELBOW),
-           moves={"pick": lambda r, k: two_hand_chop(r, k, "pick", T=1.4, hit=0.72, c=0.4, down=0.4,
-                                                     haft_rest=GEODE_PICK["haft_rest"], head_rest=GEODE_PICK["head_rest"]),
-                  "crystal_burst": lambda r, k: overhead_slam(r, k, name="crystal_burst", head_hit=CARRY_SLAM,
-                                                             strike=50.0, both=True)}),
+           moves={"pick": lambda r, k: one_hand_chop(r, k, "pick", haft_rest=GEODE_PICK["haft_rest"],
+                                                     head_rest=GEODE_PICK["head_rest"]),
+                  "crystal_burst": lambda r, k: stomp(r, k)}),
     Knight("rockfall", "E4", "Rockfall Knight", "knightdesigns.e04_rockfall", hand_r=(-11.5, 73.5, -2.5),
            hand_l=(11.5, 73.5, -2.5), leg_x=K.LEG_X * 1.05, props=(("boulder", (0.0, 84.0, -2.0), "arm_r"),),
            gear="up", heavy=1.0, speed=0.22, walk_t=1.45, walk_lean=1.0,

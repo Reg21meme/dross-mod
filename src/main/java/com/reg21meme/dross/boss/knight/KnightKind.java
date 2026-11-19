@@ -31,7 +31,8 @@ public enum KnightKind
             new Move("reap", 0.0, 4.5, 26),
             new Move("spore_burst", 0.0, 6.5, 200),
             DrossColors.KNIGHT_SPOREBOUND_EGG_BASE, DrossColors.KNIGHT_SPOREBOUND_EGG_SPOTS),
-    CINDER("cinder", Element.FIRE, 100, 10, 0.24, 0.7, 0.0,
+    // (200 health: 100 until the user, November 19, 2026: "Cinder Knight needs way more health")
+    CINDER("cinder", Element.FIRE, 200, 10, 0.24, 0.7, 0.0,
             new Move("swing", 0.0, 4.0, 26),
             new Move("slam", 0.0, 6.0, 180),
             DrossColors.KNIGHT_CINDER_EGG_BASE, DrossColors.KNIGHT_CINDER_EGG_SPOTS),
@@ -51,8 +52,11 @@ public enum KnightKind
             new Move("pick", 0.0, 4.5, 26),
             new Move("crystal_burst", 0.0, 9.0, 180),
             DrossColors.KNIGHT_GEODE_EGG_BASE, DrossColors.KNIGHT_GEODE_EGG_SPOTS),
-    ROCKFALL("rockfall", Element.EARTH, 110, 12, 0.22, 0.85, 9.0,
-            new Move("throw", 5.0, 28.0, 70),
+    // (his throw at any range and more often, and he keeps 6 blocks off, not 9: the user, November 19, 2026: "he's
+    // not doing it enough ... if I'm just hitting him a bunch of times ... he's just trying to move around": standing
+    // close he could only back away, his throw needing 5 blocks)
+    ROCKFALL("rockfall", Element.EARTH, 110, 12, 0.22, 0.85, 6.0,
+            new Move("throw", 0.0, 28.0, 50),
             new Move("rockfall", 0.0, 16.0, 220),
             DrossColors.KNIGHT_ROCKFALL_EGG_BASE, DrossColors.KNIGHT_ROCKFALL_EGG_SPOTS);
 

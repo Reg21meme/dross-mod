@@ -121,8 +121,112 @@ def record(rig, name, length, frame, loop=True):
     n = int(round(length / STEP))
     for i in range(n + 1):
         a.add(i * STEP, frame(i * STEP))
+    if not loop:
+        untangle(a.frames)
     a.bake(*BAKE)
+    if not loop:
+        settle_ends(a)
     return a
+
+
+SWITCH = 0.0002     # seconds: an instant, for the game (a fifth of a thousandth of a tick)
+
+
+def settle_ends(a, tol=1.0):
+    """
+    Each bone that ends its move back at rest but with its angles written the other way round (a turn the same as no
+    turn: -180, -180, 180, or a whole turn more of one angle) gets them rewritten as 0 the moment it's back at rest, in
+    an instant (two keys SWITCH apart: the same pose either side, so nothing moves): the game's blend back to standing
+    then has nothing to turn (from -180, it turned the part over).
+    """
+    for bone, chans in a.tracks.items():
+        kf = chans.get("rotation")
+        if not kf or max(abs(x) for x in kf[-1][1]) < tol:
+            continue
+        if _turn(kf[-1][1]) > tol:
+            continue                         # (it doesn't end at rest: nothing to do)
+        j = len(kf) - 1
+        while j > 0 and _turn(kf[j - 1][1]) <= tol:
+            j -= 1
+        t, v = kf[j]
+        if j == len(kf) - 1:
+            # (only its last key is at rest: the switch just before it)
+            kf[j] = (t - SWITCH, v)
+            kf.append((t, tuple(_zeroish(v))))
+            continue
+        out = kf[:j + 1] + [(t + SWITCH, tuple(_zeroish(v)))]
+        out += [(tk, tuple(_zeroish(vk))) for tk, vk in kf[j + 1:]]
+        chans["rotation"] = out
+
+
+def _turn(e):
+    """Degrees a set of Bedrock angles turns a part from rest."""
+    R = gecko_rotation(*e)
+    R = R[:3, :3] if R.shape[0] == 4 else R
+    return float(np.degrees(np.linalg.norm(Rotation.from_matrix(R).as_rotvec())))
+
+
+def _zeroish(e):
+    """The same turn written as near 0 as it can be."""
+    best = None
+    for v in (list(e), _other(e)):
+        v = _nearest(v, (0.0, 0.0, 0.0))
+        if best is None or sum(x * x for x in v) < sum(x * x for x in best):
+            best = v
+    return best
+
+
+def _other(e):
+    """The other set of Bedrock angles for the same turn (see _euler)."""
+    return [e[0] - 180.0, -180.0 - e[1], e[2] + 180.0]
+
+
+def _nearest(v, ref):
+    return [x + 360.0 * round((r - x) / 360.0) for x, r in zip(v, ref)]
+
+
+def untangle(frames, end_weight=0.0):
+    """
+    Every bone's angles written so a move ends as it began, at rest (the user, November 19, 2026: a weird fast flick at
+    the end of the swings). Every turn has two sets of Bedrock angles (and any turn more of each angle); kept nearest the
+    frame before, a part that passed near straight up or down from its joint (where the two sets meet) came back to
+    rest written the other way, about 180 degrees off in each angle, and the game's blend back to standing turned it
+    over. Here the sets are picked over the whole move (the cheapest changes from frame to frame, ending nearest 0), so
+    the switch from one set to the other falls where they meet, where it doesn't show.
+    """
+    if not frames:
+        return
+    bones = set()
+    for _t, p in frames:
+        bones.update(p.keys())
+    for b in bones:
+        rots = [list(p[b][0]) if b in p else [0.0, 0.0, 0.0] for _t, p in frames]
+        if max(abs(x) for r in rots for x in r) < 1e-9:
+            continue
+        n = len(rots)
+        # (cost, value, back) for each of the two sets at each frame
+        first = rots[0]
+        states = [[(0.0, list(first), -1), (1e18, _nearest(_other(first), first), -1)]]
+        for i in range(1, n):
+            row = []
+            for alt in (rots[i], _other(rots[i])):
+                best = None
+                for k, (c, v, _bk) in enumerate(states[-1]):
+                    nv = _nearest(alt, v)
+                    cost = c + sum((x - y) ** 2 for x, y in zip(nv, v))
+                    if best is None or cost < best[0]:
+                        best = (cost, nv, k)
+                row.append(best)
+            states.append(row)
+        end = min(range(2), key=lambda k: states[-1][k][0] + end_weight * sum(x * x for x in states[-1][k][1]))
+        vals = [None] * n
+        k = end
+        for i in range(n - 1, -1, -1):
+            vals[i] = states[i][k][1]
+            k = states[i][k][2]
+        for (_t, p), v in zip(frames, vals):
+            if b in p:
+                p[b][0][:] = v
 
 
 # ---------------------------------------------------------------- posing helpers (the Frostfolk's conventions)
@@ -168,7 +272,7 @@ def show(p, kn, shown=()):
         else:
             sizes[x] = 1.0
     for prop in kn.props:
-        if prop in ("anchor", "cap"):
+        if prop in ("anchor", "cap", "weapon_r"):
             continue                     # (always there: the game hides the anchor while it's thrown)
         if prop == "boulder":
             p.scale(prop, sizes.get(prop, 1.0))
@@ -178,6 +282,8 @@ def show(p, kn, shown=()):
 
 def rest_arms(p, kn, d=0.0, dl=0.0):
     """Both arms as they rest, swung `d` (right) and `dl` (left) degrees further forward (the weapon kept upright)."""
+    if kn.gear == "two_hand":           # both hands on one haft (the Thawed axe): they move only with the body
+        return
     if kn.gear == "up":                 # both hands up over its head (the boulder)
         arm(p, "r", d * 0.3)
         arm(p, "l", d * 0.3)
@@ -533,7 +639,8 @@ def walk(rig, kn, name="walk"):
         if st["shiver"]:
             q = st["shiver"] * math.sin(8.0 * w)
             p.rot("head", 0.4 * q, 0.6 * q, 0.0)
-            p.rot("arm_l", 0.0, 0.0, 0.5 * q)
+            if kn.gear != "two_hand":
+                p.rot("arm_l", 0.0, 0.0, 0.5 * q)
         if st["cap_pulse"] and "cap" in kn.props:
             p.scale("cap", 1.0 + st["cap_pulse"] * (0.5 + 0.5 * math.cos(2.0 * w - 0.8)))
         if st["heave"] and kn.gear == "up":
@@ -1070,5 +1177,54 @@ def boulder_smash(rig, kn):
         return p
 
     a = record(rig, "rockfall", T, frame, loop=False)
+    a.meta["hits"] = [hit]
+    return a
+
+
+def stomp(rig, kn, name="crystal_burst", T=1.75, hit=0.88):
+    """
+    E3's crystal burst (the user, November 19, 2026: "don't make him move his pickaxe ... just make him stomp the
+    ground ... a visible loud stomp, and then all the amethyst stuff"): his pick stays on his shoulder; he shifts his
+    weight onto his left leg, his body leaning over it and his free arm out for balance, lifts his right leg high out
+    to his side, holds it there a heartbeat, and drives it down onto the ground (the crystals burst up round him), his
+    body dropping onto it, then straightens up.
+    """
+    hv = kn.heavy
+    up = hit * 0.62
+    hold = hit + 0.3 + 0.08 * hv
+    k_lift = [(0.0, 0.0), (up, 38.0), (up + 0.14, 41.0), (hit, 9.0, "hit"), (hold, 9.0), (T - 0.15, 0.0), (T, 0.0)]
+    k_fwd = [(0.0, 0.0), (up, 14.0), (up + 0.14, 15.0), (hit, 2.0, "hit"), (hold, 2.0), (T - 0.15, 0.0), (T, 0.0)]
+    k_shift = [(0.0, 0.0), (up, 2.6), (up + 0.14, 2.8), (hit, 0.4, "hit"), (hold, 0.3), (T - 0.15, 0.0), (T, 0.0)]
+    k_roll = [(0.0, 0.0), (up, -11.0), (up + 0.14, -12.0), (hit, 3.0, "hit"), (hold, 2.0), (T - 0.15, 0.0), (T, 0.0)]
+    k_lean = [(0.0, 0.0), (up, -4.0), (up + 0.14, -5.0), (hit, 12.0 + 3.0 * hv, "hit"), (hit + 0.08, 14.0 + 3.0 * hv),
+              (hold, 10.0), (T - 0.15, 0.0), (T, 0.0)]
+    k_drop = [(0.0, 0.0), (up, 1.2), (up + 0.14, 1.4), (hit, 0.1, "hit"), (hit + 0.07, 0.0), (hold, 0.1),
+              (T - 0.15, 0.0), (T, 0.0)]
+    # (the jolt of the blow: his chest drops onto his hips, its weight on the stomping leg)
+    k_jolt = [(0.0, 0.0), (hit - 0.02, 0.0), (hit + 0.05, -1.8), (hold, -0.6), (T - 0.15, 0.0), (T, 0.0)]
+    k_lout = [(0.0, 0.0), (up, 38.0), (up + 0.14, 40.0), (hit, 14.0), (hold, 12.0), (T - 0.15, 0.0), (T, 0.0)]
+    k_lfwd = [(0.0, 0.0), (up, 12.0), (hit, -8.0), (hold, -6.0), (T - 0.15, 0.0), (T, 0.0)]
+    k_carry = [(0.0, 0.0), (up, -4.0), (hit, 6.0, "hit"), (hit + 0.1, 4.0), (T - 0.15, 0.0), (T, 0.0)]
+
+    def frame(t):
+        p = Pose()
+        lift = curve(t, k_lift)
+        shift = curve(t, k_shift)
+        # (the right leg out to his side and a little ahead; the left leg leans in as his hips shift over it, so its
+        # foot stays where it stands; the hips drop as the stomping foot meets the ground, then as both spread)
+        p.rot("leg_r", -curve(t, k_fwd), 0.0, lift)
+        lean_l = math.degrees(math.atan2(shift, kn.hip))
+        p.rot("leg_l", 0.0, 0.0, lean_l)
+        spread = math.radians(max(0.0, min(lift, 9.0)))
+        p.pos("waist", shift, curve(t, k_drop) - kn.hip * (1.0 - math.cos(spread)), 0.0)
+        body(p, curve(t, k_lean), 0.0, roll=curve(t, k_roll), steady=0.7)
+        p.pos("body", 0.0, curve(t, k_jolt), 0.0)
+        cape(p, curve(t - 0.1, k_lean))
+        arm(p, "l", curve(t, k_lfwd), curve(t, k_lout))
+        p.rot("hand_r", curve(t, k_carry), 0.0, 0.0)
+        show(p, kn)
+        return p
+
+    a = record(rig, name, T, frame, loop=False)
     a.meta["hits"] = [hit]
     return a

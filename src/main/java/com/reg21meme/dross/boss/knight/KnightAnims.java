@@ -38,8 +38,8 @@ public final class KnightAnims
             Map.entry(M_THAWEDAXE, List.of(
                     RimefallAnims.loop(M_THAWEDAXE, "idle", 0.000D),
                     RimefallAnims.loop(M_THAWEDAXE, "walk", 1.994D),
-                    RimefallAnims.once(M_THAWEDAXE, "swing", 28),
-                    RimefallAnims.once(M_THAWEDAXE, "smash", 40))),
+                    RimefallAnims.once(M_THAWEDAXE, "swing", 45),
+                    RimefallAnims.once(M_THAWEDAXE, "smash", 53))),
             Map.entry(M_THAWEDSPEAR, List.of(
                     RimefallAnims.loop(M_THAWEDSPEAR, "idle", 0.000D),
                     RimefallAnims.loop(M_THAWEDSPEAR, "walk", 1.994D),
@@ -53,13 +53,13 @@ public final class KnightAnims
             Map.entry(M_SPOREBOUND, List.of(
                     RimefallAnims.loop(M_SPOREBOUND, "idle", 0.000D),
                     RimefallAnims.loop(M_SPOREBOUND, "walk", 2.156D),
-                    RimefallAnims.once(M_SPOREBOUND, "reap", 30),
+                    RimefallAnims.once(M_SPOREBOUND, "reap", 47),
                     RimefallAnims.once(M_SPOREBOUND, "spore_burst", 43))),
             Map.entry(M_CINDER, List.of(
                     RimefallAnims.loop(M_CINDER, "idle", 0.000D),
                     RimefallAnims.loop(M_CINDER, "walk", 1.837D),
-                    RimefallAnims.once(M_CINDER, "swing", 30),
-                    RimefallAnims.once(M_CINDER, "slam", 40))),
+                    RimefallAnims.once(M_CINDER, "swing", 46),
+                    RimefallAnims.once(M_CINDER, "slam", 57))),
             Map.entry(M_FLAMEHAND, List.of(
                     RimefallAnims.loop(M_FLAMEHAND, "idle", 0.000D),
                     RimefallAnims.loop(M_FLAMEHAND, "walk", 2.326D),
@@ -78,8 +78,8 @@ public final class KnightAnims
             Map.entry(M_GEODE, List.of(
                     RimefallAnims.loop(M_GEODE, "idle", 0.000D),
                     RimefallAnims.loop(M_GEODE, "walk", 1.688D),
-                    RimefallAnims.once(M_GEODE, "pick", 31),
-                    RimefallAnims.once(M_GEODE, "crystal_burst", 40))),
+                    RimefallAnims.once(M_GEODE, "pick", 51),
+                    RimefallAnims.once(M_GEODE, "crystal_burst", 38))),
             Map.entry(M_ROCKFALL, List.of(
                     RimefallAnims.loop(M_ROCKFALL, "idle", 0.000D),
                     RimefallAnims.loop(M_ROCKFALL, "walk", 1.544D),
@@ -88,7 +88,7 @@ public final class KnightAnims
 
     /** "knight.animation.moment" to its tick. */
     private static final Map<String, Integer> MOMENTS = Map.ofEntries(
-            Map.entry("thawedaxe.swing.hits.0", 15),
+            Map.entry("thawedaxe.swing.hits.0", 16),
             Map.entry("thawedaxe.smash.hits.0", 23),
             Map.entry("thawedspear.thrust.hits.0", 12),
             Map.entry("thawedspear.shield_wall.hits.0", 18),
@@ -103,15 +103,15 @@ public final class KnightAnims
             Map.entry("sporebound.reap.hits.0", 16),
             Map.entry("sporebound.spore_burst.hits.0", 25),
             Map.entry("cinder.swing.hits.0", 17),
-            Map.entry("cinder.slam.hits.0", 23),
+            Map.entry("cinder.slam.hits.0", 24),
             Map.entry("flamehand.fireball.release", 11),
             Map.entry("flamehand.great_fireball.release", 41),
             Map.entry("wreck.anchor_throw.release", 17),
             Map.entry("wreck.anchor_slam.hits.0", 23),
             Map.entry("stormblade.slash.hits.0", 9),
             Map.entry("stormblade.slash.hits.1", 15),
-            Map.entry("geode.pick.hits.0", 17),
-            Map.entry("geode.crystal_burst.hits.0", 23),
+            Map.entry("geode.pick.hits.0", 20),
+            Map.entry("geode.crystal_burst.hits.0", 21),
             Map.entry("rockfall.throw.release", 17),
             Map.entry("rockfall.rockfall.hits.0", 24));
 

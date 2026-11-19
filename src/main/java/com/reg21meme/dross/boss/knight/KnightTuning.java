@@ -33,6 +33,10 @@ public final class KnightTuning
     /** The smash: the axe into the ground, and the ice bursts up in a line from it to his foe (one small spike every
      * {@link #SMASH_STEP} blocks, one a tick), then a big spike under where his foe stood (the Alpha Moose's ice). */
     public static final double SMASH_STEP = 1.3D;
+    /** Where the axe bites the ground (blocks ahead of him and to his right; tools/knights/mobs.py measures it: since
+     * November 19, 2026 he chops it down two-handed, its blade upright, past his hands at the haft's end). */
+    public static final double SMASH_FORWARD = 3.2D;
+    public static final double SMASH_RIGHT = 0.3D;
     public static final double SMASH_LINE_MAX = 12.0D;
     /** Anything this close to a small spike as it bursts up takes this, and is chilled. */
     public static final double SMASH_SMALL_HIT = 1.4D;
@@ -114,8 +118,12 @@ public final class KnightTuning
     public static final double HAMMER_KNOCK = 1.1D;
     public static final int HAMMER_FIRE_SECONDS = 4;
     /** The slam: a shockwave this far round where the hammer lands, its damage falling to half at the edge, fire, thrown
-     * up and out; then a ring of fire (the Colossus's own, it goes out by itself) round him. */
-    public static final double SLAM_FORWARD = 2.5D;
+     * up and out; then a ring of fire (the Colossus's own, it goes out by itself) round where it landed. Where it lands:
+     * ahead of him and a little to his right (measured from the animation: since November 19, 2026 he slams it with
+     * both hands at the end of its haft, so its flat face lands on the ground, the user's "the short flat part of the
+     * hammer has to hit the ground"). */
+    public static final double SLAM_FORWARD = 4.7D;
+    public static final double SLAM_RIGHT = 0.3D;
     public static final double SLAM_RADIUS = 6.0D;
     public static final float SLAM_DAMAGE = 10.0F;
     public static final int SLAM_FIRE_SECONDS = 5;
@@ -172,7 +180,9 @@ public final class KnightTuning
     // ---------------------------------------------------------------- T6, the Stormblade
 
     /** The slash: two quick cuts. */
-    public static final float SLASH_DAMAGE = 6.0F;
+    // (the Stormblade's three twice what they were: the user, November 19, 2026: "it's just doing nothing to me compared
+    // to the other bosses ... 2 times damage, all his attacks")
+    public static final float SLASH_DAMAGE = 12.0F;
     public static final double SLASH_REACH = 3.8D;
     public static final double SLASH_ARC = 120.0D;
     public static final double SLASH_KNOCK = 0.3D;
@@ -185,25 +195,32 @@ public final class KnightTuning
     public static final double DASH_PAST = 4.0D;
     public static final int DASH_MAX_TICKS = 14;
     public static final double DASH_HIT = 1.6D;
-    public static final float DASH_DAMAGE = 7.0F;
+    public static final float DASH_DAMAGE = 14.0F;
     public static final double DASH_KNOCK = 0.6D;
     public static final int TRAIL_TICKS = 40;
     public static final double TRAIL_HIT = 0.9D;
-    public static final float TRAIL_DAMAGE = 3.0F;
+    public static final float TRAIL_DAMAGE = 6.0F;
     public static final int TRAIL_EVERY = 10;
     /** After a dash he stands a moment before his next move. */
     public static final int DASH_RECOVER = 8;
 
     // ---------------------------------------------------------------- E3, the Geode Knight
 
-    /** The pick's strike. */
+    /** The pick's strike: since November 19, 2026 one-handed, over his shoulder and down, its spike into the ground
+     * before him (the user: "his pickaxe needs to hit the ground ... just do a one-hand thing"), where it bites: ahead
+     * of him and to his right. */
     public static final float PICK_DAMAGE = 10.0F;
     public static final double PICK_REACH = 4.5D;
-    public static final double PICK_ARC = 170.0D;   // a flat sweep, his pick's spike leading (November 18, 2026)
+    public static final double PICK_ARC = 80.0D;
+    public static final double PICK_BITE_FORWARD = 2.2D;
+    public static final double PICK_BITE_RIGHT = 0.8D;
     public static final double PICK_KNOCK = 0.5D;
     /** The crystal burst (the user: "slamming the ground, crystals pop out around him, purple crystals"): a ring of
      * amethyst bursts up round him, then a wider one, then one under his foe; each throws up and hurts what's on it. */
     public static final double BURST_INNER = 2.5D;
+    /** Since November 19, 2026 it comes from a stomp (the user: "just make him stomp the ground ... a visible loud
+     * stomp"): his right foot lands here (blocks to his right), the ground's dust and a heavy thud there. */
+    public static final double STOMP_RIGHT = 0.9D;
     public static final int BURST_INNER_COUNT = 8;
     public static final double BURST_OUTER = 4.8D;
     public static final int BURST_OUTER_COUNT = 13;

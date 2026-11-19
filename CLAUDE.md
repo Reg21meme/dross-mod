@@ -2535,6 +2535,62 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
           chest or cape by 1.9-2.9 units, the Sporebound's scythe brushing his cap and helm by about 2, and a few
           one-frame quickenings of the left arm as a swing comes round (Thawed axe, Sporebound) and of the Geode
           Knight's elbow; the other six knights pass clean.
+      - **The user's second look of November 19, 2026** [built, not yet tested in-game] (the user: "not impressed";
+        the axe "horizontal to his body ... it needs to be vertical ... the sharp part facing toward where he's facing
+        ... hold it with an angle with two hands ... make the axe a little thicker", its move 2 "not vertical"; the axe's,
+        the scythe's and the Cinder hammer's "flick back" at the end of move 1, "a weird flick with his hands, really
+        fast"; the hammer's move 2: "the short flat part of the hammer has to hit the ground"; the Geode pick "needs to
+        hit the ground ... going through his body, just do a one-hand thing", and his move 2 "just make him stomp the
+        ground ... a visible loud stomp"; the Rockfall Knight not using his move 1; the Stormblade "2 times damage, all
+        his attacks"; Flamehand doing nothing through Fire Resistance; "Cinder Knight needs way more health"):
+        - **The end flicks** (`knightkit/kreach.py`, `kanims.untangle`): the weapon hand had turned on round 300-470
+          degrees by a swing's end, and turned back in its last tenth of a second; then the elbow's bend snapped from
+          the blow's to its rest one as the fist neared rest. Now every blow comes back the way it went, slowly (the
+          swings 2.1-2.2 s, the smash and slam 2.5 and 2.7, the pick 2.4), at rest 0.15 s before its end; the elbow's
+          way eases over the fist's whole reach; a fist never pulled short of where it rests; and every bone's angles
+          are picked over the
+          whole move (each turn has two sets of Bedrock angles: kept nearest the frame before, a part passing near
+          straight up from its joint came back to rest written the other way round, 180 degrees off, and the game's
+          blend turned it over); once back at rest, angles still written the other way are rewritten as 0 in an
+          instant (`kanims.settle_ends`: two keys a fifth of a thousandth of a tick apart, the same pose either side).
+          The Cinder hammer's face is picked only once its swing has a way to lead (picked at rest, upright, it was as
+          often the far face, and the hammer rolled on round half a turn as it came back). A move ending more than 8
+          degrees off rest prints a warning. Measured: the weapons turn at most 300-590 degrees a second on the way back
+          (the flicks were over 3,000 in the last tenth of a second).
+        - **The Thawed axe** (`tools/rimefall/rimedesigns/d09_thawed.py`, the gallery's 9C statue too): held at the ready
+          in both hands, the haft across him at 45 degrees (`AXE_L`, `AXE_R`: his left fist low before his left hip,
+          his right before his right breast), the head up past his right shoulder, its blade pointing ahead; the haft 4
+          units thick (3), the blade 3 (2). His idle and walk keep both hands on it (`gear` "two_hand"). The axe is on a
+          bone of its own (`weapon_r`, mobs.Knight `slide`) so it can slide through his fists: for the swing and the
+          smash his hands slide down the haft to its end (`slide`, `gap`), as for any big swing of a long haft.
+          **Swing** (`swing_round`): drawn back past his right shoulder, swept flat across at chest height, its edge
+          leading, round to his left, then slowly back across to the front and up into his guard. **Smash**
+          (`chop_down`): raised over his right shoulder as a woodsman's (his short arms can't both reach over his head),
+          brought over and down, the blade upright and its edge biting the ground 3.2 blocks ahead
+          (`KnightTuning.SMASH_FORWARD`: the ice spikes start there), pulled out and back to his guard.
+        - **The Cinder hammer's slam** (`chop_down`, the hammer on its `weapon_r` bone): both hands slide down to the end of
+          its haft as he raises it over his right shoulder, then bring it down so its flat face lands on the ground about
+          20 degrees off flat, 4.7 blocks ahead (`SLAM_FORWARD`; the fire's ring round where it lands now). Held by the
+          end of its haft he lifts it back upright beside him and lets it slide down through his fist till its butt rests
+          on the ground (lifted upright before him with his hands half way up it, its butt swung through his belly).
+          **His swing and the Sporebound's reap** (`swing_round`) come back across slowly and up to rest at his right
+          side, the haft leaning in a little so its butt passes outside his hip, the left hand letting go and drifting
+          back round his hip.
+        - **The Geode Knight** (`one_hand_chop`, `kanims.stomp`): his pick swung one-handed up off his shoulder, back over
+          it, over the top and down, its spike driving into the ground 2.2 blocks ahead and a little to his right
+          (`PICK_BITE_*`: rock and amethyst thrown up, a ring of dust; `PICK_ARC` 80), his free arm swinging for balance,
+          then lifted and shouldered again. **The crystal burst** is a stomp now: his weight onto his left leg, the right
+          lifted high out to his side, held a heartbeat, driven down (the Colossus's slam sound and his step's, a puff and
+          the ground's dust at his foot), his chest jolting onto his hips; his pick stays on his shoulder.
+        - **The Rockfall Knight** (`KnightKind`): his throw at any range (5 and over until now) and every 2.5 s (3.5), and
+          he keeps 6 blocks off (9): standing close and hitting him, you only saw him back away.
+        - **The Stormblade** twice the damage: his cuts 12 (6), the dash 14 (7), its trail 6 (3).
+        - **Flamehand**: his fireballs' hits a projectile's (`DamageTypes.MOB_PROJECTILE`) and his great fireball's blast
+          an explosion, not fire, so Fire Resistance no longer takes them away (only the burning); they fly through his
+          fellow knights (`KnightFireball.canHitEntity`).
+        - **The Cinder Knight** 200 health (100).
+        - Checked (`tools/knights/audit.py`, the scratch checks of every reworked move): no move ends turned, nothing
+          deeper than about 2 units into the body (the grips' and armour's grazes), the blows' weapons at the ground.
     - **Next**: the user looks at the ruins (`/dross showcase knight_ruins <element>`) and picks; then "the different
       kind of ruin stuff" (variations of the picked layouts) and the ruins in the world, each in its area's biomes, the
       knights at home. The Blightwood bosses (step 17) wait meanwhile.
@@ -2775,6 +2831,13 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 
 ## Verify over time
 Built and passing the headless check, but not yet tested in-game. Check these during future play tests and remove each line once confirmed.
+- **The knights' second rework** (November 19, evening): no fast flick at the end of the Thawed axe's, the Cinder
+  hammer's or the scythe's swing (each comes back slowly the way it went); the axeman holds his axe in both hands
+  across him, its blade pointing ahead, and his smash brings it down with the blade upright into the ground; the Cinder
+  Knight's slam lands the hammer's flat face on the ground well ahead of him; the Geode Knight strikes one-handed, his
+  spike into the ground, and his second move is a loud stomp; the Rockfall Knight throws his boulder at you up close
+  too; the Stormblade hurts twice as much; Flamehand's fireballs hurt you through Fire Resistance; the Cinder Knight
+  takes about twice the hits.
 - **The knights' moves after the user's look** (November 19, afternoon): the Cinder Knight, the Thawed axeman and the
   Sporebound swing with both hands on the haft (wound back, swung flat across, arms reaching out); the Geode Knight
   lifts his pick off his shoulder with both hands and pulls it down, arms stretching out; the Stormblade's X-cut then

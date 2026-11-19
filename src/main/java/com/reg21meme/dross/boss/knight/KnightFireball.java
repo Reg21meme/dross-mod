@@ -100,6 +100,20 @@ public class KnightFireball extends BossProjectile implements ItemSupplier
         this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.15D, this.getZ(), 0.0D, 0.0D, 0.0D);
     }
 
+    /** It flies through its knight's friends (its hits aren't fire any more: they'd hurt a fire knight). */
+    @Override
+    protected boolean canHitEntity(Entity e)
+    {
+        if (this.getOwner() instanceof ElementalKnight knight && e instanceof LivingEntity living && !knight.canHit(living))
+        {
+            return false;
+        }
+        return super.canHitEntity(e);
+    }
+
+    // Its hits are a projectile's and its great blast an explosion, not fire (the user, November 19, 2026: Flamehand
+    // "doesn't do damage ... I have fire resistance": a fireball's damage is fire, which Fire Resistance takes away
+    // whole); the burning it sets still is fire.
     @Override
     protected void onHit(HitResult hit)
     {
@@ -114,7 +128,7 @@ public class KnightFireball extends BossProjectile implements ItemSupplier
         }
         else if (hit instanceof EntityHitResult entityHit && entityHit.getEntity() instanceof LivingEntity living)
         {
-            living.hurt(ElementalKnight.typed(level, DamageTypes.FIREBALL, this, owner), KnightTuning.FIREBALL_DAMAGE);
+            living.hurt(ElementalKnight.typed(level, DamageTypes.MOB_PROJECTILE, this, owner), KnightTuning.FIREBALL_DAMAGE);
             living.setSecondsOnFire(KnightTuning.FIREBALL_FIRE_SECONDS);
             level.sendParticles(ParticleTypes.FLAME, hit.getLocation().x, hit.getLocation().y, hit.getLocation().z, 12,
                     0.25D, 0.25D, 0.25D, 0.05D);
@@ -146,7 +160,7 @@ public class KnightFireball extends BossProjectile implements ItemSupplier
             {
                 continue;
             }
-            living.hurt(ElementalKnight.typed(level, DamageTypes.FIREBALL, this, owner), KnightTuning.FIREBALL_SPLASH_DAMAGE);
+            living.hurt(ElementalKnight.typed(level, DamageTypes.MOB_PROJECTILE, this, owner), KnightTuning.FIREBALL_SPLASH_DAMAGE);
             living.setSecondsOnFire(KnightTuning.FIREBALL_FIRE_SECONDS);
         }
     }
@@ -171,7 +185,7 @@ public class KnightFireball extends BossProjectile implements ItemSupplier
                 continue;
             }
             float share = 1.0F - 0.5F * (float) (d / r);
-            living.hurt(ElementalKnight.typed(level, DamageTypes.FIREBALL, this, owner), KnightTuning.GREAT_DAMAGE * share);
+            living.hurt(ElementalKnight.typed(level, DamageTypes.EXPLOSION, this, owner), KnightTuning.GREAT_DAMAGE * share);
             living.setSecondsOnFire(KnightTuning.GREAT_FIRE_SECONDS);
             Vec3 away = living.position().subtract(at).multiply(1.0D, 0.0D, 1.0D);
             away = away.lengthSqr() < 1.0E-4D ? new Vec3(1.0D, 0.0D, 0.0D) : away.normalize();
