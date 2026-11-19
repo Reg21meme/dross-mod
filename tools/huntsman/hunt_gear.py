@@ -29,11 +29,13 @@ from rimemobs import huntsman as HUNTSMAN  # noqa: E402
 
 PREVIEW = os.path.join(K.ROOT, "boss-previews", "rimefall", "huntsman", "gear.png")
 # id, his bones it's made of, how it's turned to lie flat (degrees about x, about z: the bow and the bola hang
-# upright in his fist, the arrow lies level already)
+# upright in his fist, the arrow lies level already), and whether each of its boxes is dropped onto the ground on its
+# own (the bola: laid down whole its cords hung in the air between its thicker ice weights, the user, November 19, 2026:
+# "the bola needs to be flat on the ground, not floating"; dropped, its weights and cords all lie on the snow)
 GEAR = (
-    ("hunt_bow", ("bow_held", "string_top", "string_bot"), (0.0, 90.0)),
-    ("hunt_arrow", ("arrow_hand",), (0.0, 0.0)),
-    ("hunt_bola", ("bola_held",), (90.0, 0.0)),
+    ("hunt_bow", ("bow_held", "string_top", "string_bot"), (0.0, 90.0), False),
+    ("hunt_arrow", ("arrow_hand",), (0.0, 0.0), False),
+    ("hunt_bola", ("bola_held",), (90.0, 0.0), True),
 )
 
 
@@ -69,13 +71,31 @@ def turn(rx, rz):
     return mz @ mx
 
 
+def lying_faces(m, rot, drop):
+    """Every face of the model at rest, turned by {@code rot} (GeckoLib space, blocks): [(4 corners, 4 (u, v), normal,
+    material)]; with {@code drop}, each box lowered on its own until its lowest corner is at 0."""
+    mats = m.pose_matrices({})
+    out = []
+    for c in m.cubes():
+        T = mats[c.bone.name] @ c.cube_matrix()
+        fs = []
+        for _face, verts, uvs, normal in c.quads(m.tex_w, m.tex_h):
+            pts = [rot @ (T @ np.append(p, 1.0))[:3] for p in verts]
+            n = rot @ (T[:3, :3] @ np.asarray(normal, dtype=float))
+            fs.append((pts, uvs, n / np.linalg.norm(n), c.mat))
+        if drop:
+            low = min(p[1] for f in fs for p in f[0])
+            fs = [([p - np.array([0.0, low, 0.0]) for p in f[0]], f[1], f[2], f[3]) for f in fs]
+        out += fs
+    return out
+
+
 def main():
     shots = []
-    for gid, bones, (rx, rz) in GEAR:
+    for gid, bones, (rx, rz), drop in GEAR:
         m, tex, see_through = build(bones)
         rot = turn(rx, rz)
-        fs = K.faces(m)
-        fs = [([rot @ np.asarray(p) for p in f[0]], f[1], rot @ np.asarray(f[2]), f[3]) for f in fs]
+        fs = lying_faces(m, rot, drop)
         pts = np.array([p for f in fs for p in f[0]])
         lo, hi = pts.min(axis=0), pts.max(axis=0)
         mid = (lo + hi) / 2.0

@@ -149,10 +149,11 @@ Its working name (entity `dross:silverwood_giant`); the name in the game can cha
   - Like the Odyssey's giants, it hurls a boulder, but only at someone it's angry with. A giant you never bothered
     never throws one. It still gives up after its leash, so running away works.
 - **How many** *(my choice)*:
-  - Only in the Silverwood Forest, and never within about 96 blocks of another.
+  - Only in the Silverwood Forest, and never within about 56 blocks of another (96 until November 19, when the user
+    couldn't find any).
   - Never near the hub.
   - Only where there's room for its size.
-  - So you meet about one every hundred blocks or so: not common, but easy to find three for the quest.
+  - So a few roam within sight of you: easy to find three for the quest.
 - **Its spawn egg** goes in the Dross tab.
 - **Silverwood's monster list:** zombies, zombie villagers and skeletons leave it; the Silverwood Giant comes in; the endermen and
   the odd witch stay *(my choice)*. So the forest is calm at night, apart from the giants you choose to bother.
@@ -185,7 +186,7 @@ Its working name (entity `dross:silverwood_giant`); the name in the game can cha
   sleeping inside his home ... you can hear him snoring ... the moose sleeps and snores too ... magic protects his house
   while he sleeps ... his spear, bow and arrows ... in front of his door ... gone once he wakes"; `boss/huntsman/village/
   HuntsmanAsleep`): with no player near whose quest has reached him (creative alone doesn't count), he lies asleep on the
-  rug at his triple bed's foot in his lodge and the Alpha Moose lies in its stall in the barn, its eyes shut, both snoring with every slow breath (Zzz
+  his bed of furs (a rug filling his bedroom, no bed) in his lodge and the Alpha Moose lies in its stall in the barn, its eyes shut, both snoring with every slow breath (Zzz
   rising), nothing hurting them ("Magic protects the Huntsman while he sleeps."); a window of clear ice in his bedroom's
   roof (soul lanterns by his bed so it never melts) lets you look down on him; his spear leans on his lodge's front and
   his bow, bola and arrows (3D, his own at his size) lie on the snow before his door. Breaking a block of his village says "Magic protects the

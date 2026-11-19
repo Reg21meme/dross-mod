@@ -28,7 +28,7 @@ public final class HuntsmanTuning
      * from his yard. */
     public static final float HUNTSMAN_SNORE_VOLUME = 2.5F;
     public static final float MOOSE_SNORE_VOLUME = 2.2F;
-    /** His hitbox lying on his bed (blocks; round his middle), and where his head is from his spot (behind it: he lies
+    /** His hitbox lying on his bed of furs (blocks; round his middle), and where his head is from his spot (behind it: he lies
      * with his feet the way he faces) and how high. */
     public static final float SLEEP_WIDTH = 2.4F;
     public static final float SLEEP_HEIGHT = 1.4F;

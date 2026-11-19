@@ -431,9 +431,10 @@ HIND_TUCK = (-70.0, 0.0, 30.0)
 SLEEP_NECK = 0.55               # its neck and head lowered this share of the way they go to graze (its chin on the straw)
 
 
-# How far its eyelids slide out over its eyes as it sleeps (design units): from inside its head (2 wide, out to 7.5) to
-# 7.7-9.7, a little over each eye (out to 9.5)
-LID_OUT = 2.2
+# How far its eyelids slide out over its eyes as it sleeps (design units): from inside its head (the lid 1.6 wide, out
+# to 6.9) to 8.3-9.9, over each eye (out to 9.5) and a block of fur bigger all round (d06_huntsman's LID_SIZE), its
+# lashes and brow just proud of it
+LID_OUT = 3.0
 
 
 def sleep(rig):

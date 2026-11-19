@@ -124,7 +124,13 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
 ### Steps
 1. **Dross dimension** (`dross:dross`) [built]: real terrain (below), permanent night (`fixed_time` 18000), normal hostile mob spawn rates.
    - Zombies spawn in full netherite armor + netherite sword. Skeletons spawn in full netherite armor and keep their bows. Nothing is enchanted (including the bow). None of this gear drops on death. Risen undead (step 6) are skipped by this rule: their gear comes only from Deathforged.
-   - Slimes, creepers and spiders are removed from the spawn list. **The Cinder Wastes** have their own list: only their own mobs, the Colossus's stone and lava golems (step 8), the Cinder Hermit and the Pallbearer (step 16). **Blightwood** has no zombies, skeletons or endermen either: only rats and witches (step 11). **Rimefall** has its own list too: only its animals, moose and Pond Skaters, and its few Rimehorn herds placed with the land (step 14). **The Silverwood Forest** (November 9, 2026, step 19): no zombies, zombie villagers or skeletons any more; its monsters are the **Silverwood Giant** (weight 40, always alone, kept apart by its own spawn rules), the endermen (10) and the odd witch (5) (`worldgen.py`, `SILVERWOOD_GIANT_WEIGHT`). Then (November 18, 2026, the user: "remove witches and like Minecraft regular mobs and cows and stuff from the Silverwood forests") **only the Dross's own mobs**, like Rimefall (`SPAWN_OVERRIDES["silverwood_forest"]`): the Silverwood Giant alone among its monsters (no endermen or witches), the lone moose its only animal, as rare as before (`SILVERWOOD_MOOSE_CHANCE`, 0.1 x 2 / 48), no sheep, pigs, chickens, cows, horses, donkeys or bats. So the netherite zombies and skeletons now spawn only in **the Gravecrags**. The spawn lists are data read as a world loads, so older worlds' Silverwood Forest loses its zombies and skeletons too.
+   - Slimes, creepers and spiders are removed from the spawn list. **The Cinder Wastes** have their own list: only their own mobs, the Colossus's stone and lava golems (step 8), the Cinder Hermit and the Pallbearer (step 16). **Blightwood** has no zombies, skeletons or endermen either: only rats and witches (step 11). **Rimefall** has its own list too: only its animals, moose and Pond Skaters, and its few Rimehorn herds placed with the land (step 14). **The Silverwood Forest** (November 9, 2026, step 19): no zombies, zombie villagers or skeletons any more; its monsters are the **Silverwood Giant** (weight 40, always alone, kept apart by its own spawn rules), the endermen (10) and the odd witch (5) (`worldgen.py`, `SILVERWOOD_GIANT_WEIGHT`). Then (November 18, 2026, the user: "remove witches and like Minecraft regular mobs and cows and stuff from the Silverwood forests") **only the Dross's own mobs**, like Rimefall (`SPAWN_OVERRIDES["silverwood_forest"]`): the Silverwood Giant alone among its monsters (no endermen or witches), the lone moose its only animal, as rare as before (`SILVERWOOD_MOOSE_CHANCE`, 0.1 x 2 / 48), no sheep, pigs, chickens, cows, horses, donkeys or bats. **Then (November 19, the user: "I don't see any mooses or
+giants at all in the forests")**: a probe (`boss/giant/GiantSpawnProbeGameTest`, its own GameTest namespace
+`dross_spawn_probe`: a survival player in the forest, spawning on, 10 minutes) found no moose could spawn at any of 3,000
+spots (Minecraft's own rule for an animal wants daylight, and the Dross is always night: `Moose.checkSpawnRules` now
+leaves it to `RimefallAnimals.checkMooseSpawn`, which keeps moose 40 blocks apart, `RimefallMobTuning.MOOSE_SPAWN_SPACING`)
+and only one giant within 128 blocks (kept 96 apart); giants are now kept 56 apart and 96 off the hub
+(`GiantTuning.SPAWN_SPACING`, `HUB_CLEARANCE`). After: 3 giants and 2 moose within 128 blocks after a few minutes. So the netherite zombies and skeletons now spawn only in **the Gravecrags**. The spawn lists are data read as a world loads, so older worlds' Silverwood Forest loses its zombies and skeletons too.
    - **A lower monster limit in Silverwood Forest and the Gravecrags** [built November 5, 2026, tested in-game by the user November 6] (the user, after playing 0.3.0: the netherite zombies and skeletons "like they are invading dimensions", "a 75% nerf ... specifically limit Silverwood Forest and the Gravecrags for now, as we will return that number once we get actual mobs for them"; `dimension/DrossMonsterLimit`): a monster spawns naturally in those two biomes only while fewer than 18 monsters (a quarter of vanilla's 70) are within 128 blocks of the spot; the other biomes keep the normal limit. (Skipping 3 in 4 of their spawns was talked over and dropped: it only slows the limit filling up.) Since November 9, 2026 Silverwood's monsters are the Silverwood Giants, endermen and witches (step 19); the limit still counts them.
    - Players see the dimension named **"The Dross"** (lang key `dimension.dross.dross`).
    - **Terrain** [built] (Terrain v1, October 2026; design `tools/terrain/TERRAIN_DESIGN.md`, tuning guide `tools/terrain/README.md`, report `TERRAIN_REPORT.md`): Minecraft's noise generator, set up in data files written by `tools/terrain/worldgen.py` (every tuning number a labeled constant). A 2D height field: no caves, overhangs or floating land (the only underground spaces are Blightwood's sewers, step 11). Rolling hills, cliff steps (9 and 18) and knolls in rocky areas, Cinder mesas, and the Gravecrags' snow-capped ridged peaks (about y 230-260). Five biomes, regions about 600-670 blocks across: **Silverwood Forest** (about 42%, always round the hub), **Cinder Wastes**, **Blightwood**, **Rimefall** and **The Gravecrags** (never within about 750 blocks of the hub). (There was a sixth, the **Nether Scar**, until October 17, 2026: the user had it removed. Its land went to the biomes round it without moving any other border, and its four blocks, Scarred Netherrack, Scar Roots, Soulwick and Scar Vent, are kept as building blocks that no longer generate.) Each biome has its own ground cover, features (trees, plants, ponds, lava pools, giant mushrooms, dead trees, lichen, boulders), fog/sky/water colours, particles and sounds; ores (coal, gold nuggets, Moonsilver, Stormite) lie under every biome. New worlds only: the old flat `dross_flats` biome was removed (October 17 cleanup).
@@ -2296,8 +2302,12 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
       come within 24 blocks of its edge (`dimension/ward/LandWardFalls`, once a second; standing deep inside the land
       doesn't count: the user didn't see it fall after `/dross goto biome`, which lands far inside; the client waits up to
       4 s for the ground there to load before it finds the edge, else a ring round them falls); then that stretch of its edge
-      flares up, cracks with a glassy sound and breaks into shards of its runes that tumble down and fade, blue dust
-      settling (`client/LandWardFall`, `WardShardParticle`, `dross:ward_shard`; `DrossColors.LAND_WARD_SHARD*`; sounds
+      falls, about 5.5 s (since November 19, the user, of the first, 2 s of a few streaks: "the barrier fall showcase
+      doesn't seem to do anything ... I don't see the animation"): the curtain stands up thick and bright with its runes
+      and a rumble, glowing cracks run jagged across it (`WardCrackParticle`, `dross:ward_crack`,
+      `DrossColors.LAND_WARD_CRACK`) with two glassy cracks, then it shatters with a flash, a crash and a rumble, hundreds
+      of bigger shards of its runes bursting out and tumbling down, blue dust settling; its curtain goes at the shatter
+      (`client/LandWardFall`, `WardShardParticle`, `dross:ward_shard`; `DrossColors.LAND_WARD_SHARD*`; sounds
       `block.land_ward.fall_*`). Once per land per player, saved with their quest (`OracleRecord`, `OracleFallenLands`);
       the sewers fall with Blightwood; `/dross quest reset` puts them back. Only the land edges, not the boss arenas.
     - **How a quest goes** (`OracleState`, `OracleDialogue`, `OracleProgress`): **waiting** (a red **?** over him): each
@@ -2422,26 +2432,32 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
       the floor, some arrows on the floor ... gone once he wakes up ... once [they] complete the quest all Huntsmen across
       the map are now in patrol mode"): with no player within 160 blocks of his yard whose Oracle quest is at or past
       his ("The Hunter Hunted": First Frost handed in; creative alone doesn't count), the keeper brings the pair asleep:
-      him on his back on the rug of his lodge's bedroom, at his triple bed's foot (the user, after seeing him half on
-      the bed with his legs bent down past its end: "make him sleep on the floor ... just that carpet"; he lies flat, 4.7
-      blocks long, his hood at the bed's foot and his cloak's hem at the bedroom's south wall, his antlers rising over the
-      bed; the rug now runs the 4 rows from the bed to that wall; `HuntsmanAsleep.BED`), the Alpha Moose lying in its
+      him on his back on his bed of furs, the rug that fills his lodge's bedroom (the user, after seeing him half on
+      the bed with his legs bent down past its end: "make him sleep on the floor ... just that carpet", then, November 19:
+      "remove the beds from the Huntsman's home ... move the carpets up so it seems the carpets are his bed": the triple
+      bed is gone, the rug runs all 6 rows of the bedroom, its head row pale fur; he lies flat, 4.7 blocks long, his hood
+      on the pale fur; `HuntsmanAsleep.BED`), the Alpha Moose lying in its
       stall in the barn facing its door (`STALL`), **its eyes shut** (the user: "make sure his moose actually closes his
-      eyes": eyelids of fur on bones of their own, `lid_l`, `lid_r`, hidden in its head behind each eye and slid out over
-      it in its `sleep`; `d06_huntsman.LID_IN`, `alpha_moose.LID_OUT`, the Alpha Moose only, `lids` in its variant); both lie still (no AI, no fight), nothing
+      eyes", then, November 19: "do a better job on the closing of the Alpha Moose's eyes": the first lid was the eye's
+      own size, which the game's whole-pixel boxes made flicker against it): on bones of their own, `lid_l`, `lid_r`, a
+      lid of fur a pixel bigger than the eye all round with a dark line of lashes across its lower half running past its
+      corners and a heavy brow over it, hidden in its head behind each eye and slid out over it in its `sleep`
+      (`d06_huntsman.LID_IN`, `LID_SIZE`, `LASH_*`, `BROW_*`, `alpha_moose.LID_OUT`; the Alpha Moose only, `lids` in its
+      variant); both lie still (no AI, no fight), nothing
       hurts them but `/kill` ("Magic protects the Huntsman while he sleeps." over the hotbar to a player who hits one),
       each snores with every slow breath (`entity.huntsman.snore`, `entity.alpha_moose.snore`, two versions each, made by
       `tools/huntsman/sounds.py`; heard from his door and his yard, `HuntsmanTuning.*_SNORE_VOLUME`) and Zzz rise from
       their heads. Their `sleep` animations (`tools/rimefall/rimemobs/huntsman.py`, `alpha_moose.py`; the moose's fold
       found by a search, its front and hind legs touching under its belly out of sight). His bedroom's roof over the bed
       is clear ice (`tools/huntsman/igloo_designs/lodge_house.py` `_bed_window`) so you can look down on him from the
-      roof (over the bed and the rug); the lanterns by his bed are soul lanterns (and one more at its foot) so it
-      never melts. His gear lies before
+      roof (over the rug); the lanterns on the barrels either side of the rug's head are soul lanterns (and one more
+      at its foot) so it never melts. His gear lies before
       his door (`HuntsmanAsleep.GEAR`, display entities tagged `dross_hunt_gear`): his spear (the planted spear) leaning
       on the lodge's front, his bow, his bola and four arrows on the snow, each his own at his size, 3D (the user:
       "his bow is that small, make a 3D model just for it": a plain bow item was a small flat picture), lifted off his
       model by `tools/huntsman/hunt_gear.py` (the bow 2.8 blocks tip to tip with its string, an arrow 1.8 long with its
-      ice fletching, the bola; preview `boss-previews/rimefall/huntsman/gear.png`) as block models shown only by block
+      ice fletching, the bola, each of its pieces dropped onto the ground on its own so it
+      lies flat on the snow, the user: "the bola needs to be flat on the ground, not floating"; preview `boss-previews/rimefall/huntsman/gear.png`) as block models shown only by block
       displays (`dross:hunt_bow`, `hunt_arrow`, `hunt_bola`, no item). Breaking a block of his village says "Magic
       protects the Huntsman's home while he sleeps." to a player he's asleep for (`BossGrounds.HUNTSMAN_ASLEEP_KEY`).
       **The first time a player near has reached his quest** they wake onto their patrol (the moose at its start, him in
@@ -2543,9 +2559,10 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
       - **Where** (`SilverwoodGiants`; the monster list in `tools/terrain/worldgen.py`, Dimension's): weight **40** in
         the Silverwood Forest's monsters (endermen 10, witch 5; zombies, zombie villagers and skeletons gone), always
         alone; a natural spawn only in the Silverwood Forest, on the ground, in any light, never in a fluid, never on
-        Peaceful, **never within 96 blocks of another giant** (`SPAWN_SPACING`), **never within 128 blocks of the hub**
+        Peaceful, **never within 56 blocks of another giant** (`SPAWN_SPACING`; 96 until November 19), **never within 96
+        blocks of the hub** (128 until then)
         (`HUB_CLEARANCE`), and only with **5 blocks of open air over the 3 x 3** round where it stands
-        (`SPAWN_HEADROOM`): about one every hundred blocks or so, enough for the quest, few enough to cross the forest.
+        (`SPAWN_HEADROOM`): a few roam within sight of you (measured: about 3 within 128 blocks).
         Those rules, not the weight, set how many there are. Spawn eggs and commands skip them.
       - **Its spawn egg** ("Silverwood Giant Spawn Egg", after the Cinder Hermit's in the spawn eggs group; an ash-grey
         egg with the Dross's blue spots, `DrossColors.SILVERWOOD_GIANT_EGG_*`), also the icon of "Giant Slayer".
@@ -2880,9 +2897,10 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   their blocks; mining a hub block says "Magic protects this block." Only the giant with a rock throws rocks. In survival
   before First Frost is handed in (`/dross quest set first_frost`, Rimefall opened), `/dross goto lair huntsman`: "he's
   asleep"; his spear leaning by his lodge's door, his bow, bola and arrows on the snow; his snoring heard from the door;
-  on his lodge's roof, the clear ice window: him asleep flat on his back on the rug at his bed's foot, Zzz rising, nothing
-  through the bed, the walls or the barrels; the ice never melts; his bow, arrows and bola by the door big and 3D (the bow
-  nearly 3 blocks); in the barn the Alpha Moose lying in its stall facing the door, its eyes shut, snoring; hitting either: "Magic protects the Huntsman while he sleeps."; breaking a block: "Magic
+  on his lodge's roof, the clear ice window: him asleep flat on his back on his bed of furs (the rug filling the bedroom, no bed),
+  his hood on its pale head row, Zzz rising, nothing through the walls or the barrels; the ice never melts; his bow, arrows and bola by the door big and 3D (the bow
+  nearly 3 blocks; the bola lying flat on the snow); in the barn the Alpha Moose lying in its stall facing the door,
+  its eyes shut (a lid with a dark lash line over each, no blue showing), snoring; hitting either: "Magic protects the Huntsman while he sleeps."; breaking a block: "Magic
   protects the Huntsman's home while he sleeps." Then `/dross quest set the_hunter_hunted`: within a few seconds they're
   out on patrol, the gear gone; leave and come back: still on patrol.
 - **Protected boss homes and the snores down the pipes** (step 19, November 9): in survival on quest 0, try to mine a

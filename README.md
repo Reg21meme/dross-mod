@@ -151,8 +151,8 @@ tree carried over his shoulder and swung overhead).
   blocks) but only at someone it's angry with, and only G1, the Boulder-Hurler (the other two fight up close).
 - **Slow:** it runs slower than you walk, its anger runs out after about 30 seconds, and it gives up a chase 24 blocks
   from where it began and walks back. So you can always get away.
-- **Where:** only in the Silverwood Forest, never within 96 blocks of another giant, never within 128 blocks of the hub,
-  and only where there's room for its size: about one every hundred blocks or so. No drops; 18 XP. It dies the way
+- **Where:** only in the Silverwood Forest, never within 56 blocks of another giant, never within 96 blocks of the hub,
+  and only where there's room for its size: a few roam within sight of you. No drops; 18 XP. It dies the way
   Minecraft's mobs do (it tips over, flashing red).
 - Its sounds are all original (`tools/forest_giant/sounds.py`): a deep, monstrous voice that carries. Its spawn egg is
   in the Dross tab (a random look each time; `/summon dross:silverwood_giant ~ ~ ~ {Look:"brawler"}` for G2,
@@ -277,8 +277,8 @@ Huntsman).
   the sky with three thinner beams winding up into it, then it bends out towards the barrier, and far off over the land a
   flash, shock rings and a pillar of light burst, then the boom and its echo. It lasts about 12 seconds, and anyone near
   sees it. After a boss, he uses its dying energy. (`/dross showcase oracle_spell` shows it.)
-- **The barrier falling:** a land he has opened still shows its curtain until you first come to its edge; then it cracks
-  and falls in shards in front of you, once. (`/dross showcase barrier_fall` shows it.)
+- **The barrier falling:** a land he has opened still shows its curtain until you first come to its edge; then it glows up,
+  cracks and shatters in front of you, once. (`/dross showcase barrier_fall` shows it.)
 
 - **Inside a land that's locked for you:** Slowness V, Mining Fatigue V and Hunger II for as long as you stay (gone the moment you step
   out), and "This land rejects you. You cannot enter yet." in chat as you come in and every 20 seconds. It goes by the
@@ -297,8 +297,8 @@ their hits (and their pets' and risen undead's) do nothing to it, and they don't
 resetting. Its arena is **warded**: walk into the Colossus's cavern, the Rat King's cave or onto the Emberdactyl's
 volcano (anywhere from its foot up) too early and you're bounced back out, with a flash of runes and a soft chime (an
 ender pearl in: you're sent back to where you were). The Rat King still lies asleep on his nest where you can see him
-from the tunnel. The Huntsman has no arena: until your quest reaches him he **sleeps at home**: him on the rug at his
-bed's foot in his lodge (look down at him through the clear ice window in its roof), his Alpha Moose lying in its barn
+from the tunnel. The Huntsman has no arena: until your quest reaches him he **sleeps at home**: him on his bed of furs
+in his lodge (look down at him through the clear ice window in its roof), his Alpha Moose lying in its barn
 with its eyes shut, both snoring,
 his spear, bow, bola and arrows lying before his door, and magic keeps them from harm. Once your quest reaches him (First
 Frost handed in) they wake and ride their patrol round his village, and they never sleep again. Spawn eggs, `/dross boss summon`, the test

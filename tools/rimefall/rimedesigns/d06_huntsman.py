@@ -173,9 +173,19 @@ def antlers(s, root_y, root_z, mount):
             s.cone(q, q + np.array([0, -7 - 3 * (k % 2), 0]), 3, "icicle", steps=2)
 
 
-# Where its eyelids wait inside its head, out from its middle (units; its eyes' middles are 8.5 out, the head's side about
-# 8.5 there): the lid (2 wide) from 5.5 to 7.5, all of it inside
-LID_IN = 6.5
+# Its eyelids (the Alpha Moose's): each a lid of fur bigger than the eye all round (LID_SIZE: the game's model rounds a
+# box's size to whole pixels, and a lid the eye's own size flickered against it, the user, November 19, 2026: "do a
+# better job on the closing of the Alpha Moose's eyes"), a dark line of lashes across its lower half running out past its
+# corners (LASH_SIZE, LASH_DROP: a shut eye's "-"), and a heavy brow of fur over it (BROW_SIZE). Where they wait inside
+# its head, out from its middle (units; its eyes' middles are 8.5 out, the head's side about 8.5 there): from 5.3 out,
+# all of it inside.
+LID_IN = 6.1
+LID_SIZE = (1.6, 4.8, 4.8)
+LASH_SIZE = (1.6, 1.6, 6.5)
+LASH_DROP = 0.9       # (its middle under the lid's)
+LASH_OUT = 0.35       # (it stands this much proud of the lid)
+BROW_SIZE = (1.6, 1.6, 6.5)
+BROW_UP = 2.6         # (its middle over the lid's)
 
 
 def mount(s, v):
@@ -237,7 +247,10 @@ def moose_body(s, v):
             # its eyelids (the Alpha Moose's, the user, November 18, 2026: "make sure his moose actually closes his eyes"
             # as it sleeps): a lid of fur on a bone of its own, hidden inside its head just behind each eye, which the
             # sleep slides out over the eye (LID_OUT in rimemobs/alpha_moose.py)
-            whole.part("lid_l" if x > 0 else "lid_r").box((LID_IN * x, hy - 8, eye_z), (2, 3.4, 3.4), fur)
+            lid = whole.part("lid_l" if x > 0 else "lid_r")
+            lid.box((LID_IN * x, hy - 8, eye_z), LID_SIZE, fur)
+            lid.box(((LID_IN + LASH_OUT) * x, hy - 8 - LASH_DROP, eye_z - 0.3), LASH_SIZE, "mouth")
+            lid.box(((LID_IN + LASH_OUT * 0.5) * x, hy - 8 + BROW_UP, eye_z + 0.2), BROW_SIZE, fur)
         ears[x].plate((10 * x, hy + 1, ear_z), (x, 0.3, -0.2), (x * 0.6, 1, 0.2), 6, 11, 2, fur)
         head.box((5 * x, (88 if moose else 122) - 1, (-108 if moose else -109)), (2, 3, 2), "mouth")   # nostrils
     # The bone plate on its face, its eye holes glowing (the Huntsman's; a wild moose has none).

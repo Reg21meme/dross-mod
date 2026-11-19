@@ -35,9 +35,9 @@ import java.util.List;
  * of his door lying on the front of the igloo, his throwing stuff on the floor, some arrows on the floor ... they're gone
  * once he wakes up"; {@link HuntsmanVillages} decides when):
  * <ul>
- *   <li>him on his back on the rug of his lodge's bedroom, at the foot of his triple bed ({@link #BED}: his middle; his
- *       feet to the south of the lodge, his head by the bed; the user, after seeing him half on the bed: "make him sleep
- *       on the floor ... just that carpet"), under the clear ice window in its roof ({@code tools/huntsman/igloo_designs/
+ *   <li>him on his back on his bed of furs, the rug that fills his lodge's bedroom ({@link #BED}: his middle; his
+ *       feet to the south of the lodge, his head on the pale fur at its north end; the user: "make him sleep on the floor
+ *       ... just that carpet", then "remove the beds ... the carpets are his bed": the triple bed is gone), under the clear ice window in its roof ({@code tools/huntsman/igloo_designs/
  *       lodge_house.py}), so you can look down on him from the roof;</li>
  *   <li>the Alpha Moose lying in its stall in the barn ({@link #STALL}), facing its door;</li>
  *   <li>his gear lying on the snow in front of his door ({@link #GEAR}): his spear leaning on the lodge's front, his bow,
@@ -50,8 +50,8 @@ import java.util.List;
  * {@code LODGE_AT}, {@code BARN_AT}; the lodge and barn templates aren't turned in it), so every spot is fixed in the
  * village's own (template) coordinates from his yard's block ({@code homeX}, {@code homeZ}: it spans 0 to 1), turned
  * with the village. Measured from the templates on November 18, 2026 ({@code tools/huntsman}'s lodge and barn): the
- * triple bed's pillows on the row at -30 (x -13 to -10), its foot on -29, the rug before it x -13 to -10, z -28 to
- * -24 (the bedroom's wall at -24), the stall's straw x 23 to 29 (troughs at 22, its fence at
+ * rug x -13 to -11, z -30 (its pale head row) to -25 (since November 19; the triple bed stood on -30 and -29 until
+ * then; the bedroom's wall at -24), the stall's straw x 23 to 29 (troughs at 22, its fence at
  * 29), z -17 to -8 (the barn's door at -8).
  */
 public final class HuntsmanAsleep
@@ -64,10 +64,11 @@ public final class HuntsmanAsleep
     {
     }
 
-    /** His middle lying on the rug, his feet to the south (the sleep's model lies centred on his spot: what of him lies
-     * under the bed's height reaches 1.64 blocks back, his hood just at the bed's foot, and his cloak's hem 2.36 ahead, at
-     * the bedroom's south wall; his antlers rise over the bed's foot). */
-    static final Spot BED = new Spot(-11.5D, -26.36D, 0.0F);
+    /** His middle lying on his bed of furs, the rug that fills his bedroom (no bed since November 19, 2026, the user:
+     * "remove the beds from the Huntsman's home ... the carpets are his bed"), his feet to the south: the sleep's model
+     * lies centred on his spot, his hood 1.64 blocks back on the pale fur at the rug's head, his antler tips 2.36 back,
+     * 0.24 off the north wall, and his cloak's hem 2.36 ahead, about a block short of the south wall. */
+    static final Spot BED = new Spot(-11.5D, -27.4D, 0.0F);
     /** The moose's spot lying in its stall (it reaches 4.06 blocks ahead to its muzzle and 2.59 behind, 2.61 either side
      * with its antlers), facing south, the barn's door. */
     static final Spot STALL = new Spot(26.0D, -12.9D, 0.0F);
