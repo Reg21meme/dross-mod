@@ -41,7 +41,8 @@
      villagers; never call them hunters).
    - `boss <action> <boss>`: boss test tools (`boss summon colossus`, `boss arena colossus`, `boss summon ratking`, `boss arena ratking`, `boss summon huntsman`, `boss arena huntsman`), and `boss arena bedrock` (a spawn-proof test arena for any boss).
    - `trader <action>`: the trader (`trader sendhome`).
-   - `showcase oracle_spell` (the Blind Oracle's spell, cast towards where you look) and `showcase barrier_fall` (a land's
+   - `showcase oracle_spell [big|medium]` (the Blind Oracle's spell, cast towards where you look: the big one for a land,
+     the medium one for a boss's home) and `showcase barrier_fall` (a land's
      barrier falling in front of you): on show only, nobody's quest changes.
    - `quest <action>`: quest progress (`quest status`, `quest reset`, `quest complete`; the Blind Oracle's quests, step 19: `quest skip`, `quest set <quest>`).
    - `rage <action>`: the Rage Wand's teams by command (`rage team <targets> <team>`, `rage clear <targets>`).
@@ -2296,16 +2297,24 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       not dimmed by fog (`SpellRenderTypes`). Colours `DrossColors.ORACLE_SPELL_*`; sounds `entity.oracle.spell_*`
       (vanilla's respawn anchor, beacon, warden sonic charge and boom, explosions, thunder and amethyst, pitched down,
       with their own subtitles), played at its moments: charges, surges, the beam's burst, the lance's strike, the boom
-      and rumble and their echo, the shattering. **On show** (`command/OracleSpellShowcase`): `/dross showcase
-      oracle_spell` (the nearest Blind Oracle within 64 blocks casts it at once towards where you look; with none near,
+      and rumble and their echo, the shattering. That's the big spell, for a land; **the medium spell** (since November 19, 2026, the user: "the big spell, the one
+      we have right now, and a medium spell, a smaller version where it's just one circle and a beam shooting the shield
+      around the nests, while the [lands] require a big spell; the medium spell is quick, nothing too complex"), cast when
+      a hand-in opens only a boss's home (Into the Ashes, Beneath the Rot, First Frost, the Huntsman; `OracleSpell.opensLand`
+      decides, `OracleSpellTuning.MEDIUM_*`): about 5 s, his arms up, one rune circle about 7 blocks across round him, a
+      beam shot out of his hands towards the home (drawn 25-45 blocks out, rising 12 over his hands), a flash and a ring
+      where it hits the shield and a glassy crack, the beam breaking into shards. **On show** (`command/OracleSpellShowcase`): `/dross showcase
+      oracle_spell [big|medium]` (the nearest Blind Oracle within 64 blocks casts it at once towards where you look; with none near,
       it's cast from the ground 10 blocks in front of you) and `/dross showcase barrier_fall` (a straight stretch of
       curtain across your view falls); neither changes anyone's quest.
     - **The barriers falling** [built November 18, 2026, not yet seen in-game] (the user: "when you first arrive at that
       barrier, not every one but the first one you arrive at, it does an animation where the barrier falls off"): after
       the spell an opened land's curtain still stands for that player (`OracleClientState.showsCurtain`) until they first
-      come within 24 blocks of its edge (`dimension/ward/LandWardFalls`, once a second; standing deep inside the land
-      doesn't count: the user didn't see it fall after `/dross goto biome`, which lands far inside; the client waits up to
-      4 s for the ground there to load before it finds the edge, else a ring round them falls); then that stretch of its edge
+      come within 24 blocks of its edge (`dimension/ward/LandWardFalls`, once a second; the client waits up to
+      4 s for the ground there to load before it finds the edge, else a ring round them falls); in creative too since
+      November 19 (the user tests in creative, where it never fell: "I still don't see the barrier breaking when I go to
+      the biome"), and arriving deep inside the land (`/dross goto biome`) with no edge within 24 blocks it falls as a
+      straight stretch across their view 12 blocks ahead (`LandWardFalls.AHEAD`); then that stretch of its edge
       falls, about 5.5 s (since November 19, the user, of the first, 2 s of a few streaks: "the barrier fall showcase
       doesn't seem to do anything ... I don't see the animation"): the curtain stands up thick and bright with its runes
       and a rumble, glowing cracks run jagged across it (`WardCrackParticle`, `dross:ward_crack`,
@@ -2465,6 +2474,12 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       lies flat on the snow, the user: "the bola needs to be flat on the ground, not floating"; preview `boss-previews/rimefall/huntsman/gear.png`) as block models shown only by block
       displays (`dross:hunt_bow`, `hunt_arrow`, `hunt_bola`, no item). Breaking a block of his village says "Magic
       protects the Huntsman's home while he sleeps." to a player he's asleep for (`BossGrounds.HUNTSMAN_ASLEEP_KEY`).
+      **His lodge and the barn are warded while he sleeps** (since November 19, the user: "you shouldn't be able to go
+      into the Huntsman's house or the moose's barn, or from the top at all, make barriers around that";
+      `boss/huntsman/village/HuntsmanHomeWard`, one of `boss/BossWards`' wards): each a box of its template's footprint
+      (the barn with its corral), from 10 under his yard to 48 over it, so a player he's asleep for who walks in at a door,
+      climbs onto a roof or drops onto one is bounced out like the other arenas (a push, or sent back to their yard);
+      his yard and the gear before his door stay open. Not in creative, like every ward.
       **The first time a player near has reached his quest** they wake onto their patrol (the moose at its start, him in
       the saddle), his gear gone; they never sleep again, so once you've reached him every Huntsman you come near is out
       on patrol. A sleeping pair still fights nobody locked (Rimefall is locked for them until the Rat King anyway).
@@ -2854,6 +2869,14 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   a click now is one reminder with your count; the Ragged Seeker still says his own 5 lore lines and never moves the
   quest (but on a big boss's quest, `/dross quest set set_in_stone` and the Oracle's offer heard, he jokes about it,
   three jokes in turn); sneaking or the off hand does nothing; rejoin: the marker is still right.
+- **The medium spell, the barrier falling in creative, his warded lodge** (November 19): `/dross showcase oracle_spell
+  medium` by the Blind Oracle: about 5 s, his arms up, one small circle, a beam shot out towards where you look, a flash,
+  a ring and a glassy crack where it ends, the beam breaking into shards (`... oracle_spell big` is the big one);
+  hand in Into the Ashes: the medium one, the giants: the big one. In creative, `/dross quest set giant_slayer`, hand it
+  in, then `/dross goto biome cinder_wastes`: a stretch of curtain stands up 12 blocks ahead of you and falls; walk to
+  the Gravecrags' edge: its curtain falls there. In survival before the Huntsman's quest (`/dross quest set first_frost`,
+  through the Oracle's offer), `/dross goto lair huntsman`: walk at his door, the barn's door or its corral fence, or
+  pillar up onto a roof: pushed back out with a flash of runes; his gear before his door still reachable.
 - **The Oracle's spell and the barriers falling** (November 18): in survival, `/dross quest set giant_slayer`, hear his
   offer (it starts with the barriers), kill 3 giants (`/dross quest skip` casts no spell),
   click through his thanks: as he says "Stand back, traveller, and watch." he stands still, raises his arms, a blue

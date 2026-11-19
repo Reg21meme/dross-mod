@@ -10,6 +10,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -25,7 +26,10 @@ import java.util.List;
  * {@value #RANGE} blocks of its edge (a column of the land and one of another land both that near: arriving deep inside
  * it by a teleport, it waits until they come near its edge); then it falls in front of them, once ({@link OracleProgress#barrierFalls}, which
  * saves it and has their game play it, {@code client/LandWardFall}). Only the lands at the surface
- * ({@link DrossBiomes#ALL}); the sewers fall with Blightwood. Players in creative or spectator mode never see a barrier.
+ * ({@link DrossBiomes#ALL}); the sewers fall with Blightwood. Creative players see it too (since November 19, 2026, the
+ * user: "I still don't see the barrier breaking when I go to the biome": they test in creative, where the barrier never
+ * stood in their way); spectators never do. Arriving deep inside the land (a teleport) with no edge within
+ * {@value #RANGE} blocks, it falls as a straight stretch across their view {@value #AHEAD} blocks ahead.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LandWardFalls
@@ -38,6 +42,8 @@ public final class LandWardFalls
     public static final int RING_STEP = 4;
     /** ...with this many columns round each ring per {@value #RING_STEP} blocks of its radius (at least 8). */
     public static final int COLUMNS_PER_STEP = 6;
+    /** Deep inside with no edge near: the stretch falls this far in front of them (blocks). */
+    public static final int AHEAD = 12;
 
     private LandWardFalls() {}
 
@@ -62,21 +68,33 @@ public final class LandWardFalls
     /** Lets the barrier of one land fall for this player if they've come to it (public for the headless tests). */
     public static void check(ServerPlayer player)
     {
-        if (!player.isAlive() || OracleRules.exempt(player) || !player.level().dimension().equals(ModDimensions.DROSS_LEVEL))
+        if (!player.isAlive() || player.isSpectator() || !player.level().dimension().equals(ModDimensions.DROSS_LEVEL))
         {
             return;
         }
         for (ResourceKey<Biome> land : OracleQuests.lockableLands())
         {
-            if (!DrossBiomes.ALL.contains(land) || !OracleRules.isLandOpen(player, land) || OracleProgress.hasSeenFall(player, land))
+            if (!DrossBiomes.ALL.contains(land) || !OracleRules.isLandOpenByQuest(player, land) || OracleProgress.hasSeenFall(player, land))
             {
                 continue;
             }
             int[] near = nearestColumn(player, land, true);
-            if (near != null && nearestColumn(player, land, false) != null)
+            if (near == null)
+            {
+                continue;
+            }
+            if (nearestColumn(player, land, false) != null)
             {
                 OracleProgress.barrierFalls(player, land, near[0], near[1]);
                 return; // one a check: two barriers never fall at once
+            }
+            if (near[0] == player.getBlockX() && near[1] == player.getBlockZ())
+            {
+                // Inside it, its edge far off: a stretch across their view ahead.
+                Vec3 look = Vec3.directionFromRotation(0.0F, player.getYRot());
+                Vec3 at = player.position().add(look.scale(AHEAD));
+                OracleProgress.barrierFalls(player, land, Mth.floor(at.x), Mth.floor(at.z), (float) -look.z, (float) look.x);
+                return;
             }
         }
     }

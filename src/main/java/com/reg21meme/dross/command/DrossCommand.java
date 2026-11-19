@@ -127,7 +127,8 @@ import net.minecraftforge.fml.common.Mod;
  *   <li>{@code /dross showcase hub_camps}: the Shattered Spire three times in a row ahead of you, each with one of the
  *       survivors' camp designs at its steps ({@link HubCampShowcase}).</li>
  *   <li>{@code /dross showcase oracle_spell}: the Blind Oracle's spell, cast by the nearest Oracle (or from the ground
- *       ahead) towards where you look; {@code /dross showcase barrier_fall}: a stretch of a land's barrier falling in
+ *       ahead) towards where you look ({@code ... oracle_spell medium}: the quick one for a boss's home);
+ *       {@code /dross showcase barrier_fall}: a stretch of a land's barrier falling in
  *       front of you ({@link OracleSpellShowcase}). Neither changes your quest.</li>
  *   <li>{@code /dross boss summon colossus}: summons a fighting Cinder Colossus in front of you, facing you (not on
  *       Peaceful). From the boss area ({@link BossCommands#summonColossus}).</li>
@@ -284,7 +285,9 @@ public final class DrossCommand
                         .then(Commands.literal("hub_camps").executes(HubCampShowcase::run))
                         // The Blind Oracle's spell and a barrier falling, on show (OracleSpellShowcase; quest area's
                         // OracleSpell).
-                        .then(Commands.literal("oracle_spell").executes(OracleSpellShowcase::spell))
+                        .then(Commands.literal("oracle_spell").executes(OracleSpellShowcase::spell)
+                                .then(Commands.literal("big").executes(OracleSpellShowcase::spell))
+                                .then(Commands.literal("medium").executes(OracleSpellShowcase::medium)))
                         .then(Commands.literal("barrier_fall").executes(OracleSpellShowcase::barrierFall)))
                 // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
                 // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).

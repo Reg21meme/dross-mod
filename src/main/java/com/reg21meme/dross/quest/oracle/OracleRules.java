@@ -40,6 +40,16 @@ public final class OracleRules
     }
 
     /**
+     * True if this player's Oracle quest has opened this land, whatever their game mode (a land no quest locks: true).
+     * For the barrier falling, which creative players see too (the user, November 19, 2026, who tests in creative).
+     */
+    public static boolean isLandOpenByQuest(ServerPlayer player, ResourceKey<Biome> biome)
+    {
+        OracleQuest opener = OracleQuests.openerOf(biome);
+        return opener == null || OracleProgress.hasHandedIn(player, opener);
+    }
+
+    /**
      * True if this boss may fight this player (the boss area's locks): they've handed in the quest before the boss's own
      * (the Oracle broke the ward on its home). Pass a server player (any other is answered "allowed").
      */

@@ -9,6 +9,11 @@ package com.reg21meme.dross.quest.oracle;
  * moment the spell starts, after {@link #PAUSE}; distances in blocks. The server uses {@link #PAUSE} and
  * {@link #DURATION} (he stands still and says nothing meanwhile); the rest is how {@code quest/client/OracleSpellEffects}
  * draws it.
+ *
+ * <p>Two spells (the user, November 19, 2026: "the big spell, the one we have right now, and a medium spell, a smaller
+ * version where it's just one circle and a beam shooting the shield around the nests, while the [lands] require a big
+ * spell; the medium spell is quick, nothing too complex"): the <b>big</b> one when a hand-in opens a land, the
+ * <b>medium</b> one ({@code MEDIUM_*}) when it opens a boss's home.</p>
  */
 public final class OracleSpellTuning
 {
@@ -127,4 +132,48 @@ public final class OracleSpellTuning
     public static final float GATHER_RUNES = 2.5F;
     /** Shards a tick falling from the beams as they shatter. */
     public static final int SHATTER_SPARKS = 34;
+
+    // ------------------------------------------------------------------ The medium spell (a boss's home)
+
+    /** The whole medium spell (5 seconds); he stands still for it, and for the pause before it. */
+    public static final int MEDIUM_DURATION = 100;
+    /** His arms up by here, down from {@link #MEDIUM_ARMS_DOWN} to {@link #MEDIUM_ARMS_DOWN_END}. */
+    public static final int MEDIUM_ARMS_UP = 10;
+    public static final int MEDIUM_ARMS_DOWN = 78;
+    public static final int MEDIUM_ARMS_DOWN_END = 92;
+    /** Its one circle: opening over this long, this big (blocks, its radius), fading from {@link #MEDIUM_CIRCLE_FADE}. */
+    public static final int MEDIUM_CIRCLE_GROW = 14;
+    public static final float MEDIUM_CIRCLE_RADIUS = 3.5F;
+    public static final int MEDIUM_CIRCLE_FADE = 76;
+    /** The beam shoots out of his hands towards the home's shield from here, reaching its far end over this long. */
+    public static final int MEDIUM_BEAM_START = 28;
+    public static final int MEDIUM_BEAM_GROW = 5;
+    /** It's drawn this far out (or nearer, if the home is nearer), at least this far, rising this high over his hands
+     * at its far end (so it's seen over the trees). */
+    public static final float MEDIUM_BEAM_LENGTH = 45.0F;
+    public static final float MEDIUM_BEAM_MIN_LENGTH = 25.0F;
+    public static final float MEDIUM_BEAM_RISE = 12.0F;
+    /** Its core's and glow's half-widths. */
+    public static final float MEDIUM_BEAM_CORE = 0.35F;
+    public static final float MEDIUM_BEAM_GLOW = 1.3F;
+    /** It breaks off from here, gone over {@link #MEDIUM_BEAM_FADE}. */
+    public static final int MEDIUM_BEAM_END = 68;
+    public static final int MEDIUM_BEAM_FADE = 8;
+    /** Where it hits the shield: a flash this big and a ring this fast, for this long. */
+    public static final float MEDIUM_FLASH_SIZE = 6.0F;
+    public static final int MEDIUM_FLASH_TICKS = 18;
+    public static final float MEDIUM_RING_GROWTH = 1.4F;
+    public static final int MEDIUM_RING_TICKS = 24;
+    /** The ground shakes a little as it fires (degrees, dying out over {@link #SHAKE_STRIKE_TICKS}). */
+    public static final float MEDIUM_SHAKE = 0.6F;
+    /** Light rising off its circle a tick, and shards at its burst and where it hits. */
+    public static final float MEDIUM_RIM_STREAKS = 1.2F;
+    public static final int MEDIUM_BURST_SHARDS = 16;
+    public static final int MEDIUM_HIT_SHARDS = 24;
+
+    /** How long the spell runs (the server keeps him still for it). */
+    public static int duration(boolean big)
+    {
+        return big ? DURATION : MEDIUM_DURATION;
+    }
 }

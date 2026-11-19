@@ -50,7 +50,10 @@ import static com.reg21meme.dross.quest.oracle.OracleSpellTuning.*;
  *       shock rings and a pillar of light burst over the land; a moment later the boom, and its echo;</li>
  *   <li>the beams and the lance shatter into falling shards of light, the circle fades and his arms come down.</li>
  * </ol>
- * Its light is added onto what's behind it and the fog doesn't dim it ({@link SpellRenderTypes}).
+ * Its light is added onto what's behind it and the fog doesn't dim it ({@link SpellRenderTypes}). That's the <b>big</b>
+ * spell, for a land opening. The <b>medium</b> one, for a boss's home (since November 19, 2026; {@code MEDIUM_*}), is
+ * quick: his arms up, one circle on the ground round him, a beam shot out of his hands towards the home's shield, a
+ * flash and a ring where it hits it, the beam breaking into shards; about 5 seconds.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, value = Dist.CLIENT)
 public final class OracleSpellEffects
@@ -70,6 +73,7 @@ public final class OracleSpellEffects
     private static final class Spell
     {
         final int oracle;
+        final boolean big;
         final float dirX;
         final float dirZ;
         final float strikeDistance;
@@ -79,13 +83,15 @@ public final class OracleSpellEffects
         double y;
         double z;
 
-        Spell(int oracle, float dirX, float dirZ, float distance, Vec3 at, int wait)
+        Spell(int oracle, float dirX, float dirZ, float distance, Vec3 at, int wait, boolean big)
         {
             this.oracle = oracle;
+            this.big = big;
             float length = Mth.sqrt(dirX * dirX + dirZ * dirZ);
             this.dirX = length > 1.0E-4F ? dirX / length : 1.0F;
             this.dirZ = length > 1.0E-4F ? dirZ / length : 0.0F;
-            this.strikeDistance = Mth.clamp(distance, STRIKE_MIN_DISTANCE, STRIKE_DISTANCE);
+            this.strikeDistance = big ? Mth.clamp(distance, STRIKE_MIN_DISTANCE, STRIKE_DISTANCE)
+                    : Mth.clamp(distance, MEDIUM_BEAM_MIN_LENGTH, MEDIUM_BEAM_LENGTH);
             this.x = at.x;
             this.y = at.y;
             this.z = at.z;
@@ -114,7 +120,13 @@ public final class OracleSpellEffects
 
         Vec3 strike()
         {
-            return new Vec3(x + dirX * strikeDistance, y + STRIKE_HEIGHT, z + dirZ * strikeDistance);
+            return new Vec3(x + dirX * strikeDistance, y + (big ? STRIKE_HEIGHT : HANDS_HEIGHT + MEDIUM_BEAM_RISE),
+                    z + dirZ * strikeDistance);
+        }
+
+        int duration()
+        {
+            return OracleSpellTuning.duration(big);
         }
     }
 
@@ -124,9 +136,10 @@ public final class OracleSpellEffects
 
     /**
      * From the server: this Oracle (or nobody, -1, on show) casts his spell from x, y, z towards the barrier lying this
-     * way, this far off, after {@code delay} ticks.
+     * way, this far off, after {@code delay} ticks; the big spell or the medium one.
      */
-    public static void start(int oracle, double x, double y, double z, float dirX, float dirZ, float distance, int delay)
+    public static void start(int oracle, double x, double y, double z, float dirX, float dirZ, float distance, int delay,
+                             boolean big)
     {
         Minecraft mc = Minecraft.getInstance();
         if (mc.level == null || mc.player == null)
@@ -139,7 +152,7 @@ public final class OracleSpellEffects
         {
             SPELLS.removeIf(s -> s.oracle == oracle);
         }
-        SPELLS.add(new Spell(oracle, dirX, dirZ, distance, at, delay));
+        SPELLS.add(new Spell(oracle, dirX, dirZ, distance, at, delay, big));
     }
 
     /** How far this entity's arms are raised by a spell (0 down, 1 over his head), smoothed between ticks. */
@@ -150,8 +163,11 @@ public final class OracleSpellEffects
             if (spell.oracle == entity.getId() && spell.started())
             {
                 float t = spell.age + partialTick;
-                float up = smooth(t / ARMS_UP);
-                float down = 1.0F - smooth((t - ARMS_DOWN) / (ARMS_DOWN_END - ARMS_DOWN));
+                int armsUp = spell.big ? ARMS_UP : MEDIUM_ARMS_UP;
+                int armsDown = spell.big ? ARMS_DOWN : MEDIUM_ARMS_DOWN;
+                int armsDownEnd = spell.big ? ARMS_DOWN_END : MEDIUM_ARMS_DOWN_END;
+                float up = smooth(t / armsUp);
+                float down = 1.0F - smooth((t - armsDown) / (armsDownEnd - armsDown));
                 return Math.min(up, down);
             }
         }
@@ -197,13 +213,21 @@ public final class OracleSpellEffects
                 continue;
             }
             int t = spell.age++;
-            if (t >= DURATION)
+            if (t >= spell.duration())
             {
                 SPELLS.remove(i);
                 continue;
             }
-            sounds(mc, spell, t);
-            particles(mc, spell, t, share, random);
+            if (spell.big)
+            {
+                sounds(mc, spell, t);
+                particles(mc, spell, t, share, random);
+            }
+            else
+            {
+                mediumSounds(mc, spell, t);
+                mediumParticles(mc, spell, t, share, random);
+            }
         }
     }
 
@@ -249,6 +273,78 @@ public final class OracleSpellEffects
         {
             play(mc, spell.hands(), ModSounds.ORACLE_SPELL_SHATTER.get(), 1.6F, 1.0F);
             play(mc, spell.hands().add(0.0D, 15.0D, 0.0D), ModSounds.ORACLE_SPELL_SHATTER.get(), 1.4F, 0.8F);
+        }
+    }
+
+    // ------------------------------------------------------------------ The medium spell: sounds and particles
+
+    private static void mediumSounds(Minecraft mc, Spell spell, int t)
+    {
+        if (t == 0)
+        {
+            play(mc, spell.feet(), ModSounds.ORACLE_SPELL_CHARGE.get(), 1.0F, 1.2F);
+        }
+        if (t == MEDIUM_BEAM_START)
+        {
+            play(mc, spell.hands(), ModSounds.ORACLE_SPELL_STRIKE.get(), 1.4F, 1.25F);
+            play(mc, spell.hands(), ModSounds.ORACLE_SPELL_BEAM.get(), 1.0F, 1.3F);
+        }
+        if (t == MEDIUM_BEAM_START + MEDIUM_BEAM_GROW && mc.player != null)
+        {
+            // The shield cracking where it hits: put it between the listener and the hit, so it's always heard.
+            Vec3 ear = mc.player.getEyePosition();
+            Vec3 way = spell.strike().subtract(ear);
+            Vec3 at = ear.add(way.normalize().scale(Math.min(way.length(), 16.0D)));
+            play(mc, at, ModSounds.ORACLE_SPELL_SHATTER.get(), 1.4F, 1.3F);
+            play(mc, at, ModSounds.ORACLE_SPELL_BOOM.get(), 0.8F, 1.4F);
+        }
+        if (t == MEDIUM_BEAM_END)
+        {
+            play(mc, spell.hands(), ModSounds.ORACLE_SPELL_SHATTER.get(), 0.9F, 1.15F);
+        }
+    }
+
+    private static void mediumParticles(Minecraft mc, Spell spell, int t, float share, RandomSource random)
+    {
+        float circle = smooth((float) t / MEDIUM_CIRCLE_GROW);
+        if (t < MEDIUM_CIRCLE_FADE && circle > 0.2F)
+        {
+            for (int k = 0; k < count(MEDIUM_RIM_STREAKS * share, random); k++)
+            {
+                double a = random.nextDouble() * Math.PI * 2.0D;
+                double r = MEDIUM_CIRCLE_RADIUS * circle * (0.9D + random.nextDouble() * 0.1D);
+                mc.particleEngine.createParticle(ModParticles.WARD_STREAK.get(), spell.x + Math.cos(a) * r, spell.y,
+                        spell.z + Math.sin(a) * r, 0.0D, 0.0D, 0.0D);
+            }
+        }
+        if (t == MEDIUM_BEAM_START)
+        {
+            Vec3 h = spell.hands();
+            for (int k = 0; k < (int) (MEDIUM_BURST_SHARDS * share); k++)
+            {
+                mc.particleEngine.createParticle(ModParticles.WARD_SHARD.get(), h.x, h.y, h.z, (random.nextDouble() - 0.5D) * 0.5D,
+                        0.1D + random.nextDouble() * 0.3D, (random.nextDouble() - 0.5D) * 0.5D);
+            }
+        }
+        if (t == MEDIUM_BEAM_START + MEDIUM_BEAM_GROW)
+        {
+            Vec3 s = spell.strike();
+            for (int k = 0; k < (int) (MEDIUM_HIT_SHARDS * share); k++)
+            {
+                mc.particleEngine.createParticle(ModParticles.WARD_SHARD.get(), s.x, s.y, s.z, random.nextGaussian() * 0.35D,
+                        random.nextGaussian() * 0.3D, random.nextGaussian() * 0.35D);
+            }
+        }
+        if (t >= MEDIUM_BEAM_END && t < MEDIUM_BEAM_END + MEDIUM_BEAM_FADE)
+        {
+            Vec3 h = spell.hands();
+            Vec3 s = spell.strike();
+            for (int k = 0; k < (int) (8 * share); k++)
+            {
+                Vec3 p = h.lerp(s, random.nextDouble());
+                mc.particleEngine.createParticle(ModParticles.WARD_SHARD.get(), p.x, p.y, p.z, random.nextGaussian() * 0.04D,
+                        -0.05D - random.nextDouble() * 0.15D, random.nextGaussian() * 0.04D);
+            }
         }
     }
 
@@ -337,7 +433,14 @@ public final class OracleSpellEffects
         {
             if (spell.started())
             {
-                drawCircles(buffers, m, spell, spell.age + partial);
+                if (spell.big)
+                {
+                    drawCircles(buffers, m, spell, spell.age + partial);
+                }
+                else
+                {
+                    drawMediumCircle(buffers, m, spell, spell.age + partial);
+                }
             }
         }
         buffers.endBatch(SpellRenderTypes.textured(CIRCLE));
@@ -348,9 +451,16 @@ public final class OracleSpellEffects
             if (spell.started())
             {
                 float t = spell.age + partial;
-                drawGroundRing(glow, m, spell, t);
-                drawBeams(glow, m, spell, t, cam);
-                drawStrike(glow, m, spell, t, camera, cam);
+                if (spell.big)
+                {
+                    drawGroundRing(glow, m, spell, t);
+                    drawBeams(glow, m, spell, t, cam);
+                    drawStrike(glow, m, spell, t, camera, cam);
+                }
+                else
+                {
+                    drawMediumBeam(glow, m, spell, t, camera, cam);
+                }
             }
         }
         buffers.endBatch(SpellRenderTypes.GLOW);
@@ -390,6 +500,57 @@ public final class OracleSpellEffects
                         (float) spell.z, r * RING_SHARE * (0.8F + lift * 0.6F), -t * RING_SPIN * Mth.DEG_TO_RAD,
                         DrossColors.ORACLE_SPELL_GLOW, 0.5F * fade * (1.0F - lift));
             }
+        }
+    }
+
+    /** The medium spell's one circle on the ground round him. */
+    private static void drawMediumCircle(MultiBufferSource buffers, Matrix4f m, Spell spell, float t)
+    {
+        float size = smooth(t / MEDIUM_CIRCLE_GROW);
+        float fade = 1.0F - smooth((t - MEDIUM_CIRCLE_FADE) / (MEDIUM_DURATION - MEDIUM_CIRCLE_FADE));
+        if (size <= 0.01F || fade <= 0.01F)
+        {
+            return;
+        }
+        float pulse = 0.85F + 0.15F * Mth.sin(t * 0.45F);
+        flatQuad(buffers.getBuffer(SpellRenderTypes.textured(CIRCLE)), m, (float) spell.x, (float) spell.y + 0.06F,
+                (float) spell.z, MEDIUM_CIRCLE_RADIUS * size, t * CIRCLE_SPIN * 1.5F * Mth.DEG_TO_RAD,
+                DrossColors.ORACLE_SPELL_CIRCLE, fade * pulse);
+    }
+
+    /** The medium spell's beam out of his hands to the home's shield, and the flash and ring where it hits it. */
+    private static void drawMediumBeam(VertexConsumer vc, Matrix4f m, Spell spell, float t, Camera camera, Vec3 cam)
+    {
+        float grow = smooth((t - MEDIUM_BEAM_START) / MEDIUM_BEAM_GROW);
+        float gone = 1.0F - smooth((t - MEDIUM_BEAM_END) / MEDIUM_BEAM_FADE);
+        float strength = grow * gone;
+        if (strength > 0.01F)
+        {
+            float pulse = 1.0F + BEAM_PULSE * Mth.sin(t * BEAM_PULSE_SPEED);
+            Vec3 from = spell.hands();
+            Vec3 to = from.lerp(spell.strike(), grow);
+            ribbon(vc, m, from, to, cam, MEDIUM_BEAM_GLOW * pulse * strength, DrossColors.ORACLE_SPELL_GLOW, 0.6F * strength, 0.5F * strength);
+            ribbon(vc, m, from, to, cam, MEDIUM_BEAM_CORE * pulse * strength, DrossColors.ORACLE_SPELL_CORE, strength, strength);
+        }
+        float since = t - (MEDIUM_BEAM_START + MEDIUM_BEAM_GROW);
+        if (since < 0.0F)
+        {
+            return;
+        }
+        Vec3 at = spell.strike();
+        Vector3f left = camera.getLeftVector();
+        Vector3f up = camera.getUpVector();
+        if (since < MEDIUM_FLASH_TICKS)
+        {
+            float life = since / MEDIUM_FLASH_TICKS;
+            float alpha = (1.0F - life) * (1.0F - life);
+            disc(vc, m, at, left, up, MEDIUM_FLASH_SIZE + since * 0.3F, DrossColors.ORACLE_SPELL_CORE, alpha);
+            disc(vc, m, at, left, up, MEDIUM_FLASH_SIZE * 2.2F, DrossColors.ORACLE_SPELL_GLOW, alpha * 0.5F);
+        }
+        if (since < MEDIUM_RING_TICKS)
+        {
+            float size = 2.0F + since * MEDIUM_RING_GROWTH;
+            ring(vc, m, at, left, up, size, size * 0.12F, DrossColors.ORACLE_SPELL_GLOW, 1.0F - since / MEDIUM_RING_TICKS);
         }
     }
 
@@ -534,15 +695,22 @@ public final class OracleSpellEffects
             }
             float t = spell.age + (float) event.getPartialTick();
             float a = 0.0F;
-            if (t > GATHER_START && t < BEAM_START)
+            if (!spell.big)
+            {
+                if (t >= MEDIUM_BEAM_START && t < MEDIUM_BEAM_START + SHAKE_STRIKE_TICKS)
+                {
+                    a = MEDIUM_SHAKE * (1.0F - (t - MEDIUM_BEAM_START) / SHAKE_STRIKE_TICKS);
+                }
+            }
+            else if (t > GATHER_START && t < BEAM_START)
             {
                 a += SHAKE_GATHER * (t - GATHER_START) / (BEAM_START - GATHER_START);
             }
-            if (t >= BEAM_START && t < SHATTER)
+            if (spell.big && t >= BEAM_START && t < SHATTER)
             {
                 a += SHAKE_BEAM;
             }
-            for (int burst : new int[] {BEAM_START, STRIKE})
+            for (int burst : spell.big ? new int[] {BEAM_START, STRIKE} : new int[0])
             {
                 if (t >= burst && t < burst + SHAKE_STRIKE_TICKS)
                 {

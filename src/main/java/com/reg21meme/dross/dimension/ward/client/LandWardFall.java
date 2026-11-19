@@ -156,9 +156,9 @@ public final class LandWardFall
     {
         Minecraft mc = Minecraft.getInstance();
         ClientLevel level = mc.level;
-        if (bit < 0 && level != null)
+        if ((bit < 0 || alongX != 0.0F || alongZ != 0.0F) && level != null)
         {
-            // The showcase: a straight stretch of curtain across the player's view, standing at their feet's height (the
+            // The showcase, or a land's barrier for a player who arrived deep inside it: a straight stretch of curtain across the player's view, standing at their feet's height (the
             // ground's top there may be a tree's crown, and under a forest's leaves you never saw it).
             double feet = mc.player != null ? mc.player.getY() : level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
             List<double[]> line = new ArrayList<>();
@@ -166,7 +166,7 @@ public final class LandWardFall
             {
                 line.add(new double[] {x + 0.5D + alongX * i, z + 0.5D + alongZ * i, feet});
             }
-            FALLS.add(new Fall(line, -1));
+            FALLS.add(new Fall(line, bit));
             return;
         }
         List<ResourceKey<Biome>> lands = OracleQuests.lockableLands();

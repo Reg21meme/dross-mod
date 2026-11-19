@@ -21,8 +21,10 @@ import java.util.function.Supplier;
  * @param dirZ     ...and Z
  * @param distance how far off it is (blocks)
  * @param delay    ticks to wait before it starts (the pause after his line, {@link OracleSpellTuning#PAUSE})
+ * @param big      the big spell (a land opening) or the medium one (a boss's home)
  */
-public record OracleSpellMessage(int oracle, double x, double y, double z, float dirX, float dirZ, float distance, int delay)
+public record OracleSpellMessage(int oracle, double x, double y, double z, float dirX, float dirZ, float distance, int delay,
+                                 boolean big)
 {
     public void encode(FriendlyByteBuf buf)
     {
@@ -34,18 +36,19 @@ public record OracleSpellMessage(int oracle, double x, double y, double z, float
         buf.writeFloat(dirZ);
         buf.writeFloat(distance);
         buf.writeVarInt(delay);
+        buf.writeBoolean(big);
     }
 
     public static OracleSpellMessage decode(FriendlyByteBuf buf)
     {
         return new OracleSpellMessage(buf.readVarInt(), buf.readDouble(), buf.readDouble(), buf.readDouble(), buf.readFloat(),
-                buf.readFloat(), buf.readFloat(), buf.readVarInt());
+                buf.readFloat(), buf.readFloat(), buf.readVarInt(), buf.readBoolean());
     }
 
     /** On the client's main thread. The client class is only touched on a client (never loaded on a server). */
     public void handle(Supplier<NetworkEvent.Context> context)
     {
-        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> OracleSpellEffects.start(oracle, x, y, z, dirX, dirZ, distance, delay));
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> OracleSpellEffects.start(oracle, x, y, z, dirX, dirZ, distance, delay, big));
         context.get().setPacketHandled(true);
     }
 }

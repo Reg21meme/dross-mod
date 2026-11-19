@@ -276,9 +276,12 @@ Huntsman).
   a great rune circle opens on the ground round him and light gathers into his hands, a beam of blue light bursts up into
   the sky with three thinner beams winding up into it, then it bends out towards the barrier, and far off over the land a
   flash, shock rings and a pillar of light burst, then the boom and its echo. It lasts about 12 seconds, and anyone near
-  sees it. After a boss, he uses its dying energy. (`/dross showcase oracle_spell` shows it.)
+  sees it. After a boss, he uses its dying energy. That's his big spell, for a land; to open only a boss's home he casts
+  a quick medium one: one circle and a beam shot at the home's shield. (`/dross showcase oracle_spell` shows the big one,
+  `/dross showcase oracle_spell medium` the medium one.)
 - **The barrier falling:** a land he has opened still shows its curtain until you first come to its edge; then it glows up,
-  cracks and shatters in front of you, once. (`/dross showcase barrier_fall` shows it.)
+  cracks and shatters in front of you, once (arriving deep inside the land, a stretch falls ahead of you). (`/dross
+  showcase barrier_fall` shows it.)
 
 - **Inside a land that's locked for you:** Slowness V, Mining Fatigue V and Hunger II for as long as you stay (gone the moment you step
   out), and "This land rejects you. You cannot enter yet." in chat as you come in and every 20 seconds. It goes by the
@@ -952,7 +955,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase boss_designs emberdactyl <animation>` | Plays one animation on the Emberdactyl and its young near you (with its sounds). |
 | `/dross showcase cinder_mobs` | Lines up the Cinder Wastes' mobs with signs: the Pallbearer and the Cinder Hermit in eight shells; chat buttons play their animations (idle, walk, swipe, slam, roar, snap, pinch, hide, peek, come_out, death). |
 | `/dross showcase cinder_mobs <animation>` | Plays one animation on the Cinder Wastes' mobs near you (with its sounds). |
-| `/dross showcase oracle_spell` | The Blind Oracle's spell: the nearest Blind Oracle casts it at once towards where you look (with none near, it's cast from the ground in front of you). Nobody's quest changes. |
+| `/dross showcase oracle_spell [big\|medium]` | The Blind Oracle's spell: the nearest Blind Oracle casts it at once towards where you look (with none near, it's cast from the ground in front of you): the big one (a land opening) or the medium one (a boss's home). Nobody's quest changes. |
 | `/dross showcase barrier_fall` | A stretch of a land's barrier falls in front of you, as it does the first time you come to a land the Oracle has opened. |
 | `/dross showcase silverwood_giants` | Lines up the Silverwood Giant's three looks (G1, G2, G3), frozen, on Silvermoss with signs; right-click one to play its next animation. Running it again replaces the row. |
 | `/dross showcase silverwood_giants <animation>` | Plays that animation on the three (idle, walk, run, warn, smash, sweep, stomp, throw, hurt, death), with its sounds. |

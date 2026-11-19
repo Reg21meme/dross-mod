@@ -114,6 +114,15 @@ public final class OracleProgress
      */
     public static void barrierFalls(ServerPlayer player, ResourceKey<Biome> land, int x, int z)
     {
+        barrierFalls(player, land, x, z, 0.0F, 0.0F);
+    }
+
+    /**
+     * The same, as a straight stretch of curtain through x, z running this way along the ground (a unit vector; 0, 0:
+     * along the land's real edge there), for a player who arrived deep inside the land with no edge in sight.
+     */
+    public static void barrierFalls(ServerPlayer player, ResourceKey<Biome> land, int x, int z, float alongX, float alongZ)
+    {
         int bit = OracleQuests.lockableLands().indexOf(land);
         if (bit < 0)
         {
@@ -133,7 +142,7 @@ public final class OracleProgress
             }
         }
         changed(player);
-        QuestNetwork.sendTo(player, new LandFallMessage(bit, x, z));
+        QuestNetwork.sendTo(player, new LandFallMessage(bit, x, z, alongX, alongZ));
     }
 
     /** Sends the player's marker, open lands and fallen barriers to their game. */

@@ -132,7 +132,7 @@ public final class HuntsmanAsleep
     }
 
     /** A block of the village's templates from his yard's block, in the world (its height not used). */
-    private static BlockPos local(RimefallVillages.VillagePlan plan, int dx, int dz)
+    static BlockPos local(RimefallVillages.VillagePlan plan, int dx, int dz)
     {
         HunterVillageDesigns.Design d = plan.design();
         return HunterVillages.toWorld(new BlockPos(d.homeX() + dx, d.groundLayer() + 1, d.homeZ() + dz), plan.ground(),

@@ -188,7 +188,10 @@ Its working name (entity `dross:silverwood_giant`); the name in the game can cha
   HuntsmanAsleep`): with no player near whose quest has reached him (creative alone doesn't count), he lies asleep on the
   his bed of furs (a rug filling his bedroom, no bed) in his lodge and the Alpha Moose lies in its stall in the barn, its eyes shut, both snoring with every slow breath (Zzz
   rising), nothing hurting them ("Magic protects the Huntsman while he sleeps."); a window of clear ice in his bedroom's
-  roof (soul lanterns by his bed so it never melts) lets you look down on him; his spear leans on his lodge's front and
+  roof (soul lanterns by his bed so it never melts) shows him from above; **his lodge and the barn (its corral too) are
+  warded while he sleeps** (since November 19, the user: "you shouldn't be able to go into the Huntsman's house or the
+  moose's barn, or from the top at all"): walk in or climb onto a roof and you're bounced out, like the other bosses'
+  arenas; his spear leans on his lodge's front and
   his bow, bola and arrows (3D, his own at his size) lie on the snow before his door. Breaking a block of his village says "Magic protects the
   Huntsman's home while he sleeps." **Once a player near has handed in First Frost** they wake onto their patrol round the
   village, his gear gone, and they never sleep again; so once you've reached him, every Huntsman you come near is out on
@@ -221,12 +224,18 @@ some of that energy to open the lair of another boss so you can kill it before i
   light isn't dimmed by the Dross's fog. Sounds: vanilla's respawn anchor, beacon, warden and thunder pitched down (their
   own subtitles): a charge as he raises his arms and twice more as it gathers, a surge, the beam's burst with a strike and
   a rumble, surges up the beam, the lance's strike, the far boom and rumble and their echo, and the shattering.
-- **On show**: `/dross showcase oracle_spell` (the nearest Blind Oracle within 64 blocks casts it at once towards where
+- **Two spells** (the user, November 19, 2026: "the big spell, the one we have right now, and a medium spell, a
+  smaller version where it's just one circle and a beam shooting the shield around the nests ... the medium spell is
+  quick, nothing too complex"): the big one above when a hand-in opens a land (the giants, the Colossus, the Rat King);
+  the **medium** one when it opens only a boss's home (Into the Ashes, Beneath the Rot, First Frost, the Huntsman):
+  about 5 seconds, his arms up, one circle round him, a beam shot out of his hands towards the home, a flash and a ring
+  where it hits its shield with a glassy crack, the beam breaking into shards.
+- **On show**: `/dross showcase oracle_spell [big|medium]` (the nearest Blind Oracle within 64 blocks casts it at once towards where
   you look, else it's cast from the ground in front of you) and `/dross showcase barrier_fall` (a stretch of curtain in
   front of you falls). Neither changes anyone's quest.
 - **The barrier falling**: after the spell, an opened land's curtain still stands for you until you first come within
-  24 blocks of its edge (in the Dross, in survival or adventure; standing deep inside it doesn't, and it waits for the
-  land there to be loaded); then the stretch round you flares up, cracks and breaks into shards of its runes that tumble
+  24 blocks of its edge (in the Dross, in any mode but spectator since November 19, creative too; arriving deep inside it,
+  a stretch falls across your view 12 blocks ahead; it waits for the land there to be loaded); then the stretch round you flares up, cracks and breaks into shards of its runes that tumble
   down and fade, once (`dimension/ward/LandWardFalls`, `client/LandWardFall`; saved per player). Only the land edges, not
   the boss arenas.
 

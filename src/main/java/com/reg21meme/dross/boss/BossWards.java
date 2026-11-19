@@ -2,6 +2,7 @@ package com.reg21meme.dross.boss;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.emberdactyl.CraterWard;
+import com.reg21meme.dross.boss.huntsman.village.HuntsmanHomeWard;
 import com.reg21meme.dross.boss.lair.LairWard;
 import com.reg21meme.dross.boss.ratking.lair.RatCaveWard;
 import com.reg21meme.dross.dimension.ModDimensions;
@@ -35,7 +36,8 @@ import java.util.UUID;
  * the land ward's runes where they hit it and a soft chime, and no message. The arenas (each found by its own boss's
  * code): the Colossus's cavern, its floor and passage ({@link LairWard}); the Rat King's cave ({@link RatCaveWard}); the
  * Emberdactyl's crater inside its crest, the lava lake, the nest's pillar and the lookout ({@link CraterWard}; the rest
- * of its volcano stays climbable). The Huntsman has none: he simply doesn't come home or fight for them.
+ * of its volcano stays climbable); the Huntsman's lodge and the Alpha Moose's barn while he sleeps
+ * ({@link HuntsmanHomeWard}, since November 19, 2026: before, he simply didn't come home or fight for them).
  *
  * <p>Every {@value #CHECK_EVERY_TICKS} ticks each player in the Dross (not in creative or spectator mode) is looked at:
  * <ul>
@@ -111,7 +113,8 @@ public final class BossWards
     }
 
     /** Every boss's ward finder. */
-    private static final List<Finder> FINDERS = List.of(LairWard::find, RatCaveWard::find, CraterWard::find);
+    private static final List<Finder> FINDERS = List.of(LairWard::find, RatCaveWard::find, CraterWard::find,
+            HuntsmanHomeWard::find);
 
     /** What one look did to a player (for the tests). */
     public enum Bounce

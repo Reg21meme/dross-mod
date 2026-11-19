@@ -427,8 +427,15 @@ public final class LandWardGameTest
                     expect(!LandWard.check(cast.walker), "the Cinder Wastes are open for him now");
                     int told = run.linesOf(cast.walker);
                     expect(told == 2, "nothing more should be said once the land is open, but he's been told " + told + " times");
-                    run.leave();
+                    // A creative player on quest 0 standing in the Wastes never saw it fall; once his quest opens them, he
+                    // does (since November 19, 2026), there in the middle of them, with no edge near.
+                    expect(!OracleProgress.hasSeenFall(cast.builder, DrossBiomes.CINDER_WASTES),
+                            name(cast.builder) + " in creative on quest 0 shouldn't have seen the Cinder Wastes' barrier fall");
+                    OracleProgress.setQuest(cast.builder, OracleQuests.SET_IN_STONE);
                 }))
+                .thenWaitUntil(run.until(() -> expect(OracleProgress.hasSeenFall(cast.builder, DrossBiomes.CINDER_WASTES),
+                        "once his quest opens the Cinder Wastes, their barrier should fall for a creative player too")))
+                .thenExecute(run.step(run::leave))
                 .thenSucceed();
     }
 

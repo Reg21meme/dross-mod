@@ -424,6 +424,30 @@ public final class HunterVillageWorldGameTest
         {
             return "his " + HuntsmanAsleep.GEAR.size() + " things should lie before his door (" + gear + ")";
         }
+        // His home's wards (HuntsmanHomeWard): his bed in the lodge's, the stall in the barn's, both from above too; his
+        // gear before his door and the yard they're sent back to in neither.
+        HuntsmanHomeWard lodge = new HuntsmanHomeWard(dross, plan, HuntsmanHomeWard.LODGE);
+        HuntsmanHomeWard barn = new HuntsmanHomeWard(dross, plan, HuntsmanHomeWard.BARN);
+        net.minecraft.world.phys.Vec3 stall = HuntsmanAsleep.at(dross, plan, HuntsmanAsleep.STALL);
+        if (lodge.depth(bed) <= 1.0D || lodge.depth(bed.add(0.0D, 20.0D, 0.0D)) <= 1.0D || barn.depth(stall) <= 1.0D
+                || barn.depth(stall.add(0.0D, 20.0D, 0.0D)) <= 1.0D)
+        {
+            return String.format(Locale.ROOT, "his lodge's ward should hold his bed (%.1f in, %.1f from above) and the barn's "
+                    + "its stall (%.1f, %.1f)", lodge.depth(bed), lodge.depth(bed.add(0.0D, 20.0D, 0.0D)), barn.depth(stall),
+                    barn.depth(stall.add(0.0D, 20.0D, 0.0D)));
+        }
+        for (HuntsmanAsleep.Gear g : HuntsmanAsleep.GEAR)
+        {
+            net.minecraft.world.phys.Vec3 at = HuntsmanAsleep.at(dross, plan, g.at());
+            if (lodge.depth(at) > 0.0D || barn.depth(at) > 0.0D)
+            {
+                return "his " + g.what() + " before his door should lie outside his home's wards";
+            }
+        }
+        if (lodge.depth(lodge.exit()) > 0.0D || barn.depth(lodge.exit()) > 0.0D)
+        {
+            return "the ward's way out, his yard, should be outside it";
+        }
         float health = h.getHealth();
         h.hurt(dross.damageSources().generic(), 10.0F);
         if (h.getHealth() < health)

@@ -42,8 +42,8 @@ public final class OracleSpell
     @Nullable
     private static volatile Cast lastCast;
 
-    /** One spell: the quest whose hand-in cast it, and the place it strikes towards. */
-    public record Cast(String quest, BlockPos target, long gameTime) {}
+    /** One spell: the quest whose hand-in cast it, the place it strikes towards, and whether it was the big one. */
+    public record Cast(String quest, BlockPos target, long gameTime, boolean big) {}
 
     private OracleSpell() {}
 
@@ -58,18 +58,25 @@ public final class OracleSpell
     static void cast(ServerPlayer player, Survivor oracle, OracleQuest quest)
     {
         BlockPos target = target(oracle, quest);
-        lastCast = new Cast(quest.id(), target, oracle.level().getGameTime());
-        castFrom(oracle, player, Vec3.atCenterOf(target), OracleSpellTuning.PAUSE);
+        boolean big = opensLand(quest);
+        lastCast = new Cast(quest.id(), target, oracle.level().getGameTime(), big);
+        castFrom(oracle, player, Vec3.atCenterOf(target), OracleSpellTuning.PAUSE, big);
+    }
+
+    /** True if this hand-in opens a land at the surface (the big spell); a boss's home only gets the medium one. */
+    public static boolean opensLand(OracleQuest quest)
+    {
+        return quest.opens().stream().anyMatch(DrossBiomes.ALL::contains);
     }
 
     /**
      * Casts it from this Oracle towards {@code target}, after {@code delay} ticks: he stands still and says nothing until
      * it's over ({@link Survivor#castSpell}); everyone who can see him (and {@code viewer}) sees it.
      */
-    static void castFrom(Survivor oracle, @Nullable ServerPlayer viewer, Vec3 target, int delay)
+    static void castFrom(Survivor oracle, @Nullable ServerPlayer viewer, Vec3 target, int delay, boolean big)
     {
-        oracle.castSpell(delay + OracleSpellTuning.DURATION);
-        OracleSpellMessage message = message(oracle.getId(), oracle.position(), target, oracle.getYRot(), delay);
+        oracle.castSpell(delay + OracleSpellTuning.duration(big));
+        OracleSpellMessage message = message(oracle.getId(), oracle.position(), target, oracle.getYRot(), delay, big);
         QuestNetwork.sendToTracking(oracle, message);
         if (viewer != null)
         {
@@ -77,7 +84,7 @@ public final class OracleSpell
         }
     }
 
-    private static OracleSpellMessage message(int id, Vec3 from, Vec3 target, float yaw, int delay)
+    private static OracleSpellMessage message(int id, Vec3 from, Vec3 target, float yaw, int delay, boolean big)
     {
         double dx = target.x - from.x;
         double dz = target.z - from.z;
@@ -90,7 +97,7 @@ public final class OracleSpell
             distance = 1.0D;
         }
         return new OracleSpellMessage(id, from.x, from.y, from.z, (float) (dx / distance), (float) (dz / distance),
-                (float) distance, delay);
+                (float) distance, delay, big);
     }
 
     // ------------------------------------------------------------------ The showcase (/dross showcase oracle_spell)
@@ -105,9 +112,10 @@ public final class OracleSpell
     /**
      * The showcase (the user, November 18, 2026: "a showcase ... so I can give feedback"): the nearest Blind Oracle
      * casts the spell at once towards where the player looks (no pause), or, with none near, it's cast from the ground a
-     * few blocks in front of them. Changes no quest. Returns true if an Oracle cast it.
+     * few blocks in front of them. Changes no quest. Returns true if an Oracle cast it. {@code big}: the big spell (a
+     * land) or the medium one (a boss's home).
      */
-    public static boolean showcase(ServerPlayer player)
+    public static boolean showcase(ServerPlayer player, boolean big)
     {
         Vec3 look = Vec3.directionFromRotation(0.0F, player.getYRot());
         Vec3 target = player.position().add(look.scale(SHOWCASE_STRIKE));
@@ -125,13 +133,13 @@ public final class OracleSpell
         }
         if (oracle != null)
         {
-            castFrom(oracle, player, target, 0);
+            castFrom(oracle, player, target, 0, big);
             return true;
         }
         Vec3 from = player.position().add(look.scale(SHOWCASE_IN_FRONT));
         BlockPos ground = player.serverLevel().getHeightmapPos(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES,
                 BlockPos.containing(from));
-        OracleSpellMessage message = message(-1, new Vec3(from.x, ground.getY(), from.z), target, player.getYRot(), 0);
+        OracleSpellMessage message = message(-1, new Vec3(from.x, ground.getY(), from.z), target, player.getYRot(), 0, big);
         QuestNetwork.sendTo(player, message);
         QuestNetwork.sendToTrackingPlayer(player, message);
         return false;
