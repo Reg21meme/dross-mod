@@ -217,10 +217,11 @@ some of that energy to open the lair of another boss so you can kill it before i
   faint ring outside it, light rising thick off its rim while shards of light spiral in to him and the ground starts to
   tremble (`tools/oracle/spell_textures.py`); a beam bursts up out of his hands into the sky with a shock ring rolling out
   over the ground, pulsing, knots of light running up it, copies of the inner ring floating up over the circle, then three
-  thinner beams rise off the circle's rim and wind round into it; it bends out of the sky as a lance towards the barrier
-  (the nearest place of the land it opens, or the nearest home of the boss), and far off over the land a flash, two shock
-  rings and a pillar of light burst over it, then the boom and its echo; the beams and the lance shatter into falling
-  shards of light, the circle fades and his arms come down. Its
+  thinner beams rise off the circle's rim and wind round into it; a ring of barrier stands up 20 blocks round him and
+  eight lances shoot out of the beam into it, one each way round the compass (since November 19: "shoot like 7 more beams
+  in each major cardinal and sub-cardinal direction"; "I still don't see the spell destroying it"), a flash at each hit,
+  and the barrier shatters with a boom and its echo; the beams and the lances shatter into falling shards of light, the
+  circle fades and his arms come down. Its
   light isn't dimmed by the Dross's fog. Sounds: vanilla's respawn anchor, beacon, warden and thunder pitched down (their
   own subtitles): a charge as he raises his arms and twice more as it gathers, a surge, the beam's burst with a strike and
   a rumble, surges up the beam, the lance's strike, the far boom and rumble and their echo, and the shattering.
@@ -228,14 +229,16 @@ some of that energy to open the lair of another boss so you can kill it before i
   smaller version where it's just one circle and a beam shooting the shield around the nests ... the medium spell is
   quick, nothing too complex"): the big one above when a hand-in opens a land (the giants, the Colossus, the Rat King);
   the **medium** one when it opens only a boss's home (Into the Ashes, Beneath the Rot, First Frost, the Huntsman):
-  about 5 seconds, his arms up, one circle round him, a beam shot out of his hands towards the home, a flash and a ring
-  where it hits its shield with a glassy crack, the beam breaking into shards.
+  about 5 seconds, his arms up, one circle round him and a small ring of barrier round it, a beam shot straight up into
+  the sky as the ring shatters ("just shoot the beam of light into the sky instead of at an angle"), a flash at its top,
+  the beam breaking into shards.
 - **On show**: `/dross showcase oracle_spell [big|medium]` (the nearest Blind Oracle within 64 blocks casts it at once towards where
   you look, else it's cast from the ground in front of you) and `/dross showcase barrier_fall` (a stretch of curtain in
   front of you falls). Neither changes anyone's quest.
 - **The barrier falling**: after the spell, an opened land's curtain still stands for you until you first come within
   24 blocks of its edge (in the Dross, in any mode but spectator since November 19, creative too; arriving deep inside it,
-  a stretch falls across your view 12 blocks ahead; it waits for the land there to be loaded); then the stretch round you flares up, cracks and breaks into shards of its runes that tumble
+  its nearest edge within 64 blocks falls, and with none that near a stretch across your view 12 blocks ahead; it waits
+  for the land there to be loaded); then the stretch round you flares up, cracks and breaks into shards of its runes that tumble
   down and fade, once (`dimension/ward/LandWardFalls`, `client/LandWardFall`; saved per player). Only the land edges, not
   the boss arenas.
 

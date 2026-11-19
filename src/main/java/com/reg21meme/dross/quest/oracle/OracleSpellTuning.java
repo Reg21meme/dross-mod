@@ -47,11 +47,13 @@ public final class OracleSpellTuning
     public static final int GROUND_RING_TICKS = 26;
     /** Three thinner beams rise from the circle's rim and join the great one from here... */
     public static final int SATELLITE_START = 80;
-    /** The beam bends out from the sky towards the barrier it breaks (the lance)... */
+    /** Eight lances shoot out of the beam, one each way round the compass (the user, November 19, 2026: "shoot like 7
+     * more beams in each major cardinal and sub-cardinal direction"), down into the ring of barrier round him... */
     public static final int LANCE_START = 120;
     /** ...reaching it over this long. */
     public static final int LANCE_GROW = 8;
-    /** It strikes: the flash, the shock rings and a pillar of light far off. */
+    /** They strike it: a flash and a shock ring where each hits, and the ring of barrier shatters (it stood up
+     * {@code LandWardFall.SHATTER_AT} ticks before, so it breaks at this moment). */
     public static final int STRIKE = 128;
     /** The boom is heard this long after the flash (it's far off), and its echo this long after that. */
     public static final int BOOM_DELAY = 18;
@@ -88,28 +90,23 @@ public final class OracleSpellTuning
     public static final float SATELLITE_JOIN = 34.0F;
     /** How fast they wind round him (degrees a tick). */
     public static final float SATELLITE_SPIN = 1.6F;
-    /** The lance's core and glow half-widths. */
-    public static final float LANCE_CORE = 0.5F;
-    public static final float LANCE_GLOW = 1.8F;
-    /**
-     * The strike is drawn this far out towards the barrier (or nearer, if the barrier is nearer), at least this far, and
-     * this high over his feet, so it's seen over the trees.
-     */
-    public static final float STRIKE_DISTANCE = 100.0F;
-    public static final float STRIKE_MIN_DISTANCE = 50.0F;
-    public static final float STRIKE_HEIGHT = 38.0F;
-    /** The flash's size (blocks across) at the strike, and as it swells. */
-    public static final float FLASH_SIZE = 14.0F;
-    public static final float FLASH_GROWTH = 1.8F;
-    /** How long the flash lasts. */
-    public static final int FLASH_TICKS = 40;
-    /** The shock rings: from this size, growing this much a tick, for this long. */
-    public static final float RING_START_SIZE = 8.0F;
-    public static final float RING_GROWTH = 3.0F;
-    public static final int RING_TICKS = 46;
-    /** The pillar of light at the strike: how far down it reaches, and how long it stands. */
-    public static final float PILLAR_DEPTH = 70.0F;
-    public static final int PILLAR_TICKS = 50;
+    /** The lances' core and glow half-widths. */
+    public static final float LANCE_CORE = 0.45F;
+    public static final float LANCE_GLOW = 1.5F;
+    /** How many lances (round the compass, the first to the east), where they leave the beam (blocks over his hands)... */
+    public static final int LANCES = 8;
+    public static final float LANCE_FROM = 30.0F;
+    /** ...and where they hit the ring of barrier: its radius round him, and how high over his feet. */
+    public static final float BARRIER_RADIUS = 20.0F;
+    public static final float LANCE_HIT_HEIGHT = 7.0F;
+    /** Where each lance hits: a flash this big (blocks across), swelling this much a tick, for this long... */
+    public static final float FLASH_SIZE = 5.0F;
+    public static final float FLASH_GROWTH = 0.6F;
+    public static final int FLASH_TICKS = 24;
+    /** ...and a shock ring from this size, growing this much a tick, for this long. */
+    public static final float RING_START_SIZE = 3.0F;
+    public static final float RING_GROWTH = 1.2F;
+    public static final int RING_TICKS = 30;
     /** The ground's shock ring at the beam's start: how far it rolls out. */
     public static final float GROUND_RING_REACH = 22.0F;
 
@@ -136,30 +133,30 @@ public final class OracleSpellTuning
     // ------------------------------------------------------------------ The medium spell (a boss's home)
 
     /** The whole medium spell (5 seconds); he stands still for it, and for the pause before it. */
-    public static final int MEDIUM_DURATION = 100;
+    public static final int MEDIUM_DURATION = 110;
     /** His arms up by here, down from {@link #MEDIUM_ARMS_DOWN} to {@link #MEDIUM_ARMS_DOWN_END}. */
     public static final int MEDIUM_ARMS_UP = 10;
-    public static final int MEDIUM_ARMS_DOWN = 78;
-    public static final int MEDIUM_ARMS_DOWN_END = 92;
+    public static final int MEDIUM_ARMS_DOWN = 88;
+    public static final int MEDIUM_ARMS_DOWN_END = 102;
     /** Its one circle: opening over this long, this big (blocks, its radius), fading from {@link #MEDIUM_CIRCLE_FADE}. */
     public static final int MEDIUM_CIRCLE_GROW = 14;
     public static final float MEDIUM_CIRCLE_RADIUS = 3.5F;
-    public static final int MEDIUM_CIRCLE_FADE = 76;
-    /** The beam shoots out of his hands towards the home's shield from here, reaching its far end over this long. */
-    public static final int MEDIUM_BEAM_START = 28;
+    public static final int MEDIUM_CIRCLE_FADE = 86;
+    /** The beam shoots straight up out of his hands into the sky from here (the user, November 19, 2026: "just shoot
+     * the beam of light into the sky instead of at an angle"), reaching its top over this long; as it does, the small
+     * ring of barrier round him shatters (it stood up {@code LandWardFall.SHATTER_AT} ticks before). */
+    public static final int MEDIUM_BEAM_START = 40;
     public static final int MEDIUM_BEAM_GROW = 5;
-    /** It's drawn this far out (or nearer, if the home is nearer), at least this far, rising this high over his hands
-     * at its far end (so it's seen over the trees). */
-    public static final float MEDIUM_BEAM_LENGTH = 45.0F;
-    public static final float MEDIUM_BEAM_MIN_LENGTH = 25.0F;
-    public static final float MEDIUM_BEAM_RISE = 12.0F;
+    /** How high it goes over his hands, and the ring of barrier's radius round him. */
+    public static final float MEDIUM_BEAM_HEIGHT = 40.0F;
+    public static final float MEDIUM_BARRIER_RADIUS = 7.5F;
     /** Its core's and glow's half-widths. */
     public static final float MEDIUM_BEAM_CORE = 0.35F;
     public static final float MEDIUM_BEAM_GLOW = 1.3F;
     /** It breaks off from here, gone over {@link #MEDIUM_BEAM_FADE}. */
-    public static final int MEDIUM_BEAM_END = 68;
+    public static final int MEDIUM_BEAM_END = 80;
     public static final int MEDIUM_BEAM_FADE = 8;
-    /** Where it hits the shield: a flash this big and a ring this fast, for this long. */
+    /** At its top as it gets there: a flash this big and a ring this fast, for this long. */
     public static final float MEDIUM_FLASH_SIZE = 6.0F;
     public static final int MEDIUM_FLASH_TICKS = 18;
     public static final float MEDIUM_RING_GROWTH = 1.4F;

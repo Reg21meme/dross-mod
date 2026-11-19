@@ -28,6 +28,9 @@ import net.minecraft.world.phys.Vec3;
  */
 public class GiantBoulder extends BossProjectile
 {
+    /** A showcase giant's: it flies and shatters the same, but passes through everything living and hurts nobody. */
+    private boolean harmless;
+
     public GiantBoulder(EntityType<? extends GiantBoulder> type, Level level)
     {
         super(type, level);
@@ -40,6 +43,13 @@ public class GiantBoulder extends BossProjectile
         boulder.setOwner(giant);
         boulder.setPos(from.x, from.y, from.z);
         return boulder;
+    }
+
+    /** Makes it the showcase's harmless one. */
+    public GiantBoulder harmless()
+    {
+        this.harmless = true;
+        return this;
     }
 
     /** The block it looks like (and shatters into). */
@@ -57,7 +67,7 @@ public class GiantBoulder extends BossProjectile
     @Override
     protected boolean canHitEntity(Entity entity)
     {
-        if (entity instanceof SilverwoodGiant && !Rage.areEnemies(this.getOwner(), entity))
+        if (this.harmless || entity instanceof SilverwoodGiant && !Rage.areEnemies(this.getOwner(), entity))
         {
             return false;
         }

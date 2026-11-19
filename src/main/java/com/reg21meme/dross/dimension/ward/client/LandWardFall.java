@@ -151,6 +151,26 @@ public final class LandWardFall
 
     private LandWardFall() {}
 
+    /**
+     * A ring of curtain this far round x, z, standing at y, that stands up at once and falls like a land's (the Blind
+     * Oracle's spells: the barrier they break, seen breaking; the user, November 19, 2026: "I still don't see the spell
+     * destroying it"). It shatters {@link #SHATTER_AT} ticks after this. Changes nobody's barriers.
+     */
+    public static void ring(double x, double y, double z, double radius)
+    {
+        int n = Math.max(24, (int) Math.round(radius * Math.PI * 2.0D / RING_SPACING));
+        List<double[]> points = new ArrayList<>();
+        for (int k = 0; k < n; k++)
+        {
+            double a = Math.PI * 2.0D * k / n;
+            points.add(new double[] {x + Math.cos(a) * radius, z + Math.sin(a) * radius, y});
+        }
+        FALLS.add(new Fall(points, -1));
+    }
+
+    /** A spell's ring has a point of curtain every this many blocks round it. */
+    public static final double RING_SPACING = 1.2D;
+
     /** From the server: the barrier of the land with this bit falls round this column. */
     public static void start(int bit, int x, int z, float alongX, float alongZ)
     {

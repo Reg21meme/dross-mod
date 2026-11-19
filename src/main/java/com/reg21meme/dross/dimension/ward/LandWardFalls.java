@@ -28,8 +28,10 @@ import java.util.List;
  * saves it and has their game play it, {@code client/LandWardFall}). Only the lands at the surface
  * ({@link DrossBiomes#ALL}); the sewers fall with Blightwood. Creative players see it too (since November 19, 2026, the
  * user: "I still don't see the barrier breaking when I go to the biome": they test in creative, where the barrier never
- * stood in their way); spectators never do. Arriving deep inside the land (a teleport) with no edge within
- * {@value #RANGE} blocks, it falls as a straight stretch across their view {@value #AHEAD} blocks ahead.
+ * stood in their way); spectators never do. Arriving inside the land (a teleport) with no edge within
+ * {@value #RANGE} blocks, its nearest edge out to {@value #FAR_RANGE} blocks falls (the user, November 19, 2026: "it
+ * happened in front of me instead of at the border next to me"); only with none that near does it fall as a straight
+ * stretch across their view {@value #AHEAD} blocks ahead.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE)
 public final class LandWardFalls
@@ -42,7 +44,12 @@ public final class LandWardFalls
     public static final int RING_STEP = 4;
     /** ...with this many columns round each ring per {@value #RING_STEP} blocks of its radius (at least 8). */
     public static final int COLUMNS_PER_STEP = 6;
-    /** Deep inside with no edge near: the stretch falls this far in front of them (blocks). */
+    /** Inside with no edge within RANGE: its edge is looked for out to this far, on rings this far apart... */
+    public static final int FAR_RANGE = 64;
+    public static final int FAR_STEP = 2;
+    /** ...with a column every this many blocks round each ring. */
+    public static final double FAR_SPACING = 2.0D;
+    /** Deep inside with no edge even that near: the stretch falls this far in front of them (blocks). */
     public static final int AHEAD = 12;
 
     private LandWardFalls() {}
@@ -90,6 +97,12 @@ public final class LandWardFalls
             }
             if (near[0] == player.getBlockX() && near[1] == player.getBlockZ())
             {
+                int[] edge = farEdge(player, land);
+                if (edge != null)
+                {
+                    OracleProgress.barrierFalls(player, land, edge[0], edge[1]);
+                    return;
+                }
                 // Inside it, its edge far off: a stretch across their view ahead.
                 Vec3 look = Vec3.directionFromRotation(0.0F, player.getYRot());
                 Vec3 at = player.position().add(look.scale(AHEAD));
@@ -97,6 +110,43 @@ public final class LandWardFalls
                 return;
             }
         }
+    }
+
+    /**
+     * Standing in {@code land}: a column of it right by its nearest edge within {@value #FAR_RANGE} blocks (the first
+     * column of another land on the nearest ring, then back towards the player to the last of this land), or null.
+     */
+    @Nullable
+    static int[] farEdge(ServerPlayer player, ResourceKey<Biome> land)
+    {
+        ServerLevel level = player.serverLevel();
+        int px = player.getBlockX();
+        int pz = player.getBlockZ();
+        for (int r = FAR_STEP; r <= FAR_RANGE; r += FAR_STEP)
+        {
+            int count = Math.max(16, (int) Math.ceil(Mth.TWO_PI * r / FAR_SPACING));
+            for (int i = 0; i < count; i++)
+            {
+                float a = Mth.TWO_PI * i / count;
+                int x = px + Math.round(Mth.cos(a) * r);
+                int z = pz + Math.round(Mth.sin(a) * r);
+                if (land.equals(LandWard.landAt(level, x, z)))
+                {
+                    continue;
+                }
+                for (int back = r - 1; back >= 0; back--)
+                {
+                    int bx = px + Math.round(Mth.cos(a) * back);
+                    int bz = pz + Math.round(Mth.sin(a) * back);
+                    if (land.equals(LandWard.landAt(level, bx, bz)))
+                    {
+                        return new int[] {bx, bz};
+                    }
+                }
+                return new int[] {px, pz};
+            }
+        }
+        return null;
     }
 
     /**

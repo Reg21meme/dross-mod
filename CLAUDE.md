@@ -2290,10 +2290,12 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       gathers: light rising thick off its rim, shards of light spiralling in to his hands, the ground starting to tremble;
       a beam bursts up out of his hands 90 blocks into the sky with a shock ring rolling out over the ground, pulsing,
       knots of light running up it, copies of the inner ring floating up over the circle, then three thinner beams rise
-      off the circle's rim and wind round into it; it bends out of the sky as a lance towards the barrier (the nearest
-      place of the land it opens, `DrossBiomes.findNearest`, or the nearest home of the next boss, `BossSites.nearest`),
-      and 50 to 100 blocks off a flash, two shock rings and a pillar of light burst over the land, then the boom and its
-      echo; the beams and the lance shatter into falling shards of light, the circle fades. Drawn additive, both sides,
+      off the circle's rim and wind round into it; a ring of barrier 20 blocks round him stands up (`LandWardFall.ring`,
+      the land curtain's own fall), and eight lances shoot out of the beam 30 blocks over his hands, one each way round
+      the compass (since November 19, the user: "have the diagonal beams shoot like 7 more beams in each major cardinal
+      and sub-cardinal direction", and "I still don't see the spell destroying it": until then one lance bent out to a
+      flash 50-100 blocks off towards the barrier, lost in the fog), a flash and a ring where each hits it, and it
+      shatters, the boom and its echo; the beams and the lances shatter into falling shards of light, the circle fades. Drawn additive, both sides,
       not dimmed by fog (`SpellRenderTypes`). Colours `DrossColors.ORACLE_SPELL_*`; sounds `entity.oracle.spell_*`
       (vanilla's respawn anchor, beacon, warden sonic charge and boom, explosions, thunder and amethyst, pitched down,
       with their own subtitles), played at its moments: charges, surges, the beam's burst, the lance's strike, the boom
@@ -2301,9 +2303,10 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       we have right now, and a medium spell, a smaller version where it's just one circle and a beam shooting the shield
       around the nests, while the [lands] require a big spell; the medium spell is quick, nothing too complex"), cast when
       a hand-in opens only a boss's home (Into the Ashes, Beneath the Rot, First Frost, the Huntsman; `OracleSpell.opensLand`
-      decides, `OracleSpellTuning.MEDIUM_*`): about 5 s, his arms up, one rune circle about 7 blocks across round him, a
-      beam shot out of his hands towards the home (drawn 25-45 blocks out, rising 12 over his hands), a flash and a ring
-      where it hits the shield and a glassy crack, the beam breaking into shards. **On show** (`command/OracleSpellShowcase`): `/dross showcase
+      decides, `OracleSpellTuning.MEDIUM_*`): about 5.5 s, his arms up, one rune circle about 7 blocks across round him
+      and a small ring of barrier 7.5 round it standing up, a beam shot straight up 40 blocks into the sky out of his
+      hands as the ring shatters (the user: "just shoot the beam of light into the sky instead of at an angle"), a flash
+      and a ring at its top, the beam breaking into shards. **On show** (`command/OracleSpellShowcase`): `/dross showcase
       oracle_spell [big|medium]` (the nearest Blind Oracle within 64 blocks casts it at once towards where you look; with none near,
       it's cast from the ground 10 blocks in front of you) and `/dross showcase barrier_fall` (a straight stretch of
       curtain across your view falls); neither changes anyone's quest.
@@ -2313,7 +2316,9 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       come within 24 blocks of its edge (`dimension/ward/LandWardFalls`, once a second; the client waits up to
       4 s for the ground there to load before it finds the edge, else a ring round them falls); in creative too since
       November 19 (the user tests in creative, where it never fell: "I still don't see the barrier breaking when I go to
-      the biome"), and arriving deep inside the land (`/dross goto biome`) with no edge within 24 blocks it falls as a
+      the biome"), and arriving inside the land (`/dross goto biome`) with no edge within 24 blocks its nearest edge out
+      to 64 blocks falls (`LandWardFalls.farEdge`; the user: "it happened in front of me instead of at the border next to
+      me"), and only with none that near it falls as a
       straight stretch across their view 12 blocks ahead (`LandWardFalls.AHEAD`); then that stretch of its edge
       falls, about 5.5 s (since November 19, the user, of the first, 2 s of a few streaks: "the barrier fall showcase
       doesn't seem to do anything ... I don't see the animation"): the curtain stands up thick and bright with its runes
@@ -2956,7 +2961,10 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   run: it gives up after 24 blocks or about 30 s and walks back, too slow to catch a walking player; hit one: it fights
   back; it dies the way Minecraft's mobs do (tips over, flashing red, a puff of smoke), with its deep death cry,
   dropping nothing; its spawn egg (after the Cinder Hermit's) makes a random look,
-  `/summon dross:silverwood_giant ~ ~ ~ {Look:"brawler"}` G2.
+  `/summon dross:silverwood_giant ~ ~ ~ {Look:"brawler"}` G2. Since November 19: in the showcase the Boulder-Hurler's
+  throw sends a harmless boulder 16 blocks ahead (the user: "he isn't throwing his rock": his model lets go of it and
+  no real one flew); after a smash or a throw the left arm goes straight back to standing, never spinning round (its
+  angles had wound a whole turn: `tools/forest_giant/mobs.py`'s `unwind`).
 - **The boss buff** (November 7): the Colossus's bar at the start of a fight full at 375 (its eruption at a quarter
   down, the shell bursting at 40%), the Rat King 250 (three burrows, his Rage at half, three more), the Wild Hunt 275,
   the Huntsman and the moose 175 and 200 after the split; the Rat King's sweep and spear charge poison you (Poison II,
@@ -3355,6 +3363,13 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   its own" (spruce stairs, packed ice, lanterns, skulls...) "and 309 air blocks more than 8 under the ground": the
   check's sample spot landed on a hunter village (its blocks and sunken courtyards), which it doesn't know about. The
   check should skip a village's footprint, like it skips lakes. Not looked into yet.
+- **Two raged Emberdactyls once never hurt each other** (Boss area, found November 19): in a full fresh run (world
+  `gt_spells3_1119`) `EmberFightGameTest.ragedTheyFightEachOther` gave up waiting ("the adult 395.68 going for
+  EmberYoung ... the young 175.0 going for Emberdactyl", the two 1.7 blocks apart and 2 up); the run before passed it.
+  Not looked into yet.
+- **The Cinder mobs' tests timed out loading once** (found November 19): in a full fresh run (world `gt_spells2_1119`)
+  all seven of `CinderMobsGameTest`'s tests failed with "its chunks never started ticking" (3 minutes, the server
+  "Can't keep up"); the next run passed them. A slow run.
 - **A village room read dark once** (Boss area, found October 24): in one full fresh GameTest run
   `HunterVillageShowcaseGameTest.villagesStandAndNeverMelt` failed with "sunken_warren_02: the room floor at -40689, 198,
   36958 has block light 0" (230 of 231 passed); the same templates passed in four other runs, so the light engine

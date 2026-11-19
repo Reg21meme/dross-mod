@@ -277,10 +277,11 @@ Huntsman).
   the sky with three thinner beams winding up into it, then it bends out towards the barrier, and far off over the land a
   flash, shock rings and a pillar of light burst, then the boom and its echo. It lasts about 12 seconds, and anyone near
   sees it. After a boss, he uses its dying energy. That's his big spell, for a land; to open only a boss's home he casts
-  a quick medium one: one circle and a beam shot at the home's shield. (`/dross showcase oracle_spell` shows the big one,
+  a quick medium one: one circle, a small ring of barrier round it shattering, and a beam shot straight up into the
+  sky. In the big one a ring of barrier stands up round him and eight beams from his great one shatter it. (`/dross showcase oracle_spell` shows the big one,
   `/dross showcase oracle_spell medium` the medium one.)
 - **The barrier falling:** a land he has opened still shows its curtain until you first come to its edge; then it glows up,
-  cracks and shatters in front of you, once (arriving deep inside the land, a stretch falls ahead of you). (`/dross
+  cracks and shatters in front of you, once (arriving inside the land, its nearest border falls, or a stretch ahead of you if none is near). (`/dross
   showcase barrier_fall` shows it.)
 
 - **Inside a land that's locked for you:** Slowness V, Mining Fatigue V and Hunger II for as long as you stay (gone the moment you step

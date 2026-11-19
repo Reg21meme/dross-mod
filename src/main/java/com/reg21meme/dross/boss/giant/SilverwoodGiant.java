@@ -549,6 +549,10 @@ public class SilverwoodGiant extends Monster implements GeoEntity, NeutralMob
                 {
                     this.hurl();
                 }
+                else if (t == look.throwRelease() && this.isShowcase())
+                {
+                    this.hurlOnShow();
+                }
                 if (t == look.throwTear())
                 {
                     this.sound(ModSounds.SILVERWOOD_GIANT_TEAR.get(), 1.5F);
@@ -685,6 +689,22 @@ public class SilverwoodGiant extends Monster implements GeoEntity, NeutralMob
         boulder.aim(aim, ticks);
         this.level().addFreshEntity(boulder);
     }
+
+    /** On show: the boulder leaves its hand all the same (its model's is hidden from there), harmless, landing
+     *  {@value #SHOWCASE_THROW} blocks ahead (the user, November 19, 2026: "he isn't throwing his rock"). */
+    private void hurlOnShow()
+    {
+        Vec3 from = this.toWorld(this.look().releasePoint());
+        Vec3 aim = this.position().add(this.facing().scale(SHOWCASE_THROW));
+        GiantBoulder boulder = GiantBoulder.thrown(this.level(), this, from).harmless();
+        int ticks = Mth.clamp((int) Math.round(from.distanceTo(aim) * GiantTuning.BOULDER_TICKS_PER_BLOCK),
+                GiantTuning.BOULDER_MIN_TICKS, GiantTuning.BOULDER_MAX_TICKS);
+        boulder.aim(aim, ticks);
+        this.level().addFreshEntity(boulder);
+    }
+
+    /** How far ahead the showcase's boulder lands (blocks). */
+    public static final double SHOWCASE_THROW = 16.0D;
 
     /** Throws {@code e} away from {@code from} (along the ground) and up, as much as its knockback resistance lets. */
     static void throwFrom(LivingEntity e, Vec3 from, double out, double up)

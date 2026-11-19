@@ -234,6 +234,70 @@ def index_page():
 # ---------------------------------------------------------------- running it
 
 
+def _rot(e):
+    """GeckoLib's rotation for Bedrock angles (degrees): Rz(z) Ry(-y) Rx(-x) (golems/kit/geo.euler_bedrock)."""
+    x, y, z = (np.radians(v) for v in e)
+    cx, sx = np.cos(-x), np.sin(-x)
+    cy, sy = np.cos(-y), np.sin(-y)
+    cz, sz = np.cos(z), np.sin(z)
+    Rx = np.array([[1, 0, 0], [0, cx, -sx], [0, sx, cx]])
+    Ry = np.array([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]])
+    Rz = np.array([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]])
+    return Rz @ Ry @ Rx
+
+
+def _turn(Ra, Rb):
+    """The angle between two rotations (degrees)."""
+    c = (np.trace(Ra.T @ Rb) - 1.0) / 2.0
+    return float(np.degrees(np.arccos(max(-1.0, min(1.0, c)))))
+
+
+def unwind(anims):
+    """
+    Every move (not the loops) ends on the idle's own angles (the user, November 19, 2026: "when he does an animation his
+    arm twists around weirdly at the end ... we need a correction animation for the giants to put their arm back in
+    place"). Its angles are kept continuous frame to frame, and past a pose with the arm straight up or down (where two
+    of its three angles turn the same way) they can wind a whole turn round: the smash and the throw ended with the left
+    arm at (352, 1, -361), the same pose as the idle's (-8, 1, -1), so the game's blend back to standing spun it round.
+    The extra turns come off between the two frames where, shifted, the arm strays least from its own path (by that
+    pose). Returns how many tracks were unwound.
+    """
+    idle = anims.get("idle")
+    done = 0
+    for name, a in anims.items():
+        if a.loop is True or name == "idle":
+            continue
+        for bone, chans in a.tracks.items():
+            kf = chans.get("rotation")
+            if not kf or len(kf) < 2:
+                continue
+            target = [0.0, 0.0, 0.0]
+            if idle is not None and bone in idle.tracks and idle.tracks[bone].get("rotation"):
+                target = list(idle.tracks[bone]["rotation"][0][1])
+            last = kf[-1][1]
+            shift = [360.0 * round((t - v) / 360.0) for t, v in zip(target, last)]
+            if not any(shift):
+                continue
+            best, best_k = None, None
+            for k in range(1, len(kf)):
+                a0, a1 = kf[k - 1][1], kf[k][1]
+                worst = 0.0
+                for u in (0.25, 0.5, 0.75):
+                    plain = [p + (q - p) * u for p, q in zip(a0, a1)]
+                    moved = [p + (q + s - p) * u for p, q, s in zip(a0, a1, shift)]
+                    worst = max(worst, _turn(_rot(plain), _rot(moved)))
+                if best is None or worst < best:
+                    best, best_k = worst, k
+            # The jump itself: a key a thousandth of a second before that frame holds its old angles, the frame the new
+            # ones, the same pose both, so the turn between them is never seen.
+            t_k, a_k = kf[best_k]
+            chans["rotation"] = ([(t, list(v)) for t, v in kf[:best_k]] + [(t_k - 0.001, list(a_k))]
+                                 + [(t, [p + s for p, s in zip(v, shift)]) for t, v in kf[best_k:]])
+            done += 1
+            print(f"    unwound {name} {bone} by {shift} at {t_k:.2f} s")
+    return done
+
+
 def run(numbers=None, gifs=True, do_check=True):
     per_look = {}
     problems = 0
@@ -245,6 +309,7 @@ def run(numbers=None, gifs=True, do_check=True):
         G = motion.GiantRig(b)
         anims = moves.animations(G)
         print(f"{d.LABEL} {d.ID} ({time.time() - t0:.0f} s)")
+        unwind(anims)
         for name, a in anims.items():
             extra = "".join(f", {k} {v:.2f}" if isinstance(v, float) else f", {k} {v}" for k, v in a.meta.items())
             print(f"  {name}: {a.length:.2f} s{' loop' if a.loop is True else ''}{extra}")
