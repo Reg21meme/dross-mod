@@ -154,6 +154,12 @@ GEODE_PICK = dict(haft_rest=tuple(K.carry_dir(K.CARRY_FIST, importlib.import_mod
                   head_rest=(-1.0, 0.0, 0.0), lift=(-0.85, 0.5, -0.2))
 
 
+# A weapon carried on the shoulder (the anchor, the Geode pick) rests lying back along it, not upright: to come down
+# over the top into the ground in front of him it turns about 220 degrees from how it rests (the first slams turned it
+# 150, an upright weapon's: it ended pointing forward and up, at head height, not into the ground).
+CARRY_SLAM = 222.0
+
+
 # ---------------------------------------------------------------- the ten
 
 
@@ -199,7 +205,7 @@ KNIGHTS = [
            gear="shoulder", heavy=1.0, speed=0.22, walk_t=1.45, walk_lean=3.0,
            walk_style=dict(sway=2.6, roll=2.0, twist=0.7, stomp=0.5, carry=4.0, arms=1.4),
            moves={"anchor_throw": lambda r, k: anchor_throw(r, k),
-                  "anchor_slam": lambda r, k: overhead_slam(r, k, name="anchor_slam", head_hit=150.0, strike=60.0)}),
+                  "anchor_slam": lambda r, k: overhead_slam(r, k, name="anchor_slam", head_hit=CARRY_SLAM, strike=60.0)}),
     Knight("stormblade", "T6", "Stormblade", "knightdesigns.t06_stormblade", hand_r=(-21.0, 31.0, -10.5),
            hand_l=(14.0, 41.0, -19.5), leg_x=K.LEG_X * 0.92,
            heavy=0.0, speed=0.36, walk_t=0.7, walk_lean=9.0,
@@ -209,7 +215,7 @@ KNIGHTS = [
            gear="shoulder", heavy=0.85, speed=0.23, walk_t=1.35, walk_lean=2.0,
            walk_style=dict(stomp=0.7, hunch=6.0, carry=5.0, roll=1.3, arms=1.2),
            moves={"pick": lambda r, k: flat_sweep(r, k, "pick", T=1.3, hit=0.64, **GEODE_PICK),
-                  "crystal_burst": lambda r, k: overhead_slam(r, k, name="crystal_burst", head_hit=120.0,
+                  "crystal_burst": lambda r, k: overhead_slam(r, k, name="crystal_burst", head_hit=CARRY_SLAM,
                                                              strike=50.0, both=True)}),
     Knight("rockfall", "E4", "Rockfall Knight", "knightdesigns.e04_rockfall", hand_r=(-11.5, 73.5, -2.5),
            hand_l=(11.5, 73.5, -2.5), leg_x=K.LEG_X * 1.05, props=(("boulder", (0.0, 84.0, -2.0), "arm_r"),),

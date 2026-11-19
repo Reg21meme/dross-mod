@@ -155,7 +155,8 @@ def lunge(p, amount, hip):
     p.rot("leg_l", sw * 0.8, 0.0, 0.0)
     # (the first version sank 2.5 units and lifted it back by too little, so its boots sank into the floor; the rigid
     # legs spread need their hips about hip (1 - cos) higher, so it sinks only a little now)
-    p.pos("waist", 0.0, -0.8 * amount + hip * (1.0 - math.cos(math.radians(sw))) * 0.9, -3.0 * amount)
+    # (then the back boot's toe still went about a unit into the floor at a full lunge: it now sinks a little less)
+    p.pos("waist", 0.0, 0.2 * amount + hip * (1.0 - math.cos(math.radians(sw))) * 0.9, -3.0 * amount)
 
 
 def show(p, kn, shown=()):
@@ -194,7 +195,9 @@ def body(p, lean, twist, roll=0.0, steady=0.6, head_twist=0.5):
 def cape(p, lean_late, extra=0.0):
     """The cape swings back towards hanging straight down as the body leans (`lean_late`: the lean a moment ago, so it
     trails), only part of the way, so it stays off the legs behind it (a negative turn swings its hem forwards)."""
-    p.rot("cape", -0.3 * lean_late + extra, 0.0, 0.0)
+    # (leaning back, it swings further back than the body leans: at 0.3 its hem brushed the floor behind a knight
+    # leaning back to slam)
+    p.rot("cape", -(0.3 if lean_late > 0.0 else 1.3) * lean_late + extra, 0.0, 0.0)
 
 
 def lead(kn):
@@ -314,7 +317,8 @@ def vkeys(t, keys):
     return _unit([curve(t, [(k[0], k[1][i]) + tuple(k[2:]) for k in keys]) for i in range(3)])
 
 
-def flat_sweep(rig, kn, name, haft_rest, head_rest, T=1.3, hit=0.62, two_faced=False, lift=None, sweep=1.0):
+def flat_sweep(rig, kn, name, haft_rest, head_rest, T=1.3, hit=0.62, two_faced=False, lift=None, sweep=1.0,
+               top_haft=(0.12, 0.14, -0.98), top_out=48.0, head_twist=0.5):
     """
     A flat swing (the user: "not vertical, it needs to be horizontal"): the weapon lifted off its rest and drawn back
     level at his right side as his body winds up, then swept round flat in front of him at chest height, his hips
@@ -331,32 +335,45 @@ def flat_sweep(rig, kn, name, haft_rest, head_rest, T=1.3, hit=0.62, two_faced=F
     k_haft = [(0.0, tuple(hr))]
     if lift is not None:
         k_haft.append((top * 0.45, tuple(_unit(lift))))
-    k_haft += [(top, (-0.05 * sweep, 0.14, -0.99)), (hit, (0.08 * sweep, -0.06, -1.0)),
+    k_haft += [(top, (top_haft[0] * sweep, top_haft[1], top_haft[2])), (hit, (0.08 * sweep, -0.06, -1.0)),
                (hold, (0.5 * sweep, -0.12, -0.86)), (T - 0.12, tuple(_unit(hr + np.array([0.0, 0.0, -0.4])))),
                (T, tuple(hr))]
     k_w = [(0.0, 0.0), (top * 0.8, 1.0), (hold + 0.05, 1.0), (T - 0.08, 0.0), (T, 0.0)]
     k_tw = sh([(0.0, 0.0), (top - 0.06, 48.0 * sweep), (top + 0.04, 52.0 * sweep), (hit, -8.0 * sweep, "hit"),
                (hold, -50.0 * sweep), (hold + 0.1, -47.0 * sweep), (T, 0.0)], -ld)
     k_fwd = [(0.0, 0.0), (top, 40.0), (hit, 55.0), (hold, 45.0), (T, 0.0)]
-    k_out = sh([(0.0, 0.0), (top, 42.0 * sweep), (hit, 6.0 * sweep), (hold, -24.0 * sweep), (T, 0.0)], 0.02)
+    k_out = sh([(0.0, 0.0), (top, top_out * sweep), (hit, 6.0 * sweep), (hold, -24.0 * sweep),
+                (hold + 0.5 * (T - hold), 10.0 * sweep), (T, 0.0)], 0.02)
     k_lfwd = sh([(0.0, 0.0), (top, 18.0), (hold, 38.0), (T, 0.0)], 0.06)
     k_lout = sh([(0.0, 0.0), (hold, 24.0), (T, 0.0)], 0.06)
     k_lean = sh([(0.0, 0.0), (top, 4.0), (hit, 8.0 + 3.0 * hv, "hit"), (hold, 6.0), (T, 0.0)], -ld)
     k_lunge = sh([(0.0, 0.0), (top, 0.15), (hit, 0.7, "hit"), (hold, 0.6), (T, 0.0)], -ld * 0.5)
-    state = {"prev": None}
+    state = {"prev": None, "rec": None}
+    # the recovery: from here the hand's angles go straight back to how it rests, the way they came (aiming it every
+    # frame to the end let the Thawed axe and the Geode pick roll on round a full turn: the game's blend back to
+    # standing then spun the weapon round once more)
+    rec0 = round((hold + 0.12) / STEP) * STEP
 
     def frame(t):
         if t <= 0.0:
             state["prev"] = None
+            state["rec"] = None
         p = Pose()
         arm(p, "r", curve(t, k_fwd), curve(t, k_out))
         wield(p, "l", curve(t, k_lfwd), 0.0, out=curve(t, k_lout))
-        body(p, curve(t, k_lean), curve(t, k_tw))
+        body(p, curve(t, k_lean), curve(t, k_tw), head_twist=head_twist)
         cape(p, curve(t - 0.1, k_lean))
         lunge(p, curve(t, k_lunge), kn.hip)
         show(p, kn)
+        if t > rec0 + 1e-6 and state["rec"] is not None:
+            u = (t - rec0) / (T - rec0)
+            k = 1.0 - u * u * u * (u * (6.0 * u - 15.0) + 10.0)      # (smootherstep: no jolt at either end)
+            p.get3("hand_r")[0][:] = [x * k for x in state["rec"]]
+            return p
         state["prev"] = aim_hand(rig, p, "r", hr, head_rest, vkeys(t, k_haft), curve(t, k_w), state["prev"],
                                  two_faced, lead_sign=sweep)
+        if abs(t - rec0) < 1e-6:
+            state["rec"] = list(state["prev"])
         return p
 
     a = record(rig, name, T, frame, loop=False)
@@ -415,6 +432,26 @@ WALK_STYLE = dict(bob=1.0, roll=1.0, twist=1.0, arms=1.0, nod=1.0, sway=0.0, lim
                   carry=0.0)
 
 
+def smooth_abs(x, k=0.2):
+    """|x| with its corner at 0 rounded off (k: how wide), so a bob made from it has no kink."""
+    return math.sqrt(x * x + k * k) - k
+
+
+def smooth_pos(x, k=0.15):
+    """max(0, x) with its corner rounded off."""
+    return 0.5 * (x + math.sqrt(x * x + k * k)) - 0.5 * k
+
+
+def weapon_gap(rig, side):
+    """Units between the floor and the lowest point of what the hand holds, as it rests (99 with nothing there)."""
+    from rimekit import mobkit
+    b = rig.m[f"hand_{side}"] if f"hand_{side}" in [x.name for x in rig.m.bones] else None
+    if b is None or not b.cubes:
+        return 99.0
+    mats = rig.m.pose_matrices(None)
+    return min(float(mobkit._grid(mobkit._box_frame(mats, c))[:, 1].min() * 16.0) for c in b.cubes)
+
+
 def walk(rig, kn, name="walk"):
     """Its walk: legs swung like the Frostfolk's, the body bobbing smoothly (highest as the legs pass, lowest as they
     spread), twisting with the hips and rocking over the planted foot (more, the heavier it is), the arms swinging a
@@ -438,6 +475,9 @@ def walk(rig, kn, name="walk"):
     arm_l *= st["arms"]
     limp = st["limp"]
 
+    gap_r = weapon_gap(rig, "r")
+    gap_l = weapon_gap(rig, "l")
+
     def frame(t):
         p = Pose()
         w = 2.0 * math.pi * t / T
@@ -446,14 +486,18 @@ def walk(rig, kn, name="walk"):
         k_r = 1.0 - 0.35 * limp if sw > 0.0 else 1.0
         p.rot("leg_r", -leg * sw * k_r, 0.0, 0.0)
         p.rot("leg_l", leg * sw * k_r, 0.0, 0.0)
-        lift_now = lift_for(leg * abs(sw) * k_r, kn.hip) * 0.55
+        # (|sw| smoothed where the legs pass: a plain |sw| kinked the bob there, a little bounce every step)
+        lift_now = lift_for(leg * smooth_abs(sw) * k_r, kn.hip) * 0.55
         rise = (0.5 + 0.5 * hv) * (1.0 - sw * sw) * st["bob"]
-        # a stomp: the body drops onto the foot as it lands (sw * sw small) and jolts back up
-        land = math.cos(2.0 * w)                     # 1 as the feet spread (a foot lands), -1 as they pass
-        jolt = st["stomp"] * 0.9 * max(0.0, land) ** 6
-        bob = lift_now + max(0.0, rise - jolt) + 0.25 * limp * max(0.0, sw)
+        # a foot lands as the legs are furthest apart (strike 1), they pass each other at strike -1
+        strike = -math.cos(2.0 * w)
+        # a stomp: the foot comes down hard: the chest drops onto the hips and the head and weapon jolt (the first
+        # version dipped the whole body as the legs passed: the wrong moment, and it drove low weapons into the floor)
+        jolt = st["stomp"] * math.exp(-((1.0 - strike) / 0.12) ** 2)
+        bob = lift_now + rise + 0.25 * limp * max(0.0, sw)
         side = st["sway"] * math.sin(w - 0.3)
         p.pos("waist", side, bob, 0.0)
+        p.pos("body", 0.0, -0.7 * jolt, 0.0)
         a = math.sin(w - 0.45)                         # the arms, a moment behind the legs
         if st["guard"]:
             bounce = 4.0 * math.cos(2.0 * w - 0.4)
@@ -461,18 +505,24 @@ def walk(rig, kn, name="walk"):
             arm(p, "l", 66.0 + bounce + 6.0 * a, -16.0)
         elif st["staff"]:
             plant = math.sin(w - 0.2)                  # with the left leg: the staff goes forward as it steps
-            wield(p, "r", 14.0 * max(0.0, -plant) - 6.0 * max(0.0, plant), 0.0)
+            wield(p, "r", 14.0 * smooth_pos(-plant) - 6.0 * smooth_pos(plant), 0.0)
             wield(p, "l", arm_l * a, 0.0)
         elif st["blades_back"]:
             wield(p, "r", -24.0 - 5.0 * a, 0.0, out=10.0)
             wield(p, "l", -18.0 + 5.0 * a, 0.0, out=8.0)
         else:
             rest_arms(p, kn, -arm_r * a, arm_l * a)
+        # a weapon that nearly touches the floor as it rests is lifted a little while it walks (it swung into it)
+        if gap_r < 3.0 and kn.gear not in ("up", "fists") and not st["staff"]:
+            p.pos("hand_r", 0.0, 3.0 - gap_r, 0.0)
+        if gap_l < 3.0 and kn.gear not in ("up", "fists"):
+            p.pos("hand_l", 0.0, 3.0 - gap_l, 0.0)
         if st["carry"]:
-            p.rot("hand_r", -st["carry"] * max(0.0, land) ** 2, 0.0, 0.0)
+            # its weight bounces on the shoulder: down as the foot lands, settling back
+            p.rot("hand_r", -st["carry"] * (0.5 + 0.5 * strike) ** 2, 0.0, 0.0)
         roll = (1.0 + 2.0 * hv) * st["roll"] * math.sin(w - 0.3)    # over the planted foot
         twist = (3.0 + 1.5 * hv) * st["twist"] * math.sin(w - 0.15)
-        dip = (0.8 + 0.8 * hv) * st["nod"] * math.cos(2.0 * w) + 3.0 * jolt     # a little nod with each step
+        dip = (0.8 + 0.8 * hv) * st["nod"] * math.cos(2.0 * w) + 2.5 * jolt     # a little nod with each step
         body(p, lean + dip, twist, roll, steady=0.7, head_twist=0.8)
         if st["hunch"]:
             p.rot("head", -st["hunch"] * 0.5, 0.0, 0.0)               # (it keeps looking ahead)
@@ -488,8 +538,8 @@ def walk(rig, kn, name="walk"):
             p.scale("cap", 1.0 + st["cap_pulse"] * (0.5 + 0.5 * math.cos(2.0 * w - 0.8)))
         if st["heave"] and kn.gear == "up":
             h = st["heave"]
-            p.rot("arm_r", -h * 0.5 * land, 0.0, h * math.sin(w - 0.3))
-            p.rot("arm_l", -h * 0.5 * land, 0.0, h * math.sin(w - 0.3))
+            p.rot("arm_r", -h * 0.5 * strike, 0.0, h * math.sin(w - 0.3))
+            p.rot("arm_l", -h * 0.5 * strike, 0.0, h * math.sin(w - 0.3))
         # the cape drags out behind it as it walks (the first walk turned it the other way, into its legs)
         p.rot("cape", 3.0 - 0.3 * lean + (1.5 + 0.5 * hv) * (1.0 + math.cos(2.0 * w - 1.2)), 0.0,
               -0.5 * roll - 0.04 * side)
@@ -556,11 +606,12 @@ def overhead_slam(rig, kn, name="smash", T=1.85, hit=1.0, head_hit=150.0, both=F
     k_lfwd = sh([(0.0, 0.0), (top, 30.0), (hit, -15.0), (hold, -10.0), (T, 0.0)], 0.07)
     k_lout = sh([(0.0, 0.0), (top, 20.0), (hit, 6.0), (T, 0.0)], 0.07)
     k_both_out = [(0.0, 0.0), (top, -18.0), (hit, -12.0), (hold, -12.0), (T, 0.0)]
+    k_out = [(0.0, 0.0), (top, 6.0), (0.9, 12.0), (hit, 8.0), (hold, 8.0), (mid, 16.0), (T, 0.0)]   # (clear of its flank)
 
     def frame(t):
         p = Pose()
         fwd = curve(t, k_fwd)
-        wield(p, "r", fwd, curve(t, k_head))
+        wield(p, "r", fwd, curve(t, k_head), out=0.0 if both else curve(t, k_out))
         if both:
             wield(p, "l", fwd * 0.92, 0.0, out=curve(t, k_both_out))
         else:
@@ -584,14 +635,16 @@ def thrust(rig, kn, name="thrust", T=1.15, hits=(0.45,), level=88.0, back=18.0, 
     k_fwd = [(0.0, 0.0), (h - 0.22, back), (h - 0.1, back - 5.0), (h, out_to, "hit"), (h + 0.07, out_to + 3.0),
              (h + 0.3, back + 12.0), (T, 0.0)]
     k_head = [(0.0, 0.0), (h - 0.14, level), (h + 0.36, level), (T, 0.0)]
-    k_tw = sh([(0.0, 0.0), (h - 0.1, 10.0), (h, -14.0, "hit"), (h + 0.25, -8.0), (T, 0.0)], -ld)
+    # (his body turns back square as he draws the spear back: held turned in, his chest met the spear's shaft)
+    k_tw = sh([(0.0, 0.0), (h - 0.1, 10.0), (h, -14.0, "hit"), (h + 0.16, -6.0), (h + 0.3, -1.0), (T, 0.0)], -ld)
     k_lean = sh([(0.0, 0.0), (h - 0.1, -2.0), (h, 7.0, "hit"), (h + 0.3, 4.0), (T, 0.0)], -ld)
     k_lunge = sh([(0.0, 0.0), (h - 0.1, 0.12), (h, 0.85, "hit"), (h + 0.25, 0.75), (T, 0.0)], -ld * 0.5)
     k_left = sh([(0.0, 0.0), (0.25, 22.0), (T - 0.25, 18.0), (T, 0.0)], 0.05)
+    k_out = [(0.0, 0.0), (h, 2.0), (h + 0.18, 15.0), (h + 0.4, 10.0), (T, 0.0)]      # (drawn back clear of his side)
 
     def frame(t):
         p = Pose()
-        wield(p, "r", curve(t, k_fwd), curve(t, k_head))
+        wield(p, "r", curve(t, k_fwd), curve(t, k_head), out=curve(t, k_out))
         wield(p, "l", curve(t, k_left), 0.0)
         body(p, curve(t, k_lean), curve(t, k_tw))
         cape(p, curve(t - 0.1, k_lean))
@@ -736,8 +789,8 @@ def spore_burst(rig, kn):
     T = 2.0
     hit = 1.1
     k_hunch = [(0.0, 0.0), (0.7, 0.9), (0.95, 1.0), (hit, 1.15, "hit"), (hit + 0.15, 0.95), (1.5, 0.9), (T, 0.0)]
-    k_swell = [(0.0, 1.0), (0.5, 1.1), (0.6, 1.07), (0.8, 1.22), (0.88, 1.19), (hit, 1.34, "hit"), (hit + 0.1, 0.93),
-               (hit + 0.25, 1.03), (1.5, 1.0), (T, 1.0)]
+    k_swell = [(0.0, 1.0), (0.5, 1.1), (0.6, 1.07), (0.8, 1.22), (0.88, 1.19), (hit, 1.34, "hit"), (hit + 0.14, 0.94),
+               (hit + 0.3, 1.03), (1.5, 1.0), (T, 1.0)]
     k_arms = sh(k_hunch, 0.06)
 
     def frame(t):
@@ -747,7 +800,7 @@ def spore_burst(rig, kn):
         p.rot("head", -8.0 * hunch, 0.0, 0.0)
         p.scale("cap", curve(t, k_swell))
         a = curve(t, k_arms)
-        wield(p, "r", 25.0 * a, 0.0, out=20.0 * a)
+        wield(p, "r", 25.0 * a, -22.0 * a, out=28.0 * a, roll=30.0 * a)    # (the scythe tipped back and out, clear of the swelling cap)
         wield(p, "l", 25.0 * a, 0.0, out=30.0 * a)
         cape(p, 24.0 * curve(t - 0.1, k_hunch))
         lunge(p, 0.6 * min(1.0, hunch), kn.hip)
@@ -920,7 +973,6 @@ def dash(rig, kn):
     bobbing smoothly with each stride (the game carries him along a trail of lightning; it loops while he goes)."""
     T = 0.4
     leg = 38.0
-    lift = kn.hip * (1.0 - math.cos(math.radians(leg))) * 0.9
 
     def frame(t):
         p = Pose()
@@ -928,7 +980,8 @@ def dash(rig, kn):
         sw = math.sin(w)
         p.rot("leg_r", -leg * sw, 0.0, 0.0)
         p.rot("leg_l", leg * sw, 0.0, 0.0)
-        p.pos("waist", 0.0, lift * sw * sw - 1.5, 0.0)
+        # (its feet went 1.8 units into the floor as they passed: it sat 1.5 lower than its legs could reach)
+        p.pos("waist", 0.0, lift_for(leg * smooth_abs(sw), kn.hip) * 0.85 - 0.3, 0.0)
         bob = math.cos(2.0 * w - 0.5)
         p.rot("body", 30.0 + 2.0 * bob, 3.0 * math.sin(w - 0.2), 0.0)
         p.rot("head", -26.0 - 2.0 * bob, -2.0 * math.sin(w - 0.2), 0.0)

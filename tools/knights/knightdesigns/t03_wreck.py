@@ -133,14 +133,17 @@ def diver(s):
     fist = K.CARRY_FIST
     K.arm_carry(s, "steel", "silver", "gauntlet")
     d = K.carry_dir(fist, ANCHOR_TOP)
-    crown = fist + d * 34.0
-    ring = anchor(s.part("anchor"), fist - d * 8.0, crown, (1.0, 0.0, 0.0))
+    # (gripped near its ring: with 8 units of shank past his fist, that stub pointed down into his shoulder plate
+    # whenever the anchor stood upright in his hand, swinging it up for a slam and back down)
+    crown = fist + d * 37.0
+    ring = anchor(s.part("anchor"), fist - d * 3.5, crown, (1.0, 0.0, 0.0))
     # The chain: down from the ring, then wound twice round his forearm up to the elbow.
     fore = (fist - elbow) / np.linalg.norm(fist - elbow)
     for t in (0.35, 0.65):
         s.part("arm_r").ring(K.lerp(elbow, fist, t), fore, 3.4, 1, 1.5, "chain", n=8)
-    chain(s.part("anchor"), [ring - d * 2.5, ring - d * 2.5 + np.array([0.0, -4.0, 0.0]),
-              K.lerp(elbow, fist, 0.35) + np.array([0.0, -3.4, 0.0])])
+    # (a short drop from the ring to the coil nearest his fist: the long run down to the elbow's coil swung with the
+    # anchor when he turned it in his hand, through his arm and chest)
+    chain(s.part("anchor"), [ring - d * 2.5, K.lerp(elbow, fist, 0.65) + np.array([0.0, -3.4, 0.0])])
     K.arm_hang(s, "steel", "silver", "gauntlet", fist=np.array([22.5, 29.0, -5.0]))
     # The diving helm: a big round dome on a collar of bolts, a porthole with the lightning inside, two side windows.
     hd = s.part("head")
