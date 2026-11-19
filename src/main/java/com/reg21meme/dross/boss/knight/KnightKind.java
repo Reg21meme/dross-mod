@@ -59,7 +59,14 @@ public enum KnightKind
     /** The five elements: what each knight shrugs off (fire, cold, poison, lightning, being thrown about). */
     public enum Element
     {
-        ICE, POISON, FIRE, THUNDER, EARTH
+        ICE, POISON, FIRE, THUNDER, EARTH;
+
+        /** Never burns: fire, lava and magma do nothing (the user, November 19, 2026: the thunder, fire and rock knights
+         * immune to fire). Their entity types are fire-immune (registry/ModEntities). */
+        public boolean fireproof()
+        {
+            return this == FIRE || this == THUNDER || this == EARTH;
+        }
     }
 
     /**

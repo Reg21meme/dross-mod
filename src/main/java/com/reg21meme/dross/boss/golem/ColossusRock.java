@@ -101,6 +101,14 @@ public class ColossusRock extends BossProjectile
         return ColossusTuning.ROCK_GRAVITY;
     }
 
+    /** A rock thrown with no damage (an elemental knight's rockfall: its circle does the hurting) hits nothing but
+     * the ground. */
+    @Override
+    protected boolean canHitEntity(Entity entity)
+    {
+        return this.damage > 0.0F && super.canHitEntity(entity);
+    }
+
     /** A boulder hits whatever it's drawn touching (its box is the plain rock's 0.8). */
     @Override
     protected double hitMargin()

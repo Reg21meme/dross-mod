@@ -347,7 +347,7 @@ public final class ModEntities
                                 (type, level) -> new ElementalKnight(type, level, kind), MobCategory.MONSTER)
                         .sized(1.4F, 4.2F)
                         .clientTrackingRange(10);
-                if (kind.element == KnightKind.Element.FIRE)
+                if (kind.element.fireproof())
                 {
                     builder.fireImmune();
                 }

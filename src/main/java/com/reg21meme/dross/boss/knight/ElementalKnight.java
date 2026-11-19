@@ -455,16 +455,24 @@ public class ElementalKnight extends Monster implements GeoEntity
                 {
                     this.play("thrust", 1.2F);
                     KnightEffects.thrustStreak(level, this, KnightTuning.THRUST_REACH);
-                    this.strike(KnightTuning.THRUST_ARC, KnightTuning.THRUST_REACH, KnightTuning.THRUST_DAMAGE,
-                            KnightTuning.THRUST_KNOCK);
+                    for (LivingEntity hit : this.strike(KnightTuning.THRUST_ARC, KnightTuning.THRUST_REACH,
+                            KnightTuning.THRUST_DAMAGE, KnightTuning.THRUST_KNOCK))
+                    {
+                        hit.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, KnightTuning.THRUST_SLOW_TICKS,
+                                KnightTuning.THRUST_SLOW_LEVEL), this);
+                    }
                 }
                 else
                 {
                     this.sound(knightSound(this.kind, "poke"), 1.0F, 0.95F + 0.05F * k);
                     Vec3 tip = this.at(KnightTuning.POKE_REACH, 0.4D, 2.5D);
                     level.sendParticles(ParticleTypes.SNOWFLAKE, tip.x, tip.y, tip.z, 5, 0.2D, 0.2D, 0.2D, 0.05D);
-                    this.strike(KnightTuning.POKE_ARC, KnightTuning.POKE_REACH, KnightTuning.POKE_DAMAGE,
-                            KnightTuning.POKE_KNOCK);
+                    for (LivingEntity hit : this.strike(KnightTuning.POKE_ARC, KnightTuning.POKE_REACH,
+                            KnightTuning.POKE_DAMAGE, KnightTuning.POKE_KNOCK))
+                    {
+                        hit.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, KnightTuning.POKE_SLOW_TICKS, 0),
+                                this);
+                    }
                 }
             }
             case BLIGHT_WARDEN ->
@@ -543,15 +551,28 @@ public class ElementalKnight extends Monster implements GeoEntity
             case STORMBLADE ->
             {
                 this.sound(knightSound(this.kind, "slash"), 1.0F, 1.0F + 0.08F * k);
-                // an arc of lightning along each cut (the left sword across to the right, then the right back)
-                double from = k == 0 ? -70.0D : 70.0D;
-                KnightEffects.arc(level, this, KnightTuning.SLASH_REACH * 0.7D, 1.8D, from, -from, 14,
-                        ParticleTypes.ELECTRIC_SPARK, 0.05D);
-                KnightEffects.arc(level, this, KnightTuning.SLASH_REACH * 0.7D, 1.8D, from, -from, 7,
-                        new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_SPARK_BRIGHT), 1.3F), 0.0D);
+                // arcs of lightning along each cut: the X (each blade from out at its side across in front), then the
+                // wide cut (both blades flung out from the middle)
+                DustParticleOptions bright = new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_SPARK_BRIGHT), 1.3F);
+                double[][] cuts = k == 0 ? new double[][] {{-75.0D, 25.0D, 2.3D}, {75.0D, -25.0D, 1.5D}}
+                        : new double[][] {{-5.0D, -85.0D, 1.9D}, {5.0D, 85.0D, 1.9D}};
+                for (double[] c : cuts)
+                {
+                    KnightEffects.arc(level, this, KnightTuning.SLASH_REACH * 0.7D, c[2], c[0], c[1], 12,
+                            ParticleTypes.ELECTRIC_SPARK, 0.05D);
+                    KnightEffects.arc(level, this, KnightTuning.SLASH_REACH * 0.7D, c[2], c[0], c[1], 6, bright, 0.0D);
+                }
+                if (k == 1)
+                {
+                    Vec3 mid = this.at(1.6D, 0.0D, 1.9D);
+                    level.sendParticles(ParticleTypes.ELECTRIC_SPARK, mid.x, mid.y, mid.z, 30, 0.6D, 0.4D, 0.6D, 0.35D);
+                }
                 this.sweepParticles(ParticleTypes.ELECTRIC_SPARK, KnightTuning.SLASH_REACH);
-                this.strike(KnightTuning.SLASH_ARC, KnightTuning.SLASH_REACH, KnightTuning.SLASH_DAMAGE,
-                        KnightTuning.SLASH_KNOCK);
+                for (LivingEntity hit : this.strike(KnightTuning.SLASH_ARC, KnightTuning.SLASH_REACH,
+                        KnightTuning.SLASH_DAMAGE, KnightTuning.SLASH_KNOCK))
+                {
+                    hit.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, KnightTuning.SLASH_SLOW_TICKS, 0), this);
+                }
             }
             case GEODE ->
             {
@@ -611,7 +632,14 @@ public class ElementalKnight extends Monster implements GeoEntity
                 boolean great = this.move == 1;
                 // (from where it shows as it leaves him: the orb over his head, his right fist at the end of the punch)
                 Vec3 from = great ? this.at(1.5D, 0.0D, 5.3D) : this.at(2.2D, 0.1D, 3.4D);
-                level.addFreshEntity(KnightFireball.shoot(level, this, from, aimAt, great));
+                Vec3 to = aimAt;
+                if (target != null)
+                {
+                    int ticks = (int) Math.round(from.distanceTo(aimAt)
+                            / (great ? KnightTuning.GREAT_SPEED : KnightTuning.FIREBALL_SPEED));
+                    to = this.lead(target, ticks).add(0.0D, target.getBbHeight() * (great ? 0.3D : 0.5D), 0.0D);
+                }
+                level.addFreshEntity(KnightFireball.shoot(level, this, from, to, great));
                 this.play(great ? "great_fireball" : "fireball", great ? 2.0F : 1.2F);
             }
             case WRECK ->
@@ -861,6 +889,16 @@ public class ElementalKnight extends Monster implements GeoEntity
             hit.knockback(KnightTuning.ROCKFALL_SLAM_KNOCK, at.x - hit.getX(), at.z - hit.getZ());
         }
         Vec3 middle = target != null ? target.position() : this.position().add(this.forward().scale(8.0D));
+        // the circle: everything in it hurt every pulse while the rocks come down, its edge marked with dust
+        int last = KnightTuning.ROCKFALL_SPREAD_TICKS + KnightTuning.ROCKFALL_FALL_TICKS;
+        for (int when = KnightTuning.ROCKFALL_FALL_TICKS; when <= last; when += KnightTuning.ROCKFALL_PULSE_TICKS)
+        {
+            this.later(when, () -> this.rockfallPulse(level, middle));
+        }
+        for (int when = 0; when < last; when += 5)
+        {
+            this.later(when, () -> this.rockfallRing(level, middle));
+        }
         for (int i = 0; i < KnightTuning.ROCKFALL_ROCKS; i++)
         {
             int when = i == 0 ? 0 : this.random.nextInt(KnightTuning.ROCKFALL_SPREAD_TICKS);
@@ -876,6 +914,45 @@ public class ElementalKnight extends Monster implements GeoEntity
                 rock.aim(spot, KnightTuning.ROCKFALL_FALL_TICKS);
                 level.addFreshEntity(rock);
             });
+        }
+    }
+
+    /** One pulse of the rockfall: everything in its circle hurt, a puff of dust and grit over it. */
+    private void rockfallPulse(ServerLevel level, Vec3 middle)
+    {
+        double r = KnightTuning.ROCKFALL_RADIUS + KnightTuning.ROCKFALL_ZONE_MARGIN;
+        double ground = this.groundY(middle.x, middle.z, middle.y);
+        AABB box = new AABB(middle.x - r, ground - 1.0D, middle.z - r, middle.x + r,
+                ground + KnightTuning.ROCKFALL_ZONE_HEIGHT, middle.z + r);
+        for (LivingEntity hit : this.level().getEntitiesOfClass(LivingEntity.class, box, this::canHit))
+        {
+            double dx = hit.getX() - middle.x;
+            double dz = hit.getZ() - middle.z;
+            double reach = r + hit.getBbWidth() * 0.5D;
+            if (dx * dx + dz * dz <= reach * reach)
+            {
+                // (it ignores the half second a hit leaves: every pulse counts)
+                hit.invulnerableTime = 0;
+                this.hurtFoe(hit, KnightTuning.ROCKFALL_PULSE_DAMAGE);
+            }
+        }
+        level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()), middle.x,
+                ground + 0.4D, middle.z, 24, r * 0.4D, 0.2D, r * 0.4D, 0.1D);
+    }
+
+    /** The rockfall's circle, marked on the ground while it lasts. */
+    private void rockfallRing(ServerLevel level, Vec3 middle)
+    {
+        double r = KnightTuning.ROCKFALL_RADIUS + KnightTuning.ROCKFALL_ZONE_MARGIN;
+        double ground = this.groundY(middle.x, middle.z, middle.y);
+        DustParticleOptions dust = new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_STONE_DUST), 1.6F);
+        int n = 28;
+        for (int i = 0; i < n; i++)
+        {
+            double a = 2.0D * Math.PI * (i + this.random.nextDouble() * 0.5D) / n;
+            double x = middle.x + Math.cos(a) * r;
+            double z = middle.z + Math.sin(a) * r;
+            level.sendParticles(dust, x, this.groundY(x, z, ground) + 0.15D, z, 1, 0.05D, 0.02D, 0.05D, 0.0D);
         }
     }
 
@@ -1067,8 +1144,46 @@ public class ElementalKnight extends Monster implements GeoEntity
     /** Where {@code target} will be in {@code ticks} ticks if it keeps going. */
     private Vec3 lead(LivingEntity target, int ticks)
     {
-        Vec3 v = target.getDeltaMovement();
+        Vec3 v = target.getId() == this.seenId ? this.seenMotion : target.getDeltaMovement();
+        double speed = Math.sqrt(v.x * v.x + v.z * v.z);
+        if (speed > LEAD_MAX_SPEED)
+        {
+            v = v.scale(LEAD_MAX_SPEED / speed);
+        }
         return target.position().add(v.x * ticks, 0.0D, v.z * ticks);
+    }
+
+    /** Most it leads a foe by (blocks a tick: a sprinting player is about 0.28). */
+    private static final double LEAD_MAX_SPEED = 0.4D;
+    /** Its foe: who, where last tick, and how it has been moving (smoothed over a few ticks). */
+    private int seenId = -1;
+    @Nullable
+    private Vec3 seenAt;
+    private Vec3 seenMotion = Vec3.ZERO;
+
+    /** Every tick: how its foe is really moving (a player's own motion never reaches the server). */
+    private void watchTarget()
+    {
+        LivingEntity t = this.getTarget();
+        if (t == null)
+        {
+            this.seenId = -1;
+            this.seenAt = null;
+            this.seenMotion = Vec3.ZERO;
+            return;
+        }
+        Vec3 p = t.position();
+        if (t.getId() == this.seenId && this.seenAt != null)
+        {
+            Vec3 step = p.subtract(this.seenAt);
+            this.seenMotion = step.lengthSqr() > 4.0D ? Vec3.ZERO : this.seenMotion.scale(0.6D).add(step.scale(0.4D));
+        }
+        else
+        {
+            this.seenMotion = Vec3.ZERO;
+        }
+        this.seenId = t.getId();
+        this.seenAt = p;
     }
 
     /** The top of the ground at {@code x, z}, looking near {@code nearY}. */
@@ -1248,6 +1363,7 @@ public class ElementalKnight extends Monster implements GeoEntity
             }
             return;
         }
+        this.watchTarget();
         this.tickMove();
         if (!this.later.isEmpty() && this.isAlive())
         {
@@ -1295,7 +1411,7 @@ public class ElementalKnight extends Monster implements GeoEntity
         {
             return false;
         }
-        if (this.kind.element == KnightKind.Element.THUNDER && source.is(DamageTypeTags.IS_LIGHTNING))
+        if (this.immuneTo(source))
         {
             return false;
         }
@@ -1316,16 +1432,47 @@ public class ElementalKnight extends Monster implements GeoEntity
         }
     }
 
+    /**
+     * Each element shrugs off its own (the user, November 19, 2026: "make the thunder, fire and rock knights immune to
+     * fire, the poison ones immune to poison and wither, and the same clear immunities for the rest"): the fire, thunder
+     * and earth knights never burn (their entity types are fire-immune: fire, lava, magma); the thunder knights take no
+     * lightning; the earth knights no fall, no suffocating in a wall and nothing falling on them (an anvil, a
+     * stalactite); the ice knights no freezing. Effects: {@link #canBeAffected}.
+     */
+    private boolean immuneTo(DamageSource source)
+    {
+        if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY))
+        {
+            return false;
+        }
+        return switch (this.kind.element)
+        {
+            case THUNDER -> source.is(DamageTypeTags.IS_LIGHTNING);
+            case EARTH -> source.is(DamageTypeTags.IS_FALL)
+                    || source.is(net.minecraft.world.damagesource.DamageTypes.IN_WALL)
+                    || source.is(net.minecraft.world.damagesource.DamageTypes.FALLING_BLOCK)
+                    || source.is(net.minecraft.world.damagesource.DamageTypes.FALLING_ANVIL)
+                    || source.is(net.minecraft.world.damagesource.DamageTypes.FALLING_STALACTITE)
+                    || source.is(net.minecraft.world.damagesource.DamageTypes.STALAGMITE);
+            case ICE -> source.is(DamageTypeTags.IS_FREEZING);
+            case POISON -> source.is(net.minecraft.world.damagesource.DamageTypes.WITHER);
+            default -> false;
+        };
+    }
+
+    /** The effects each element shrugs off: poison and wither (poison), slowness, mining fatigue and weakness from the
+     * cold (ice), nothing more for the rest (their fire, lightning and falls are damage: {@link #immuneTo}). */
     @Override
     public boolean canBeAffected(MobEffectInstance effect)
     {
         MobEffect e = effect.getEffect();
-        if (this.kind.element == KnightKind.Element.POISON && e == MobEffects.POISON
-                || this.kind.element == KnightKind.Element.ICE && e == MobEffects.MOVEMENT_SLOWDOWN)
+        boolean immune = switch (this.kind.element)
         {
-            return false;
-        }
-        return super.canBeAffected(effect);
+            case POISON -> e == MobEffects.POISON || e == MobEffects.WITHER;
+            case ICE -> e == MobEffects.MOVEMENT_SLOWDOWN || e == MobEffects.DIG_SLOWDOWN;
+            default -> false;
+        };
+        return !immune && super.canBeAffected(effect);
     }
 
     @Override

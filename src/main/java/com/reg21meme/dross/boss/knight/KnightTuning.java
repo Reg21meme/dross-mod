@@ -57,6 +57,11 @@ public final class KnightTuning
     public static final double THRUST_REACH = 5.0D;
     public static final double THRUST_ARC = 45.0D;
     public static final double THRUST_KNOCK = 0.6D;
+    /** His thrust and his shield wall's pokes slow what they hit (the user, November 19, 2026: "the spearman's rapid
+     * attack and the basic attack should make me slow"): the thrust Slowness II this long, each poke Slowness I. */
+    public static final int THRUST_SLOW_TICKS = 60;
+    public static final int THRUST_SLOW_LEVEL = 1;
+    public static final int POKE_SLOW_TICKS = 40;
     /** The shield wall: his shield up, every hit takes only this share of its damage, and five quick pokes. */
     public static final float GUARD_DAMAGE_TAKEN = 0.3F;
     public static final float POKE_DAMAGE = 4.0F;
@@ -126,16 +131,22 @@ public final class KnightTuning
 
     /** A fireball: this fast (blocks a tick), this much, this long burning. Never sets a block alight. */
     public static final double FIREBALL_SPEED = 1.1D;
-    public static final float FIREBALL_DAMAGE = 5.0F;
-    public static final int FIREBALL_FIRE_SECONDS = 3;
+    public static final float FIREBALL_DAMAGE = 7.0F;
+    public static final int FIREBALL_FIRE_SECONDS = 4;
+    /** (the user, November 19, 2026: his fireballs did no damage: they flew at where you stood, so anyone moving was
+     * missed) Each is aimed where its foe will be, hits anything within this much of its path, and one that lands on
+     * the ground still splashes fire this far round, this hard. */
+    public static final double FIREBALL_HIT_MARGIN = 0.5D;
+    public static final double FIREBALL_SPLASH_RADIUS = 1.8D;
+    public static final float FIREBALL_SPLASH_DAMAGE = 4.0F;
     /** The great fireball: slow and big; it bursts on whatever it hits, this far round, its damage falling to half at the
      * edge, thrown out, a ring of fire left behind. Never breaks a block. */
     public static final double GREAT_SPEED = 0.55D;
-    public static final double GREAT_RADIUS = 4.5D;
-    public static final float GREAT_DAMAGE = 14.0F;
+    public static final double GREAT_RADIUS = 5.5D;    // (4.5 and 14 until the user, November 19, 2026: "his explosion
+    public static final float GREAT_DAMAGE = 20.0F;    // should do more damage")
     public static final int GREAT_FIRE_SECONDS = 6;
     public static final double GREAT_KNOCK = 1.4D;
-    public static final int GREAT_FIRES = 10;
+    public static final int GREAT_FIRES = 14;
     /** The great fireball is drawn this many times a fireball's size. */
     public static final float GREAT_SCALE = 3.5F;
 
@@ -165,6 +176,8 @@ public final class KnightTuning
     public static final double SLASH_REACH = 3.8D;
     public static final double SLASH_ARC = 120.0D;
     public static final double SLASH_KNOCK = 0.3D;
+    /** Each cut shocks what it hits: Slowness I this long (the user, November 19, 2026, with the spearman's). */
+    public static final int SLASH_SLOW_TICKS = 30;
     /** The dash (the user: "electric dashes where there's electricity behind him, kind of like the Flash"): he runs
      * straight through his foe at this speed, on past it this far (at most this long), cutting everything he passes;
      * lightning stays on the ground behind him this long, stinging whatever stands in it. */
@@ -221,7 +234,15 @@ public final class KnightTuning
     public static final double ROCKFALL_HEIGHT = 16.0D;
     public static final int ROCKFALL_FALL_TICKS = 14;
     public static final double ROCKFALL_RADIUS = 5.5D;
-    public static final float ROCKFALL_DAMAGE = 6.0F;
+    /** The falling rocks themselves hurt nobody (0): the rockfall's circle does (the user, November 19, 2026: "just
+     * make it so if you're in the area it does damage instead of a rock hitting you"). From the first rock's landing
+     * to the last's, every ROCKFALL_PULSE_TICKS everything inside the circle (ROCKFALL_RADIUS and this much more, up to
+     * ROCKFALL_ZONE_HEIGHT over the ground) takes ROCKFALL_PULSE_DAMAGE. */
+    public static final float ROCKFALL_DAMAGE = 0.0F;
+    public static final double ROCKFALL_ZONE_MARGIN = 0.75D;
+    public static final double ROCKFALL_ZONE_HEIGHT = 4.0D;
+    public static final int ROCKFALL_PULSE_TICKS = 10;
+    public static final float ROCKFALL_PULSE_DAMAGE = 3.0F;
 
     // ---------------------------------------------------------------- their sounds (tools/knights/sounds.py)
 

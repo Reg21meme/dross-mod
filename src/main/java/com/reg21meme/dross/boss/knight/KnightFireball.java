@@ -57,6 +57,13 @@ public class KnightFireball extends BossProjectile implements ItemSupplier
         return this.entityData.get(DATA_GREAT);
     }
 
+    /** A small one hits anything within this much of its path (a great one only what it meets: it bursts anyway). */
+    @Override
+    protected double hitMargin()
+    {
+        return this.isGreat() ? 0.0D : KnightTuning.FIREBALL_HIT_MARGIN;
+    }
+
     @Override
     protected void defineSynchedData()
     {
@@ -114,12 +121,34 @@ public class KnightFireball extends BossProjectile implements ItemSupplier
         }
         else
         {
+            splash(level, hit.getLocation(), owner);
             level.sendParticles(ParticleTypes.FLAME, hit.getLocation().x, hit.getLocation().y, hit.getLocation().z, 10,
                     0.2D, 0.2D, 0.2D, 0.04D);
             level.playSound(null, hit.getLocation().x, hit.getLocation().y, hit.getLocation().z,
                     ElementalKnight.knightSound(KnightKind.FLAMEHAND, "fizzle"), SoundSource.HOSTILE, 0.8F, 1.0F);
         }
         this.discard();
+    }
+
+    /** A small fireball that lands on the ground: fire splashes round where it lands. */
+    private void splash(ServerLevel level, Vec3 at, Entity owner)
+    {
+        double r = KnightTuning.FIREBALL_SPLASH_RADIUS;
+        level.sendParticles(ParticleTypes.FLAME, at.x, at.y + 0.2D, at.z, 18, r * 0.35D, 0.15D, r * 0.35D, 0.03D);
+        level.sendParticles(ParticleTypes.LAVA, at.x, at.y + 0.2D, at.z, 3, 0.3D, 0.1D, 0.3D, 0.0D);
+        for (LivingEntity living : level.getEntitiesOfClass(LivingEntity.class, new AABB(at, at).inflate(r + 1.0D)))
+        {
+            if (owner instanceof ElementalKnight knight ? !knight.canHit(living) : !living.isAlive())
+            {
+                continue;
+            }
+            if (living.getBoundingBox().distanceToSqr(at) > r * r)
+            {
+                continue;
+            }
+            living.hurt(ElementalKnight.typed(level, DamageTypes.FIREBALL, this, owner), KnightTuning.FIREBALL_SPLASH_DAMAGE);
+            living.setSecondsOnFire(KnightTuning.FIREBALL_FIRE_SECONDS);
+        }
     }
 
     /** The great fireball's burst. */
