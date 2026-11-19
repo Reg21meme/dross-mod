@@ -194,7 +194,7 @@ KNIGHTS = [
            hand_l=K.HANG_FIST, heavy=0.9, speed=0.24, walk_t=1.3, walk_lean=2.0,
            walk_style=dict(stomp=1.0, roll=1.2, twist=1.5, arms=1.3, nod=1.2),
            moves={"swing": lambda r, k: flat_sweep(r, k, "swing", T=1.3, hit=0.66, **FIRE_HAMMER),
-                  "slam": lambda r, k: overhead_slam(r, k, name="slam", head_hit=160.0, strike=55.0, inward=25.0)}),
+                  "slam": lambda r, k: overhead_slam(r, k, name="slam", head_hit=130.0, strike=50.0, inward=25.0)}),
     Knight("flamehand", "F5", "Flamehand", "knightdesigns.f05_flamehand", hand_r=(-12.0, 44.0, -21.0),
            hand_l=(16.0, 52.0, -16.0), props=(("orb", ORB, "body"),), extra=flamehand_orb, gear="fists",
            heavy=0.1, speed=0.27, walk_t=0.95, walk_lean=2.0,
