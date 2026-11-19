@@ -46,7 +46,8 @@ SPIN = 150.0            # degrees an angle may differ between two animations the
 # what each bone is, for the clipping check (None: not checked)
 GROUPS = {
     "waist": "torso", "body": "torso", "head": "head", "cape": "cape",
-    "arm_r": "arm_r", "arm_l": "arm_l", "hand_r": "held_r", "hand_l": "held_l",
+    "arm_r": "arm_r", "arm_l": "arm_l", "fore_r": "arm_r", "fore_l": "arm_l", "hand_r": "held_r",
+    "hand_l": "held_l",
     "leg_r": "leg_r", "leg_l": "leg_l", "anchor": "held_r", "boulder": "boulder", "cap": "cap", "orb": None,
 }
 # (a, b): a's points mustn't go into b's boxes (deeper than at rest)
@@ -76,11 +77,26 @@ def animations(kn):
 # ---------------------------------------------------------------- clipping
 
 
-def check_clip(m, anims):
+# A two-handed blow's haft runs through its left fist, and the fists meet on it: those pairs aren't checked in them
+# (knightkit/kreach.py; the user, November 19, 2026: "use both arms").
+# (and the arms lie against the chest and each other as both hands hold on in front of it: the Thawed Soldiers' thick
+# arms press about 4.6 units into their chest there, the others' 3)
+GRIP_PAIRS = {("held_r", "held_l"), ("held_r", "arm_l"), ("held_l", "arm_r"), ("arm_r", "arm_l"), ("arm_l", "torso"),
+              ("arm_r", "torso")}
+# The Stormblade's X-cut crosses his forearms in front of him (their steel bracers touch).
+CROSSED = {("stormblade", "slash"): {("arm_r", "arm_l")}}
+TWO_HANDED = {("thawedaxe", "swing"), ("sporebound", "reap"), ("cinder", "swing"), ("geode", "pick")}
+
+
+def check_clip(m, anims, kid=None):
     old = (mobkit.CLIP_TOLERANCE, mobkit.FLOOR_TOLERANCE)
     mobkit.CLIP_TOLERANCE, mobkit.FLOOR_TOLERANCE = CLIP_TOL, FLOOR_TOL
+    found = {}
     try:
-        found = mobkit.clip_check(m, anims, lambda b: GROUPS.get(b, "torso"), PAIRS, step=0.05)
+        for name, a in anims.items():
+            pairs = [q for q in PAIRS if ((kid, name) not in TWO_HANDED or q not in GRIP_PAIRS)
+                     and q not in CROSSED.get((kid, name), ())]
+            found.update(mobkit.clip_check(m, {name: a}, lambda b: GROUPS.get(b, "torso"), pairs, step=0.05))
     finally:
         mobkit.CLIP_TOLERANCE, mobkit.FLOOR_TOLERANCE = old
     return [f"CLIP {what} in {name} at {t:.2f} s, {d:.1f} units ({where})"
@@ -199,7 +215,7 @@ def main(argv):
         m, anims = animations(kn)
         lines = []
         if "--clip" in flags:
-            lines += check_clip(m, anims)
+            lines += check_clip(m, anims, kn.ID)
         if "--smooth" in flags:
             for name, a in anims.items():
                 lines += check_smooth(m, a, name)

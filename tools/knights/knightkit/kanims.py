@@ -264,7 +264,7 @@ def aim_hand(rig, p, side, haft_rest, head_rest, haft_body, lead_w, prev, two_fa
     p.get3(f"hand_{side}")[0][:] = [0.0, 0.0, 0.0]
     mats = m.pose_matrices(p)
     B = mats["body"][:3, :3]
-    P = mats[f"arm_{side}"][:3, :3]
+    P = mats[f"fore_{side}"][:3, :3]          # (the hand's parent: the forearm, since the elbows)
     hr, er = _unit(haft_rest), _unit(head_rest)
     hb = _unit(haft_body)
     # the head's way with the least turn about the haft from rest (in the body's frame), then the sweep's way

@@ -139,25 +139,29 @@ def spear(s):
         a = 2 * math.pi * k / 5
         n = np.array([math.cos(a), 0.0, math.sin(a)])
         s.plate(shaft1 - d * 9 + n * 2.0, n, d, 4, 9, 1, "furflap")
-    # Left arm: a round hide shield on the forearm, held across the front.
+    # Left arm: a round shield on the forearm, held across the front: a disc of the same clear ice as the axe's blade
+    # and his spearhead, its rim of glowing edge-ice, bound across with two leather straps (the user, November 19, 2026:
+    # "make the spearman's shield the same icy material the spear and the axeman's axe is made out of instead of this
+    # white stone": it was pale hide under a bone rim and cross).
     body.part("arm_l").taper([(18, 55, 0), (25, 44, -8), (15, 42, -17)], [10, 9, 8], "skin")
     s = body.part("hand_l")
     s.rbox((14, 42, -18), (8, 8, 8), "skin", c=2)
     centre = np.array([13.0, 40.0, -24.0])
     n = np.array([0.25, 0.0, -1.0])
     n = n / np.linalg.norm(n)
-    s.plate(centre, n, (0, 1, 0), 26, 18, 2, "shield")
-    s.plate(centre, n, (0, 1, 0), 18, 26, 2, "shield", inflate=0.1)
-    s.plate(centre, n, (0.7, 0.7, 0), 18, 18, 2, "shield", inflate=0.2)
-    s.ring(centre, n, 12.5, 2, 4, "bone", n=12)
-    s.rbox(centre + n * 2, (6, 6, 3), "bone", c=1, rot=None)
-    for k in range(4):                            # a bone cross bound over the hide
-        a = math.pi * k / 2 + 0.3
-        side = np.cross(n, [0.0, 1.0, 0.0])
-        side = side / np.linalg.norm(side)
-        up = np.cross(side, n)
+    side = np.cross(n, [0.0, 1.0, 0.0])
+    side = side / np.linalg.norm(side)
+    up = np.cross(side, n)
+    rad = 12.0
+    for k in range(8):                            # the disc in strips 3 tall, touching (clear ice never overlapping)
+        yk = -rad + 1.5 + 3.0 * k
+        w = 2.0 * math.sqrt(max(rad * rad - (abs(yk) + 0.8) ** 2, 4.0))
+        s.plate(centre + up * yk, n, up, round(w), 3, 2, "blade")
+    s.ring(centre + n * 0.4, n, rad + 0.6, 2, 3, "edge", n=12)
+    s.rbox(centre + n * 1.8, (5, 5, 2), "edge", c=1, rot=None)
+    for a in (0.35, 0.35 + math.pi / 2):          # two leather straps bound across it
         dirv = side * math.cos(a) + up * math.sin(a)
-        s.seg(centre + n * 1.5 + dirv * 2, centre + n * 1.5 + dirv * 11, 2, 1, "bone", side=np.cross(dirv, n))
+        s.seg(centre + n * 1.4 - dirv * 10.5, centre + n * 1.4 + dirv * 10.5, 2, 1, "leather", side=np.cross(dirv, n))
     # (The chunk of glacier ice stuck on the shield is gone too: no stray ice on the soldiers.)
 
 

@@ -9843,7 +9843,18 @@
         47.2021,
         -35.7212
        ]
-      },
+      }
+     ]
+    },
+    {
+     "name": "fore_r",
+     "parent": "arm_r",
+     "pivot": [
+      -20,
+      40,
+      -9
+     ],
+     "cubes": [
       {
        "origin": [
         -19,
@@ -11435,7 +11446,7 @@
     },
     {
      "name": "hand_r",
-     "parent": "arm_r",
+     "parent": "fore_r",
      "pivot": [
       -12,
       44,
@@ -11608,7 +11619,18 @@
         -50.8154,
         87.178
        ]
-      },
+      }
+     ]
+    },
+    {
+     "name": "fore_l",
+     "parent": "arm_l",
+     "pivot": [
+      22,
+      42,
+      -6
+     ],
+     "cubes": [
       {
        "origin": [
         16,
@@ -13190,7 +13212,7 @@
     },
     {
      "name": "hand_l",
-     "parent": "arm_l",
+     "parent": "fore_l",
      "pivot": [
       16,
       52,
