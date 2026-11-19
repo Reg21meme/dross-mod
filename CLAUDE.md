@@ -3094,6 +3094,10 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   couldn't stay" (every other test passed); like the floating tree above, it depends on the seed. Not looked into yet. Again
   on October 30 in `featuresperbiome` ("rimefall site at -6256, 6320: ... Block{dross:frostbloom} at -6256, 73, 6381"
   couldn't stay; every other test passed).
+- **The terrain check sampling a hermit crab cave** (Dimension area, found November 19): in a full fresh run (world
+  `gt_knights_1118f`) `realchunksperbiome` failed with "cinder_wastes site at 6240, 5552: 571 air blocks more than
+  8 under the ground": almost surely an underground hermit crab cave (or a Colossus lair) under its sample spot,
+  which the check doesn't know about (like the Frostfolk village below). Not looked into yet.
 - **The terrain check sampling a Frostfolk village** (Dimension area, found October 27): in one full fresh GameTest run
   (240 of 241 passed) `realchunksperbiome` failed with "rimefall site at 5824, 5920: only 97.5% of the top blocks are
   its own" (spruce stairs, packed ice, lanterns, skulls...) "and 309 air blocks more than 8 under the ground": the
