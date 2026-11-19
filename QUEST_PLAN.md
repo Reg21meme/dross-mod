@@ -217,8 +217,8 @@ some of that energy to open the lair of another boss so you can kill it before i
   faint ring outside it, light rising thick off its rim while shards of light spiral in to him and the ground starts to
   tremble (`tools/oracle/spell_textures.py`); a beam bursts up out of his hands into the sky with a shock ring rolling out
   over the ground, pulsing, knots of light running up it, copies of the inner ring floating up over the circle, then three
-  thinner beams rise off the circle's rim and wind round into it; a ring of barrier stands up 20 blocks round him and
-  eight lances shoot out of the beam into it, one each way round the compass (since November 19: "shoot like 7 more beams
+  thinner beams rise off the circle's rim and wind round into it; a ring of barrier stands up 70 blocks round him and
+  eight lances leave the beam's top, one each way round the compass, arc over the sky and come down into it far off (since November 19: "shoot like 7 more beams
   in each major cardinal and sub-cardinal direction"; "I still don't see the spell destroying it"), a flash at each hit,
   and the barrier shatters with a boom and its echo; the beams and the lances shatter into falling shards of light, the
   circle fades and his arms come down. Its

@@ -582,10 +582,13 @@ public final class SilverwoodGiantGameTest
                         SilverwoodGiantShowcase.play(source, "throw");
                     })
                     .thenExecuteAfter(20, () -> {
+                        // Only the Boulder-Hurler throws (since November 19, 2026, on show too).
                         for (SilverwoodGiant giant : giants)
                         {
-                            expect("throw".equals(giant.action()) && giant.isAlive(),
-                                    giant.look().id() + " should be throwing (alive), not " + giant.action());
+                            boolean throwing = "throw".equals(giant.action());
+                            expect(giant.isAlive() && throwing == giant.throwsBoulders(), giant.look().id()
+                                    + (giant.throwsBoulders() ? " should be throwing, not " : " shouldn't throw on show, but plays ")
+                                    + giant.action());
                         }
                         int again = SilverwoodGiantShowcase.spawnGiants(source);
                         List<SilverwoodGiant> now = level.getEntitiesOfClass(SilverwoodGiant.class, around, SilverwoodGiant::isShowcase);

@@ -47,14 +47,16 @@ public final class OracleSpellTuning
     public static final int GROUND_RING_TICKS = 26;
     /** Three thinner beams rise from the circle's rim and join the great one from here... */
     public static final int SATELLITE_START = 80;
-    /** Eight lances shoot out of the beam, one each way round the compass (the user, November 19, 2026: "shoot like 7
-     * more beams in each major cardinal and sub-cardinal direction"), down into the ring of barrier round him... */
+    /** Eight lances leave the beam's top, one each way round the compass (the user, November 19, 2026: "shoot like 7
+     * more beams in each major cardinal and sub-cardinal direction"), arc out over the sky and come down far off into
+     * the ring of barrier (then: "those 8 light beams should be far away, not nearby ... go into the sky then come down
+     * from far")... */
     public static final int LANCE_START = 120;
     /** ...reaching it over this long. */
-    public static final int LANCE_GROW = 8;
-    /** They strike it: a flash and a shock ring where each hits, and the ring of barrier shatters (it stood up
-     * {@code LandWardFall.SHATTER_AT} ticks before, so it breaks at this moment). */
-    public static final int STRIKE = 128;
+    public static final int LANCE_GROW = 14;
+    /** They strike it: a flash, a shock ring and a pillar of light where each comes down, and the ring of barrier
+     * shatters (it stood up {@code LandWardFall.SHATTER_AT} ticks before, so it breaks at this moment). */
+    public static final int STRIKE = 134;
     /** The boom is heard this long after the flash (it's far off), and its echo this long after that. */
     public static final int BOOM_DELAY = 18;
     public static final int ECHO_DELAY = 22;
@@ -91,22 +93,26 @@ public final class OracleSpellTuning
     /** How fast they wind round him (degrees a tick). */
     public static final float SATELLITE_SPIN = 1.6F;
     /** The lances' core and glow half-widths. */
-    public static final float LANCE_CORE = 0.45F;
-    public static final float LANCE_GLOW = 1.5F;
-    /** How many lances (round the compass, the first to the east), where they leave the beam (blocks over his hands)... */
+    public static final float LANCE_CORE = 0.6F;
+    public static final float LANCE_GLOW = 2.2F;
+    /** How many lances (round the compass, the first to the east)... */
     public static final int LANCES = 8;
-    public static final float LANCE_FROM = 30.0F;
-    /** ...and where they hit the ring of barrier: its radius round him, and how high over his feet. */
-    public static final float BARRIER_RADIUS = 20.0F;
-    public static final float LANCE_HIT_HEIGHT = 7.0F;
-    /** Where each lance hits: a flash this big (blocks across), swelling this much a tick, for this long... */
-    public static final float FLASH_SIZE = 5.0F;
-    public static final float FLASH_GROWTH = 0.6F;
-    public static final int FLASH_TICKS = 24;
-    /** ...and a shock ring from this size, growing this much a tick, for this long. */
-    public static final float RING_START_SIZE = 3.0F;
-    public static final float RING_GROWTH = 1.2F;
-    public static final int RING_TICKS = 30;
+    /** ...how far out they come down (the ring of barrier's radius round him), and how high over his feet... */
+    public static final float BARRIER_RADIUS = 70.0F;
+    public static final float LANCE_HIT_HEIGHT = 1.0F;
+    /** ...and how far over the beam's top their arcs rise half way out. */
+    public static final float LANCE_ARC_RISE = 20.0F;
+    /** Where each comes down: a flash this big (blocks across), swelling this much a tick, for this long... */
+    public static final float FLASH_SIZE = 10.0F;
+    public static final float FLASH_GROWTH = 1.0F;
+    public static final int FLASH_TICKS = 36;
+    /** ...a shock ring from this size, growing this much a tick, for this long... */
+    public static final float RING_START_SIZE = 6.0F;
+    public static final float RING_GROWTH = 2.2F;
+    public static final int RING_TICKS = 40;
+    /** ...and a pillar of light this tall, standing this long. */
+    public static final float PILLAR_HEIGHT = 45.0F;
+    public static final int PILLAR_TICKS = 40;
     /** The ground's shock ring at the beam's start: how far it rolls out. */
     public static final float GROUND_RING_REACH = 22.0F;
 

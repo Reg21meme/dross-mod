@@ -2290,12 +2290,13 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       gathers: light rising thick off its rim, shards of light spiralling in to his hands, the ground starting to tremble;
       a beam bursts up out of his hands 90 blocks into the sky with a shock ring rolling out over the ground, pulsing,
       knots of light running up it, copies of the inner ring floating up over the circle, then three thinner beams rise
-      off the circle's rim and wind round into it; a ring of barrier 20 blocks round him stands up (`LandWardFall.ring`,
-      the land curtain's own fall), and eight lances shoot out of the beam 30 blocks over his hands, one each way round
-      the compass (since November 19, the user: "have the diagonal beams shoot like 7 more beams in each major cardinal
+      off the circle's rim and wind round into it; a ring of barrier 70 blocks round him stands up (`LandWardFall.ring`,
+      the land curtain's own fall), and eight lances leave the beam's top, one each way round the compass, arc out over
+      the sky and come down into it far off (the user: "those 8 light beams should be far away ... go into the sky then
+      come down from far") (since November 19, the user: "have the diagonal beams shoot like 7 more beams in each major cardinal
       and sub-cardinal direction", and "I still don't see the spell destroying it": until then one lance bent out to a
-      flash 50-100 blocks off towards the barrier, lost in the fog), a flash and a ring where each hits it, and it
-      shatters, the boom and its echo; the beams and the lances shatter into falling shards of light, the circle fades. Drawn additive, both sides,
+      flash 50-100 blocks off towards the barrier, lost in the fog), a flash, a ring and a pillar of light where each
+      comes down, and it shatters, the boom and its echo; the beams and the lances shatter into falling shards of light, the circle fades. Drawn additive, both sides,
       not dimmed by fog (`SpellRenderTypes`). Colours `DrossColors.ORACLE_SPELL_*`; sounds `entity.oracle.spell_*`
       (vanilla's respawn anchor, beacon, warden sonic charge and boom, explosions, thunder and amethyst, pitched down,
       with their own subtitles), played at its moments: charges, surges, the beam's burst, the lance's strike, the boom
@@ -2963,7 +2964,8 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   dropping nothing; its spawn egg (after the Cinder Hermit's) makes a random look,
   `/summon dross:silverwood_giant ~ ~ ~ {Look:"brawler"}` G2. Since November 19: in the showcase the Boulder-Hurler's
   throw sends a harmless boulder 16 blocks ahead (the user: "he isn't throwing his rock": his model lets go of it and
-  no real one flew); after a smash or a throw the left arm goes straight back to standing, never spinning round (its
+  no real one flew), and only he throws there (the Brawler and the Tree-Bearer never do; their throws stay in their
+  animation files, never played); after a smash or a throw the left arm goes straight back to standing, never spinning round (its
   angles had wound a whole turn: `tools/forest_giant/mobs.py`'s `unwind`).
 - **The boss buff** (November 7): the Colossus's bar at the start of a fight full at 375 (its eruption at a quarter
   down, the shell bursting at 40%), the Rat King 250 (three burrows, his Rage at half, three more), the Wild Hunt 275,

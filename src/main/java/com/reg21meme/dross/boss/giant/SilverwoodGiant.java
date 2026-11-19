@@ -251,7 +251,19 @@ public class SilverwoodGiant extends Monster implements GeoEntity, NeutralMob
     /** The showcase's controls: plays one of its animations ("idle": back to standing). */
     public void playShowcase(String animation)
     {
+        if (!this.plays(animation))
+        {
+            return;
+        }
         this.startAction("idle".equals(animation) ? null : animation);
+    }
+
+    /** True if this giant has this move: the throw is only the Boulder-Hurler's (the user, November 19, 2026: "make sure
+     *  the rock throw is only for the Boulder-Hurler"; the Brawler's and the Tree-Bearer's throws are in their files,
+     *  never played). */
+    public boolean plays(String animation)
+    {
+        return !"throw".equals(animation) || this.throwsBoulders();
     }
 
     // ---------------------------------------------------------------- goals
@@ -1149,6 +1161,10 @@ public class SilverwoodGiant extends Monster implements GeoEntity, NeutralMob
         {
             String now = this.action();
             String next = ANIMATIONS.get((ANIMATIONS.indexOf(now == null ? "idle" : now) + 1) % ANIMATIONS.size());
+            if (!this.plays(next))
+            {
+                next = ANIMATIONS.get((ANIMATIONS.indexOf(next) + 1) % ANIMATIONS.size());
+            }
             this.playShowcase(next);
             player.displayClientMessage(Component.translatable("dross.silverwood_giant.showcase.playing",
                     this.look().label(), next), true);

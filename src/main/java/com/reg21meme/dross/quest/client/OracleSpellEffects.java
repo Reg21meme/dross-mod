@@ -47,9 +47,9 @@ import static com.reg21meme.dross.quest.oracle.OracleSpellTuning.*;
  *   <li><b>the beam</b>: it bursts up out of his hands into the sky with a shock ring rolling out over the ground,
  *       pulsing, knots of light running up it, three thinner beams rising off the circle's rim and winding round to
  *       join it;</li>
- *   <li><b>the strike</b>: a ring of barrier stands up round him ({@code LandWardFall.ring}), eight lances shoot out
- *       of the beam into it, one each way round the compass, a flash and a ring where each hits, and it shatters; the
- *       boom, and its echo;</li>
+ *   <li><b>the strike</b>: a ring of barrier stands up far round him ({@code LandWardFall.ring}), eight lances leave
+ *       the beam's top, one each way round the compass, arc out over the sky and come down into it far off, a flash, a
+ *       ring and a pillar of light where each lands, and it shatters; the boom, and its echo;</li>
  *   <li>the beams and the lance shatter into falling shards of light, the circle fades and his arms come down.</li>
  * </ol>
  * Its light is added onto what's behind it and the fog doesn't dim it ({@link SpellRenderTypes}). That's the <b>big</b>
@@ -126,10 +126,14 @@ public final class OracleSpellEffects
             return new Vec3(x, y + HANDS_HEIGHT + MEDIUM_BEAM_HEIGHT, z);
         }
 
-        /** Where the big spell's lances leave the beam. */
-        Vec3 lanceFrom()
+        /** Where along lance {@code k}'s arc {@code s} of the way (0 the beam's top, 1 where it comes down). */
+        Vec3 lanceAt(int k, double s)
         {
-            return new Vec3(x, y + HANDS_HEIGHT + LANCE_FROM, z);
+            Vec3 a = top();
+            Vec3 c = hit(k);
+            Vec3 mid = new Vec3((a.x + c.x) / 2.0D, a.y + LANCE_ARC_RISE, (a.z + c.z) / 2.0D);
+            double u = 1.0D - s;
+            return a.scale(u * u).add(mid.scale(2.0D * u * s)).add(c.scale(s * s));
         }
 
         /** Where lance {@code k} hits the ring of barrier (k 0 the east, then round the compass). */
@@ -282,11 +286,22 @@ public final class OracleSpellEffects
         {
             play(mc, spell.hands().add(0.0D, 10.0D, 0.0D), ModSounds.ORACLE_SPELL_STRIKE.get(), 1.8F, 0.9F);
         }
-        if (t == STRIKE + 2 || t == STRIKE + 2 + ECHO_DELAY)
+        if ((t == STRIKE + BOOM_DELAY || t == STRIKE + BOOM_DELAY + ECHO_DELAY) && mc.player != null)
         {
-            // The barrier round him breaking: the boom from its ring, and its echo.
-            boolean echo = t != STRIKE + 2;
-            Vec3 at = spell.feet().add(0.0D, LANCE_HIT_HEIGHT, 0.0D);
+            // The barrier breaking far off: the boom from the nearest place a lance came down, put between the
+            // listener and it so it's always heard, and its echo.
+            boolean echo = t != STRIKE + BOOM_DELAY;
+            Vec3 ear = mc.player.getEyePosition();
+            Vec3 near = spell.hit(0);
+            for (int k = 1; k < LANCES; k++)
+            {
+                if (spell.hit(k).distanceToSqr(ear) < near.distanceToSqr(ear))
+                {
+                    near = spell.hit(k);
+                }
+            }
+            Vec3 way = near.subtract(ear);
+            Vec3 at = ear.add(way.normalize().scale(Math.min(way.length(), echo ? 30.0D : 22.0D)));
             play(mc, at, ModSounds.ORACLE_SPELL_BOOM.get(), echo ? 1.2F : 2.4F, echo ? 0.85F : 1.0F);
             play(mc, at, ModSounds.ORACLE_SPELL_RUMBLE.get(), echo ? 1.2F : 2.0F, echo ? 0.9F : 1.0F);
         }
@@ -416,11 +431,10 @@ public final class OracleSpellEffects
             // The beams and the lance break into falling shards of light.
             Vec3 hands = spell.hands();
             Vec3 top = spell.top();
-            Vec3 from = spell.lanceFrom();
             for (int k = 0; k < (int) (SHATTER_SPARKS * share); k++)
             {
                 Vec3 p = random.nextFloat() < 0.5F ? hands.lerp(top, random.nextDouble() * 0.6D)
-                        : from.lerp(spell.hit(random.nextInt(LANCES)), random.nextDouble());
+                        : spell.lanceAt(random.nextInt(LANCES), random.nextDouble());
                 mc.particleEngine.createParticle(ModParticles.WARD_SHARD.get(), p.x + random.nextGaussian() * 0.8D, p.y,
                         p.z + random.nextGaussian() * 0.8D, random.nextGaussian() * 0.06D, -0.05D - random.nextDouble() * 0.2D,
                         random.nextGaussian() * 0.06D);
@@ -633,13 +647,18 @@ public final class OracleSpellEffects
         float lance = smooth((t - LANCE_START) / LANCE_GROW) * gone;
         if (lance > 0.01F)
         {
-            Vec3 from = spell.lanceFrom();
             float reach = smooth((t - LANCE_START) / LANCE_GROW);
+            int pieces = 18;
             for (int k = 0; k < LANCES; k++)
             {
-                Vec3 to = from.lerp(spell.hit(k), reach);
-                ribbon(vc, m, from, to, cam, LANCE_GLOW * pulse * lance, DrossColors.ORACLE_SPELL_GLOW, 0.5F * lance, 0.6F * lance);
-                ribbon(vc, m, from, to, cam, LANCE_CORE * pulse * lance, DrossColors.ORACLE_SPELL_CORE, 1.0F * lance, 1.0F * lance);
+                Vec3 prev = spell.lanceAt(k, 0.0D);
+                for (int p = 1; p <= pieces; p++)
+                {
+                    Vec3 next = spell.lanceAt(k, reach * p / pieces);
+                    ribbon(vc, m, prev, next, cam, LANCE_GLOW * pulse * lance, DrossColors.ORACLE_SPELL_GLOW, 0.5F * lance, 0.5F * lance);
+                    ribbon(vc, m, prev, next, cam, LANCE_CORE * pulse * lance, DrossColors.ORACLE_SPELL_CORE, lance, lance);
+                    prev = next;
+                }
             }
         }
     }
@@ -654,11 +673,11 @@ public final class OracleSpellEffects
         }
         for (int k = 0; k < LANCES; k++)
         {
-            drawHit(vc, m, spell.hit(k), since, camera);
+            drawHit(vc, m, spell.hit(k), since, camera, cam);
         }
     }
 
-    private static void drawHit(VertexConsumer vc, Matrix4f m, Vec3 at, float since, Camera camera)
+    private static void drawHit(VertexConsumer vc, Matrix4f m, Vec3 at, float since, Camera camera, Vec3 cam)
     {
         Vector3f left = camera.getLeftVector();
         Vector3f up = camera.getUpVector();
@@ -675,6 +694,16 @@ public final class OracleSpellEffects
             float life = since / RING_TICKS;
             float size = RING_START_SIZE + since * RING_GROWTH;
             ring(vc, m, at, left, up, size, size * 0.12F, DrossColors.ORACLE_SPELL_GLOW, 1.0F - life);
+            ring(vc, m, at.add(0.0D, 0.3D, 0.0D), new Vector3f(1.0F, 0.0F, 0.0F), new Vector3f(0.0F, 0.0F, 1.0F), size * 1.3F,
+                    size * 0.08F, DrossColors.ORACLE_SPELL_CORE, (1.0F - life) * 0.8F);
+        }
+        if (since < PILLAR_TICKS)
+        {
+            float life = since / PILLAR_TICKS;
+            float alpha = (1.0F - life) * smooth(since / 3.0F);
+            Vec3 top = at.add(0.0D, PILLAR_HEIGHT, 0.0D);
+            ribbon(vc, m, at, top, cam, 3.0F * (1.0F - life * 0.5F), DrossColors.ORACLE_SPELL_GLOW, 0.5F * alpha, 0.0F);
+            ribbon(vc, m, at, top, cam, 1.0F * (1.0F - life * 0.5F), DrossColors.ORACLE_SPELL_CORE, alpha, 0.0F);
         }
     }
 
