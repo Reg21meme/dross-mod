@@ -608,6 +608,10 @@ public final class DrossColors {
     public static final int KNIGHT_SPARK = PALETTE_MAIN;
     public static final int KNIGHT_SPARK_BRIGHT = PALETTE_HIGHLIGHT;
     public static final int KNIGHT_AMETHYST_DUST = 0xB070E8;
+    /** The knights' extra effects (boss/knight/KnightEffects): frost (the Thawed's breath, the spear's streak) and
+     *  stone dust (the earth knights' blows and shockwaves). */
+    public static final int KNIGHT_FROST = 0xDCF2FF;
+    public static final int KNIGHT_STONE_DUST = 0x8A8478;
 
     // ---------------------------------------------------------------- Helpers
 

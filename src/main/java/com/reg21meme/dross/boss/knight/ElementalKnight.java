@@ -436,6 +436,8 @@ public class ElementalKnight extends Monster implements GeoEntity
                 {
                     this.play("swing", 1.2F);
                     this.sweepParticles(ParticleTypes.SNOWFLAKE, KnightTuning.AXE_SWING_REACH);
+                    KnightEffects.arc(level, this, KnightTuning.AXE_SWING_REACH * 0.75D, 1.7D, 75.0D, -75.0D, 14,
+                            ParticleTypes.SNOWFLAKE, 0.03D);
                     for (LivingEntity hit : this.strike(KnightTuning.AXE_SWING_ARC, KnightTuning.AXE_SWING_REACH,
                             KnightTuning.AXE_SWING_DAMAGE, KnightTuning.AXE_SWING_KNOCK))
                     {
@@ -452,12 +454,15 @@ public class ElementalKnight extends Monster implements GeoEntity
                 if (this.move == 0)
                 {
                     this.play("thrust", 1.2F);
+                    KnightEffects.thrustStreak(level, this, KnightTuning.THRUST_REACH);
                     this.strike(KnightTuning.THRUST_ARC, KnightTuning.THRUST_REACH, KnightTuning.THRUST_DAMAGE,
                             KnightTuning.THRUST_KNOCK);
                 }
                 else
                 {
                     this.sound(knightSound(this.kind, "poke"), 1.0F, 0.95F + 0.05F * k);
+                    Vec3 tip = this.at(KnightTuning.POKE_REACH, 0.4D, 2.5D);
+                    level.sendParticles(ParticleTypes.SNOWFLAKE, tip.x, tip.y, tip.z, 5, 0.2D, 0.2D, 0.2D, 0.05D);
                     this.strike(KnightTuning.POKE_ARC, KnightTuning.POKE_REACH, KnightTuning.POKE_DAMAGE,
                             KnightTuning.POKE_KNOCK);
                 }
@@ -468,12 +473,17 @@ public class ElementalKnight extends Monster implements GeoEntity
                 this.rainUntil = this.tickCount + KnightTuning.RAIN_TICKS;
                 this.rainAt = this.position();
                 this.play("rain", 2.0F);
+                // his staff driven into the ground: a ring of poison rolling out from it
+                KnightEffects.shockwave(level, this, this.at(1.2D, 0.4D, 0.0D), 3.5D,
+                        new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_POISON_RAIN), 1.5F));
             }
             case SPOREBOUND ->
             {
                 if (this.move == 0)
                 {
                     this.play("reap", 1.3F);
+                    KnightEffects.arc(level, this, KnightTuning.REAP_REACH * 0.8D, 1.6D, 80.0D, -80.0D, 16,
+                            new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_SPORES), 1.4F), 0.0D);
                     this.sweepParticles(new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_SPORES), 1.4F),
                             KnightTuning.REAP_REACH);
                     for (LivingEntity hit : this.strike(KnightTuning.REAP_ARC, KnightTuning.REAP_REACH,
@@ -493,6 +503,8 @@ public class ElementalKnight extends Monster implements GeoEntity
                 {
                     this.play("swing", 1.4F);
                     this.sweepParticles(ParticleTypes.FLAME, KnightTuning.HAMMER_REACH);
+                    KnightEffects.arc(level, this, KnightTuning.HAMMER_REACH * 0.75D, 1.6D, 75.0D, -75.0D, 16,
+                            ParticleTypes.FLAME, 0.02D);
                     for (LivingEntity hit : this.strike(KnightTuning.HAMMER_ARC, KnightTuning.HAMMER_REACH,
                             KnightTuning.HAMMER_DAMAGE, KnightTuning.HAMMER_KNOCK))
                     {
@@ -518,6 +530,7 @@ public class ElementalKnight extends Monster implements GeoEntity
                     level.addFreshEntity(bolt);
                 }
                 level.sendParticles(ParticleTypes.ELECTRIC_SPARK, at.x, this.getY() + 0.5D, at.z, 40, 1.2D, 0.4D, 1.2D, 0.4D);
+                KnightEffects.shockwave(level, this, at, KnightTuning.ANCHOR_SLAM_REACH + 1.0D, ParticleTypes.ELECTRIC_SPARK);
                 level.sendParticles(new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_SPARK), 2.0F), at.x,
                         this.getY() + 0.3D, at.z, 30, 1.5D, 0.2D, 1.5D, 0.0D);
                 for (LivingEntity hit : this.strike(KnightTuning.ANCHOR_SLAM_ARC, KnightTuning.ANCHOR_SLAM_REACH,
@@ -529,6 +542,12 @@ public class ElementalKnight extends Monster implements GeoEntity
             case STORMBLADE ->
             {
                 this.sound(knightSound(this.kind, "slash"), 1.0F, 1.0F + 0.08F * k);
+                // an arc of lightning along each cut (the left sword across to the right, then the right back)
+                double from = k == 0 ? -70.0D : 70.0D;
+                KnightEffects.arc(level, this, KnightTuning.SLASH_REACH * 0.7D, 1.8D, from, -from, 14,
+                        ParticleTypes.ELECTRIC_SPARK, 0.05D);
+                KnightEffects.arc(level, this, KnightTuning.SLASH_REACH * 0.7D, 1.8D, from, -from, 7,
+                        new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_SPARK_BRIGHT), 1.3F), 0.0D);
                 this.sweepParticles(ParticleTypes.ELECTRIC_SPARK, KnightTuning.SLASH_REACH);
                 this.strike(KnightTuning.SLASH_ARC, KnightTuning.SLASH_REACH, KnightTuning.SLASH_DAMAGE,
                         KnightTuning.SLASH_KNOCK);
@@ -538,6 +557,11 @@ public class ElementalKnight extends Monster implements GeoEntity
                 if (this.move == 0)
                 {
                     this.play("pick", 1.3F);
+                    KnightEffects.arc(level, this, KnightTuning.PICK_REACH * 0.75D, 1.7D, 75.0D, -75.0D, 14,
+                            new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_AMETHYST_DUST), 1.4F), 0.0D);
+                    Vec3 bite = this.at(KnightTuning.PICK_REACH * 0.8D, 0.0D, 1.4D);
+                    level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.AMETHYST_BLOCK.defaultBlockState()),
+                            bite.x, bite.y, bite.z, 14, 0.4D, 0.3D, 0.4D, 0.2D);
                     this.strike(KnightTuning.PICK_ARC, KnightTuning.PICK_REACH, KnightTuning.PICK_DAMAGE,
                             KnightTuning.PICK_KNOCK);
                 }
@@ -616,6 +640,17 @@ public class ElementalKnight extends Monster implements GeoEntity
     /** Every tick of a move (the dash moves him; the shield wall's frost). */
     private void onMoveTick(int t)
     {
+        if (this.level() instanceof ServerLevel lv)
+        {
+            String anim = this.moveAnim();
+            int hit = KnightAnims.moment(this.kind.model, anim, "hits.0");
+            int rel = KnightAnims.moment(this.kind.model, anim, "release");
+            int until = hit >= 0 ? hit : rel;
+            if (until > 0 && t < until)
+            {
+                KnightEffects.windup(lv, this, this.move, t, until);
+            }
+        }
         if (this.kind == KnightKind.STORMBLADE && this.move == 1 && this.dashing)
         {
             this.dashStep(t);
@@ -633,6 +668,7 @@ public class ElementalKnight extends Monster implements GeoEntity
     {
         this.play("smash", 1.6F);
         Vec3 start = this.position().add(this.forward().scale(2.0D));
+        KnightEffects.shockwave(level, this, start, 3.0D, ParticleTypes.SNOWFLAKE);
         Vec3 end = target != null && target.distanceTo(this) <= KnightTuning.SMASH_LINE_MAX
                 ? target.position() : this.position().add(this.forward().scale(8.0D));
         Vec3 line = new Vec3(end.x - start.x, 0.0D, end.z - start.z);
@@ -730,6 +766,7 @@ public class ElementalKnight extends Monster implements GeoEntity
         double r = KnightTuning.SLAM_RADIUS;
         this.play("slam", 2.4F);
         level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.5D, at.z, 3, 1.0D, 0.2D, 1.0D, 0.0D);
+        KnightEffects.shockwave(level, this, at, r + 1.0D, ParticleTypes.FLAME);
         level.sendParticles(ParticleTypes.FLAME, at.x, at.y + 0.3D, at.z, 180, r * 0.45D, 0.3D, r * 0.45D, 0.16D);
         level.sendParticles(ParticleTypes.LAVA, at.x, at.y + 0.3D, at.z, 40, r * 0.35D, 0.2D, r * 0.35D, 0.0D);
         level.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 0.6D, at.z, 30, r * 0.35D, 0.4D, r * 0.35D, 0.04D);
@@ -758,6 +795,8 @@ public class ElementalKnight extends Monster implements GeoEntity
     {
         this.play("crystal_burst", 2.0F);
         Vec3 middle = this.position();
+        KnightEffects.shockwave(level, this, middle, KnightTuning.BURST_OUTER + 1.0D,
+                new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_AMETHYST_DUST), 1.5F));
         this.crystalRing(level, middle, KnightTuning.BURST_INNER, KnightTuning.BURST_INNER_COUNT);
         this.later(KnightTuning.BURST_OUTER_DELAY,
                 () -> this.crystalRing(level, middle, KnightTuning.BURST_OUTER, KnightTuning.BURST_OUTER_COUNT));
@@ -807,6 +846,8 @@ public class ElementalKnight extends Monster implements GeoEntity
     {
         Vec3 at = this.position().add(this.forward().scale(2.0D));
         this.play("rockfall", 2.4F);
+        KnightEffects.shockwave(level, this, at, KnightTuning.ROCKFALL_SLAM_RADIUS + 1.5D,
+                new DustParticleOptions(DrossColors.vector(DrossColors.KNIGHT_STONE_DUST), 1.8F));
         level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, Blocks.STONE.defaultBlockState()), at.x,
                 at.y + 0.3D, at.z, 60, KnightTuning.ROCKFALL_SLAM_RADIUS * 0.4D, 0.3D, KnightTuning.ROCKFALL_SLAM_RADIUS * 0.4D, 0.2D);
         for (LivingEntity hit : this.near(at.add(0.0D, 1.0D, 0.0D), KnightTuning.ROCKFALL_SLAM_RADIUS))
@@ -996,7 +1037,7 @@ public class ElementalKnight extends Monster implements GeoEntity
     }
 
     /** A spot this far ahead of it, out to its right and up. */
-    private Vec3 at(double ahead, double right, double up)
+    Vec3 at(double ahead, double right, double up)
     {
         Vec3 f = this.forward();
         return this.position().add(f.x * ahead - f.z * right, up, f.z * ahead + f.x * right);
@@ -1112,7 +1153,12 @@ public class ElementalKnight extends Monster implements GeoEntity
 
     private boolean hurtFoe(LivingEntity e, float damage)
     {
-        return e.hurt(this.damageSources().mobAttack(this), damage);
+        boolean hurt = e.hurt(this.damageSources().mobAttack(this), damage);
+        if (hurt && this.level() instanceof ServerLevel level)
+        {
+            KnightEffects.impact(level, e, this.kind.element);
+        }
+        return hurt;
     }
 
     private void launch(LivingEntity e, double up)
@@ -1170,7 +1216,7 @@ public class ElementalKnight extends Monster implements GeoEntity
         };
     }
 
-    private void later(int ticks, Runnable run)
+    void later(int ticks, Runnable run)
     {
         this.later.add(new Later(this.tickCount + ticks, run));
     }
@@ -1183,6 +1229,10 @@ public class ElementalKnight extends Monster implements GeoEntity
         super.tick();
         if (!(this.level() instanceof ServerLevel level))
         {
+            if (this.isAlive() && !this.isInvisible())
+            {
+                KnightEffects.ambient(this.level(), this);
+            }
             return;
         }
         if (this.isShowcase())
@@ -1224,6 +1274,10 @@ public class ElementalKnight extends Monster implements GeoEntity
     public void die(DamageSource source)
     {
         this.later.clear();
+        if (this.level() instanceof ServerLevel level && !this.isShowcase() && !this.dead)
+        {
+            KnightEffects.death(level, this);
+        }
         super.die(source);
     }
 
