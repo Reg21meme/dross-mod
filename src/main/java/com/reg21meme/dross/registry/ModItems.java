@@ -3,6 +3,7 @@ package com.reg21meme.dross.registry;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.frostfolk.FolkRole;
+import com.reg21meme.dross.boss.knight.KnightKind;
 import com.reg21meme.dross.boss.frostfolk.FrostfolkSpawnEggItem;
 import com.reg21meme.dross.boss.huntsman.spear.MoonsilverSpearItem;
 import com.reg21meme.dross.boss.huntsman.trophy.HuntsmanTrophyItem;
@@ -116,6 +117,19 @@ public final class ModItems
         {
             eggs.put(kind, ITEMS.register("frostfolk_" + kind.name().toLowerCase(java.util.Locale.ROOT) + "_spawn_egg",
                     () -> new FrostfolkSpawnEggItem(kind, new Item.Properties())));
+        }
+        return Collections.unmodifiableMap(eggs);
+    }
+    // Boss area: the ten elemental knights' spawn eggs (boss/knight/KnightKind), one for each knight
+    public static final Map<KnightKind, RegistryObject<Item>> KNIGHT_SPAWN_EGGS = knightEggs();
+
+    private static Map<KnightKind, RegistryObject<Item>> knightEggs()
+    {
+        Map<KnightKind, RegistryObject<Item>> eggs = new EnumMap<>(KnightKind.class);
+        for (KnightKind kind : KnightKind.values())
+        {
+            eggs.put(kind, ITEMS.register(kind.typeName() + "_spawn_egg",
+                    () -> new ForgeSpawnEggItem(ModEntities.KNIGHTS.get(kind), kind.eggBase, kind.eggSpots, new Item.Properties())));
         }
         return Collections.unmodifiableMap(eggs);
     }

@@ -739,6 +739,42 @@ can't be cured, not even with milk.
 
 ---
 
+## The elemental knights
+
+Two knights of each of the five elements; they'll guard broken Dross portals in their element's Overworld biomes (the
+ruins aren't in the world yet). For now they come from their **spawn eggs** (the end of the Dross tab's spawn eggs).
+Each is hostile, never despawns (no boss bar), calls the other knights near
+when hurt, shrugs off its own element (fire, cold, poison, lightning or falls), and fights with two moves:
+
+| Knight | Health | Armour | Move 1 | Move 2 |
+|---|---|---|---|---|
+| Thawed Axeman (ice) | 90 | 8 | Swing: 4.5 hearts, chills | Smash: ice spikes burst up in a line to you, a big one under you (4.5 hearts, thrown up, frozen) |
+| Thawed Spearman (ice) | 90 | 10 | Thrust: 4 hearts, long reach | Shield wall: he takes 30% damage while poking you five times (2 hearts each) |
+| Blight Warden (poison) | 80 | 6 | A poison ball from his staff (a cloud of poison) | Blight rain: poison rains 7 blocks round him for 4 s |
+| Sporebound (poison) | 90 | 6 | Reap: 4.5 hearts all round him, poisons | Spore burst: sickness, poison, a moment blind, pushed away; poison clouds left |
+| Cinder Knight (fire) | 100 | 10 | Hammer swing: 5 hearts, sets you burning | Slam: a shockwave of fire (up to 5 hearts), a ring of fire |
+| Flamehand (fire) | 70 | 6 | Fireballs from his fists (2.5 hearts, burning) | The great fireball: bursts round where it lands (up to 7 hearts) |
+| Wreck Knight (thunder) | 110 | 12 | Anchor throw: hooks you on its chain and hauls you to him | Anchor slam: 5.5 hearts with a crack of lightning, stuns |
+| Stormblade (thunder) | 70 | 6 | Two quick cuts (3 hearts each) | Lightning dash: through you and past, lightning left behind that stings |
+| Geode Knight (earth) | 100 | 10 | Pick: 5 hearts | Crystal burst: rings of amethyst burst up round him, one under you |
+| Rockfall Knight (earth) | 110 | 12 | Boulder throw: a lumpy mossy boulder, 4.5 hearts | Rockfall: a shockwave, then mossy rocks rain down round you |
+
+None of their moves breaks a block; the only fire they leave is temporary and goes out by itself. Every number is in
+`boss/knight/KnightTuning` (and `KnightKind`). Their looks and animations come from `tools/knights/` (`mobs.py`; the
+statues on show from `build.py`), their sounds from `tools/knights/sounds.py` (all made from scratch: each element its
+own, voices that ring inside a helm rather than a person's, the heavy Wreck Knight deep and the quick Stormblade light),
+their ruin candidates from `tools/knights/ruins.py`. See the ten with `/dross showcase knights` (with buttons that make
+them play their moves), hear them with `/dross showcase boss_sounds knights`.
+
+**Their ruins** (candidates, not in the world yet): every area of each element's biomes has its own 4-5 small fight
+spots round a broken portal frame, built from that area's blocks: 76 in all (the user's picks). Ice: snowy plains, taiga, frozen shore.
+Poison: swamp, mushroom fields, dark forest, jungle, forest. Fire: desert, savanna, badlands. Thunder: warm shore, cold
+shore, stony shore, riverbank, and the storm peaks (mountain tops). Earth: plains, meadow and cherry grove, windswept
+hills, peaks, and big caverns underground. The shore ruins stand on the beach with the sea behind them, some reaching
+out into it. Build them all, the five elements side by side, with `/dross showcase knight_ruins`, or one element's
+with `/dross showcase knight_ruins <element>` (pictures in
+`boss-previews/knights/ruins/index.html`).
+
 ## Advancements
 
 All Dross advancements live in their own **Dross** tab, which stays hidden until you pick up a Weathered Letter.
@@ -804,6 +840,13 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase trophies huntsman` | Places the Huntsman's five trophy designs in a row in front of you the same way. |
 | `/dross showcase boss_designs ratking` | Spawns the Rat King (Gnawrick 1C) frozen, with signs and clickable animation buttons in chat. Right-click one to play his next animation; sneak + right-click: he dies. |
 | `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
+| `/dross showcase knight_ruins` | Builds all the knight ruin candidates ahead of you, the five elements side by side (ice on the left), each element's two knights frozen on guard in its ruins, with [go] buttons. |
+| `/dross showcase knight_ruins <element>` | Builds that element's knight ruin candidates ahead of you (`ice`, `poison`, `fire`, `thunder`, `earth`): a row for each of its biome areas, each ruin on its area's ground with the element's two knights frozen on guard, with [go] buttons. |
+| `/dross showcase boss_sounds knights` | Lists every knight's sounds with play buttons. |
+| `/dross showcase knight_ruins idle` / `walk` / `move1` / `move2` | Every knight on show near you plays that (its first or its second move). |
+| `/dross showcase knights` | The ten knights, frozen, element by element in front of broken portals, with buttons to stand by each. |
+| `/dross showcase knights idle` / `walk` / `move1` / `move2` | Every knight on show near you plays that. |
+| `/dross showcase boss_designs knights` | The knights' design candidates (the statues they were picked from). |
 | `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
 | `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
 | `/dross showcase boss_sounds huntsman` | Lists every Huntsman and Alpha Moose sound in chat, with a numbered button for each version (hover to see what it is). |

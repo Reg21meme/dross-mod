@@ -156,6 +156,8 @@ public final class ModCreativeTabs
                         // Boss area: the Cinder Wastes' Pallbearer and Cinder Hermit
                         output.accept(ModItems.PALLBEARER_SPAWN_EGG.get());
                         output.accept(ModItems.CINDER_HERMIT_SPAWN_EGG.get());
+                        // Boss area: the elemental knights, two of each element (ice, poison, fire, thunder, earth)
+                        ModItems.KNIGHT_SPAWN_EGGS.values().forEach(egg -> output.accept(egg.get()));
 
                         // 5. Weapons and tools
                         // Villager area: the test-only Admin Sword

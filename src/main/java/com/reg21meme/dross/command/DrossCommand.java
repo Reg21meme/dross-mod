@@ -97,6 +97,8 @@ import net.minecraftforge.fml.common.Mod;
  *       that plays it ({@link RatSoundShowcase}; the list is the boss area's {@code RatKingSounds}).
  *       {@code /dross showcase boss_sounds huntsman} lists the Huntsman's and the Alpha Moose's sound options, a
  *       button for each version ({@link HuntsmanSoundShowcase}; the boss area's {@code HuntsmanSounds}).</li>
+ *   <li>{@code /dross showcase boss_sounds knights}: every sound of the ten elemental knights, knight by knight,
+ *       a button for each ({@link KnightSoundShowcase}; the boss area's {@code KnightSounds}, all original).</li>
  *   <li>{@code /dross showcase rimefall_mobs}: Rimefall's animals in a row in front of you (Rimehorns, moose, a Pond
  *       Skater), frozen, with signs; {@code /dross showcase rimefall_mobs idle|walk|run|charge|eat|attack} plays their
  *       animations ({@link RimefallMobShowcase}). {@code /dross showcase mob_sounds rimefall} lists their sounds with
@@ -250,7 +252,9 @@ public final class DrossCommand
                         .then(Commands.literal("boss_sounds")
                                 .then(Commands.literal("ratking").executes(RatSoundShowcase::list))
                                 .then(Commands.literal("huntsman").executes(HuntsmanSoundShowcase::list))
-                                .then(Commands.literal("emberdactyl").executes(FireSoundShowcase::emberdactyl)))
+                                .then(Commands.literal("emberdactyl").executes(FireSoundShowcase::emberdactyl))
+                                // the ten elemental knights' sounds (boss area's KnightSounds)
+                                .then(Commands.literal("knights").executes(KnightSoundShowcase::list)))
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))
@@ -270,7 +274,13 @@ public final class DrossCommand
                         // Boss area's hermit crab caves, the Cinder Hermit's dens (HermitCaveShowcase).
                         .then(Commands.literal("hermit_caves").executes(HermitCaveShowcase::run))
                         // The survivors' camp designs at the Shattered Spire's steps (HubCampShowcase).
-                        .then(Commands.literal("hub_camps").executes(HubCampShowcase::run)))
+                        .then(Commands.literal("hub_camps").executes(HubCampShowcase::run))
+                        // Boss area's elemental knights, two of each element to guard a broken portal in the
+                        // Overworld, element by element round broken portals (KnightShowcase).
+                        .then(knightShowcase())
+                        // Boss area's knight ruin candidates, three for each element, their knights on guard
+                        // (KnightRuinShowcase).
+                        .then(KnightRuinShowcase.command()))
                 // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
                 // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).
                 .then(Commands.literal("locate")
@@ -356,9 +366,34 @@ public final class DrossCommand
             // The fire servant candidates (fifteen bosses, each with its variations behind it; FireShowcase).
             designs.then(Commands.literal("cinder_wastes").executes(FireShowcase::buildGallery));
         }
+        if (ShowcaseOnly.blightCandidates())
+        {
+            // The Blightwood candidates (fifteen bosses and five regular mobs, frozen; BlightShowcase).
+            designs.then(Commands.literal("blightwood").executes(BlightShowcase::buildGallery));
+        }
+        if (ShowcaseOnly.knightCandidates())
+        {
+            // The elemental knights' design candidates, element by element (KnightShowcase; since November 18, 2026
+            // /dross showcase knights shows the ten real knights).
+            designs.then(Commands.literal("knights").executes(KnightShowcase::buildGallery));
+        }
         // The Emberdactyl's looks (the adult, its young, its eggs) and its volcano (FireShowcase, with the boss area's
         // EmberVolcano), and their animations; the Huntsman and his Alpha Moose and theirs (HuntsmanShowcase).
         return designs.then(emberdactylShowcase()).then(huntsmanDesignShowcase());
+    }
+
+    /**
+     * {@code /dross showcase knights}: the elemental knights' gallery ({@link KnightShowcase}); only where their models are
+     * (the released jar leaves them out: {@link ShowcaseOnly}).
+     */
+    private static LiteralArgumentBuilder<CommandSourceStack> knightShowcase()
+    {
+        // the ten real knights on show (the user, November 18, 2026), and buttons that make them play their moves
+        return Commands.literal("knights").executes(KnightShowcase::buildKnights)
+                .then(Commands.argument("animation", com.mojang.brigadier.arguments.StringArgumentType.word())
+                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(new String[] {"idle", "walk", "move1", "move2"}, b))
+                        .executes(c -> KnightRuinShowcase.play(c,
+                                com.mojang.brigadier.arguments.StringArgumentType.getString(c, "animation"))));
     }
 
     /**

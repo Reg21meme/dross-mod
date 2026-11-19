@@ -24,11 +24,17 @@ import net.minecraft.world.phys.Vec3;
 /**
  * A chunk of rock the Cinder Colossus tears out of the ground and throws ({@code dross:colossus_rock}). It flies on
  * an arc, hurts and knocks back whoever it hits and shatters into dust when it lands. It never places a block and
- * never breaks one. In the Lava Core stage it's molten (it looks like magma and sets you on fire).
+ * never breaks one. In the Lava Core stage it's molten (it looks like magma and sets you on fire). The Rockfall Knight
+ * throws it too, as a boulder ({@link #boulder}): a lumpy clump of mossy stone of the size it's given, drawn by
+ * {@code TumblingBlockRenderer} (the user, November 18, 2026: "the rock dude should throw the rock ... some cobblestone
+ * alternative ... make this look better").
  */
 public class ColossusRock extends BossProjectile
 {
     private static final EntityDataAccessor<Boolean> DATA_MOLTEN = SynchedEntityData.defineId(ColossusRock.class, EntityDataSerializers.BOOLEAN);
+    /** 0 for the Colossus's plain rock; else a boulder this many blocks across. */
+    private static final EntityDataAccessor<Float> DATA_BOULDER = SynchedEntityData.defineId(ColossusRock.class, EntityDataSerializers.FLOAT);
+    private static final String TAG_BOULDER = "Boulder";
     private static final String TAG_DAMAGE = "Damage";
     private static final String TAG_MOLTEN = "Molten";
     /** Dust particles when it shatters. */
@@ -52,10 +58,25 @@ public class ColossusRock extends BossProjectile
         return rock;
     }
 
+    /** A boulder of mossy stone {@code size} blocks across, thrown by {@code owner} from {@code from}. */
+    public static ColossusRock boulder(Level level, LivingEntity owner, Vec3 from, float damage, float size)
+    {
+        ColossusRock rock = thrown(level, owner, from, damage, false);
+        rock.entityData.set(DATA_BOULDER, size);
+        return rock;
+    }
+
     @Override
     protected void defineSynchedData()
     {
         this.entityData.define(DATA_MOLTEN, false);
+        this.entityData.define(DATA_BOULDER, 0.0F);
+    }
+
+    /** A boulder's size (blocks across), or 0 for the Colossus's plain rock. */
+    public float boulderSize()
+    {
+        return this.entityData.get(DATA_BOULDER);
     }
 
     /** True in the Lava Core stage: drawn as a lump of magma, and it sets you on fire. */
@@ -67,6 +88,10 @@ public class ColossusRock extends BossProjectile
     /** The block it looks like (and shatters into). */
     public BlockState look()
     {
+        if (this.boulderSize() > 0.0F)
+        {
+            return Blocks.MOSSY_COBBLESTONE.defaultBlockState();
+        }
         return this.isMolten() ? Blocks.MAGMA_BLOCK.defaultBlockState() : Blocks.COBBLESTONE.defaultBlockState();
     }
 
@@ -79,6 +104,11 @@ public class ColossusRock extends BossProjectile
     @Override
     protected void flyingEffects()
     {
+        if (this.level().isClientSide && this.boulderSize() > 0.0F && this.random.nextInt(3) == 0)
+        {
+            this.level().addParticle(new BlockParticleOption(ParticleTypes.FALLING_DUST, Blocks.GRAVEL.defaultBlockState()),
+                    this.getX(), this.getY() + this.boulderSize() * 0.5D, this.getZ(), 0.0D, 0.0D, 0.0D);
+        }
         if (this.level().isClientSide && this.isMolten() && this.random.nextInt(2) == 0)
         {
             this.level().addParticle(ParticleTypes.FLAME, this.getX(), this.getY() + 0.3D, this.getZ(), 0.0D, 0.02D, 0.0D);
@@ -124,6 +154,20 @@ public class ColossusRock extends BossProjectile
         {
             level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, this.look()), this.getX(), this.getY() + 0.3D,
                     this.getZ(), SHATTER_PARTICLES, 0.35D, 0.35D, 0.35D, 0.15D);
+            float boulder = this.boulderSize();
+            if (boulder > 0.0F)
+            {
+                // a boulder bursts into stone and moss as well
+                for (BlockState bit : new BlockState[] {Blocks.STONE.defaultBlockState(), Blocks.MOSS_BLOCK.defaultBlockState(),
+                        Blocks.ANDESITE.defaultBlockState()})
+                {
+                    level.sendParticles(new BlockParticleOption(ParticleTypes.BLOCK, bit), this.getX(), this.getY() + 0.4D,
+                            this.getZ(), (int) (SHATTER_PARTICLES * boulder * 0.5F), 0.5D * boulder, 0.4D * boulder,
+                            0.5D * boulder, 0.15D);
+                }
+                level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, this.getX(), this.getY() + 0.3D, this.getZ(), 3,
+                        0.4D, 0.1D, 0.4D, 0.01D);
+            }
             if (this.isMolten())
             {
                 level.sendParticles(ParticleTypes.LAVA, this.getX(), this.getY() + 0.3D, this.getZ(), 4, 0.3D, 0.2D, 0.3D, 0.0D);
@@ -140,6 +184,7 @@ public class ColossusRock extends BossProjectile
         super.addAdditionalSaveData(tag);
         tag.putFloat(TAG_DAMAGE, this.damage);
         tag.putBoolean(TAG_MOLTEN, this.isMolten());
+        tag.putFloat(TAG_BOULDER, this.boulderSize());
     }
 
     @Override
@@ -151,5 +196,6 @@ public class ColossusRock extends BossProjectile
             this.damage = tag.getFloat(TAG_DAMAGE);
         }
         this.entityData.set(DATA_MOLTEN, tag.getBoolean(TAG_MOLTEN));
+        this.entityData.set(DATA_BOULDER, tag.getFloat(TAG_BOULDER));
     }
 }

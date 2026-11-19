@@ -101,6 +101,12 @@ public abstract class BossProjectile extends Projectile
         {
             return false;
         }
+        // (an elemental knight's ball, rock or fireball flies through the other knights: boss/knight)
+        if (this.getOwner() instanceof com.reg21meme.dross.boss.knight.ElementalKnight knight
+                && entity instanceof net.minecraft.world.entity.LivingEntity living && !knight.canHit(living))
+        {
+            return false;
+        }
         return super.canHitEntity(entity);
     }
 

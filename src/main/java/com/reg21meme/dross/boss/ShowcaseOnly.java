@@ -1,6 +1,8 @@
 package com.reg21meme.dross.boss;
 
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.blight.BlightDesigns;
+import com.reg21meme.dross.boss.knight.KnightDesigns;
 import com.reg21meme.dross.boss.fire.FireDesigns;
 import com.reg21meme.dross.boss.rimefall.RimefallDesigns;
 import net.minecraftforge.fml.ModList;
@@ -14,7 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The models only the design galleries show (the user, November 7, 2026: "do not include the showcase galleries ... remove
  * it from the jar file, you can keep it in my system"): the fifteen fire servant candidates
- * ({@code /dross showcase boss_designs cinder_wastes}), the Rimefall candidates' statues ({@code ... rimefall}) and the
+ * ({@code /dross showcase boss_designs cinder_wastes}), the Rimefall candidates' statues ({@code ... rimefall}), the
+ * Blightwood candidates ({@code ... blightwood}), the elemental knights ({@code /dross showcase knights}) and the
  * Emberdactyl egg's looks the fight never wears (E3A, E3C, E3D). They stay in the project, and the dev runs and the
  * tests have them; the released jar leaves them out (build.gradle's {@code jar} task, "Showcase-only models"). Without
  * them their galleries aren't offered, a gallery skips the designs it hasn't, and the renderers draw nothing for one
@@ -83,5 +86,29 @@ public final class ShowcaseOnly
     public static boolean rimefallStatues()
     {
         return RimefallDesigns.ALL.stream().anyMatch(ShowcaseOnly::has);
+    }
+
+    /** True if this Blightwood candidate's model is in this build (November 7, 2026: the gallery's models only). */
+    public static boolean has(BlightDesigns.Design design)
+    {
+        return present("assets/dross/geo/entity/blight/" + design.id() + ".geo.json");
+    }
+
+    /** True if the Blightwood gallery's models are in this build. */
+    public static boolean blightCandidates()
+    {
+        return BlightDesigns.ALL.stream().anyMatch(ShowcaseOnly::has);
+    }
+
+    /** True if this elemental knight's model is in this build (November 7, 2026: the gallery's models only). */
+    public static boolean has(KnightDesigns.Design design)
+    {
+        return present("assets/dross/geo/entity/knight/" + design.id() + ".geo.json");
+    }
+
+    /** True if the elemental knights' gallery's models are in this build. */
+    public static boolean knightCandidates()
+    {
+        return KnightDesigns.ALL.stream().anyMatch(ShowcaseOnly::has);
     }
 }
