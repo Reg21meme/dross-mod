@@ -101,6 +101,14 @@ public class ColossusRock extends BossProjectile
         return ColossusTuning.ROCK_GRAVITY;
     }
 
+    /** A boulder hits whatever it's drawn touching (its box is the plain rock's 0.8). */
+    @Override
+    protected double hitMargin()
+    {
+        float size = this.boulderSize();
+        return size > 0.0F ? Math.max(0.2D, size * 0.5D - 0.4D + 0.2D) : 0.0D;
+    }
+
     @Override
     protected void flyingEffects()
     {

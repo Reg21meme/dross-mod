@@ -498,6 +498,7 @@ public class ElementalKnight extends Monster implements GeoEntity
                     {
                         hit.setSecondsOnFire(KnightTuning.HAMMER_FIRE_SECONDS);
                     }
+                    this.hammerFire(level);
                 }
                 else
                 {
@@ -707,14 +708,33 @@ public class ElementalKnight extends Monster implements GeoEntity
         }
     }
 
+    /** The hammer swing's fire: a burst of flame along its arc and a few patches of fire left on the ground there. */
+    private void hammerFire(ServerLevel level)
+    {
+        Vec3 f = this.forward();
+        Vec3 side = new Vec3(-f.z, 0.0D, f.x);
+        for (int i = 0; i < KnightTuning.HAMMER_FIRES; i++)
+        {
+            double a = (i / (double) (KnightTuning.HAMMER_FIRES - 1) - 0.5D) * Math.toRadians(140.0D);
+            double d = 2.0D + this.random.nextDouble() * 1.8D;
+            Vec3 spot = this.position().add(f.scale(Math.cos(a) * d)).add(side.scale(Math.sin(a) * d));
+            level.sendParticles(ParticleTypes.FLAME, spot.x, spot.y + 0.6D, spot.z, 8, 0.3D, 0.3D, 0.3D, 0.04D);
+            LavaPools.placeFire(level, BlockPos.containing(spot.x, spot.y + 0.5D, spot.z), false,
+                    KnightTuning.HAMMER_FIRE_MIN_TICKS, KnightTuning.HAMMER_FIRE_MAX_TICKS);
+        }
+    }
+
     private void fireSlam(ServerLevel level)
     {
         Vec3 at = this.position().add(this.forward().scale(KnightTuning.SLAM_FORWARD));
         double r = KnightTuning.SLAM_RADIUS;
         this.play("slam", 2.4F);
         level.sendParticles(ParticleTypes.EXPLOSION, at.x, at.y + 0.5D, at.z, 3, 1.0D, 0.2D, 1.0D, 0.0D);
-        level.sendParticles(ParticleTypes.FLAME, at.x, at.y + 0.3D, at.z, 90, r * 0.4D, 0.2D, r * 0.4D, 0.12D);
-        level.sendParticles(ParticleTypes.LAVA, at.x, at.y + 0.3D, at.z, 20, r * 0.3D, 0.2D, r * 0.3D, 0.0D);
+        level.sendParticles(ParticleTypes.FLAME, at.x, at.y + 0.3D, at.z, 180, r * 0.45D, 0.3D, r * 0.45D, 0.16D);
+        level.sendParticles(ParticleTypes.LAVA, at.x, at.y + 0.3D, at.z, 40, r * 0.35D, 0.2D, r * 0.35D, 0.0D);
+        level.sendParticles(ParticleTypes.LARGE_SMOKE, at.x, at.y + 0.6D, at.z, 30, r * 0.35D, 0.4D, r * 0.35D, 0.04D);
+        // a pillar of fire where the hammer lands
+        level.sendParticles(ParticleTypes.FLAME, at.x, at.y + 1.5D, at.z, 60, 0.4D, 1.2D, 0.4D, 0.08D);
         for (LivingEntity hit : this.near(at.add(0.0D, 1.0D, 0.0D), r))
         {
             double d = Math.sqrt(hit.distanceToSqr(at.x, hit.getY(), at.z));
@@ -826,15 +846,37 @@ public class ElementalKnight extends Monster implements GeoEntity
             double a = this.random.nextDouble() * Math.PI * 2.0D;
             double d = Math.sqrt(this.random.nextDouble()) * r;
             int color = this.random.nextInt(3) == 0 ? DrossColors.KNIGHT_POISON_RAIN_DARK : DrossColors.KNIGHT_POISON_RAIN;
+            // (the cloud's drops at every height from the cloud down to the ground: the user, November 18, 2026, saw the
+            // rain stay up in the air over him and never reach the ground)
+            double h = this.random.nextDouble() * KnightTuning.RAIN_HEIGHT;
             level.sendParticles(new DustParticleOptions(DrossColors.vector(color), 1.3F), this.rainAt.x + Math.cos(a) * d,
-                    this.rainAt.y + KnightTuning.RAIN_HEIGHT, this.rainAt.z + Math.sin(a) * d, 0, 0.0D, -1.0D, 0.0D, 5.0D);
+                    this.rainAt.y + 0.2D + h, this.rainAt.z + Math.sin(a) * d, 0, 0.0D, -1.0D, 0.0D, 3.0D);
         }
-        if (this.tickCount % 3 == 0)
+        for (int i = 0; i < KnightTuning.RAIN_FALLING; i++)
         {
+            // drops of slime falling all the way from the cloud to the ground
             double a = this.random.nextDouble() * Math.PI * 2.0D;
             double d = Math.sqrt(this.random.nextDouble()) * r;
-            level.sendParticles(ParticleTypes.ITEM_SLIME, this.rainAt.x + Math.cos(a) * d, this.rainAt.y + 0.2D,
-                    this.rainAt.z + Math.sin(a) * d, 3, 0.1D, 0.0D, 0.1D, 0.05D);
+            level.sendParticles(ParticleTypes.ITEM_SLIME, this.rainAt.x + Math.cos(a) * d,
+                    this.rainAt.y + KnightTuning.RAIN_HEIGHT * (0.4D + 0.6D * this.random.nextDouble()),
+                    this.rainAt.z + Math.sin(a) * d, 0, 0.0D, -1.0D, 0.0D, 0.6D);
+        }
+        if (this.tickCount % 4 == 0)
+        {
+            // the cloud it falls from
+            int dark = DrossColors.KNIGHT_POISON_RAIN_DARK;
+            level.sendParticles(new DustParticleOptions(DrossColors.vector(dark), 3.0F), this.rainAt.x,
+                    this.rainAt.y + KnightTuning.RAIN_HEIGHT + 0.5D, this.rainAt.z, 12, r * 0.5D, 0.3D, r * 0.5D, 0.0D);
+        }
+        for (int i = 0; i < 2; i++)
+        {
+            // splashes where it lands
+            double a = this.random.nextDouble() * Math.PI * 2.0D;
+            double d = Math.sqrt(this.random.nextDouble()) * r;
+            double x = this.rainAt.x + Math.cos(a) * d;
+            double z = this.rainAt.z + Math.sin(a) * d;
+            level.sendParticles(ParticleTypes.ITEM_SLIME, x, this.groundY(x, z, this.rainAt.y) + 0.15D, z, 3, 0.1D, 0.0D,
+                    0.1D, 0.05D);
         }
         if ((this.rainUntil - this.tickCount) % KnightTuning.RAIN_EVERY == 0)
         {
@@ -1036,6 +1078,10 @@ public class ElementalKnight extends Monster implements GeoEntity
      */
     private List<LivingEntity> strike(double arc, double reach, float damage, double knock)
     {
+        // (a little past its reach and its arc: a foe that stepped back during the wind-up, when the blow looks as if
+        // it lands, is hit: KnightTuning.REACH_SLACK)
+        reach += KnightTuning.REACH_SLACK;
+        arc = Math.min(360.0D, arc + KnightTuning.ARC_SLACK);
         Vec3 f = this.forward();
         List<LivingEntity> hits = new ArrayList<>();
         AABB box = this.getBoundingBox().inflate(reach + 1.0D, 2.0D, reach + 1.0D);

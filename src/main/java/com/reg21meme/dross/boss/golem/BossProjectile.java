@@ -54,7 +54,7 @@ public abstract class BossProjectile extends Projectile
         {
             return; // client: it has hit something; the server removes it in a moment
         }
-        HitResult hit = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity);
+        HitResult hit = this.wideHit(ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity));
         if (hit.getType() != HitResult.Type.MISS)
         {
             if (this.level().isClientSide)
@@ -82,6 +82,49 @@ public abstract class BossProjectile extends Projectile
         {
             this.discard();
         }
+    }
+
+    /**
+     * How far past its own box it still hits a living thing (blocks), for one drawn bigger than its box (an elemental
+     * knight's boulder: the user, November 18, 2026, saw them seem to hit and do nothing). 0: only its box.
+     */
+    protected double hitMargin()
+    {
+        return 0.0D;
+    }
+
+    /** The move's hit, or a thing within {@link #hitMargin} of its path that it reaches first. */
+    private HitResult wideHit(HitResult hit)
+    {
+        double margin = this.hitMargin();
+        if (margin <= 0.0D)
+        {
+            return hit;
+        }
+        Vec3 v = this.getDeltaMovement();
+        Vec3 from = this.position().add(0.0D, this.getBbHeight() * 0.5D, 0.0D);
+        Vec3 to = from.add(v);
+        double best = hit.getType() == HitResult.Type.MISS ? Double.MAX_VALUE : hit.getLocation().distanceToSqr(from);
+        net.minecraft.world.entity.Entity found = null;
+        Vec3 at = null;
+        for (net.minecraft.world.entity.Entity e : this.level().getEntities(this,
+                this.getBoundingBox().expandTowards(v).inflate(margin + 1.0D), this::canHitEntity))
+        {
+            net.minecraft.world.phys.AABB box = e.getBoundingBox().inflate(margin);
+            Vec3 p = box.contains(from) ? from : box.clip(from, to).orElse(null);
+            if (p == null)
+            {
+                continue;
+            }
+            double d = from.distanceToSqr(p);
+            if (d < best)
+            {
+                best = d;
+                found = e;
+                at = p;
+            }
+        }
+        return found != null ? new net.minecraft.world.phys.EntityHitResult(found, at) : hit;
     }
 
     /** Client: particles while it flies (none by default). */

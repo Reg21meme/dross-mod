@@ -87,7 +87,7 @@ public final class ModEntities
                     .sized(0.8F, 0.8F)
                     .fireImmune()
                     .clientTrackingRange(6)
-                    .updateInterval(10)
+                    .updateInterval(2)   // (smooth in flight: a boulder you can see coming)
                     .build("colossus_rock"));
     public static final RegistryObject<EntityType<LavaBlob>> LAVA_BLOB = ENTITY_TYPES.register("lava_blob",
             () -> EntityType.Builder.<LavaBlob>of(LavaBlob::new, MobCategory.MISC)

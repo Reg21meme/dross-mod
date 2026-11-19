@@ -41,6 +41,7 @@ VARIANTS = (
 VARIANTS = tuple(v for v in VARIANTS if v["letter"] == "A")
 
 HELM = K.HEAD + np.array([0.0, 0.5, -0.5])
+ANCHOR_TOP = np.array([-14.5, 57.3, -4.5])   # where the anchor's shank lies on his right shoulder plate (on its barnacles)
 
 
 def build(s, v):
@@ -126,11 +127,13 @@ def diver(s):
         s.curve([tank + np.array([0.0, 10.0, 0.0]), tank + np.array([sign * 1.0, 13.0, -2.5]),
                  HELM + np.array([sign * 5.0, -2.0, 4.5])], 5, [1.5, 1.5, 1.5], "hose")
     s.seg((-6.0, 46.0, 10.5), (6.0, 46.0, 10.5), 2, 2, "rope", side=(0, 1, 0))
-    elbow = np.array([-23.0, 42.0, -3.0])
-    fist = K.SHOULDER_FIST
-    K.arm_shoulder(s, "steel", "silver", "gauntlet")
-    crown = np.array([-17.5, 63.0, 15.0])
-    d = (crown - fist) / np.linalg.norm(crown - fist)
+    # The anchor carried on his right shoulder, its shank lying over the top of the shoulder plate (the user, November
+    # 18, 2026: it went through his shoulder; "lying on his shoulder instead").
+    elbow = K.CARRY_ELBOW
+    fist = K.CARRY_FIST
+    K.arm_carry(s, "steel", "silver", "gauntlet")
+    d = K.carry_dir(fist, ANCHOR_TOP)
+    crown = fist + d * 34.0
     ring = anchor(s.part("anchor"), fist - d * 8.0, crown, (1.0, 0.0, 0.0))
     # The chain: down from the ring, then wound twice round his forearm up to the elbow.
     fore = (fist - elbow) / np.linalg.norm(fist - elbow)

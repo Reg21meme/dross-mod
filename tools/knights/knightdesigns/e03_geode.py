@@ -17,6 +17,7 @@ BLURB = ("A miner of the deep roots who dug too far and came back up changed: am
          "crystals on him ring when he swings it.")
 
 HELM = K.HEAD + np.array([0.0, -0.5, 0.0])
+PICK_TOP = np.array([-12.5, 61.0, 0.5])      # where his pick's haft lies on top of his right pauldron
 
 
 def build(s):
@@ -29,13 +30,14 @@ def build(s):
     for sign in (1.0, -1.0):
         cluster(s, np.array([sign * 8.0, 18.0, -3.5]), (sign * 0.5, 0.3, -0.8), 2, 4.0, seed=int(sign + 5))
     K.pauldrons(s, "iron", under="dark", size=1.05)
-    for sign in (1.0, -1.0):
-        cluster(s, np.array([sign * 14.0, K.SHOULDER_Y + 5.0, 0.0]), (sign * 0.6, 1.0, 0.1), 5, 11.0,
-                seed=int(sign + 2))
+    cluster(s, np.array([14.0, K.SHOULDER_Y + 5.0, 0.0]), (0.6, 1.0, 0.1), 5, 11.0, seed=3)
+    # (his right shoulder's crystals break out of its back and outer edge, so his pick lies on top of it: the user,
+    # November 18, 2026, "his pickaxe is still clipping through his shoulder ... lying on his shoulder instead")
+    cluster(s, np.array([-17.5, K.SHOULDER_Y + 2.5, 5.5]), (-0.75, 0.55, 0.55), 4, 9.0, seed=1)
     cluster(s, np.array([0.0, 46.0, 8.0]), (0.0, 0.6, 1.0), 6, 12.0, seed=5)
     cluster(s, np.array([-6.0, 37.0, 8.0]), (-0.4, 0.3, 1.0), 4, 8.0, seed=6)
     cluster(s, np.array([6.5, 38.0, 8.0]), (0.5, 0.2, 1.0), 3, 7.0, seed=4)
-    K.arm_shoulder(s, "dark", "iron", "gauntlet")
+    K.arm_carry(s, "dark", "iron", "gauntlet")
     war_pick(s.part("hand_r"))
     K.arm_hang(s, "dark", "iron", "gauntlet")
     cluster(s.part("arm_l"), np.array([20.0, 37.0, -3.0]), (1.0, 0.2, -0.3), 2, 3.5, seed=7)
@@ -75,10 +77,11 @@ def cluster(s, at, out, n, length, seed=0):
 
 
 def war_pick(s):
-    """A war pick on his right shoulder: a long haft, a curved iron head behind his shoulder tipped with amethyst."""
-    f = K.SHOULDER_FIST
-    end = np.array([-15.5, 64.0, 13.0])
-    d = (end - f) / np.linalg.norm(end - f)
+    """A war pick carried on his right shoulder: a long haft lying over the top of his pauldron, a curved iron head
+    behind his shoulder tipped with amethyst."""
+    f = K.CARRY_FIST
+    d = K.carry_dir(f, PICK_TOP)
+    end = f + d * 33.0
     K.haft(s, f - d * 9.0, end + d * 1.5, 3, "haft")
     for t in (-6.0, 4.0):
         s.ring(f + d * t, d, 2.1, 1, 2, "iron", n=6)

@@ -52,6 +52,11 @@ GRIP = np.array([0.0, 36.0, -16.0])         # the planted weapon's pommel
 RIGHT_FIST = np.array([-23.0, 36.0, -14.0])
 SHOULDER_FIST = np.array([-18.0, 42.0, -12.0])
 SHOULDER_REST = np.array([-12.5, 66.0, 13.0])  # the far end of a weapon resting on the right shoulder points here
+# A heavy weapon carried ON the right shoulder (the user, November 18, 2026: the Geode Knight's pick and the Wreck
+# Knight's anchor went "through his shoulder ... it should be lying on his shoulder instead"): the fist raised in front
+# of the shoulder, the haft rising gently back from it over the top of the pauldron (CARRY_TOP: where it lies on it).
+CARRY_FIST = np.array([-14.5, 55.5, -12.0])
+CARRY_ELBOW = np.array([-21.0, 46.0, -8.0])
 SHIELD_CENTRE = np.array([14.0, 35.0, -24.0])
 SHIELD_NORMAL = unit(np.array([0.25, 0.0, -1.0]))
 HANG_FIST = np.array([21.5, 29.0, -6.0])
@@ -148,6 +153,17 @@ def arm_upright(s, armor, plate, gauntlet=None, fist=RIGHT_FIST):
 
 def arm_shoulder(s, armor, plate, gauntlet=None, fist=SHOULDER_FIST):
     arm(s, -1.0, np.array([-23.0, 42.0, -3.0]), fist, armor, plate, gauntlet)
+
+
+def arm_carry(s, armor, plate, gauntlet=None, fist=CARRY_FIST, elbow=CARRY_ELBOW):
+    """The right arm carrying a heavy weapon on its shoulder: the fist up in front of the shoulder."""
+    arm(s, -1.0, elbow, fist, armor, plate, gauntlet)
+
+
+def carry_dir(fist, top):
+    """The way a haft carried on the shoulder runs: from the fist through where it lies on the pauldron."""
+    d = np.array(top, dtype=float) - np.array(fist, dtype=float)
+    return d / np.linalg.norm(d)
 
 
 def arm_shield(s, armor, plate, gauntlet=None):

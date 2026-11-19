@@ -26,7 +26,7 @@ public final class KnightTuning
     /** The axe's swing: a wide arc in front of him. */
     public static final float AXE_SWING_DAMAGE = 9.0F;
     public static final double AXE_SWING_REACH = 4.0D;
-    public static final double AXE_SWING_ARC = 140.0D;
+    public static final double AXE_SWING_ARC = 180.0D;   // a flat sweep (November 18, 2026)
     public static final double AXE_SWING_KNOCK = 0.8D;
     /** The swing chills: Slowness I this long. */
     public static final int AXE_SWING_CHILL = 40;
@@ -78,7 +78,7 @@ public final class KnightTuning
     public static final float RAIN_DAMAGE = 1.5F;
     public static final int RAIN_POISON = 60;
     /** How many drops of it fall each tick (particles). */
-    public static final int RAIN_DROPS = 14;
+    public static final int RAIN_DROPS = 26;
     public static final double RAIN_HEIGHT = 7.0D;
 
     // ---------------------------------------------------------------- P3, the Sporebound
@@ -105,7 +105,7 @@ public final class KnightTuning
     /** The hammer's swing. */
     public static final float HAMMER_DAMAGE = 10.0F;
     public static final double HAMMER_REACH = 4.0D;
-    public static final double HAMMER_ARC = 150.0D;
+    public static final double HAMMER_ARC = 180.0D;   // a flat sweep (November 18, 2026)
     public static final double HAMMER_KNOCK = 1.1D;
     public static final int HAMMER_FIRE_SECONDS = 4;
     /** The slam: a shockwave this far round where the hammer lands, its damage falling to half at the edge, fire, thrown
@@ -116,11 +116,11 @@ public final class KnightTuning
     public static final int SLAM_FIRE_SECONDS = 5;
     public static final double SLAM_LAUNCH = 0.7D;
     public static final double SLAM_KNOCK = 1.0D;
-    public static final int SLAM_FIRES = 16;
-    public static final double SLAM_FIRE_NEAR = 2.5D;
-    public static final double SLAM_FIRE_FAR = 5.0D;
-    public static final int SLAM_FIRE_MIN_TICKS = 60;
-    public static final int SLAM_FIRE_MAX_TICKS = 100;
+    public static final int SLAM_FIRES = 34;   // (16 until the user, November 18, 2026: "a little more fire")
+    public static final double SLAM_FIRE_NEAR = 1.5D;
+    public static final double SLAM_FIRE_FAR = 7.0D;
+    public static final int SLAM_FIRE_MIN_TICKS = 90;
+    public static final int SLAM_FIRE_MAX_TICKS = 150;
 
     // ---------------------------------------------------------------- F5, Flamehand
 
@@ -186,7 +186,7 @@ public final class KnightTuning
     /** The pick's strike. */
     public static final float PICK_DAMAGE = 10.0F;
     public static final double PICK_REACH = 4.5D;
-    public static final double PICK_ARC = 70.0D;
+    public static final double PICK_ARC = 170.0D;   // a flat sweep, his pick's spike leading (November 18, 2026)
     public static final double PICK_KNOCK = 0.5D;
     /** The crystal burst (the user: "slamming the ground, crystals pop out around him, purple crystals"): a ring of
      * amethyst bursts up round him, then a wider one, then one under his foe; each throws up and hurts what's on it. */
@@ -216,11 +216,11 @@ public final class KnightTuning
     public static final double ROCKFALL_SLAM_RADIUS = 4.0D;
     public static final float ROCKFALL_SLAM_DAMAGE = 8.0F;
     public static final double ROCKFALL_SLAM_KNOCK = 0.9D;
-    public static final int ROCKFALL_ROCKS = 7;
-    public static final int ROCKFALL_SPREAD_TICKS = 30;
+    public static final int ROCKFALL_ROCKS = 16;   // (7 until the user, November 18, 2026: "his move 2 needs to do more throws")
+    public static final int ROCKFALL_SPREAD_TICKS = 50;
     public static final double ROCKFALL_HEIGHT = 16.0D;
     public static final int ROCKFALL_FALL_TICKS = 14;
-    public static final double ROCKFALL_RADIUS = 4.0D;
+    public static final double ROCKFALL_RADIUS = 5.5D;
     public static final float ROCKFALL_DAMAGE = 6.0F;
 
     // ---------------------------------------------------------------- their sounds (tools/knights/sounds.py)
@@ -237,6 +237,20 @@ public final class KnightTuning
      * across (the Colossus's own rock is a 0.8 block of cobblestone). */
     public static final float BOULDER_SIZE = 1.5F;
     public static final float ROCKFALL_ROCK_SIZE = 1.0F;
+
+    /**
+     * How much further than a melee move's reach its blow still lands, and how much wider its arc (degrees): you step
+     * back during its wind-up, and the blow looked as if it hit (the user, November 18, 2026: "sometimes the mob does a
+     * move 1 but it doesn't hit ... increase the range slightly").
+     */
+    public static final double REACH_SLACK = 1.0D;
+    public static final double ARC_SLACK = 30.0D;
+    /** The Cinder Knight's hammer swing leaves this many patches of fire on the ground in its arc, so long. */
+    public static final int HAMMER_FIRES = 5;
+    public static final int HAMMER_FIRE_MIN_TICKS = 50;
+    public static final int HAMMER_FIRE_MAX_TICKS = 80;
+    /** The Blight Warden's rain: poison drops falling from its cloud all the way down to the ground. */
+    public static final int RAIN_FALLING = 10;
 
     private KnightTuning() {}
 }
