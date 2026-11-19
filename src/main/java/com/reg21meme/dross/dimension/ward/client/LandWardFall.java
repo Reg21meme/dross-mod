@@ -53,8 +53,8 @@ public final class LandWardFall
     /** At most this many points of the edge are kept. */
     public static final int MAX_POINTS = 160;
     /** First the curtain stands up thick and bright: streaks a tick, runes a tick, until the shatter. */
-    public static final int GATHER_STREAKS = 26;
-    public static final int GATHER_RUNES = 2;
+    public static final int GATHER_STREAKS = 70;
+    public static final int GATHER_RUNES = 6;
     /** The rumble as it starts. */
     public static final int RUMBLE_AT = 2;
     /** Cracks run across it: from here (half of them, the rest 8 ticks later), each a step a tick for this many steps. */
@@ -70,7 +70,7 @@ public final class LandWardFall
     public static final int CRACK_AGAIN_AT = 30;
     /** The shatter: a flash, the crash and the rumble, and this many shards at once, thrown out this fast at most. */
     public static final int SHATTER_AT = 44;
-    public static final int BURST_SHARDS = 240;
+    public static final int BURST_SHARDS = 320;
     public static final double BURST_SPEED = 0.32D;
     /** ...then more shards a tick, for this long. */
     public static final int SHARDS_PER_TICK = 12;
@@ -158,11 +158,13 @@ public final class LandWardFall
         ClientLevel level = mc.level;
         if (bit < 0 && level != null)
         {
-            // The showcase: a straight stretch of curtain across the player's view.
+            // The showcase: a straight stretch of curtain across the player's view, standing at their feet's height (the
+            // ground's top there may be a tree's crown, and under a forest's leaves you never saw it).
+            double feet = mc.player != null ? mc.player.getY() : level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
             List<double[]> line = new ArrayList<>();
             for (int i = -SHOWCASE_HALF_LENGTH; i <= SHOWCASE_HALF_LENGTH; i++)
             {
-                line.add(new double[] {x + 0.5D + alongX * i, z + 0.5D + alongZ * i});
+                line.add(new double[] {x + 0.5D + alongX * i, z + 0.5D + alongZ * i, feet});
             }
             FALLS.add(new Fall(line, -1));
             return;
@@ -446,7 +448,9 @@ public final class LandWardFall
     private static double[] pick(Fall fall, RandomSource random)
     {
         double[] p = fall.points.get(random.nextInt(fall.points.size()));
-        return new double[] {p[0] + (random.nextDouble() - 0.5D) * 1.5D, p[1] + (random.nextDouble() - 0.5D) * 1.5D};
+        double dx = (random.nextDouble() - 0.5D) * 1.5D;
+        double dz = (random.nextDouble() - 0.5D) * 1.5D;
+        return p.length > 2 ? new double[] {p[0] + dx, p[1] + dz, p[2]} : new double[] {p[0] + dx, p[1] + dz};
     }
 
     private static double[] nearest(Fall fall, LocalPlayer player)
@@ -465,8 +469,13 @@ public final class LandWardFall
         return best;
     }
 
+    /** The ground under a point of the edge: its own height if it has one (the showcase's), else the land's top. */
     private static double ground(ClientLevel level, double[] p)
     {
+        if (p.length > 2)
+        {
+            return p[2];
+        }
         return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(p[0]), (int) Math.floor(p[1]));
     }
 

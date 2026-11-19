@@ -145,7 +145,13 @@ public final class GiantTuning
      * user: "I don't see any ... giants at all in the forests"; at 96 a probe found one within 128 blocks of a player, out
      * of sight in the trees)...
      */
-    public static final double SPAWN_SPACING = 56.0D;
+    public static final double SPAWN_SPACING = 64.0D;
+    /**
+     * ...and never while this many giants already stand within {@link #SPAWN_AREA} blocks (with only the spacing, the
+     * game's own two minutes near the hub gave 8 within 128 blocks: too many)...
+     */
+    public static final int SPAWN_AREA_CAP = 4;
+    public static final double SPAWN_AREA = 128.0D;
     /** ...never within this many blocks of the hub's middle (128 until November 19)... */
     public static final double HUB_CLEARANCE = 96.0D;
     /** ...and only with this many blocks of open air over the 3 x 3 blocks round where it stands (its 4.4 blocks). */

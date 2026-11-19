@@ -406,6 +406,72 @@ public final class RimefallAnimalsGameTest
 
     // ---------------------------------------------------------------- the moose
 
+    /**
+     * A moose's natural spawn (the user, November 19, 2026: "I don't see any mooses ... at all in the forests"): Minecraft's
+     * own daylight rule for animals no longer refuses it ({@code Moose.checkSpawnRules}: the Dross is always night), it
+     * spawns on Silvermoss in the dark, and never within {@link RimefallMobTuning#MOOSE_SPAWN_SPACING} blocks of another
+     * moose (outside the Silverwood Forest; in it {@link RimefallMobTuning#MOOSE_SPAWN_SPACING_SILVERWOOD}).
+     */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void mooseSpawnRules(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, RimefallAnimalsGameTest::mooseSpawnRules))
+        {
+            return;
+        }
+        // High over the arena (other tests' moose stand below, more than the spacing's 64 blocks up and down), on a block
+        // of Silvermoss; nothing of anyone else's is touched.
+        ServerLevel level = helper.getLevel();
+        int up = 90;
+        BlockPos spot = helper.absolutePos(MIDDLE.offset(0, up, -6));
+        BlockPos otherSpot = helper.absolutePos(MIDDLE.offset(30, up, -6));
+        for (BlockPos at : List.of(spot, otherSpot))
+        {
+            level.setBlockAndUpdate(at.below(), com.reg21meme.dross.registry.ModBlocks.SILVERMOSS.get().defaultBlockState());
+        }
+        double range = RimefallMobTuning.MOOSE_SPAWN_SPACING_SILVERWOOD;
+        if (!level.getEntitiesOfClass(Moose.class, new AABB(spot).inflate(range, 64.0D, range)).isEmpty())
+        {
+            helper.fail("a moose already stands near the test's spot high over the arena");
+            return;
+        }
+        Moose probe = ModEntities.MOOSE.get().create(level);
+        probe.moveTo(spot.getX() + 0.5D, spot.getY(), spot.getZ() + 0.5D, 0.0F, 0.0F);
+        boolean animalRule = probe.checkSpawnRules(level, MobSpawnType.NATURAL);
+        boolean alone = RimefallAnimals.checkMooseSpawn(ModEntities.MOOSE.get(), level, MobSpawnType.NATURAL, spot, level.getRandom());
+        Moose other = ModEntities.MOOSE.get().create(level);
+        other.moveTo(otherSpot.getX() + 0.5D, otherSpot.getY(), otherSpot.getZ() + 0.5D, 0.0F, 0.0F);
+        other.setNoAi(true);
+        other.setNoGravity(true);
+        level.addFreshEntity(other);
+        boolean crowded = RimefallAnimals.checkMooseSpawn(ModEntities.MOOSE.get(), level, MobSpawnType.NATURAL, spot, level.getRandom());
+        boolean egg = RimefallAnimals.checkMooseSpawn(ModEntities.MOOSE.get(), level, MobSpawnType.SPAWN_EGG, spot, level.getRandom());
+        other.discard();
+        probe.discard();
+        level.setBlockAndUpdate(spot.below(), Blocks.AIR.defaultBlockState());
+        level.setBlockAndUpdate(otherSpot.below(), Blocks.AIR.defaultBlockState());
+        if (!animalRule)
+        {
+            helper.fail("a moose's own spawn rules shouldn't refuse a natural spawn (the Dross is always night)");
+        }
+        else if (!alone)
+        {
+            helper.fail("on Silvermoss with no moose near, a moose should spawn");
+        }
+        else if (crowded)
+        {
+            helper.fail("with a moose 30 blocks off, another shouldn't spawn by itself");
+        }
+        else if (!egg)
+        {
+            helper.fail("a spawn egg should work next to another moose");
+        }
+        else
+        {
+            helper.succeed();
+        }
+    }
+
     /** A bull's ram hurts more than a cow's (the user's request): each rams a pig; the bull's takes more off it. */
     @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
     public static void mooseBullHitsHarder(GameTestHelper helper)

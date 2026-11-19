@@ -149,8 +149,8 @@ Its working name (entity `dross:silverwood_giant`); the name in the game can cha
   - Like the Odyssey's giants, it hurls a boulder, but only at someone it's angry with. A giant you never bothered
     never throws one. It still gives up after its leash, so running away works.
 - **How many** *(my choice)*:
-  - Only in the Silverwood Forest, and never within about 56 blocks of another (96 until November 19, when the user
-    couldn't find any).
+  - Only in the Silverwood Forest, and never within about 64 blocks of another, nor while 4 are within 128 (96 apart until
+    November 19, when the user couldn't find any).
   - Never near the hub.
   - Only where there's room for its size.
   - So a few roam within sight of you: easy to find three for the quest.

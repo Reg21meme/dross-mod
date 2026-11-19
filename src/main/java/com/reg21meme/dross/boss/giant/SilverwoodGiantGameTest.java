@@ -497,7 +497,7 @@ public final class SilverwoodGiantGameTest
             expect(!SilverwoodGiants.nearHub(DrossHub.CENTER.offset(200, 0, 0)), "200 blocks from the hub is far enough");
             expect("too near the hub".equals(SilverwoodGiants.refusal(level, DrossHub.CENTER.offset(30, 0, 0), true, true)),
                     "in the Dross, next to the hub, it shouldn't spawn");
-            // another giant 18 blocks off (within 96)
+            // another giant 18 blocks off (within 64)
             SilverwoodGiant other = giant(h, MIDDLE.offset(18, 0, 0), YAW_SOUTH, false);
             String near = SilverwoodGiants.refusal(level, spot, true, false);
             expect(near != null && near.startsWith("another giant"), "with another giant 18 blocks off it shouldn't spawn, but: "

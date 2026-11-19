@@ -128,9 +128,13 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
 giants at all in the forests")**: a probe (`boss/giant/GiantSpawnProbeGameTest`, its own GameTest namespace
 `dross_spawn_probe`: a survival player in the forest, spawning on, 10 minutes) found no moose could spawn at any of 3,000
 spots (Minecraft's own rule for an animal wants daylight, and the Dross is always night: `Moose.checkSpawnRules` now
-leaves it to `RimefallAnimals.checkMooseSpawn`, which keeps moose 40 blocks apart, `RimefallMobTuning.MOOSE_SPAWN_SPACING`)
-and only one giant within 128 blocks (kept 96 apart); giants are now kept 56 apart and 96 off the hub
-(`GiantTuning.SPAWN_SPACING`, `HUB_CLEARANCE`). After: 3 giants and 2 moose within 128 blocks after a few minutes. So the netherite zombies and skeletons now spawn only in **the Gravecrags**. The spawn lists are data read as a world loads, so older worlds' Silverwood Forest loses its zombies and skeletons too.
+leaves it to `RimefallAnimals.checkMooseSpawn`) and only one giant within 128 blocks (kept 96 apart). Now giants keep
+64 apart, never while 4 stand within 128 blocks, and 96 off the hub (`GiantTuning.SPAWN_SPACING`, `SPAWN_AREA_CAP`,
+`SPAWN_AREA`, `HUB_CLEARANCE`); a moose never spawns by itself within 128 blocks of another in the Silverwood Forest, 80
+elsewhere (`RimefallMobTuning.MOOSE_SPAWN_SPACING_SILVERWOOD`, `MOOSE_SPAWN_SPACING`: moose never despawn, and at 40 the
+game filled the land round the hub to its animal limit, 9 within 128 blocks in two minutes). Measured in the game (a
+temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 giants and 6 moose (calves too) within
+128 blocks. Headless test `RimefallAnimalsGameTest.mooseSpawnRules`. So the netherite zombies and skeletons now spawn only in **the Gravecrags**. The spawn lists are data read as a world loads, so older worlds' Silverwood Forest loses its zombies and skeletons too.
    - **A lower monster limit in Silverwood Forest and the Gravecrags** [built November 5, 2026, tested in-game by the user November 6] (the user, after playing 0.3.0: the netherite zombies and skeletons "like they are invading dimensions", "a 75% nerf ... specifically limit Silverwood Forest and the Gravecrags for now, as we will return that number once we get actual mobs for them"; `dimension/DrossMonsterLimit`): a monster spawns naturally in those two biomes only while fewer than 18 monsters (a quarter of vanilla's 70) are within 128 blocks of the spot; the other biomes keep the normal limit. (Skipping 3 in 4 of their spawns was talked over and dropped: it only slows the limit filling up.) Since November 9, 2026 Silverwood's monsters are the Silverwood Giants, endermen and witches (step 19); the limit still counts them.
    - Players see the dimension named **"The Dross"** (lang key `dimension.dross.dross`).
    - **Terrain** [built] (Terrain v1, October 2026; design `tools/terrain/TERRAIN_DESIGN.md`, tuning guide `tools/terrain/README.md`, report `TERRAIN_REPORT.md`): Minecraft's noise generator, set up in data files written by `tools/terrain/worldgen.py` (every tuning number a labeled constant). A 2D height field: no caves, overhangs or floating land (the only underground spaces are Blightwood's sewers, step 11). Rolling hills, cliff steps (9 and 18) and knolls in rocky areas, Cinder mesas, and the Gravecrags' snow-capped ridged peaks (about y 230-260). Five biomes, regions about 600-670 blocks across: **Silverwood Forest** (about 42%, always round the hub), **Cinder Wastes**, **Blightwood**, **Rimefall** and **The Gravecrags** (never within about 750 blocks of the hub). (There was a sixth, the **Nether Scar**, until October 17, 2026: the user had it removed. Its land went to the biomes round it without moving any other border, and its four blocks, Scarred Netherrack, Scar Roots, Soulwick and Scar Vent, are kept as building blocks that no longer generate.) Each biome has its own ground cover, features (trees, plants, ponds, lava pools, giant mushrooms, dead trees, lichen, boulders), fog/sky/water colours, particles and sounds; ores (coal, gold nuggets, Moonsilver, Stormite) lie under every biome. New worlds only: the old flat `dross_flats` biome was removed (October 17 cleanup).
@@ -2305,7 +2309,8 @@ and only one giant within 128 blocks (kept 96 apart); giants are now kept 56 apa
       falls, about 5.5 s (since November 19, the user, of the first, 2 s of a few streaks: "the barrier fall showcase
       doesn't seem to do anything ... I don't see the animation"): the curtain stands up thick and bright with its runes
       and a rumble, glowing cracks run jagged across it (`WardCrackParticle`, `dross:ward_crack`,
-      `DrossColors.LAND_WARD_CRACK`) with two glassy cracks, then it shatters with a flash, a crash and a rumble, hundreds
+      `DrossColors.LAND_WARD_CRACK`) with two glassy cracks (the showcase's curtain stands at your feet's height: on the
+      land's top it could stand under a forest's leaves, out of sight), then it shatters with a flash, a crash and a rumble, hundreds
       of bigger shards of its runes bursting out and tumbling down, blue dust settling; its curtain goes at the shatter
       (`client/LandWardFall`, `WardShardParticle`, `dross:ward_shard`; `DrossColors.LAND_WARD_SHARD*`; sounds
       `block.land_ward.fall_*`). Once per land per player, saved with their quest (`OracleRecord`, `OracleFallenLands`);
@@ -2559,10 +2564,10 @@ and only one giant within 128 blocks (kept 96 apart); giants are now kept 56 apa
       - **Where** (`SilverwoodGiants`; the monster list in `tools/terrain/worldgen.py`, Dimension's): weight **40** in
         the Silverwood Forest's monsters (endermen 10, witch 5; zombies, zombie villagers and skeletons gone), always
         alone; a natural spawn only in the Silverwood Forest, on the ground, in any light, never in a fluid, never on
-        Peaceful, **never within 56 blocks of another giant** (`SPAWN_SPACING`; 96 until November 19), **never within 96
-        blocks of the hub** (128 until then)
+        Peaceful, **never within 64 blocks of another giant, nor while 4 stand within 128 blocks** (`SPAWN_SPACING`,
+        `SPAWN_AREA_CAP`; 96 apart until November 19), **never within 96 blocks of the hub** (128 until then)
         (`HUB_CLEARANCE`), and only with **5 blocks of open air over the 3 x 3** round where it stands
-        (`SPAWN_HEADROOM`): a few roam within sight of you (measured: about 3 within 128 blocks).
+        (`SPAWN_HEADROOM`): a few roam within sight of you (measured in the game: 5 within 128 blocks).
         Those rules, not the weight, set how many there are. Spawn eggs and commands skip them.
       - **Its spawn egg** ("Silverwood Giant Spawn Egg", after the Cinder Hermit's in the spawn eggs group; an ash-grey
         egg with the Dross's blue spots, `DrossColors.SILVERWOOD_GIANT_EGG_*`), also the icon of "Giant Slayer".

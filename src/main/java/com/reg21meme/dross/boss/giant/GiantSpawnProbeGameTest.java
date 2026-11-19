@@ -56,7 +56,7 @@ public final class GiantSpawnProbeGameTest
     {
         MinecraftServer server = helper.getLevel().getServer();
         ServerLevel dross = server.getLevel(ModDimensions.DROSS_LEVEL);
-        BlockPos spot = findForest(dross);
+        BlockPos spot = System.getenv("DROSS_PROBE_AT") != null ? new BlockPos(170, 0, 40) : findForest(dross);
         LOGGER.info("[spawn probe] standing at {} (Silverwood all round)", spot);
         int y = dross.getChunkSource().getGenerator().getBaseHeight(spot.getX(), spot.getZ(),
                 Heightmap.Types.WORLD_SURFACE_WG, dross, dross.getChunkSource().randomState());
@@ -192,7 +192,18 @@ public final class GiantSpawnProbeGameTest
     {
         AABB box = player.getBoundingBox().inflate(128.0D, 128.0D, 128.0D);
         int giants = dross.getEntitiesOfClass(SilverwoodGiant.class, box).size();
-        int moose = dross.getEntitiesOfClass(Moose.class, box).size();
+        java.util.List<Moose> all = dross.getEntitiesOfClass(Moose.class, box);
+        int moose = all.size();
+        int babies = (int) all.stream().filter(Moose::isBaby).count();
+        int penned = (int) all.stream().filter(m -> m.getPersistentData().getBoolean("Penned") || m.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getBoolean("Penned")).count();
+        StringBuilder where = new StringBuilder();
+        for (Moose m : all)
+        {
+            where.append(String.format(java.util.Locale.ROOT, " [%d %d %d %s%s %s]", m.getBlockX(), m.getBlockY(), m.getBlockZ(),
+                    m.isBaby() ? "calf " : "", m.saveWithoutId(new net.minecraft.nbt.CompoundTag()).getAllKeys().contains("Penned") ? "penkey" : "",
+                    dross.getBiome(m.blockPosition()).unwrapKey().map(k -> k.location().getPath()).orElse("?")));
+        }
+        LOGGER.info("[spawn probe] moose detail: {} calves, {} penned:{}", babies, penned, where);
         int mobs = dross.getEntitiesOfClass(Mob.class, box).size();
         LOGGER.info("[spawn probe] after {} s: {} giants, {} moose, {} mobs in all within 128 blocks", at / 20, giants, moose, mobs);
     }

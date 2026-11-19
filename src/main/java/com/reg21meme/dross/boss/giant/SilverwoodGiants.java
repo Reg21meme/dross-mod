@@ -30,8 +30,9 @@ import javax.annotation.Nullable;
  * <ul>
  *   <li>only in the Silverwood Forest, on the ground, in any light (it lives there), never in a fluid, never on
  *       Peaceful;</li>
- *   <li>never within {@link GiantTuning#SPAWN_SPACING} blocks of another giant, so a few roam within sight of
- *       you;</li>
+ *   <li>never within {@link GiantTuning#SPAWN_SPACING} blocks of another giant, nor while
+ *       {@link GiantTuning#SPAWN_AREA_CAP} stand within {@link GiantTuning#SPAWN_AREA} blocks, so a few roam within sight
+ *       of you;</li>
  *   <li>never within {@link GiantTuning#HUB_CLEARANCE} blocks of the hub ({@link DrossHub#CENTER});</li>
  *   <li>only where its whole body fits: {@link GiantTuning#SPAWN_HEADROOM} blocks of open air over the 3 x 3 blocks
  *       round where it stands (the Pallbearer's rule).</li>
@@ -99,6 +100,10 @@ public final class SilverwoodGiants
         {
             return "another giant within " + (int) GiantTuning.SPAWN_SPACING + " blocks";
         }
+        if (crowded(level, pos))
+        {
+            return GiantTuning.SPAWN_AREA_CAP + " giants within " + (int) GiantTuning.SPAWN_AREA + " blocks";
+        }
         return null;
     }
 
@@ -131,6 +136,16 @@ public final class SilverwoodGiants
             }
         }
         return true;
+    }
+
+    /** True if {@link GiantTuning#SPAWN_AREA_CAP} living giants or more stand within {@link GiantTuning#SPAWN_AREA}
+     *  blocks of {@code pos} (of those loaded). */
+    public static boolean crowded(ServerLevelAccessor level, BlockPos pos)
+    {
+        double range = GiantTuning.SPAWN_AREA;
+        return level.getEntitiesOfClass(SilverwoodGiant.class, new AABB(pos).inflate(range, 96.0D, range),
+                e -> e.isAlive() && e.distanceToSqr(pos.getX() + 0.5D, e.getY(), pos.getZ() + 0.5D) <= range * range).size()
+                >= GiantTuning.SPAWN_AREA_CAP;
     }
 
     /** True if a living giant stands within {@link GiantTuning#SPAWN_SPACING} blocks of {@code pos} (of those loaded). */

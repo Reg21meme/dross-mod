@@ -102,8 +102,7 @@ public final class RimefallAnimals
     /**
      * A moose: on Rimefall's or Silverwood Forest's ground, not in water, and never round the hub (a mother there would
      * go for players arriving: the hub's safe zone, {@link DrossHubSafeZone}) or in a hunter village
-     * ({@link #inHunterVillage}), and never by itself within {@link RimefallMobTuning#MOOSE_SPAWN_SPACING} blocks of
-     * another moose.
+     * ({@link #inHunterVillage}), and never by itself near another moose ({@link #mooseNear}).
      */
     public static boolean checkMooseSpawn(EntityType<Moose> type, ServerLevelAccessor level, MobSpawnType reason, BlockPos pos,
                                           RandomSource random)
@@ -116,15 +115,18 @@ public final class RimefallAnimals
                 && !inHunterVillage(level, reason, pos) && !mooseNear(level, reason, pos);
     }
 
-    /** True if, for a natural spawn, another moose stands within {@link RimefallMobTuning#MOOSE_SPAWN_SPACING} blocks. */
+    /** True if, for a natural spawn, another moose stands within its land's spacing ({@link
+     *  RimefallMobTuning#MOOSE_SPAWN_SPACING_SILVERWOOD} in the Silverwood Forest, else {@link
+     *  RimefallMobTuning#MOOSE_SPAWN_SPACING}). */
     private static boolean mooseNear(ServerLevelAccessor level, MobSpawnType reason, BlockPos pos)
     {
         if (reason != MobSpawnType.NATURAL && reason != MobSpawnType.CHUNK_GENERATION)
         {
             return false;
         }
-        double range = RimefallMobTuning.MOOSE_SPAWN_SPACING;
-        return !level.getEntitiesOfClass(Moose.class, new net.minecraft.world.phys.AABB(pos).inflate(range, 32.0D, range),
+        double range = level.getBiome(pos).is(com.reg21meme.dross.dimension.DrossBiomes.SILVERWOOD_FOREST)
+                ? RimefallMobTuning.MOOSE_SPAWN_SPACING_SILVERWOOD : RimefallMobTuning.MOOSE_SPAWN_SPACING;
+        return !level.getEntitiesOfClass(Moose.class, new net.minecraft.world.phys.AABB(pos).inflate(range, 64.0D, range),
                 m -> m.isAlive() && m.distanceToSqr(pos.getX() + 0.5D, m.getY(), pos.getZ() + 0.5D) <= range * range).isEmpty();
     }
 

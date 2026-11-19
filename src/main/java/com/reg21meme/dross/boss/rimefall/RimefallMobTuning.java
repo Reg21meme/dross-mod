@@ -74,8 +74,14 @@ public final class RimefallMobTuning
     public static final double MOOSE_CHARGE_SPEED = 1.9D;
     /** It gives up a chase once it's this far from where the chase began, and goes back there (like the Rimehorn). */
     public static final double MOOSE_CHASE_LEASH = 24.0D;
-    /** A moose (a lone one, or a mother with her calf) never spawns by itself within this many blocks of another. */
-    public static final double MOOSE_SPAWN_SPACING = 40.0D;
+    /**
+     * A moose (a lone one, or a mother with her calf) never spawns by itself within this many blocks of another: in the
+     * Silverwood Forest the odd moose (about 2 within 128 blocks of you), in Rimefall more (about 5). Moose never despawn,
+     * so the spacing is what keeps them few: at 40 blocks the game filled every place a player stayed to Minecraft's
+     * animal limit, 9 within 128 blocks of the hub after two minutes (November 19, 2026).
+     */
+    public static final double MOOSE_SPAWN_SPACING_SILVERWOOD = 128.0D;
+    public static final double MOOSE_SPAWN_SPACING = 80.0D;
     /** The ram (the user: it "knocks you back more than up"): damage (the user, October 19: "make the male moose do
      * more damage than the female"; 7 for both before), the throw, how far it reaches. */
     public static final float RAM_DAMAGE_BULL = 9.0F;
