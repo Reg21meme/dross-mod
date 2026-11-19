@@ -363,6 +363,9 @@ public final class DrossColors {
     /** A falling barrier: a shard as it fades out on the way down (deep cobalt). Used in dimension/ward/client/WardShardParticle. */
     public static final int LAND_WARD_SHARD_FADE = PALETTE_DEEP_COBALT;
 
+    /** A falling barrier: a crack running across it just before it breaks (white with a touch of blue). Used in dimension/ward/client/WardCrackParticle. */
+    public static final int LAND_WARD_CRACK = 0xE8F0FF;
+
     // ---------------------------------------------------------------- Boss (boss-builder)
     // The Cinder Colossus serves the Fire Necromancer: fire and obsidian colors only, never the Dross blue.
     // (Its texture colors live in the Python palettes in tools/golems/kit/materials.py.)

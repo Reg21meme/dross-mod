@@ -157,6 +157,18 @@ public class Moose extends Animal implements GeoEntity, NeutralMob, RimefallAnim
         this.setId(ENTITY_COUNTER.getAndAdd(this.parts.length + 1) + 1);
     }
 
+    /**
+     * Natural spawning: only {@link RimefallAnimals#checkMooseSpawn} decides. Minecraft's own rule for an animal wants
+     * daylight ({@code Animal.getWalkTargetValue}: grass, or bright light), and the Dross is always night, so it refused
+     * every natural moose there (the user, November 19, 2026: "I don't see any mooses ... at all in the forests"; a probe
+     * found none could spawn at any of 3,000 spots).
+     */
+    @Override
+    public boolean checkSpawnRules(net.minecraft.world.level.LevelAccessor level, MobSpawnType reason)
+    {
+        return true;
+    }
+
     @Override
     public void setId(int id)
     {

@@ -23,6 +23,8 @@ public final class ModParticles
     public static final RegistryObject<SimpleParticleType> WARD_RUNE = PARTICLE_TYPES.register("ward_rune", () -> new SimpleParticleType(false));
     // ...and its shards, falling when the barrier breaks (dimension/ward/client/LandWardFall).
     public static final RegistryObject<SimpleParticleType> WARD_SHARD = PARTICLE_TYPES.register("ward_shard", () -> new SimpleParticleType(true));
+    // ...and the cracks that run across it just before (dimension/ward/client/WardCrackParticle).
+    public static final RegistryObject<SimpleParticleType> WARD_CRACK = PARTICLE_TYPES.register("ward_crack", () -> new SimpleParticleType(true));
 
     private ModParticles() {}
 }

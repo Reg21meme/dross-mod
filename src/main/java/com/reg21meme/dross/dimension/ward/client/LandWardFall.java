@@ -14,6 +14,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
@@ -32,10 +33,13 @@ import java.util.List;
 
 /**
  * CLIENT ONLY. A land's barrier falling in front of the player, the first time they come to it after the Oracle broke it
- * (QUEST_PLAN.md, "The Oracle's spell"; the server says when, {@code quest.oracle.LandFallMessage}). Along the stretch of
- * its edge round them the curtain flares up bright ({@link WardStreakParticle}), cracks with a glassy sound, and breaks
- * into shards of its runes that tumble down and fade ({@link WardShardParticle}), a cold blue dust settling where they
- * land. After that the land's curtain is gone for them ({@link OracleClientState#markFallen}).
+ * (QUEST_PLAN.md, "The Oracle's spell"; the server says when, {@code quest.oracle.LandFallMessage}). About 5.5 s along
+ * the stretch of its edge round them (the user, November 19, 2026, of the first version, 2 s of a few streaks: "I don't
+ * see the animation"): the curtain stands up thick and bright with its runes ({@link WardStreakParticle},
+ * {@link WardRuneParticle}), a rumble; glowing cracks run jagged across it ({@link WardCrackParticle}) with two glassy
+ * cracks; then it shatters with a flash, a crash and a rumble, hundreds of shards of its runes bursting out and tumbling
+ * down ({@link WardShardParticle}), and a cold blue dust settles where they land. From the shatter the land's curtain is
+ * gone for them ({@link OracleClientState#markFallen}).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, value = Dist.CLIENT)
 public final class LandWardFall
@@ -48,35 +52,48 @@ public final class LandWardFall
     public static final int CELL = 2;
     /** At most this many points of the edge are kept. */
     public static final int MAX_POINTS = 160;
-    /** The flare: streaks a tick for this long. */
-    public static final int FLARE_TICKS = 12;
-    public static final int FLARE_STREAKS = 26;
-    /** The crack's sound, the shatter's (and its rumble). */
-    public static final int CRACK_AT = 9;
-    public static final int SHATTER_AT = 13;
-    /** The shards: from here, a tick, for this long. */
-    public static final int SHARDS_FROM = 12;
-    public static final int SHARDS_PER_TICK = 14;
-    public static final int SHARD_TICKS = 26;
+    /** First the curtain stands up thick and bright: streaks a tick, runes a tick, until the shatter. */
+    public static final int GATHER_STREAKS = 26;
+    public static final int GATHER_RUNES = 2;
+    /** The rumble as it starts. */
+    public static final int RUMBLE_AT = 2;
+    /** Cracks run across it: from here (half of them, the rest 8 ticks later), each a step a tick for this many steps. */
+    public static final int CRACKS_FROM = 16;
+    public static final int CRACKS = 12;
+    public static final int CRACK_STEPS = 26;
+    public static final double CRACK_STEP = 0.8D;
+    /** ...starting this high up the curtain (blocks over the ground), at least and at most. */
+    public static final double CRACK_MIN_HEIGHT = 2.0D;
+    public static final double CRACK_MAX_HEIGHT = 16.0D;
+    /** The cracks' sounds. */
+    public static final int CRACK_AT = 16;
+    public static final int CRACK_AGAIN_AT = 30;
+    /** The shatter: a flash, the crash and the rumble, and this many shards at once, thrown out this fast at most. */
+    public static final int SHATTER_AT = 44;
+    public static final int BURST_SHARDS = 240;
+    public static final double BURST_SPEED = 0.32D;
+    /** ...then more shards a tick, for this long. */
+    public static final int SHARDS_PER_TICK = 12;
+    public static final int SHARD_TICKS = 30;
     /** Shards break off this high up the curtain (blocks over the ground)... */
-    public static final double SHARD_MIN_HEIGHT = 1.0D;
-    public static final double SHARD_MAX_HEIGHT = 18.0D;
+    public static final double SHARD_MIN_HEIGHT = 0.5D;
+    public static final double SHARD_MAX_HEIGHT = 22.0D;
     /** ...thrown out sideways this fast at most, and up at most this fast (blocks a tick). */
-    public static final double SHARD_SPREAD = 0.08D;
-    public static final double SHARD_LIFT = 0.12D;
+    public static final double SHARD_SPREAD = 0.1D;
+    public static final double SHARD_LIFT = 0.15D;
     /** Dust where they land: from here, a tick, for this long. */
-    public static final int DUST_FROM = 18;
-    public static final int DUST_PER_TICK = 8;
-    public static final int DUST_TICKS = 20;
+    public static final int DUST_FROM = 52;
+    public static final int DUST_PER_TICK = 10;
+    public static final int DUST_TICKS = 40;
     /** The whole thing (ticks). */
-    public static final int DURATION = 46;
+    public static final int DURATION = 110;
     /**
      * Right after a teleport the ground round the player may not be loaded on their screen yet: the edge is looked for
      * again every tick for this long before the fall plays round the spot itself.
      */
     public static final int WAIT_FOR_GROUND_TICKS = 80;
     /** The showcase's stretch of curtain runs this far either side of its middle (blocks). */
-    public static final int SHOWCASE_HALF_LENGTH = 14;
+    public static final int SHOWCASE_HALF_LENGTH = 16;
     /** With particles on Decreased, this share of them. */
     public static final double DECREASED_SHARE = 0.5D;
 
@@ -84,31 +101,51 @@ public final class LandWardFall
     /** Falls waiting for their edge's ground to load on this screen. */
     private static final List<Waiting> WAITING = new ArrayList<>();
 
-    /** A fall whose edge wasn't found yet: its land, the column the server named, how long it has waited. */
+    /** A fall whose edge wasn't found yet: its land (and its bit), the column the server named, how long it has waited. */
     private static final class Waiting
     {
         final ResourceKey<Biome> land;
+        final int bit;
         final int x;
         final int z;
         int waited;
 
-        Waiting(ResourceKey<Biome> land, int x, int z)
+        Waiting(ResourceKey<Biome> land, int bit, int x, int z)
         {
             this.land = land;
+            this.bit = bit;
             this.x = x;
             this.z = z;
         }
     }
 
-    /** One barrier falling: the points of its edge and how long it has been falling. */
+    /** A crack running across the curtain: where it has got to, the way it's going, the steps it has left. */
+    private static final class Crack
+    {
+        final double[] at;
+        final double[] way;
+        int left;
+
+        Crack(double[] at, double[] way, int left)
+        {
+            this.at = at;
+            this.way = way;
+            this.left = left;
+        }
+    }
+
+    /** One barrier falling: the points of its edge, its land's bit (-1: the showcase), its cracks, its age. */
     private static final class Fall
     {
         final List<double[]> points;
+        final int bit;
+        final List<Crack> cracks = new ArrayList<>();
         int age;
 
-        Fall(List<double[]> points)
+        Fall(List<double[]> points, int bit)
         {
             this.points = points;
+            this.bit = bit;
         }
     }
 
@@ -127,17 +164,17 @@ public final class LandWardFall
             {
                 line.add(new double[] {x + 0.5D + alongX * i, z + 0.5D + alongZ * i});
             }
-            FALLS.add(new Fall(line));
+            FALLS.add(new Fall(line, -1));
             return;
         }
-        OracleClientState.markFallen(bit);
         List<ResourceKey<Biome>> lands = OracleQuests.lockableLands();
         if (level == null || mc.player == null || bit < 0 || bit >= lands.size()
                 || !level.dimension().equals(ModDimensions.DROSS_LEVEL))
         {
+            OracleClientState.markFallen(bit);
             return;
         }
-        WAITING.add(new Waiting(lands.get(bit), x, z));
+        WAITING.add(new Waiting(lands.get(bit), bit, x, z));
         tryStart(level);
     }
 
@@ -153,7 +190,7 @@ public final class LandWardFall
             if (!points.isEmpty() && ground)
             {
                 WAITING.remove(i);
-                FALLS.add(new Fall(points));
+                FALLS.add(new Fall(points, w.bit));
             }
             else if (++w.waited >= WAIT_FOR_GROUND_TICKS)
             {
@@ -164,7 +201,7 @@ public final class LandWardFall
                     double a = Math.PI * 2.0D * k / 24;
                     ring.add(new double[] {w.x + Math.cos(a) * 6.0D, w.z + Math.sin(a) * 6.0D});
                 }
-                FALLS.add(new Fall(ring));
+                FALLS.add(new Fall(ring, w.bit));
             }
         }
     }
@@ -255,52 +292,142 @@ public final class LandWardFall
                 FALLS.remove(f);
                 continue;
             }
-            if (t < FLARE_TICKS)
+            if (t < SHATTER_AT)
             {
-                for (int i = 0; i < count(FLARE_STREAKS * share, random); i++)
-                {
-                    double[] p = pick(fall, random);
-                    mc.particleEngine.createParticle(ModParticles.WARD_STREAK.get(), p[0], ground(level, p), p[1], 0.0D, 0.0D, 0.0D);
-                }
-                if (t % 3 == 0)
-                {
-                    double[] p = pick(fall, random);
-                    mc.particleEngine.createParticle(ModParticles.WARD_RUNE.get(), p[0], ground(level, p) + 1.0D + random.nextDouble() * 10.0D,
-                            p[1], 0.0D, 0.0D, 0.0D);
-                }
+                stand(mc, level, fall, t, share, random);
             }
-            if (t == CRACK_AT)
+            if (t == RUMBLE_AT)
             {
-                play(mc, nearest(fall, player), level, ModSounds.LAND_WARD_FALL_CRACK.get(), 1.0F);
+                play(mc, nearest(fall, player), level, ModSounds.LAND_WARD_FALL_RUMBLE.get(), 0.6F, 0.8F);
+            }
+            if (t >= CRACKS_FROM && t < SHATTER_AT)
+            {
+                crack(mc, level, fall, t, random);
+            }
+            if (t == CRACK_AT || t == CRACK_AGAIN_AT)
+            {
+                play(mc, nearest(fall, player), level, ModSounds.LAND_WARD_FALL_CRACK.get(), 1.0F, t == CRACK_AT ? 1.0F : 0.85F);
             }
             if (t == SHATTER_AT)
             {
-                double[] p = nearest(fall, player);
-                play(mc, p, level, ModSounds.LAND_WARD_FALL_SHATTER.get(), 1.0F);
-                play(mc, p, level, ModSounds.LAND_WARD_FALL_RUMBLE.get(), 0.9F);
+                shatter(mc, level, fall, player, share, random);
             }
-            if (t >= SHARDS_FROM && t < SHARDS_FROM + SHARD_TICKS)
+            if (t > SHATTER_AT && t < SHATTER_AT + SHARD_TICKS)
             {
                 for (int i = 0; i < count(SHARDS_PER_TICK * share, random); i++)
                 {
-                    double[] p = pick(fall, random);
-                    double y = ground(level, p) + SHARD_MIN_HEIGHT + random.nextDouble() * (SHARD_MAX_HEIGHT - SHARD_MIN_HEIGHT);
-                    mc.particleEngine.createParticle(ModParticles.WARD_SHARD.get(), p[0], y, p[1],
-                            (random.nextDouble() * 2.0D - 1.0D) * SHARD_SPREAD, random.nextDouble() * SHARD_LIFT,
-                            (random.nextDouble() * 2.0D - 1.0D) * SHARD_SPREAD);
+                    shard(mc, level, pick(fall, random), random, 1.0D);
                 }
             }
             if (t >= DUST_FROM && t < DUST_FROM + DUST_TICKS)
             {
-                DustParticleOptions dust = new DustParticleOptions(rgb(DrossColors.LAND_WARD_SHARD), 1.4F);
+                DustParticleOptions dust = new DustParticleOptions(rgb(DrossColors.LAND_WARD_SHARD), 1.6F);
                 for (int i = 0; i < count(DUST_PER_TICK * share, random); i++)
                 {
                     double[] p = pick(fall, random);
-                    mc.particleEngine.createParticle(dust, p[0] + random.nextGaussian() * 0.4D, ground(level, p) + 0.2D,
-                            p[1] + random.nextGaussian() * 0.4D, 0.0D, 0.02D, 0.0D);
+                    mc.particleEngine.createParticle(dust, p[0] + random.nextGaussian() * 0.6D, ground(level, p) + 0.2D,
+                            p[1] + random.nextGaussian() * 0.6D, 0.0D, 0.02D, 0.0D);
                 }
             }
         }
+    }
+
+    /** The curtain standing, thick and bright, its runes drifting up it (before it shatters). */
+    private static void stand(Minecraft mc, ClientLevel level, Fall fall, int t, double share, RandomSource random)
+    {
+        double grow = Math.min(1.0D, (t + 1) / 10.0D);
+        for (int i = 0; i < count(GATHER_STREAKS * share * grow, random); i++)
+        {
+            double[] p = pick(fall, random);
+            mc.particleEngine.createParticle(ModParticles.WARD_STREAK.get(), p[0], ground(level, p) + random.nextDouble() * 6.0D,
+                    p[1], 0.0D, 0.0D, 0.0D);
+        }
+        for (int i = 0; i < count(GATHER_RUNES * share, random); i++)
+        {
+            double[] p = pick(fall, random);
+            mc.particleEngine.createParticle(ModParticles.WARD_RUNE.get(), p[0], ground(level, p) + 1.0D + random.nextDouble() * 14.0D,
+                    p[1], 0.0D, 0.0D, 0.0D);
+        }
+    }
+
+    /** The cracks: a few start at once, each runs on a step a tick, leaving a glowing jagged line until the shatter. */
+    private static void crack(Minecraft mc, ClientLevel level, Fall fall, int t, RandomSource random)
+    {
+        if (t == CRACKS_FROM || t == CRACKS_FROM + 8)
+        {
+            for (int i = 0; i < CRACKS / 2; i++)
+            {
+                double[] p = pick(fall, random);
+                double y = ground(level, p) + CRACK_MIN_HEIGHT + random.nextDouble() * (CRACK_MAX_HEIGHT - CRACK_MIN_HEIGHT);
+                double a = random.nextDouble() * Math.PI * 2.0D;
+                double up = (random.nextDouble() * 2.0D - 1.0D) * 0.9D;
+                fall.cracks.add(new Crack(new double[] {p[0], y, p[1]}, new double[] {Math.cos(a) * 0.5D, up, Math.sin(a) * 0.5D},
+                        CRACK_STEPS));
+            }
+        }
+        int life = SHATTER_AT - t + 1;
+        for (int c = fall.cracks.size() - 1; c >= 0; c--)
+        {
+            Crack crack = fall.cracks.get(c);
+            if (crack.left-- <= 0)
+            {
+                continue;
+            }
+            // Mostly on its way, but jagged; now and then a branch.
+            double[] w = crack.way;
+            w[0] += random.nextGaussian() * 0.35D;
+            w[1] += random.nextGaussian() * 0.45D;
+            w[2] += random.nextGaussian() * 0.35D;
+            double len = Math.sqrt(w[0] * w[0] + w[1] * w[1] + w[2] * w[2]);
+            if (len < 1.0E-3D)
+            {
+                continue;
+            }
+            double[] from = crack.at.clone();
+            for (int k = 0; k < 3; k++)
+            {
+                crack.at[k] += w[k] / len * CRACK_STEP;
+            }
+            for (int k = 1; k <= 3; k++)
+            {
+                double q = k / 3.0D;
+                mc.particleEngine.createParticle(ModParticles.WARD_CRACK.get(), from[0] + (crack.at[0] - from[0]) * q,
+                        from[1] + (crack.at[1] - from[1]) * q, from[2] + (crack.at[2] - from[2]) * q, life, 0.0D, 0.0D);
+            }
+            if (random.nextFloat() < 0.08F && fall.cracks.size() < CRACKS * 3)
+            {
+                fall.cracks.add(new Crack(crack.at.clone(), new double[] {-w[2], w[1] * 0.5D, w[0]}, crack.left / 2));
+            }
+        }
+    }
+
+    /** The shatter: a flash, the crash, and the curtain bursting into shards. */
+    private static void shatter(Minecraft mc, ClientLevel level, Fall fall, LocalPlayer player, double share, RandomSource random)
+    {
+        OracleClientState.markFallen(fall.bit);
+        double[] near = nearest(fall, player);
+        play(mc, near, level, ModSounds.LAND_WARD_FALL_SHATTER.get(), 1.0F, 1.0F);
+        play(mc, near, level, ModSounds.LAND_WARD_FALL_RUMBLE.get(), 1.0F, 1.0F);
+        for (int i = 0; i < 5; i++)
+        {
+            double[] p = pick(fall, random);
+            mc.particleEngine.createParticle(ParticleTypes.FLASH, p[0], ground(level, p) + 3.0D + random.nextDouble() * 10.0D,
+                    p[1], 0.0D, 0.0D, 0.0D);
+        }
+        for (int i = 0; i < count(BURST_SHARDS * share, random); i++)
+        {
+            shard(mc, level, pick(fall, random), random, BURST_SPEED / SHARD_SPREAD);
+        }
+        fall.cracks.clear();
+    }
+
+    /** A shard breaking off somewhere up the curtain over {@code p}, thrown out {@code speed} times as fast as usual. */
+    private static void shard(Minecraft mc, ClientLevel level, double[] p, RandomSource random, double speed)
+    {
+        double y = ground(level, p) + SHARD_MIN_HEIGHT + random.nextDouble() * (SHARD_MAX_HEIGHT - SHARD_MIN_HEIGHT);
+        mc.particleEngine.createParticle(ModParticles.WARD_SHARD.get(), p[0], y, p[1],
+                (random.nextDouble() * 2.0D - 1.0D) * SHARD_SPREAD * speed, random.nextDouble() * SHARD_LIFT * Math.sqrt(speed),
+                (random.nextDouble() * 2.0D - 1.0D) * SHARD_SPREAD * speed);
     }
 
     @SubscribeEvent
@@ -343,9 +470,9 @@ public final class LandWardFall
         return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(p[0]), (int) Math.floor(p[1]));
     }
 
-    private static void play(Minecraft mc, double[] p, ClientLevel level, SoundEvent sound, float volume)
+    private static void play(Minecraft mc, double[] p, ClientLevel level, SoundEvent sound, float volume, float pitch)
     {
-        mc.getSoundManager().play(new SimpleSoundInstance(sound, SoundSource.AMBIENT, volume, 1.0F, level.random,
+        mc.getSoundManager().play(new SimpleSoundInstance(sound, SoundSource.AMBIENT, volume, pitch, level.random,
                 p[0], ground(level, p) + 2.0D, p[1]));
     }
 

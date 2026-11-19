@@ -19,5 +19,6 @@ public final class LandWardClientSetup
         event.registerSpriteSet(ModParticles.WARD_STREAK.get(), WardStreakParticle.Provider::new);
         event.registerSpriteSet(ModParticles.WARD_RUNE.get(), WardRuneParticle.Provider::new);
         event.registerSpriteSet(ModParticles.WARD_SHARD.get(), WardShardParticle.Provider::new);
+        event.registerSpriteSet(ModParticles.WARD_CRACK.get(), WardCrackParticle.Provider::new);
     }
 }

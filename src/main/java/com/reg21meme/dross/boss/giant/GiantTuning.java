@@ -140,10 +140,14 @@ public final class GiantTuning
 
     // ---------------------------------------------------------------- where it spawns (SilverwoodGiants)
 
-    /** Never within this many blocks of another giant (so you meet about one every hundred blocks or so)... */
-    public static final double SPAWN_SPACING = 96.0D;
-    /** ...never within this many blocks of the hub's middle... */
-    public static final double HUB_CLEARANCE = 128.0D;
+    /**
+     * Never within this many blocks of another giant, so a few roam within sight of you (since November 19, 2026, the
+     * user: "I don't see any ... giants at all in the forests"; at 96 a probe found one within 128 blocks of a player, out
+     * of sight in the trees)...
+     */
+    public static final double SPAWN_SPACING = 56.0D;
+    /** ...never within this many blocks of the hub's middle (128 until November 19)... */
+    public static final double HUB_CLEARANCE = 96.0D;
     /** ...and only with this many blocks of open air over the 3 x 3 blocks round where it stands (its 4.4 blocks). */
     public static final int SPAWN_HEADROOM = 5;
     /** Clients see it up to this many chunks away. */

@@ -30,8 +30,8 @@ import javax.annotation.Nullable;
  * <ul>
  *   <li>only in the Silverwood Forest, on the ground, in any light (it lives there), never in a fluid, never on
  *       Peaceful;</li>
- *   <li>never within {@link GiantTuning#SPAWN_SPACING} blocks of another giant, so you meet about one every hundred
- *       blocks or so;</li>
+ *   <li>never within {@link GiantTuning#SPAWN_SPACING} blocks of another giant, so a few roam within sight of
+ *       you;</li>
  *   <li>never within {@link GiantTuning#HUB_CLEARANCE} blocks of the hub ({@link DrossHub#CENTER});</li>
  *   <li>only where its whole body fits: {@link GiantTuning#SPAWN_HEADROOM} blocks of open air over the 3 x 3 blocks
  *       round where it stands (the Pallbearer's rule).</li>

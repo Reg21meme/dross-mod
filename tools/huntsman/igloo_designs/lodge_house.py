@@ -148,7 +148,7 @@ LODGE = Igloo(
     "huntsman_lodge", "The Huntsman's Lodge", "lodge",
     "His great lodge: the Alpha Moose's skull over his door, a corridor of bull moose and Rimehorn skulls into his "
     "hall, his seat at the back facing the door under his antlers, the fire and its benches, his table of "
-    "roasted meat, his bedroom on the west with its triple bed, the armoury on the east, his banners outside.",
+    "roasted meat, his bedroom on the west, a rug of furs for his bed, the armoury on the east, his banners outside.",
     [(0, 0, 9, 9.5, [(-60, 2), (130, 3), (-130, 3)], False),
      (-12, -2, 5, 5.6, [], False), (12, -2, 5, 5.6, [], False)],
     {1: L(15, {
@@ -156,9 +156,9 @@ LODGE = Igloo(
         -6: (-4, 4, sym({4: "C", 3: "O"})),
         -5: ([(-13, -11), (-5, 5), (11, 13)], {-13: "O", -12: "D", -11: "O", **_rug(range(-2, 3)),
                                               11: "I", 12: "I", 13: "I"}),
-        -4: ([(-14, -10), (-6, 6), (10, 14)], {-14: "O", -13: "B", -12: "B", -11: "B", -10: "O", **sym({6: "J"}),
+        -4: ([(-14, -10), (-6, 6), (10, 14)], {-14: "O", **{c: "w" for c in range(-13, -10)}, -10: "O", **sym({6: "J"}),
                                               **_rug(range(-2, 3), "n", "g"), 13: "G", 14: "X"}),
-        -3: (-15, 15, {-13: "b", -12: "b", -11: "b", -1: "e", 0: "e", 1: "e", 15: "C"}),
+        -3: (-15, 15, {**_rug(range(-13, -10), "n", "g"), -1: "e", 0: "e", 1: "e", 15: "C"}),
         -2: (-15, 15, {-15: "C", **_rug(range(-13, -10)), 15: "A"}),
         -1: (-15, 15, {**_rug(range(-13, -10), "n", "g"), **sym({3: "i"}), 15: "I"}),
         0: (-14, 14, {-14: "O", **_rug(range(-13, -10)), **sym({3: "i"}), 0: "F", 14: "U"}),
@@ -186,7 +186,6 @@ LODGE = Igloo(
     })},
     legend={"%": BANNER, "^": "spruce_stairs[facing=north,half=bottom]", "a": "birch_fence",
             "S": "smoker[facing={in},lit=false]"},
-    beds={"B": ("brown", "b")},
     hangs=[(-5, 3, 4, "lantern[hanging=true]"), (5, -3, 4, "dross:meat_block[axis=y]"),
            (-3, 4, 4, "dross:meat_block[axis=y]")],
     style=LODGE_STYLE,

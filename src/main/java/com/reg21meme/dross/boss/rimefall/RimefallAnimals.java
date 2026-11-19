@@ -102,7 +102,8 @@ public final class RimefallAnimals
     /**
      * A moose: on Rimefall's or Silverwood Forest's ground, not in water, and never round the hub (a mother there would
      * go for players arriving: the hub's safe zone, {@link DrossHubSafeZone}) or in a hunter village
-     * ({@link #inHunterVillage}).
+     * ({@link #inHunterVillage}), and never by itself within {@link RimefallMobTuning#MOOSE_SPAWN_SPACING} blocks of
+     * another moose.
      */
     public static boolean checkMooseSpawn(EntityType<Moose> type, ServerLevelAccessor level, MobSpawnType reason, BlockPos pos,
                                           RandomSource random)
@@ -112,7 +113,19 @@ public final class RimefallAnimals
             return false;
         }
         return level.getBlockState(pos.below()).is(MOOSE_SPAWN_ON) && level.getFluidState(pos).isEmpty()
-                && !inHunterVillage(level, reason, pos);
+                && !inHunterVillage(level, reason, pos) && !mooseNear(level, reason, pos);
+    }
+
+    /** True if, for a natural spawn, another moose stands within {@link RimefallMobTuning#MOOSE_SPAWN_SPACING} blocks. */
+    private static boolean mooseNear(ServerLevelAccessor level, MobSpawnType reason, BlockPos pos)
+    {
+        if (reason != MobSpawnType.NATURAL && reason != MobSpawnType.CHUNK_GENERATION)
+        {
+            return false;
+        }
+        double range = RimefallMobTuning.MOOSE_SPAWN_SPACING;
+        return !level.getEntitiesOfClass(Moose.class, new net.minecraft.world.phys.AABB(pos).inflate(range, 32.0D, range),
+                m -> m.isAlive() && m.distanceToSqr(pos.getX() + 0.5D, m.getY(), pos.getZ() + 0.5D) <= range * range).isEmpty();
     }
 
     /**

@@ -23,8 +23,8 @@ public class WardShardParticle extends TextureSheetParticle
     public static final int MIN_LIFETIME = 30;
     public static final int MAX_LIFETIME = 55;
     /** Its size (blocks across), at least and at most. */
-    public static final float MIN_SIZE = 0.35F;
-    public static final float MAX_SIZE = 0.8F;
+    public static final float MIN_SIZE = 0.5F;
+    public static final float MAX_SIZE = 1.3F;
     /** How fast it falls (Minecraft's particle gravity: blocks a tick each tick, times 0.04). */
     public static final float GRAVITY = 0.9F;
     /** How fast it tumbles (radians a tick), at most either way. */

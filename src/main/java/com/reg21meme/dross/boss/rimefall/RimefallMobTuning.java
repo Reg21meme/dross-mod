@@ -74,6 +74,8 @@ public final class RimefallMobTuning
     public static final double MOOSE_CHARGE_SPEED = 1.9D;
     /** It gives up a chase once it's this far from where the chase began, and goes back there (like the Rimehorn). */
     public static final double MOOSE_CHASE_LEASH = 24.0D;
+    /** A moose (a lone one, or a mother with her calf) never spawns by itself within this many blocks of another. */
+    public static final double MOOSE_SPAWN_SPACING = 40.0D;
     /** The ram (the user: it "knocks you back more than up"): damage (the user, October 19: "make the male moose do
      * more damage than the female"; 7 for both before), the throw, how far it reaches. */
     public static final float RAM_DAMAGE_BULL = 9.0F;
