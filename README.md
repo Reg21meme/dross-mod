@@ -729,7 +729,9 @@ the edge) with a chat button to summon him.
   `boss-previews/rimefall/huntsman/trophies/`); `/dross showcase trophies huntsman` places all five in a row.
   The Alpha Moose drops its skull (a block you can mount: see the items below) every time it dies.
 - **The Rage Wand:** raging either of them rages both, on the same team.
-- **Running away** from his village's pair: they chase you up to about 60 blocks past their patrol loop, and no further:
+- **His hunting ground**: a village's Huntsman hunts animals and monsters only inside his patrol loop or just past it,
+  and only in Rimefall: he never runs off into the land round his village or another biome to kill things.
+- **Running away** from his village's pair: they chase you up to about 24 blocks past their patrol loop, and no further:
   there they stand and shoot (the arrow rain too) while you're within about 40 blocks. Get further than that out there,
   or leave Rimefall, and they let you go and walk back home, still hurt: they never vanish, so you can come back and
   finish the fight. They don't start a fight with a player standing outside Rimefall.

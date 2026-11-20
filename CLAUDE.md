@@ -1157,7 +1157,8 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
         - **The chase as built** [built October 24, 2026; no vanishing since the user's play test the same day; not yet
           tested in-game] (the patrol loop is the user's later pick, 20 blocks outside the village; numbers in
           `HuntsmanTuning`, "The chase"): a village pair keeps its patrol loop on both of them (`HuntMob.patrol`, so the
-          one left alive has it). **The leash** (`HuntFight.pastLoop`, `held`): past `CHASE_PAST_LOOP` (60) blocks
+          one left alive has it). **The leash** (`HuntFight.pastLoop`, `held`): past `CHASE_PAST_LOOP` (24 since
+          November 19, 2026, 60 before) blocks
           outside the loop, with its target further out still, it's held: none of its moves that travel start
           (`HuntGoal.TRAVELS`: the charge, run in, ride in, circle, the leap, close in, keep range; one going stops), it
           stands and uses the rest (his shots, the arrow rain, the bola, the horn; the moose's blows up close), falling
@@ -1171,6 +1172,16 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
           Headless tests: `HuntsmanFightGameTest.theChaseHasALeash` (the loop's distance; held 90 blocks past it, the
           moose goes no further out; its foe nearer the loop, not held), `aFoeWhoGetsAwayIsLetGo` (out of Rimefall in
           the test world: never their target, the fight not ended, neither removed, still hurt).
+        - **His hunting ground** [built November 19, 2026, not yet tested in-game] (the user: "fix the bug where the
+          Huntsman might go to other biomes and kill stuff, make him stay within near the village perimeter"): he went
+          for any hostile mob, grown moose, Rimehorn or Pond Skater he saw, followed it out as far as his 60-block leash
+          and shot what was further out still, so he killed things in the biomes round his village. Now a village pair
+          goes for a mob only inside its patrol loop or within 16 blocks of it, and only in Rimefall
+          (`HuntFight.onHuntingGround`, `HuntsmanTuning.HUNT_GROUND`: in spotting a foe, choosing a target and the last
+          one that hurt them); a mob going for either of them it fights back as far as its leash, now 24 blocks past the
+          loop (`CHASE_PAST_LOOP`, for players too). A spawn egg's pair (no loop) hunts anywhere; the Rage's enemies
+          count anywhere. Headless test `HuntsmanFightGameTest.aVillagePairHuntsOnlyOnItsGround` (a zombie in sight off
+          its ground: it stays calm; the same pair without a loop goes for it).
       - **The frame rate in the villages** [built October 24, 2026] (the user: "the frame rate at villages is still
         weird, find out what is causing this"): measured in the game (a temporary benchmark that built the Huntsman's
         village in a flat world and logged the frame rate from three fixed spots as it took the village apart, then
@@ -3159,11 +3170,15 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   after you, then walks back; the Huntsman fighting near them never hurts them; `/dross showcase frostfolk_villages` built
   twice doesn't double them. Watch the frame rate in the Huntsman's village (about 65 of them).
 - **The Huntsman's chase** (step 14, October 24; survival, at his village): let him spot you and run straight away
-  from the village: he chases you, then about 60 blocks past his patrol loop stops and keeps shooting (arrow rain too)
+  from the village: he chases you, then about 24 blocks past his patrol loop (60 until November 19) stops and keeps
+  shooting (arrow rain too)
   while you're within about 40 blocks; get further (or out of Rimefall): they let you go and walk back home, still hurt
   (they never vanish); come back within 3 minutes: they're still hurt and fight on; stay over 64 blocks away for 3
   minutes: both back at full health (a dead one back too), him in the saddle on his patrol; stand just outside
   Rimefall near his loop: he doesn't start a fight with you; after the split the moose bellows less often.
+- **The Huntsman keeps to his village** (November 19): watch him on his patrol for a while (`/dross goto lair huntsman`, in
+  creative so he ignores you): he hunts Pond Skaters, moose and Rimehorns only inside or just outside his loop, never
+  running off into the land round it or another biome to kill things, and comes back to his loop after each hunt.
 - **The villages' paths and banks** (step 14, October 24; a new world, `/dross locate villages` and [go]): every path
   over the snow (to the shrine, the Rimeberry Patches) has a stair wherever it steps up a block onto ground that goes
   on, along it and where it meets the steps out of a courtyard, and no stairs round a single block; no windbreak or

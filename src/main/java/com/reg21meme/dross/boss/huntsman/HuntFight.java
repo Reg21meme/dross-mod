@@ -83,7 +83,9 @@ import java.util.function.Predicate;
  *   <li>A village's pair chases at most {@link HuntsmanTuning#CHASE_PAST_LOOP} blocks past its patrol loop (there it
  *       stands and shoots: {@link #held}); a player who gets away out there (further than
  *       {@link HuntsmanTuning#HOLD_RANGE}, or out of Rimefall) is let go ({@link #gotAway}), and with nobody else to
- *       fight they head home, still hurt ({@link #headHome}), until the break-off heals them.</li>
+ *       fight they head home, still hurt ({@link #headHome}), until the break-off heals them. It hunts mobs only on its
+ *       own ground: inside its loop or within {@link HuntsmanTuning#HUNT_GROUND} of it, in Rimefall ({@link
+ *       #onHuntingGround}; the user, November 19, 2026: he went "to other biomes and kill[ed] stuff").</li>
  * </ul>
  * They never hurt each other (their blows, arrows, bolas, spears, spikes). The moose goes for the closest foe, he for
  * the furthest player (the user: "the moose is the close range attacker, the hunter long range"); raged, with a raged
@@ -752,6 +754,23 @@ public final class HuntFight
     }
 
     /**
+     * True if {@code mob}'s pair may go for the mob {@code e} there (the user, November 19, 2026: "fix the bug where the
+     * Huntsman might go to other biomes and kill stuff, make him stay within near the village perimeter"): a village's
+     * pair only inside its patrol loop or within {@code margin} blocks past it, in Rimefall ({@link
+     * HuntsmanTuning#HUNT_GROUND} for what it hunts, its leash {@link HuntsmanTuning#CHASE_PAST_LOOP} for what's going for
+     * it). A pair with no loop (a spawn egg's) hunts anywhere, and the Rage's enemies count anywhere. Players have their
+     * own rule ({@link #gotAway}).
+     */
+    static boolean onHuntingGround(HuntMob mob, Entity e, double margin)
+    {
+        if (mob.patrol().size() < 3 || e instanceof Player || Rage.areEnemies(mob, e))
+        {
+            return true;
+        }
+        return pastLoop(mob, e.position()) <= margin && inRimefall(e);
+    }
+
+    /**
      * A village pair's player who has got away: outside the patrol loop, and further than
      * {@link HuntsmanTuning#HOLD_RANGE} from {@code mob} or out of Rimefall. They let them go ({@link #chooseTarget}) and
      * head home, still hurt; they're healed only after {@link HuntsmanTuning#BREAK_OFF_TICKS} with nobody near.
@@ -904,7 +923,8 @@ public final class HuntFight
         // (a village's Huntsman hunts in Rimefall: a player out of it, beyond his loop's edge, isn't his)
         boolean village = mob.homeVillage() != 0;
         for (LivingEntity e : mob.level().getEntitiesOfClass(LivingEntity.class, mob.getBoundingBox().inflate(r),
-                e -> isFoe(mob, e) && e.distanceToSqr(mob) <= r * r && !(village && e instanceof Player && !inRimefall(e))))
+                e -> isFoe(mob, e) && e.distanceToSqr(mob) <= r * r && !(village && e instanceof Player && !inRimefall(e))
+                        && onHuntingGround(mob, e, HuntsmanTuning.HUNT_GROUND)))
         {
             if (mob.hasLineOfSight(e) || partner != null && partner.isAlive() && partner.hasLineOfSight(e))
             {
@@ -955,6 +975,10 @@ public final class HuntFight
                     playerD = d;
                 }
             }
+            else if (!onHuntingGround(mob, e, HuntsmanTuning.HUNT_GROUND))
+            {
+                continue;                            // (off his hunting ground: not his to hunt)
+            }
             else if (other == null || (furthest ? d > otherD : d < otherD))
             {
                 other = e;
@@ -971,7 +995,8 @@ public final class HuntFight
             // (never a player in creative: the user, October 30, "he even seems to attack me in creative")
             if (last != null && last.isAlive() && last.canBeSeenAsEnemy() && !isPartner(mob, last)
                     && !Rage.areTeammates(mob, last) && last.distanceToSqr(mob) <= range * range
-                    && !(last instanceof Player p && (gotAway(mob, p) || BossLocks.isLockedFor(mob, p))))
+                    && !(last instanceof Player p && (gotAway(mob, p) || BossLocks.isLockedFor(mob, p)))
+                    && onHuntingGround(mob, last, HuntsmanTuning.CHASE_PAST_LOOP))
             {
                 return last;
             }
@@ -1015,7 +1040,7 @@ public final class HuntFight
         LivingEntity best = null;
         double bestD = 0.0D;
         for (Mob e : mob.level().getEntitiesOfClass(Mob.class, mob.getBoundingBox().inflate(r),
-                e -> isFoe(mob, e) && e.canBeSeenAsEnemy()))
+                e -> isFoe(mob, e) && e.canBeSeenAsEnemy() && onHuntingGround(mob, e, HuntsmanTuning.CHASE_PAST_LOOP)))
         {
             LivingEntity its = e.getTarget();
             double d = e.distanceToSqr(mob);

@@ -1335,6 +1335,77 @@ public final class HuntsmanFightGameTest
         helper.succeed();
     }
 
+    /** A village's pair hunts only on its own ground (the user, November 19, 2026: he went "to other biomes and kill[ed]
+     * stuff"): with a zombie in plain sight 10 blocks off but off its ground (the test's world isn't Rimefall), it stays
+     * calm and never goes for it; the same pair without a village (no patrol loop: a spawn egg's) spots it and goes for
+     * it. In a batch of its own: a player of another test would start the fight. */
+    @GameTest(template = ARENA, batch = "dross_huntsman_ground", timeoutTicks = WAIT + 600)
+    public static void aVillagePairHuntsOnlyOnItsGround(GameTestHelper helper)
+    {
+        if (ColossusGameTest.waitForArena(helper, HuntsmanFightGameTest::aVillagePairHuntsOnlyOnItsGround))
+        {
+            return;
+        }
+        ServerLevel level = helper.getLevel();
+        Huntsman h = pair(helper, MIDDLE.offset(-5, 0, 0), 90.0F);
+        AlphaMoose m = moose(h);
+        BlockPos c = helper.absolutePos(MIDDLE.offset(-5, 0, 0));
+        List<BlockPos> loop = List.of(c.offset(-4, 0, -4), c.offset(4, 0, -4), c.offset(4, 0, 4), c.offset(-4, 0, 4));
+        h.setPatrol(loop, 0);
+        m.setPatrol(loop, 0);
+        Zombie z = EntityType.ZOMBIE.create(level);
+        if (z == null)
+        {
+            clear(h, m);
+            throw new GameTestAssertException("couldn't make a zombie");
+        }
+        Vec3 at = helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE.offset(5, 0, 0)));
+        z.moveTo(at.x, at.y, at.z, 90.0F, 0.0F);
+        z.setPersistenceRequired();
+        z.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, 20 * 60, 0, false, false));
+        level.addFreshEntity(z);
+        boolean[] went = {false};
+        helper.startSequence()
+                .thenExecuteFor(100, () ->
+                {
+                    went[0] |= h.getTarget() == z || m.getTarget() == z || m.stage() != HuntStage.CALM;
+                    if (z.isAlive())
+                    {
+                        z.setPos(at.x, at.y, at.z);          // (it stays where it was put)
+                    }
+                })
+                .thenExecute(() ->
+                {
+                    if (went[0] || HuntFight.onHuntingGround(m, z, HuntsmanTuning.HUNT_GROUND))
+                    {
+                        clear(h, m);
+                        z.discard();
+                        throw new GameTestAssertException("a village's pair should leave a mob off its ground alone (stage "
+                                + m.stage() + ", targets " + h.getTarget() + " / " + m.getTarget() + ")");
+                    }
+                    h.setPatrol(List.of(), 0);                  // no village: it hunts anywhere
+                    m.setPatrol(List.of(), 0);
+                })
+                .thenWaitUntil(() ->
+                {
+                    if (z.isAlive())
+                    {
+                        z.setPos(at.x, at.y, at.z);
+                    }
+                    if (!(h.getTarget() == z || m.getTarget() == z))
+                    {
+                        throw new GameTestAssertException("waiting for the pair without a village to go for the zombie (stage "
+                                + m.stage() + ")");
+                    }
+                })
+                .thenExecute(() ->
+                {
+                    clear(h, m);
+                    z.discard();
+                })
+                .thenSucceed();
+    }
+
     /** His arrows from the saddle hit a target 12 blocks off, standing or sprinting across his line, in each of the four
      * directions (each with its own shot: ahead, left, right, behind; HuntProbeGameTest#shots, on a floor in the sky). */
     @GameTest(template = ARENA, timeoutTicks = WAIT + 4000)

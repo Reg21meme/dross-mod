@@ -56,9 +56,16 @@ public final class HuntsmanTuning
      * {@code HuntGoal}); a player outside the loop and further than {@link #HOLD_RANGE} off, or out of Rimefall, has got
      * away: they let them go and head home, still hurt, until {@link #BREAK_OFF_TICKS} with nobody near heals them.
      * (Until October 24, 2026 they rode off and vanished for 7 minutes; the user: "I don't want him to disappear for 7
-     * minutes if I happen to leave, then can't fight him again".) */
-    public static final double CHASE_PAST_LOOP = 60.0D;
+     * minutes if I happen to leave, then can't fight him again".) Since November 19, 2026 24 blocks, not 60 (the user:
+     * "fix the bug where the Huntsman might go to other biomes and kill stuff, make him stay within near the village
+     * perimeter"). */
+    public static final double CHASE_PAST_LOOP = 24.0D;
     public static final double HOLD_RANGE = 40.0D;
+    /** His hunting ground (the same day): a village pair goes for a mob (an animal it hunts, a hostile mob) only inside
+     * its patrol loop or within this many blocks of it, and only in Rimefall ({@code HuntFight.onHuntingGround}); one
+     * that goes for either of them it fights back as far as its leash, {@link #CHASE_PAST_LOOP}. A spawn egg's pair has
+     * no loop and hunts anywhere; the Rage's enemies count anywhere. */
+    public static final double HUNT_GROUND = 16.0D;
     /** Stage 2: each of them on his own bar (the user's boss buff, November 6, 2026: him 175 and the Alpha Moose 200,
      * from 150 each). */
     public static final float HUNTSMAN_HEALTH = 175.0F;
