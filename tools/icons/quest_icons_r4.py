@@ -61,14 +61,17 @@ def giant_head(eyes="dead"):
         g[10][x] = "s"
         g[11][x] = "Q"
     put(g, {(7, 10): "Q", (24, 10): "Q", (15, 11): "S", (16, 11): "S"})
-    for x0 in (8, 19):                                                     # the eyes, dead: sockets and an X
-        for x in range(x0, x0 + 5):
-            for y in range(11, 16):
+    for x0 in (7, 19):                                                     # the eyes, dead: sockets, a thick X
+        for x in range(x0, x0 + 6):
+            for y in range(11, 17):
                 g[y][x] = "Q"
         if eyes == "dead":
-            put(g, {(x0, 11): "x", (x0 + 4, 11): "x", (x0 + 1, 12): "x", (x0 + 3, 12): "x", (x0 + 2, 13): "x",
-                    (x0 + 1, 14): "x", (x0 + 3, 14): "x", (x0, 15): "x", (x0 + 4, 15): "x"})
-    for y in range(14, 19):                                                # the broad nose
+            for i in range(6):
+                for w in (0, 1):
+                    if i + w < 6:
+                        g[11 + i][x0 + i + w] = "x"
+                        g[11 + i][x0 + 5 - i - w] = "x"
+    for y in range(15, 19):                                                # the broad nose
         g[y][15] = "s"
         g[y][16] = "S"
     put(g, {(14, 18): "Q", (17, 18): "Q", (14, 17): "S", (17, 17): "q"})
@@ -83,45 +86,74 @@ def giant_head(eyes="dead"):
     return g
 
 def gs_a():
-    """Your sword driven down into the top of a Silverwood Giant's head, his blue eyes crossed out, the giants' blue
-    welling where it went in."""
+    """Your sword driven down into the top of a Silverwood Giant's head, his eyes crossed out."""
     g = giant_head()
     sword(g, (17, 5), (27, -5))
     return g
 
+
 def gs_b():
-    """A Silverwood Giant's head lying on its side on the forest floor, his eyes crossed out, your sword planted upright
-    beside it."""
+    """A Silverwood Giant's head mounted on a wooden plaque, a trophy on your wall, his eyes crossed out."""
+    plaque = union(rect(1, 4, 30, 25), ellipse(15.5, 25, 13, 5.5))
+    g = shade(plaque, "o", "WWwo")
     head = giant_head()
-    g = blank()
-    for y in range(N):                                                     # turned a quarter onto its left cheek
-        for x in range(N):
-            sx, sy = y, N - 1 - x
-            g[y][x] = head[sy][sx]
-    out = blank()
     for y in range(N):
         for x in range(N):
-            ty = y + 3
-            if 0 <= ty < N and g[y][x] != ".":
-                out[ty][x] = g[y][x]
-    for x in range(N):
-        out[30][x] = "m" if x % 3 else "M"
-        out[31][x] = "m"
-    sword(out, (29, 30), (29, 13))
-    return out
+            if head[y][x] != "." and y < 30:
+                g[y][x] = head[y][x]
+    put(g, {(15, 30): "U", (16, 30): "U", (14, 31): "u", (17, 31): "u"})
+    return g
+
+
+def arrow(g, tip, tail):
+    """An arrow stuck in him: its shaft from its tail to where it went in, white fletching at its tail."""
+    for q in line_pts(*tail, *tip):
+        if 0 <= q[0] < N and 0 <= q[1] < N:
+            g[q[1]][q[0]] = "w"
+    tx, ty = tail
+    for dx, dy in ((0, 0), (1, 0), (0, 1), (-1, 0), (0, -1)):
+        if 0 <= tx + dx < N and 0 <= ty + dy < N:
+            g[ty + dy][tx + dx] = "J" if (dx, dy) != (0, 0) else "I"
+    return g
+
+
+def gs_c():
+    """A Silverwood Giant's head bristling with your arrows, three stuck in his brow and hair, his eyes crossed out."""
+    g = giant_head()
+    arrow(g, (10, 8), (3, 1))
+    arrow(g, (16, 6), (16, 0))
+    arrow(g, (22, 8), (29, 1))
+    return g
+
+
+def gs_d():
+    """A Silverwood Giant knocked out cold: his eyes crossed out, a great lump swelling on his head, stars spinning
+    round it."""
+    g = giant_head()
+    lump = ellipse(20, 3.5, 4.5, 3.5)
+    g = layer(g, shade(lump, "k", "54s"))
+    for cx, cy in ((5, 4), (28, 9), (12, 1)):
+        put(g, {(cx, cy): "U", (cx - 1, cy): "u", (cx + 1, cy): "u", (cx, cy - 1): "u", (cx, cy + 1): "u"})
+    return g
 
 
 GIANT_SLAYER = [
     ("GS14", "Sword in the giant", "Giant Slayer: a Silverwood Giant's head as his model has it (pale ashen skin, wild "
-     "black mane, heavy brow, great black beard), his eyes dead (an X in each dark socket), your sword driven into the top of it", G,
+     "black hair, heavy brow, great black beard), his eyes crossed out, your sword driven into the top of it", G,
      rows(gs_a())),
+    ("GS16", "The giant's head on your wall", "Giant Slayer: the same head mounted on a wooden plaque, like the "
+     "moose's, his eyes crossed out", G, rows(gs_b())),
+    ("GS17", "Full of arrows", "Giant Slayer: his head bristling with your arrows, three stuck in his brow and hair",
+     G, rows(gs_c())),
+    ("GS18", "Out cold", "Giant Slayer: knocked out cold, a great lump swelling on his head, stars spinning round it",
+     G, rows(gs_d())),
 ]
 
 
 # ---------------------------------------------------------------- Into the Ashes: the ash mountain
 
-C = {**R3.C, "g": (150, 146, 140), "G": (110, 106, 102), "f": (210, 206, 200), "F": (176, 172, 166),
-     "v": (230, 228, 224)}
+C = {**R3.C, "g": (150, 146, 140), "G": (70, 66, 64), "b": (98, 94, 90), "A": (134, 130, 126),
+     "f": (180, 176, 172), "F": (176, 172, 166), "v": (220, 218, 214)}
 
 
 def turned(points, cx, cy, deg):
@@ -130,22 +162,38 @@ def turned(points, cx, cy, deg):
 
 
 def ia_a():
-    """A mountain of ash, smoke rising off it, embers glowing in it, and the Pallbearer's top hat lying tipped over at
-    an angle on its summit: all that's left of him."""
+    """A mountain of dark ash burning, flames licking up out of it and embers glowing all over it, a great column of
+    smoke billowing off it, and the Pallbearer's top hat lying tipped over at an angle on its summit."""
     mountain = poly([(-0.5, 31.5), (4, 26), (9, 20), (13, 16.5), (17, 15), (21, 17), (26, 22), (32.5, 29),
                      (32.5, 31.5)])
-    g = shade(mountain, "k", "aAbbG")
-    for x, y, c in [(10, 22, "l"), (6, 27, "r"), (14, 25, "L"), (20, 23, "l"), (24, 28, "r"), (11, 30, "y"),
-                    (27, 26, "l"), (17, 29, "L")]:
-        g[y][x] = c
-    smoke = union(ellipse(23, 13, 2.6, 2.2), ellipse(25, 9.5, 3.2, 2.4), ellipse(23.5, 5.5, 3.4, 2.4),
-                  ellipse(26.5, 2.5, 3, 2.2))
-    sm = shade(smoke, "G", "vfF")
-    for y in range(N):
-        for x in range(N):
-            if sm[y][x] != "." and g[y][x] == ".":
-                g[y][x] = sm[y][x]
-    # the hat, tipped over on the summit: its brim resting on the ash, its crown leaning up and off to the left
+    g = shade(mountain, "k", "bbGG2")
+    for x in range(N):
+        for y in range(N):
+            if g[y][x] in ("b", "G") and (x * 7 + y * 5) % 9 == 0:
+                g[y][x] = "A"
+    embers = [(10, 22, "l"), (6, 27, "r"), (14, 25, "L"), (20, 23, "l"), (24, 28, "r"), (11, 30, "y"), (27, 26, "l"),
+              (17, 29, "L"), (4, 30, "l"), (8, 25, "r"), (22, 26, "L"), (29, 30, "r"), (15, 21, "l"), (19, 27, "y")]
+    for x, y, c in embers:
+        if g[y][x] != ".":
+            g[y][x] = c
+    flames = [(8, 21, 3), (21, 19, 3), (26, 24, 2), (3, 27, 2), (12, 18, 2)]
+    for fx, fy, h in flames:
+        for i in range(h + 1):
+            g[fy - i][fx] = "y" if i == 0 else ("L" if i < h else "l")
+            if i < h - 1:
+                g[fy - i][fx + 1] = "l"
+        g[fy - h - 1][fx] = "r"
+    puffs = [(19, 15, 2.4, 2.0, "G"), (21.5, 12.5, 3.0, 2.4, "G"), (23, 9, 3.6, 2.7, "b"), (21, 5.8, 3.6, 2.6, "b"),
+             (25.5, 6, 3.0, 2.4, "A"), (23.5, 2.5, 4.0, 2.4, "A"), (28.5, 2, 2.6, 2.0, "A"), (18, 2, 2.6, 2, "A")]
+    for cx, cy, rx, ry, tone in puffs:
+        ramp = {"G": "bGG", "b": "AbG", "A": "fAb"}[tone]
+        pm = shade(ellipse(cx, cy, rx, ry), ramp[2], ramp)
+        for y in range(N):
+            for x in range(N):
+                if pm[y][x] != "." and g[y][x] in (".", "b", "G", "A", "f"):
+                    g[y][x] = pm[y][x]
+    for x, y in [(24, 4), (22, 7), (26, 8), (20, 11), (27, 3)]:
+        g[y][x] = "v"
     cx, cy, tilt = 15, 15.5, -28
     brim = turned([(-7.5, -1), (7.5, -1), (7.5, 1), (-7.5, 1)], cx, cy, tilt)
     crown = turned([(-4.5, -10.5), (4.5, -10.5), (4.8, -1), (-4.8, -1)], cx, cy, tilt)
@@ -159,8 +207,8 @@ def ia_a():
     return g
 
 INTO_THE_ASHES = [
-    ("IA14", "The ash mountain", "Into the Ashes: a mountain of ash with smoke rising off it and embers glowing in "
-     "it, the Pallbearer's top hat lying tipped over at an angle on its summit", C, rows(ia_a())),
+    ("IA14", "The ash mountain", "Into the Ashes: a mountain of dark ash burning, flames and embers all over it, a "
+     "great column of smoke billowing off it, the Pallbearer's top hat tipped over on its summit", C, rows(ia_a())),
 ]
 
 
@@ -203,53 +251,97 @@ def shift(g, dx, dy):
     return out
 
 
-def tiny_rat(flip=False, belly_up=True):
-    """One Plague Rat lying dead for the pile, about 17 x 11 at the grid's top left: belly up with its feet in the air,
-    or flopped on its front with its legs splayed; an X for its eye, its pink ear and tail (facing left; flip faces it
-    right)."""
-    g = blank()
-    body = ellipse(9.5, 6, 5.6, 3.2)
-    head = ellipse(3.6, 6.6, 3.2, 2.7)
-    g = layer(g, shade(union(body, head), "k", "5432" if belly_up else "4321"))
-    if belly_up:
-        for x in range(6, 14):
-            if g[4][x] != "k":
-                g[4][x] = "5"
-        for fx in (6, 9, 12, 13):
-            g[2][fx] = "k"
-            g[1][fx] = "P"
-    else:
-        for fx in (6, 12):
-            g[9][fx] = "k"
-            g[10][fx] = "P"
-        for x in range(7, 13):
-            if g[3][x] == "4":
-                g[3][x] = "3"
-    put(g, {(3, 4): "P", (2, 4): "k", (4, 4): "P"})
-    put(g, x_eye(3, 7, 1, "x"))
-    put(g, {(0, 8): "P"})
-    put(g, {q: "P" for q in line_pts(15, 7, 17, 5) + line_pts(17, 5, 18, 7)})
-    if flip:
-        g = [list(reversed(r[:19])) + ["."] * (N - 19) for r in g]
+def rat_at(g, cx, cy, deg, flip=False, k=1.0):
+    """One dead Plague Rat on its back, about 22 blocks of pixels nose to tail, centred on cx, cy and turned deg
+    degrees: its grey-green body and pale belly, its pointed snout and pink nose, its pink ear, four feet sticking up,
+    an X for its eye, its long pink tail."""
+    sx = -1.0 if flip else 1.0
+
+    def at(x, y):
+        a = math.radians(deg)
+        x *= sx * k
+        y *= k
+        return (cx + x * math.cos(a) - y * math.sin(a), cy + x * math.sin(a) + y * math.cos(a))
+
+    def ell(ex, ey, rx, ry, n=20):
+        return [at(ex + rx * math.cos(t * 2 * math.pi / n), ey + ry * math.sin(t * 2 * math.pi / n)) for t in range(n)]
+    body = poly(ell(1.0, 0.0, 6.6, 3.4))
+    head = poly(ell(-6.0, 0.4, 3.2, 2.7))
+    snout = poly([at(-7.5, -1.6), at(-11.6, 0.6), at(-7.5, 2.6)])
+    m = union(body, head, snout)
+    part = shade(m, "k", "4321")
+    belly = poly(ell(1.0, -1.6, 5.0, 1.4))
+    for y in range(N):
+        for x in range(N):
+            if part[y][x] not in (".", "k") and belly[y][x]:
+                part[y][x] = "5"
+    g = layer(g, part)
+    for fx in (-3.0, -0.5, 2.5, 5.0):                                       # feet in the air
+        for q in line_pts(*[round(v) for v in at(fx, -3.4)], *[round(v) for v in at(fx + 0.3, -6.0)]):
+            if 0 <= q[0] < N and 0 <= q[1] < N:
+                g[q[1]][q[0]] = "k"
+        tip = [round(v) for v in at(fx + 0.3, -6.4)]
+        if 0 <= tip[0] < N and 0 <= tip[1] < N:
+            g[tip[1]][tip[0]] = "P"
+    for q in ([round(v) for v in at(-6.0, -2.6)], [round(v) for v in at(-5.0, -2.6)]):    # its ear
+        if 0 <= q[0] < N and 0 <= q[1] < N:
+            g[q[1]][q[0]] = "P"
+    nose = [round(v) for v in at(-11.4, 0.6)]
+    if 0 <= nose[0] < N and 0 <= nose[1] < N:
+        g[nose[1]][nose[0]] = "P"
+    ex, ey = [round(v) for v in at(-6.6, -0.4)]                             # its X eye
+    for d in (-1, 0, 1):
+        for q in ((ex + d, ey + d), (ex + d, ey - d)):
+            if 0 <= q[0] < N and 0 <= q[1] < N:
+                g[q[1]][q[0]] = "x"
+    tail = [at(7.4, 0.4), at(10.5, -1.5), at(13.5, 0.5), at(15.5, -1.0)]       # its long tail
+    for (a, b), (c, d) in zip(tail, tail[1:]):
+        for q in line_pts(round(a), round(b), round(c), round(d)):
+            if 0 <= q[0] < N and 0 <= q[1] < N and g[q[1]][q[0]] == ".":
+                g[q[1]][q[0]] = "P"
     return g
+
+def rat_face(g, cx, cy):
+    """A dead Plague Rat's face poking out of the heap, front on: grey-green fur, round pink ears, an X for each eye,
+    a pale snout and a pink nose."""
+    face = ellipse(cx, cy, 4.6, 3.8)
+    ears = union(ellipse(cx - 3.4, cy - 3.2, 1.9, 1.9), ellipse(cx + 3.4, cy - 3.2, 1.9, 1.9))
+    g = layer(g, shade(ears, "k", "PPp"), shade(face, "k", "5443"))
+    ix, iy = int(cx), int(cy)
+    for ex in (ix - 2, ix + 1):
+        put(g, {(ex - 1, iy - 2): "x", (ex + 1, iy - 2): "x", (ex, iy - 1): "x", (ex - 1, iy): "x", (ex + 1, iy): "x"})
+    put(g, {(ix - 1, iy + 1): "5", (ix, iy + 1): "5", (ix - 1, iy + 2): "P", (ix, iy + 2): "P"})
+    return g
+
 
 def br_a():
-    """A great heap of dead Plague Rats piled on top of each other, the heap's bottom wide and its top a single rat:
-    belly up with their feet in the air or flopped over, X eyes, tails hanging out."""
-    g = blank()
-    spots = [(-2, 21, False, True), (8, 22, True, False), (15, 20, False, True), (2, 15, True, True),
-             (12, 14, False, False), (19, 15, True, True), (6, 8, False, True), (14, 8, True, True),
-             (9, 2, False, True)]
-    for x0, y0, flip, up in spots:
-        g = layer(g, shift(tiny_rat(flip, up), x0, y0))
-    for x in range(N):
-        if g[31][x] == ".":
-            g[31][x] = "1" if x % 2 else "2"
+    """A great heap of dead Plague Rats: a mound of grey-green fur, their faces poking out of it every which way (round
+    pink ears, X eyes, pink noses), their tails hanging out and their feet sticking up."""
+    mound = poly([(-0.5, 31.5), (0.5, 24), (3, 17), (8, 11.5), (16, 9), (24, 11.5), (29, 17), (31.5, 24), (32.5, 31.5)])
+    g = shade(mound, "k", "33221")
+    for y in range(N):
+        for x in range(N):
+            if g[y][x] in ("3", "2") and (x * 5 + y * 3) % 7 == 0:
+                g[y][x] = "1"
+            elif g[y][x] == "3" and (x * 3 + y * 7) % 11 == 0:
+                g[y][x] = "4"
+    for tail in ([(3, 27), (0, 25), (1, 21)], [(28, 22), (31, 20), (30, 16)], [(19, 10), (21, 6), (24, 4)],
+                 [(10, 30), (7, 29), (5, 31)]):
+        for (a1, b1), (c1, d1) in zip(tail, tail[1:]):
+            for q in line_pts(a1, b1, c1, d1):
+                if 0 <= q[0] < N and 0 <= q[1] < N:
+                    g[q[1]][q[0]] = "P"
+    for fx, fy in ((6, 15), (8, 14), (25, 14), (27, 15), (13, 9), (15, 8)):
+        g[fy][fx] = "k"
+        g[fy - 1][fx] = "P"
+    for cx, cy in ((9, 21), (22, 22), (15, 15), (24, 15), (14, 27)):
+        g = rat_face(g, cx, cy)
     return g
 
+
 BENEATH_THE_ROT = [
-    ("BR14", "The rat pile", "Beneath the Rot: a great heap of dead Plague Rats piled on top of each other, feet "
-     "in the air, X eyes, tails hanging out", R, rows(br_a())),
+    ("BR14", "The rat pile", "Beneath the Rot: a great heap of dead Plague Rats, their faces poking out of it every "
+     "which way (pink ears, X eyes), tails hanging out, feet sticking up", R, rows(br_a())),
 ]
 
 
