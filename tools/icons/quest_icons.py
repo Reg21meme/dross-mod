@@ -5,7 +5,8 @@ at 32 x 32 (the game shows it at an item's size with twice the detail, like the 
 shaded from the top left inside a dark outline, the details put on by hand. The user's picks after four rounds of
 options (the options they didn't pick were removed, at their word):
 
-  Giant Slayer     GS17  a Silverwood Giant's head (from his model) bristling with your arrows, his eyes crossed out
+  Giant Slayer     GS24  a Silverwood Giant's head (from his model, made simple), two of your arrows crossed right
+                         through it, his eyes crossed out
   Into the Ashes   IA14  a mountain of dark ash burning, smoke billowing off it, the Pallbearer's top hat on its summit
   Beneath the Rot  BR21  a dead Plague Rat on its back on the rotten ground in a puddle of green rot, flies over it
   First Frost      FF14  a bull moose's head mounted on a plaque, its eyes crossed out, frost on its antlers
@@ -191,72 +192,135 @@ def ground(g, top=28, a="d", b="D", c="e"):
     return g
 
 
-# ---------------------------------------------------------------- Giant Slayer (GS17)
+# ---------------------------------------------------------------- Giant Slayer (GS24)
 
-GIANT = {"k": (12, 12, 18), "x": (4, 4, 8), "h": (22, 22, 30), "H": (40, 40, 52), "j": (64, 66, 82),
-         "s": (176, 178, 186), "S": (150, 152, 162), "q": (122, 124, 136), "Q": (96, 98, 110),
-         "w": (110, 72, 40), "J": (236, 240, 246), "I": (122, 128, 140)}
+GIANT = {"k": (12, 12, 18), "x": (4, 4, 8), "h": (30, 30, 40), "H": (44, 44, 56), "j": (62, 62, 78),
+         "s": (184, 186, 194), "S": (152, 154, 164), "q": (124, 126, 138),
+         "w": (176, 124, 72), "W": (120, 80, 44), "J": (244, 246, 250), "I": (170, 176, 190),
+         "A": (172, 178, 192), "B": (92, 96, 110)}
+
+
+def flat(m, outline, fill, shadow=None):
+    """A shape filled flat inside its outline, its right and bottom inner edge `shadow` if given (simpler than
+    `shade`: the user, November 19, 2026, of GS17's head: "too much detail")."""
+    out = blank()
+
+    def on(x, y):
+        return inside(x, y) and m[y][x]
+    for y in range(N):
+        for x in range(N):
+            if not m[y][x]:
+                continue
+            if not (on(x - 1, y) and on(x + 1, y) and on(x, y - 1) and on(x, y + 1)):
+                out[y][x] = outline
+            elif shadow and (not on(x + 2, y) or not on(x, y + 2)):
+                out[y][x] = shadow
+            else:
+                out[y][x] = fill
+    return out
+
+
+X_EYE = ["xx.xx", ".xxx.", "..x..", ".xxx.", "xx.xx"]
 
 
 def giant_head():
-    """A Silverwood Giant's head as his model has it, front on: square, pale ashen skin, wild black hair on top and
-    falling past his temples, a heavy brow, his eyes dead (a thick black X straight on his skin), a broad nose and a
-    great black beard."""
+    """A Silverwood Giant's head as his model has it, front on, made simple and chibi: a wide square ashen face, a cap of
+    dark hair with tufts sticking up, a heavy scowling brow (a V), his eyes crossed out, a broad nose, a horseshoe
+    moustache arching over a grey lip, its ends drooping down beside it, and a long straight beard, narrower than his
+    face, hanging in strands (the user: "the beard needs work, it looks off"; drawn from his model's front)."""
     g = blank()
-    skull = rect(5, 4, 26, 24)
-    g = layer(g, shade(skull, "k", "ssSq"))
-    mottle(g, skull, "S", "q", 6)
-    hair = union(rect(4, 1, 27, 5), rect(4, 5, 6, 11), rect(25, 5, 27, 11))
-    for x in range(7, 25):
-        if x % 3 != 1:
-            hair[6][x] = True
-        if x % 4 == 0:
-            hair[7][x] = True
-    for x in range(4, 28, 3):
-        hair[0][x] = True
-    g = layer(g, shade(hair, "k", "jHh"))
-    for x in range(7, 25):                                                 # the heavy brow and its shadow
-        g[10][x] = "s"
-        g[11][x] = "Q"
-    put(g, {(7, 10): "Q", (24, 10): "Q", (15, 11): "S", (16, 11): "S"})
-    for x0 in (7, 19):                                                     # the eyes: a thick black X each
-        for i in range(6):
-            for w in (0, 1):
-                if i + w < 6:
-                    g[11 + i][x0 + i + w] = "x"
-                    g[11 + i][x0 + 5 - i - w] = "x"
-    for y in range(15, 19):                                                # the broad nose
-        g[y][15] = "s"
-        g[y][16] = "S"
-    put(g, {(14, 18): "Q", (17, 18): "Q", (14, 17): "S", (17, 17): "q"})
-    beard = union(rect(8, 19, 23, 25), poly([(8, 25), (24, 25), (20.5, 31.5), (11.5, 31.5)]),
-                  rect(6, 17, 9, 21), rect(22, 17, 25, 21))
-    beard = minus(beard, rect(12, 14, 19, 19))
-    g = layer(g, shade(beard, "k", "jHhh"))
-    for x in range(12, 20):                                                # his mouth in the beard
-        g[21][x] = "x"
-    for x, y in [(10, 23), (13, 25), (18, 24), (21, 22), (15, 28), (20, 27)]:
-        g[y][x] = "j"
+    face = rect(6, 7, 25, 22)
+    g = layer(g, flat(face, "k", "s", "S"))
+    hair = rect(5, 3, 26, 7)
+    for x in (7, 11, 15, 16, 20, 24):                                      # tufts sticking up
+        hair[2][x] = True
+    g = layer(g, flat(hair, "k", "h"))
+    for x in (9, 13, 18, 22):
+        dot(g, x, 4, "H")
+        dot(g, x, 5, "H")
+    # the brow: a heavy V, high at its ends, low over his nose
+    for x, y in ((7, 10), (8, 10), (9, 10), (10, 11), (11, 11), (12, 11), (13, 12), (14, 12), (15, 12)):
+        for xx in (x, 31 - x):
+            dot(g, xx, y, "h")
+            dot(g, xx, y + 1, "h")
+    for x0 in (8, 19):                                                     # the eyes, crossed out
+        stamp(g, X_EYE, x0, 14)
+    for y in range(14, 19):                                                # the broad nose
+        dot(g, 15, y, "s")
+        dot(g, 16, y, "S")
+    put(g, {(14, 18): "q", (17, 18): "q", (15, 18): "S", (16, 18): "q"})
+    # the beard: below his lip, narrower than his face, longest in the middle, a few lighter strands
+    bottoms = {9: 26, 10: 28, 11: 29, 12: 30, 13: 30, 14: 31, 15: 31, 16: 31, 17: 31, 18: 30, 19: 30, 20: 29, 21: 28,
+               22: 26}
+    m = empty()
+    for x, bot in bottoms.items():
+        for y in range(23, bot + 1):
+            m[y][x] = True
+    beard = flat(m, "k", "H")
+    for x, y0, y1 in ((11, 23, 27), (13, 24, 29), (16, 23, 30), (18, 24, 28), (20, 23, 27), (14, 22, 25)):
+        for y in range(y0, y1 + 1):
+            if beard[y][x] == "H":
+                beard[y][x] = "j"
+    g = layer(g, beard)
+    for x in range(13, 19):                                                # his lip, grey, under the moustache
+        dot(g, x, 21, "S")
+    for x in range(12, 20):
+        dot(g, x, 22, "q")
+    # the moustache: a thick dark arch from under his nose, its ends drooping down beside his lip over the beard
+    for y, (x0, x1) in {19: (14, 17), 20: (12, 19)}.items():
+        for x in range(x0, x1 + 1):
+            dot(g, x, y, "h")
+    for y in (21, 22, 23, 24):
+        for x in ((10, 11, 12) if y == 21 else (10, 11)):
+            dot(g, x, y, "h")
+            dot(g, 31 - x, y, "h")
+    dot(g, 10, 25, "h")
+    dot(g, 21, 25, "h")
+    for x, y in ((13, 19), (11, 20), (9, 21), (9, 22), (9, 23), (9, 24), (9, 25)):
+        dot(g, x, y, "k")
+        dot(g, 31 - x, y, "k")
+    for x, y in ((12, 23), (12, 24), (11, 25), (11, 26), (10, 26)):          # the droops' inner and lower edges
+        if g[y][x] != "h":
+            dot(g, x, y, "k")
+            dot(g, 31 - x, y, "k")
     return g
 
 
-def arrow(g, tip, tail):
-    """An arrow stuck in him: its shaft from its tail to where it went in, white fletching at its tail."""
-    for x, y in line_pts(*tail, *tip):
-        dot(g, x, y, "w")
-    tx, ty = tail
-    for dx, dy in ((0, 0), (1, 0), (0, 1), (-1, 0), (0, -1)):
-        dot(g, tx + dx, ty + dy, "J" if (dx, dy) != (0, 0) else "I")
+def through(g, mask, tail, tip, feather=2):
+    """An arrow right through his head (the user: "can they be the arrow going through his head directly"): its shaft
+    from `tail` to `tip`, two thick (a lit side and a dark one), seen only outside his head (`mask`), white feathers in a
+    V at its tail, a steel arrowhead at its tip."""
+    L = math.hypot(tip[0] - tail[0], tip[1] - tail[1])
+    dx, dy = (tip[0] - tail[0]) / L, (tip[1] - tail[1]) / L
+    px, py = -dy, dx
+    if px + py > 0:
+        px, py = -px, -py                                                  # the second row on the lower right: shadow
+    for i in range(int(round(L)) + 1):
+        x, y = tail[0] + dx * i, tail[1] + dy * i
+        for (cx, cy), ch in (((x, y), "w"), ((x - px, y - py), "W")):
+            X, Y = round(cx), round(cy)
+            if inside(X, Y) and not mask[Y][X]:
+                dot(g, X, Y, ch)
+    for k in range(feather):                                               # the feathers, a V back from the tail
+        bx, by = tail[0] + dx * k, tail[1] + dy * k
+        for s in (1, -1):
+            for w in (1, 2):
+                dot(g, round(bx + px * w * s + dx * (w - 1)), round(by + py * w * s + dy * (w - 1)),
+                    "J" if k < feather - 1 else "I")
+    tx, ty = tip                                                           # the arrowhead
+    for k, widths in ((0, (0,)), (1, (-1, 0, 1)), (2, (-1, 1))):
+        for w in widths:
+            dot(g, round(tx - dx * k + px * w), round(ty - dy * k + py * w), "A" if w < 0 or k == 0 else "B")
     return g
 
 
 def giant_slayer():
-    """GS17: a Silverwood Giant's head bristling with your arrows, three stuck in his brow and hair, his eyes crossed
-    out."""
+    """GS24: a Silverwood Giant's head, two of your arrows crossed right through it, their feathers sticking out over his
+    hair and their points out beside his beard, his eyes crossed out."""
     g = giant_head()
-    arrow(g, (10, 8), (3, 1))
-    arrow(g, (16, 6), (16, 0))
-    arrow(g, (22, 8), (29, 1))
+    mask = [[g[y][x] != "." for x in range(N)] for y in range(N)]
+    for tail, tip in (((2, 1), (29, 28)), ((29, 1), (2, 28))):
+        through(g, mask, tail, tip)
     return g
 
 

@@ -265,7 +265,7 @@ public final class ModItems
     public static final RegistryObject<Item> SET_IN_STONE_ICON = ITEMS.register("set_in_stone_icon", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> DOWN_THE_DRAIN_ICON = ITEMS.register("down_the_drain_icon", () -> new Item(new Item.Properties().stacksTo(1)));
     // ...and the Blind Oracle's land quests, which showed spawn eggs (the user, November 19, 2026: "we need unique
-    // images for those"; drawn by tools/icons/quest_icons.py, the user's picks GS17, IA14, BR21, FF14): "Giant Slayer", "Into the Ashes", "Beneath the Rot", "First Frost"
+    // images for those"; drawn by tools/icons/quest_icons.py, the user's picks GS24, IA14, BR21, FF14): "Giant Slayer", "Into the Ashes", "Beneath the Rot", "First Frost"
     public static final RegistryObject<Item> GIANT_SLAYER_ICON = ITEMS.register("giant_slayer_icon", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> INTO_THE_ASHES_ICON = ITEMS.register("into_the_ashes_icon", () -> new Item(new Item.Properties().stacksTo(1)));
     public static final RegistryObject<Item> BENEATH_THE_ROT_ICON = ITEMS.register("beneath_the_rot_icon", () -> new Item(new Item.Properties().stacksTo(1)));

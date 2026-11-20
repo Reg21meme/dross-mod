@@ -115,7 +115,10 @@ Enter the Dross
 - **Their icons** (the user, November 19, 2026: the land quests showed spawn eggs, "we need unique images for those";
   drawn like the bosses' icons, 32 x 32 at an item's size, by `tools/icons/quest_icons.py`, preview
   `quest-previews/advancement_icons/icons.png`; the user's picks after four rounds, the other options removed): Giant
-  Slayer **GS17**, a Silverwood Giant's head bristling with your arrows, his eyes crossed out; Into the Ashes **IA14**,
+  Slayer **GS24**, a Silverwood Giant's head drawn simple from his model (a square ashen face, a cap of dark hair, a
+  scowling brow, a horseshoe moustache, a long straight beard), two of your arrows crossed right through it, feathers
+  out over his hair and points out beside his beard, his eyes crossed out (GS17, a more detailed head bristling with
+  arrows, was the pick until the user found it too busy, November 19); Into the Ashes **IA14**,
   a mountain of dark ash burning, smoke billowing off it, the Pallbearer's top hat tipped over on its summit; Beneath
   the Rot **BR21**, a dead Plague Rat on its back on the rotten ground in a puddle of green rot, flies buzzing over it,
   stink rising off both sides;
