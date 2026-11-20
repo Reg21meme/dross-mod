@@ -64,7 +64,8 @@ public final class KnightRuinWorldGameTest
     private static final Logger LOGGER = LogUtils.getLogger();
     /** The tests' GameTest namespace: the mod's ("dross_ruins" to run only these). */
     static final String NAMESPACE = Dross.MODID;
-    private static final String BATCH = "dross_knight_ruins";
+    /** Their own batch (the ruin showcase's test is "dross_knight_ruins": together, their load slowed its land's loading). */
+    private static final String BATCH = "dross_knight_ruins_world";
     private static final TicketType<ChunkPos> TICKET = TicketType.create("dross_knight_ruin_test", Comparator.comparingLong(ChunkPos::toLong));
     private static final long WAIT_MILLIS = 360_000L;
     private static final int TIMEOUT_TICKS = 4_000_000;

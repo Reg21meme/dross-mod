@@ -89,6 +89,12 @@ public final class KnightRuinKeeper
                 it.remove();
             }
         }
+        if (net.minecraftforge.gametest.ForgeGameTestHooks.isGametestEnabled())
+        {
+            // (the test server: its tests drive the keeper themselves; a near-spawn ruin's real knights would otherwise
+            // come for the other tests' stand-in players and mobs)
+            return;
+        }
         long t = level.getGameTime();
         boolean warm = t % KnightRuinTuning.WARM_EVERY == 0;
         boolean keep = t % KnightRuinTuning.KEEPER_EVERY == 0;
