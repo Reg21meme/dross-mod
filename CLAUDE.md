@@ -16,7 +16,7 @@
 - If a first-time setup fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, that is a flaky parallel download. Re-run the same command.
 - To test commands in-game, create the world with **Allow Cheats: ON**.
 - Headless checks: `.\gradlew.bat runGameTestServer --console=plain` runs every GameTest without a game window. Add `-PgameTestWorld=<new folder>` for a brand-new world (the folder under `run/` must not exist yet; otherwise it reuses `run/world`). Confirm the `All N required tests passed :)` line: a datapack load failure can still exit 0. In a test, a wait step never fails by itself (Minecraft retries it until the test's tick limit, hours away): keep the failure and let a watchdog sequence fail the test (`BOSS_GUIDE.md`, Tests).
-- Performance test (November 19, 2026, the user: "add a performance test"): `.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_perf -PgameTestWorld=<new folder> --console=plain` (`perf/ServerPerfProbeGameTest`, its own namespace, so the normal run leaves it out): six scenarios one after another (an empty floor, 6 Silverwood Giants, the Cinder Wastes' mobs, Rimefall's animals and the Frostfolk, three bosses at once, the Emberdactyl and its young) standing still and then fighting (raged), every server tick timed; a scenario fails if its fight's mean tick is over 25 ms or its 95th percentile over 45 ms. The numbers go to the log ("[perf]") and `run/perf/server_perf.txt`. The frame rate in the real game: `tools/release_check/` (`WorldProbe.java.template`; its README).
+- Performance test (November 19, 2026, the user: "add a performance test"): `.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_perf -PgameTestWorld=<new folder> --console=plain` (`perf/ServerPerfProbeGameTest`, its own namespace, so the normal run leaves it out): six scenarios one after another (an empty floor, 6 Silverwood Giants, the Cinder Wastes' mobs, Rimefall's animals and the Frostfolk, three bosses at once, the Emberdactyl and its young) standing still and then fighting (raged), every server tick timed; a scenario fails if its fight's mean tick is over 25 ms or its 95th percentile over 45 ms. Each line also counts the fighter-ticks spent frozen off the land Minecraft keeps running (a mob there doesn't move and costs nothing; the Emberdactyls' scenario about 4.5%, November 20). The numbers go to the log ("[perf]") and `run/perf/server_perf.txt`. The frame rate in the real game: `tools/release_check/` (`WorldProbe.java.template`; its README).
 - GameTests live in `src/main/java` (files named `*GameTest.java`) but **stay out of the mod jar**: `build.gradle`'s `jar` task excludes them and the test-only helpers `dimension/TerrainProbe`, `dimension/TerrainSurvey` and `enchant/RisenTestWait`. A new test-only helper class goes on that list, and game code must never use a test class (the jar would break).
 - **Showcase-only models stay out of the jar too** (the user, November 7, 2026: "do not include the showcase galleries ... you can keep it in my system"; about 12 MB, the jar 28 MB to 15 MB): `build.gradle`'s `jar` task leaves out the Rimefall candidates' statues (`geo|textures|animations/entity/rimefall/`), the fire servant candidates (all but `firestorma`, the fire tornado's look), the Emberdactyl egg's looks the fight never wears (E3A, E3C, E3D) and the frozen copies of the moving fire designs (`fire/emberdactyla`, `emberyounga`, `mobhermit*`, `mobpallbearer*`: the game draws those from `firemob/`). The dev runs and the tests keep them. In the jar `boss/ShowcaseOnly` sees they're missing: `/dross showcase boss_designs cinder_wastes` and `... rimefall` aren't offered, the Emberdactyl gallery skips those eggs, and a candidate whose model is missing isn't drawn. A new gallery-only model goes on that list; never one the real game draws.
 
@@ -3343,7 +3343,7 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   at (the place and three more along the line from where you stand, `GotoBiome.Landing.find`): standing nearest such a
   patch you get "no safe spot was found there" instead of another patch. From the hub the nearest patch never holds a
   volcano. Seen as `GotoVolcanoGameTest` failures (two seeds), whose check now accepts it.
-- **A floating Rimefall tree on some seeds** (Dimension area, found October 18): in one fresh GameTest world the terrain check `featuresperbiome` failed with "rimefall site at -6688, 6192: 1 tree(s), fallen log(s), mushroom(s) or fungi hanging in the air, the first at -6659, 70, 6225"; the next fresh world passed (157 of 157), so it depends on the seed. Not looked into yet. Again on November 3 ("rimefall site at -6208, 6160: ... the first at -6245, 84, 6212").
+- **A floating Rimefall tree on some seeds** (Dimension area, found October 18): in one fresh GameTest world the terrain check `featuresperbiome` failed with "rimefall site at -6688, 6192: 1 tree(s), fallen log(s), mushroom(s) or fungi hanging in the air, the first at -6659, 70, 6225"; the next fresh world passed (157 of 157), so it depends on the seed. Not looked into yet. Again on November 3 ("rimefall site at -6208, 6160: ... the first at -6245, 84, 6212") and November 20 (world `gt_full_perf_1120b`: "rimefall site at -6176, 6128: ... the first at -6200, 62, 6129").
 - **A rat cave with few pipes, on one seed** (Dimension area, found November 5): in a full fresh run (seed
   5873622258956192267, the cave at -402, 35, 596) `SewersGameTest.ratCaveHasNestHoardAndDrains` failed with "21 copper
   pipe blocks and 2 waterfalls into drains" (30 copper blocks expected); the other runs that day passed. Cosmetic (fewer
@@ -3397,19 +3397,23 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - **The stepped lair test found no room in the sky once** (Boss area, found November 19): in a full fresh run (world
   `gt_icons_1119`) `SteppedLairGameTest.steppedLairMatchesAtOnce` failed with "no room in the Dross's sky for the test
   land"; the runs before passed it. Not looked into yet.
-- **Two raged Emberdactyls once never hurt each other** (Boss area, found November 19): in a full fresh run (world
-  `gt_spells3_1119`) `EmberFightGameTest.ragedTheyFightEachOther` gave up waiting ("the adult 395.68 going for
-  EmberYoung ... the young 175.0 going for Emberdactyl", the two 1.7 blocks apart and 2 up); the run before passed it.
-  Not looked into yet.
 - **The Cinder mobs' tests timed out loading once** (found November 19): in a full fresh run (world `gt_spells2_1119`)
   all seven of `CinderMobsGameTest`'s tests failed with "its chunks never started ticking" (3 minutes, the server
-  "Can't keep up"); the next run passed them. A slow run.
+  "Can't keep up"); the next run passed them. A slow run. Again on November 20 (world `gt_full_perf_1120b`), four of
+  them, with no other test server running: so not only load. Their land is far out (about -9,000, 9,200).
+- **Tests waiting on land once timed out while another test server ran** (found November 20): in a full run (world
+  `gt_full_perf_1120`) with the other folder's test server going at the same time,
+  `RimefallAnimalsGameTest.pondSkatersNeedABigPond` ("the land round the ponds hasn't finished loading") and
+  `HuntsmanFightGameTest.aFoeWhoGetsAwayIsLetGo` ("the arena's chunk 132, 0 hasn't finished loading after 120 s");
+  the next run passed both. And in the next, quiet, run `RiftChapelGameTest.chapelIsMadeWithTheLand` gave up waiting for
+  the chapel's land to unload after 360 s (6 of 12 chunks still loaded).
 - **A village room read dark once** (Boss area, found October 24): in one full fresh GameTest run
   `HunterVillageShowcaseGameTest.villagesStandAndNeverMelt` failed with "sunken_warren_02: the room floor at -40689, 198,
   36958 has block light 0" (230 of 231 passed); the same templates passed in four other runs, so the light engine
   hadn't caught up on that busy run even after the test's retries (like the room it once read dark beside its
   lanterns). Not looked into further. Again on October 25 (another fresh world), the same floor cell: worth a look.
   Again on November 18 (`gt_spell_1118b`): "huntsman_village_11: the room floor at -37792, 198, 36933 has block light 0".
+  Again on November 20 (`gt_full_perf_1120`): "sunken_warren_06: the room floor at -39417, 198, 36949 has block light 0".
 - **The Huntsman's "a creative player isn't a foe" test once failed** (Boss area, found October 28): in one full fresh
   GameTest run `HuntsmanFightGameTest.aFoeInSightStartsTheHunt` failed with "a player in creative mode isn't a foe: they
   should stay calm, but they're WILD_HUNT" (239 of 241 passed); the next fresh run passed all 241. Probably a survival

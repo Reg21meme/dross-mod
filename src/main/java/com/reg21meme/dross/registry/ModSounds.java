@@ -168,7 +168,6 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_ROAR = register("entity.silverwood_giant.roar");
     public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_HURT = register("entity.silverwood_giant.hurt");
     public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_DEATH = register("entity.silverwood_giant.death");
-    public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_FALL = register("entity.silverwood_giant.fall");
     public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_STEP = register("entity.silverwood_giant.step");
     public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_SMASH = register("entity.silverwood_giant.smash");
     public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_SWEEP = register("entity.silverwood_giant.sweep");

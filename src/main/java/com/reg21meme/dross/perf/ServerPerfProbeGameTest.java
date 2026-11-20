@@ -398,8 +398,27 @@ public final class ServerPerfProbeGameTest
         List<Long> fight = new ArrayList<>();
         int[] peak = {0};
         String[] busiest = {""};
+        // a fighter off the land Minecraft keeps running (it moves mobs only there) stands frozen and costs nothing, which
+        // would make the fight look cheaper than it is: counted, so the line says so (an Emberdactyl duel in a test once
+        // drifted off its running land and froze, November 20, 2026)
+        long[] frozen = {0L};
+        long[] fighterTicks = {0L};
         helper.onEachTick(() ->
         {
+            if (recording == fight)
+            {
+                for (Mob mob : mobs)
+                {
+                    if (mob.isAlive())
+                    {
+                        fighterTicks[0]++;
+                        if (!level.isPositionEntityTicking(mob.blockPosition()))
+                        {
+                            frozen[0]++;
+                        }
+                    }
+                }
+            }
             List<Entity> in = level.getEntities((Entity) null, box, e -> true);
             if (in.size() > peak[0])
             {
@@ -438,8 +457,9 @@ public final class ServerPerfProbeGameTest
                     Stats f = Stats.of(fight);
                     int alive = (int) mobs.stream().filter(Entity::isAlive).count();
                     String line = String.format(Locale.ROOT, "%s: standing still %s; fighting %s; %d of %d still "
-                                    + "standing, at most %d entities in the pit (minions, shots, effects, body parts): %s",
-                            what, s, f, alive, mobs.size(), peak[0], busiest[0]);
+                                    + "standing, %d of %d fighter-ticks frozen off the running land, at most %d entities "
+                                    + "in the pit (minions, shots, effects, body parts): %s",
+                            what, s, f, alive, mobs.size(), frozen[0], fighterTicks[0], peak[0], busiest[0]);
                     LOGGER.info("[perf] {}", line);
                     write(line);
                     // everything it put in and everything they made, wherever they flew (the Emberdactyls once went

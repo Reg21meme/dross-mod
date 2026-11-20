@@ -76,6 +76,8 @@ public final class LandWardGameTest
     private static final int TIMEOUT_TICKS = 3000;
     /** A locked column is looked for this far round where the biome search landed (blocks), every few blocks. */
     private static final int COLUMN_SEARCH = 48;
+    /** How far into its land a test column is (every way), clear of the border's wobble. */
+    private static final int INSIDE = 8;
     /** The Silverwood column is looked for back towards the hub from the Cinder Wastes, at most this far (blocks). */
     private static final int SILVERWOOD_SEARCH = 2000;
     /** How high over the land and how deep under it the "column" checks stand the player (Y). */
@@ -129,7 +131,12 @@ public final class LandWardGameTest
         }
     }
 
-    /** A column whose land (as the ward reads it) is {@code land}, near the biome search's find; null if none. */
+    /**
+     * A column whose land (as the ward reads it) is {@code land}, and the land {@link #INSIDE} blocks round it too, near
+     * the biome search's find; null if none. (The find is the land's nearest point, on its border, where Minecraft's own
+     * biome lookup wobbles a couple of blocks differently at each height: on one seed a Rimefall column there read as
+     * Blightwood at y 200, November 20, 2026.)
+     */
     private static BlockPos columnOf(ServerLevel dross, ResourceKey<Biome> land)
     {
         Optional<BlockPos> found = DrossBiomes.findNearest(dross, new BlockPos(0, LandWard.COLUMN_BIOME_Y, 0), land);
@@ -144,7 +151,7 @@ public final class LandWardGameTest
             {
                 for (int dz = -r; dz <= r; dz += 4)
                 {
-                    if ((Math.abs(dx) == r || Math.abs(dz) == r) && land.equals(LandWard.landAt(dross, at.getX() + dx, at.getZ() + dz)))
+                    if ((Math.abs(dx) == r || Math.abs(dz) == r) && inside(dross, land, at.getX() + dx, at.getZ() + dz))
                     {
                         return new BlockPos(at.getX() + dx, 0, at.getZ() + dz);
                     }
@@ -152,6 +159,14 @@ public final class LandWardGameTest
             }
         }
         return null;
+    }
+
+    /** Whether the column and the four columns {@link #INSIDE} blocks from it are all {@code land} to the ward. */
+    private static boolean inside(ServerLevel dross, ResourceKey<Biome> land, int x, int z)
+    {
+        return land.equals(LandWard.landAt(dross, x, z)) && land.equals(LandWard.landAt(dross, x + INSIDE, z))
+                && land.equals(LandWard.landAt(dross, x - INSIDE, z)) && land.equals(LandWard.landAt(dross, x, z + INSIDE))
+                && land.equals(LandWard.landAt(dross, x, z - INSIDE));
     }
 
     /** A Silverwood column on the way from {@code from} back to the hub (so the stand-ins' land is near each other). */

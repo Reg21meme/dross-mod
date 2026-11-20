@@ -65,6 +65,12 @@ public final class EmberFightGameTest
      *  grabs; since October 31 its whole body is solid, so beside a wall taller than that it can't swoop and gives up). */
     private static final int GRAB_WALL_HEIGHT = 6;
     private static final int FLOOR_HALF = 40;
+    /**
+     * How far round its middle the two raged Emberdactyls' duel keeps the land running (blocks). Their fight drifts:
+     * three times (November 2, 19 and 20, 2026) it went past the usual {@code FLOOR_HALF + 16}, where Minecraft stops
+     * moving mobs, and froze there, the young unhurt and the test failing; a probe saw both stand still from 25 s in.
+     */
+    private static final int DUEL_REACH = 128;
     /** A wait gives up (a real failure, cleaned up) after this long, real time (the test server runs ticks far faster
      *  than 20 a second, so a tick count would be over before far-off chunks are made). */
     private static final long WAIT_MILLIS = 180_000L;
@@ -552,7 +558,7 @@ public final class EmberFightGameTest
     @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_ember_rage", timeoutTicks = 2_000_000)
     public static void ragedTheyFightEachOther(GameTestHelper helper)
     {
-        Run run = new Run(helper.getLevel(), 7200, -6400);
+        Run run = new Run(helper.getLevel(), 7200, -6400, DUEL_REACH);
         run.watch(helper);
         Emberdactyl[] adult = new Emberdactyl[1];
         EmberYoung[] young = new EmberYoung[1];
@@ -579,7 +585,9 @@ public final class EmberFightGameTest
                 .thenWaitUntil(() -> run.waitFor("each to hurt the other", () -> adult[0].getHealth() < adult[0].getMaxHealth()
                                 && young[0].getHealth() < young[0].getMaxHealth(),
                         () -> "the adult " + adult[0].getHealth() + " going for " + adult[0].fightTarget() + ", the young "
-                                + young[0].getHealth() + " going for " + young[0].fightTarget()))
+                                + young[0].getHealth() + " going for " + young[0].fightTarget() + "; on running land: the adult "
+                                + run.level.isPositionEntityTicking(adult[0].blockPosition()) + ", the young "
+                                + run.level.isPositionEntityTicking(young[0].blockPosition())))
                 .thenExecute(() -> run.guard(() -> {
                     LOGGER.info("[ember test] raged on two teams the adult ({}) and the young ({}) fought each other",
                             adult[0].getHealth(), young[0].getHealth());
@@ -1136,13 +1144,19 @@ public final class EmberFightGameTest
 
         Run(ServerLevel level, int x, int z)
         {
+            this(level, x, z, FLOOR_HALF + 16);
+        }
+
+        /** The land {@code reach} blocks round the middle kept running (mobs move only there). */
+        Run(ServerLevel level, int x, int z, int reach)
+        {
             this.level = level;
             this.x = x;
             this.z = z;
             this.centre = new Vec3(x + 0.5D, FLOOR_Y + 1, z + 0.5D);
-            for (int cx = (x - FLOOR_HALF - 16) >> 4; cx <= (x + FLOOR_HALF + 16) >> 4; cx++)
+            for (int cx = (x - reach) >> 4; cx <= (x + reach) >> 4; cx++)
             {
-                for (int cz = (z - FLOOR_HALF - 16) >> 4; cz <= (z + FLOOR_HALF + 16) >> 4; cz++)
+                for (int cz = (z - reach) >> 4; cz <= (z + reach) >> 4; cz++)
                 {
                     ChunkPos chunk = new ChunkPos(cx, cz);
                     level.getChunkSource().addRegionTicket(TICKET, chunk, 2, chunk);

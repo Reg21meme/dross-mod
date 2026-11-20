@@ -570,21 +570,6 @@ public class SilverwoodGiant extends Monster implements GeoEntity, NeutralMob
                     this.sound(ModSounds.SILVERWOOD_GIANT_TEAR.get(), 1.5F);
                 }
             }
-            case "death" -> {
-                if (t == Math.max(0, look.deathRoar() - 3))
-                {
-                    this.sound(ModSounds.SILVERWOOD_GIANT_DEATH.get(), GiantTuning.ROAR_VOLUME);
-                }
-                if (t == look.deathKnees())
-                {
-                    this.sound(ModSounds.SILVERWOOD_GIANT_FALL.get(), 0.8F);
-                }
-                if (t == look.deathThud())
-                {
-                    this.sound(ModSounds.SILVERWOOD_GIANT_FALL.get(), GiantTuning.BLOW_VOLUME);
-                    this.dust(this.position().add(this.facing().scale(2.0D)), 40, 1.5D);
-                }
-            }
             default -> {
             }
         }
