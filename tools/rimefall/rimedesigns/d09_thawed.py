@@ -28,9 +28,11 @@ VARIANTS = (
 )
 # The user's picks from round 2 (October 18, 2026); the others are archived in round2/.
 VARIANTS = tuple(v for v in VARIANTS if v["letter"] in ('C', 'D'))
+BEAR = M.palette("#1a120d", "#251a13", "#33241a", "#433022", "#563e2c", "#6e5139")   # a cave bear's grizzled brown
+BEAR_MUZZLE = M.palette("#3d2c1f", "#4f3a29", "#634a35", "#7a5c43", "#917055", "#a8876a")   # its paler muzzle
 
 
-def body(s):
+def body(s, v):
     # Legs in hide leggings bound with rope, fur-wrapped boots.
     # (each piece on its part: a statue keeps them all on its one bone; the moving knight, tools/knights/mobs.py,
     # puts each part on a bone of its own)
@@ -65,7 +67,8 @@ def body(s):
         s.blob((17 * x, 56, 0), (8, 7, 8), "hide")
         s.box((17 * x, 61, 0), (12, 3, 12), "bone", rot=(0, 0, -14 * x))          # shoulder plates of bone
     # Fur mantle over the shoulders and a ragged cloak down the back.
-    s.rbox((0, 59, 5), (38, 7, 15), "fur", c=2)
+    # (the mantle and the cloak are his beast's hide: the bear's for the axeman, the Rimehorn's for the spearman)
+    s.rbox((0, 59, 5), (38, 7, 15), "mantle", c=2)
     s.part("cape").plate((0, 38, 12), (0, 0.1, 1), (0, 1, 0), 34, 40, 3, "cloak")
     # Head: heavy brow, glowing eyes, long hair, an icicle beard.
     h = s.part("head")
@@ -74,17 +77,10 @@ def body(s):
     for x in (-1, 1):
         h.box((3.6 * x, 68.2, -9.3), (3, 1, 1), "eye")
     h.box((0, 66, -9.6), (3, 4, 2), "skin")
-    h.rbox((0, 62, 6), (15, 16, 5), "hair", c=1)
     for i, x in enumerate((-5.5, -3, -0.5, 2, 4.5, 6)):
         top = 61.5 if abs(x) > 4 else 60.5
         h.cone((x, top, -9.5), (x * 1.1, 47 + (i % 3) * 3.0, -12.5 - (i % 2)), 4.0, "icebeard", steps=3)
-    # The helmet: a cap of whale bone over the head, a nose guard, tusks down the cheeks, two short horns.
-    h.rbox((0, 75, -2), (17, 7, 17), "helmet", c=2)
-    h.box((0, 72.5, -10.5), (16, 3, 2), "helmet")
-    h.box((0, 69, -10.8), (2, 6, 2), "helmet")
-    for x in (-1, 1):
-        h.cone((7.5 * x, 72, -8), (9 * x, 61, -13), 3, "bone", steps=2)
-        h.curve([(7 * x, 78, 0), (11 * x, 82, 1), (13 * x, 85, -2)], 3, [4, 3, 2], "bone")
+    (bear_head if v["weapon"] == "axe" else rimehorn_hat)(h)
     # (The slabs of glacier that were on his shoulder and his back are gone: the user's note after round 2.)
 
 
@@ -119,6 +115,64 @@ def elbow(S, W, la, lb, pole):
 AXE_ELBOW_R = elbow(SHOULDER_R, AXE_R, 14.5, 13.0, (-1.0, -0.5, 0.3))
 AXE_ELBOW_L = elbow(SHOULDER_L, AXE_L, 14.5, 13.0, (1.0, -0.4, 0.4))
 
+
+
+# Each soldier wears the head of a beast he killed (the user, November 19, 2026: "the ice people look the same ... give
+# the axe dude the bear head ... the axe goes through his horns, so just remove his helmet, give him a bear head
+# instead, and for the spear dude a Rimehorn hat"; both wore the same bone helmet with tusks and two short horns, and
+# the axe's haft went through those horns as he hauled it up out of his smash). The hide hangs down behind his head and
+# frames his face; his own face, eyes and icicle beard show under the beast's jaw.
+
+
+def hide(h, mat):
+    """The beast's hide down the back of his head and down both sides of his face."""
+    h.box((0, 64.5, 7.5), (17, 17, 3), mat)
+    for x in (-1, 1):
+        h.box((8.6 * x, 68.0, -1.5), (2, 10, 13), mat)
+
+
+def bear_head(h):
+    """
+    9C: a great bear's head worn over his own: its broad skull on top of his, its snout jutting out over his brow with
+    a black nose, its fangs hanging down in front of his forehead, little black eyes, round ears; its dark grizzled
+    pelt framing his face and hanging down his back. Nothing sticks up past its ears (the axe's haft passes over his
+    right shoulder in his smash).
+    """
+    h.rbox((0, 76.5, -1), (19, 8, 18), "bear", c=2)                 # its skull over his
+    h.box((0, 72.8, -10.2), (17, 3, 3), "bear")                      # its brow over his face
+    h.rbox((0, 75.0, -14.5), (11, 6, 9), "bear", c=1)               # its snout
+    h.rbox((0, 74.2, -20.0), (8, 4.5, 4), "bearmuzzle", c=1)        # its pale muzzle
+    h.box((0, 76.0, -22.4), (4, 2.5, 1), "nose")                     # its nose
+    h.box((0, 72.3, -21.9), (6, 1, 1), "bearmouth")                  # the line of its lip
+    for x in (-1, 1):
+        h.cone((2.6 * x, 72.4, -21.0), (2.6 * x, 68.4, -21.4), 2.0, "fang", w1=0.7, steps=2)   # its fangs
+        h.cone((5.0 * x, 72.2, -15.5), (5.0 * x, 69.8, -15.8), 1.5, "fang", w1=0.5, steps=1)
+        h.box((3.8 * x, 78.2, -13.6), (2, 2, 1), "beareye")          # its eyes
+        h.rbox((7.6 * x, 82.2, 0.5), (6, 5, 3), "bear", c=1)        # its round ears
+        h.box((7.6 * x, 82.0, -1.2), (3, 2.6, 0.6), "bearinner")
+    hide(h, "bearshag")
+
+
+def rimehorn_hat(h):
+    """
+    9D: a Rimehorn's head worn as a helm: its shaggy pale skull over his head, its face running out over his brow, the
+    great horn of clear ice rising off the top of its nose and sweeping up ahead of him, the short horn behind it on
+    top, plain black eyes, small tufted ears; its frosted hide framing his face and hanging down his back.
+    """
+    h.rbox((0, 76.5, -1), (19, 8, 18), "rhinofur", c=2)             # its skull over his
+    h.box((0, 72.8, -10.2), (17, 3, 3), "rhinofur")                  # its brow over his face
+    # (its face runs out over the top of his head, above his own eyes: lower, it covered them, and its nostrils looked
+    # like a second pair of eyes)
+    h.seg((0, 79.0, -8.0), (0, 77.0, -18.5), 12, 7, "rhinoskin", side=(1, 0, 0))    # its face, out over his brow
+    for x in (-1, 1):
+        h.box((2.2 * x, 76.0, -18.7), (1.5, 0.8, 1.2), "rhinomouth")  # its nostrils: slits low on its muzzle
+        h.box((9.6 * x, 78.0, -5.5), (1, 2, 2), "rhinoeye")          # its eyes, on the sides of its skull
+        h.plate((8.6 * x, 81.4, 1.5), (x, 0.2, -0.3), (x * 0.3, 1, -0.1), 4, 6, 2, "rhinoshag")   # its ears
+    # its horns: the great one off the top of its nose, the short one behind it
+    h.curve([(0, 79.5, -15.0), (0, 84.0, -17.5), (0, 89.5, -18.5), (0, 95.0, -16.5)], 9, [6, 5, 3, 1.5], "horn",
+            depths=[7, 6, 4, 1.5])
+    h.curve([(0, 80.0, -6.0), (0, 83.5, -7.0), (0, 86.5, -6.5)], 5, [5, 3.5, 1.5], "horn", depths=[6, 4, 1.5])
+    hide(h, "rhinoshag")
 
 def axe(s):
     body, h = s, s.part("hand_r")
@@ -201,18 +255,35 @@ def spear(s):
 
 def build(s, v):
     S = Scaled(s, v["k"])
-    body(S)
+    body(S, v)
     (axe if v["weapon"] == "axe" else spear)(S)
 
 
 def materials(v):
+    bear = v["weapon"] == "axe"
     return {
         "skin": M.skin(M.FROST_SKIN, seed=401, mottle=1.0, frost_amount=0.25, cracks=0.12, scars=0.2),
         "hide": M.skin(M.WALRUS, seed=403, mottle=0.8, frost_amount=0.2),
         "leather": M.skin(M.LEATHER, seed=405, mottle=0.6, frost_amount=0.1),
         "fur": M.fur(M.ELK, seed=407, strand=3.0, frost_amount=0.45),
         "furflap": M.shag(M.ELK, seed=409, ragged=0.7, frost_amount=0.3),
-        "cloak": M.cloth(M.ELK, seed=411, folds=1.2, ragged=0.7, frost_amount=0.3),
+        # (his beast's hide: the axeman's a dark grizzled bear's, the spearman's a frosted Rimehorn's)
+        "mantle": M.fur(BEAR if bear else M.WOOLLY_PALE, seed=407, strand=3.4, frost_amount=0.3 if bear else 0.4),
+        "cloak": M.shag(BEAR if bear else M.WOOLLY_PALE, seed=411, strand=1.0, ragged=0.9, frost_amount=0.3),
+        "bear": M.fur(BEAR, seed=441, strand=3.4, frost_amount=0.3),
+        "bearshag": M.shag(BEAR, seed=443, strand=1.0, ragged=0.8, frost_amount=0.25),
+        "bearinner": M.skin(M.LEATHER, seed=445, mottle=0.6, frost_amount=0.05),
+        "beareye": M.solid(M.MOUTH, idx=1.0, seed=447, grain=0.3, bev=0.2, outline=0.0),
+        "bearmouth": M.solid(M.MOUTH, idx=1.5, seed=448, grain=0.3, bev=0.2, outline=0.0),
+        "nose": M.solid(M.MOUTH, idx=2.0, seed=451, grain=0.5, bev=0.6, outline=0.05),
+        "fang": M.bone(seed=449, frost_amount=0.1),
+        "bearmuzzle": M.fur(BEAR_MUZZLE, seed=452, strand=2.0, frost_amount=0.15),
+        "rhinofur": M.fur(M.WOOLLY_PALE, seed=453, strand=3.6, frost_amount=0.35),
+        "rhinoshag": M.shag(M.WOOLLY_PALE, seed=455, strand=1.0, ragged=1.0, frost_amount=0.3),
+        "rhinoskin": M.skin(M.FROST_SKIN, seed=457, mottle=0.8, frost_amount=0.2),
+        "rhinomouth": M.mouth(),
+        "rhinoeye": M.solid(M.MOUTH, idx=1.0, seed=459, grain=0.3, bev=0.2, outline=0.0),
+        "horn": M.ice(M.ICE, alpha=(150, 215), seed=461, cracks=0.4, bubbles=0.03, glow_pal=M.GLOW, glow_alpha=35),
         "hair": M.fur(M.CLOTH_PALE, seed=413, strand=3.0, frost_amount=0.3),
         "icebeard": M.solid(M.ICE, idx=3.5, seed=415, grain=1.0, bev=0.9, outline=0.06),
         "bone": M.bone(seed=417, frost_amount=0.15),

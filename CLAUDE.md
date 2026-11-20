@@ -2591,6 +2591,25 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
         - **The Cinder Knight** 200 health (100).
         - Checked (`tools/knights/audit.py`, the scratch checks of every reworked move): no move ends turned, nothing
           deeper than about 2 units into the body (the grips' and armour's grazes), the blows' weapons at the ground.
+      - **The user's third look of November 19, 2026** [built, not yet tested in-game] (the user: "the ice people look
+        the same ... give the axe dude the bear head ... when he pulls up the axe goes through his horns, so just remove
+        his helmet, give him a bear head instead, and for the spear dude a Rimehorn hat"; the Geode stomp "looks good, it
+        needs to be up and down, not sideways"):
+        - **The Thawed Soldiers' heads** (`tools/rimefall/rimedesigns/d09_thawed.py`: `bear_head`, `rimehorn_hat`; the
+          gallery's 9C and 9D statues too): the old bone helmet (tusks, two short horns) is gone. **9C** wears a great
+          bear's head over his own: its broad skull, its snout jutting over his brow with a pale muzzle and black nose,
+          fangs hanging before his forehead, small black eyes, round ears, its dark grizzled pelt framing his face and
+          hanging down his back (`BEAR`, `BEAR_MUZZLE`); nothing sticks up past its ears, so the axe's haft clears it.
+          **9D** wears a Rimehorn's head as a helm: its frosted shaggy skull, its face running out over the top of his
+          head above his own eyes, the great horn of clear ice rising off its nose and sweeping up ahead of him, the
+          short horn behind it, small slit nostrils, black eyes on its sides, tufted ears, its pale hide down his back.
+          Their mantle and cloak are their beast's hide (the axeman's dark brown, the spearman's frosted pale), so they
+          differ from behind too.
+        - **The Geode Knight's stomp** (`kanims.stomp`, mobs.Knight `knees`: his legs bend at the knee, the shins on
+          bones of their own, `shin_r`/`shin_l`, split off by `mobs.split_legs`): his weight onto his left leg, his
+          right knee brought up high in front of him, the shin hanging under it, held a heartbeat as he leans back, then
+          driven straight down onto the ground before him (it was lifted out to his side).
+        - Audited: no clipping on either Thawed Soldier's head or in the stomp.
     - **Next**: the user looks at the ruins (`/dross showcase knight_ruins <element>`) and picks; then "the different
       kind of ruin stuff" (variations of the picked layouts) and the ruins in the world, each in its area's biomes, the
       knights at home. The Blightwood bosses (step 17) wait meanwhile.
@@ -2837,7 +2856,9 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   Knight's slam lands the hammer's flat face on the ground well ahead of him; the Geode Knight strikes one-handed, his
   spike into the ground, and his second move is a loud stomp; the Rockfall Knight throws his boulder at you up close
   too; the Stormblade hurts twice as much; Flamehand's fireballs hurt you through Fire Resistance; the Cinder Knight
-  takes about twice the hits.
+  takes about twice the hits; the Thawed axeman wears a bear's head (dark brown, a pale muzzle, fangs) and the
+  spearman a Rimehorn's head with its ice horn, each with his beast's hide for a cloak; the Geode Knight's stomp
+  brings his knee up in front and his foot straight down.
 - **The knights' moves after the user's look** (November 19, afternoon): the Cinder Knight, the Thawed axeman and the
   Sporebound swing with both hands on the haft (wound back, swung flat across, arms reaching out); the Geode Knight
   lifts his pick off his shoulder with both hands and pulls it down, arms stretching out; the Stormblade's X-cut then

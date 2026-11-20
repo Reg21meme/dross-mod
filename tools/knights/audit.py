@@ -48,7 +48,7 @@ GROUPS = {
     "waist": "torso", "body": "torso", "head": "head", "cape": "cape",
     "arm_r": "arm_r", "arm_l": "arm_l", "fore_r": "arm_r", "fore_l": "arm_l", "hand_r": "held_r",
     "hand_l": "held_l",
-    "leg_r": "leg_r", "leg_l": "leg_l", "anchor": "held_r", "weapon_r": "held_r", "boulder": "boulder", "cap": "cap",
+    "leg_r": "leg_r", "leg_l": "leg_l", "anchor": "held_r", "weapon_r": "held_r", "shin_r": "leg_r", "shin_l": "leg_l", "boulder": "boulder", "cap": "cap",
     "orb": None,
 }
 # (a, b): a's points mustn't go into b's boxes (deeper than at rest)

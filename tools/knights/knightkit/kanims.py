@@ -1183,40 +1183,43 @@ def boulder_smash(rig, kn):
 
 def stomp(rig, kn, name="crystal_burst", T=1.75, hit=0.88):
     """
-    E3's crystal burst (the user, November 19, 2026: "don't make him move his pickaxe ... just make him stomp the
-    ground ... a visible loud stomp, and then all the amethyst stuff"): his pick stays on his shoulder; he shifts his
-    weight onto his left leg, his body leaning over it and his free arm out for balance, lifts his right leg high out
-    to his side, holds it there a heartbeat, and drives it down onto the ground (the crystals burst up round him), his
-    body dropping onto it, then straightens up.
+    E3's crystal burst (the user, November 19, 2026: "just make him stomp the ground ... a visible loud stomp, and then
+    all the amethyst stuff"; then: "the stomp looks good, it needs to be up and down, not sideways"): his pick stays on
+    his shoulder; his weight shifts onto his left leg, his free arm out for balance, and he brings his right knee up
+    high in front of him, his shin hanging under it (mobs.Knight `knees`), holds it there a heartbeat, leaning back a
+    little, and drives the foot straight down onto the ground before him (the crystals burst up round him), his body
+    dropping onto it, then straightens up.
     """
     hv = kn.heavy
-    up = hit * 0.62
+    up = hit * 0.6
     hold = hit + 0.3 + 0.08 * hv
-    k_lift = [(0.0, 0.0), (up, 38.0), (up + 0.14, 41.0), (hit, 9.0, "hit"), (hold, 9.0), (T - 0.15, 0.0), (T, 0.0)]
-    k_fwd = [(0.0, 0.0), (up, 14.0), (up + 0.14, 15.0), (hit, 2.0, "hit"), (hold, 2.0), (T - 0.15, 0.0), (T, 0.0)]
-    k_shift = [(0.0, 0.0), (up, 2.6), (up + 0.14, 2.8), (hit, 0.4, "hit"), (hold, 0.3), (T - 0.15, 0.0), (T, 0.0)]
-    k_roll = [(0.0, 0.0), (up, -11.0), (up + 0.14, -12.0), (hit, 3.0, "hit"), (hold, 2.0), (T - 0.15, 0.0), (T, 0.0)]
-    k_lean = [(0.0, 0.0), (up, -4.0), (up + 0.14, -5.0), (hit, 12.0 + 3.0 * hv, "hit"), (hit + 0.08, 14.0 + 3.0 * hv),
-              (hold, 10.0), (T - 0.15, 0.0), (T, 0.0)]
-    k_drop = [(0.0, 0.0), (up, 1.2), (up + 0.14, 1.4), (hit, 0.1, "hit"), (hit + 0.07, 0.0), (hold, 0.1),
-              (T - 0.15, 0.0), (T, 0.0)]
+    knees = "shin_r" in [b.name for b in rig.m.bones]
+    rest = T - 0.15
+    # the thigh up in front (degrees forward), the shin bent back under the knee, then both driven down
+    k_thigh = [(0.0, 0.0), (up, 78.0), (up + 0.16, 80.0), (hit, 10.0, "hit"), (hold, 10.0), (rest, 0.0), (T, 0.0)]
+    k_shin = [(0.0, 0.0), (up, 84.0), (up + 0.16, 85.0), (hit, 6.0, "hit"), (hold, 6.0), (rest, 0.0), (T, 0.0)]
+    k_shift = [(0.0, 0.0), (up, 2.4), (up + 0.16, 2.6), (hit, 0.4, "hit"), (hold, 0.3), (rest, 0.0), (T, 0.0)]
+    k_lean = [(0.0, 0.0), (up, -6.0), (up + 0.16, -7.0), (hit, 12.0 + 3.0 * hv, "hit"), (hit + 0.08, 14.0 + 3.0 * hv),
+              (hold, 10.0), (rest, 0.0), (T, 0.0)]
+    k_roll = [(0.0, 0.0), (up, -6.0), (up + 0.16, -6.5), (hit, 1.0, "hit"), (hold, 0.5), (rest, 0.0), (T, 0.0)]
     # (the jolt of the blow: his chest drops onto his hips, its weight on the stomping leg)
-    k_jolt = [(0.0, 0.0), (hit - 0.02, 0.0), (hit + 0.05, -1.8), (hold, -0.6), (T - 0.15, 0.0), (T, 0.0)]
-    k_lout = [(0.0, 0.0), (up, 38.0), (up + 0.14, 40.0), (hit, 14.0), (hold, 12.0), (T - 0.15, 0.0), (T, 0.0)]
-    k_lfwd = [(0.0, 0.0), (up, 12.0), (hit, -8.0), (hold, -6.0), (T - 0.15, 0.0), (T, 0.0)]
-    k_carry = [(0.0, 0.0), (up, -4.0), (hit, 6.0, "hit"), (hit + 0.1, 4.0), (T - 0.15, 0.0), (T, 0.0)]
+    k_jolt = [(0.0, 0.0), (hit - 0.02, 0.0), (hit + 0.05, -1.8), (hold, -0.6), (rest, 0.0), (T, 0.0)]
+    k_lout = [(0.0, 0.0), (up, 34.0), (up + 0.16, 36.0), (hit, 14.0), (hold, 12.0), (rest, 0.0), (T, 0.0)]
+    k_lfwd = [(0.0, 0.0), (up, 18.0), (hit, -10.0), (hold, -7.0), (rest, 0.0), (T, 0.0)]
+    k_carry = [(0.0, 0.0), (up, -4.0), (hit, 6.0, "hit"), (hit + 0.1, 4.0), (rest, 0.0), (T, 0.0)]
 
     def frame(t):
         p = Pose()
-        lift = curve(t, k_lift)
+        thigh = curve(t, k_thigh)
         shift = curve(t, k_shift)
-        # (the right leg out to his side and a little ahead; the left leg leans in as his hips shift over it, so its
-        # foot stays where it stands; the hips drop as the stomping foot meets the ground, then as both spread)
-        p.rot("leg_r", -curve(t, k_fwd), 0.0, lift)
-        lean_l = math.degrees(math.atan2(shift, kn.hip))
-        p.rot("leg_l", 0.0, 0.0, lean_l)
-        spread = math.radians(max(0.0, min(lift, 9.0)))
-        p.pos("waist", shift, curve(t, k_drop) - kn.hip * (1.0 - math.cos(spread)), 0.0)
+        if knees:
+            p.rot("leg_r", -thigh, 0.0, 0.0)
+            p.rot("shin_r", curve(t, k_shin), 0.0, 0.0)
+        else:
+            p.rot("leg_r", -thigh * 0.55, 0.0, 0.0)
+        # (the left leg leans in as his hips shift over it, so its foot stays where it stands)
+        p.rot("leg_l", 0.0, 0.0, math.degrees(math.atan2(shift, kn.hip)))
+        p.pos("waist", shift, 0.0, 0.0)
         body(p, curve(t, k_lean), 0.0, roll=curve(t, k_roll), steady=0.7)
         p.pos("body", 0.0, curve(t, k_jolt), 0.0)
         cape(p, curve(t - 0.1, k_lean))

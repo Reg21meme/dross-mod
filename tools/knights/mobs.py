@@ -58,7 +58,7 @@ class Knight:
     def __init__(self, key, label, name, design, hand_r, hand_l, moves, variant=None, k=1.0, shoulder=(14.5, 49.0),
                  neck=53.0, hip=30.0, leg_x=K.LEG_X, cape=(0.0, 50.0, 10.0), props=(), extra=None, extra_mats=None,
                  gear="pole", heavy=0.5, speed=0.25, walk_t=1.2, walk_lean=0.0, walk_style=None,
-                 elbow_r=(-22.0, 42.0, -4.0), elbow_l=(21.0, 40.0, -2.0), slide=False):
+                 elbow_r=(-22.0, 42.0, -4.0), elbow_l=(21.0, 40.0, -2.0), slide=False, knees=False):
         self.ID = key
         # (slide: what its right hand holds goes on a bone of its own, weapon_r, that can slide along the haft through
         # its fist, as a hand slides down a long haft to the butt for a big blow: the Cinder Knight's slam)
@@ -97,6 +97,12 @@ class Knight:
             ("leg_r", (-leg_x, hip, 0.0), "waist"),
             ("leg_l", (leg_x, hip, 0.0), "waist"),
         ] + [(name, tuple(p), parent) for name, p, parent in props]
+        # (knees: each leg bends at its knee, its shin on a bone of its own, as for the Geode Knight's stomp: the knee
+        # lifted high, the shin hanging, then driven down)
+        self.knees = knees
+        if knees:
+            for side, sign in (("r", -1.0), ("l", 1.0)):
+                self.BONES.append((f"shin_{side}", (sign * (K.LEG_X + 0.5), K.KNEE_Y, -1.5), f"leg_{side}"))
         self.ROUTES = {}
         self.LEGS = []
         self.DENSITY = float(getattr(self.mod, "DENSITY", 1.0))
@@ -118,6 +124,8 @@ class Knight:
         split_arms(s.m)
         if self.slide:
             split_weapon(s.m)
+        if self.knees:
+            split_legs(s.m)
 
     def materials(self, v):
         mats = dict(self.mod.materials(v) if v is not None else self.mod.materials())
@@ -149,6 +157,23 @@ def split_arms(m):
             else:
                 keep.append(c)
         arm.cubes[:] = keep
+
+
+def split_legs(m):
+    """Each leg's boxes nearer its shin (knee to ankle, and the boot) onto the shin's bone (shin_r/shin_l)."""
+    for side in "rl":
+        leg, shin = m[f"leg_{side}"], m[f"shin_{side}"]
+        H, Kn = np.array(leg.pivot, dtype=float), np.array(shin.pivot, dtype=float)
+        A = np.array([Kn[0], 0.0, Kn[2] + 1.5])
+        keep = []
+        for c in leg.cubes:
+            q = np.array(c.center(), dtype=float)
+            if _seg_dist(q, Kn, A) < _seg_dist(q, H, Kn) - 0.05:
+                c.bone = shin
+                shin.cubes.append(c)
+            else:
+                keep.append(c)
+        leg.cubes[:] = keep
 
 
 def split_weapon(m):
@@ -272,7 +297,7 @@ KNIGHTS = [
            heavy=0.0, speed=0.36, walk_t=0.7, walk_lean=9.0,
            walk_style=dict(blades_back=True, bob=0.35, roll=0.4, nod=0.3, look=12.0, twist=1.3),
            elbow_r=(-21.5, 41.0, -3.5), elbow_l=(22.0, 42.0, -9.0), moves={"slash": lambda r, k: blade_cuts(r, k), "dash": lambda r, k: dash(r, k)}),
-    Knight("geode", "E3", "Geode Knight", "knightdesigns.e03_geode", hand_r=K.CARRY_FIST, hand_l=K.HANG_FIST,
+    Knight("geode", "E3", "Geode Knight", "knightdesigns.e03_geode", hand_r=K.CARRY_FIST, hand_l=K.HANG_FIST, knees=True,
            gear="shoulder", heavy=0.85, speed=0.23, walk_t=1.35, walk_lean=2.0,
            walk_style=dict(stomp=0.7, hunch=6.0, carry=5.0, roll=1.3, arms=1.2),
            elbow_r=tuple(K.CARRY_ELBOW),
