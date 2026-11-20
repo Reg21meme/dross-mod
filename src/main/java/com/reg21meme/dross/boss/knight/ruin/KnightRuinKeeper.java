@@ -89,11 +89,13 @@ public final class KnightRuinKeeper
                 it.remove();
             }
         }
-        if (net.minecraftforge.gametest.ForgeGameTestHooks.isGametestEnabled())
+        if (level.getServer() instanceof net.minecraft.gametest.framework.GameTestServer)
         {
             // (the test server: its tests drive the keeper and work their ruins out themselves; a near-spawn ruin's real
             // knights would come for the other tests' stand-in players and mobs, and working the regions out round every
-            // stand-in player kept a thread busy all the run, other tests' land loading slower)
+            // stand-in player kept a thread busy all the run, other tests' land loading slower. Not
+            // ForgeGameTestHooks.isGametestEnabled(): that's true in the dev game too (runClient starts with
+            // -Dforge.enableGameTest=true), and the knights never came there)
             return;
         }
         long t = level.getGameTime();
