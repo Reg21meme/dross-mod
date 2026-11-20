@@ -616,7 +616,7 @@ def sheet(name, designs):
     w, h = len(designs) * cell + 40, 32 * big + 470
     out = Image.new("RGBA", (w, h), (30, 33, 40, 255))
     d = ImageDraw.Draw(out)
-    d.text((20, 14), f"{R1.TITLES[name]}: advancement icon options, round 3", font=A.font(22), fill=(235, 238, 245))
+    d.text((20, 14), f"{R1.TITLES[name]}: advancement icon options", font=A.font(22), fill=(235, 238, 245))
     got, not_got = A.frames() or (None, None)
     for i, design in enumerate(designs):
         label, title, note, _pal, _rows = design
