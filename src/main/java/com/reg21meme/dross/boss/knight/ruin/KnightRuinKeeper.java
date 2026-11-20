@@ -89,11 +89,16 @@ public final class KnightRuinKeeper
                 it.remove();
             }
         }
+        if (net.minecraftforge.gametest.ForgeGameTestHooks.isGametestEnabled())
+        {
+            // (the test server: its tests drive the keeper and work their ruins out themselves; a near-spawn ruin's real
+            // knights would come for the other tests' stand-in players and mobs, and working the regions out round every
+            // stand-in player kept a thread busy all the run, other tests' land loading slower)
+            return;
+        }
         long t = level.getGameTime();
         boolean warm = t % KnightRuinTuning.WARM_EVERY == 0;
-        // (in the test server its tests drive the keeper themselves: a near-spawn ruin's real knights would otherwise come
-        // for the other tests' stand-in players and mobs; the regions are still worked out ahead)
-        boolean keep = t % KnightRuinTuning.KEEPER_EVERY == 0 && !net.minecraftforge.gametest.ForgeGameTestHooks.isGametestEnabled();
+        boolean keep = t % KnightRuinTuning.KEEPER_EVERY == 0;
         if ((!warm && !keep) || level.players().isEmpty() || !KnightRuinSites.available(level))
         {
             return;
