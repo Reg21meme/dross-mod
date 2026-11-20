@@ -162,6 +162,8 @@ public final class KnightFightGameTest
         double d = Math.min(FURTHEST, Math.max(NEAREST, Math.min(move.maxRange() - 1.0D, move.minRange() + 1.5D)));
         golem.setHealth(GOLEM_HEALTH);
         golem.removeAllEffects();
+        // (fire can't hurt it: a move must do harm of its own, not only set it burning or leave fire under it)
+        golem.addEffect(new net.minecraft.world.effect.MobEffectInstance(MobEffects.FIRE_RESISTANCE, -1, 0, false, false));
         golem.clearFire();
         golem.setDeltaMovement(Vec3.ZERO);
         golem.moveTo(feet.x, feet.y, feet.z + d, 180.0F, 0.0F);
@@ -182,6 +184,8 @@ public final class KnightFightGameTest
                         + "(its health " + golem.getHealth() + "; the knight at " + knight.position() + ", the golem at "
                         + golem.position() + ")");
             }
+            LOGGER.info("[knight fight test] {}'s {} from {} blocks took {} of the golem's health", kind, move.anim(), d,
+                    GOLEM_HEALTH - golem.getHealth());
             next.run();
         });
     }

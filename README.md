@@ -752,10 +752,10 @@ when hurt, shrugs off its own element (fire, cold, poison, lightning or falls), 
 | Thawed Spearman (ice) | 90 | 10 | Thrust: 4 hearts, long reach | Shield wall: he takes 30% damage while poking you five times (2 hearts each) |
 | Blight Warden (poison) | 80 | 6 | A poison ball from his staff (a cloud of poison) | Blight rain: poison rains 7 blocks round him for 4 s |
 | Sporebound (poison) | 90 | 6 | Reap: 4.5 hearts all round him, poisons | Spore burst: sickness, poison, a moment blind, pushed away; poison clouds left |
-| Cinder Knight (fire) | 100 | 10 | Hammer swing: 5 hearts, sets you burning | Slam: a shockwave of fire (up to 5 hearts), a ring of fire |
-| Flamehand (fire) | 70 | 6 | Fireballs from his fists (2.5 hearts, burning) | The great fireball: bursts round where it lands (up to 7 hearts) |
+| Cinder Knight (fire) | 200 | 10 | Hammer swing: 5 hearts, sets you burning | Slam: a shockwave of fire (up to 5 hearts), a ring of fire |
+| Flamehand (fire) | 70 | 6 | Fireballs from his fists (4.5 hearts, burning) | The great fireball: bursts round where it lands (up to 12 hearts) |
 | Wreck Knight (thunder) | 110 | 12 | Anchor throw: hooks you on its chain and hauls you to him | Anchor slam: 5.5 hearts with a crack of lightning, stuns |
-| Stormblade (thunder) | 70 | 6 | Two quick cuts (3 hearts each) | Lightning dash: through you and past, lightning left behind that stings |
+| Stormblade (thunder) | 70 | 6 | Two quick cuts (6 hearts each) | Lightning dash: through you and past, lightning left behind that stings |
 | Geode Knight (earth) | 100 | 10 | Pick: 5 hearts | Crystal burst: rings of amethyst burst up round him, one under you |
 | Rockfall Knight (earth) | 110 | 12 | Boulder throw: a lumpy mossy boulder, 4.5 hearts | Rockfall: a shockwave, then mossy rocks rain down round you |
 

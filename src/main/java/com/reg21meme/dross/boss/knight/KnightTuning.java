@@ -139,19 +139,19 @@ public final class KnightTuning
 
     /** A fireball: this fast (blocks a tick), this much, this long burning. Never sets a block alight. */
     public static final double FIREBALL_SPEED = 1.1D;
-    public static final float FIREBALL_DAMAGE = 7.0F;
+    public static final float FIREBALL_DAMAGE = 9.0F;   // (7 until the user, November 20, 2026: "a little more damage")
     public static final int FIREBALL_FIRE_SECONDS = 4;
     /** (the user, November 19, 2026: his fireballs did no damage: they flew at where you stood, so anyone moving was
      * missed) Each is aimed where its foe will be, hits anything within this much of its path, and one that lands on
      * the ground still splashes fire this far round, this hard. */
     public static final double FIREBALL_HIT_MARGIN = 0.5D;
     public static final double FIREBALL_SPLASH_RADIUS = 1.8D;
-    public static final float FIREBALL_SPLASH_DAMAGE = 4.0F;
+    public static final float FIREBALL_SPLASH_DAMAGE = 5.0F;   // (4 until November 20, 2026)
     /** The great fireball: slow and big; it bursts on whatever it hits, this far round, its damage falling to half at the
      * edge, thrown out, a ring of fire left behind. Never breaks a block. */
     public static final double GREAT_SPEED = 0.55D;
     public static final double GREAT_RADIUS = 5.5D;    // (4.5 and 14 until the user, November 19, 2026: "his explosion
-    public static final float GREAT_DAMAGE = 20.0F;    // should do more damage")
+    public static final float GREAT_DAMAGE = 24.0F;    // should do more damage"; 20 until November 20: "a little more")
     public static final int GREAT_FIRE_SECONDS = 6;
     public static final double GREAT_KNOCK = 1.4D;
     public static final int GREAT_FIRES = 14;

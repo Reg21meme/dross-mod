@@ -2522,7 +2522,13 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
           (every knight watches how its foe really moves, `ElementalKnight.watchTarget`: the server never knows a
           player's own motion; the plague ball and the boulder lead with it too), hits anything within half a block of
           its path, 7 damage (5) and 4 s burning; one landing on the ground splashes fire 1.8 blocks round (4). The great
-          fireball 20 (14), 5.5 blocks round (4.5), 14 fires (10).
+          fireball 20 (14), 5.5 blocks round (4.5), 14 fires (10). (November 20, the user: "a little more damage": the
+          fireballs 9, their splash 5, the great fireball 24.)
+        - **Every knight's moves hurt without fire** (November 20, the user asked whether the Cinder Knight did any
+          damage besides fire): measured with fire blocked, his hammer swing takes 10 (5 hearts) off a bare iron golem
+          and his slam up to about 9; on a zombie in full netherite (armour 22) 2 and 1.6, while burning ignores armour,
+          so in good armour his fire is most of what you feel. `KnightFightGameTest` now gives its golem Fire Resistance,
+          so a move that only burns fails it, and logs what each move took.
         - **The rockfall's circle**: the rocks hurt nobody now (they fly through); from the first rock's landing to the
           last, every half second everything inside the circle (its 5.5 blocks and 0.75 more, up to 4 over the ground)
           takes 3, its edge marked with stone dust while it lasts (`ROCKFALL_PULSE_*`, `ROCKFALL_ZONE_*`;
