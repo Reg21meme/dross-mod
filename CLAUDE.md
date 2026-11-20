@@ -3299,6 +3299,11 @@ Built and passing the headless check, but not yet tested in-game. Check these du
 
 ## Known bugs
 Minor issues found during the early-game build. None block playing. Fix them when that area is next changed, and remove the line once fixed.
+- **The Cinder mobs' tests time out under another test server's load** (Boss area, found November 20, 2026): with a
+  second GameTest run (another session's) going on the same machine, the Dross's biome map read about 25 times slower
+  (6,000 blocks in 105 s, not 4), and `CinderMobsGameTest`'s land far out (about -9,000, 9,200) never started ticking
+  within its 3 minutes: all 7 failed "its chunks never started ticking", even run on their own; in the quiet full runs
+  they pass. Not the knight ruins (they only act in the Overworld). Run the suite with nothing else heavy running.
 - **One column beside the cathedral not stepped back, on one seed** (World site, found November 5): in a full fresh run
   (world `gt_play_a`) `PortalSiteGameTest.cathedralIsMadeWithTheLand` failed with "1 of 5172 columns round the site are
   further from its ground level y 70 than they are from it (the first: -2916, 2699 (1 out) at y 67, diorite over diorite
