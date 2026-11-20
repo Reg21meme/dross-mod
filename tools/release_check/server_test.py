@@ -34,7 +34,8 @@ def note(line):
     report.append(stamp + " " + line)
 
 
-# ---- a clean server: no world, no logs, only these mods, this config
+# ---- a clean server: no world, no logs, only these mods, this config (its watchdog off: /forceload makes all of
+# an area's 256 chunks in one tick, which a busy computer can take over a minute to do)
 for d in (["logs", "crash-reports", "mods", "config", "defaultconfigs"] + ([] if keep_world else ["world"])):
     shutil.rmtree(os.path.join(server_dir, d), ignore_errors=True)
 os.makedirs(os.path.join(server_dir, "mods"))
@@ -52,7 +53,7 @@ if config_file:
 open(os.path.join(server_dir, "eula.txt"), "w").write("eula=true\n")
 open(os.path.join(server_dir, "server.properties"), "w").write(
     "level-seed=%s\nonline-mode=false\nview-distance=10\nsimulation-distance=8\nspawn-protection=0\nmotd=dross test\n"
-    "max-tick-time=60000\nenable-rcon=false\nsync-chunk-writes=true\n" % seed)
+    "max-tick-time=-1\nenable-rcon=false\nsync-chunk-writes=true\n" % seed)
 open(os.path.join(server_dir, "user_jvm_args.txt"), "w").write("-Xmx6G\n-Xms2G\n")
 note("seed " + seed)
 

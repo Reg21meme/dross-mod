@@ -1011,6 +1011,7 @@ From the project folder, on Windows:
 | Run the game with the mod | `.\gradlew.bat runClient --console=plain` |
 | Run the automated in-game checks | `.\gradlew.bat runGameTestServer --console=plain` |
 | The same checks in a brand-new world | `.\gradlew.bat runGameTestServer -PgameTestWorld=world_check_1 --console=plain` (pick a folder name under `run/` that doesn't exist yet) |
+| The performance test (the mod's mobs and bosses fighting, every server tick timed) | `.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_perf -PgameTestWorld=perf_check_1 --console=plain` (the numbers in `run/perf/server_perf.txt`) |
 
 - **Logs:** `run/logs/latest.log`. **Crash reports:** `run/crash-reports/`.
 - **Commands in-game:** create the world with **Allow Cheats: ON** to use the commands.

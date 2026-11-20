@@ -16,6 +16,7 @@
 - If a first-time setup fails with `NoSuchFileException` under `.gradle/caches/forge_gradle/maven_downloader`, that is a flaky parallel download. Re-run the same command.
 - To test commands in-game, create the world with **Allow Cheats: ON**.
 - Headless checks: `.\gradlew.bat runGameTestServer --console=plain` runs every GameTest without a game window. Add `-PgameTestWorld=<new folder>` for a brand-new world (the folder under `run/` must not exist yet; otherwise it reuses `run/world`). Confirm the `All N required tests passed :)` line: a datapack load failure can still exit 0. In a test, a wait step never fails by itself (Minecraft retries it until the test's tick limit, hours away): keep the failure and let a watchdog sequence fail the test (`BOSS_GUIDE.md`, Tests).
+- Performance test (November 19, 2026, the user: "add a performance test"): `.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_perf -PgameTestWorld=<new folder> --console=plain` (`perf/ServerPerfProbeGameTest`, its own namespace, so the normal run leaves it out): six scenarios one after another (an empty floor, 6 Silverwood Giants, the Cinder Wastes' mobs, Rimefall's animals and the Frostfolk, three bosses at once, the Emberdactyl and its young) standing still and then fighting (raged), every server tick timed; a scenario fails if its fight's mean tick is over 25 ms or its 95th percentile over 45 ms. The numbers go to the log ("[perf]") and `run/perf/server_perf.txt`. The frame rate in the real game: `tools/release_check/` (`WorldProbe.java.template`; its README).
 - GameTests live in `src/main/java` (files named `*GameTest.java`) but **stay out of the mod jar**: `build.gradle`'s `jar` task excludes them and the test-only helpers `dimension/TerrainProbe`, `dimension/TerrainSurvey` and `enchant/RisenTestWait`. A new test-only helper class goes on that list, and game code must never use a test class (the jar would break).
 - **Showcase-only models stay out of the jar too** (the user, November 7, 2026: "do not include the showcase galleries ... you can keep it in my system"; about 12 MB, the jar 28 MB to 15 MB): `build.gradle`'s `jar` task leaves out the Rimefall candidates' statues (`geo|textures|animations/entity/rimefall/`), the fire servant candidates (all but `firestorma`, the fire tornado's look), the Emberdactyl egg's looks the fight never wears (E3A, E3C, E3D) and the frozen copies of the moving fire designs (`fire/emberdactyla`, `emberyounga`, `mobhermit*`, `mobpallbearer*`: the game draws those from `firemob/`). The dev runs and the tests keep them. In the jar `boss/ShowcaseOnly` sees they're missing: `/dross showcase boss_designs cinder_wastes` and `... rimefall` aren't offered, the Emberdactyl gallery skips those eggs, and a candidate whose model is missing isn't drawn. A new gallery-only model goes on that list; never one the real game draws.
 
@@ -1698,7 +1699,14 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
         flying, it looks 10 ticks of its flight ahead (at least 6 blocks) and, with a wall there, turns its course to
         the nearest side with clear room, at most 12 degrees a tick, else slows and climbs (`steerClear`,
         `EmberTuning.AVOID_*`). In a space narrower than its wings (the adult's are about 37 blocks across flying, the
-        bedrock arena's 3-5 team sections 29 and less) it can't turn freely. **Never out of a wall's other side, never
+        bedrock arena's 3-5 team sections 29 and less) it can't turn freely. **Cheaper in open sky, never waiting on
+        land being made** (November 20, 2026, from the performance test, `perf/ServerPerfProbeGameTest`): with nothing
+        of the land reaching up into the space its pieces sweep (every column's motion-blocking height, a block to
+        spare, under it: `clearSky`) its wall checks stop there (checking its ~28 pieces against the blocks round them
+        every tick was most of its cost: the adult and its young fighting took the server 2.8-3.3 ms a tick after,
+        4.5-7.2 before); and its checks never look into a chunk that isn't finished (`landReady`): at the edge of the
+        loaded land one made the server wait 9.6 s for a chunk still being made; unfinished land counts as a wall it
+        steers away from. **Never out of a wall's other side, never
         out of its arena** (the user, November 2: "the Emberdactyl was in the bedrock arena when I was fighting him, I
         died, went outside the arena and it somehow escaped": its dive snapped it onto the spot it dived at, a player
         outside the wall): a move that would put its body into a block is undone (`BODY_CLEAR`); its dive lands on its
@@ -2877,6 +2885,9 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 
 ## Verify over time
 Built and passing the headless check, but not yet tested in-game. Check these during future play tests and remove each line once confirmed.
+- **The Emberdactyl's cheaper wall checks** (November 20, 2026): fight it at its volcano and in the bedrock arena: it
+  still turns away from walls and hills before it reaches them, its wings never pass through rock, it never gets stuck
+  against the crater's rim, and the game stays smooth while it flies.
 - **The Huntsman's ice arrows** (November 19): in his fight every arrow he shoots, and the rain's, has a see-through
   ice head and ice-blue fletchings (no plain grey arrowheads), its head glowing faintly at night; stuck in the ground
   it looks the same.

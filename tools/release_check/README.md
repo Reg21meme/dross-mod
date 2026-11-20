@@ -20,7 +20,9 @@ reports. It writes `<out dir>/report.txt` (its last line `RESULT: ALL GOOD` or t
    more folders for more mods (a modpack test), `--config test-config.toml` to start with a changed settings file, and
    `--keep-world` to open the world of the run before (checking it keeps its own settings).
 
-The server's world, logs, mods and config are wiped at the start of each run (unless `--keep-world`).
+The server's world, logs, mods and config are wiped at the start of each run (unless `--keep-world`). Its watchdog is
+off (`max-tick-time=-1`): `/forceload` makes all of an area's 256 chunks in one tick, and on a busy computer that took
+over a minute (November 20, 2026), which the watchdog took for a hung server.
 
 ## The real game: `WorldProbe.java.template`
 

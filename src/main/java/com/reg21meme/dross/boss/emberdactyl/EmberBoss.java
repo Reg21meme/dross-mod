@@ -23,6 +23,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
@@ -714,7 +715,95 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
      *  hold it there). */
     private boolean inBlock(AABB box)
     {
-        return !this.level().noCollision(this, box.deflate(0.01D));
+        return landReady(box) && !this.level().noCollision(this, box.deflate(0.01D));
+    }
+
+    /**
+     * True if every chunk under {@code box} is loaded and finished (November 20, 2026: the performance test caught its
+     * look-ahead stopping the server for 9.6 s: a box of its reaching into a chunk at the edge of the loaded land, still
+     * being made, made Minecraft wait for that chunk to finish). Its wall checks never look into such a chunk: unfinished
+     * land counts as a wall it steers away from. Always true on screens.
+     */
+    private boolean landReady(AABB box)
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return true;
+        }
+        int x0 = SectionPos.blockToSectionCoord(Mth.floor(box.minX));
+        int x1 = SectionPos.blockToSectionCoord(Mth.floor(box.maxX));
+        int z0 = SectionPos.blockToSectionCoord(Mth.floor(box.minZ));
+        int z1 = SectionPos.blockToSectionCoord(Mth.floor(box.maxZ));
+        for (int cx = x0; cx <= x1; cx++)
+        {
+            for (int cz = z0; cz <= z1; cz++)
+            {
+                if (level.getChunkSource().getChunkNow(cx, cz) == null)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * True if nothing of the land reaches into {@code box}: every column under it tops out (its motion-blocking height,
+     * a block to spare for snow layers and carpets) below the box's bottom. Its chunks must be ready ({@link
+     * #landReady}). Flying in open sky its wall checks stop here (the performance test of November 20, 2026: checking
+     * each of its ~28 pieces against the blocks round it every tick was most of what it cost the server).
+     */
+    private boolean clearSky(AABB box)
+    {
+        if (!(this.level() instanceof ServerLevel level))
+        {
+            return false;
+        }
+        int bottom = Mth.floor(box.minY);
+        int x0 = Mth.floor(box.minX);
+        int x1 = Mth.floor(box.maxX);
+        int z0 = Mth.floor(box.minZ);
+        int z1 = Mth.floor(box.maxZ);
+        for (int cx = SectionPos.blockToSectionCoord(x0); cx <= SectionPos.blockToSectionCoord(x1); cx++)
+        {
+            for (int cz = SectionPos.blockToSectionCoord(z0); cz <= SectionPos.blockToSectionCoord(z1); cz++)
+            {
+                net.minecraft.world.level.chunk.LevelChunk chunk = level.getChunkSource().getChunkNow(cx, cz);
+                if (chunk == null)
+                {
+                    return false;
+                }
+                int ax = Math.max(x0, SectionPos.sectionToBlockCoord(cx));
+                int bx = Math.min(x1, SectionPos.sectionToBlockCoord(cx) + 15);
+                int az = Math.max(z0, SectionPos.sectionToBlockCoord(cz));
+                int bz = Math.min(z1, SectionPos.sectionToBlockCoord(cz) + 15);
+                for (int x = ax; x <= bx; x++)
+                {
+                    for (int z = az; z <= bz; z++)
+                    {
+                        if (chunk.getHeight(Heightmap.Types.MOTION_BLOCKING, x & 15, z & 15) + 2 > bottom)
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /** One box round all of {@code boxes} (and its own), each pushed along {@code by}. */
+    private AABB sweptAll(List<AABB> boxes, Vec3 by)
+    {
+        AABB all = this.getBoundingBox().expandTowards(by);
+        for (AABB box : boxes)
+        {
+            if (box != null)
+            {
+                all = all.minmax(box.expandTowards(by));
+            }
+        }
+        return all;
     }
 
     /**
@@ -776,12 +865,21 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
             return move;
         }
         List<AABB> boxes = this.shapesAt(this.position(), this.yBodyRot);
+        AABB all = this.sweptAll(boxes, move);
+        if (this.landReady(all) && this.clearSky(all))
+        {
+            return move;                        // (open sky all round: nothing to run into)
+        }
         for (int i = 0; i < boxes.size(); i++)
         {
             AABB box = boxes.get(i);
             if (box == null || this.inBlock(box))
             {
                 continue;                       // (a piece already in a block doesn't hold it there)
+            }
+            if (!this.landReady(box.expandTowards(move)))
+            {
+                continue;                       // (land still being made isn't looked into: see landReady)
             }
             if (move.y < 0.0D && !this.bearsDown(i))
             {
@@ -801,7 +899,17 @@ public abstract class EmberBoss extends FireCandidate implements RageLeader, Dro
     {
         Vec3 sweep = dir.scale(reach);
         double room = reach;
-        for (AABB box : this.shapesAt(this.position(), this.yBodyRot))
+        List<AABB> boxes = this.shapesAt(this.position(), this.yBodyRot);
+        AABB all = this.sweptAll(boxes, sweep);
+        if (!this.landReady(all))
+        {
+            return 0.0D;                        // (land still being made counts as a wall: see landReady)
+        }
+        if (this.clearSky(all))
+        {
+            return reach;                       // (open sky all the way: nothing to run into)
+        }
+        for (AABB box : boxes)
         {
             if (box != null && !this.inBlock(box))
             {
