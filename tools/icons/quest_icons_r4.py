@@ -8,6 +8,7 @@ beard. 32 x 32, like round 3 and the Huntsman's icon.
 
   python tools/icons/quest_icons_r4.py   quest-previews/advancement_icons/<name>/options.png (round 3 moves to round3/)
 """
+import math
 import os
 import sys
 
@@ -41,7 +42,8 @@ G = {**R3.G, "s": (176, 178, 186), "S": (150, 152, 162), "q": (122, 124, 136), "
 
 def giant_head(eyes="dead"):
     """A Silverwood Giant's head as his model has it, front on: square, pale ashen skin, wild black hair on top and
-    falling past his temples, a heavy brow, his blue eyes (crossed out, dead), a broad nose and a great black beard."""
+    falling past his temples, a heavy brow, his eyes dead (their blue gone out, an X in each dark socket), a broad nose
+    and a great black beard."""
     g = blank()
     skull = rect(5, 4, 26, 24)
     g = layer(g, shade(skull, "k", "ssSq"))
@@ -59,11 +61,10 @@ def giant_head(eyes="dead"):
         g[10][x] = "s"
         g[11][x] = "Q"
     put(g, {(7, 10): "Q", (24, 10): "Q", (15, 11): "S", (16, 11): "S"})
-    for x0 in (8, 19):                                                     # the eyes
+    for x0 in (8, 19):                                                     # the eyes, dead: sockets and an X
         for x in range(x0, x0 + 5):
-            g[12][x] = "e"
-            g[13][x] = "E" if x in (x0 + 1, x0 + 2) else "e"
-        g[12][x0 + 1] = "W"
+            for y in range(11, 16):
+                g[y][x] = "Q"
         if eyes == "dead":
             put(g, {(x0, 11): "x", (x0 + 4, 11): "x", (x0 + 1, 12): "x", (x0 + 3, 12): "x", (x0 + 2, 13): "x",
                     (x0 + 1, 14): "x", (x0 + 3, 14): "x", (x0, 15): "x", (x0 + 4, 15): "x"})
@@ -86,7 +87,6 @@ def gs_a():
     welling where it went in."""
     g = giant_head()
     sword(g, (17, 5), (27, -5))
-    put(g, {(16, 5): "e", (17, 6): "E", (18, 5): "e", (15, 6): "e", (19, 6): "e"})
     return g
 
 def gs_b():
@@ -113,7 +113,7 @@ def gs_b():
 
 GIANT_SLAYER = [
     ("GS14", "Sword in the giant", "Giant Slayer: a Silverwood Giant's head as his model has it (pale ashen skin, wild "
-     "black mane, heavy brow, great black beard), his blue eyes crossed out, your sword driven into the top of it", G,
+     "black mane, heavy brow, great black beard), his eyes dead (an X in each dark socket), your sword driven into the top of it", G,
      rows(gs_a())),
 ]
 
@@ -124,34 +124,43 @@ C = {**R3.C, "g": (150, 146, 140), "G": (110, 106, 102), "f": (210, 206, 200), "
      "v": (230, 228, 224)}
 
 
+def turned(points, cx, cy, deg):
+    a = math.radians(deg)
+    return [(cx + x * math.cos(a) - y * math.sin(a), cy + x * math.sin(a) + y * math.cos(a)) for x, y in points]
+
+
 def ia_a():
-    """A mountain of ash, smoke rising off its top, embers glowing in it, and the Pallbearer's top hat lying on its side
-    on the slope: all that's left of him."""
-    mountain = poly([(-0.5, 31.5), (3, 25), (8, 18), (12, 13), (15, 10.5), (18, 12), (22, 17), (27, 23), (32.5, 30),
+    """A mountain of ash, smoke rising off it, embers glowing in it, and the Pallbearer's top hat lying tipped over at
+    an angle on its summit: all that's left of him."""
+    mountain = poly([(-0.5, 31.5), (4, 26), (9, 20), (13, 16.5), (17, 15), (21, 17), (26, 22), (32.5, 29),
                      (32.5, 31.5)])
     g = shade(mountain, "k", "aAbbG")
-    for x, y, c in [(15, 11, "l"), (16, 11, "L"), (14, 12, "r"), (17, 12, "l"), (9, 22, "l"), (6, 27, "r"),
-                    (13, 26, "L"), (8, 29, "r"), (11, 30, "y")]:
+    for x, y, c in [(10, 22, "l"), (6, 27, "r"), (14, 25, "L"), (20, 23, "l"), (24, 28, "r"), (11, 30, "y"),
+                    (27, 26, "l"), (17, 29, "L")]:
         g[y][x] = c
-    smoke = union(ellipse(15.5, 8, 3, 2.4), ellipse(17.5, 5, 3.6, 2.6), ellipse(15, 2, 3.2, 2.2),
-                  ellipse(19.5, 2.5, 2.4, 2))
+    smoke = union(ellipse(23, 13, 2.6, 2.2), ellipse(25, 9.5, 3.2, 2.4), ellipse(23.5, 5.5, 3.4, 2.4),
+                  ellipse(26.5, 2.5, 3, 2.2))
     sm = shade(smoke, "G", "vfF")
     for y in range(N):
         for x in range(N):
             if sm[y][x] != "." and g[y][x] == ".":
                 g[y][x] = sm[y][x]
-    # the hat on its side on the right slope: its brim a tall upright disc, its crown lying along the ground
-    brim = poly([(17, 15), (19, 14.5), (19.5, 30), (17, 30.5), (16.5, 23)])
-    crown = poly([(19, 18), (29, 19), (29.5, 27), (19, 28)])
-    g = layer(g, shade(crown, "k", "jHh"), shade(brim, "k", "jjH"))
-    for y in range(19, 28):
-        g[y][20] = "R"
-        g[y][21] = "R"
+    # the hat, tipped over on the summit: its brim resting on the ash, its crown leaning up and off to the left
+    cx, cy, tilt = 15, 15.5, -28
+    brim = turned([(-7.5, -1), (7.5, -1), (7.5, 1), (-7.5, 1)], cx, cy, tilt)
+    crown = turned([(-4.5, -10.5), (4.5, -10.5), (4.8, -1), (-4.8, -1)], cx, cy, tilt)
+    band = turned([(-4.7, -3.5), (4.7, -3.5), (4.8, -1.2), (-4.8, -1.2)], cx, cy, tilt)
+    g = layer(g, shade(poly(crown), "k", "jHh"), shade(poly(brim), "k", "jHh"))
+    b = poly(band)
+    for y in range(N):
+        for x in range(N):
+            if b[y][x] and g[y][x] not in ("k",):
+                g[y][x] = "R"
     return g
 
 INTO_THE_ASHES = [
-    ("IA14", "The ash mountain", "Into the Ashes: a mountain of ash with smoke rising off its top and embers glowing "
-     "in it, the Pallbearer's top hat lying on its side on the slope", C, rows(ia_a())),
+    ("IA14", "The ash mountain", "Into the Ashes: a mountain of ash with smoke rising off it and embers glowing in "
+     "it, the Pallbearer's top hat lying tipped over at an angle on its summit", C, rows(ia_a())),
 ]
 
 
@@ -194,20 +203,53 @@ def shift(g, dx, dy):
     return out
 
 
-def br_a():
-    """Three Plague Rats lying dead in a heap, belly up, their feet in the air, X eyes, tongues out."""
+def tiny_rat(flip=False, belly_up=True):
+    """One Plague Rat lying dead for the pile, about 17 x 11 at the grid's top left: belly up with its feet in the air,
+    or flopped on its front with its legs splayed; an X for its eye, its pink ear and tail (facing left; flip faces it
+    right)."""
     g = blank()
-    g = layer(g, shift(small_rat(), -6, 11), shift(small_rat(flip=True), 7, 12), shift(small_rat(), 1, 2))
-    for x in range(N):
-        if g[30][x] == ".":
-            g[30][x] = "1" if x % 2 else "2"
-        g[31][x] = "1"
+    body = ellipse(9.5, 6, 5.6, 3.2)
+    head = ellipse(3.6, 6.6, 3.2, 2.7)
+    g = layer(g, shade(union(body, head), "k", "5432" if belly_up else "4321"))
+    if belly_up:
+        for x in range(6, 14):
+            if g[4][x] != "k":
+                g[4][x] = "5"
+        for fx in (6, 9, 12, 13):
+            g[2][fx] = "k"
+            g[1][fx] = "P"
+    else:
+        for fx in (6, 12):
+            g[9][fx] = "k"
+            g[10][fx] = "P"
+        for x in range(7, 13):
+            if g[3][x] == "4":
+                g[3][x] = "3"
+    put(g, {(3, 4): "P", (2, 4): "k", (4, 4): "P"})
+    put(g, x_eye(3, 7, 1, "x"))
+    put(g, {(0, 8): "P"})
+    put(g, {q: "P" for q in line_pts(15, 7, 17, 5) + line_pts(17, 5, 18, 7)})
+    if flip:
+        g = [list(reversed(r[:19])) + ["."] * (N - 19) for r in g]
     return g
 
+def br_a():
+    """A great heap of dead Plague Rats piled on top of each other, the heap's bottom wide and its top a single rat:
+    belly up with their feet in the air or flopped over, X eyes, tails hanging out."""
+    g = blank()
+    spots = [(-2, 21, False, True), (8, 22, True, False), (15, 20, False, True), (2, 15, True, True),
+             (12, 14, False, False), (19, 15, True, True), (6, 8, False, True), (14, 8, True, True),
+             (9, 2, False, True)]
+    for x0, y0, flip, up in spots:
+        g = layer(g, shift(tiny_rat(flip, up), x0, y0))
+    for x in range(N):
+        if g[31][x] == ".":
+            g[31][x] = "1" if x % 2 else "2"
+    return g
 
 BENEATH_THE_ROT = [
-    ("BR14", "Three dead rats", "Beneath the Rot: three Plague Rats lying dead in a heap, belly up, feet in the air, "
-     "X eyes, tongues out", R, rows(br_a())),
+    ("BR14", "The rat pile", "Beneath the Rot: a great heap of dead Plague Rats piled on top of each other, feet "
+     "in the air, X eyes, tails hanging out", R, rows(br_a())),
 ]
 
 
