@@ -3368,6 +3368,9 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   its own" (spruce stairs, packed ice, lanterns, skulls...) "and 309 air blocks more than 8 under the ground": the
   check's sample spot landed on a hunter village (its blocks and sunken courtyards), which it doesn't know about. The
   check should skip a village's footprint, like it skips lakes. Not looked into yet.
+- **The stepped lair test found no room in the sky once** (Boss area, found November 19): in a full fresh run (world
+  `gt_icons_1119`) `SteppedLairGameTest.steppedLairMatchesAtOnce` failed with "no room in the Dross's sky for the test
+  land"; the runs before passed it. Not looked into yet.
 - **Two raged Emberdactyls once never hurt each other** (Boss area, found November 19): in a full fresh run (world
   `gt_spells3_1119`) `EmberFightGameTest.ragedTheyFightEachOther` gave up waiting ("the adult 395.68 going for
   EmberYoung ... the young 175.0 going for Emberdactyl", the two 1.7 blocks apart and 2 up); the run before passed it.

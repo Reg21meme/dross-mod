@@ -61,11 +61,8 @@ def giant_head(eyes="dead"):
         g[10][x] = "s"
         g[11][x] = "Q"
     put(g, {(7, 10): "Q", (24, 10): "Q", (15, 11): "S", (16, 11): "S"})
-    for x0 in (7, 19):                                                     # the eyes, dead: sockets, a thick X
-        for x in range(x0, x0 + 6):
-            for y in range(11, 17):
-                g[y][x] = "Q"
-        if eyes == "dead":
+    for x0 in (7, 19):                                                     # the eyes, dead: a thick black X on his
+        if eyes == "dead":                                                   # skin (no grey socket behind it: the user)
             for i in range(6):
                 for w in (0, 1):
                     if i + w < 6:
