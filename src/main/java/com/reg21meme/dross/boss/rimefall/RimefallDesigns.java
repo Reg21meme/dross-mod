@@ -205,8 +205,8 @@ public final class RimefallDesigns
             new Design(6, "6A", "huntsmana", "The Huntsman", "the Wild Hunt", true, 5.21F, 8.77F, 4.24F, 2.63F, 2.61F, 2.61F, 8.77F, 2.35F, true, true, true, List.of()),
             new Design(7, "6A1", "huntsmana1", "The Huntsman", "on foot", true, 1.51F, 5.62F, 0.78F, 0.72F, 1.06F, 1.17F, 5.62F, 0.68F, true, true, true, List.of()),
             new Design(8, "6A2", "huntsmana2", "The Huntsman", "alpha moose", true, 5.21F, 5.35F, 4.24F, 2.59F, 2.61F, 2.61F, 5.35F, 2.35F, true, true, true, List.of()),
-            new Design(9, "9C", "thawedc", "Thawed Soldier", "axe, 4 tall", false, 1.63F, 4.09F, 0.91F, 0.72F, 1.31F, 2.09F, 4.09F, 0.73F, true, true, true, List.of()),
-            new Design(10, "9D", "thawedd", "Thawed Soldier", "spear, 4 tall", false, 2.11F, 5.36F, 1.38F, 0.72F, 1.44F, 1.45F, 5.36F, 0.95F, true, true, true, List.of())
+            new Design(9, "9C", "thawedc", "Thawed Soldier", "axe, 4.6 tall", false, 1.92F, 4.69F, 1.07F, 0.85F, 1.51F, 2.42F, 4.69F, 0.86F, true, true, true, List.of()),
+            new Design(10, "9D", "thawedd", "Thawed Soldier", "spear, 4.6 tall", false, 2.43F, 6.18F, 1.58F, 0.85F, 1.66F, 1.65F, 6.18F, 1.09F, true, true, true, List.of())
     );
 
     /**

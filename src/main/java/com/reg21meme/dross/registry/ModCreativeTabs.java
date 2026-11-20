@@ -158,6 +158,8 @@ public final class ModCreativeTabs
                         output.accept(ModItems.CINDER_HERMIT_SPAWN_EGG.get());
                         // Boss area: the Silverwood Giant
                         output.accept(ModItems.SILVERWOOD_GIANT_SPAWN_EGG.get());
+                        // Boss area: the elemental knights, two of each element (ice, poison, fire, thunder, earth)
+                        ModItems.KNIGHT_SPAWN_EGGS.values().forEach(egg -> output.accept(egg.get()));
 
                         // 5. Weapons and tools
                         // Villager area: the test-only Admin Sword

@@ -867,6 +867,49 @@ can't be cured, not even with milk.
 
 ---
 
+## The elemental knights
+
+Two knights of each of the five elements; they'll guard broken Dross portals in their element's Overworld biomes (the
+ruins aren't in the world yet). For now they come from their **spawn eggs** (the end of the Dross tab's spawn eggs).
+Each is hostile, never despawns (no boss bar), calls the other knights near
+when hurt, shrugs off its own element (fire, cold, poison, lightning or falls), and fights with two moves:
+
+| Knight | Health | Armour | Move 1 | Move 2 |
+|---|---|---|---|---|
+| Thawed Axeman (ice) | 90 | 8 | Swing: 4.5 hearts, chills | Smash: ice spikes burst up in a line to you, a big one under you (4.5 hearts, thrown up, frozen) |
+| Thawed Spearman (ice) | 90 | 10 | Thrust: 4 hearts, long reach | Shield wall: he takes 30% damage while poking you five times (2 hearts each) |
+| Blight Warden (poison) | 80 | 6 | A poison ball from his staff (a cloud of poison) | Blight rain: poison rains 7 blocks round him for 4 s |
+| Sporebound (poison) | 90 | 6 | Reap: 4.5 hearts all round him, poisons | Spore burst: sickness, poison, a moment blind, pushed away; poison clouds left |
+| Cinder Knight (fire) | 200 | 10 | Hammer swing: 9 hearts, sets you burning | Slam: a shockwave of fire (up to 9 hearts), a ring of fire |
+| Flamehand (fire) | 70 | 6 | Fireballs from his fists (4.5 hearts, burning) | The great fireball: bursts round where it lands (up to 12 hearts) |
+| Wreck Knight (thunder) | 110 | 12 | Anchor throw: hooks you on its chain and hauls you to him | Anchor slam: 5.5 hearts with a crack of lightning, stuns |
+| Stormblade (thunder) | 70 | 6 | Two quick cuts (6 hearts each) | Lightning dash: through you and past, lightning left behind that stings |
+| Geode Knight (earth) | 100 | 10 | Pick: 5 hearts | Crystal burst: rings of amethyst burst up round him, one under you |
+| Rockfall Knight (earth) | 110 | 12 | Boulder throw: a lumpy mossy boulder, 4.5 hearts | Rockfall: a shockwave, then mossy rocks rain down round you |
+
+None of their moves breaks a block; the only fire they leave is temporary and goes out by itself. Every number is in
+`boss/knight/KnightTuning` (and `KnightKind`). Their looks and animations come from `tools/knights/` (`mobs.py`; the
+statues on show from `build.py`), their sounds from `tools/knights/sounds.py` (all made from scratch: each element its
+own, voices that ring inside a helm rather than a person's, the heavy Wreck Knight deep and the quick Stormblade light),
+their ruin candidates from `tools/knights/ruins.py`. See the ten with `/dross showcase knights` (with buttons that make
+them play their moves), hear them with `/dross showcase boss_sounds knights`.
+
+You can see each big move coming: its weapon gathers its element as the knight winds up, and the biggest moves show
+where they'll land (a poison cloud gathering, dust falling where rocks will drop, sparks where lightning will strike).
+Every slam sends a ring of the ground's blocks rolling out, a blow that lands bursts its element on you, and a knight
+bursts into its element as it dies. Up close they're alive with it: the Cinder Knight sheds embers, Flamehand's fists
+burn, the Thawed Soldiers' breath frosts, spores drift off the Sporebound. `tools/knights/audit.py` checks their
+animations for parts passing through each other or the floor, snaps and spins.
+
+**Their ruins** (candidates, not in the world yet): every area of each element's biomes has its own 4-5 small fight
+spots round a broken portal frame, built from that area's blocks: 76 in all (the user's picks). Ice: snowy plains, taiga, frozen shore.
+Poison: swamp, mushroom fields, dark forest, jungle, forest. Fire: desert, savanna, badlands. Thunder: warm shore, cold
+shore, stony shore, riverbank, and the storm peaks (mountain tops). Earth: plains, meadow and cherry grove, windswept
+hills, peaks, and big caverns underground. The shore ruins stand on the beach with the sea behind them, some reaching
+out into it. Build them all, the five elements side by side, with `/dross showcase knight_ruins`, or one element's
+with `/dross showcase knight_ruins <element>` (pictures in
+`boss-previews/knights/ruins/index.html`).
+
 ## Advancements
 
 All Dross advancements live in their own **Dross** tab, which stays hidden until you pick up a Weathered Letter.
@@ -944,6 +987,13 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross showcase trophies huntsman` | Places the Huntsman's five trophy designs in a row in front of you the same way. |
 | `/dross showcase boss_designs ratking` | Spawns the Rat King (Gnawrick 1C) frozen, with signs and clickable animation buttons in chat. Right-click one to play his next animation; sneak + right-click: he dies. |
 | `/dross showcase boss_designs ratking sleep` / `wake` / `idle` / `walk` / `burrow` / `popup` / `rage` / `charge` / `die` | Plays that animation on every showcase Rat King nearby (rage turns their eyes red until they sleep). |
+| `/dross showcase knight_ruins` | Builds all the knight ruin candidates ahead of you, the five elements side by side (ice on the left), each element's two knights frozen on guard in its ruins, with [go] buttons. |
+| `/dross showcase knight_ruins <element>` | Builds that element's knight ruin candidates ahead of you (`ice`, `poison`, `fire`, `thunder`, `earth`): a row for each of its biome areas, each ruin on its area's ground with the element's two knights frozen on guard, with [go] buttons. |
+| `/dross showcase boss_sounds knights` | Lists every knight's sounds with play buttons. |
+| `/dross showcase knight_ruins idle` / `walk` / `move1` / `move2` | Every knight on show near you plays that (its first or its second move). |
+| `/dross showcase knights` | The ten knights, frozen, element by element in front of broken portals, with buttons to stand by each. |
+| `/dross showcase knights idle` / `walk` / `move1` / `move2` | Every knight on show near you plays that. |
+| `/dross showcase boss_designs knights` | The knights' design candidates (the statues they were picked from). |
 | `/dross showcase rats` | Lines up the Rat King's two rats on pedestals with signs: the Plague Rat and the Plague Ravager. |
 | `/dross showcase boss_sounds ratking` | Lists every Rat King and rat sound in chat, each with a [play] button. |
 | `/dross showcase boss_sounds huntsman` | Lists every Huntsman and Alpha Moose sound in chat, with a numbered button for each version (hover to see what it is). |
@@ -979,6 +1029,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross boss arena bedrock team_up` | Puts every mob and player in each of the bedrock arena's sections on that section's team (the Rage Wand's Rage). |
 | `/dross rage team <targets> <team>` | Puts players and mobs on one of the Rage Wand's teams (blue, red, green, yellow or purple): `@s`, a player's name, `@e[...]`. Players on a team fight alongside their team's raged mobs and against the others. |
 | `/dross rage clear <targets>` | Takes players and mobs off their teams (a mob's Rage goes too). |
+| `/dross goto ruin [<element>]` | Teleports in front of the nearest elemental knights' ruin in the Overworld (of that element: `fire`, `ice`, `poison`, `thunder`, `earth`), building it first if need be. |
+| `/dross goto ruin <x> <z>` | The ruin nearest that spot (the locate list's [go] buttons). |
+| `/dross locate ruins` | Lists the 8 nearest knight ruins (within 2,400 blocks) with their element, area, layout and distance, each with a [go] button. |
 
 ---
 
@@ -993,10 +1046,15 @@ mod's own tuning.
 | `trader` | `atVillages` | true | His Rift Chapel at the edge of a village; `false`: on its own, 384-1,536 blocks from spawn, no village laid out for it. |
 | `trader` | `villageSearchRadius` | 3000 | How far from spawn his village can be. |
 | `quest` | `letterChance` | 1.0 | The chance a Nether Fortress or Bastion Remnant chest holds a Weathered Letter. |
+| `knight_ruins` | `spacing` | 800 | About how far apart the elemental knights' ruins are, on average (away from the ones near spawn). |
+| `knight_ruins` | `nearSpawn` | 5 | How many ruins go near the world spawn, each in its own big biome (0: none). |
+| `knight_ruins` | `nearSpawnRadius` | 1000 | The furthest those ruins can be from the spawn. |
+| `knight_ruins` | `nearSpawnMinDistance` | 200 | The nearest any ruin can be to the spawn. |
+| `knight_ruins` | `knightsReturnMinutes` | 10 | Minutes after both of a ruin's knights are beaten until they come back (only while no player is within 64 blocks; this one counts at once in every world). |
 | `performance` | `plannerThreads` | 0 (automatic) | Helper threads for the Dross's boss-site planner (0: half the processors, 1 to 8; read at start). |
 | `performance` | `buildMillisPerTick` | 40 | How many milliseconds a server tick may spend building a boss lair or volcano. |
 
-The `portal_site` and `trader` values are saved in each world the first time it loads
+The `portal_site`, `trader` and `knight_ruins` values (all but `knightsReturnMinutes`) are saved in each world the first time it loads
 (`data/dross_world_settings.dat`, `DrossWorldSettings`), so changing the file never moves an existing world's cathedral
 or trader; the log says when a world keeps settings that differ from the file. The code is `DrossConfig` (each area
 reads its own values through it).

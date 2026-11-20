@@ -6,7 +6,7 @@
 - Mappings: `official` (Mojang names). Mod metadata: `src/main/resources/META-INF/mods.toml`, filled from `gradle.properties`.
 - **GeckoLib 4.8.4** (Forge 1.20.1, `geckolib_version` in `gradle.properties`) draws and animates the boss models. It's a required dependency: players need it installed too (`mods.toml` lists it). `build.gradle` remaps its mixin refmap in the dev runs (`mixin.env.*` properties) and turns off its example mobs (`geckolib.disable_examples`).
 - GitHub: https://github.com/Reg21meme/dross-mod (branch `main`).
-- **Settings file** `config/dross-common.toml` (November 5, 2026; `DrossConfig`, a COMMON config registered in `Dross.java`): the portal site's distances from spawn (`portal_site`), the trader at a village or on his own and how far out (`trader`), the Weathered Letter's chance (`quest`), the boss-site planner's threads and the lair and volcano builders' milliseconds a tick (`performance`). The `portal_site` and `trader` values are saved in each world when it's first loaded (`DrossWorldSettings`, `data/dross_world_settings.dat`) and read from there ever after, so changing the file only affects new worlds. Each area reads its values through `DrossConfig` (with defaults before it's loaded); adding a setting: add it in its own section and say so in the README's "Settings".
+- **Settings file** `config/dross-common.toml` (November 5, 2026; `DrossConfig`, a COMMON config registered in `Dross.java`): the portal site's distances from spawn (`portal_site`), the trader at a village or on his own and how far out (`trader`), the Weathered Letter's chance (`quest`), the knight ruins' spacing, how many near spawn and how far, and their knights' return time (`knight_ruins`, November 19, 2026), the boss-site planner's threads and the lair and volcano builders' milliseconds a tick (`performance`). The `portal_site`, `trader` and `knight_ruins` values (all but `knightsReturnMinutes`) are saved in each world when it's first loaded (`DrossWorldSettings`, `data/dross_world_settings.dat`) and read from there ever after, so changing the file only affects new worlds. Each area reads its values through `DrossConfig` (with defaults before it's loaded); adding a setting: add it in its own section and say so in the README's "Settings".
 - The user is a **beginner**. Explain changes in plain language. **Never commit or push unless the user asks.**
 
 ## Commands (Windows, run from the project folder)
@@ -18,7 +18,7 @@
 - Headless checks: `.\gradlew.bat runGameTestServer --console=plain` runs every GameTest without a game window. Add `-PgameTestWorld=<new folder>` for a brand-new world (the folder under `run/` must not exist yet; otherwise it reuses `run/world`). Confirm the `All N required tests passed :)` line: a datapack load failure can still exit 0. In a test, a wait step never fails by itself (Minecraft retries it until the test's tick limit, hours away): keep the failure and let a watchdog sequence fail the test (`BOSS_GUIDE.md`, Tests).
 - Performance test (November 19, 2026, the user: "add a performance test"): `.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_perf -PgameTestWorld=<new folder> --console=plain` (`perf/ServerPerfProbeGameTest`, its own namespace, so the normal run leaves it out): six scenarios one after another (an empty floor, 6 Silverwood Giants, the Cinder Wastes' mobs, Rimefall's animals and the Frostfolk, three bosses at once, the Emberdactyl and its young) standing still and then fighting (raged), every server tick timed; a scenario fails if its fight's mean tick is over 25 ms or its 95th percentile over 45 ms. Each line also counts the fighter-ticks spent frozen off the land Minecraft keeps running (a mob there doesn't move and costs nothing; the Emberdactyls' scenario about 4.5%, November 20). The numbers go to the log ("[perf]") and `run/perf/server_perf.txt`. The frame rate in the real game: `tools/release_check/` (`WorldProbe.java.template`; its README).
 - GameTests live in `src/main/java` (files named `*GameTest.java`) but **stay out of the mod jar**: `build.gradle`'s `jar` task excludes them and the test-only helpers `dimension/TerrainProbe`, `dimension/TerrainSurvey` and `enchant/RisenTestWait`. A new test-only helper class goes on that list, and game code must never use a test class (the jar would break).
-- **Showcase-only models stay out of the jar too** (the user, November 7, 2026: "do not include the showcase galleries ... you can keep it in my system"; about 12 MB, the jar 28 MB to 15 MB): `build.gradle`'s `jar` task leaves out the Rimefall candidates' statues (`geo|textures|animations/entity/rimefall/`), the fire servant candidates (all but `firestorma`, the fire tornado's look), the Emberdactyl egg's looks the fight never wears (E3A, E3C, E3D) and the frozen copies of the moving fire designs (`fire/emberdactyla`, `emberyounga`, `mobhermit*`, `mobpallbearer*`: the game draws those from `firemob/`). The dev runs and the tests keep them. In the jar `boss/ShowcaseOnly` sees they're missing: `/dross showcase boss_designs cinder_wastes` and `... rimefall` aren't offered, the Emberdactyl gallery skips those eggs, and a candidate whose model is missing isn't drawn. A new gallery-only model goes on that list; never one the real game draws.
+- **Showcase-only models stay out of the jar too** (the user, November 7, 2026: "do not include the showcase galleries ... you can keep it in my system"; about 12 MB, the jar 28 MB to 15 MB): `build.gradle`'s `jar` task leaves out the Rimefall candidates' statues (`geo|textures|animations/entity/rimefall/`), the fire servant candidates (all but `firestorma`, the fire tornado's look), the Emberdactyl egg's looks the fight never wears (E3A, E3C, E3D) and the frozen copies of the moving fire designs (`fire/emberdactyla`, `emberyounga`, `mobhermit*`, `mobpallbearer*`: the game draws those from `firemob/`), the Blightwood candidates (`geo|textures|animations/entity/blight/`, November 7, 2026) and the elemental knights (`geo|textures|animations/entity/knight/`, November 7). The dev runs and the tests keep them. In the jar `boss/ShowcaseOnly` sees they're missing: `/dross showcase boss_designs cinder_wastes`, `... rimefall`, `... blightwood` and `/dross showcase knights` aren't offered, the Emberdactyl gallery skips those eggs, and a candidate whose model is missing isn't drawn. A new gallery-only model goes on that list; never one the real game draws.
 
 ## Rules for every agent
 1. Forge 1.20.1 / Java 17 APIs only. Use `DeferredRegister` for all registrations. Watch out for newer-version APIs that don't exist here: no `ResourceLocation.fromNamespaceAndPath` (use `new ResourceLocation(Dross.MODID, "path")`), no data components, no NeoForge classes, no `neoforge.mods.toml`.
@@ -36,9 +36,214 @@
 8. **Colors come from `DrossColors`.** Never hard-code a color in feature code (particles, glows, text styles, spawn eggs). If you need a new color, add a labeled constant in your area's section of `DrossColors`. Some older code still has hard-coded colors; move it onto `DrossColors` when you next change that code.
 9. **`/dross` command names** say what kind of thing a command is about and which one, so they stay clear as more bosses and places arrive (world-builder adds them to `command/DrossCommand`; if you need one, report it as "Needs from world site"):
    - `goto <place>`: teleports (`goto cathedral`, `goto hub`, `goto trader`, `goto sewer`, `goto lake`, `goto hermit_cave`). A kind of place names its kind first: `goto biome <name>` (one per Dross biome) and `goto lair <boss>` (`goto lair colossus`, `goto lair ratking`, `goto lair emberdactyl`).
-   - `showcase <kind> [<boss>]`: test showcases (`showcase boss_designs colossus`, `showcase boss_designs ratking`, `showcase boss_designs rimefall`, `showcase boss_designs cinder_wastes`, `showcase boss_designs emberdactyl`, `showcase cinder_mobs`, `showcase boss_sounds emberdactyl`, `showcase mob_sounds cinder_wastes`, `showcase rats`, `showcase boss_sounds ratking`, `showcase trophies colossus`, `showcase trophies ratking`, `showcase trophies huntsman`, `showcase rimefall_mobs`, `showcase mob_sounds rimefall`, `showcase bossbars huntsman`, `showcase boss_sounds huntsman`, `showcase frostfolk_villages`, `showcase frostfolk_igloos`, `showcase hermit_caves`, `showcase hub_camps`, `showcase silverwood_giants`). A new boss adds one literal under each kind it has; a boss's minions get their own kind (`showcase rats`).
+   
+-
+ 
+`showcase
+ 
+<kind>
+ 
+[<boss>]`:
+ 
+test
+ 
+showcases
+ 
+(`showcase
+ 
+boss_designs
+ 
+colossus`,
+ 
+`showcase
+ 
+boss_designs
+ 
+ratking`,
+ 
+`showcase
+ 
+boss_designs
+ 
+rimefall`,
+ 
+`showcase
+ 
+boss_designs
+ 
+cinder_wastes`,
+ 
+`showcase
+ 
+boss_designs
+ 
+blightwood`,
+ 
+`showcase
+ 
+knights`
+ 
+(the
+ 
+ten
+ 
+real
+ 
+knights),
+ 
+`showcase
+ 
+boss_designs
+ 
+knights`,
+ 
+`showcase
+ 
+knight_ruins
+ 
+[<element>]`,
+ 
+`showcase
+ 
+boss_sounds
+ 
+knights`,
+ 
+`showcase
+ 
+boss_designs
+ 
+emberdactyl`,
+ 
+`showcase
+ 
+cinder_mobs`,
+ 
+`showcase
+ 
+boss_sounds
+ 
+emberdactyl`,
+ 
+`showcase
+ 
+mob_sounds
+ 
+cinder_wastes`,
+ 
+`showcase
+ 
+rats`,
+ 
+`showcase
+ 
+boss_sounds
+ 
+ratking`,
+ 
+`showcase
+ 
+trophies
+ 
+colossus`,
+ 
+`showcase
+ 
+trophies
+ 
+ratking`,
+ 
+`showcase
+ 
+trophies
+ 
+huntsman`,
+ 
+`showcase
+ 
+rimefall_mobs`,
+ 
+`showcase
+ 
+mob_sounds
+ 
+rimefall`,
+ 
+`showcase
+ 
+bossbars
+ 
+huntsman`,
+ 
+`showcase
+ 
+boss_sounds
+ 
+huntsman`,
+ 
+`showcase
+ 
+frostfolk_villages`,
+ 
+`showcase
+ 
+frostfolk_igloos`,
+ 
+`showcase
+ 
+hermit_caves`,
+ 
+`showcase
+ 
+hub_camps`,
+ 
+`showcase
+ 
+silverwood_giants`).
+ 
+A
+ 
+new
+ 
+boss
+ 
+adds
+ 
+one
+ 
+literal
+ 
+under
+ 
+each
+ 
+kind
+ 
+it
+ 
+has;
+ 
+a
+ 
+boss's
+ 
+minions
+ 
+get
+ 
+their
+ 
+own
+ 
+kind
+ 
+(`showcase
+ 
+rats`).
    - `goto lair huntsman` (the nearest Huntsman's village), `goto village [<x> <z>]` (the nearest hunter village) and,
-     a test tool for now, `locate villages` (the 5 nearest, with [go] buttons); `showcase frostfolk` (the Frostfolk, Rimefall's
+     a test tool for now, `locate villages` (the 5 nearest, with [go] buttons); `goto ruin [<element>]` and `goto ruin <x> <z>` (the
+     nearest elemental knights' ruin in the Overworld, of an element, or the one nearest a spot) and `locate ruins` (the 8
+     nearest, with [go] buttons); `showcase frostfolk` (the Frostfolk, Rimefall's
      villagers; never call them hunters).
    - `boss <action> <boss>`: boss test tools (`boss summon colossus`, `boss arena colossus`, `boss summon ratking`, `boss arena ratking`, `boss summon huntsman`, `boss arena huntsman`), and `boss arena bedrock` (a spawn-proof test arena for any boss).
    - `trader <action>`: the trader (`trader sendhome`).
@@ -54,13 +259,471 @@
 |---|---|---|
 | Dimension | `dimension-builder` | `com.reg21meme.dross.dimension.*`; `data/dross/dimension/`, `data/dross/dimension_type/`, `data/dross/worldgen/`; Dross mob equipment (skips risen undead; marks geared mobs for `DrossMobGear.hasDrossGear`); the hub's safe zone (no natural hostile spawns near `DrossHub.CENTER`); the lower monster limit in Silverwood Forest and the Gravecrags (`dimension/DrossMonsterLimit`); **the terrain** (Terrain v1): noise settings, density functions (`dross:hub_falloff`), the five biomes and their spawn lists, surface rules, world-generation features and their Java (`dimension/worldgen/`, `registry/ModFeatures`, `ModTreeDecorators`, `ModDensityFunctions`, `ModPlacementModifiers`), the 38 terrain blocks and 3 materials (`dimension/block/`) with their assets, tags, recipes and loot, `tools/terrain/` (the generators; `worldgen.py` holds every tuning number), `block-previews/`, `terrain-previews/`, the Dross sky/fog/light (`dimension/client/`), and `DrossBiomes` (biome keys, `findNearest`); the `dross:not_on_hub` placement filter (`dimension/worldgen/NotOnHubFilter`: trees, giant mushrooms and ice spikes keep 24 blocks past the hub's footprint, plant patches 8, ores 8 from 8 under its ground up; `HUB_TREE_MARGIN`, `HUB_PLANT_MARGIN`, `HUB_ORE_MARGIN`, `HUB_ORE_DEPTH` in `worldgen.py`) and writing the JSON of the hub's, the portal site's and the Rift Chapel's structures (`worldgen.py` owns those folders; their Java is Portal's, World site's and Villager's; November 4, 2026); **the sewers** (The plan, step 11: `dimension/sewer/` (the `dross:sewers` and `dross:rat_cave` structures, their maze planner and pieces, every number in `SewerTuning`, the `RatCaves` and `Sewers` API, the rat cave's spawn list `RatCaveSpawns`), `registry/ModStructures`, the underground `dross:sewers` biome and its depth climate `dross:climate/sewer_depth`, the rat spawn weights (`worldgen.py`, SEWERS section), Sewer Sludge (`dimension/block/SewerSludgeBlock`), the Blight Vent (`dimension/block/BlightVentBlock`), the `dross:not_near_sewer_entrance` placement filter, `tools/terrain/preview_sewers.py` and `terrain-previews/sewers/`); **Rimefall's big frozen lakes and its Rimehorn herds** (The plan, step 14: `dimension/rimefall/` (`RimefallAreas`, the plan per Rimefall patch; `RimefallLake`, `RimefallLakeStructure`, `RimefallLakePiece`, the `dross:rimefall_lake` structure in `registry/ModStructures`; `RimehornHerdFeature`, `dross:rimehorn_herd` in `registry/ModFeatures`; every number in `RimefallTuning`), the `dross:not_on_rimefall_lake` placement filter, Rimefall's and Silverwood's moose spawn weights (`worldgen.py`); where Rimefall's hunter villages go (`RimefallVillages`, the planner's `HUNTSMAN_VILLAGE` and `HUNTER_VILLAGE` uses, October 23)); **the boss-site planner** (The plan, step 12: `dimension/sites/` and its `dross:boss_site` structure placement in `registry/ModStructures`, `terrain-previews/boss_sites.png`; bosses plug their own fit tests into it); **the land wards** (The plan, step 19, November 9, 2026: `dimension/ward/` (`LandWard`, and in `client/` `LandWardEdge`, `WardStreakParticle`, `WardRuneParticle`, `LandWardClientSetup`), the `dross:ward_streak` and `dross:ward_rune` particles in `registry/ModParticles`, their sprites and the preview `terrain-previews/ward_edge.png` from `tools/terrain/ward_particles.py`) and Silverwood's monster list without zombies and skeletons, the Silverwood Giant in it (`worldgen.py`'s `SILVERWOOD_GIANT_WEIGHT`, `SILVERWOOD_KEEPS`; step 19) |
 | Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); the frame's ambient particles and sound; the **Rift Key** item and lighting a frame with it (replaces the netherite ingot); blocking portal lighting inside the Dross; the portal's look (texture, particles, screen overlay); teleporting; the **hub** at Dross 0,0 (`portal/DrossHub`: structure and exit portal); the frame's creative-only block item; the Rift Key and frame entries in the "Dross" creative tab; the arrival sequence (title, piano notes, and *when* `dross:entered_the_dross` is granted and the Guide Book is given, both through `quest-builder`'s API; the advancement JSON belongs to Quest); the hub as a world-generation structure made with the Dross land at 0,0 (November 4, 2026: `dross:dross_hub`, `portal/DrossHubStructure`, `DrossHubPiece`, `DrossHubPlacement`, its entries in `registry/ModStructures`; its ground level from the seed, `DrossHubGround`; `DrossHub.layout(server)`, pure arithmetic, for the survivors, the filters and the arrival) and `DrossTeleporter.findSafeSpot`; the survivors' camp at the spire's steps (`portal/camp/`: `HubCamp`, where its template goes with the hub's land and where they live in it, and the generated `HubCampDesigns`; templates `data/dross/structures/hub_camp/`, made by `tools/hub_camp/camps.py`, previews `shrine-previews/hub_camp/`) |
-| World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; the **castle**, the Fallen Cathedral, around a frame made of `portal-builder`'s frame block, as a world-generation structure since November 4, 2026 (`dross:portal_site`: `world/PortalSiteStructure`, `PortalSitePiece`, `PortalSitePlacement`, its entries in `registry/ModStructures`; its spot from the seed, `SiteFinder`, `SiteRules`, `SiteSpot`, `SiteVillages`; the trees round it felled once its land is loaded, `SiteTidy`); the "leaking" dead plants and cracked blocks around it, `SiteLeak`); `com.reg21meme.dross.command.*` (the `/dross` command root and its names (see rule 9); `/dross goto cathedral`, `/dross goto hub` and `/dross goto trader`; its `trader`, `quest` and `boss` subcommands call the villager, quest and boss areas' logic; `/dross showcase boss_designs colossus` (`command/GolemShowcase`) lines up the boss area's golem designs and drives their showcase controls (dormant, erupt, erupted, break, core, die, walk, idle); `/dross showcase trophies colossus`, `/dross showcase trophies ratking` and `/dross showcase trophies huntsman` (`command/TrophyShowcase`) place the boss area's trophy designs in a row; `/dross showcase boss_designs ratking` (`command/RatKingShowcase`) lines up the Rat King designs and plays their animations (sleep, wake, idle, walk, burrow, popup, rage, die); `/dross showcase rats` (`command/RatShowcase`) lines up his rats, regular and enraged (idle, run); `/dross showcase boss_sounds ratking` (`command/RatSoundShowcase`) lists his and the rats' sounds with play buttons; `/dross showcase boss_designs rimefall` (`command/RimefallShowcase`) builds a snowy gallery of the boss area's Rimefall candidates (the user's picks, bosses then regular mobs); `/dross showcase rimefall_mobs` (`command/RimefallMobShowcase`) lines up Rimefall's animals and plays their animations; `/dross showcase mob_sounds rimefall` (`command/RimefallMobSoundShowcase`) lists their sounds with play buttons; `/dross showcase bossbars huntsman` (the boss area's `HuntsmanBarShowcase`) shows the Huntsman's boss bars; `/dross showcase frostfolk_villages` (`command/HunterVillageShowcase`) builds the boss area's village designs and the Huntsman's lodge; `/dross showcase frostfolk_igloos` (`command/HunterIglooShowcase`) builds the boss area's igloo templates and decorations; `/dross boss summon ratking` and `/dross boss arena ratking` (the boss area's `BossCommands`, `RatKingArena`); `/dross boss summon huntsman` and `/dross boss arena huntsman` (the boss area's `BossCommands`, `HuntsmanArena`); `/dross boss arena bedrock` (the boss area's `BedrockArena`)); the two **shrine designs** the user picked, No. 1 Fallen Cathedral and No. 2 Shattered Spire (`world/shrine/`: `ShrineDesign` places one, `ShrineDesigns` is generated; templates in `data/dross/structures/shrine/`, made by the Python generator in `tools/shrines/`, previews in `shrine-previews/`); `GroundFit` reading the Dross ground tags `#dross:fit_surface` / `#dross:fit_soil`; `/dross goto biome <name>` (`command/GotoBiome`), `/dross goto lair colossus` and `/dross goto lair ratking` (`command/GotoLair`, the rat cave through `dimension/sewer/RatCaves` and `boss/ratking/lair/RatKingLair`), `/dross goto sewer` (`command/GotoSewer`, through `dimension/sewer/Sewers`), `/dross goto lake` (`command/GotoLake`, through `dimension/rimefall/RimefallAreas`), `/dross goto lair huntsman`, `/dross goto village` and the temporary `/dross locate villages` (`command/GotoVillage`, through `dimension/rimefall/RimefallVillages` and the boss area's `HuntsmanVillages`), `/dross showcase frostfolk` (`command/FrostfolkShowcase`, the boss area's Frostfolk, one of each calling, and their controls); `/dross showcase boss_designs cinder_wastes` (`command/FireShowcase`, the boss area's fire servant candidates in a gallery), `/dross showcase boss_designs emberdactyl` (the same, the Emberdactyl's looks, with the boss area's `EmberVolcano` going up behind them) and `/dross showcase cinder_mobs` (the same, the Cinder Wastes' mobs); `/dross showcase hermit_caves` (`command/HermitCaveShowcase`, the boss area's hermit crab caves) and `/dross goto hermit_cave` (`command/GotoHermitCave`, through the boss area's `HermitCaveSites`); `/dross showcase hub_camps` (`command/HubCampShowcase`, the Portal area's camp candidates, each at a Shattered Spire); `/dross showcase silverwood_giants` (`command/SilverwoodGiantShowcase`, the boss area's Silverwood Giant in its three looks, and its controls); wiring `/dross quest skip` and `/dross quest set <quest>` (Quest's `QuestCommands`; step 19) |
-| Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, his hut (the Rift Chapel, `TraderHut.DESIGN`, drawn in `villager.hut`), since November 4, 2026 a world-generation structure, one per world, at the edge of a village the seed picks, with its trader and a path to the village's nearest street (`dross:rift_chapel`: `villager/RiftChapelStructure`, `RiftChapelPiece`, `RiftChapelPathPiece`, `RiftChapelPlacement`, their entries in `registry/ModStructures`; which village and where, from the seed, `TraderVillages`; the API `RiftChapels`; the "once a village" rule, `TraderVillageData`; the trees felled by its trader, `RiftChapelTidy`; working his home out as the world loads, and the Generate Structures warning, `RiftChapelEvents`), the join message `TraderAnnouncer`, his dialogue, tribute and key-material hand-ins (through Quest's progress API), giving the Dross Compass and the Rift Key, his shop, the Admin Sword (item and texture), the Dross Compass (and it setting its own target when in a player's inventory), the Admin Sword and Dross Compass entries in the "Dross" creative tab, spawn egg, `/dross goto trader` logic (`TraderCommands`); the **skins** (`villager/TraderSkins`: 1 Hooded Watcher, 2 The Archivist, 3 Ragged Seeker, 8 Blind Oracle; textures in `textures/entity/trader/`, drawn by `tools/skins/`, previews in `skin-previews/`); **the survivors** at the hub (`villager/Survivor*`, entity `dross:survivor`: the Blind Oracle and the Ragged Seeker); the Blind Oracle's right-click going to Quest's quest talk (`Survivor.mobInteract`, `OracleDialogue.talk`) and the quest marker over his head (`villager/client/OracleMarkerRenderer`, drawn from `SurvivorRenderer`; its texture `textures/gui/quest_markers.png` and preview `skin-previews/quest_markers.png` by `tools/skins/quest_markers.py`; step 19) |
+| World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; the **castle**, the Fallen Cathedral, around a frame made of `portal-builder`'s frame block, as a world-generation structure since November 4, 2026 (`dross:portal_site`: `world/PortalSiteStructure`, `PortalSitePiece`, `PortalSitePlacement`, its entries in `registry/ModStructures`; its spot from the seed, `SiteFinder`, `SiteRules`, `SiteSpot`, `SiteVillages`; the trees round it felled once its land is loaded, `SiteTidy`); the "leaking" dead plants and cracked blocks around it, `SiteLeak`); `com.reg21meme.dross.command.*` (the `/dross` command root and its names (see rule 9); `/dross goto cathedral`, `/dross goto hub` and `/dross goto trader`; its `trader`, `quest` and `boss` subcommands call the villager, quest and boss areas' logic; `/dross showcase boss_designs colossus` (`command/GolemShowcase`) lines up the boss area's golem designs and drives their showcase controls (dormant, erupt, erupted, break, core, die, walk, idle); `/dross showcase trophies colossus`, `/dross showcase trophies ratking` and `/dross showcase trophies huntsman` (`command/TrophyShowcase`) place the boss area's trophy designs in a row; `/dross showcase boss_designs ratking` (`command/RatKingShowcase`) lines up the Rat King designs and plays their animations (sleep, wake, idle, walk, burrow, popup, rage, die); `/dross showcase rats` (`command/RatShowcase`) lines up his rats, regular and enraged (idle, run); `/dross showcase boss_sounds ratking` (`command/RatSoundShowcase`) lists his and the rats' sounds with play buttons; `/dross showcase boss_designs rimefall` (`command/RimefallShowcase`) builds a snowy gallery of the boss area's Rimefall candidates (the user's picks, bosses then regular mobs); `/dross showcase rimefall_mobs` (`command/RimefallMobShowcase`) lines up Rimefall's animals and plays their animations; `/dross showcase mob_sounds rimefall` (`command/RimefallMobSoundShowcase`) lists their sounds with play buttons; `/dross showcase bossbars huntsman` (the boss area's `HuntsmanBarShowcase`) shows the Huntsman's boss bars; `/dross showcase frostfolk_villages` (`command/HunterVillageShowcase`) builds the boss area's village designs and the Huntsman's lodge; `/dross showcase frostfolk_igloos` (`command/HunterIglooShowcase`) builds the boss area's igloo templates and decorations; `/dross boss summon ratking` and `/dross boss arena ratking` (the boss area's `BossCommands`, `RatKingArena`); `/dross boss summon huntsman` and `/dross boss arena huntsman` (the boss area's `BossCommands`, `HuntsmanArena`); `/dross boss arena bedrock` (the boss area's `BedrockArena`)); the two **shrine designs** the user picked, No. 1 Fallen Cathedral and No. 2 Shattered Spire (`world/shrine/`: `ShrineDesign` places one, `ShrineDesigns` is generated; templates in `data/dross/structures/shrine/`, made by the Python generator in `tools/shrines/`, previews in `shrine-previews/`); `GroundFit` reading the Dross ground tags `#dross:fit_surface` / `#dross:fit_soil`; `/dross goto biome <name>` (`command/GotoBiome`), `/dross goto lair colossus` and `/dross goto lair ratking` (`command/GotoLair`, the rat cave through `dimension/sewer/RatCaves` and `boss/ratking/lair/RatKingLair`), `/dross goto sewer` (`command/GotoSewer`, through `dimension/sewer/Sewers`), `/dross goto lake` (`command/GotoLake`, through `dimension/rimefall/RimefallAreas`), `/dross goto lair huntsman`, `/dross goto village` and the temporary `/dross locate villages` (`command/GotoVillage`, through `dimension/rimefall/RimefallVillages` and the boss area's `HuntsmanVillages`), `/dross showcase frostfolk` (`command/FrostfolkShowcase`, the boss area's Frostfolk, one of each calling, and their controls); `/dross showcase boss_designs cinder_wastes` (`command/FireShowcase`, the boss area's fire servant candidates in a gallery), `/dross showcase boss_designs emberdactyl` (the same, the Emberdactyl's looks, with the boss area's `EmberVolcano` going up behind them) and `/dross showcase cinder_mobs` (the same, the Cinder Wastes' mobs); `/dross showcase hermit_caves` (`command/HermitCaveShowcase`, the boss area's hermit crab caves) and `/dross goto hermit_cave` (`command/GotoHermitCave`, through the boss area's `HermitCaveSites`); `/dross showcase hub_camps` (`command/HubCampShowcase`, the Portal area's camp candidates, each at a Shattered Spire); `/dross showcase boss_designs blightwood` (`command/BlightShowcase`, the boss area's Blightwood candidates in a gallery); `/dross showcase knights` (`command/KnightShowcase`, the boss area's ten real knights on show, element by element round broken portals, and buttons playing their moves; the design candidates' gallery is `/dross showcase boss_designs knights`); `/dross showcase knight_ruins [<element>]` (`command/KnightRuinShowcase`, the boss area's knight ruin candidates, all five elements side by side or one element, a row for each of its biome areas, with their knights on guard); `/dross showcase boss_sounds knights` (`command/KnightSoundShowcase`, the knights' sounds with play buttons); `/dross goto ruin [<element>]`, `/dross goto ruin <x> <z>` and `/dross locate ruins` (`command/GotoRuin`, through the boss area's `KnightRuins`); `/dross showcase silverwood_giants` (`command/SilverwoodGiantShowcase`, the boss area's Silverwood Giant in its three looks, and its controls); wiring `/dross quest skip` and `/dross quest set <quest>` (Quest's `QuestCommands`; step 19) |
+|
+ 
+Villager
+ 
+|
+ 
+`villager-builder`
+ 
+|
+ 
+`com.reg21meme.dross.villager.*`;
+ 
+trader
+ 
+entity,
+ 
+renderer,
+ 
+his
+ 
+hut
+ 
+(the
+ 
+Rift
+ 
+Chapel,
+ 
+`TraderHut.DESIGN`,
+ 
+drawn
+ 
+in
+ 
+`villager.hut`),
+ 
+since
+ 
+November
+ 
+4,
+ 
+2026
+ 
+a
+ 
+world-generation
+ 
+structure,
+ 
+one
+ 
+per
+ 
+world,
+ 
+at
+ 
+the
+ 
+edge
+ 
+of
+ 
+a
+ 
+village
+ 
+the
+ 
+seed
+ 
+picks,
+ 
+with
+ 
+its
+ 
+trader
+ 
+and
+ 
+a
+ 
+path
+ 
+to
+ 
+the
+ 
+village's
+ 
+nearest
+ 
+street
+ 
+(`dross:rift_chapel`:
+ 
+`villager/RiftChapelStructure`,
+ 
+`RiftChapelPiece`,
+ 
+`RiftChapelPathPiece`,
+ 
+`RiftChapelPlacement`,
+ 
+their
+ 
+entries
+ 
+in
+ 
+`registry/ModStructures`;
+ 
+which
+ 
+village
+ 
+and
+ 
+where,
+ 
+from
+ 
+the
+ 
+seed,
+ 
+`TraderVillages`;
+ 
+the
+ 
+API
+ 
+`RiftChapels`;
+ 
+the
+ 
+"once
+ 
+a
+ 
+village"
+ 
+rule,
+ 
+`TraderVillageData`;
+ 
+the
+ 
+trees
+ 
+felled
+ 
+by
+ 
+its
+ 
+trader,
+ 
+`RiftChapelTidy`;
+ 
+working
+ 
+his
+ 
+home
+ 
+out
+ 
+as
+ 
+the
+ 
+world
+ 
+loads,
+ 
+and
+ 
+the
+ 
+Generate
+ 
+Structures
+ 
+warning,
+ 
+`RiftChapelEvents`),
+ 
+the
+ 
+join
+ 
+message
+ 
+`TraderAnnouncer`,
+ 
+his
+ 
+dialogue,
+ 
+tribute
+ 
+and
+ 
+key-material
+ 
+hand-ins
+ 
+(through
+ 
+Quest's
+ 
+progress
+ 
+API),
+ 
+giving
+ 
+the
+ 
+Dross
+ 
+Compass
+ 
+and
+ 
+the
+ 
+Rift
+ 
+Key,
+ 
+his
+ 
+shop,
+ 
+the
+ 
+Admin
+ 
+Sword
+ 
+(item
+ 
+and
+ 
+texture),
+ 
+the
+ 
+Dross
+ 
+Compass
+ 
+(and
+ 
+it
+ 
+setting
+ 
+its
+ 
+own
+ 
+target
+ 
+when
+ 
+in
+ 
+a
+ 
+player's
+ 
+inventory),
+ 
+the
+ 
+Admin
+ 
+Sword
+ 
+and
+ 
+Dross
+ 
+Compass
+ 
+entries
+ 
+in
+ 
+the
+ 
+"Dross"
+ 
+creative
+ 
+tab,
+ 
+spawn
+ 
+egg,
+ 
+`/dross
+ 
+goto
+ 
+trader`
+ 
+logic
+ 
+(`TraderCommands`);
+ 
+the
+ 
+**skins**
+ 
+(`villager/TraderSkins`:
+ 
+1
+ 
+Hooded
+ 
+Watcher,
+ 
+2
+ 
+The
+ 
+Archivist,
+ 
+3
+ 
+Ragged
+ 
+Seeker,
+ 
+8
+ 
+Blind
+ 
+Oracle;
+ 
+textures
+ 
+in
+ 
+`textures/entity/trader/`,
+ 
+drawn
+ 
+by
+ 
+`tools/skins/`,
+ 
+previews
+ 
+in
+ 
+`skin-previews/`);
+ 
+**the
+ 
+survivors**
+ 
+at
+ 
+the
+ 
+hub
+ 
+(`villager/Survivor*`,
+ 
+entity
+ 
+`dross:survivor`:
+ 
+the
+ 
+Blind
+ 
+Oracle
+ 
+and
+ 
+the
+ 
+Ragged
+ 
+Seeker);
+ 
+the
+ 
+Blind
+ 
+Oracle's
+ 
+right-click
+ 
+going
+ 
+to
+ 
+Quest's
+ 
+quest
+ 
+talk
+ 
+(`Survivor.mobInteract`,
+ 
+`OracleDialogue.talk`)
+ 
+and
+ 
+the
+ 
+quest
+ 
+marker
+ 
+over
+ 
+his
+ 
+head
+ 
+(`villager/client/OracleMarkerRenderer`,
+ 
+drawn
+ 
+from
+ 
+`SurvivorRenderer`;
+ 
+its
+ 
+texture
+ 
+`textures/gui/quest_markers.png`
+ 
+and
+ 
+preview
+ 
+`skin-previews/quest_markers.png`
+ 
+by
+ 
+`tools/skins/quest_markers.py`;
+ 
+step
+ 
+19)
+ 
+|
 | Enchantments | `enchant-builder` | `com.reg21meme.dross.enchant.*`; the Necromancy and Deathforged enchantments (`registry/ModEnchantments`); the soul system; summoning; the risen undead's behavior (and their entities/renderers if they need their own); Deathforged book drops; *when* `dross:rise` is granted (through `quest-builder`'s grant helper; the advancement JSON belongs to Quest); the enchanted books in the "Dross" creative tab. Design: see The plan, step 6; risen undead and Necromancy leave the survivors alone; iron golems, snow golems and tamed wolves leave the risen undead alone |
 | Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item (it names the trader's Rift Chapel, through Villager's `RiftChapels`) and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic; the advancement icon items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon`, and since November 19, 2026 the Oracle's land quests' `giant_slayer_icon`, `into_the_ashes_icon`, `beneath_the_rot_icon`, `first_frost_icon`: the user's picks GS24, IA14, BR21, FF14, `tools/icons/quest_icons.py`, preview `quest-previews/advancement_icons/icons.png`) and their tool `tools/icons/`; **the Blind Oracle's quest line** (The plan, step 19, November 9, 2026: `quest/oracle/` (the list `OracleQuests` and `OracleQuest`, each player's progress `OracleProgress` and `OracleRecord` (saved in `QuestProgressData`), `OracleState`, his talk `OracleDialogue`, the kill counting `OracleKills`, the rules other areas ask `OracleRules` and `OracleBoss`, the marker `OracleMarker`, the network channel `QuestNetwork` and its `OracleSyncMessage`, the fireworks `OracleFireworks`, `OracleEvents`), `quest/client/OracleClientState`, the kill tags `data/dross/tags/entity_types/oracle/`, its seven advancements and the chain, its lang keys `dross.oracle.*`, `/dross quest skip|set` and the `quest-builder` agent's how-to for adding a boss's quests). Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
 | Boss | `boss-builder` | `com.reg21meme.dross.boss.*`; the bosses and mini-bosses, starting with the **Cinder Colossus** golem: its entity (`boss/golem/CinderColossus`, `GolemAction`, `GolemAttributes`, the generated `GolemDesigns`), renderer and layers (`boss/golem/client/`), its entity type in `registry/ModEntities`, its design (the user's pick, **3G Saddleback**; model, animations and textures in `geo/`, `animations/` and `textures/entity/cinder_colossus/`, made by the Python generator in `tools/golems/`, previews in `boss-previews/cinder_wastes/cinder_colossus/`; the other candidates of rounds 1-3 archived in `tools/golems/designs/round1/`-`round3/` and `boss-previews/cinder_wastes/cinder_colossus/round1/`-`round3/`), the GeckoLib dependency, and the boss fights: the Colossus fight (`ColossusAttackGoal`, `ColossusStage`, every number in `ColossusTuning`), its minions (`GolemMinion`, `StoneGolem`, `LavaGolem`), projectiles (`ColossusRock`, `LavaBlob`), the temporary lava and fire blocks (`CinderLavaBlock`, `CinderFireBlock`, `LavaPools`; in `registry/ModBlocks`), its sounds (`registry/ModSounds`, `assets/dross/sounds.json`), its spawn egg and its minions' (stone golem, lava golem), the **trophies** (`boss/trophy/`: the `dross:colossus_trophy` block, its block entity (`registry/ModBlockEntities`) and item, their GeckoLib renderers and layers in `boss/trophy/client/`, the generated `TrophyModels`; made by `tools/golems/kit/trophies.py`, previews `boss-previews/cinder_wastes/cinder_colossus/trophies.png`) and the trophy drop, the custom boss bar (`boss/client/DrossBossBars`), the test commands' logic (`boss/BossCommands`, `boss/BossArena`, `boss/BedrockArena`; world-builder wires them into `/dross boss`), granting "Set in Stone" (through Quest's helper), and later boss progression (with Quest). Design: see The plan, step 8; the stone and lava golems as wild Cinder Wastes mobs (`WildGolemSpawns`, `WildLavaGolemTopUp`); **the Colossus lair** (`boss/lair/`: the lairs on the boss-site planner (`LairFinder`, `LairSetup`), built lazily near players (`LairPlacer`, `LairBuilder`), the volcano, the rise (no respawn), the `ColossusLair` API, previews `boss-previews/cinder_wastes/cinder_colossus/lair_*.png` from `tools/golems/lair_preview.py`); **the Rat King** (The plan, step 9: `boss/ratking/` (`RatKing`, `RatKingAction`, `Rat` for both kinds of rat, `RatKingEvents`, the generated `RatKingDesigns` and `RatDesigns`, `client/`), his and the rats' entity types and the `dross:zzz` particle (`registry/ModEntities`, `ModParticles`), the Python generator `tools/ratking/` and its previews `boss-previews/blightwood/rat_king/`, their original sounds (`tools/ratking/sounds.py`, `registry/ModSounds`, `assets/dross/sounds.json`, `assets/dross/sounds/rat_king|rat|enraged_rat/`), his and the rats' spawn eggs; **his fight** (`RatKingAttackGoal`, `RatKingBurrow`, every number in `RatKingTuning`, the poison ball and cloud `PlagueBall`, `PoisonCloud` (`registry/ModEntities`), his boss bar (the user's pick of nine designs: `tools/ratking/bossbars.py` makes `textures/gui/rat_king_bar.png` and the generated `boss/client/RatKingBarArt`; drawn by `DrossBossBars`), `boss/RatKingArena`, granting "Down the Drain" through Quest's helper); his **trophies** (`boss/ratking/trophy/`: the `dross:rat_king_trophy` block, block entity and item, `client/` renderers and layers, the generated `RatKingTrophyModels`, made by `tools/ratking/ratkit/trophies.py`, previews `boss-previews/blightwood/rat_king/trophies/`) and the trophy drop (shared with the Colossus: `boss/trophy/TrophyRewards`); `boss/BossChase` (both bosses steer straight at their target when the way is clear); his home in the rat caves (`boss/ratking/lair/`: asleep on the nest, never back once beaten, his snores at the grand entrance, the stronger cave Ravagers, the rats' spawn rules (dim light in the sewers); the caves themselves are Dimension's, step 11)); **the Rage Wand** (The plan, step 10: `boss/rage/`, the `dross:rage` effect in `registry/ModEffects`, its textures drawn by `tools/ragewand/draw.py`); **the Rimefall candidates** (The plan, step 13: `boss/rimefall/` (`RimefallCandidate`, the generated `RimefallDesigns`, `RimefallBlocks`, `client/` with the real-block layer), the entity type `dross:rimefall_candidate` in `registry/ModEntities`, the Python generator `tools/rimefall/` and its previews `boss-previews/rimefall/`); **Rimefall's animals** (The plan, step 14: `Rimehorn`, `Moose`, `PondSkater` and `PondSkaterPart`, `RimefallAnimals` (their spawn rules), `RimefallAnims`, every number in `RimefallMobTuning`, `client/RimefallMob*`, their entity types, sounds and spawn eggs; `tools/rimefall/mobs.py`, `rimemobs/`, `rimekit/mobkit.py` (their skeletons and animations) and `tools/rimefall/sounds.py`; previews `boss-previews/rimefall/mobs/`); **the Huntsman** (The plan, step 14 part 4: `boss/huntsman/` (his fight: `HuntFight`, `HuntStage`, `HuntGoal`, `WildHuntGoal`, `FootGoal`, `MooseGoal`, `HuntsmanPair`, `Bola`, `HuntSpear`, `SnaredEffect` (`dross:snared` in `registry/ModEffects`), `HuntsmanFightEvents`, every number in `HuntsmanTuning`; `boss/HuntsmanArena`; his spawn egg; granting "The Hunter Hunted" through Quest's helper; and `HuntsmanBarShowcase`), his boss bars (`boss/client/HuntsmanBarArt`, `textures/gui/huntsman_bar.png`), the hunter villages and his lodge (`boss/huntsman/village/`, `data/dross/structures/hunter_village/`; built in the world by `HunterVillageStructure`/`HunterVillagePiece`, `dross:huntsman_village` and `dross:hunter_village` in `registry/ModStructures`; him at home, `HuntsmanVillages`, `HuntsmanVillageData`), the hunter designs (`tools/rimefall/rimedesigns/d10_hunters.py`, `RimefallDesigns.HUNTERS`), the Frostfolk, Rimefall's villagers (`boss/frostfolk/`: `Frostfolk`, `FolkRole`, `FolkAnims`, `FolkEvents`, every number in `FolkTuning`, `client/`; their eleven entity types `dross:frostfolk_<calling>` and their three spawn eggs (`FrostfolkSpawnEggItem`: warrior, worker, elder), their voices; the model `tools/rimefall/rimemobs/frostfolk.py`, the preview `tools/huntsman/folk_preview.py`; never called hunters), his trophy candidates (`tools/rimefall/hunt_trophies.py`) and his trophies (`boss/huntsman/trophy/`: the `dross:huntsman_trophy` block, block entity and item, `client/` renderers and layer, the generated `HuntsmanTrophyModels`; made by `tools/huntsman/trophies.py`, previews `boss-previews/rimefall/huntsman/trophies/`) and their drop, the igloo templates and decorations (`HunterIglooDesigns`, `HunterIgloos`, `data/dross/structures/hunter_igloo/`, `hunter_decor/`; `tools/huntsman/igloos.py`, `igloo_designs/`), Rimefall's crops (`HunterCrops`, `HardyCropBlock`, `RimeberryBushBlock`: Frostroots, Snow Lichen, the two-block Rimeberry Bush, the Frostroot Crate and the Rimeberry Basket in `registry/ModBlocks`/`ModItems`; textures by `tools/huntsman/crops.py`), the villages' fires (`boss/huntsman/village/VillageFireBlock`: `dross:village_fire`, `village_soul_fire`), `boss/client/PartLayer` (a GeckoLib pass drawn only for the parts that show in it), the Moonsilver Spear and the Planted Moonsilver Spear (`boss/huntsman/spear/`), the mounted skulls and who drops them (`boss/huntsman/skull/`), the Python generators `tools/huntsman/` and the previews `boss-previews/rimefall/huntsman/`); the bosses' drawn
 spawn eggs (`tools/eggs/`, the picks' textures and the option sheets in each boss's `spawn_eggs/` preview folder);
-`BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made); the rules every boss follows (`boss/BossRules`, `DrossBoss`, `BossScale`, `BossRulesEvents`: the hit cap, more players, the reset); which models only the galleries show (`boss/ShowcaseOnly`, kept out of the jar); **the fire servant candidates** (The plan, step 15: `boss/fire/` (`FireCandidate`, the generated `FireDesigns`, `client/`; the fire mobs' hitboxes that follow their animations, `FireHitboxes`, `ShapedPart`, `assets/dross/hitboxes/`, made by `tools/fire/hitboxes.py`), the entity type `dross:fire_candidate` in `registry/ModEntities`, the Python generator `tools/fire/` and its previews `boss-previews/cinder_wastes/servants/`); **the Emberdactyl** (The plan, step 16: its looks, `FireDesigns.EMBERDACTYL` (`tools/fire/firekit/emberdactyl.py`, `firedesigns/eNN_*`, previews `boss-previews/cinder_wastes/emberdactyl/`), the fire mobs' skeletons and animations (`tools/fire/mobs.py`, `firemobs/`, the generated `boss/fire/FireAnims`, `geo|textures|animations/entity/firemob/`) and sounds (`tools/fire/sounds.py`, the generated `boss/fire/FireSounds`, `assets/dross/sounds/emberdactyl|emberyoung|pallbearer|hermit/`), and its volcano (`boss/emberdactyl/`: `EmberVolcano`, every number in `EmberVolcanoTuning`, the probe `EmberVolcanoProbeGameTest` and `tools/fire/volcano_preview.py`), its volcanoes in the Cinder Wastes (`VolcanoFinder` and `VolcanoSetup`, the planner's fit test; `VolcanoPlacer`, built near players; `EmberVolcanoData`; the API `EmberVolcanoes`; `/dross goto lair emberdactyl` is World site's `command/GotoVolcano`)); **the Cinder Wastes' mobs' looks** (`FireDesigns.CINDER_MOBS`, `firedesigns/mNN_*`, previews `boss-previews/cinder_wastes/mobs/`); **the hermit crab caves** (`boss/fire/cave/`: the generated `HermitCaveDesigns`, `HermitCaves`, `HermitCaveSites`, `HermitCaveStructure`, `HermitCavePiece`, `HermitCavePlacement` (`dross:hermit_cave` in `registry/ModStructures`), every number in `HermitCaveTuning`; templates `data/dross/structures/hermit_cave/`; their loot tables `data/dross/loot_tables/chests/hermit_cave.json` and `archaeology/hermit_cave.json`; made by `tools/fire/hermit_caves.py` with `tools/fire/cavekit.py` and `cavedesigns/`; previews `boss-previews/cinder_wastes/mobs/hermit_caves/`); **the Cinder Wastes' mobs in the world** (`boss/cinder/`: `CinderMob`, `Pallbearer`, `CinderHermit`, `CinderMobs` (attributes, spawn rules), `CinderMobEvents`, every number in `CinderMobTuning`, `client/`; their entity types `dross:pallbearer`, `dross:cinder_hermit`, spawn eggs and loot tables); **the Silverwood Giant** (The plan, step 19, November 9, 2026: `boss/giant/` (`SilverwoodGiant`, `GiantBoulder`, `SilverwoodGiants` (its attributes and spawn rules), the generated `GiantMoments`, every number in `GiantTuning`, `client/`), its entity types `dross:silverwood_giant` and `dross:giant_boulder` in `registry/ModEntities`, its spawn egg, its sounds (`assets/dross/sounds/silverwood_giant/`); the Python generator `tools/forest_giant/` (`build.py` the looks, `mobs.py` the animations, `sounds.py`) and its previews `boss-previews/silverwood/mobs/forest_giant/`); **the locked bosses** (step 19: `boss/BossLocks`, `DrossBoss.lockedAs`, and the arena wards, `boss/BossWards` with `boss/lair/LairWard`, `boss/ratking/lair/RatCaveWard` and `boss/emberdactyl/CraterWard`; the protected homes, `boss/BossGrounds`) |
+`BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made); the rules every boss follows (`boss/BossRules`, `DrossBoss`, `BossScale`, `BossRulesEvents`: the hit cap, more players, the reset); which models only the galleries show (`boss/ShowcaseOnly`, kept out of the jar); **the fire servant candidates** (The plan, step 15: `boss/fire/` (`FireCandidate`, the generated `FireDesigns`, `client/`; the fire mobs' hitboxes that follow their animations, `FireHitboxes`, `ShapedPart`, `assets/dross/hitboxes/`, made by `tools/fire/hitboxes.py`), the entity type `dross:fire_candidate` in `registry/ModEntities`, the Python generator `tools/fire/` and its previews `boss-previews/cinder_wastes/servants/`); **the Emberdactyl** (The plan, step 16: its looks, `FireDesigns.EMBERDACTYL` (`tools/fire/firekit/emberdactyl.py`, `firedesigns/eNN_*`, previews `boss-previews/cinder_wastes/emberdactyl/`), the fire mobs' skeletons and animations (`tools/fire/mobs.py`, `firemobs/`, the generated `boss/fire/FireAnims`, `geo|textures|animations/entity/firemob/`) and sounds (`tools/fire/sounds.py`, the generated `boss/fire/FireSounds`, `assets/dross/sounds/emberdactyl|emberyoung|pallbearer|hermit/`), and its volcano (`boss/emberdactyl/`: `EmberVolcano`, every number in `EmberVolcanoTuning`, the probe `EmberVolcanoProbeGameTest` and `tools/fire/volcano_preview.py`), its volcanoes in the Cinder Wastes (`VolcanoFinder` and `VolcanoSetup`, the planner's fit test; `VolcanoPlacer`, built near players; `EmberVolcanoData`; the API `EmberVolcanoes`; `/dross goto lair emberdactyl` is World site's `command/GotoVolcano`)); **the Cinder Wastes' mobs' looks** (`FireDesigns.CINDER_MOBS`, `firedesigns/mNN_*`, previews `boss-previews/cinder_wastes/mobs/`); **the hermit crab caves** (`boss/fire/cave/`: the generated `HermitCaveDesigns`, `HermitCaves`, `HermitCaveSites`, `HermitCaveStructure`, `HermitCavePiece`, `HermitCavePlacement` (`dross:hermit_cave` in `registry/ModStructures`), every number in `HermitCaveTuning`; templates `data/dross/structures/hermit_cave/`; their loot tables `data/dross/loot_tables/chests/hermit_cave.json` and `archaeology/hermit_cave.json`; made by `tools/fire/hermit_caves.py` with `tools/fire/cavekit.py` and `cavedesigns/`; previews `boss-previews/cinder_wastes/mobs/hermit_caves/`); **the Cinder Wastes' mobs in the world** (`boss/cinder/`: `CinderMob`, `Pallbearer`, `CinderHermit`, `CinderMobs` (attributes, spawn rules), `CinderMobEvents`, every number in `CinderMobTuning`, `client/`; their entity types `dross:pallbearer`, `dross:cinder_hermit`, spawn eggs and loot tables); **the Blightwood candidates** (The plan, step 17: `boss/blight/` (`BlightCandidate`, the generated `BlightDesigns`, `BlightEvents`, `client/`), the entity type `dross:blight_candidate` in `registry/ModEntities`, the Python generator `tools/blight/` and its previews `boss-previews/blightwood/servants/` and `mobs/`); **the elemental knights** (The plan, step 18: `boss/knight/` (`KnightCandidate`, the generated `KnightDesigns`, `KnightEvents`, `client/`), the entity type `dross:knight_candidate` in `registry/ModEntities`, the Python generator `tools/knights/` and its previews `boss-previews/knights/`; the real knights: `ElementalKnight`, `KnightKind`, every number in `KnightTuning`, `KnightAnchor`, `KnightFireball`, `KnightSpikes`, the generated `KnightAnims` (`tools/knights/mobs.py`, `props.py`, `geo|animations|textures/entity/knightmob/`), their ten entity types `dross:knight_<name>` and the anchor's and fireball's, their spawn eggs; their ruin candidates, every biome area's own layouts, the generated `KnightRuinDesigns`, `tools/knights/ruins.py` with its kit `ruinkit/` and the designs `ruindesigns/<element>/<area>.py`, `data/dross/structures/knight_ruin/<element>/`, previews `boss-previews/knights/ruins/`; their sounds, `tools/knights/sounds.py`, `assets/dross/sounds/knight/`, the generated `KnightSounds`; **the knight ruins in the Overworld** (`boss/knight/ruin/`: where the seed plans them, `KnightRuinSites`, `RuinAreas`, `RuinSite`, every number in `KnightRuinTuning`, their biome tags `data/dross/tags/worldgen/biome/knight_ruin/`; built with the land, `KnightRuinStructure`, `KnightRuinPiece`, `KnightRuinPlacement` (`dross:knight_ruin` in `registry/ModStructures`; its JSON written by `tools/terrain/worldgen.py`); the trees that grew into one felled once, `KnightRuinTidy`; its knights, `KnightRuinKeeper`, `KnightRuinData`; the quest's signal and API, `KnightRuinClearedEvent`, `KnightRuins`; `tools/knights/ruin_map.py` and `boss-previews/knights/ruins/placement/`); **the Silverwood Giant** (The plan, step 19, November 9, 2026: `boss/giant/` (`SilverwoodGiant`, `GiantBoulder`, `SilverwoodGiants` (its attributes and spawn rules), the generated `GiantMoments`, every number in `GiantTuning`, `client/`), its entity types `dross:silverwood_giant` and `dross:giant_boulder` in `registry/ModEntities`, its spawn egg, its sounds (`assets/dross/sounds/silverwood_giant/`); the Python generator `tools/forest_giant/` (`build.py` the looks, `mobs.py` the animations, `sounds.py`) and its previews `boss-previews/silverwood/mobs/forest_giant/`); **the locked bosses** (step 19: `boss/BossLocks`, `DrossBoss.lockedAs`, and the arena wards, `boss/BossWards` with `boss/lair/LairWard`, `boss/ratking/lair/RatCaveWard` and `boss/emberdactyl/CraterWard`; the protected homes, `boss/BossGrounds`) |
 | Testing | `mod-tester` | Nothing. Builds, runs and reads logs only; never edits feature code |
 
 Client-only code (renderers, particle providers, book screens) goes in a `client` subpackage of the area, for example `com.reg21meme.dross.villager.client`.
@@ -261,7 +924,7 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
      - Deathforged books drop only from the netherite-wearing zombies and skeletons of the Dross (`DrossMobGear.hasDrossGear`), when a player hit them recently: 5% per kill + 1% per Looting level; level weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1.
      - Since November 9, 2026 (step 19) the Silverwood Forest has no zombies or skeletons, so the Gravecrags are the only Dross biome left with them: in practice the books drop only there, and inside the Dross only those give Necromancy souls (zombies and skeletons elsewhere, the Overworld's, still give souls). The user deals with both later (step 19, "Left for later").
    - **Advancement "Rise!"** (`dross:rise`): "Raise the undead with Necromancy.", challenge frame (purple), zombie head icon, granted the first time a player raises undead, through Quest's grant helper. It's in the Dross tab (step 7), parent "Enter the Dross".
-   - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site), and enchanted books for every level of both enchantments (these stay even after the trader stops selling them). The tab is grouped by kind, in this order (the user's request, `registry/ModCreativeTabs`): **blocks** (the portal frame, then the 38 terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (the five Cinder Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (trader, Cinder Colossus, stone golem, lava golem, Rat King, Plague Rat, Plague Ravager, Rimehorn, Moose, Pond Skater, Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer and the Cinder Hermit, then the Silverwood Giant (step 19)), **weapons and tools** (Admin Sword, Rage Wand, Moonsilver Spear, Rage Bow), **enchanted books** (Necromancy I-V, then Deathforged I-X), **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), **crops** (Frostroot, Snow Lichen, Rimeberries; October 20). Dross enchanted books appear **only** in the Dross tab: vanilla's automatic copies in Ingredients (and search) and Combat are removed (`enchant/DrossBooksTabFilter`), so searching shows each book once, tagged "Dross".
+   - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site), and enchanted books for every level of both enchantments (these stay even after the trader stops selling them). The tab is grouped by kind, in this order (the user's request, `registry/ModCreativeTabs`): **blocks** (the portal frame, then the 38 terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (the five Cinder Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (trader, Cinder Colossus, stone golem, lava golem, Rat King, Plague Rat, Plague Ravager, Rimehorn, Moose, Pond Skater, Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer and the Cinder Hermit, then the Silverwood Giant (step 19), then the ten elemental knights, two of each element), **weapons and tools** (Admin Sword, Rage Wand, Moonsilver Spear, Rage Bow), **enchanted books** (Necromancy I-V, then Deathforged I-X), **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), **crops** (Frostroot, Snow Lichen, Rimeberries; October 20). Dross enchanted books appear **only** in the Dross tab: vanilla's automatic copies in Ingredients (and search) and Combat are removed (`enchant/DrossBooksTabFilter`), so searching shows each book once, tagged "Dross".
 
 7. **The early-game quest** [built]. Progress is **per player, per world**, saved by Quest (a `SavedData` keyed by player UUID). The trader's side (dialogue, hand-ins, gifts) is Villager's, through Quest's API.
    1. **Normal survival.** Nothing from the mod is needed yet.
@@ -2254,6 +2917,487 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
     - **Next**: the user plays the fight and picks its boss bar, spawn eggs and trophy designs; the boss-buff rules
       (hit cap, multiplayer, resets) later; the Cinder Wastes mobs' behaviour (`BOSS_GUIDE.md`).
 
+17. **The Blightwood candidates** [built: the looks only, for the user to pick from; not yet looked at in-game by the
+    user] (Boss area, `boss/blight/`; World site's `command/BlightShowcase`; the user's request, November 7, 2026, after
+    talking over a second Blightwood boss: "15 different bosses you can choose from, of different sizes and shapes,
+    maybe stick to something smaller, then give me 4-5 base mobs we can add to the Blightwood ... no animations or
+    anything yet, just designs ... make them different boss ideas each", leaving the creative decisions to Claude).
+    The Plague Necromancer has two open servant places (the Rat King is the first; the boss-site planner keeps Blightwood
+    slots 1 and 2 free, step 12). One look each, every one a different body plan; the Plague colours (poison green,
+    decaying reds, bone beige), Blightwood's caps painted like its Blightcap blocks. **Fifteen bosses**: 1 **The
+    Hollowed** (a dead giant puppeted by the Blightcap bloom on its back, glowing mycelium strings to its wrists and
+    skull, 6.9 tall), 2 **Sporemother** (a rooted puffball split down its front, a glowing heart behind stem ribs, a
+    ring of caps, roots and mycelium; 4.9 tall, 7 wide), 3 **The Brewmother** (the oldest witch, her crooked hut grown
+    onto her back, a cauldron on its eaves, 5.1), 4 **Matron of Flies** (a hovering queen fly, red compound eyes, a
+    belly glowing with eggs, 3.6), 5 **Old Straw** (a rotten scarecrow on its pole, rot spilling from its belly, crows,
+    5.8), 6 **The Mire Leech** (a reared-up leech with a round sucker of ringed teeth, 7.6 long), 7 **The Sump** (a
+    see-through cube of sewer ooze, a skeleton, sword, gold and one great eye inside, 3.2), 8 **The Bloat** (a
+    gas-swollen corpse floating like a balloon, tethered to a stone, 5.9), 9 **The Tick Queen** (a blood-swollen tick,
+    her brood on her back, 2.7 tall, 5.8 wide), 10 **Sludgemaw** (a pale sewer gator, mushrooms on its ridges, a drain
+    grate round its neck, 7.3 long), 11 **Gulletbloom** (a carnivorous plant: a pitcher of glowing ooze and three
+    snapping traps, 5.0), 12 **The Mandrake** (a screaming root, 3.0), 13 **Sir Mildew** (a knight rotting in his armour
+    on his greatsword, mushrooms for a plume, 4.4), 14 **The Grave Snail** (a snail carrying a cracked headstone and
+    green candles, 4.2 tall, 7.4 long), 15 **The Mangehound** (a starved three-eyed hound, bare ribs, fungus down its
+    spine, 3.4). **Five regular mobs**: M1 **Sporeling** (a walking Blightcap, 1.6), M2 **Rotgrub** (a maggot as big as
+    a pig, glowing inside), M3 **Moldered** (a mould-furred walker, mycelium threads from its mouth, 2.4), M4 **Blight
+    Crow** (a crow wearing a bird skull for a face), M5 **Rothog** (a boar with bracket fungus down its back). Each
+    design's idea and how its fight would start is its `BLURB` (in the Java list: the [go] button's hover and a
+    right-click show it). Made by `tools/blight/` (its README; `build.py`, `blightkit/bmats.py` with its `spotted`
+    painter, `blightkit/bparts.py`, the designs `blightdesigns/bNN_*.py` and `mNN_*.py`), reusing the Rimefall and fire
+    kits; previews `boss-previews/blightwood/servants/` and `mobs/` (`originals.png`, `lineup.png`, a sheet each,
+    `index.html`). In the game: `dross:blight_candidate` (`BlightCandidate`, frozen like the Rimefall candidates: only
+    `/kill` hurts it, its hitbox the design's measured size; right-click: its label, name and mood on the action bar and
+    its idea in the chat), drawn in four passes (`client/BlightCandidateRenderer`). **`/dross showcase boss_designs
+    blightwood`** (`command/BlightShowcase`): a mud-brick walkway through Sporeloam, the bosses then the regular mobs on
+    either side facing it, a Blightcap stem post and sign by each, [go] buttons in the chat. Showcase-only: left out of
+    the jar (Project summary). Headless test `boss/blight/BlightShowcaseGameTest`.
+    - **The user's look** (November 7): "these seem like regular mobs, not bosses ... 8-15 feel like regular mobs" (no grandeur); a round 2 of grand ideas was pitched, then the user turned to the elemental knights (step 18).
+
+18. **The elemental knights** [built: the user's pairs, their moves, spawn eggs and ruin candidates; not yet tested in-game]
+    (Boss area, `boss/knight/`; World site's `command/KnightShowcase`; the user, November 7, 2026, turning from the
+    Blightwood bosses to the plan in "Parked for later", "Elemental soldiers in the Overworld": two knights of each of the
+    five elements guard a broken portal in that element's biomes, "kind of supposed to be the boss mob before you
+    interact with the mod ... you have to defeat these two"). Ice has its pair already, the Thawed Soldiers (9C axe, 9D
+    spear and shield, step 13); poison has Sir Mildew (No. 13, step 17), with "an alternate version of that ... something
+    creative with poison"; fire, thunder and earth "4 of each designs to give me, with different weapons", the user to
+    pick each pair. All about 4 blocks to the helm (4.3-6 with crests, horns and weapons), one shared body
+    (`tools/knights/knightkit/kbody.py`) in six poses, each element's own materials. **Round 1** (archived:
+    `tools/knights/knightdesigns/round1/`, `boss-previews/knights/round1/`): **Poison** (Sir
+    Mildew's style): P1 **Blight Warden** (a pointed helm with Blightcaps, a staff crowned with a caged globe of glowing
+    poison, a dripping hand), P2 **Plague Herald** (a beaked plague-doctor helm with glowing lenses, a censer on a chain,
+    a rotten plank shield with a mushroom-grown skull), P3 **Sporebound** (a great Blightcap grown out of his back, its
+    cap over his split helm, a rusted war scythe). **Fire**: F1 **Cinder Knight** (blackened plate split by lava,
+    obsidian bull horns, a burning cape, a planted flamberge with a molten core), F2 **Pyre Templar** (a crest of living
+    flame, a glowing flanged mace, a heater shield with a burning sun), F3 **Ember Lancer** (a desert wrap and veil, brass
+    scale mail, a halberd with a burning tip, a flame in his palm), F4 **Furnace Knight** (firebrick armour, a furnace in
+    his chest, chimneys on his helm, a basalt maul on his shoulder). **Thunder** (copper gone green, storm-grey cloth,
+    pale yellow lightning; their biomes are the sea's): T1 **Storm Knight** (lightning rods on his helm and shoulders, a
+    planted copper war hammer), T2 **Tidecaller** (a fin of sea glass on his helm, barnacles and kelp, a crackling
+    trident, a turtle-shell shield), T3 **Wreck Knight** (a copper diving helm with lightning in its porthole, air tanks,
+    a ship's anchor on his shoulder), T4 **Thunder Warden** (a crown of copper bolts, a storm-cloud mantle, a coil-wound
+    lightning staff, lightning in his hand). **Earth** (stone and deepslate split by amber light, moss, amethyst): E1
+    **Graven Knight** (carved stone with a carved face, moss, a planted deepslate maul), E2 **Crag Bulwark** (a mountain
+    goat's horns, a goat-fur mantle, a standing-stone tower shield with an amber rune, an amethyst spear), E3 **Geode
+    Knight** (amethyst growing through his armour, a war pick on his shoulder), E4 **Rockfall Knight** (mossy stone with
+    meadow flowers, a boulder held over his head). Each one's idea is its `BLURB`. Made by `tools/knights/` (its README;
+    `build.py`, `knightkit/`, the designs `knightdesigns/pNN|fNN|tNN|eNN_*.py`), reusing the Rimefall, fire and
+    Blightwood kits; previews `boss-previews/knights/` (`originals.png` by element, `lineup.png`, a sheet each,
+    `index.html`).
+    - **The user's look at round 1** (November 7: "I like P3 and P1, I also like E3 and E4; why is your thunder idea just
+      copper and stuff, it needs to be blue to reflect the Dross ... for the fire dude have one just with fire hands; I
+      like F1's design, but change his weapons ... for T3 ... first change his design, then after make it so he throws his
+      anchor at you and [pulls it back] ... we need another standard [thunder] design"): **the pairs picked: poison P1
+      Blight Warden and P3 Sporebound, earth E3 Geode Knight and E4 Rockfall Knight** (ice the Thawed Soldiers); P2, F2,
+      F3, F4, E1, E2 and the copper thunder knights archived.
+    - **Round 2** [built November 9, 2026, looked at in-game by the user the same day]: the build takes options of one design
+      (`VARIANTS`, labels like "F1A"). **Fire**: F1 Cinder Knight's look kept with three weapons, **F1A** a molten
+      greataxe on his shoulder (an obsidian crescent, its edge dripping lava), **F1B** a burning flail (a spiked ball
+      wreathed in fire on a chain from a short haft), **F1C** twin obsidian blades low at his sides, their edges glowing;
+      and his partner **F5 Flamehand** (no weapon: his forearms molten lava from the elbow, his fists wrapped in fire, one
+      thrust out and one raised, a helm open like a brazier with fire burning out of it). **Thunder, all in the Dross's
+      electric blue** (`kmats`: `DROSS_STEEL`, `DROSS_COBALT`, `ELECTRIC`, `SILVER`, from DrossColors' Palette; dark
+      blue-black steel with electric blue in its seams, like the portal frame's cracks, silver trims): the anchor knight
+      in three designs, each with the anchor on a chain for the throw and pull back the user wants in his fight later,
+      **T3A Wreck Knight** (the diving helm in silver, its porthole lit blue, air tanks, the anchor on his shoulder, its
+      chain wound round his forearm), **T3B Stormwake** (heavy plate, a barbute crested with a silver lightning bolt and
+      a T of blue fire, the anchor held upright at his side, its chain across his chest), **T3C Stormcaptain** (a long
+      cobalt coat, silver epaulettes, a captain's tricorne over a helm with a grille of blue light, the anchor planted
+      flukes-down in front, its chain coiled at his feet); his partner, **T5 Storm Sentinel** (the standard knight: a
+      great helm with silver wings, a longsword lit down its fuller with lightning, a heater shield with a silver bolt,
+      a cobalt tabard) or T1, T2 or T4 redone in blue. Previews `boss-previews/knights/round2/`.
+    - **Round 3** [built November 9, 2026, not yet looked at in-game] (the user's look at round 2: "give the double
+      blade thing to the lightning dude, make him like a speed ninja with lightning attacks, and T3A is the best ...
+      then make the 2nd fire dude the fire hammer"; and "make the ice dudes the same heights as everyone else"):
+      **thunder's pair: T3A Wreck Knight and T6 Stormblade** (new, `t06_stormblade.py`: a lean ninja in the Dross's
+      blue, a hood and mask with one glowing slit, a silver band with a bolt on it, a breastplate with a lightning
+      bolt, a scarf of electric blue streaming and bending behind him, two silver swords with electric blue edges and
+      lightning crackling down them, one held out in front of him and one reversed along his right forearm, the empty
+      scabbards crossed on his back); **F1B is a fire hammer** now (held upright in his right fist, its butt on the
+      ground, its head of lava-cracked iron with molten obsidian faces burning by his shoulder), F1C's twin blades went
+      to T6, so fire is F1A or F1B with F5 Flamehand. T1, T2, T3B, T3C, T4, T5, round 2's flail and F1C are archived
+      (`tools/knights/knightdesigns/round2/`, its README the user's notes; `boss-previews/knights/round2/`). **The
+      Thawed Soldiers are 4.6 blocks** to their horns' tips (were 4: `tools/rimefall/rimedesigns/d09_thawed.py`
+      `BIG`), their heads where the knights' are; the Rimefall gallery's too. Previews `boss-previews/knights/`.
+    - In the game: `dross:knight_candidate` (`KnightCandidate`, frozen like the other candidates: only
+    `/kill` hurts it; right-click: its name on the action bar and its idea in the chat). **`/dross showcase boss_designs
+    knights`** (`command/KnightShowcase`; until November 18 `/dross showcase knights`, which now shows the ten real
+    knights on the same plots, frozen, with [idle] [walk] [move1] [move2] buttons): five plots in a row across, Ice, Poison, Fire, Thunder, Earth, each as wide as its
+    knights need, on its biome's ground (snow, podzol, red sand, sand, grass) with a broken Dross portal at its back (frame
+    blocks, broken, never lit) and its knights in front of it facing you (ice's the Thawed Soldiers, tagged
+    `dross_knight_gallery`; round 1's Sir Mildew went), a sign by each; a chat line per element with a button per knight
+    and an [overview]. Showcase-only (Project summary). Headless test `boss/knight/KnightShowcaseGameTest`.
+    - **Fire's pair, the real knights, their moves and their ruins** [built November 18, 2026, not yet tested in-game]
+      (the user: "f1b and f5 are the best, make their spawn eggs with one for each mob, then create some basic possible
+      ruin spawns, give 3 variations for each element, also start thinking of attacks, make it basic, nothing complex
+      ... 2 attacks"; then "make the spawn eggs and the attacks and health stuff, give an updated table once you're done",
+      built overnight on their word): **fire's pair is F1B Cinder Knight (fire hammer) and F5 Flamehand**; F1A is
+      archived (`knightdesigns/round3/`, `boss-previews/knights/round3/`).
+      - **Their skeletons and animations** (`tools/knights/mobs.py`; the knights' parts routed to bones,
+        `knightkit/kbody.py` `side_part`, and the Thawed Soldiers' in `d09_thawed.py`): each knight's idle, walk and
+        its two moves, keyed by hand, blocky; made smooth on November 18 (the user: "a lot of your animations for the
+        soldiers [are] wonky and jittery and not fluid"; `knightkit/kanims.py`: a smooth curve through each part's
+        keys that slows only where the motion turns round, the blow reached at full speed, the body leading and the
+        off-arm and cape trailing, a weight and walk speed for each knight so its stride matches its real speed, 40
+        frames a second; the game blends 3 ticks into a move, 6 between idle and walk, and holds the walk 5 ticks
+        before going back to idle; each move's moments include the blend, so the blow on screen lands on the
+        server's tick); then the same evening, from the user's next look ("add more personality to the walk ...
+        per each element or even each knight"; the pick and the anchor "clipping through his shoulder"; the scythe's
+        blade "not vertical, it needs to be horizontal", the same for 9C, the Geode pick and the Cinder hammer): each
+        knight's own walk (`walk_style` in `mobs.py`, `WALK_STYLE` in `kanims.py`: the Thawed axeman's hunched
+        stomping trudge and the spearman's wary scan, both shivering; the Blight Warden limping on his staff; the
+        Sporebound shambling, head lolling, his Blightcap swelling each step; the Cinder Knight's proud stomp;
+        Flamehand bouncing with his fists up like a boxer; the Wreck Knight's rolling sailor's gait; the Stormblade's
+        low prowl, blades trailing; the Geode Knight's hunched miner's trudge; the Rockfall Knight's giant stomp, his
+        boulder heaving), the pick and the anchor carried ON the right shoulder (`kbody.CARRY_FIST`, `arm_carry`; the
+        Geode Knight's right-shoulder crystals moved to its back so the haft lies on top), and the four melee blows
+        flat sweeps (`kanims.flat_sweep`, `aim_hand`: every frame the hand turned so the haft points where it's keyed
+        and the blade, spike or hammer face squares to the way the sweep goes); previews
+        `boss-previews/knights/mobs/<model>_animations.png`; files
+        `geo|animations|textures/entity/knightmob/` (in the jar), the generated `boss/knight/KnightAnims` (each move's
+        hit and release moments). The Wreck Knight's thrown anchor has its own model, `knightmob/wreck_anchor`
+        (`tools/knights/props.py`).
+      - **In the game** (Boss area, `boss/knight/`): `ElementalKnight` (one class, ten entity types
+        `dross:knight_<name>`, `KnightKind` (health, armour, speed, its two moves' ranges and cooldowns),
+        every number in `KnightTuning`): hostile, never despawn, no boss bar (the user, November 18: "no boss bars
+        please for the knights"; they had one in their element's colour), hurt it calls the knights near; each element shrugs off its own (fire never burns the fire
+        knights, the ice ones don't freeze or slow, poison doesn't poison the poison ones, lightning never hurts the
+        thunder ones, the earth ones take no fall damage); they die the vanilla way. Their moves: **9C Thawed axeman**
+        (90 health, armour 8) a wide swing (4.5 hearts, chills) and the smash (ice spikes burst up in a line to you, the
+        Alpha Moose's clear ice, a big spike under you at its end: 4.5 hearts, thrown up, slowed, frosted); **9D Thawed
+        spearman** (90, 10) a long thrust (4) and the shield wall (his shield up, he takes 30% of the damage, five pokes
+        of 2); **P1 Blight Warden** (80, 6) a plague ball from his staff (the Rat King's, its cloud of poison) and the
+        blight rain (poison raining 7 blocks round him for 4 s, Poison II and stings); **P3 Sporebound** (90, 6) the
+        reap (his scythe swept 200 degrees round him, 4.5, poisons) and the spore burst (the Blightcap on his head puffs
+        out a cloud 6.5 blocks round: 2 hearts, nausea, Poison II, a moment blind, pushed out; three clouds of poison
+        left); **F1B Cinder Knight** (100, 10) the hammer's swing (5, burning) and the slam (a shockwave of fire 6
+        blocks round, up to 5, thrown up, a ring of the Colossus's temporary fire); **F5 Flamehand** (70, 6, keeps about
+        12 blocks off) fireballs from his fists (2.5, burning) and the great fireball (slow and big, bursting 4.5 blocks
+        round, up to 7 hearts, a ring of fire; no block broken or lit); **T3A Wreck Knight** (110, 12) the anchor throw
+        (`KnightAnchor`: on its chain, 3.5 hearts, it hooks you and hauls you to him, then flies back to his hand) and
+        the anchor slam (swung down with a crack of lightning, harmless lightning, 5.5, stunned); **T6 Stormblade** (70,
+        6, fast) two quick cuts (3 each) and the lightning dash ("like the Flash": straight through you and 4 blocks
+        past at 32 blocks a second, 3.5 hearts, lightning left on the ground 2 s that stings); **E3 Geode Knight** (100,
+        10) the pick (5) and the crystal burst (rings of amethyst bursting up round him, then one under you: 4 each,
+        thrown up); **E4 Rockfall Knight** (110, 12, keeps about 9 off) the boulder throw (4.5; the Colossus's rock drawn as a lumpy
+        boulder of mossy stone 1.5 blocks across, knobs of stone, andesite, tuff and moss on a mossy cobblestone core,
+        tumbling and shedding gravel dust, bursting into stone and moss: `ColossusRock.boulder`, the user, November 18,
+        "the rock dude should throw ... some cobblestone alternative ... make this look better") and
+        the rockfall (his boulder brought down, a shockwave, then 16 rocks raining down round you; 7 until the user,
+        November 18: "his move 2 needs to do more throws").
+        **Fixes from the user's look of November 18**: every melee blow lands a block past its reach and 30 degrees
+        wider (`KnightTuning.REACH_SLACK`, `ARC_SLACK`: a foe that stepped back in the wind-up was missed though the
+        blow looked to land); the boulder hits whatever it's drawn touching (`BossProjectile.hitMargin`; its box is
+        the Colossus rock's 0.8) and flies smoothly (`colossus_rock` sent every 2 ticks, was 10); the Blight Warden's
+        rain falls from its cloud all the way to the ground (it hung in the air over him); the Cinder Knight's slam
+        leaves 34 patches of fire (16) out to 7 blocks and burning longer, his hammer swing 5 more along its arc. The spikes are block
+        displays (`KnightSpikes`); the fireballs `KnightFireball`. **Spawn eggs**: one for each knight, at the end of
+        the Dross tab's spawn eggs (colours `DrossColors.KNIGHT_*_EGG_*`). Headless test
+        `boss/knight/KnightFightGameTest`: each knight's two moves each hurt an iron golem.
+      - **Ruins, round 1** (November 18, archived: `tools/knights/ruindesigns/round1/`, `boss-previews/knights/ruins/
+        round1/`): three layouts (Broken Gate, Fallen Ring, Ruined Shrine) in each element's stones, 15 templates.
+      - **Ruins, round 2: every biome area its own layouts** [built November 18, not yet looked at in-game] (the user:
+        "each biome should have its own unique layout ... in big caverns the rock layout should be there as well ...
+        in big mountain areas a chance of lightning layout ... not big structures, just little areas where you fight
+        these guys"; the thunder ruins "mostly beach or shores", some poking into the sea; round 1 the starting point;
+        on show only, not in the world yet): **100 ruins in 21 areas** were made, 4-5 each, and **the user kept 76**
+        (November 18: by row, listed below as kept; the others stay in each area's module as `DROPPED`, not built;
+        the Fairy Ring's giant mushrooms became dark oaks, "remove the mushrooms, just have trees"; the Anchor Yard's
+        anchor dark stone and rust, not iron blocks, "too OP"; the Mine Mouth's raw gold blocks gold ore), every one its own shape, about 15-25
+        blocks across, a broken frame (never whole), two guard spots and an open fight floor. The areas (their
+        settings: on the land, on a beach with the sea behind, in a big cave, on a mountain top) and the kept
+        layouts: **Ice** Snowy Plains (Spike Grove, Buried Tower, Colonnade, Glacier Shard), Taiga (Giant Stump,
+        Wayshrine, Berry Hollow), Frozen Shore (Ice Pier, Beached Berg, Sea Steps); **Poison** Swamp (Stilt Shrine,
+        Sunken Causeway, Root Hollow), Mushroom Fields (Great Cap, Hollow Stem), Dark Forest (Lost Chapel, Fairy Ring,
+        Hedge Garden), Jungle (Step Pyramid, Serpent Maw, Bamboo Shrine), Forest (Poisoned Grove, Manor Corner, Broken
+        Bridge, Gazebo, Fallen Arch); **Fire** Desert (Buried Stair, Sunken Oasis, Obelisk Field, Caravan Rest),
+        Savanna (Great Acacia, Watchfire, Scorched Ring, Plateau Edge), Badlands (Slot Canyon, Mine Mouth, Cliff
+        Dwelling, Stone Arch); **Thunder** (storm touches: lightning rods on copper, scorch stars, glass fulgurites)
+        Warm Shore (Coral Ring, Drowned Pier, Temple Steps, Glass Garden, Sea Arch), Cold Shore (Wreck Ribs, Anchor
+        Yard, Sea Chapel), Stony Shore (Lighthouse, Sea Stacks, Cliff Cleft, Tide Pools), Riverbank (The Ford, Reed
+        Shrine), Storm Peaks (mountain tops: Rod Crown, Storm Ledge, Twin Horns, Split Monolith); **Earth** Plains
+        (Stone Circle, Old Farmstead, Old Road Gate, Sunflower Field), Meadow (meadow and cherry grove: Petal Terrace,
+        Cherry Arbor, Cracked Geode, Calcite Spring), Windswept Hills (Hillside Quarry, The Crag, Old Watchtower), Peaks
+        (Summit Ledge, Saddle Pass, Jagged Spires, Avalanche Field), Caverns (big caves: Dripstone Hall, Crystal
+        Grotto, Pillar Hall, Mossy Grotto, Rockfall Heap). Made by
+        `tools/knights/ruins.py` (`--only <element>[/<area>]`) with its kit `tools/knights/ruinkit/` (its docstring
+        has the grid's rules) and one module an area, `ruindesigns/<element>/<area>.py` (the areas' order in
+        `ruindesigns/__init__.py`; helpers `earth/earthkit.py`, `thunder/stormkit.py`, `poison/common.py`); checked on
+        every build (no whole frame, 6 or more frame blocks, nothing floating, plants on their soil, no open lava, no
+        water that could flow off a shore, both guards on solid ground with room); templates
+        `data/dross/structures/knight_ruin/<element>/<area>_<layout>.nbt`; the generated `boss/knight/KnightRuinDesigns`
+        (its `Area`s with their setting and showcase ground, each ruin's guards); previews
+        `boss-previews/knights/ruins/<element>/<area>.png` (each area's row), each alone in `<element>/<area>/`,
+        `all_<element>.png`, `index.html`; photos from the game, `ingame/<element>.png`. **`/dross showcase knight_ruins [<element>]`** (`command/KnightRuinShowcase`;
+        no word: all five elements together, side by side, ice on the left, the user's "a showcase of all 5 ...
+        together and their ruins"): that element's ruins, a row for each area, each on its area's ground (a shore's
+        back in the sea, a cavern walled in with rock under a roof and open at the front), its two knights on guard,
+        frozen; a ruin a tick; [go] buttons per area, an [overview], and `... knight_ruins idle|walk|move1|move2`.
+        Headless test `boss/knight/KnightRuinGameTest` (every element built twice: every ruin's frame, its two knights
+        on solid ground with room).
+      - **Their sounds** [built November 18, not yet heard in-game] (the user: "create their own sounds ... unique
+        sounds for each element ... the speedy lightning dude a little lighter, the anchor dude heavier, more like
+        fatter"): 123 original sounds in 93 events, made by `tools/knights/sounds.py` (the move sounds with the
+        Rat King's synthesizer; the voices since November 18 with their own engine, `tools/knights/knightvoice.py`: no
+        throat or vowels, each element's material ringing in a sealed helm, so they don't sound like the Huntsman and
+        the Frostfolk, the user: "too much like the Rimefall dudes"; `voicecheck.py` measures how voice-like a sound is)
+        (files `assets/dross/sounds/knight/<knight>/`, the generated
+        `boss/knight/KnightSounds`, registered in `registry/ModSounds`): each element its own character (ice frozen
+        breath and cracking ice, poison wet rasps and spores, fire roars and embers, thunder hum, crackle and thunder,
+        earth grinding stone and amethyst chimes), each knight his own weight (the Wreck Knight the heaviest, then the
+        Rockfall and Cinder Knights; the Stormblade the lightest, with Flamehand and the Blight Warden): idle, a grunt
+        at a move, hurt, death, armoured steps, and every move's wind-up and hit (the anchor's chain, haul and catch in
+        `KnightAnchor`, the fireballs' blast in `KnightFireball`). **`/dross showcase boss_sounds knights`**
+        (`command/KnightSoundShowcase`); the page `boss-previews/knights/sounds/index.html`. Headless test
+        `boss/knight/KnightSoundsGameTest`.
+      - **The overnight pass of November 19, 2026** [built, not yet tested in-game] (the user: "collision tests,
+        performance ... make sure stuff looks fluid ... interactions between body parts that shouldn't collide ...
+        attacks look nice, add some more effects, make some attacks look better"):
+        - **The animations' audit** (`tools/knights/audit.py`, run after any change to a knight's animations): every
+          part of every knight going into another or the floor (deeper than as it stands, plus 1.6 units: a block
+          limb bending at its joint grazes that much), snaps (a frame where a part's tip changes speed far more than
+          round it), the loops' seams, and the game's blends into and out of each move (an angle a turn or more away
+          spins a part round). All ten pass. What it found and what was fixed: the Thawed axe's and the Geode pick's
+          swings ended a full turn round, so the blend back to standing spun the weapon once (their recovery now
+          unwinds the way it came); the anchor slam and the crystal burst ended with the weapon pointing forward at
+          head height (a weapon carried lying back along the shoulder turns 222 degrees to come down, `CARRY_SLAM`;
+          an upright one 150); the anchor's shank stuck 8 units past his fist and cut into his shoulder plate (now
+          gripped near its ring, the statue too); the walk's stomp dipped the body as the legs passed instead of as a
+          foot lands, and drove the Cinder hammer into the ground (it lands with the foot now, a weapon that nearly
+          touches the ground lifted a little as it walks); the back boot under the floor in every lunge, the
+          Stormblade's feet 1.8 under it in his dash, a cape's hem as a knight leans back; the spore burst's cap
+          swelling over the scythe.
+        - **The Rockfall Knight's moves went backwards**: a raised arm tips forward the other way to a hanging one, so
+          his throw flung the boulder back over his head and his rockfall brought it down behind him (`up_arm` now:
+          drawn back behind his head, flung forward; slammed onto the ground before him).
+        - **Slams land before them**: the overhead slams swing in across the front (`inward`) so the hammer, axe and
+          anchor land ahead, not two blocks off to the right; the Cinder Knight's slam comes down at a slant, its head
+          on the ground 2.7 blocks ahead (it came down nearly upright, the butt of his long haft standing up past his
+          head); Flamehand's punch draws back further and turns into it.
+        - **What leaves a knight's hands starts where the model shows it**: the thrown boulder (2.3 ahead, 4.6 up), both
+          fireballs (his fist, the orb over his head), the plague ball (the globe at the end of the staff), the thrown
+          anchor (over his right shoulder); the anchor slam's lightning strikes where the anchor lands.
+        - **More effects** (`boss/knight/KnightEffects`, particles only): each move's wind-up gathers its element on
+          the weapon and the big moves show where they'll land (the Warden's cloud gathering over him before it rains,
+          dust trickling out of the sky where the rocks will fall, the ground glinting in a ring before the crystals
+          burst, sparks where the anchor's lightning will strike, smoke where the hammer will land); a shockwave of the
+          ground's own blocks rolls out from every slam; a blow bursts its element on what it hits; the sweeps leave an
+          arc of their element, the thrust a streak of frost, the Stormblade's cuts arcs of lightning, the pick a spray
+          of amethyst; a knight's element bursts out of it as it dies; and on the client the Cinder Knight sheds
+          embers, Flamehand's fists burn, the Thawed Soldiers' breath frosts, the Warden's globe drips, spores drift off
+          the Sporebound, sparks crawl on the thunder knights' steel, amethyst glints on the Geode Knight, grit falls
+          off the boulder.
+        - **Performance**: `boss/client/PartLayer` draws an extra pass box by box now (only the boxes that show in its
+          texture), and the knights use it for their glow, ice and ice-glow passes (each pass drew the whole model
+          again): 6,226 boxes a frame for the ten down to 2,928, and the Frostfolk, the Huntsman and the Rimefall
+          animals get the same saving. The server: the probe `boss/knight/KnightPerfProbeGameTest` (its own namespace,
+          `-PgameTestNamespaces=dross_knight_probe`) has the ten knights fight ten iron golems: 2.42 ms a tick
+          against 2.53 with them standing still (nothing to measure), at most 27 spikes and crystals at once.
+      - **The user's look after the overnight pass (November 19, 2026)** [built, not yet tested in-game] (the user:
+        the Geode Knight's pick "just doesn't look right ... his arm needs to pull and extend itself, full restart and
+        fix it"; the Cinder Knight "use both arms when swinging", the scythe "both hands and hold the scythe better", the
+        axeman's "arms are so weird when he swings", "make the melee attacks for dudes with weapons less clunky", the
+        Stormblade "do cooler stuff with his daggers"; Flamehand's first move "should do some damage" and his explosion
+        more; the rockfall "if you're in the area it does damage instead of a rock hitting you"; the spearman's shield in
+        the axe's ice "instead of this white stone"; the spearman's two moves and the Stormblade's cuts slow you; the
+        thunder, fire and rock knights immune to fire, the poison ones to poison and wither, "clear immunities for the
+        rest"):
+        - **Elbows**: every knight's arm bends at its elbow now (bones `fore_r`/`fore_l` between `arm_` and `hand_`,
+          their pivots each knight's elbow, `elbow_r`/`elbow_l` in `mobs.py`; `mobs.split_arms` moves each arm box nearer
+          the forearm onto it). The moves that don't use it are as they were.
+        - **Arms that reach** (`tools/knights/knightkit/kreach.py`): two-bone IK puts a fist on a spot (spots keyed from
+          between the shoulders in arm's reaches, so one set fits every knight), the elbow bending a given way; a
+          two-handed weapon's left fist on its haft below the right, both fists moving round the grip's middle; every
+          limit eased in (`soft_cap`), the arms never quite dead straight (`REACH` 0.93: the elbow whips round there).
+        - **Two-handed swings**: the Cinder Knight's hammer swing, the Thawed axe's swing and the Sporebound's reap
+          (`two_hand_sweep`): both hands come together on the haft, drawn back past his right shoulder as his body winds
+          round, swung flat across in front, arms reaching out at the hit (the scythe low, at the waist), round to his
+          left, then lifted upright in front of him and carried back to rest (carried any other way, a long haft's lower
+          end swept through him). Their slams stay one-handed: the Cinder hammer's and the axe's hafts run about two
+          blocks below the fist, and over his head two-handed that end goes through his body.
+        - **The Geode Knight's pick, redone** (`two_hand_chop`): the left hand comes up onto the haft, both lift it off
+          his shoulder high behind his head as he rears back, then pull it over and down in front, his arms reaching out
+          straight as the spike strikes at your body's height, held a moment, then back onto his shoulder.
+        - **The Stormblade's cuts** (`blade_cuts`): both blades raised high and wide as he rears, whipped down crossing in
+          front of him (an X) as he drops into a lunge, then flung out wide to his sides (a scissor cut) as he springs
+          up; lightning arcs along each (`ElementalKnight`, the X's two crossing, the wide cut's two outward).
+        - **The spearman's shield** (`tools/rimefall/rimedesigns/d09_thawed.py`): a disc of the axe's clear ice in
+          strips, a rim and boss of glowing edge-ice, two leather straps across (it was pale hide with a bone rim and
+          cross). The Rimefall gallery's 9D statue and the knight design gallery keep the old one until rebuilt.
+        - **Slowness**: the spearman's thrust Slowness II 3 s, each shield-wall poke Slowness I 2 s, each Stormblade cut
+          Slowness I 1.5 s (`KnightTuning.THRUST_SLOW_*`, `POKE_SLOW_TICKS`, `SLASH_SLOW_TICKS`).
+        - **Flamehand**: his fireballs did nothing to anyone moving (aimed at where you stood): each now leads its foe
+          (every knight watches how its foe really moves, `ElementalKnight.watchTarget`: the server never knows a
+          player's own motion; the plague ball and the boulder lead with it too), hits anything within half a block of
+          its path, 7 damage (5) and 4 s burning; one landing on the ground splashes fire 1.8 blocks round (4). The great
+          fireball 20 (14), 5.5 blocks round (4.5), 14 fires (10). (November 20, the user: "a little more damage": the
+          fireballs 9, their splash 5, the great fireball 24.)
+        - **Every knight's moves hurt without fire** (November 20, the user asked whether the Cinder Knight did any
+          damage besides fire): measured with fire blocked, his hammer swing takes 10 (5 hearts) off a bare iron golem
+          and his slam up to about 9; on a zombie in full netherite (armour 22) 2 and 1.6, while burning ignores armour,
+          so in good armour his fire is most of what you feel. `KnightFightGameTest` now gives its golem Fire Resistance,
+          so a move that only burns fails it, and logs what each move took. Then (the user: "increase the Cinder Knight's
+          damage, it's way too little") his hammer swing and his slam 18 each (9 hearts; the slam half that at its edge):
+          through plain netherite about 3 hearts.
+        - **The rockfall's circle**: the rocks hurt nobody now (they fly through); from the first rock's landing to the
+          last, every half second everything inside the circle (its 5.5 blocks and 0.75 more, up to 4 over the ground)
+          takes 3, its edge marked with stone dust while it lasts (`ROCKFALL_PULSE_*`, `ROCKFALL_ZONE_*`;
+          `ColossusRock` with no damage hits only the ground).
+        - **Immunities** (`ElementalKnight.immuneTo`, `canBeAffected`; `KnightKind.Element.fireproof`): the fire, thunder
+          and earth knights never burn (fire, lava, magma: their entity types are fire-immune); the thunder knights take
+          no lightning; the earth knights no fall, no suffocating in a wall, nothing falling on them; the ice knights no
+          freezing, no Slowness or Mining Fatigue; the poison knights no Poison or Wither.
+        - **The audit** (`tools/knights/audit.py`) skips, in the two-handed swings, the fists meeting on the haft and the
+          arms lying against the chest (`GRIP_PAIRS`; the Thawed Soldiers' thick arms press about 4.6 units into it),
+          and the Stormblade's crossed forearms in his X (`CROSSED`). Still flagged: the swings' handles grazing the
+          chest or cape by 1.9-2.9 units, the Sporebound's scythe brushing his cap and helm by about 2, and a few
+          one-frame quickenings of the left arm as a swing comes round (Thawed axe, Sporebound) and of the Geode
+          Knight's elbow; the other six knights pass clean.
+      - **The user's second look of November 19, 2026** [built, not yet tested in-game] (the user: "not impressed";
+        the axe "horizontal to his body ... it needs to be vertical ... the sharp part facing toward where he's facing
+        ... hold it with an angle with two hands ... make the axe a little thicker", its move 2 "not vertical"; the axe's,
+        the scythe's and the Cinder hammer's "flick back" at the end of move 1, "a weird flick with his hands, really
+        fast"; the hammer's move 2: "the short flat part of the hammer has to hit the ground"; the Geode pick "needs to
+        hit the ground ... going through his body, just do a one-hand thing", and his move 2 "just make him stomp the
+        ground ... a visible loud stomp"; the Rockfall Knight not using his move 1; the Stormblade "2 times damage, all
+        his attacks"; Flamehand doing nothing through Fire Resistance; "Cinder Knight needs way more health"):
+        - **The end flicks** (`knightkit/kreach.py`, `kanims.untangle`): the weapon hand had turned on round 300-470
+          degrees by a swing's end, and turned back in its last tenth of a second; then the elbow's bend snapped from
+          the blow's to its rest one as the fist neared rest. Now every blow comes back the way it went, slowly (the
+          swings 2.1-2.2 s, the smash and slam 2.5 and 2.7, the pick 2.4), at rest 0.15 s before its end; the elbow's
+          way eases over the fist's whole reach; a fist never pulled short of where it rests; and every bone's angles
+          are picked over the
+          whole move (each turn has two sets of Bedrock angles: kept nearest the frame before, a part passing near
+          straight up from its joint came back to rest written the other way round, 180 degrees off, and the game's
+          blend turned it over); once back at rest, angles still written the other way are rewritten as 0 in an
+          instant (`kanims.settle_ends`: two keys a fifth of a thousandth of a tick apart, the same pose either side).
+          The Cinder hammer's face is picked only once its swing has a way to lead (picked at rest, upright, it was as
+          often the far face, and the hammer rolled on round half a turn as it came back). A move ending more than 8
+          degrees off rest prints a warning. Measured: the weapons turn at most 300-590 degrees a second on the way back
+          (the flicks were over 3,000 in the last tenth of a second).
+        - **The Thawed axe** (`tools/rimefall/rimedesigns/d09_thawed.py`, the gallery's 9C statue too): held at the ready
+          in both hands, the haft across him at 45 degrees (`AXE_L`, `AXE_R`: his left fist low before his left hip,
+          his right before his right breast), the head up past his right shoulder, its blade pointing ahead; the haft 4
+          units thick (3), the blade 3 (2). His idle and walk keep both hands on it (`gear` "two_hand"). The axe is on a
+          bone of its own (`weapon_r`, mobs.Knight `slide`) so it can slide through his fists: for the swing and the
+          smash his hands slide down the haft to its end (`slide`, `gap`), as for any big swing of a long haft.
+          **Swing** (`swing_round`): drawn back past his right shoulder, swept flat across at chest height, its edge
+          leading, round to his left, then slowly back across to the front and up into his guard. **Smash**
+          (`chop_down`): raised over his right shoulder as a woodsman's (his short arms can't both reach over his head),
+          brought over and down, the blade upright and its edge biting the ground 3.2 blocks ahead
+          (`KnightTuning.SMASH_FORWARD`: the ice spikes start there), pulled out and back to his guard.
+        - **The Cinder hammer's slam** (`chop_down`, the hammer on its `weapon_r` bone): both hands slide down to the end of
+          its haft as he raises it over his right shoulder, then bring it down so its flat face lands on the ground about
+          20 degrees off flat, 4.7 blocks ahead (`SLAM_FORWARD`; the fire's ring round where it lands now). Held by the
+          end of its haft he lifts it back upright beside him and lets it slide down through his fist till its butt rests
+          on the ground (lifted upright before him with his hands half way up it, its butt swung through his belly).
+          **His swing and the Sporebound's reap** (`swing_round`) come back across slowly and up to rest at his right
+          side, the haft leaning in a little so its butt passes outside his hip, the left hand letting go and drifting
+          back round his hip.
+        - **The Geode Knight** (`one_hand_chop`, `kanims.stomp`): his pick swung one-handed up off his shoulder, back over
+          it, over the top and down, its spike driving into the ground 2.2 blocks ahead and a little to his right
+          (`PICK_BITE_*`: rock and amethyst thrown up, a ring of dust; `PICK_ARC` 80), his free arm swinging for balance,
+          then lifted and shouldered again. **The crystal burst** is a stomp now: his weight onto his left leg, the right
+          lifted high out to his side, held a heartbeat, driven down (the Colossus's slam sound and his step's, a puff and
+          the ground's dust at his foot), his chest jolting onto his hips; his pick stays on his shoulder.
+        - **The Rockfall Knight** (`KnightKind`): his throw at any range (5 and over until now) and every 2.5 s (3.5), and
+          he keeps 6 blocks off (9): standing close and hitting him, you only saw him back away.
+        - **The Stormblade** twice the damage: his cuts 12 (6), the dash 14 (7), its trail 6 (3).
+        - **Flamehand**: his fireballs' hits a projectile's (`DamageTypes.MOB_PROJECTILE`) and his great fireball's blast
+          an explosion, not fire, so Fire Resistance no longer takes them away (only the burning); they fly through his
+          fellow knights (`KnightFireball.canHitEntity`).
+        - **The Cinder Knight** 200 health (100).
+        - Checked (`tools/knights/audit.py`, the scratch checks of every reworked move): no move ends turned, nothing
+          deeper than about 2 units into the body (the grips' and armour's grazes), the blows' weapons at the ground.
+      - **The user's third look of November 19, 2026** [built, not yet tested in-game] (the user: "the ice people look
+        the same ... give the axe dude the bear head ... when he pulls up the axe goes through his horns, so just remove
+        his helmet, give him a bear head instead, and for the spear dude a Rimehorn hat"; the Geode stomp "looks good, it
+        needs to be up and down, not sideways"):
+        - **The Thawed Soldiers' heads** (`tools/rimefall/rimedesigns/d09_thawed.py`: `bear_head`, `rimehorn_hat`; the
+          gallery's 9C and 9D statues too): the old bone helmet (tusks, two short horns) is gone. **9C** wears a great
+          bear's head over his own: its broad skull, its snout jutting over his brow with a pale muzzle and black nose,
+          fangs hanging before his forehead, small black eyes, round ears, its dark grizzled pelt framing his face and
+          hanging down his back (`BEAR`, `BEAR_MUZZLE`); nothing sticks up past its ears, so the axe's haft clears it.
+          **9D** wears a Rimehorn's head as a helm: its frosted shaggy skull, its face running out over the top of his
+          head above his own eyes, the great horn of clear ice rising off its nose and sweeping up ahead of him, the
+          short horn behind it, small slit nostrils, black eyes on its sides, tufted ears, its pale hide down his back.
+          Their mantle and cloak are their beast's hide (the axeman's dark brown, the spearman's frosted pale), so they
+          differ from behind too.
+        - **The Geode Knight's stomp** (`kanims.stomp`, mobs.Knight `knees`: his legs bend at the knee, the shins on
+          bones of their own, `shin_r`/`shin_l`, split off by `mobs.split_legs`): his weight onto his left leg, his
+          right knee brought up high in front of him, the shin hanging under it, held a heartbeat as he leans back, then
+          driven straight down onto the ground before him (it was lifted out to his side).
+        - Audited: no clipping on either Thawed Soldier's head or in the stomp.
+    - **The ruins in the Overworld** [built November 19, 2026, not yet tested in-game] (the user's rules, planned with
+      them first: "each ruin can only go in certain biomes I listed ... I don't want fire to be in oak biomes or plains";
+      "800 blocks per average, one per biome, no neighbors"; near spawn "maybe like 5 per 1,000 blocks", "at least ...
+      around 200 blocks"; "the type of thunder should be in coastlines and rivers"; the knights "spawn back like every 10
+      minutes ... if no one is within 64 blocks, that's fair"; "don't worry about the killing thing ... that's a separate
+      quest ... your job is to place the things for the quest builder"; Boss area, `boss/knight/ruin/`, every number in
+      `KnightRuinTuning` or `KnightRuinSites`, the user's in `[knight_ruins]` of the settings file):
+      - **Where** (`KnightRuinSites`, from the seed alone: the generator's own biomes and heights, no chunk made; the same
+        on every thread): a ruin stands only in its element's biomes from the user's lists (`RuinAreas`, the biome tags
+        `dross:knight_ruin/<area>`, so a modpack may add its own biomes), with that biome area's own layouts (the seed
+        picks one of its picked ruins). The biome map is read a cell (16 blocks) at a time at the land's own height,
+        64 x 64 cells a tile, kept; joined cells of one area are a patch.
+        - **Near the spawn** (`nearSpawn` 5, `nearSpawnRadius` 1,000, `nearSpawnMinDistance` 200): each in its own big
+          patch (40,000 blocks², about 200 x 200), its footprint 30 blocks in from the patch's edge; the spawn's own patch
+          first if it's big, then the nearest; a new element first while there is one (the elements mixed where the land
+          allows); never two in one patch or touching patches, never 300 blocks or less apart; no thunder (no shores).
+          Their ways in face the spawn. If those don't hold them all, a last pass takes patches of 20,000 blocks² and spots
+          16 in from the edge (`NEAR_RELAXED_*`).
+        - **Further out**: the world in regions `spacing` (800) blocks a side, each with at most one candidate: a big land
+          patch at least 43 blocks deep, or a shore (a beach or stony shore or snowy beach by the sea; a river's bank; the
+          ruin stood at the sea's level with its template's sea side over the water, its way in facing the land) for
+          thunder and ice's frozen shore. A rare area's patch (badlands, dark forest, mushroom fields, jungle: the user, "much
+          rarer") is tried first (8 tries, past the region's 10); else the seed picks an element among those there, then an
+          area of it, its biggest patch (picked outright, each river segment and strip of beach a patch of its own, thunder
+          took half the ruins). A candidate gives way to a higher-ranked one (rare first, then the seed's roll) of a region
+          round it in the same patch (2 regions out) or a touching patch (1 out) or within 300 blocks, and to the near-spawn
+          ones. On the highest peaks (jagged, frozen, stony) 3 in 10 are thunder's Storm Peaks layouts. Earth's cavern
+          layouts aren't placed yet (the user: "not necessary").
+        - **A spot**: a land ruin's ground the median of the land's heights every 6 blocks over its footprint, varying by
+          14 at most (22 on a mountain), at most a fifth under the sea (two fifths in a swamp); tried cells kept 3 cells
+          apart.
+        - **Measured** (`KnightRuinProbeGameTest`, namespace `dross_ruin_probe`, 8 seeds, 3,200 blocks round the spawn):
+          about 18-33 ruins (one per about 990-1,340 blocks square; each one's nearest about 670-810 blocks off on
+          average), 4-5 near the spawn, no rule broken, about a third thunder (shores and rivers), the rest by the land:
+          most poison (forests and jungles are common), then earth, ice, fire; about 0.2 s of work a region, on a
+          background thread. Maps: `boss-previews/knights/ruins/placement/seed_<n>.png` (`tools/knights/ruin_map.py`).
+      - **Made with the land** (`dross:knight_ruin`, `KnightRuinStructure`, `KnightRuinPiece`, `KnightRuinPlacement`, only
+        in each ruin's own chunk; built in the surface structures step, a chunk at a time like the portal site's piece):
+        Minecraft's `beard_thin` draws the land to its floor; the footprint is cut or filled to its ground (8 blocks of
+        foundation at most, small caves under it filled), a ring 8 blocks round it steps back to the land a block at a
+        time (a pond or the sea beside it left alone); a shore ruin's sea side is only cut down to the sea's level where
+        land stands over it (never filled, no water made). Then its template, turned so its way in faces its front.
+      - **Its tidy-up** (`KnightRuinTidy`): once, as soon as a player is within 256 blocks and its land is loaded (about
+        when it comes into view, before its knights), every tree, huge mushroom or ice spike that grew into it is felled
+        whole (world-builder's `TreeFelling`), then its template is placed again: its own designed trees and blocks back,
+        and its stone where Minecraft's patches of andesite, diorite, dirt, gravel and clay and its ores, which come
+        after the structures, landed in it (a test once found 18% of a stony-shore ruin's stone swapped).
+      - **Its knights** (`KnightRuinKeeper`, `KnightRuinData`, `data/dross_knight_ruins.dat`): its element's two come
+        when a player (not a spectator) is within 112 blocks and its land is loaded, on its guard spots, never on
+        Peaceful, only where it was really built; they keep near it (`ElementalKnight.guard`: walking back past 12 blocks
+        with nothing to fight, letting a foe go 36 out). Both beaten, they come back `knightsReturnMinutes` (10) later,
+        only while no player is within 64 blocks. One that left without being beaten (Peaceful) comes again; an old copy
+        loading after it came again never joins.
+      - **For the quest** (built separately): when the second falls, every player who cleared it (the player credited
+        with that death and every player within 48 blocks) is remembered and gets a `KnightRuinClearedEvent` on Forge's
+        event bus (its ruin, whether it's their first time there, whether they made the kill); `KnightRuins`: `nearest`,
+        `nearestAsync`, `nearSpawn`, `within`, `byId`, `hasCleared`, `clearedBy`, `knightsBeaten`.
+      - **Commands** (`command/GotoRuin`): `/dross goto ruin [<element>]` (the nearest, of an element: fire, ice, poison,
+        thunder, earth; worked out off the server thread, then its land made and you land just out of its way in, facing
+        it), `/dross goto ruin <x> <z>`, `/dross locate ruins` (the 8 nearest within 2,400 blocks with their element,
+        area, layout and distance, [go] buttons). `/locate structure` can't find them.
+      - Headless tests (`boss/knight/ruin/KnightRuinWorldGameTest`): `ruinsArePlanned` (the near-spawn ones in their ring,
+        no thunder; every ruin within 2,400 blocks in its biomes, no pair breaking the rules; planned again from nothing,
+        the same), `ruinIsBuiltAndGuarded` (a ruin away from the spawn made with its land: its structure start, its broken
+        frame never lit; a player near: tidied, then 97% of its template in place (stone swapped for stone or an ore
+        counting), standing room on its guard spots, its two knights on their spots; both killed: the player told and remembered, none back at once nor with a player within
+        64 blocks 10 minutes on, both back with the player 80 blocks off).
+    - **Next**: the user looks at the ruins in a new world (`/dross locate ruins`, `/dross goto ruin`); then "the
+      different kind of ruin stuff" (variations of the picked layouts) and the cavern layouts in big caves. The
+      Blightwood bosses (step 17) wait meanwhile.
+
 19. **The Blind Oracle's quest line** [built November 9, 2026, not yet tested in-game] (Quest area, `quest/oracle/`;
     Villager for his talk and his marker, Dimension for the locked lands and Silverwood's spawn list, Boss for the
     Silverwood Giant and the locked bosses, World site for the commands; the plan, `QUEST_PLAN.md`, agreed with the user
@@ -2816,7 +3960,19 @@ with his burrows an eighth apart, the Wild Hunt 275, the Huntsman 175, the Alpha
 staff, the hit cap (a fifteenth of a boss's health), more players making a boss stronger and the 3-minute reset
 ("Every boss: the rules"; 285 GameTests pass; not yet tested in-game), and the design galleries' showcase-only
 models kept out of the jar (28 MB to 15 MB; the jar checked on a real Forge server: no errors, those galleries not
-offered). Then (November 7-9, branch `oracle-quests`, in its own copy of the project) the Blind Oracle's quest line
+offered). Then (November 7, branch `blight-designs`) fifteen Blightwood boss candidates and five mob candidates,
+looks only, in `/dross showcase boss_designs blightwood` (step 17; not yet looked at in-game by the user). Then fifteen elemental knight candidates (three poison, four fire, four thunder, four earth) in `/dross showcase knights` with the Thawed Soldiers and Sir Mildew (step 18), which the user looked at in-game; then round 2 (their
+pairs for poison and earth, F1's three weapons and Flamehand, the thunder knights in the Dross's blue with T3's three
+designs and the Storm Sentinel), which the user looked at in-game; then round 3 (thunder's pair T3A and T6
+Stormblade, a lightning ninja with twin blades; F1B's fire hammer; the Thawed Soldiers as tall as the knights), which
+the user looked at in-game; then (November 18) fire's pair F1B and F5, and the ten knights as real mobs: their
+animations, two moves each, health, boss bars and spawn eggs, and fifteen ruin candidates (three per element) in
+`/dross showcase knight_ruins` (step 18; not yet tested in-game); then the same day 100 ruins, every biome area its own
+4-5 layouts (`/dross showcase knight_ruins <element>`), and the knights' own sounds (step 18; not yet tested in-game);
+then, from the user's look the same evening: their 76 picked ruins (all five together in `/dross showcase
+knight_ruins`), the knights' animations made smooth, voices of their own (not people's), no boss bars, the Rockfall
+Knight's mossy boulders, and `/dross showcase knights` showing the ten real knights (step 18; not yet tested in-game).
+Then (November 7-9, branch `oracle-quests`, in its own copy of the project) the Blind Oracle's quest line
 (step 19, from `QUEST_PLAN.md`): eleven quests from his story to "Defeat the Dross", given by right-clicking him, with a
 red, yellow or green marker over his head, kill counting, seven new advancements (six regular ones and "Defeat the
 Dross") and the bosses' four in one chain with them, the locked lands (Slowness V, Mining Fatigue V, Hunger II, the chat line and a curtain of streaks and runes at their edge),
@@ -2992,6 +4148,71 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   no real one flew), and only he throws there (the Brawler and the Tree-Bearer never do; their throws stay in their
   animation files, never played); after a smash or a throw the left arm goes straight back to standing, never spinning round (its
   angles had wound a whole turn: `tools/forest_giant/mobs.py`'s `unwind`).
+- **The knight ruins in the Overworld** (November 19): in a new world (survival, cheats on), `/dross locate ruins`
+  lists the nearest with [go] buttons, 4-5 of them within 1,000 blocks of spawn (none nearer than 200), each in its
+  element's biome (a desert ruin in a desert, a thunder ruin on a beach, a stony shore or a riverbank, its back over the
+  water); each sits on level ground stepping back to the land a block at a time, no tree through it, its frame broken
+  and never lit; as you come near its two knights stand on guard; beat both and they don't come back while you're
+  within 64 blocks, and do 10 minutes later once you've gone; they keep to their ruin (lure one far and it gives up and
+  walks back); `/dross goto ruin fire` (and the other elements) lands you at the nearest of that element.
+- **The knights' second rework** (November 19, evening): no fast flick at the end of the Thawed axe's, the Cinder
+  hammer's or the scythe's swing (each comes back slowly the way it went); the axeman holds his axe in both hands
+  across him, its blade pointing ahead, and his smash brings it down with the blade upright into the ground; the Cinder
+  Knight's slam lands the hammer's flat face on the ground well ahead of him; the Geode Knight strikes one-handed, his
+  spike into the ground, and his second move is a loud stomp; the Rockfall Knight throws his boulder at you up close
+  too; the Stormblade hurts twice as much; Flamehand's fireballs hurt you through Fire Resistance; the Cinder Knight
+  takes about twice the hits; the Thawed axeman wears a bear's head (dark brown, a pale muzzle, fangs) and the
+  spearman a Rimehorn's head with its ice horn, each with his beast's hide for a cloak; the Geode Knight's stomp
+  brings his knee up in front and his foot straight down.
+- **The knights' moves after the user's look** (November 19, afternoon): the Cinder Knight, the Thawed axeman and the
+  Sporebound swing with both hands on the haft (wound back, swung flat across, arms reaching out); the Geode Knight
+  lifts his pick off his shoulder with both hands and pulls it down, arms stretching out; the Stormblade's X-cut then
+  his wide scissor cut; nothing of a long haft through a knight's body; the spearman's shield clear ice; the spear's
+  hits and the Stormblade's cuts slow you; Flamehand's fireballs hit you while you move, the great one hurts more;
+  standing in the rockfall's dusty circle hurts, the rocks themselves don't; fire, lava and magma never hurt the fire,
+  thunder or earth knights, poison and wither never the poison ones.
+- **The knights' overnight pass** (November 19): every move's wind-up shows its element on the weapon and the big
+  ones show where they'll land (the Warden's dark cloud gathering, dust falling where the rocks will come down, sparks
+  where the anchor's lightning will strike); every slam sends a ring of the ground's own blocks rolling out; a blow
+  that lands bursts its element on you; a knight dying bursts into its element; up close the Cinder Knight sheds
+  embers, Flamehand's fists burn, the Thawed Soldiers' breath frosts; the Rockfall Knight throws his boulder forward
+  and slams it down in front of him; the Wreck Knight's anchor and the Geode Knight's pick slam down into the ground in
+  front; the hammer, axe and anchor land in front of the knight, not off to its right; no weapon spins round as a swing
+  ends; the fireballs, plague ball, anchor and boulder leave from the hand or orb you see; the game no slower in a
+  crowd of knights.
+- **The real elemental knights and their ruins** (November 18): in a superflat world (survival, cheats on) each knight's
+  spawn egg (the end of the Dross tab's spawn eggs) brings a knight that comes for you with its boss bar; each uses
+  both its moves (step 18's list) and they look right: the axeman's line of ice spikes, the spearman's shield up,
+  the Warden's poison ball and rain, the Sporebound's spore cloud, the hammer's fire slam, Flamehand's fireballs and
+  great fireball, the Wreck Knight's anchor flying on its chain and hauling you in (the anchor gone from his shoulder
+  meanwhile), the Stormblade's lightning dash and trail, the amethyst burst, the rocks raining down; their animations
+  match `boss-previews/knights/mobs/`; nothing of the world broken or set alight but the Colossus's own fire, which
+  goes out; each knight walks its own way (the Warden's limp on his staff, Flamehand's boxer's guard, the Wreck
+  Knight's roll...); the Geode Knight's pick and the Wreck Knight's anchor lie on top of the shoulder, never through
+  it; the scythe, 9C's axe, the Geode pick and the Cinder hammer swing flat, the blade leading; a swing that looks
+  as if it lands hurts; the boulder hits when it touches you; the Warden's rain reaches the ground; the Cinder
+  Knight's slam leaves a wide ring of fire; no boss bar shows; the knights move smoothly (no stop-start, the walk's feet don't slide, the blow lands
+  as the weapon hits); the Rockfall Knight's boulder a lumpy mossy rock; their voices nothing like the Frostfolk's.
+  `/dross showcase knights`: the ten real knights frozen on five plots, the [move1] and [move2] buttons play their
+  attacks. `/dross showcase knight_ruins` builds all 76 picked ruins, the five elements side by side; one element
+  (`... knight_ruins fire`...) builds a row
+  for each of its areas, each ruin matching its picture in `boss-previews/knights/ruins/` (`index.html`), on its area's
+  ground (the shores' backs in the sea, the caverns under a rock roof), its two knights frozen on guard, nothing
+  floating, no water or lava running; the [move1] and [move2] buttons play their moves. Their sounds: each element
+  its own, the Wreck Knight deep and heavy, the Stormblade light and quick (`/dross showcase boss_sounds knights`).
+- **The elemental knights, round 3** (November 9): in a superflat world (cheats on) `/dross showcase knights` builds five
+  plots in a row across (Ice, Poison, Fire, Thunder, Earth), each on its biome's ground with a broken portal of Dross
+  frame blocks at its back and its knights in front facing you (fire 3, the others 2 each; the Thawed Soldiers' heads
+  level with the knights'), each matching its sheet in `boss-previews/knights/index.html`; F1B's hammer upright with
+  its head burning, T6 Stormblade's swords and lightning, his eye slit and scarf; the lava, lightning, poison and
+  amber glowing at night; the crystals and the flames see-through; the chat's buttons stand you by each; right-click one: its idea in the
+  chat; nothing flickers.
+- **The Blightwood candidates** (November 7): in a superflat world (cheats on) `/dross showcase boss_designs blightwood`
+  builds a mud-brick walkway through Sporeloam with the fifteen bosses then the five mobs either side, each matching
+  its sheet in `boss-previews/blightwood/` (`servants/index.html`, `mobs/index.html`); the Sump's ooze and the fly's
+  wings see-through (the skeleton and eye inside the Sump showing), the glowing parts glowing at night; [go] stands you
+  by each and its hover gives the idea; right-click one: its name on the action bar, its idea in the chat; nothing
+  flickers.
 - **The boss buff** (November 7): the Colossus's bar at the start of a fight full at 375 (its eruption at a quarter
   down, the shell bursting at 40%), the Rat King 250 (three burrows, his Rage at half, three more), the Wild Hunt 275,
   the Huntsman and the moose 175 and 200 after the split; the Rat King's sweep and spear charge poison you (Poison II,
@@ -3315,12 +4536,21 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   only some layouts asked for it writes `HunterVillageDesigns` (and the overview page and picture) from its local
   manifest, `tools/huntsman/out/villages.json`, which in a fresh copy of the project holds only the layouts just built.
   After such a run, put the other layouts' rows back from git (or run it with no numbers).
+- **The Cinder mobs' tests time out under another test server's load** (Boss area, found November 20, 2026): with a
+  second GameTest run (another session's) going on the same machine, the Dross's biome map read about 25 times slower
+  (6,000 blocks in 105 s, not 4), and `CinderMobsGameTest`'s land far out (about -9,000, 9,200) never started ticking
+  within its 3 minutes: all 7 failed "its chunks never started ticking", even run on their own; in the quiet full runs
+  they pass. Not the knight ruins (they only act in the Overworld). Run the suite with nothing else heavy running.
 - **One column beside the cathedral not stepped back, on one seed** (World site, found November 5): in a full fresh run
   (world `gt_play_a`) `PortalSiteGameTest.cathedralIsMadeWithTheLand` failed with "1 of 5172 columns round the site are
   further from its ground level y 70 than they are from it (the first: -2916, 2699 (1 out) at y 67, diorite over diorite
-  over diorite)": one column of stone a block too low in the staircase blend. Cosmetic. Not looked into yet. Again on November 19
-  (world `gt_icearrow_1119`), bigger: 125 of 5172 columns off round a site on packed ice (the first at -1606, 4097, 7
-  out, y 76 against its ground y 67): a snowy site's blend, worth a look.
+  over diorite)": one column of stone a block too low in the staircase blend. Cosmetic. Not looked into yet. Again on
+  November 19 (world `gt_knights_1119c`: 5 of 5172 columns, the first 11 out at 3582, -2948, 12 under the ground level y
+  126). Again on November 19 (world `gt_icearrow_1119`), bigger: 125 of 5172 columns off round a site on packed ice (the
+  first at -1606, 4097, 7 out, y 76 against its ground y 67): a snowy site's blend, worth a look.
+- **The portal site's spot past 4,500 blocks, on one seed** (World site, found November 19): in a full fresh run (world
+  `gt_knights_1119c`) `PortalSiteGameTest.spotComesFromTheSeed` failed with "the spot is 4667 blocks from the world
+  spawn" (its rules want 3,500-4,500 unless relaxed). Not looked into yet.
 - **The bedrock arena test once found a spot for a zombie on its roof** (Boss area, found November 6): in a full fresh
   run `BedrockArenaGameTest.nothingSpawnsInTheBedrockArena` failed with "a minecraft:zombie could spawn on the arena at
   35, 50, 66" (on its roof's top); the arena leaves blocks with a block entity alone (a chest, a bee nest) by design, so
@@ -3337,7 +4567,12 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   wants 3,500-4,500); probably the rules relaxed to their 3,000-5,000 rung on that seed. Not looked into yet.
 - **The portal site's spot once had a beach beside it** (World site, found November 6): in a full fresh run
   `PortalSiteGameTest.spotComesFromTheSeed` failed with "1 places under it are an ocean, river, beach or swamp
-  (minecraft:beach at -1744, -3075)"; seed-dependent, like the cathedral's blend column. Not looked into yet.
+  (minecraft:beach at -1744, -3075)"; seed-dependent, like the cathedral's blend column. Not looked into yet. Again on
+  November 9 ("4 places under it are ... (minecraft:beach at -2824, 2517)", the site relaxed to rule 1).
+- **The rat cave's grand entrance not found once** (Dimension area, found November 9): in a full fresh run (world
+  `gt_knights_r2_1109`) `SewersGameTest.ratCaveHasNestHoardAndDrains` failed with "RatCaves.entrancesNear doesn't find
+  the grand entrance at 250, 81, -1134 (it finds [])" (the cave itself was right: 40 x 40, its nest and hoard, 1
+  entrance leading to it); seed-dependent, not looked into yet.
 - **`/dross goto biome cinder_wastes` near a small volcano area** (World site, found November 5): a landing keeps clear of
   every Emberdactyl volcano, and on a small Cinder Wastes patch the volcano's circle can fill all of it the landing looks
   at (the place and three more along the line from where you stand, `GotoBiome.Landing.find`): standing nearest such a
@@ -3363,7 +4598,7 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   the other 11 had 6-8): a Rimehorn is 3.4 blocks wide and the herd stays inside its chunk
   (`RimehornHerdFeature.spawnHerd`, 15 tries near its spot, then 40 anywhere in the chunk), so a chunk crowded with
   trees and boulders has room for few. Not fixed yet (letting it use the chunks round it would need care with world
-  generation's write limits).
+  generation's write limits). Again on November 9 ("the herd at [-9, 43] has 4 Rimehorns"). On November 19 one with none ("the herd at [19, -31] has 0 Rimehorns").
 - **A Rimefall lake's shore wall with a gap on some seeds** (Dimension area, found October 23): in one fresh GameTest world `RimefallLakeGameTest.rimefallLakeIsBuilt` failed with "the Rimefall lake at 648, 81, 312 isn't right: the shore at 607, 81, 356 is Air (the water could get out)" (and 608, 80-81, 356); 204 of the other 205 tests passed. Not looked into yet.
 
 - **A Rimefall lake's shore wall with a gap, again** (October 26): in a fresh full run `rimefallLakeIsBuilt` failed
@@ -3389,6 +4624,10 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   on October 30 in `featuresperbiome` ("rimefall site at -6256, 6320: ... Block{dross:frostbloom} at -6256, 73, 6381"
   couldn't stay; every other test passed). And on November 19 in `featuresperbiome` ("rimefall site at -6304, 6464: ... Block{minecraft:snow}[layers=1] at
   -6335, 73, 6512" couldn't stay; 317 of 318 passed).
+- **The terrain check sampling a hermit crab cave** (Dimension area, found November 19): in a full fresh run (world
+  `gt_knights_1118f`) `realchunksperbiome` failed with "cinder_wastes site at 6240, 5552: 571 air blocks more than
+  8 under the ground": almost surely an underground hermit crab cave (or a Colossus lair) under its sample spot,
+  which the check doesn't know about (like the Frostfolk village below). Not looked into yet.
 - **The terrain check sampling a Frostfolk village** (Dimension area, found October 27): in one full fresh GameTest run
   (240 of 241 passed) `realchunksperbiome` failed with "rimefall site at 5824, 5920: only 97.5% of the top blocks are
   its own" (spruce stairs, packed ice, lanterns, skulls...) "and 309 air blocks more than 8 under the ground": the
@@ -3412,6 +4651,8 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   36958 has block light 0" (230 of 231 passed); the same templates passed in four other runs, so the light engine
   hadn't caught up on that busy run even after the test's retries (like the room it once read dark beside its
   lanterns). Not looked into further. Again on October 25 (another fresh world), the same floor cell: worth a look.
+  Again on November 9 (world `gt_knights_r3_1109`): "sunken_warren_05: the room floor at -39666, 198, 37041 has block
+  light 0".
   Again on November 18 (`gt_spell_1118b`): "huntsman_village_11: the room floor at -37792, 198, 36933 has block light 0".
   Again on November 20 (`gt_full_perf_1120`): "sunken_warren_06: the room floor at -39417, 198, 36949 has block light 0".
 - **The Huntsman's "a creative player isn't a foe" test once failed** (Boss area, found October 28): in one full fresh

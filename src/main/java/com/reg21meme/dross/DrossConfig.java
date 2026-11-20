@@ -6,7 +6,8 @@ import net.minecraftforge.common.ForgeConfigSpec;
  * The mod's settings file, {@code config/dross-common.toml} (for modpack makers and server owners). Every value has a
  * default that is the mod's own tuning, so a missing or broken file changes nothing.
  * <ul>
- *   <li><b>Where things go</b> ({@code [portal_site]}, {@code [trader]}): read once per world, the first time it loads, and
+ *   <li><b>Where things go</b> ({@code [portal_site]}, {@code [trader]}, {@code [knight_ruins]}): read once per world, the
+ *       first time it loads, and
  *       saved in it ({@link DrossWorldSettings}), so changing the file later never moves the cathedral or the trader of a
  *       world that already has them: only new worlds use the new values.</li>
  *   <li><b>The rest</b> ({@code [quest]}, {@code [performance]}): read as the game goes, so a change counts at once
@@ -25,6 +26,11 @@ public final class DrossConfig
     public static final double DEFAULT_LETTER_CHANCE = 1.0D;
     public static final int DEFAULT_PLANNER_THREADS = 0;
     public static final int DEFAULT_BUILD_MILLIS = 40;
+    public static final int DEFAULT_RUIN_SPACING = 800;
+    public static final int DEFAULT_RUINS_NEAR_SPAWN = 5;
+    public static final int DEFAULT_RUINS_NEAR_SPAWN_RADIUS = 1000;
+    public static final int DEFAULT_RUINS_NEAR_SPAWN_MIN = 200;
+    public static final int DEFAULT_RUIN_KNIGHTS_RETURN_MINUTES = 10;
 
     public static final ForgeConfigSpec SPEC;
 
@@ -35,6 +41,11 @@ public final class DrossConfig
     private static final ForgeConfigSpec.DoubleValue LETTER_CHANCE;
     private static final ForgeConfigSpec.IntValue PLANNER_THREADS;
     private static final ForgeConfigSpec.IntValue BUILD_MILLIS;
+    private static final ForgeConfigSpec.IntValue RUIN_SPACING;
+    private static final ForgeConfigSpec.IntValue RUINS_NEAR_SPAWN;
+    private static final ForgeConfigSpec.IntValue RUINS_NEAR_SPAWN_RADIUS;
+    private static final ForgeConfigSpec.IntValue RUINS_NEAR_SPAWN_MIN;
+    private static final ForgeConfigSpec.IntValue RUIN_KNIGHTS_RETURN_MINUTES;
 
     static
     {
@@ -56,6 +67,22 @@ public final class DrossConfig
                 .define("atVillages", DEFAULT_TRADER_AT_VILLAGES);
         TRADER_SEARCH_RADIUS = b.comment("How far from the world spawn his village can be, in blocks.")
                 .defineInRange("villageSearchRadius", DEFAULT_TRADER_SEARCH_RADIUS, 500, 8000);
+        b.pop();
+
+        b.comment("The elemental knights' ruins in the Overworld: a broken Dross portal with two knights of its element on",
+                "guard, only in that element's biomes. Read when a world is first made and saved in it (all but",
+                "knightsReturnMinutes): changing these only affects new worlds.").push("knight_ruins");
+        RUIN_SPACING = b.comment("About how far apart the ruins are on average, in blocks (away from the ones near spawn).")
+                .defineInRange("spacing", DEFAULT_RUIN_SPACING, 300, 5000);
+        RUINS_NEAR_SPAWN = b.comment("How many ruins are placed near the world spawn, each in a big biome (0 = none).")
+                .defineInRange("nearSpawn", DEFAULT_RUINS_NEAR_SPAWN, 0, 12);
+        RUINS_NEAR_SPAWN_RADIUS = b.comment("The furthest those ruins can be from the world spawn, in blocks.")
+                .defineInRange("nearSpawnRadius", DEFAULT_RUINS_NEAR_SPAWN_RADIUS, 400, 4000);
+        RUINS_NEAR_SPAWN_MIN = b.comment("The nearest any ruin can be to the world spawn, in blocks.")
+                .defineInRange("nearSpawnMinDistance", DEFAULT_RUINS_NEAR_SPAWN_MIN, 0, 2000);
+        RUIN_KNIGHTS_RETURN_MINUTES = b.comment("Minutes after both of a ruin's knights are beaten until they come back (only",
+                        "while no player is within 64 blocks of it). Counts at once.")
+                .defineInRange("knightsReturnMinutes", DEFAULT_RUIN_KNIGHTS_RETURN_MINUTES, 1, 240);
         b.pop();
 
         b.comment("The quest.").push("quest");
@@ -97,6 +124,32 @@ public final class DrossConfig
     public static int traderSearchRadius()
     {
         return get(TRADER_SEARCH_RADIUS);
+    }
+
+    public static int ruinSpacing()
+    {
+        return get(RUIN_SPACING);
+    }
+
+    public static int ruinsNearSpawn()
+    {
+        return get(RUINS_NEAR_SPAWN);
+    }
+
+    public static int ruinsNearSpawnRadius()
+    {
+        return get(RUINS_NEAR_SPAWN_RADIUS);
+    }
+
+    /** Never more than the near-spawn radius less 100 (so there's room for them). */
+    public static int ruinsNearSpawnMin()
+    {
+        return Math.min(get(RUINS_NEAR_SPAWN_MIN), ruinsNearSpawnRadius() - 100);
+    }
+
+    public static int ruinKnightsReturnMinutes()
+    {
+        return get(RUIN_KNIGHTS_RETURN_MINUTES);
     }
 
     public static double letterChance()

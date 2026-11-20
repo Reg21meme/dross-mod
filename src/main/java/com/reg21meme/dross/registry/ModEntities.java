@@ -2,6 +2,12 @@ package com.reg21meme.dross.registry;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.boss.fire.FireCandidate;
+import com.reg21meme.dross.boss.blight.BlightCandidate;
+import com.reg21meme.dross.boss.knight.KnightCandidate;
+import com.reg21meme.dross.boss.knight.ElementalKnight;
+import com.reg21meme.dross.boss.knight.KnightAnchor;
+import com.reg21meme.dross.boss.knight.KnightFireball;
+import com.reg21meme.dross.boss.knight.KnightKind;
 import com.reg21meme.dross.boss.cinder.CinderHermit;
 import com.reg21meme.dross.boss.cinder.Pallbearer;
 import com.reg21meme.dross.boss.emberdactyl.EmberEgg;
@@ -85,7 +91,7 @@ public final class ModEntities
                     .sized(0.8F, 0.8F)
                     .fireImmune()
                     .clientTrackingRange(6)
-                    .updateInterval(10)
+                    .updateInterval(2)   // (smooth in flight: a boulder you can see coming)
                     .build("colossus_rock"));
     public static final RegistryObject<EntityType<LavaBlob>> LAVA_BLOB = ENTITY_TYPES.register("lava_blob",
             () -> EntityType.Builder.<LavaBlob>of(LavaBlob::new, MobCategory.MISC)
@@ -165,6 +171,29 @@ public final class ModEntities
                     .fireImmune()
                     .clientTrackingRange(12)
                     .build("fire_candidate"));
+
+    /**
+     * Boss area: the Blightwood candidates (November 7, 2026), frozen models of the Plague Necromancer's possible
+     * servants and Blightwood's possible regular mobs for /dross showcase boss_designs blightwood. Their hitbox is set
+     * per design (BlightCandidate).
+     */
+    public static final RegistryObject<EntityType<BlightCandidate>> BLIGHT_CANDIDATE = ENTITY_TYPES.register("blight_candidate",
+            () -> EntityType.Builder.<BlightCandidate>of(BlightCandidate::new, MobCategory.MISC)
+                    .sized(2.0F, 2.6F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("blight_candidate"));
+
+    /**
+     * Boss area: the elemental knights on show (/dross showcase knights; November 7, 2026): frozen models, any design
+     * (boss/knight/KnightDesigns); the hitbox follows the design, this is only the default.
+     */
+    public static final RegistryObject<EntityType<KnightCandidate>> KNIGHT_CANDIDATE = ENTITY_TYPES.register("knight_candidate",
+            () -> EntityType.Builder.<KnightCandidate>of(KnightCandidate::new, MobCategory.MISC)
+                    .sized(2.5F, 4.5F)
+                    .fireImmune()
+                    .clientTrackingRange(12)
+                    .build("knight_candidate"));
 
     /**
      * Boss area: the Emberdactyl fighting (CLAUDE.md step 16) and its young reborn: their body's hitbox (their head,
@@ -324,6 +353,49 @@ public final class ModEntities
                     .clientTrackingRange(6)
                     .updateInterval(10)
                     .build("giant_boulder"));
+
+
+    /**
+     * Boss area: the ten elemental knights ({@code dross:knight_<name>}, boss/knight/KnightKind; November 2026), two of
+     * each element, hostile, each with its two moves; from their spawn eggs for now. The fire knights never burn.
+     */
+    public static final Map<KnightKind, RegistryObject<EntityType<ElementalKnight>>> KNIGHTS = knights();
+
+    private static Map<KnightKind, RegistryObject<EntityType<ElementalKnight>>> knights()
+    {
+        Map<KnightKind, RegistryObject<EntityType<ElementalKnight>>> types = new EnumMap<>(KnightKind.class);
+        for (KnightKind kind : KnightKind.values())
+        {
+            types.put(kind, ENTITY_TYPES.register(kind.typeName(), () ->
+            {
+                EntityType.Builder<ElementalKnight> builder = EntityType.Builder.<ElementalKnight>of(
+                                (type, level) -> new ElementalKnight(type, level, kind), MobCategory.MONSTER)
+                        .sized(1.4F, 4.2F)
+                        .clientTrackingRange(10);
+                if (kind.element.fireproof())
+                {
+                    builder.fireImmune();
+                }
+                return builder.build(kind.typeName());
+            }));
+        }
+        return Collections.unmodifiableMap(types);
+    }
+
+    // Boss area: Flamehand's fireballs, small and great (boss/knight/KnightFireball)
+    public static final RegistryObject<EntityType<KnightFireball>> KNIGHT_FIREBALL = ENTITY_TYPES.register("knight_fireball",
+            () -> EntityType.Builder.<KnightFireball>of(KnightFireball::new, MobCategory.MISC)
+                    .sized(0.5F, 0.5F)
+                    .clientTrackingRange(8)
+                    .updateInterval(2)
+                    .build("knight_fireball"));
+    // Boss area: the Wreck Knight's anchor, thrown on its chain (boss/knight/KnightAnchor)
+    public static final RegistryObject<EntityType<KnightAnchor>> KNIGHT_ANCHOR = ENTITY_TYPES.register("knight_anchor",
+            () -> EntityType.Builder.<KnightAnchor>of(KnightAnchor::new, MobCategory.MISC)
+                    .sized(0.8F, 0.8F)
+                    .clientTrackingRange(8)
+                    .updateInterval(1)
+                    .build("knight_anchor"));
 
     private ModEntities() {}
 }

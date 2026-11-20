@@ -160,6 +160,19 @@ public final class ModSounds
     public static final RegistryObject<SoundEvent> FROSTFOLK_ELDER_TALK = register("entity.frostfolk_elder.talk");
     public static final RegistryObject<SoundEvent> FROSTFOLK_ELDER_HURT = register("entity.frostfolk_elder.hurt");
     public static final RegistryObject<SoundEvent> FROSTFOLK_ELDER_DEATH = register("entity.frostfolk_elder.death");
+    // Boss area: the ten elemental knights (all original, made by tools/knights/sounds.py): every event in the generated
+    // KnightSounds.ALL, by its id (entity.knight_<kind>.<name>); ElementalKnight.sound(kind, name) looks them up.
+    public static final java.util.Map<String, RegistryObject<SoundEvent>> KNIGHT_SOUNDS = registerKnightSounds();
+
+    private static java.util.Map<String, RegistryObject<SoundEvent>> registerKnightSounds()
+    {
+        java.util.Map<String, RegistryObject<SoundEvent>> out = new java.util.LinkedHashMap<>();
+        for (com.reg21meme.dross.boss.knight.KnightSounds.Sound sound : com.reg21meme.dross.boss.knight.KnightSounds.ALL)
+        {
+            out.put(sound.event(), register(sound.event()));
+        }
+        return java.util.Collections.unmodifiableMap(out);
+    }
 
     // Boss area: the Silverwood Giant (original, tools/forest_giant/sounds.py; each event plays its versions at random).
     public static final RegistryObject<SoundEvent> SILVERWOOD_GIANT_AMBIENT = register("entity.silverwood_giant.ambient");

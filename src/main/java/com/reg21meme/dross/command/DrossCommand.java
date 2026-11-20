@@ -98,6 +98,8 @@ import net.minecraftforge.fml.common.Mod;
  *       that plays it ({@link RatSoundShowcase}; the list is the boss area's {@code RatKingSounds}).
  *       {@code /dross showcase boss_sounds huntsman} lists the Huntsman's and the Alpha Moose's sound options, a
  *       button for each version ({@link HuntsmanSoundShowcase}; the boss area's {@code HuntsmanSounds}).</li>
+ *   <li>{@code /dross showcase boss_sounds knights}: every sound of the ten elemental knights, knight by knight,
+ *       a button for each ({@link KnightSoundShowcase}; the boss area's {@code KnightSounds}, all original).</li>
  *   <li>{@code /dross showcase rimefall_mobs}: Rimefall's animals in a row in front of you (Rimehorns, moose, a Pond
  *       Skater), frozen, with signs; {@code /dross showcase rimefall_mobs idle|walk|run|charge|eat|attack} plays their
  *       animations ({@link RimefallMobShowcase}). {@code /dross showcase mob_sounds rimefall} lists their sounds with
@@ -221,7 +223,10 @@ public final class DrossCommand
                         .then(Commands.literal("lake").executes(context -> GotoLake.teleport(context.getSource())))
                         // The nearest hermit crab cave in the Cinder Wastes (the logic lives in GotoHermitCave; the
                         // caves are the boss area's HermitCaveSites).
-                        .then(Commands.literal("hermit_cave").executes(context -> GotoHermitCave.teleport(context.getSource()))))
+                        .then(Commands.literal("hermit_cave").executes(context -> GotoHermitCave.teleport(context.getSource())))
+                        // The elemental knights' ruins in the Overworld: the nearest (of an element), or the one nearest a
+                        // spot (the locate list's [go] buttons). The logic lives in GotoRuin; the ruins are the boss area's.
+                        .then(ruinGoto()))
                 // Villager area's test commands: trader <action> (the logic lives in TraderCommands).
                 .then(Commands.literal("trader")
                         .requires(source -> source.hasPermission(2))
@@ -262,7 +267,9 @@ public final class DrossCommand
                         .then(Commands.literal("boss_sounds")
                                 .then(Commands.literal("ratking").executes(RatSoundShowcase::list))
                                 .then(Commands.literal("huntsman").executes(HuntsmanSoundShowcase::list))
-                                .then(Commands.literal("emberdactyl").executes(FireSoundShowcase::emberdactyl)))
+                                .then(Commands.literal("emberdactyl").executes(FireSoundShowcase::emberdactyl))
+                                // the ten elemental knights' sounds (boss area's KnightSounds)
+                                .then(Commands.literal("knights").executes(KnightSoundShowcase::list)))
                         // Boss area's trophies, one literal per boss.
                         .then(Commands.literal("trophies")
                                 .then(Commands.literal("colossus").executes(TrophyShowcase::placeColossusTrophies))
@@ -288,12 +295,21 @@ public final class DrossCommand
                         .then(Commands.literal("oracle_spell").executes(OracleSpellShowcase::spell)
                                 .then(Commands.literal("big").executes(OracleSpellShowcase::spell))
                                 .then(Commands.literal("medium").executes(OracleSpellShowcase::medium)))
-                        .then(Commands.literal("barrier_fall").executes(OracleSpellShowcase::barrierFall)))
+                        .then(Commands.literal("barrier_fall").executes(OracleSpellShowcase::barrierFall))
+                        .then(Commands.literal("hub_camps").executes(HubCampShowcase::run))
+                        // Boss area's elemental knights, two of each element to guard a broken portal in the
+                        // Overworld, element by element round broken portals (KnightShowcase).
+                        .then(knightShowcase())
+                        // Boss area's knight ruin candidates, three for each element, their knights on guard
+                        // (KnightRuinShowcase).
+                        .then(KnightRuinShowcase.command()))
                 // A test tool for now (the user's "temporary command", October 23, 2026): locate villages lists the 5
                 // nearest hunter villages in Rimefall with [go] buttons (the logic lives in GotoVillage).
                 .then(Commands.literal("locate")
                         .requires(source -> source.hasPermission(2))
-                        .then(Commands.literal("villages").executes(context -> GotoVillage.locate(context.getSource()))))
+                        .then(Commands.literal("villages").executes(context -> GotoVillage.locate(context.getSource())))
+                        // the nearest knight ruins in the Overworld with [go] buttons (GotoRuin)
+                        .then(Commands.literal("ruins").executes(context -> GotoRuin.locate(context.getSource()))))
                 // Boss area's test commands: boss <action> <boss> (the logic lives in BossCommands). The arena's chat
                 // buttons run BossCommands.SUMMON_COMMAND ("/dross boss summon colossus") and SUMMON_RAT_KING_COMMAND
                 // ("/dross boss summon ratking"), so keep those paths exactly as they are.
@@ -374,9 +390,48 @@ public final class DrossCommand
             // The fire servant candidates (fifteen bosses, each with its variations behind it; FireShowcase).
             designs.then(Commands.literal("cinder_wastes").executes(FireShowcase::buildGallery));
         }
+        if (ShowcaseOnly.blightCandidates())
+        {
+            // The Blightwood candidates (fifteen bosses and five regular mobs, frozen; BlightShowcase).
+            designs.then(Commands.literal("blightwood").executes(BlightShowcase::buildGallery));
+        }
+        if (ShowcaseOnly.knightCandidates())
+        {
+            // The elemental knights' design candidates, element by element (KnightShowcase; since November 18, 2026
+            // /dross showcase knights shows the ten real knights).
+            designs.then(Commands.literal("knights").executes(KnightShowcase::buildGallery));
+        }
         // The Emberdactyl's looks (the adult, its young, its eggs) and its volcano (FireShowcase, with the boss area's
         // EmberVolcano), and their animations; the Huntsman and his Alpha Moose and theirs (HuntsmanShowcase).
         return designs.then(emberdactylShowcase()).then(huntsmanDesignShowcase());
+    }
+
+    /**
+     * {@code /dross showcase knights}: the elemental knights' gallery ({@link KnightShowcase}); only where their models are
+     * (the released jar leaves them out: {@link ShowcaseOnly}).
+     */
+    /** goto ruin [fire|ice|poison|thunder|earth] and goto ruin <x> <z> (GotoRuin). */
+    private static LiteralArgumentBuilder<CommandSourceStack> ruinGoto()
+    {
+        LiteralArgumentBuilder<CommandSourceStack> ruin = Commands.literal("ruin").executes(context -> GotoRuin.nearest(context.getSource(), null));
+        for (com.reg21meme.dross.boss.knight.KnightKind.Element element : com.reg21meme.dross.boss.knight.KnightKind.Element.values())
+        {
+            ruin.then(Commands.literal(element.name().toLowerCase(java.util.Locale.ROOT))
+                    .executes(context -> GotoRuin.nearest(context.getSource(), element)));
+        }
+        return ruin.then(Commands.argument("x", IntegerArgumentType.integer())
+                .then(Commands.argument("z", IntegerArgumentType.integer())
+                        .executes(context -> GotoRuin.at(context.getSource(), IntegerArgumentType.getInteger(context, "x"),
+                                IntegerArgumentType.getInteger(context, "z")))));
+    }
+    private static LiteralArgumentBuilder<CommandSourceStack> knightShowcase()
+    {
+        // the ten real knights on show (the user, November 18, 2026), and buttons that make them play their moves
+        return Commands.literal("knights").executes(KnightShowcase::buildKnights)
+                .then(Commands.argument("animation", com.mojang.brigadier.arguments.StringArgumentType.word())
+                        .suggests((c, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(new String[] {"idle", "walk", "move1", "move2"}, b))
+                        .executes(c -> KnightRuinShowcase.play(c,
+                                com.mojang.brigadier.arguments.StringArgumentType.getString(c, "animation"))));
     }
 
     /**

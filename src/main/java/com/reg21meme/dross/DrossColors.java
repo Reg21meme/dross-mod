@@ -158,6 +158,29 @@ public final class DrossColors {
      */
     public static final int FIRE_SHOWCASE_BUTTON = 0xFF9A4A;
 
+    /**
+     * The clickable [go] buttons of /dross showcase boss_designs blightwood (the Blightwood candidates), and the name in
+     * the chat when one is right-clicked. Poison green, not the Dross blue: they serve the Plague Necromancer. Used in
+     * command/BlightShowcase and boss/blight/BlightCandidate.
+     */
+    public static final int BLIGHT_SHOWCASE_BUTTON = 0x96D648;
+
+    /**
+     * The clickable [go] buttons of /dross showcase knights (the elemental knights), and the name in the chat when one is
+     * right-clicked: a knight's brass. Used in command/KnightShowcase and boss/knight/KnightCandidate.
+     */
+    public static final int KNIGHT_SHOWCASE_BUTTON = 0xE2C478;
+    /** The clickable [go] buttons of /dross locate ruins (the knights' ruins in the Overworld): the knights' brass too.
+     * Used in command/GotoRuin. */
+    public static final int KNIGHT_RUIN_BUTTON = KNIGHT_SHOWCASE_BUTTON;
+    /** /dross showcase knights: each element's name in the chat (fire ember, ice frost, poison green, thunder lightning
+     * yellow, earth amber). Used in command/KnightShowcase. */
+    public static final int KNIGHT_FIRE = 0xFF8A3A;
+    public static final int KNIGHT_ICE = 0xBFE4F2;
+    public static final int KNIGHT_POISON = 0x96D648;
+    public static final int KNIGHT_THUNDER = 0xF4E478;
+    public static final int KNIGHT_EARTH = 0xE8A032;
+
     /** In /dross locate villages (command/GotoVillage; its [go] buttons are the Boss section's HUNTER_VILLAGE_BUTTON),
      * the Huntsman's villages stand out: antler amber. */
     public static final int HUNTSMAN_VILLAGE_LABEL = 0xE0B060;
@@ -641,6 +664,46 @@ public final class DrossColors {
     /** "Magic protects this block." over the hotbar, mining a boss's home before beating it (pale electric blue, like
      *  the land wards' line). Used in boss/BossGrounds. */
     public static final int BOSS_GROUNDS_TEXT = PALETTE_HIGHLIGHT;
+
+    /**
+     * The elemental knights' spawn eggs (boss/knight/KnightKind, November 2026): each knight's armour for the egg, its
+     * element's glow for the spots. Used in boss/knight/KnightKind (registry/ModItems makes the eggs).
+     */
+    public static final int KNIGHT_THAWED_AXE_EGG_BASE = 0x6E5A44;
+    public static final int KNIGHT_THAWED_AXE_EGG_SPOTS = 0xBFE4F2;
+    public static final int KNIGHT_THAWED_SPEAR_EGG_BASE = 0x5C4A3A;
+    public static final int KNIGHT_THAWED_SPEAR_EGG_SPOTS = 0x8CC8E6;
+    public static final int KNIGHT_WARDEN_EGG_BASE = 0x3A3F2C;
+    public static final int KNIGHT_WARDEN_EGG_SPOTS = 0x96D648;
+    public static final int KNIGHT_SPOREBOUND_EGG_BASE = 0x6E2A24;
+    public static final int KNIGHT_SPOREBOUND_EGG_SPOTS = 0xB8E05A;
+    public static final int KNIGHT_CINDER_EGG_BASE = 0x1E1A1A;
+    public static final int KNIGHT_CINDER_EGG_SPOTS = 0xFF7A1E;
+    public static final int KNIGHT_FLAMEHAND_EGG_BASE = 0x2A2222;
+    public static final int KNIGHT_FLAMEHAND_EGG_SPOTS = 0xFFC23A;
+    public static final int KNIGHT_WRECK_EGG_BASE = 0x1A2238;
+    public static final int KNIGHT_WRECK_EGG_SPOTS = 0x7FA8FF;
+    public static final int KNIGHT_STORMBLADE_EGG_BASE = 0x0B2A9E;
+    public static final int KNIGHT_STORMBLADE_EGG_SPOTS = 0x2E6BFF;
+    public static final int KNIGHT_GEODE_EGG_BASE = 0x262228;
+    public static final int KNIGHT_GEODE_EGG_SPOTS = 0xB070E8;
+    public static final int KNIGHT_ROCKFALL_EGG_BASE = 0x5A5A52;
+    public static final int KNIGHT_ROCKFALL_EGG_SPOTS = 0x6E9A3A;
+    /**
+     * The elemental knights' attacks (boss/knight/KnightMoves): the Blight Warden's poison rain and the Sporebound's
+     * spores (poison greens), the thunder knights' sparks and the Stormblade's lightning trail (the Dross's electric
+     * blue and its highlight), the Geode Knight's amethyst dust.
+     */
+    public static final int KNIGHT_POISON_RAIN = 0x7CC236;
+    public static final int KNIGHT_POISON_RAIN_DARK = 0x4E7A1E;
+    public static final int KNIGHT_SPORES = 0xA8D85A;
+    public static final int KNIGHT_SPARK = PALETTE_MAIN;
+    public static final int KNIGHT_SPARK_BRIGHT = PALETTE_HIGHLIGHT;
+    public static final int KNIGHT_AMETHYST_DUST = 0xB070E8;
+    /** The knights' extra effects (boss/knight/KnightEffects): frost (the Thawed's breath, the spear's streak) and
+     *  stone dust (the earth knights' blows and shockwaves). */
+    public static final int KNIGHT_FROST = 0xDCF2FF;
+    public static final int KNIGHT_STONE_DUST = 0x8A8478;
 
     // ---------------------------------------------------------------- Helpers
 

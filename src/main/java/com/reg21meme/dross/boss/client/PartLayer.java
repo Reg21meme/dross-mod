@@ -36,13 +36,14 @@ import java.util.function.Function;
  * pass's texture: the eyes, the Rimehorn's horns, the Huntsman's ice. Drawing the whole model again for each pass was
  * most of what a village of the Frostfolk and a pen of Rimehorns cost (measured in the game, October 24, 2026: the
  * Rimehorn's 222 boxes drawn three times over for two horns). Which parts show is worked out once per model and texture,
- * from the texture's own pixels under each face.
+ * from the texture's own pixels under each face. Since November 19, 2026 box by box, not only bone by bone: a knight's
+ * glowing cracks or a weapon's ice cover a few of a bone's boxes, and the rest of the bone was drawn again for nothing.
  */
 public final class PartLayer<T extends GeoAnimatable> extends GeoRenderLayer<T>
 {
     private static final Logger LOGGER = LogUtils.getLogger();
-    /** Per baked model (a resource reload makes new ones), per texture: the names of the bones that show in it. */
-    private static final Map<BakedGeoModel, Map<ResourceLocation, Set<String>>> SHOWING =
+    /** Per baked model (a resource reload makes new ones), per texture: the boxes that show in it. */
+    private static final Map<BakedGeoModel, Map<ResourceLocation, Set<GeoCube>>> SHOWING =
             Collections.synchronizedMap(new IdentityHashMap<>());
 
     private final Function<T, ResourceLocation> texture;
@@ -78,29 +79,43 @@ public final class PartLayer<T extends GeoAnimatable> extends GeoRenderLayer<T>
             return;
         }
         BakedGeoModel model = this.getGeoModel().getBakedModel(this.getGeoModel().getModelResource(animatable));
-        if (!showing(model, tex).contains(bone.getName()))
+        Set<GeoCube> show = showing(model, tex);
+        VertexConsumer pass = null;
+        int light = this.fullBright ? LightTexture.FULL_BRIGHT : packedLight;
+        for (GeoCube cube : bone.getCubes())
         {
-            return;
+            if (!show.contains(cube))
+            {
+                continue;
+            }
+            if (pass == null)
+            {
+                pass = bufferSource.getBuffer(this.type.apply(tex));
+            }
+            // (what GeckoLib's renderCubesOfBone does, box by box)
+            poseStack.pushPose();
+            this.getRenderer().renderCube(poseStack, cube, pass, light, packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
+            poseStack.popPose();
         }
-        VertexConsumer pass = bufferSource.getBuffer(this.type.apply(tex));
-        this.getRenderer().renderCubesOfBone(poseStack, bone, pass, this.fullBright ? LightTexture.FULL_BRIGHT : packedLight,
-                packedOverlay, 1.0F, 1.0F, 1.0F, 1.0F);
-        bufferSource.getBuffer(renderType);     // (back to the main pass: it shares the buffer the model goes on drawing in)
+        if (pass != null)
+        {
+            bufferSource.getBuffer(renderType); // (back to the main pass: it shares the buffer the model goes on drawing in)
+        }
     }
 
-    /** The bones of {@code model} with a face over any pixel of {@code texture} that isn't see-through. */
-    static Set<String> showing(BakedGeoModel model, ResourceLocation texture)
+    /** The boxes of {@code model} with a face over any pixel of {@code texture} that isn't see-through. */
+    static Set<GeoCube> showing(BakedGeoModel model, ResourceLocation texture)
     {
-        Map<ResourceLocation, Set<String>> byTexture = SHOWING.computeIfAbsent(model, m -> new HashMap<>());
+        Map<ResourceLocation, Set<GeoCube>> byTexture = SHOWING.computeIfAbsent(model, m -> new HashMap<>());
         synchronized (byTexture)
         {
             return byTexture.computeIfAbsent(texture, t -> find(model, t));
         }
     }
 
-    private static Set<String> find(BakedGeoModel model, ResourceLocation texture)
+    private static Set<GeoCube> find(BakedGeoModel model, ResourceLocation texture)
     {
-        Set<String> out = new HashSet<>();
+        Set<GeoCube> out = Collections.newSetFromMap(new IdentityHashMap<>());
         NativeImage image = read(texture);
         if (image == null)
         {
@@ -116,11 +131,14 @@ public final class PartLayer<T extends GeoAnimatable> extends GeoRenderLayer<T>
         return out;
     }
 
-    private static void collect(GeoBone bone, NativeImage image, Set<String> out)
+    private static void collect(GeoBone bone, NativeImage image, Set<GeoCube> out)
     {
-        if (shows(bone, image))
+        for (GeoCube cube : bone.getCubes())
         {
-            out.add(bone.getName());
+            if (shows(cube, image))
+            {
+                out.add(cube);
+            }
         }
         for (GeoBone child : bone.getChildBones())
         {
@@ -128,11 +146,10 @@ public final class PartLayer<T extends GeoAnimatable> extends GeoRenderLayer<T>
         }
     }
 
-    private static boolean shows(GeoBone bone, NativeImage image)
+    private static boolean shows(GeoCube cube, NativeImage image)
     {
         int w = image.getWidth();
         int h = image.getHeight();
-        for (GeoCube cube : bone.getCubes())
         {
             for (GeoQuad quad : cube.quads())
             {

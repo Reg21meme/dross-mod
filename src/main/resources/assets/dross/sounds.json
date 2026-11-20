@@ -2356,5 +2356,953 @@
     "sounds": [
       {"name": "dross:alpha_moose/snore_2"}
     ]
+  },
+  "entity.knight_thawed_axe.ambient": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.ambient",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/ambient_1"},
+      {"name": "dross:knight/thawed_axe/ambient_2"}
+    ]
+  },
+  "entity.knight_thawed_axe.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.ambient",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/ambient_1"}
+    ]
+  },
+  "entity.knight_thawed_axe.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.ambient",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/ambient_2"}
+    ]
+  },
+  "entity.knight_thawed_axe.effort": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.effort",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/effort_1"},
+      {"name": "dross:knight/thawed_axe/effort_2"}
+    ]
+  },
+  "entity.knight_thawed_axe.effort.v1": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.effort",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/effort_1"}
+    ]
+  },
+  "entity.knight_thawed_axe.effort.v2": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.effort",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/effort_2"}
+    ]
+  },
+  "entity.knight_thawed_axe.hurt": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.hurt",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/hurt_1"},
+      {"name": "dross:knight/thawed_axe/hurt_2"}
+    ]
+  },
+  "entity.knight_thawed_axe.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.hurt",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/hurt_1"}
+    ]
+  },
+  "entity.knight_thawed_axe.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.hurt",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/hurt_2"}
+    ]
+  },
+  "entity.knight_thawed_axe.death": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.death",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/death"}
+    ]
+  },
+  "entity.knight_thawed_axe.step": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.step",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/step"}
+    ]
+  },
+  "entity.knight_thawed_axe.swing": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.swing",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/swing"}
+    ]
+  },
+  "entity.knight_thawed_axe.smash_windup": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.smash_windup",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/smash_windup"}
+    ]
+  },
+  "entity.knight_thawed_axe.smash": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.smash",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/smash"}
+    ]
+  },
+  "entity.knight_thawed_axe.spike": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.spike",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/spike"}
+    ]
+  },
+  "entity.knight_thawed_axe.big_spike": {
+    "subtitle": "subtitles.dross.knight_thawed_axe.big_spike",
+    "sounds": [
+      {"name": "dross:knight/thawed_axe/big_spike"}
+    ]
+  },
+  "entity.knight_thawed_spear.ambient": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.ambient",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/ambient_1"},
+      {"name": "dross:knight/thawed_spear/ambient_2"}
+    ]
+  },
+  "entity.knight_thawed_spear.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.ambient",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/ambient_1"}
+    ]
+  },
+  "entity.knight_thawed_spear.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.ambient",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/ambient_2"}
+    ]
+  },
+  "entity.knight_thawed_spear.effort": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.effort",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/effort_1"},
+      {"name": "dross:knight/thawed_spear/effort_2"}
+    ]
+  },
+  "entity.knight_thawed_spear.effort.v1": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.effort",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/effort_1"}
+    ]
+  },
+  "entity.knight_thawed_spear.effort.v2": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.effort",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/effort_2"}
+    ]
+  },
+  "entity.knight_thawed_spear.hurt": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.hurt",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/hurt_1"},
+      {"name": "dross:knight/thawed_spear/hurt_2"}
+    ]
+  },
+  "entity.knight_thawed_spear.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.hurt",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/hurt_1"}
+    ]
+  },
+  "entity.knight_thawed_spear.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.hurt",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/hurt_2"}
+    ]
+  },
+  "entity.knight_thawed_spear.death": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.death",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/death"}
+    ]
+  },
+  "entity.knight_thawed_spear.step": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.step",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/step"}
+    ]
+  },
+  "entity.knight_thawed_spear.thrust": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.thrust",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/thrust"}
+    ]
+  },
+  "entity.knight_thawed_spear.guard": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.guard",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/guard"}
+    ]
+  },
+  "entity.knight_thawed_spear.poke": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.poke",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/poke"}
+    ]
+  },
+  "entity.knight_thawed_spear.block": {
+    "subtitle": "subtitles.dross.knight_thawed_spear.block",
+    "sounds": [
+      {"name": "dross:knight/thawed_spear/block"}
+    ]
+  },
+  "entity.knight_blight_warden.ambient": {
+    "subtitle": "subtitles.dross.knight_blight_warden.ambient",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/ambient_1"},
+      {"name": "dross:knight/blight_warden/ambient_2"}
+    ]
+  },
+  "entity.knight_blight_warden.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_blight_warden.ambient",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/ambient_1"}
+    ]
+  },
+  "entity.knight_blight_warden.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_blight_warden.ambient",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/ambient_2"}
+    ]
+  },
+  "entity.knight_blight_warden.effort": {
+    "subtitle": "subtitles.dross.knight_blight_warden.effort",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/effort_1"},
+      {"name": "dross:knight/blight_warden/effort_2"}
+    ]
+  },
+  "entity.knight_blight_warden.effort.v1": {
+    "subtitle": "subtitles.dross.knight_blight_warden.effort",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/effort_1"}
+    ]
+  },
+  "entity.knight_blight_warden.effort.v2": {
+    "subtitle": "subtitles.dross.knight_blight_warden.effort",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/effort_2"}
+    ]
+  },
+  "entity.knight_blight_warden.hurt": {
+    "subtitle": "subtitles.dross.knight_blight_warden.hurt",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/hurt_1"},
+      {"name": "dross:knight/blight_warden/hurt_2"}
+    ]
+  },
+  "entity.knight_blight_warden.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_blight_warden.hurt",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/hurt_1"}
+    ]
+  },
+  "entity.knight_blight_warden.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_blight_warden.hurt",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/hurt_2"}
+    ]
+  },
+  "entity.knight_blight_warden.death": {
+    "subtitle": "subtitles.dross.knight_blight_warden.death",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/death"}
+    ]
+  },
+  "entity.knight_blight_warden.step": {
+    "subtitle": "subtitles.dross.knight_blight_warden.step",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/step"}
+    ]
+  },
+  "entity.knight_blight_warden.cast": {
+    "subtitle": "subtitles.dross.knight_blight_warden.cast",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/cast"}
+    ]
+  },
+  "entity.knight_blight_warden.rain_call": {
+    "subtitle": "subtitles.dross.knight_blight_warden.rain_call",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/rain_call"}
+    ]
+  },
+  "entity.knight_blight_warden.rain": {
+    "subtitle": "subtitles.dross.knight_blight_warden.rain",
+    "sounds": [
+      {"name": "dross:knight/blight_warden/rain"}
+    ]
+  },
+  "entity.knight_sporebound.ambient": {
+    "subtitle": "subtitles.dross.knight_sporebound.ambient",
+    "sounds": [
+      {"name": "dross:knight/sporebound/ambient_1"},
+      {"name": "dross:knight/sporebound/ambient_2"}
+    ]
+  },
+  "entity.knight_sporebound.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_sporebound.ambient",
+    "sounds": [
+      {"name": "dross:knight/sporebound/ambient_1"}
+    ]
+  },
+  "entity.knight_sporebound.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_sporebound.ambient",
+    "sounds": [
+      {"name": "dross:knight/sporebound/ambient_2"}
+    ]
+  },
+  "entity.knight_sporebound.effort": {
+    "subtitle": "subtitles.dross.knight_sporebound.effort",
+    "sounds": [
+      {"name": "dross:knight/sporebound/effort_1"},
+      {"name": "dross:knight/sporebound/effort_2"}
+    ]
+  },
+  "entity.knight_sporebound.effort.v1": {
+    "subtitle": "subtitles.dross.knight_sporebound.effort",
+    "sounds": [
+      {"name": "dross:knight/sporebound/effort_1"}
+    ]
+  },
+  "entity.knight_sporebound.effort.v2": {
+    "subtitle": "subtitles.dross.knight_sporebound.effort",
+    "sounds": [
+      {"name": "dross:knight/sporebound/effort_2"}
+    ]
+  },
+  "entity.knight_sporebound.hurt": {
+    "subtitle": "subtitles.dross.knight_sporebound.hurt",
+    "sounds": [
+      {"name": "dross:knight/sporebound/hurt_1"},
+      {"name": "dross:knight/sporebound/hurt_2"}
+    ]
+  },
+  "entity.knight_sporebound.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_sporebound.hurt",
+    "sounds": [
+      {"name": "dross:knight/sporebound/hurt_1"}
+    ]
+  },
+  "entity.knight_sporebound.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_sporebound.hurt",
+    "sounds": [
+      {"name": "dross:knight/sporebound/hurt_2"}
+    ]
+  },
+  "entity.knight_sporebound.death": {
+    "subtitle": "subtitles.dross.knight_sporebound.death",
+    "sounds": [
+      {"name": "dross:knight/sporebound/death"}
+    ]
+  },
+  "entity.knight_sporebound.step": {
+    "subtitle": "subtitles.dross.knight_sporebound.step",
+    "sounds": [
+      {"name": "dross:knight/sporebound/step"}
+    ]
+  },
+  "entity.knight_sporebound.reap": {
+    "subtitle": "subtitles.dross.knight_sporebound.reap",
+    "sounds": [
+      {"name": "dross:knight/sporebound/reap"}
+    ]
+  },
+  "entity.knight_sporebound.spore_windup": {
+    "subtitle": "subtitles.dross.knight_sporebound.spore_windup",
+    "sounds": [
+      {"name": "dross:knight/sporebound/spore_windup"}
+    ]
+  },
+  "entity.knight_sporebound.spore_burst": {
+    "subtitle": "subtitles.dross.knight_sporebound.spore_burst",
+    "sounds": [
+      {"name": "dross:knight/sporebound/spore_burst"}
+    ]
+  },
+  "entity.knight_cinder.ambient": {
+    "subtitle": "subtitles.dross.knight_cinder.ambient",
+    "sounds": [
+      {"name": "dross:knight/cinder/ambient_1"},
+      {"name": "dross:knight/cinder/ambient_2"}
+    ]
+  },
+  "entity.knight_cinder.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_cinder.ambient",
+    "sounds": [
+      {"name": "dross:knight/cinder/ambient_1"}
+    ]
+  },
+  "entity.knight_cinder.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_cinder.ambient",
+    "sounds": [
+      {"name": "dross:knight/cinder/ambient_2"}
+    ]
+  },
+  "entity.knight_cinder.effort": {
+    "subtitle": "subtitles.dross.knight_cinder.effort",
+    "sounds": [
+      {"name": "dross:knight/cinder/effort_1"},
+      {"name": "dross:knight/cinder/effort_2"}
+    ]
+  },
+  "entity.knight_cinder.effort.v1": {
+    "subtitle": "subtitles.dross.knight_cinder.effort",
+    "sounds": [
+      {"name": "dross:knight/cinder/effort_1"}
+    ]
+  },
+  "entity.knight_cinder.effort.v2": {
+    "subtitle": "subtitles.dross.knight_cinder.effort",
+    "sounds": [
+      {"name": "dross:knight/cinder/effort_2"}
+    ]
+  },
+  "entity.knight_cinder.hurt": {
+    "subtitle": "subtitles.dross.knight_cinder.hurt",
+    "sounds": [
+      {"name": "dross:knight/cinder/hurt_1"},
+      {"name": "dross:knight/cinder/hurt_2"}
+    ]
+  },
+  "entity.knight_cinder.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_cinder.hurt",
+    "sounds": [
+      {"name": "dross:knight/cinder/hurt_1"}
+    ]
+  },
+  "entity.knight_cinder.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_cinder.hurt",
+    "sounds": [
+      {"name": "dross:knight/cinder/hurt_2"}
+    ]
+  },
+  "entity.knight_cinder.death": {
+    "subtitle": "subtitles.dross.knight_cinder.death",
+    "sounds": [
+      {"name": "dross:knight/cinder/death"}
+    ]
+  },
+  "entity.knight_cinder.step": {
+    "subtitle": "subtitles.dross.knight_cinder.step",
+    "sounds": [
+      {"name": "dross:knight/cinder/step"}
+    ]
+  },
+  "entity.knight_cinder.swing": {
+    "subtitle": "subtitles.dross.knight_cinder.swing",
+    "sounds": [
+      {"name": "dross:knight/cinder/swing"}
+    ]
+  },
+  "entity.knight_cinder.slam_windup": {
+    "subtitle": "subtitles.dross.knight_cinder.slam_windup",
+    "sounds": [
+      {"name": "dross:knight/cinder/slam_windup"}
+    ]
+  },
+  "entity.knight_cinder.slam": {
+    "subtitle": "subtitles.dross.knight_cinder.slam",
+    "sounds": [
+      {"name": "dross:knight/cinder/slam"}
+    ]
+  },
+  "entity.knight_flamehand.ambient": {
+    "subtitle": "subtitles.dross.knight_flamehand.ambient",
+    "sounds": [
+      {"name": "dross:knight/flamehand/ambient_1"},
+      {"name": "dross:knight/flamehand/ambient_2"}
+    ]
+  },
+  "entity.knight_flamehand.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_flamehand.ambient",
+    "sounds": [
+      {"name": "dross:knight/flamehand/ambient_1"}
+    ]
+  },
+  "entity.knight_flamehand.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_flamehand.ambient",
+    "sounds": [
+      {"name": "dross:knight/flamehand/ambient_2"}
+    ]
+  },
+  "entity.knight_flamehand.effort": {
+    "subtitle": "subtitles.dross.knight_flamehand.effort",
+    "sounds": [
+      {"name": "dross:knight/flamehand/effort_1"},
+      {"name": "dross:knight/flamehand/effort_2"}
+    ]
+  },
+  "entity.knight_flamehand.effort.v1": {
+    "subtitle": "subtitles.dross.knight_flamehand.effort",
+    "sounds": [
+      {"name": "dross:knight/flamehand/effort_1"}
+    ]
+  },
+  "entity.knight_flamehand.effort.v2": {
+    "subtitle": "subtitles.dross.knight_flamehand.effort",
+    "sounds": [
+      {"name": "dross:knight/flamehand/effort_2"}
+    ]
+  },
+  "entity.knight_flamehand.hurt": {
+    "subtitle": "subtitles.dross.knight_flamehand.hurt",
+    "sounds": [
+      {"name": "dross:knight/flamehand/hurt_1"},
+      {"name": "dross:knight/flamehand/hurt_2"}
+    ]
+  },
+  "entity.knight_flamehand.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_flamehand.hurt",
+    "sounds": [
+      {"name": "dross:knight/flamehand/hurt_1"}
+    ]
+  },
+  "entity.knight_flamehand.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_flamehand.hurt",
+    "sounds": [
+      {"name": "dross:knight/flamehand/hurt_2"}
+    ]
+  },
+  "entity.knight_flamehand.death": {
+    "subtitle": "subtitles.dross.knight_flamehand.death",
+    "sounds": [
+      {"name": "dross:knight/flamehand/death"}
+    ]
+  },
+  "entity.knight_flamehand.step": {
+    "subtitle": "subtitles.dross.knight_flamehand.step",
+    "sounds": [
+      {"name": "dross:knight/flamehand/step"}
+    ]
+  },
+  "entity.knight_flamehand.fireball": {
+    "subtitle": "subtitles.dross.knight_flamehand.fireball",
+    "sounds": [
+      {"name": "dross:knight/flamehand/fireball"}
+    ]
+  },
+  "entity.knight_flamehand.charge": {
+    "subtitle": "subtitles.dross.knight_flamehand.charge",
+    "sounds": [
+      {"name": "dross:knight/flamehand/charge"}
+    ]
+  },
+  "entity.knight_flamehand.great_fireball": {
+    "subtitle": "subtitles.dross.knight_flamehand.great_fireball",
+    "sounds": [
+      {"name": "dross:knight/flamehand/great_fireball"}
+    ]
+  },
+  "entity.knight_flamehand.blast": {
+    "subtitle": "subtitles.dross.knight_flamehand.blast",
+    "sounds": [
+      {"name": "dross:knight/flamehand/blast"}
+    ]
+  },
+  "entity.knight_flamehand.fizzle": {
+    "subtitle": "subtitles.dross.knight_flamehand.fizzle",
+    "sounds": [
+      {"name": "dross:knight/flamehand/fizzle"}
+    ]
+  },
+  "entity.knight_wreck.ambient": {
+    "subtitle": "subtitles.dross.knight_wreck.ambient",
+    "sounds": [
+      {"name": "dross:knight/wreck/ambient_1"},
+      {"name": "dross:knight/wreck/ambient_2"}
+    ]
+  },
+  "entity.knight_wreck.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_wreck.ambient",
+    "sounds": [
+      {"name": "dross:knight/wreck/ambient_1"}
+    ]
+  },
+  "entity.knight_wreck.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_wreck.ambient",
+    "sounds": [
+      {"name": "dross:knight/wreck/ambient_2"}
+    ]
+  },
+  "entity.knight_wreck.effort": {
+    "subtitle": "subtitles.dross.knight_wreck.effort",
+    "sounds": [
+      {"name": "dross:knight/wreck/effort_1"},
+      {"name": "dross:knight/wreck/effort_2"}
+    ]
+  },
+  "entity.knight_wreck.effort.v1": {
+    "subtitle": "subtitles.dross.knight_wreck.effort",
+    "sounds": [
+      {"name": "dross:knight/wreck/effort_1"}
+    ]
+  },
+  "entity.knight_wreck.effort.v2": {
+    "subtitle": "subtitles.dross.knight_wreck.effort",
+    "sounds": [
+      {"name": "dross:knight/wreck/effort_2"}
+    ]
+  },
+  "entity.knight_wreck.hurt": {
+    "subtitle": "subtitles.dross.knight_wreck.hurt",
+    "sounds": [
+      {"name": "dross:knight/wreck/hurt_1"},
+      {"name": "dross:knight/wreck/hurt_2"}
+    ]
+  },
+  "entity.knight_wreck.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_wreck.hurt",
+    "sounds": [
+      {"name": "dross:knight/wreck/hurt_1"}
+    ]
+  },
+  "entity.knight_wreck.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_wreck.hurt",
+    "sounds": [
+      {"name": "dross:knight/wreck/hurt_2"}
+    ]
+  },
+  "entity.knight_wreck.death": {
+    "subtitle": "subtitles.dross.knight_wreck.death",
+    "sounds": [
+      {"name": "dross:knight/wreck/death"}
+    ]
+  },
+  "entity.knight_wreck.step": {
+    "subtitle": "subtitles.dross.knight_wreck.step",
+    "sounds": [
+      {"name": "dross:knight/wreck/step"}
+    ]
+  },
+  "entity.knight_wreck.throw_windup": {
+    "subtitle": "subtitles.dross.knight_wreck.throw_windup",
+    "sounds": [
+      {"name": "dross:knight/wreck/throw_windup"}
+    ]
+  },
+  "entity.knight_wreck.anchor_throw": {
+    "subtitle": "subtitles.dross.knight_wreck.anchor_throw",
+    "sounds": [
+      {"name": "dross:knight/wreck/anchor_throw"}
+    ]
+  },
+  "entity.knight_wreck.anchor_hook": {
+    "subtitle": "subtitles.dross.knight_wreck.anchor_hook",
+    "sounds": [
+      {"name": "dross:knight/wreck/anchor_hook"}
+    ]
+  },
+  "entity.knight_wreck.anchor_haul": {
+    "subtitle": "subtitles.dross.knight_wreck.anchor_haul",
+    "sounds": [
+      {"name": "dross:knight/wreck/anchor_haul"}
+    ]
+  },
+  "entity.knight_wreck.anchor_clang": {
+    "subtitle": "subtitles.dross.knight_wreck.anchor_clang",
+    "sounds": [
+      {"name": "dross:knight/wreck/anchor_clang"}
+    ]
+  },
+  "entity.knight_wreck.anchor_catch": {
+    "subtitle": "subtitles.dross.knight_wreck.anchor_catch",
+    "sounds": [
+      {"name": "dross:knight/wreck/anchor_catch"}
+    ]
+  },
+  "entity.knight_wreck.slam_windup": {
+    "subtitle": "subtitles.dross.knight_wreck.slam_windup",
+    "sounds": [
+      {"name": "dross:knight/wreck/slam_windup"}
+    ]
+  },
+  "entity.knight_wreck.anchor_slam": {
+    "subtitle": "subtitles.dross.knight_wreck.anchor_slam",
+    "sounds": [
+      {"name": "dross:knight/wreck/anchor_slam"}
+    ]
+  },
+  "entity.knight_stormblade.ambient": {
+    "subtitle": "subtitles.dross.knight_stormblade.ambient",
+    "sounds": [
+      {"name": "dross:knight/stormblade/ambient_1"},
+      {"name": "dross:knight/stormblade/ambient_2"}
+    ]
+  },
+  "entity.knight_stormblade.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_stormblade.ambient",
+    "sounds": [
+      {"name": "dross:knight/stormblade/ambient_1"}
+    ]
+  },
+  "entity.knight_stormblade.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_stormblade.ambient",
+    "sounds": [
+      {"name": "dross:knight/stormblade/ambient_2"}
+    ]
+  },
+  "entity.knight_stormblade.effort": {
+    "subtitle": "subtitles.dross.knight_stormblade.effort",
+    "sounds": [
+      {"name": "dross:knight/stormblade/effort_1"},
+      {"name": "dross:knight/stormblade/effort_2"}
+    ]
+  },
+  "entity.knight_stormblade.effort.v1": {
+    "subtitle": "subtitles.dross.knight_stormblade.effort",
+    "sounds": [
+      {"name": "dross:knight/stormblade/effort_1"}
+    ]
+  },
+  "entity.knight_stormblade.effort.v2": {
+    "subtitle": "subtitles.dross.knight_stormblade.effort",
+    "sounds": [
+      {"name": "dross:knight/stormblade/effort_2"}
+    ]
+  },
+  "entity.knight_stormblade.hurt": {
+    "subtitle": "subtitles.dross.knight_stormblade.hurt",
+    "sounds": [
+      {"name": "dross:knight/stormblade/hurt_1"},
+      {"name": "dross:knight/stormblade/hurt_2"}
+    ]
+  },
+  "entity.knight_stormblade.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_stormblade.hurt",
+    "sounds": [
+      {"name": "dross:knight/stormblade/hurt_1"}
+    ]
+  },
+  "entity.knight_stormblade.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_stormblade.hurt",
+    "sounds": [
+      {"name": "dross:knight/stormblade/hurt_2"}
+    ]
+  },
+  "entity.knight_stormblade.death": {
+    "subtitle": "subtitles.dross.knight_stormblade.death",
+    "sounds": [
+      {"name": "dross:knight/stormblade/death"}
+    ]
+  },
+  "entity.knight_stormblade.step": {
+    "subtitle": "subtitles.dross.knight_stormblade.step",
+    "sounds": [
+      {"name": "dross:knight/stormblade/step"}
+    ]
+  },
+  "entity.knight_stormblade.slash": {
+    "subtitle": "subtitles.dross.knight_stormblade.slash",
+    "sounds": [
+      {"name": "dross:knight/stormblade/slash"}
+    ]
+  },
+  "entity.knight_stormblade.dash": {
+    "subtitle": "subtitles.dross.knight_stormblade.dash",
+    "sounds": [
+      {"name": "dross:knight/stormblade/dash"}
+    ]
+  },
+  "entity.knight_stormblade.dash_crackle": {
+    "subtitle": "subtitles.dross.knight_stormblade.dash_crackle",
+    "sounds": [
+      {"name": "dross:knight/stormblade/dash_crackle"}
+    ]
+  },
+  "entity.knight_stormblade.trail": {
+    "subtitle": "subtitles.dross.knight_stormblade.trail",
+    "sounds": [
+      {"name": "dross:knight/stormblade/trail"}
+    ]
+  },
+  "entity.knight_geode.ambient": {
+    "subtitle": "subtitles.dross.knight_geode.ambient",
+    "sounds": [
+      {"name": "dross:knight/geode/ambient_1"},
+      {"name": "dross:knight/geode/ambient_2"}
+    ]
+  },
+  "entity.knight_geode.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_geode.ambient",
+    "sounds": [
+      {"name": "dross:knight/geode/ambient_1"}
+    ]
+  },
+  "entity.knight_geode.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_geode.ambient",
+    "sounds": [
+      {"name": "dross:knight/geode/ambient_2"}
+    ]
+  },
+  "entity.knight_geode.effort": {
+    "subtitle": "subtitles.dross.knight_geode.effort",
+    "sounds": [
+      {"name": "dross:knight/geode/effort_1"},
+      {"name": "dross:knight/geode/effort_2"}
+    ]
+  },
+  "entity.knight_geode.effort.v1": {
+    "subtitle": "subtitles.dross.knight_geode.effort",
+    "sounds": [
+      {"name": "dross:knight/geode/effort_1"}
+    ]
+  },
+  "entity.knight_geode.effort.v2": {
+    "subtitle": "subtitles.dross.knight_geode.effort",
+    "sounds": [
+      {"name": "dross:knight/geode/effort_2"}
+    ]
+  },
+  "entity.knight_geode.hurt": {
+    "subtitle": "subtitles.dross.knight_geode.hurt",
+    "sounds": [
+      {"name": "dross:knight/geode/hurt_1"},
+      {"name": "dross:knight/geode/hurt_2"}
+    ]
+  },
+  "entity.knight_geode.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_geode.hurt",
+    "sounds": [
+      {"name": "dross:knight/geode/hurt_1"}
+    ]
+  },
+  "entity.knight_geode.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_geode.hurt",
+    "sounds": [
+      {"name": "dross:knight/geode/hurt_2"}
+    ]
+  },
+  "entity.knight_geode.death": {
+    "subtitle": "subtitles.dross.knight_geode.death",
+    "sounds": [
+      {"name": "dross:knight/geode/death"}
+    ]
+  },
+  "entity.knight_geode.step": {
+    "subtitle": "subtitles.dross.knight_geode.step",
+    "sounds": [
+      {"name": "dross:knight/geode/step"}
+    ]
+  },
+  "entity.knight_geode.pick": {
+    "subtitle": "subtitles.dross.knight_geode.pick",
+    "sounds": [
+      {"name": "dross:knight/geode/pick"}
+    ]
+  },
+  "entity.knight_geode.burst_windup": {
+    "subtitle": "subtitles.dross.knight_geode.burst_windup",
+    "sounds": [
+      {"name": "dross:knight/geode/burst_windup"}
+    ]
+  },
+  "entity.knight_geode.crystal_burst": {
+    "subtitle": "subtitles.dross.knight_geode.crystal_burst",
+    "sounds": [
+      {"name": "dross:knight/geode/crystal_burst"}
+    ]
+  },
+  "entity.knight_geode.crystals": {
+    "subtitle": "subtitles.dross.knight_geode.crystals",
+    "sounds": [
+      {"name": "dross:knight/geode/crystals"}
+    ]
+  },
+  "entity.knight_rockfall.ambient": {
+    "subtitle": "subtitles.dross.knight_rockfall.ambient",
+    "sounds": [
+      {"name": "dross:knight/rockfall/ambient_1"},
+      {"name": "dross:knight/rockfall/ambient_2"}
+    ]
+  },
+  "entity.knight_rockfall.ambient.v1": {
+    "subtitle": "subtitles.dross.knight_rockfall.ambient",
+    "sounds": [
+      {"name": "dross:knight/rockfall/ambient_1"}
+    ]
+  },
+  "entity.knight_rockfall.ambient.v2": {
+    "subtitle": "subtitles.dross.knight_rockfall.ambient",
+    "sounds": [
+      {"name": "dross:knight/rockfall/ambient_2"}
+    ]
+  },
+  "entity.knight_rockfall.effort": {
+    "subtitle": "subtitles.dross.knight_rockfall.effort",
+    "sounds": [
+      {"name": "dross:knight/rockfall/effort_1"},
+      {"name": "dross:knight/rockfall/effort_2"}
+    ]
+  },
+  "entity.knight_rockfall.effort.v1": {
+    "subtitle": "subtitles.dross.knight_rockfall.effort",
+    "sounds": [
+      {"name": "dross:knight/rockfall/effort_1"}
+    ]
+  },
+  "entity.knight_rockfall.effort.v2": {
+    "subtitle": "subtitles.dross.knight_rockfall.effort",
+    "sounds": [
+      {"name": "dross:knight/rockfall/effort_2"}
+    ]
+  },
+  "entity.knight_rockfall.hurt": {
+    "subtitle": "subtitles.dross.knight_rockfall.hurt",
+    "sounds": [
+      {"name": "dross:knight/rockfall/hurt_1"},
+      {"name": "dross:knight/rockfall/hurt_2"}
+    ]
+  },
+  "entity.knight_rockfall.hurt.v1": {
+    "subtitle": "subtitles.dross.knight_rockfall.hurt",
+    "sounds": [
+      {"name": "dross:knight/rockfall/hurt_1"}
+    ]
+  },
+  "entity.knight_rockfall.hurt.v2": {
+    "subtitle": "subtitles.dross.knight_rockfall.hurt",
+    "sounds": [
+      {"name": "dross:knight/rockfall/hurt_2"}
+    ]
+  },
+  "entity.knight_rockfall.death": {
+    "subtitle": "subtitles.dross.knight_rockfall.death",
+    "sounds": [
+      {"name": "dross:knight/rockfall/death"}
+    ]
+  },
+  "entity.knight_rockfall.step": {
+    "subtitle": "subtitles.dross.knight_rockfall.step",
+    "sounds": [
+      {"name": "dross:knight/rockfall/step"}
+    ]
+  },
+  "entity.knight_rockfall.heave": {
+    "subtitle": "subtitles.dross.knight_rockfall.heave",
+    "sounds": [
+      {"name": "dross:knight/rockfall/heave"}
+    ]
+  },
+  "entity.knight_rockfall.throw": {
+    "subtitle": "subtitles.dross.knight_rockfall.throw",
+    "sounds": [
+      {"name": "dross:knight/rockfall/throw"}
+    ]
+  },
+  "entity.knight_rockfall.rockfall_windup": {
+    "subtitle": "subtitles.dross.knight_rockfall.rockfall_windup",
+    "sounds": [
+      {"name": "dross:knight/rockfall/rockfall_windup"}
+    ]
+  },
+  "entity.knight_rockfall.rockfall": {
+    "subtitle": "subtitles.dross.knight_rockfall.rockfall",
+    "sounds": [
+      {"name": "dross:knight/rockfall/rockfall"}
+    ]
   }
 }

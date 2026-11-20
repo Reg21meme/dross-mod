@@ -228,6 +228,12 @@ tasks.named('jar', Jar).configure {
     // them; in the jar their galleries aren't offered (boss/ShowcaseOnly). About 12 MB.
     exclude 'assets/dross/geo/entity/rimefall/**', 'assets/dross/textures/entity/rimefall/**'
     exclude 'assets/dross/animations/entity/rimefall/**'
+    // The Blightwood candidates (November 7, 2026: fifteen boss and five mob designs, looks only).
+    exclude 'assets/dross/geo/entity/blight/**', 'assets/dross/textures/entity/blight/**'
+    exclude 'assets/dross/animations/entity/blight/**'
+    // The elemental knights (November 7, 2026: three poison, four fire, four thunder and four earth designs, looks only).
+    exclude 'assets/dross/geo/entity/knight/**', 'assets/dross/textures/entity/knight/**'
+    exclude 'assets/dross/animations/entity/knight/**'
     exclude 'assets/dross/geo/entity/fire/widow*', 'assets/dross/textures/entity/fire/widow*'
     exclude 'assets/dross/geo/entity/fire/toad*', 'assets/dross/textures/entity/fire/toad*'
     exclude 'assets/dross/geo/entity/fire/scarab*', 'assets/dross/textures/entity/fire/scarab*'
