@@ -8,6 +8,9 @@ import com.reg21meme.dross.boss.huntsman.village.HunterDecorFilter;
 import com.reg21meme.dross.boss.huntsman.village.HunterTerrace;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillagePiece;
 import com.reg21meme.dross.boss.huntsman.village.HunterVillageStructure;
+import com.reg21meme.dross.boss.knight.ruin.KnightRuinPiece;
+import com.reg21meme.dross.boss.knight.ruin.KnightRuinPlacement;
+import com.reg21meme.dross.boss.knight.ruin.KnightRuinStructure;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakePiece;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakeStructure;
 import com.reg21meme.dross.dimension.sewer.RatCavePiece;
@@ -132,6 +135,16 @@ public final class ModStructures
     // trader's chapel stands at the edge of a village the seed picks)
     public static final RegistryObject<StructurePieceType> RIFT_CHAPEL_PATH_PIECE = STRUCTURE_PIECES.register("rift_chapel_path",
             () -> (StructurePieceType.ContextlessType) RiftChapelPathPiece::new);
+
+    // Boss area: dross:knight_ruin, the elemental knights' ruins in the Overworld (boss/knight/ruin/), a broken Dross portal
+    // with two knights of its element on guard, each in its element's biomes, where the seed plans them: the structure, its
+    // one piece, and its placement (only in each ruin's own chunk)
+    public static final RegistryObject<StructureType<KnightRuinStructure>> KNIGHT_RUIN = STRUCTURE_TYPES.register("knight_ruin",
+            () -> () -> KnightRuinStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> KNIGHT_RUIN_PIECE = STRUCTURE_PIECES.register("knight_ruin",
+            () -> (StructurePieceType.ContextlessType) KnightRuinPiece::new);
+    public static final RegistryObject<StructurePlacementType<KnightRuinPlacement>> KNIGHT_RUIN_PLACEMENT = STRUCTURE_PLACEMENTS.register("knight_ruin",
+            () -> () -> KnightRuinPlacement.CODEC);
 
     private ModStructures() {}
 }

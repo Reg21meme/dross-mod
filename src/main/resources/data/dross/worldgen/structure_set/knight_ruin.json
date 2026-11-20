@@ -1,0 +1,12 @@
+{
+  "structures": [
+    {
+      "structure": "dross:knight_ruin",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:knight_ruin",
+    "salt": 1119202601
+  }
+}

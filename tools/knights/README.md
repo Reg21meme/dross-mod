@@ -121,6 +121,20 @@ To add a layout: write a new `@layout` function in its area's module, add it to 
 `python tools/knights/ruins.py --only <element>/<area>`, look at its picture, then run it without `--only` for the Java
 table. A new area: its module, its name in `ruindesigns/__init__.py`.
 
+### Where they go in the world: ruin_map.py
+
+The game places the ruins itself, from the seed (`boss/knight/ruin/KnightRuinSites`; CLAUDE.md step 18, "The ruins in
+the Overworld"); each area's biomes are the tag `data/dross/tags/worldgen/biome/knight_ruin/<area>.json`. To see where
+they go, run the probe (it plans 8 seeds and writes the biome map round each spawn with its ruins):
+
+    .\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_ruin_probe -PgameTestWorld=<a new folder> --console=plain
+    python tools/knights/ruin_map.py
+
+`ruin_map.py` reads `run/probe/knight_ruins/` and writes `boss-previews/knights/ruins/placement/seed_<n>.png`: each
+16-block cell coloured by its biome area (the sea dark blue, beaches sand, rivers blue, land no ruin goes on grey), the
+spawn (red), the near-spawn ring (white), the circle the probe worked the ruins out in (red), the 800-block regions, and
+each ruin as a dot in its element's colour, labelled with its area (a white ring round the near-spawn ones).
+
 ## Their sounds: sounds.py
 
 `python tools/knights/sounds.py` makes every sound of the ten knights from scratch (the Rat King's synthesizer,

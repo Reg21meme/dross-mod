@@ -14,6 +14,7 @@ import com.reg21meme.dross.Dross;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.registries.RegistryObject;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.NbtUtils;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.core.particles.ParticleOptions;
@@ -114,6 +115,9 @@ public class ElementalKnight extends Monster implements GeoEntity
     private static final EntityDataAccessor<Boolean> DATA_SHOWCASE = SynchedEntityData.defineId(ElementalKnight.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Boolean> DATA_ANCHOR_OUT = SynchedEntityData.defineId(ElementalKnight.class, EntityDataSerializers.BOOLEAN);
     private static final String TAG_SHOWCASE = "Showcase";
+    private static final String TAG_RUIN = "Ruin";
+    private static final String TAG_RUIN_HOME = "RuinHome";
+    private static final String TAG_RUIN_SLOT = "RuinSlot";
     /** (client) Its walk shows once it moves faster than {@link RimefallAnims#MOVING} (blocks a second), and goes back to
      *  its idle only once it's been slower than this for {@link #WALK_HOLD_TICKS} ticks: one speed for both flickered it
      *  between the two (restarting each) as it slowed down or was nudged (the user, November 18, 2026: "jittery"). */
@@ -234,6 +238,64 @@ public class ElementalKnight extends Monster implements GeoEntity
     public boolean isShowcase()
     {
         return this.entityData.get(DATA_SHOWCASE);
+    }
+
+    // ---------------------------------------------------------------- a ruin's guard (boss/knight/ruin/KnightRuinKeeper)
+
+    /** The ruin it guards (its id), its spot there and which of its two knights it is; null if it guards none. */
+    @Nullable
+    private String ruin;
+    @Nullable
+    private BlockPos ruinHome;
+    private int ruinSlot;
+
+    /** Makes it the guard of a ruin: it keeps near its spot there (walking back when it has nothing to fight) and gives
+     * up a foe {@link com.reg21meme.dross.boss.knight.ruin.KnightRuinTuning#LEASH} blocks from it. */
+    public void guard(String ruin, BlockPos home, int slot)
+    {
+        this.ruin = ruin;
+        this.ruinHome = home.immutable();
+        this.ruinSlot = slot;
+        this.restrictTo(this.ruinHome, (int) com.reg21meme.dross.boss.knight.ruin.KnightRuinTuning.LEASH);
+        this.setPersistenceRequired();
+    }
+
+    @Nullable
+    public String ruin()
+    {
+        return this.ruin;
+    }
+
+    @Nullable
+    public BlockPos ruinHome()
+    {
+        return this.ruinHome;
+    }
+
+    public int ruinSlot()
+    {
+        return this.ruinSlot;
+    }
+
+    /** Every half second: a foe too far from its ruin is let go, and with none it walks back to its spot. */
+    private void keepToRuin()
+    {
+        if (this.ruinHome == null || this.tickCount % 10 != 0)
+        {
+            return;
+        }
+        double leash = com.reg21meme.dross.boss.knight.ruin.KnightRuinTuning.LEASH;
+        LivingEntity target = this.getTarget();
+        if (target != null && target.distanceToSqr(Vec3.atBottomCenterOf(this.ruinHome)) > leash * leash)
+        {
+            this.setTarget(null);
+            target = null;
+        }
+        double back = com.reg21meme.dross.boss.knight.ruin.KnightRuinTuning.HOME_RETURN;
+        if (target == null && !this.isActing() && this.distanceToSqr(Vec3.atBottomCenterOf(this.ruinHome)) > back * back)
+        {
+            this.getNavigation().moveTo(this.ruinHome.getX() + 0.5D, this.ruinHome.getY(), this.ruinHome.getZ() + 0.5D, 1.0D);
+        }
     }
 
     /** On show: plays one of its animations by name (idle, walk, or a move's), nothing happening. False if it hasn't it. */
@@ -1377,6 +1439,7 @@ public class ElementalKnight extends Monster implements GeoEntity
             return;
         }
         this.watchTarget();
+        this.keepToRuin();
         this.tickMove();
         if (!this.later.isEmpty() && this.isAlive())
         {
@@ -1577,6 +1640,12 @@ public class ElementalKnight extends Monster implements GeoEntity
     {
         super.addAdditionalSaveData(tag);
         tag.putBoolean(TAG_SHOWCASE, this.isShowcase());
+        if (this.ruin != null && this.ruinHome != null)
+        {
+            tag.putString(TAG_RUIN, this.ruin);
+            tag.put(TAG_RUIN_HOME, NbtUtils.writeBlockPos(this.ruinHome));
+            tag.putInt(TAG_RUIN_SLOT, this.ruinSlot);
+        }
     }
 
     @Override
@@ -1586,6 +1655,10 @@ public class ElementalKnight extends Monster implements GeoEntity
         if (tag.getBoolean(TAG_SHOWCASE))
         {
             this.setShowcase(true);
+        }
+        if (tag.contains(TAG_RUIN))
+        {
+            this.guard(tag.getString(TAG_RUIN), NbtUtils.readBlockPos(tag.getCompound(TAG_RUIN_HOME)), tag.getInt(TAG_RUIN_SLOT));
         }
     }
 

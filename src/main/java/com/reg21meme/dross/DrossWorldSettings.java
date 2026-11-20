@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 
 /**
  * The settings from {@link DrossConfig} that decide where a world's things go (the portal site's distances, the
- * trader's village), saved in the world the first time it loads (data/dross_world_settings.dat in the Overworld's save
+ * trader's village, the knight ruins' spacing), saved in the world the first time it loads (data/dross_world_settings.dat in the Overworld's save
  * folder) and read from there ever after, so a world keeps them whatever the file says later. Taken on the server thread
  * when the Overworld loads ({@link #of} from the portal site's and the trader's level-load events, before anything is
  * generated); any other thread gets the server's saved copy.
@@ -26,24 +26,30 @@ public final class DrossWorldSettings extends SavedData
     private static final Map<MinecraftServer, Values> IN_USE = new WeakHashMap<>();
 
     /** The values a world uses. */
-    public record Values(int siteMinDistance, int siteMaxDistance, boolean traderAtVillages, int traderSearchRadius)
+    public record Values(int siteMinDistance, int siteMaxDistance, boolean traderAtVillages, int traderSearchRadius,
+                         int ruinSpacing, int ruinsNearSpawn, int ruinsNearSpawnRadius, int ruinsNearSpawnMin)
     {
         static Values fromConfig()
         {
             return new Values(DrossConfig.siteMinDistance(), DrossConfig.siteMaxDistance(), DrossConfig.traderAtVillages(),
-                    DrossConfig.traderSearchRadius());
+                    DrossConfig.traderSearchRadius(), DrossConfig.ruinSpacing(), DrossConfig.ruinsNearSpawn(),
+                    DrossConfig.ruinsNearSpawnRadius(), DrossConfig.ruinsNearSpawnMin());
         }
 
         static Values defaults()
         {
             return new Values(DrossConfig.DEFAULT_SITE_MIN_DISTANCE, DrossConfig.DEFAULT_SITE_MAX_DISTANCE,
-                    DrossConfig.DEFAULT_TRADER_AT_VILLAGES, DrossConfig.DEFAULT_TRADER_SEARCH_RADIUS);
+                    DrossConfig.DEFAULT_TRADER_AT_VILLAGES, DrossConfig.DEFAULT_TRADER_SEARCH_RADIUS,
+                    DrossConfig.DEFAULT_RUIN_SPACING, DrossConfig.DEFAULT_RUINS_NEAR_SPAWN,
+                    DrossConfig.DEFAULT_RUINS_NEAR_SPAWN_RADIUS, DrossConfig.DEFAULT_RUINS_NEAR_SPAWN_MIN);
         }
 
         String describe()
         {
             return "portal site " + this.siteMinDistance + " to " + this.siteMaxDistance + " blocks from spawn, trader "
-                    + (this.traderAtVillages ? "at a village within " + this.traderSearchRadius + " blocks" : "on his own (no village)");
+                    + (this.traderAtVillages ? "at a village within " + this.traderSearchRadius + " blocks" : "on his own (no village)")
+                    + ", knight ruins about " + this.ruinSpacing + " blocks apart and " + this.ruinsNearSpawn + " within "
+                    + this.ruinsNearSpawnRadius + " blocks of spawn (none nearer than " + this.ruinsNearSpawnMin + ")";
         }
     }
 
@@ -117,7 +123,12 @@ public final class DrossWorldSettings extends SavedData
         int max = tag.contains("SiteMaxDistance") ? tag.getInt("SiteMaxDistance") : d.siteMaxDistance();
         boolean atVillages = tag.contains("TraderAtVillages") ? tag.getBoolean("TraderAtVillages") : d.traderAtVillages();
         int radius = tag.contains("TraderSearchRadius") ? tag.getInt("TraderSearchRadius") : d.traderSearchRadius();
-        return new DrossWorldSettings(new Values(min, Math.max(min, max), atVillages, radius));
+        // (a world saved before the knight ruins: their defaults)
+        int spacing = tag.contains("RuinSpacing") ? tag.getInt("RuinSpacing") : d.ruinSpacing();
+        int near = tag.contains("RuinsNearSpawn") ? tag.getInt("RuinsNearSpawn") : d.ruinsNearSpawn();
+        int nearRadius = tag.contains("RuinsNearSpawnRadius") ? tag.getInt("RuinsNearSpawnRadius") : d.ruinsNearSpawnRadius();
+        int nearMin = tag.contains("RuinsNearSpawnMin") ? tag.getInt("RuinsNearSpawnMin") : d.ruinsNearSpawnMin();
+        return new DrossWorldSettings(new Values(min, Math.max(min, max), atVillages, radius, spacing, near, nearRadius, nearMin));
     }
 
     @Override
@@ -127,6 +138,10 @@ public final class DrossWorldSettings extends SavedData
         tag.putInt("SiteMaxDistance", this.values.siteMaxDistance());
         tag.putBoolean("TraderAtVillages", this.values.traderAtVillages());
         tag.putInt("TraderSearchRadius", this.values.traderSearchRadius());
+        tag.putInt("RuinSpacing", this.values.ruinSpacing());
+        tag.putInt("RuinsNearSpawn", this.values.ruinsNearSpawn());
+        tag.putInt("RuinsNearSpawnRadius", this.values.ruinsNearSpawnRadius());
+        tag.putInt("RuinsNearSpawnMin", this.values.ruinsNearSpawnMin());
         return tag;
     }
 }

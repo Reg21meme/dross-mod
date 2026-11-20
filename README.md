@@ -885,6 +885,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross boss arena bedrock team_up` | Puts every mob and player in each of the bedrock arena's sections on that section's team (the Rage Wand's Rage). |
 | `/dross rage team <targets> <team>` | Puts players and mobs on one of the Rage Wand's teams (blue, red, green, yellow or purple): `@s`, a player's name, `@e[...]`. Players on a team fight alongside their team's raged mobs and against the others. |
 | `/dross rage clear <targets>` | Takes players and mobs off their teams (a mob's Rage goes too). |
+| `/dross goto ruin [<element>]` | Teleports in front of the nearest elemental knights' ruin in the Overworld (of that element: `fire`, `ice`, `poison`, `thunder`, `earth`), building it first if need be. |
+| `/dross goto ruin <x> <z>` | The ruin nearest that spot (the locate list's [go] buttons). |
+| `/dross locate ruins` | Lists the 8 nearest knight ruins (within 2,400 blocks) with their element, area, layout and distance, each with a [go] button. |
 
 ---
 
@@ -899,10 +902,15 @@ mod's own tuning.
 | `trader` | `atVillages` | true | His Rift Chapel at the edge of a village; `false`: on its own, 384-1,536 blocks from spawn, no village laid out for it. |
 | `trader` | `villageSearchRadius` | 3000 | How far from spawn his village can be. |
 | `quest` | `letterChance` | 1.0 | The chance a Nether Fortress or Bastion Remnant chest holds a Weathered Letter. |
+| `knight_ruins` | `spacing` | 800 | About how far apart the elemental knights' ruins are, on average (away from the ones near spawn). |
+| `knight_ruins` | `nearSpawn` | 5 | How many ruins go near the world spawn, each in its own big biome (0: none). |
+| `knight_ruins` | `nearSpawnRadius` | 1000 | The furthest those ruins can be from the spawn. |
+| `knight_ruins` | `nearSpawnMinDistance` | 200 | The nearest any ruin can be to the spawn. |
+| `knight_ruins` | `knightsReturnMinutes` | 10 | Minutes after both of a ruin's knights are beaten until they come back (only while no player is within 64 blocks; this one counts at once in every world). |
 | `performance` | `plannerThreads` | 0 (automatic) | Helper threads for the Dross's boss-site planner (0: half the processors, 1 to 8; read at start). |
 | `performance` | `buildMillisPerTick` | 40 | How many milliseconds a server tick may spend building a boss lair or volcano. |
 
-The `portal_site` and `trader` values are saved in each world the first time it loads
+The `portal_site`, `trader` and `knight_ruins` values (all but `knightsReturnMinutes`) are saved in each world the first time it loads
 (`data/dross_world_settings.dat`, `DrossWorldSettings`), so changing the file never moves an existing world's cathedral
 or trader; the log says when a world keeps settings that differ from the file. The code is `DrossConfig` (each area
 reads its own values through it).

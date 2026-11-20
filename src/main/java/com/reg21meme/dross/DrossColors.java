@@ -119,6 +119,9 @@ public final class DrossColors {
      * right-clicked: a knight's brass. Used in command/KnightShowcase and boss/knight/KnightCandidate.
      */
     public static final int KNIGHT_SHOWCASE_BUTTON = 0xE2C478;
+    /** The clickable [go] buttons of /dross locate ruins (the knights' ruins in the Overworld): the knights' brass too.
+     * Used in command/GotoRuin. */
+    public static final int KNIGHT_RUIN_BUTTON = KNIGHT_SHOWCASE_BUTTON;
     /** /dross showcase knights: each element's name in the chat (fire ember, ice frost, poison green, thunder lightning
      * yellow, earth amber). Used in command/KnightShowcase. */
     public static final int KNIGHT_FIRE = 0xFF8A3A;

@@ -2157,6 +2157,21 @@ def rift_chapel_structures():
                      "placement": {"type": "dross:rift_chapel", "salt": RIFT_CHAPEL_SALT}}
     return structure, structure_set, {"replace": False, "values": RIFT_CHAPEL_BIOMES}
 
+# The elemental knights' ruins in the Overworld (CLAUDE.md step 18; the Boss area's boss/knight/ruin/): a broken Dross
+# portal in its biome area's layout, two knights of its element on guard. Its placement (dross:knight_ruin) starts a ruin
+# only in the chunk holding a ruin's middle column, where the seed plans them (KnightRuinSites: only in their element's
+# biomes, which were chosen with the spot, so "biomes" is every Overworld biome). Not a Dross structure, but its JSON
+# lives in the folders this script owns, so it's written here (else remove_stale would delete it).
+KNIGHT_RUIN_SALT = 1119202601           # (under 2^31: Minecraft reads a salt as an int)
+
+
+def knight_ruin_structures():
+    structure = {"type": "dross:knight_ruin", "biomes": "#minecraft:is_overworld", "spawn_overrides": {},
+                 "step": "surface_structures", "terrain_adaptation": "beard_thin"}
+    structure_set = {"structures": [{"structure": "dross:knight_ruin", "weight": 1}],
+                     "placement": {"type": "dross:knight_ruin", "salt": KNIGHT_RUIN_SALT}}
+    return structure, structure_set
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2335,6 +2350,9 @@ def main():
     write_json("structure", "rift_chapel", chapel)
     write_json("structure_set", "rift_chapel", chapel_set)
     write_file(os.path.join(DATA, "tags", "worldgen", "biome", "has_structure", "rift_chapel.json"), chapel_biomes)
+    ruin, ruin_set = knight_ruin_structures()
+    write_json("structure", "knight_ruin", ruin)
+    write_json("structure_set", "knight_ruin", ruin_set)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())
