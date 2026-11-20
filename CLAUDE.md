@@ -4657,6 +4657,13 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   light 0".
   Again on November 18 (`gt_spell_1118b`): "huntsman_village_11: the room floor at -37792, 198, 36933 has block light 0".
   Again on November 20 (`gt_full_perf_1120`): "sunken_warren_06: the room floor at -39417, 198, 36949 has block light 0".
+  Again on November 20 (`gt_merge_1120b`): "sunken_warren_04: the room floor at -40018, 198, 37054 has block light 0", and
+  in the same run the igloo showcase's test (`HunterIglooShowcaseGameTest.igloosStandAndNeverMelt`): "storage_igloo: its
+  floor at -46076, 201, 40955 has block light 0". The same light engine catching up late.
+- **The hub's layout over its time limit once** (Portal area, found November 20): in a full fresh run (world
+  `gt_merge_1120b`) `DrossHubGameTest.nothingHappensAtWorldStart` failed with "working out the layout took 1233.3084 ms
+  (1000 at most)". Nothing in `portal/` had changed since November 7; the laptop was busy at world start (the biome
+  map read alongside). The run before passed it.
 - **The Huntsman's "a creative player isn't a foe" test once failed** (Boss area, found October 28): in one full fresh
   GameTest run `HuntsmanFightGameTest.aFoeInSightStartsTheHunt` failed with "a player in creative mode isn't a foe: they
   should stay calm, but they're WILD_HUNT" (239 of 241 passed); the next fresh run passed all 241. Probably a survival
