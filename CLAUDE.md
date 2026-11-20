@@ -4627,7 +4627,8 @@ Minor issues found during the early-game build. None block playing. Fix them whe
 - **The terrain check sampling a hermit crab cave** (Dimension area, found November 19): in a full fresh run (world
   `gt_knights_1118f`) `realchunksperbiome` failed with "cinder_wastes site at 6240, 5552: 571 air blocks more than
   8 under the ground": almost surely an underground hermit crab cave (or a Colossus lair) under its sample spot,
-  which the check doesn't know about (like the Frostfolk village below). Not looked into yet.
+  which the check doesn't know about (like the Frostfolk village below). Not looked into yet. Again on November 20
+  (world `gt_merge_1120`): "cinder_wastes site at 6192, 6112: 605 air blocks more than 8 under the ground".
 - **The terrain check sampling a Frostfolk village** (Dimension area, found October 27): in one full fresh GameTest run
   (240 of 241 passed) `realchunksperbiome` failed with "rimefall site at 5824, 5920: only 97.5% of the top blocks are
   its own" (spruce stairs, packed ice, lanterns, skulls...) "and 309 air blocks more than 8 under the ground": the
@@ -4645,7 +4646,8 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   `RimefallAnimalsGameTest.pondSkatersNeedABigPond` ("the land round the ponds hasn't finished loading") and
   `HuntsmanFightGameTest.aFoeWhoGetsAwayIsLetGo` ("the arena's chunk 132, 0 hasn't finished loading after 120 s");
   the next run passed both. And in the next, quiet, run `RiftChapelGameTest.chapelIsMadeWithTheLand` gave up waiting for
-  the chapel's land to unload after 360 s (6 of 12 chunks still loaded).
+  the chapel's land to unload after 360 s (6 of 12 chunks still loaded). Again in a quiet run the same day (world
+  `gt_merge_1120`, after main was merged in): 12 of 16 chunks still loaded after 360 s.
 - **A village room read dark once** (Boss area, found October 24): in one full fresh GameTest run
   `HunterVillageShowcaseGameTest.villagesStandAndNeverMelt` failed with "sunken_warren_02: the room floor at -40689, 198,
   36958 has block light 0" (230 of 231 passed); the same templates passed in four other runs, so the light engine

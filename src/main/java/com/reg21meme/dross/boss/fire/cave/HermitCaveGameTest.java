@@ -71,6 +71,12 @@ public final class HermitCaveGameTest
     /** Waits are by the clock (the test server ticks as fast as it can). */
     private static final long SETTLE_MILLIS = 5_000L;
     private static final long LIGHT_MILLIS = 60_000L;
+    /**
+     * How long the cave made with the land may take to load its creatures before its crab is counted. On November 20,
+     * 2026 a full run counted none 5 s on though the save showed it on its spot at full health: the land's entities
+     * hadn't loaded yet.
+     */
+    private static final long ENTITY_MILLIS = 60_000L;
     private static final long TIMEOUT_MILLIS = 10 * 60 * 1000L;
     private static final int BACKSTOP_TICKS = 2_000_000;
     /** The Cinder Wastes' first this many patches are planned and checked. */
@@ -521,6 +527,10 @@ public final class HermitCaveGameTest
                     {
                         throw new GameTestAssertException("letting the lava settle");
                     }
+                    if (failed[0] == null && !creaturesLoaded(dross, built) && Util.getMillis() < settled[0] + ENTITY_MILLIS)
+                    {
+                        throw new GameTestAssertException("waiting for the cave's creatures to load");
+                    }
                 })
                 .thenExecute(() -> {
                     if (failed[0] != null)
@@ -538,7 +548,8 @@ public final class HermitCaveGameTest
                     if (crabs.size() != 1 || crabs.get(0).blockPosition().distManhattan(spot) > 3)
                     {
                         problems.add(crabs.size() + " of its own Cinder Hermits in it (one expected, at its crab spot "
-                                + spot.toShortString() + ")");
+                                + spot.toShortString() + (creaturesLoaded(dross, built) ? ""
+                                : "; its land's creatures still not loaded after " + ENTITY_MILLIS / 1000 + " s") + ")");
                     }
                     else if (!HermitCaves.CAVE_SHELLS.contains(crabs.get(0).getShell()))
                     {
@@ -558,6 +569,30 @@ public final class HermitCaveGameTest
                     }
                 })
                 .thenSucceed();
+    }
+
+    /** Whether the chunks round the cave's crab spot have their creatures loaded and ticking (its crab can be found). */
+    private static boolean creaturesLoaded(ServerLevel dross, Object[] built)
+    {
+        HermitCaveSites.CavePlan plan = (HermitCaveSites.CavePlan) built[0];
+        BlockPos ground = (BlockPos) built[1];
+        if (plan == null || ground == null)
+        {
+            return false;
+        }
+        BlockPos spot = HermitCaves.crabSpots(ground, plan.front(), plan.cave()).get(0);
+        for (int dx = -1; dx <= 1; dx++)
+        {
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                BlockPos near = spot.offset(dx * 16, 0, dz * 16);
+                if (!dross.areEntitiesLoaded(ChunkPos.asLong(near)) || !dross.isPositionEntityTicking(near))
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     /**
