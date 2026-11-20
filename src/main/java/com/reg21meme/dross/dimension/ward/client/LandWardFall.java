@@ -208,7 +208,7 @@ public final class LandWardFall
             Waiting w = WAITING.get(i);
             List<double[]> points = edge(level, w.land, w.x, w.z);
             boolean ground = level.getChunkSource().hasChunk(w.x >> 4, w.z >> 4)
-                    && level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, w.x, w.z) > level.getMinBuildHeight() + 1;
+                    && surface(level, w.x, w.z) > level.getMinBuildHeight() + 1;
             if (!points.isEmpty() && ground)
             {
                 WAITING.remove(i);
@@ -496,7 +496,33 @@ public final class LandWardFall
         {
             return p[2];
         }
-        return level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(p[0]), (int) Math.floor(p[1]));
+        return surface(level, (int) Math.floor(p[0]), (int) Math.floor(p[1]));
+    }
+
+    /**
+     * The ground's top at x, z on this screen: under the trees' leaves and logs, on top of water. (A player's game only
+     * has the server's MOTION_BLOCKING and WORLD_SURFACE heights; MOTION_BLOCKING_NO_LEAVES is always the world's
+     * bottom there, so until November 19, 2026 every land's barrier fell out of sight under the ground: the user, "this
+     * doesn't happen ... I am waiting at the border".)
+     */
+    static int surface(ClientLevel level, int x, int z)
+    {
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+        int lowest = Math.max(level.getMinBuildHeight(), y - 32);
+        net.minecraft.core.BlockPos.MutableBlockPos pos = new net.minecraft.core.BlockPos.MutableBlockPos();
+        while (y > lowest)
+        {
+            pos.set(x, y - 1, z);
+            net.minecraft.world.level.block.state.BlockState below = level.getBlockState(pos);
+            boolean through = below.is(net.minecraft.tags.BlockTags.LEAVES) || below.is(net.minecraft.tags.BlockTags.LOGS)
+                    || below.getFluidState().isEmpty() && below.getCollisionShape(level, pos).isEmpty();
+            if (!through)
+            {
+                break;
+            }
+            y--;
+        }
+        return y;
     }
 
     private static void play(Minecraft mc, double[] p, ClientLevel level, SoundEvent sound, float volume, float pitch)

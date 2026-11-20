@@ -2315,7 +2315,10 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       barrier, not every one but the first one you arrive at, it does an animation where the barrier falls off"): after
       the spell an opened land's curtain still stands for that player (`OracleClientState.showsCurtain`) until they first
       come within 24 blocks of its edge (`dimension/ward/LandWardFalls`, once a second; the client waits up to
-      4 s for the ground there to load before it finds the edge, else a ring round them falls); in creative too since
+      4 s for the ground there to load before it finds the edge, else a ring round them falls; the ground read from the
+      heights a player's game has, `LandWardFall.surface`: until November 19 it read one only the server keeps, the
+      world's bottom on a player's screen, so every land's barrier fell out of sight under the ground: the user, "this
+      doesn't happen ... I am waiting at the border"); in creative too since
       November 19 (the user tests in creative, where it never fell: "I still don't see the barrier breaking when I go to
       the biome"), and arriving inside the land (`/dross goto biome`) with no edge within 24 blocks its nearest edge out
       to 64 blocks falls (`LandWardFalls.farEdge`; the user: "it happened in front of me instead of at the border next to
