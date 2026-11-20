@@ -2528,7 +2528,9 @@ the Rat King, the Huntsman and his Alpha Moose, the Emberdactyl and its young (n
           damage besides fire): measured with fire blocked, his hammer swing takes 10 (5 hearts) off a bare iron golem
           and his slam up to about 9; on a zombie in full netherite (armour 22) 2 and 1.6, while burning ignores armour,
           so in good armour his fire is most of what you feel. `KnightFightGameTest` now gives its golem Fire Resistance,
-          so a move that only burns fails it, and logs what each move took.
+          so a move that only burns fails it, and logs what each move took. Then (the user: "increase the Cinder Knight's
+          damage, it's way too little") his hammer swing and his slam 18 each (9 hearts; the slam half that at its edge):
+          through plain netherite about 3 hearts.
         - **The rockfall's circle**: the rocks hurt nobody now (they fly through); from the first rock's landing to the
           last, every half second everything inside the circle (its 5.5 blocks and 0.75 more, up to 4 over the ground)
           takes 3, its edge marked with stone dust while it lasts (`ROCKFALL_PULSE_*`, `ROCKFALL_ZONE_*`;

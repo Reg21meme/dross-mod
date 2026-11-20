@@ -112,7 +112,7 @@ public final class KnightTuning
     // ---------------------------------------------------------------- F1B, the Cinder Knight
 
     /** The hammer's swing. */
-    public static final float HAMMER_DAMAGE = 10.0F;
+    public static final float HAMMER_DAMAGE = 18.0F;   // (10 until the user, November 20, 2026: "way too little")
     public static final double HAMMER_REACH = 4.0D;
     public static final double HAMMER_ARC = 180.0D;   // a flat sweep (November 18, 2026)
     public static final double HAMMER_KNOCK = 1.1D;
@@ -125,7 +125,7 @@ public final class KnightTuning
     public static final double SLAM_FORWARD = 4.7D;
     public static final double SLAM_RIGHT = 0.3D;
     public static final double SLAM_RADIUS = 6.0D;
-    public static final float SLAM_DAMAGE = 10.0F;
+    public static final float SLAM_DAMAGE = 18.0F;     // (at its middle, half at its edge; 10 until November 20, 2026)
     public static final int SLAM_FIRE_SECONDS = 5;
     public static final double SLAM_LAUNCH = 0.7D;
     public static final double SLAM_KNOCK = 1.0D;
