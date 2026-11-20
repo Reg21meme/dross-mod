@@ -84,6 +84,22 @@ HEAD_BIG_SHUT = HEAD_BIG[:9] + [
     "...kkk33322.",
     "......kkkk..",
 ]
+# ...and turned over with the rat on its back (the user: "how are his eyes on the top when it is laying upside down"):
+# the top of its head on the ground with its ear under it, its X eye low, its chin up, its nose pointing left, no mouth
+# line (it read as a smile)
+HEAD_BIG_UP = [
+    ".....kkkkk..",
+    "...kk55444k.",
+    "..k554444444",
+    ".k5444444444",
+    "PP4444444443",
+    "k444x4x44433",
+    ".k444x443333",
+    "..k3x3x33332",
+    "...kk33kPPk2",
+    ".....kkPqPk.",
+    "........kkk.",
+]
 HEAD_MID = [
     ".....kk.",
     "....kPPk",
@@ -105,7 +121,7 @@ def stamp(g, sprite, left, top):
     return g
 
 
-def dead_rat(cx, cy, L, legs=True, tail=True, boils=True, tongue=True):
+def dead_rat(cx, cy, L, legs=True, tail=True, boils=True, tongue=True, upside=False):
     """One dead Plague Rat on its back, facing left, its body's middle at cx, cy, its body about L pixels across with
     its head: grey-green fur shaded from the top left, a pear-shaped body with its pale belly turned up, thin stiff legs
     splayed in the air with pink feet and toes, its hand-drawn head (HEAD_BIG or HEAD_MID: a round pink ear, a bold X
@@ -126,7 +142,9 @@ def dead_rat(cx, cy, L, legs=True, tail=True, boils=True, tongue=True):
                 if body[y][x]:
                     return y
             return round(cy - ry)
-        for share, dx, length in ((-0.55, -0.55, 0.22), (-0.15, -0.15, 0.24), (0.45, 0.15, 0.27), (0.85, 0.55, 0.24)):
+        splay = ((-0.5, -0.2, 0.22), (-0.1, 0.0, 0.24), (0.45, 0.2, 0.27), (0.85, 0.55, 0.24)) if upside else \
+            ((-0.55, -0.55, 0.22), (-0.15, -0.15, 0.24), (0.45, 0.15, 0.27), (0.85, 0.55, 0.24))
+        for share, dx, length in splay:
             lx = round(cx + rx * share)
             ly = top(lx) + 1
             n = math.hypot(dx, 1.0)
@@ -137,7 +155,15 @@ def dead_rat(cx, cy, L, legs=True, tail=True, boils=True, tongue=True):
             dot(g, fx - 1, fy - 1, "P")
             dot(g, fx + 1, fy - 1, "P")
             dot(g, fx, fy - 1, "p")
-    if tail:
+    if tail and upside:
+        # its tail lying limp along the ground behind it, a gentle curve thinning away
+        bx, by = cx + rx * 1.05 + L * 0.04, cy + ry * 0.75
+        pts = [(bx, by), (bx + 2, by + 0.6), (bx + 4.5, by + 0.9), (bx + 7, by + 0.6), (bx + 9.5, by + 0.9),
+               (bx + 11, by + 0.4)]
+        path(g, pts, "P")
+        for x, y in pts[:3]:
+            dot(g, round(x), round(y) + 1, "p")
+    elif tail:
         bx, by = cx + rx * 1.05 + L * 0.06, cy + ry * 0.1
         pts = [(bx, by), (bx + L * 0.13, by - L * 0.1), (bx + L * 0.25, by - L * 0.02), (bx + L * 0.33, by + L * 0.07),
                (bx + L * 0.42, by + L * 0.02)]
@@ -150,7 +176,9 @@ def dead_rat(cx, cy, L, legs=True, tail=True, boils=True, tongue=True):
                    for dx, dy in ((0, 0), (1, 0), (0, 1), (-1, 0), (0, -1))):
                 dot(g, x, y, "h")
                 dot(g, x, y + 1, "H")
-    if L >= 17:
+    if upside:
+        stamp(g, HEAD_BIG_UP, round(cx - rx) - 10, round(cy + ry * 1.08) - 10)
+    elif L >= 17:
         stamp(g, HEAD_BIG if tongue else HEAD_BIG_SHUT, round(cx - rx) - 10, round(cy) - 6)
     else:
         stamp(g, HEAD_MID if tongue else HEAD_MID_SHUT, round(cx - rx) - 6, round(cy) - 4)
@@ -299,7 +327,7 @@ def x_face():
 
 def resting(rat, ground_top):
     """The rat moved down (or up) so its body and head lie on the ground: their lowest row on the ground's top row."""
-    low = max(y for y in range(N) for x in range(N) if rat[y][x] in "12345bBkxPpq")
+    low = max(y for y in range(N) for x in range(N) if rat[y][x] in "12345bBkxq")
     return blit(blank(), rat, 0, ground_top - low)
 
 
@@ -316,7 +344,7 @@ def rot_puddle():
     for x, y in ((4, 27), (9, 29), (24, 29), (27, 27), (19, 30)):
         dot(g, x, y, "Z")
         dot(g, x + 1, y, "z")
-    blit(g, resting(dead_rat(17.5, 18, 18, tongue=False), 27))
+    blit(g, resting(dead_rat(17.5, 18, 18, tongue=False, upside=True), 27))
     for x, y in ((6, 6), (22, 3), (27, 9), (13, 2)):
         dot(g, x, y, "9")
         dot(g, x - 1, y - 1, "L")
