@@ -41,9 +41,12 @@ public final class KnightRuinGameTest
     /** The elements' galleries side by side, this far apart. */
     private static final int ELEMENT_SPACING = 260;
 
+    /** The galleries' land is waited for at most this long (real time: the test server's ticks run fast). */
+    private static final long LAND_WAIT_MILLIS = 180_000L;
+
     private KnightRuinGameTest() {}
 
-    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_knight_ruins", timeoutTicks = 2400)
+    @GameTest(template = PortalSiteGameTest.EMPTY, batch = "dross_knight_ruins", timeoutTicks = 400_000)
     public static void ruinsStandWithTheirKnights(GameTestHelper helper)
     {
         ServerLevel level = helper.getLevel().getServer().overworld();
@@ -74,7 +77,18 @@ public final class KnightRuinGameTest
                 }
             }
         }
-        helper.runAfterDelay(40, () ->
+        // (wait, by the clock, until every gallery's land is loaded with its entities: a fixed 40 ticks stopped being enough
+        // once the knight ruins' planner came into world generation, its new chunks slower to make the first time)
+        long started = net.minecraft.Util.getMillis();
+        helper.startSequence().thenWaitUntil(() ->
+        {
+            boolean ready = forced.stream().allMatch(c -> level.areEntitiesLoaded(c.toLong())
+                    && level.isPositionEntityTicking(c.getMiddleBlockPosition(70)));
+            if (!ready && net.minecraft.Util.getMillis() - started < LAND_WAIT_MILLIS)
+            {
+                throw new GameTestAssertException("waiting for the galleries' land");
+            }
+        }).thenExecute(() ->
         {
             List<KnightRuinShowcase.Plan> plans = new ArrayList<>();
             int total = 0;
@@ -156,8 +170,11 @@ public final class KnightRuinGameTest
             List<ElementalKnight> knights = level.getEntitiesOfClass(ElementalKnight.class, AABB.of(box).inflate(1));
             if (knights.size() != 2)
             {
+                List<ElementalKnight> round = level.getEntitiesOfClass(ElementalKnight.class, AABB.of(box).inflate(48));
                 throw new GameTestAssertException("run " + run + ", ruin " + ruin.id() + " has " + knights.size()
-                        + " knights, not 2");
+                        + " knights, not 2 (box " + box + ", ticking " + level.isPositionEntityTicking(box.getCenter())
+                        + "; knights within 48: " + round.stream().map(k -> k.kind() + "@" + k.blockPosition().toShortString()
+                        + (k.isShowcase() ? "" : " real")).toList() + ")");
             }
             for (ElementalKnight knight : knights)
             {

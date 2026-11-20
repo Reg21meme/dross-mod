@@ -17,7 +17,7 @@ import java.util.UUID;
 /**
  * What became of each knight ruin's knights (saved with the Overworld: {@code data/dross_knight_ruins.dat}), by the
  * ruin's id (its middle column): each of its two knights (its UUID once it came, whether it's been beaten), when both
- * were last beaten (game time; -1 while they stand), and the players who have cleared it (for the quest, through
+ * were last beaten (game time, while both are), and the players who have cleared it (for the quest, through
  * {@link KnightRuins}).
  */
 public final class KnightRuinData extends SavedData
@@ -29,7 +29,9 @@ public final class KnightRuinData extends SavedData
     {
         final UUID[] knights = new UUID[2];
         final boolean[] beaten = new boolean[2];
-        long beatenAt = -1L;
+        /** Both beaten (until they come back), and when (game time). */
+        boolean bothBeaten;
+        long beatenAt;
         final Set<UUID> clearedBy = new LinkedHashSet<>();
         /** Its tidy-up is done (the trees that grew into it felled: {@link KnightRuinTidy}). */
         boolean tidied;
@@ -41,7 +43,7 @@ public final class KnightRuinData extends SavedData
 
         public boolean bothBeaten()
         {
-            return this.beatenAt >= 0L;
+            return this.bothBeaten;
         }
 
         public long beatenAt()
@@ -98,8 +100,9 @@ public final class KnightRuinData extends SavedData
         Entry e = this.entry(ruin);
         e.beaten[slot] = true;
         boolean both = e.beaten[0] && e.beaten[1];
-        if (both && e.beatenAt < 0L)
+        if (both && !e.bothBeaten)
         {
+            e.bothBeaten = true;
             e.beatenAt = gameTime;
         }
         this.setDirty();
@@ -122,7 +125,8 @@ public final class KnightRuinData extends SavedData
         e.knights[1] = null;
         e.beaten[0] = false;
         e.beaten[1] = false;
-        e.beatenAt = -1L;
+        e.bothBeaten = false;
+        e.beatenAt = 0L;
         this.setDirty();
     }
 
@@ -136,7 +140,7 @@ public final class KnightRuinData extends SavedData
     void rewind(String ruin, long ticks)
     {
         Entry e = this.entry(ruin);
-        if (e.beatenAt >= 0L)
+        if (e.bothBeaten)
         {
             e.beatenAt -= ticks;
             this.setDirty();
@@ -167,7 +171,8 @@ public final class KnightRuinData extends SavedData
                 }
                 e.beaten[slot] = r.getBoolean("Beaten" + slot);
             }
-            e.beatenAt = r.contains("BeatenAt") ? r.getLong("BeatenAt") : -1L;
+            e.bothBeaten = r.getBoolean("BothBeaten");
+            e.beatenAt = r.getLong("BeatenAt");
             e.tidied = r.getBoolean("Tidied");
             ListTag players = r.getList("ClearedBy", Tag.TAG_INT_ARRAY);
             for (Tag p : players)
@@ -194,6 +199,7 @@ public final class KnightRuinData extends SavedData
                 }
                 r.putBoolean("Beaten" + slot, e.beaten[slot]);
             }
+            r.putBoolean("BothBeaten", e.bothBeaten);
             r.putLong("BeatenAt", e.beatenAt);
             r.putBoolean("Tidied", e.tidied);
             ListTag players = new ListTag();
