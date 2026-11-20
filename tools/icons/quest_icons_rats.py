@@ -156,13 +156,14 @@ def dead_rat(cx, cy, L, legs=True, tail=True, boils=True, tongue=True, upside=Fa
             dot(g, fx + 1, fy - 1, "P")
             dot(g, fx, fy - 1, "p")
     if tail and upside:
-        # its tail lying limp along the ground behind it, a gentle curve thinning away
-        bx, by = cx + rx * 1.05 + L * 0.04, cy + ry * 0.75
-        pts = [(bx, by), (bx + 2, by + 0.6), (bx + 4.5, by + 0.9), (bx + 7, by + 0.6), (bx + 9.5, by + 0.9),
-               (bx + 11, by + 0.4)]
+        # its tail growing out of its rump and lying along the ground behind it in waves (the user: "connect this
+        # tail to his body ... make it wavy as well")
+        rump = max(x for y in range(N) for x in range(N) if body[y][x])
+        bx, by = rump - 1, round(cy + ry * 0.55)
+        pts = [(bx + i, by + 1 + round(1.2 * math.sin(i * 0.75))) for i in range(0, 13)]
         path(g, pts, "P")
         for x, y in pts[:3]:
-            dot(g, round(x), round(y) + 1, "p")
+            dot(g, x, y + 1, "p")
     elif tail:
         bx, by = cx + rx * 1.05 + L * 0.06, cy + ry * 0.1
         pts = [(bx, by), (bx + L * 0.13, by - L * 0.1), (bx + L * 0.25, by - L * 0.02), (bx + L * 0.33, by + L * 0.07),
@@ -351,7 +352,7 @@ def rot_puddle():
         dot(g, x + 1, y - 1, "L")
     for x, y in ((9, 9), (25, 6), (17, 7)):
         dot(g, x, y, "z")
-    for wx in (4, 28):                                                   # the stink rising off it
+    for wx in (28,):                                                     # the stink rising off it (not by its face)
         for i, y in enumerate(range(13, 19)):
             dot(g, wx + (1 if i % 2 else 0), y, "S" if i % 3 else "z")
     return g
