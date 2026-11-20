@@ -2,7 +2,7 @@
   "parent": "dross:down_the_drain",
   "display": {
     "icon": {
-      "item": "dross:pond_skater_spawn_egg"
+      "item": "dross:first_frost_icon"
     },
     "title": {
       "translate": "advancements.dross.first_frost.title"

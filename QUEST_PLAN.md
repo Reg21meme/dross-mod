@@ -112,6 +112,14 @@ Enter the Dross
                                      └─ Defeat the Dross   (purple, fireworks)
 ```
 - Regular advancements show green in chat; the purple ones are challenges.
+- **Their icons** (the user, November 19, 2026: the land quests showed spawn eggs, "we need unique images for those";
+  drawn like the bosses' icons, 32 x 32 at an item's size, by `tools/icons/quest_icons_r4.py` and
+  `quest_icons_rats.py`, the options in `quest-previews/advancement_icons/`; the user's picks after four rounds): Giant
+  Slayer **GS17**, a Silverwood Giant's head bristling with your arrows, his eyes crossed out; Into the Ashes **IA14**,
+  a mountain of dark ash burning, smoke billowing off it, the Pallbearer's top hat tipped over on its summit; Beneath
+  the Rot **BR21**, a dead Plague Rat on its back on the rotten ground in a puddle of green rot, flies buzzing over it;
+  First Frost **FF14**, a bull moose's head mounted on a plaque, its eyes crossed out, frost on its antlers. The items
+  `dross:giant_slayer_icon`, `into_the_ashes_icon`, `beneath_the_rot_icon`, `first_frost_icon` (icon-only, in no tab).
 - `/dross quest reset` clears the Oracle's quests and their regular advancements and "Defeat the Dross". As now, it
   leaves the boss advancements alone.
 
@@ -334,6 +342,6 @@ class named with it).
   Brawler (bare hands), G3 the Tree-Bearer (an uprooted tree), each giant one at random;
   `/summon dross:silverwood_giant ~ ~ ~ {Look:"brawler"}` (or `"treebearer"`, `"hurler"`). It dies the vanilla way.
   Its animations and sounds are its own (`tools/forest_giant/`). Its spawn egg comes after the Cinder Hermit's;
-  "Giant Slayer"'s icon is that egg. `/dross showcase silverwood_giants` lines up the three looks.
+  "Giant Slayer"'s icon was that egg until November 19 (now its own, above). `/dross showcase silverwood_giants` lines up the three looks.
 - **Older worlds** lose Silverwood's zombies and skeletons too (the spawn lists are read as a world loads), so in the
   Dross the Deathforged books and Necromancy souls now come only from the Gravecrags' netherite zombies and skeletons.

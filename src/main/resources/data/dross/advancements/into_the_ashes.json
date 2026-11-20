@@ -2,7 +2,7 @@
   "parent": "dross:giant_slayer",
   "display": {
     "icon": {
-      "item": "dross:stone_golem_spawn_egg"
+      "item": "dross:into_the_ashes_icon"
     },
     "title": {
       "translate": "advancements.dross.into_the_ashes.title"

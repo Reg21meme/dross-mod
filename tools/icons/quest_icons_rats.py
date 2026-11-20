@@ -78,6 +78,12 @@ HEAD_BIG = [
     "..ktkk33322.",
     "..kk.kkkkk..",
 ]
+# ...and the same with its mouth shut (the user: "don't make its tongue poke out, it's weird")
+HEAD_BIG_SHUT = HEAD_BIG[:9] + [
+    ".kkk44333332",
+    "...kkk33322.",
+    "......kkkk..",
+]
 HEAD_MID = [
     ".....kk.",
     "....kPPk",
@@ -88,6 +94,7 @@ HEAD_MID = [
     "kk44k333",
     ".ktkk22.",
 ]
+HEAD_MID_SHUT = HEAD_MID[:7] + [".kkkk22."]
 
 
 def stamp(g, sprite, left, top):
@@ -144,9 +151,9 @@ def dead_rat(cx, cy, L, legs=True, tail=True, boils=True, tongue=True):
                 dot(g, x, y, "h")
                 dot(g, x, y + 1, "H")
     if L >= 17:
-        stamp(g, HEAD_BIG, round(cx - rx) - 10, round(cy) - 6)
+        stamp(g, HEAD_BIG if tongue else HEAD_BIG_SHUT, round(cx - rx) - 10, round(cy) - 6)
     else:
-        stamp(g, HEAD_MID, round(cx - rx) - 6, round(cy) - 4)
+        stamp(g, HEAD_MID if tongue else HEAD_MID_SHUT, round(cx - rx) - 6, round(cy) - 4)
     return g
 
 def flip(g):
@@ -290,21 +297,35 @@ def x_face():
     return g
 
 
+def resting(rat, ground_top):
+    """The rat moved down (or up) so its body and head lie on the ground: their lowest row on the ground's top row."""
+    low = max(y for y in range(N) for x in range(N) if rat[y][x] in "12345bBkxPpq")
+    return blit(blank(), rat, 0, ground_top - low)
+
+
 def rot_puddle():
-    """BR21: a dead Plague Rat floating belly up in a puddle of green sewer rot, bubbles rising, flies buzzing over."""
-    g = blank()
-    puddle = ellipse(16, 25, 15.5, 5.6)
-    g = layer(g, shade(puddle, "s", "zSSs"))
-    for x, y in ((5, 25), (9, 28), (24, 27), (27, 24), (20, 29)):
+    """BR21: a dead Plague Rat lying on its back on the rotten Blightwood ground in a puddle of green rot, its mouth
+    shut, bubbles in the rot, flies buzzing over it."""
+    g = ground(blank(), 26)
+    puddle = ellipse(16, 27.6, 15.5, 3.6)
+    pud = shade(puddle, "s", "zSSs")
+    for y in range(N):
+        for x in range(N):
+            if pud[y][x] != ".":
+                g[y][x] = pud[y][x]
+    for x, y in ((4, 27), (9, 29), (24, 29), (27, 27), (19, 30)):
         dot(g, x, y, "Z")
         dot(g, x + 1, y, "z")
-    blit(g, dead_rat(17.5, 21.5, 18))
-    for x, y in ((6, 6), (22, 4), (27, 9)):
+    blit(g, resting(dead_rat(17.5, 18, 18, tongue=False), 27))
+    for x, y in ((6, 6), (22, 3), (27, 9), (13, 2)):
         dot(g, x, y, "9")
         dot(g, x - 1, y - 1, "L")
         dot(g, x + 1, y - 1, "L")
-    for x, y in ((9, 9), (25, 6)):
+    for x, y in ((9, 9), (25, 6), (17, 7)):
         dot(g, x, y, "z")
+    for wx in (4, 28):                                                   # the stink rising off it
+        for i, y in enumerate(range(13, 19)):
+            dot(g, wx + (1 if i % 2 else 0), y, "S" if i % 3 else "z")
     return g
 
 def sack_of_rats():
@@ -386,8 +407,8 @@ BENEATH_THE_ROT = [
     ("BR19", "Pinned", "your sword driven down through a dead Plague Rat into the ground", RAT, pinned()),
     ("BR20", "X marks the rat", "a dead Plague Rat's face, front on, filling the icon: a bold X for each eye, its tongue "
      "hanging out, whiskers, round pink ears", RAT, x_face()),
-    ("BR21", "Floating in the rot", "a dead Plague Rat floating belly up in a puddle of green sewer rot, bubbles rising, "
-     "flies buzzing over it", RAT, rot_puddle()),
+    ("BR21", "Dead in the rot", "a dead Plague Rat lying on its back on the rotten ground in a puddle of green rot, "
+     "flies buzzing over it, stink rising", RAT, rot_puddle()),
     ("BR22", "A sack of rats", "a sack full of dead Plague Rats, one draped over its rim, tails hanging out of it", RAT,
      sack_of_rats()),
     ("BR23", "Beneath the Blightcap", "a dead Plague Rat lying beneath a great rotting Blightcap, rot dripping from its "
@@ -442,6 +463,14 @@ def main(argv):
     for d in BENEATH_THE_ROT:
         R3.draw(d).save(os.path.join(folder, "textures", f"{d[0]}.png"))
     print("wrote", os.path.relpath(os.path.join(folder, "options.png"), A.ROOT))
+    design = next(d for d in BENEATH_THE_ROT if d[0] == PICK)
+    path = os.path.join(A.TEXTURES, "beneath_the_rot_icon.png")
+    R3.draw(design).save(path)
+    print("wrote", os.path.relpath(path, A.ROOT), "from", PICK)
+
+
+# The user's pick (November 19, 2026: "the best is BR21, with the flies and stuff"; on the ground, its tongue in)
+PICK = "BR21"
 
 
 if __name__ == "__main__":

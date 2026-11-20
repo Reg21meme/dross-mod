@@ -2,7 +2,7 @@
   "parent": "dross:set_in_stone",
   "display": {
     "icon": {
-      "item": "dross:rat_spawn_egg"
+      "item": "dross:beneath_the_rot_icon"
     },
     "title": {
       "translate": "advancements.dross.beneath_the_rot.title"

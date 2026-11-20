@@ -378,8 +378,7 @@ FIRST_FROST = [
      "own, its palm antlers spread, its eyes crossed out, the first frost on its antlers", F, rows(ff_a())),
 ]
 
-DESIGNS = {"giant_slayer": GIANT_SLAYER, "into_the_ashes": INTO_THE_ASHES, "beneath_the_rot": BENEATH_THE_ROT,
-           "first_frost": FIRST_FROST}
+DESIGNS = {"giant_slayer": GIANT_SLAYER, "into_the_ashes": INTO_THE_ASHES, "first_frost": FIRST_FROST}
 
 
 def main(argv):
@@ -401,6 +400,16 @@ def main(argv):
         for d in designs:
             R3.draw(d).save(os.path.join(folder, "textures", f"{d[0]}.png"))
         print("wrote", os.path.relpath(os.path.join(folder, "options.png"), A.ROOT))
+    for name, label in PICKS.items():
+        design = next(d for d in DESIGNS[name] if d[0] == label)
+        path = os.path.join(A.TEXTURES, f"{name}_icon.png")
+        R3.draw(design).save(path)
+        print("wrote", os.path.relpath(path, A.ROOT), "from", label)
+
+
+# The user's picks (November 19, 2026): the arrows, the ash mountain, the moose on the wall; Beneath the Rot's is
+# quest_icons_rats.py's (round 4's rat stays in its round4/ folder)
+PICKS = {"giant_slayer": "GS17", "into_the_ashes": "IA14", "first_frost": "FF14"}
 
 
 if __name__ == "__main__":
