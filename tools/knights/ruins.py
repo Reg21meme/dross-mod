@@ -73,8 +73,51 @@ def build(area, fn):
     return g, guards
 
 
+NETHER_SOIL = {"crimson_nylium", "warped_nylium", "soul_soil", "mycelium", "dirt", "grass_block", "podzol",
+               "coarse_dirt", "rooted_dirt", "moss_block", "mud", "muddy_mangrove_roots", "farmland"}
+
+
+def nether_plant_problems(area, g):
+    """The Nether's plants and fires only where the game keeps them (fire's Nether ruins): fungi, roots and sprouts
+    on nylium or soul soil, nether wart on soul sand, fire on netherrack or magma (it burns for ever there and goes
+    out anywhere else), soul fire on soul sand or soul soil, weeping vines hanging from a full block or more vine,
+    twisting vines standing on a full block or more vine. Unset ground counts as the area's own ground."""
+    bad = []
+    for x, yi, z, s in g.blocks():
+        b = mc.base(s)
+        if b not in ("crimson_fungus", "warped_fungus", "crimson_roots", "warped_roots", "nether_sprouts", "nether_wart",
+                     "fire", "soul_fire", "weeping_vines", "weeping_vines_plant", "twisting_vines",
+                     "twisting_vines_plant"):
+            continue
+        y = yi - g.G
+
+        def at(dy):
+            n = g.get(x, y + dy, z)
+            if n is None:
+                return (area.ground, "full") if y + dy <= 0 else ("air", "air")
+            return mc.base(n), mc.kind(n)
+        (below, below_k), (above, above_k) = at(-1), at(1)
+        ok = True
+        if b in ("crimson_fungus", "warped_fungus", "crimson_roots", "warped_roots", "nether_sprouts"):
+            ok = below in NETHER_SOIL
+        elif b == "nether_wart":
+            ok = below == "soul_sand"
+        elif b == "fire":
+            ok = below in ("netherrack", "magma_block")
+        elif b == "soul_fire":
+            ok = below in ("soul_sand", "soul_soil")
+        elif b.startswith("weeping_vines"):
+            ok = above.startswith("weeping_vines") or above_k == "full"
+        elif b.startswith("twisting_vines"):
+            ok = below.startswith("twisting_vines") or below_k == "full"
+        if not ok:
+            bad.append(f"{b} on {below} under {above} at {x},{y},{z}")
+    return [f"{len(bad)} Nether plants without what holds them, e.g. {bad[:6]}"] if bad else []
+
+
 def checks(area, fn, g, guards):
     problems, warnings = template.check(g)
+    problems += nether_plant_problems(area, g)
     problems = [q for q in problems if "complete empty frame" not in q]
     if template.find_frames(g):
         problems.append("a whole frame: it could be lit")
