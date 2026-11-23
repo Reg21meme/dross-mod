@@ -2,7 +2,11 @@ package com.reg21meme.dross.quest.oracle;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.netty.buffer.Unpooled;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.BossGrounds;
+import com.reg21meme.dross.boss.BossGroundsMessage;
+import com.reg21meme.dross.boss.GroundsShape;
 import com.reg21meme.dross.boss.golem.ColossusGameTest;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.enchant.RisenUndead;
@@ -19,6 +23,7 @@ import net.minecraft.gametest.framework.GameTestAssertException;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceKey;
@@ -480,6 +485,58 @@ public final class OracleQuestGameTest
             hearOffer(other);
             DrossAdvancements.grant(other, DrossAdvancements.WINGS_CLIPPED);
             expectAt(other, OracleQuests.THE_HUNTER_HUNTED, OracleState.ACTIVE, "after another boss's advancement");
+        });
+    }
+
+    /**
+     * A boss's home opens for a player the moment they hold its advancement, whatever their Oracle quest (the user,
+     * November 22, 2026: "once you defeat the boss you should be able to break the boss lair, not when you go back to the
+     * villager"); and the protected shapes a player's game is sent come out of the message as they went in.
+     */
+    @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
+    public static void bossHomesOpenWithTheirAdvancement(GameTestHelper helper)
+    {
+        run(helper, OracleQuestGameTest::bossHomesOpenWithTheirAdvancement, (h, players) -> {
+            ServerPlayer digger = join(h, players, "grounds_digger", GameType.SURVIVAL);
+            for (OracleBoss boss : OracleBoss.values())
+            {
+                expect(!BossGrounds.hasBeaten(digger, boss), "a fresh player hasn't beaten " + boss);
+            }
+            // As after "/dross quest set down_the_drain": the quest waiting to be given, then the Rat King killed.
+            OracleProgress.setQuest(digger, OracleQuests.DOWN_THE_DRAIN);
+            DrossAdvancements.grant(digger, DrossAdvancements.DOWN_THE_DRAIN);
+            expectAt(digger, OracleQuests.DOWN_THE_DRAIN, OracleState.AVAILABLE, "with Down the Drain earned before his offer");
+            expect(BossGrounds.hasBeaten(digger, OracleBoss.RAT_KING),
+                    "with Down the Drain held, the Rat King's home should be open, his quest only waiting to be given");
+            expect(!BossGrounds.hasBeaten(digger, OracleBoss.HUNTSMAN), "Down the Drain doesn't open the Huntsman's village");
+
+            ServerPlayer early = join(h, players, "grounds_early", GameType.SURVIVAL);
+            DrossAdvancements.grant(early, DrossAdvancements.WINGS_CLIPPED);
+            expect(BossGrounds.hasBeaten(early, OracleBoss.EMBERDACTYL), "Wings Clipped opens the Emberdactyl's volcano on quest 0");
+            expect(!BossGrounds.hasBeaten(early, OracleBoss.COLOSSUS), "Wings Clipped doesn't open the Colossus's lair");
+
+            // The shapes' trip to a player's game: Box, a round lair and a lobed volcano, tested on the same blocks.
+            List<GroundsShape> sent = List.of(new GroundsShape.Box(-5, 40, 3, 7, 90, 18),
+                    new GroundsShape.Round(100.5D, -40.5D, 60.0D, 20, 130, GroundsShape.Round.ROUND),
+                    new GroundsShape.Round(-300.5D, 250.5D, 74.0D, 30, 160, new double[] {0.4D, 2.1D, 5.0D}));
+            FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.buffer());
+            new BossGroundsMessage(sent).encode(buf);
+            List<GroundsShape> got = BossGroundsMessage.decode(buf).shapes();
+            buf.release();
+            expect(got.size() == sent.size(), "the message brought " + got.size() + " shapes, " + sent.size() + " sent");
+            java.util.Random random = new java.util.Random(22L);
+            int inside = 0;
+            for (int i = 0; i < 20000; i++)
+            {
+                BlockPos at = new BlockPos(random.nextInt(800) - 420, random.nextInt(200), random.nextInt(700) - 400);
+                for (int k = 0; k < sent.size(); k++)
+                {
+                    boolean before = sent.get(k).contains(at);
+                    expect(before == got.get(k).contains(at), "shape " + k + " changed on its way at " + at.toShortString());
+                    inside += before ? 1 : 0;
+                }
+            }
+            expect(inside > 300, "only " + inside + " of the sampled blocks were inside a shape");
         });
     }
 

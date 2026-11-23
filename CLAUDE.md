@@ -3661,21 +3661,29 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       ratking` lands inside the cave's ward, so a locked survival player is bounced straight into the tunnel.
     - **Protected boss homes** [built November 9, 2026, not yet tested in-game] (Boss area, `boss/BossGrounds`; the user:
       "protect all the blocks in the bosses' structures, saying 'Magic protects this block', and putting extreme mining
-      fatigue while you mine it, like mining fatigue 99"): a player who hasn't beaten that boss yet (their Oracle quest
-      for it isn't done; `BossGrounds.hasBeaten`) can't break the blocks of a boss's home in the Dross: the Colossus's
+      fatigue while you mine it, like mining fatigue 99"): a player who hasn't beaten that boss yet (`BossGrounds.hasBeaten`:
+      since November 22, 2026 they've beaten it the moment they hold its advancement, Set in Stone, Down the Drain, The
+      Hunter Hunted or Wings Clipped, whatever their Oracle quest says, the user: "once you defeat the boss you should be
+      able to break the boss lair, not when you go back to the villager"; or their Oracle quest is past it or on it and
+      done) can't break the blocks of a boss's home in the Dross: the Colossus's
       lairs (the volcano within 10 blocks of its cone's foot, from 16 under its cavern's floor to 12 over its rim:
       `LairWard.protects`), the Rat King's whole sewer (every piece of the `dross:rat_cave` network: its grand
       entrance, royal road, tunnels and the cave with his nest and hoard; the regular sewers aren't), the Huntsman's
       villages (the `dross:huntsman_village` structure; the regular Frostfolk villages aren't) and the Emberdactyl's
       volcanoes (the cone and out 16 blocks past its foot, its pools and crust: `CraterWard.covers`). Starting to mine
-      one shows "Magic protects this block." over the hotbar (pale blue, `DrossColors.BOSS_GROUNDS_TEXT`, at most every
-      2 s) and gives Mining Fatigue level 99 (`FATIGUE_LEVEL`; 1.5 s, topped up while they keep at it, its particles
-      hidden; Minecraft's own effect list shows no numeral past X); the block makes no progress at all and its break is
-      cancelled too (a block that breaks in one hit). **Explosions** (TNT, creepers, a boss's blast) never break them
+      one is **like mining bedrock** (since November 22, 2026, the user: hitting the ground by accident in the Rat King's
+      and the Huntsman's fights "gives me the slowing effect right away"; until then Mining Fatigue 99, which also slowed
+      every swing of their sword): no cracks, no progress, nothing slowing them. Each player's game is sent the protected
+      shapes within 32 blocks of them (`BossGroundsMessage` on the quest channel, every 10 ticks when they change:
+      `GroundsShape` boxes, the structures' pieces cut to each chunk, and the lairs' and volcanoes' rounds, the very
+      shapes `LairWard.protects` and `CraterWard.covers` test), so it never starts to crack one or breaks one that
+      flickers back (`boss/client/BossGroundsClient`). "Magic protects this block." over the hotbar (pale blue,
+      `DrossColors.BOSS_GROUNDS_TEXT`, at most every 2 s) comes only once they've kept at one for half a second
+      (`MESSAGE_AFTER_TICKS`; a stray hit shows nothing); a break that gets through anyway is cancelled. **Explosions** (TNT, creepers, a boss's blast) never break them
       (since November 18, the user's TNT rule: a boss's home's blocks stay unless the player who lit it has beaten that
       boss; the hub's always). **The hub** too (since November 18, the user: "the hub gets 'Magic protects this block'
       for breaking too"; `BossGrounds.isHub`: its footprint from 4 blocks under its ground up): nobody but creative or
-      spectator players breaks a block of it, the same line and fatigue, and no explosion breaks one. Creative and spectator players, and players who have beaten that boss, aren't stopped (so the
+      spectator players breaks a block of it, the same way, and no explosion breaks one. Creative and spectator players, and players who have beaten that boss, aren't stopped (so the
       Rat King's hoard and the Emberdactyl's gold can be dug once they're beaten). Placing blocks isn't stopped. Test
       arenas, showcases and the `arena` volcano aren't protected.
     - **The Rat King's snores down his pipes** [built November 9, 2026, not yet tested in-game] (`boss/ratking/lair/
@@ -4122,10 +4130,12 @@ Built and passing the headless check, but not yet tested in-game. Check these du
   protects the Huntsman's home while he sleeps." Then `/dross quest set the_hunter_hunted`: within a few seconds they're
   out on patrol, the gear gone; leave and come back: still on patrol.
 - **Protected boss homes and the snores down the pipes** (step 19, November 9): in survival on quest 0, try to mine a
-  block of a Colossus lair's volcano, the Rat King's sewer, the Huntsman's village and an Emberdactyl volcano: "Magic
-  protects this block." over the hotbar, the Mining Fatigue icon, no cracks; a grass block or torch there doesn't break
-  either; TNT you light next to one leaves its blocks; in creative they break; once you've beaten that boss
-  (`/dross quest set` past its quest) you can dig there (the Rat King's gold). Down the Rat King's grand entrance (or
+  block of a Colossus lair's volcano, the Rat King's sewer, the Huntsman's village and an Emberdactyl volcano: no
+  cracks at all, like bedrock, and no effect (your sword swings at full speed if you hit the ground mid-fight); keep at it
+  half a second: "Magic protects this block." over the hotbar; a grass block or torch there doesn't break either (and
+  doesn't flicker); TNT you light next to one leaves its blocks; in creative they break; the moment you kill that boss
+  (its advancement in chat, even with its Oracle quest only waiting to be given) you can dig there (the Rat King's gold),
+  and so can a friend who was in the fight. Down the Rat King's grand entrance (or
   `/dross goto lair ratking` and walk back out along the tunnels): his snore from the way of his cave, faint far off,
   louder as you walk towards him, as loud as on his nest beside him; none once he's awake or beaten.
 - **The Emberdactyl's pecks turn after you** (step 16, November 9): stuck on the ground after its dive, it stays put
@@ -4550,7 +4560,9 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   first at -1606, 4097, 7 out, y 76 against its ground y 67): a snowy site's blend, worth a look.
 - **The portal site's spot past 4,500 blocks, on one seed** (World site, found November 19): in a full fresh run (world
   `gt_knights_1119c`) `PortalSiteGameTest.spotComesFromTheSeed` failed with "the spot is 4667 blocks from the world
-  spawn" (its rules want 3,500-4,500 unless relaxed). Not looked into yet.
+  spawn" (its rules want 3,500-4,500 unless relaxed). Not looked into yet. On November 22 (world `gt_grounds_1122`) the
+  other way: "the spot is 3062 blocks from the world spawn 0, 60, 0" (relaxed to rule 1, 3,539 blocks from the climate
+  sampler's spawn point: the test measures from the test world's 0, 0).
 - **The bedrock arena test once found a spot for a zombie on its roof** (Boss area, found November 6): in a full fresh
   run `BedrockArenaGameTest.nothingSpawnsInTheBedrockArena` failed with "a minecraft:zombie could spawn on the arena at
   35, 50, 66" (on its roof's top); the arena leaves blocks with a block entity alone (a chest, a bee nest) by design, so
@@ -4654,7 +4666,8 @@ Minor issues found during the early-game build. None block playing. Fix them whe
   hadn't caught up on that busy run even after the test's retries (like the room it once read dark beside its
   lanterns). Not looked into further. Again on October 25 (another fresh world), the same floor cell: worth a look.
   Again on November 9 (world `gt_knights_r3_1109`): "sunken_warren_05: the room floor at -39666, 198, 37041 has block
-  light 0".
+  light 0". Again on November 22 (world `gt_grounds_1122`): "sunken_warren_07: the room floor at -39040, 198, 37002 has
+  block light 0".
   Again on November 18 (`gt_spell_1118b`): "huntsman_village_11: the room floor at -37792, 198, 36933 has block light 0".
   Again on November 20 (`gt_full_perf_1120`): "sunken_warren_06: the room floor at -39417, 198, 36949 has block light 0".
   Again on November 20 (`gt_merge_1120b`): "sunken_warren_04: the room floor at -40018, 198, 37054 has block light 0", and

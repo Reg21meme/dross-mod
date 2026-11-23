@@ -209,6 +209,10 @@ Its working name (entity `dross:silverwood_giant`); the name in the game can cha
   village, his gear gone, and they never sleep again; so once you've reached him, every Huntsman you come near is out on
   patrol. Rimefall is locked for a player until the Rat King is beaten anyway.
 - Spawn eggs, `/dross boss summon` and the test arenas are test tools, so they're never locked.
+- **Its blocks are protected until you beat it** (`boss/BossGrounds`): mining one is like mining bedrock (no cracks,
+  nothing slows you; "Magic protects this block." once you keep at it). **The moment you beat it** (its advancement, which
+  everyone in the fight gets) they're yours to break, whatever your Oracle quest says (the user, November 22, 2026: "once
+  you defeat the boss you should be able to break the boss lair, not when you go back to the villager").
 
 ## The Oracle's spell
 The user, November 18, 2026: "every time you defeat an area ... 'all right, let me remove the barrier, so you can go

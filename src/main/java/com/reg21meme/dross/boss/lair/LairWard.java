@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.lair;
 
 import com.reg21meme.dross.boss.BossWards;
+import com.reg21meme.dross.boss.GroundsShape;
 import com.reg21meme.dross.quest.oracle.OracleBoss;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -80,13 +81,32 @@ public final class LairWard implements BossWards.Ward
     {
         for (LairKeeper.Volume lair : LairKeeper.volumes())
         {
-            if (pos.getY() >= lair.floorY() - PROTECT_BELOW && pos.getY() <= lair.rimY() + PROTECT_ABOVE
-                    && lair.distance(pos.getX() + 0.5D, pos.getZ() + 0.5D) <= CONE_BASE_RADIUS + PROTECT_OUT)
+            if (shape(lair).contains(pos))
             {
                 return true;
             }
         }
         return false;
+    }
+
+    /** The protected shapes of the built lairs that reach within {@code radius} blocks of this spot (for a player's game). */
+    public static void shapesNear(double x, double z, double radius, List<GroundsShape> out)
+    {
+        for (LairKeeper.Volume lair : LairKeeper.volumes())
+        {
+            GroundsShape.Round shape = shape(lair);
+            if (shape.near(x, z, radius))
+            {
+                out.add(shape);
+            }
+        }
+    }
+
+    /** A lair's protected blocks: round its floor's middle out past its cone's foot, from under its floor to over its rim. */
+    private static GroundsShape.Round shape(LairKeeper.Volume lair)
+    {
+        return new GroundsShape.Round(lair.cx() + 0.5D, lair.cz() + 0.5D, CONE_BASE_RADIUS + PROTECT_OUT,
+                lair.floorY() - PROTECT_BELOW, lair.rimY() + PROTECT_ABOVE, GroundsShape.Round.ROUND);
     }
 
     @Override

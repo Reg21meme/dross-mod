@@ -310,8 +310,10 @@ arenas and the showcases are never locked, and neither are creative players.
 
 **Magic protects** the bosses' homes: until you've beaten a boss you can't break the blocks of its home (the
 Colossus's lair volcanoes, the Rat King's whole sewer with his cave and gold, the Huntsman's villages, the
-Emberdactyl's volcanoes). Mining one says "Magic protects this block." and gives you Mining Fatigue so strong nothing
-breaks, and explosions leave them alone. The **hub** at Dross 0,0 is protected the same way, for good. Once you've beaten that boss you can dig there freely (its gold included).
+Emberdactyl's volcanoes). Mining one is like mining bedrock: no cracks and nothing slows you (a stray hit in a fight
+does nothing); keep at it and it says "Magic protects this block.", and explosions leave them alone. The **hub** at Dross
+0,0 is protected the same way, for good. The moment you beat that boss (its advancement: everyone in the fight gets it)
+you can dig there freely (its gold included).
 Creative players are never stopped.
 
 ---

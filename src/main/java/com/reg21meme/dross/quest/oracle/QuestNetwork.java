@@ -2,6 +2,7 @@ package com.reg21meme.dross.quest.oracle;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
+import com.reg21meme.dross.boss.BossGroundsMessage;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -17,7 +18,8 @@ import org.slf4j.Logger;
 /**
  * The quest area's network channel, {@code dross:quest} (the mod's first). Its messages, all server to client:
  * {@link OracleSyncMessage} (a player's Oracle marker, which locked lands are open for them and which barriers they've
- * seen fall), {@link OracleSpellMessage} (the Oracle casts his spell) and {@link LandFallMessage} (a barrier falls).
+ * seen fall), {@link OracleSpellMessage} (the Oracle casts his spell), {@link LandFallMessage} (a barrier falls) and the
+ * boss area's {@link BossGroundsMessage} (the protected grounds near a player that they may not break).
  * Registered in common setup (this class's own mod-bus subscriber).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID, bus = Mod.EventBusSubscriber.Bus.MOD)
@@ -26,7 +28,7 @@ public final class QuestNetwork
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /** Bump when a message's layout changes: client and server must match. */
-    private static final String PROTOCOL = "3";
+    private static final String PROTOCOL = "4";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(Dross.MODID, "quest"), () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);
@@ -62,6 +64,11 @@ public final class QuestNetwork
                 .encoder(LandFallMessage::encode)
                 .decoder(LandFallMessage::decode)
                 .consumerMainThread(LandFallMessage::handle)
+                .add();
+        CHANNEL.messageBuilder(BossGroundsMessage.class, 3, NetworkDirection.PLAY_TO_CLIENT)
+                .encoder(BossGroundsMessage::encode)
+                .decoder(BossGroundsMessage::decode)
+                .consumerMainThread(BossGroundsMessage::handle)
                 .add();
     }
 
@@ -100,7 +107,7 @@ public final class QuestNetwork
     }
 
     /** Sends a message to one player (nothing if they have no connection, like a test's half-made player). */
-    static void sendTo(ServerPlayer player, Object message)
+    public static void sendTo(ServerPlayer player, Object message)
     {
         if (player.connection == null || !registered)
         {

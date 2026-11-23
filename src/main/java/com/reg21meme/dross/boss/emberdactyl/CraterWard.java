@@ -1,6 +1,7 @@
 package com.reg21meme.dross.boss.emberdactyl;
 
 import com.reg21meme.dross.boss.BossWards;
+import com.reg21meme.dross.boss.GroundsShape;
 import com.reg21meme.dross.quest.oracle.OracleBoss;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
@@ -111,14 +112,34 @@ public final class CraterWard implements BossWards.Ward
     /** True if this block is part of the volcano (its cone, its foot's pools and crust, the ground it re-laid). */
     public boolean covers(BlockPos pos)
     {
-        if (pos.getY() < this.volcano.ground().getY() - PROTECT_BELOW || pos.getY() > this.volcano.rimY() + PROTECT_ABOVE)
+        return shape().contains(pos);
+    }
+
+    /**
+     * The volcano's protected blocks as one shape (its lobed foot pushed out {@value #PROTECT_OUT} blocks, from under its
+     * ground to over its rim): what {@link #covers} tests, and what a player's game is sent.
+     */
+    public GroundsShape.Round shape()
+    {
+        return new GroundsShape.Round(this.volcano.ground().getX() + 0.5D, this.volcano.ground().getZ() + 0.5D,
+                BASE_RADIUS + PROTECT_OUT, this.volcano.ground().getY() - PROTECT_BELOW, this.volcano.rimY() + PROTECT_ABOVE,
+                this.phases);
+    }
+
+    /** The protected shapes of the built world volcanoes that reach within {@code radius} blocks of this spot. */
+    public static void shapesNear(ServerLevel level, double x, double z, double radius, List<GroundsShape> out)
+    {
+        for (EmberVolcanoData.Volcano v : EmberVolcanoData.get(level.getServer()).all())
         {
-            return false;
+            if (v.distanceTo(x, z) <= WIDEST + radius)
+            {
+                GroundsShape.Round shape = of(level, v).shape();
+                if (shape.near(x, z, radius))
+                {
+                    out.add(shape);
+                }
+            }
         }
-        double dx = pos.getX() + 0.5D - (this.volcano.ground().getX() + 0.5D);
-        double dz = pos.getZ() + 0.5D - (this.volcano.ground().getZ() + 0.5D);
-        double r = Math.sqrt(dx * dx + dz * dz);
-        return r <= (BASE_RADIUS + PROTECT_OUT) * EmberVolcano.lobes(this.phases, Math.atan2(dz, dx));
     }
 
     /** True if this block belongs to a built world volcano (the Dross only; a test arena's volcano isn't one). */
