@@ -10,9 +10,7 @@ import com.reg21meme.dross.villager.DrossCompass;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraftforge.registries.DeferredRegister;
 import net.minecraftforge.registries.RegistryObject;
 
@@ -29,7 +27,6 @@ public final class ModCreativeTabs
      *   <li>Trophies: every design of every boss trophy</li>
      *   <li>Spawn eggs: the trader, the bosses and their minions, and any other mob</li>
      *   <li>Weapons and tools: the Admin Sword and the like</li>
-     *   <li>Enchanted books: every level of Necromancy, then every level of Deathforged</li>
      *   <li>Materials: ore materials and the like (Raw Moonsilver, Moonsilver Ingot, Stormite Shard)</li>
      *   <li>Crops: what plants Rimefall's crops (Frostroot, Snow Lichen, Rimeberries)</li>
      * </ol>
@@ -171,24 +168,13 @@ public final class ModCreativeTabs
                         // Boss area: the Rage Bow (its arrows rage every mob round where they land)
                         output.accept(ModItems.RAGE_BOW.get());
 
-                        // 6. Enchanted books
-                        // Enchantments area: a book for every level of Necromancy (I-V), then Deathforged (I-X).
-                        for (int level = 1; level <= ModEnchantments.NECROMANCY.get().getMaxLevel(); level++)
-                        {
-                            output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.NECROMANCY.get(), level)));
-                        }
-                        for (int level = 1; level <= ModEnchantments.DEATHFORGED.get().getMaxLevel(); level++)
-                        {
-                            output.accept(EnchantedBookItem.createForEnchantment(new EnchantmentInstance(ModEnchantments.DEATHFORGED.get(), level)));
-                        }
-
-                        // 7. Materials
+                        // 6. Materials
                         // Dimension area: the Dross's ore materials
                         output.accept(ModItems.RAW_MOONSILVER.get());
                         output.accept(ModItems.MOONSILVER_INGOT.get());
                         output.accept(ModItems.STORMITE_SHARD.get());
 
-                        // 8. Crops
+                        // 7. Crops
                         // Boss area: Rimefall's crops (boss/huntsman/village/HunterCrops)
                         output.accept(ModItems.FROSTROOT.get());
                         output.accept(ModItems.SNOW_LICHEN.get());

@@ -9,7 +9,6 @@ import com.reg21meme.dross.boss.BossGroundsMessage;
 import com.reg21meme.dross.boss.GroundsShape;
 import com.reg21meme.dross.boss.golem.ColossusGameTest;
 import com.reg21meme.dross.dimension.DrossBiomes;
-import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.quest.QuestCommands;
 import com.reg21meme.dross.quest.QuestProgressData;
@@ -69,7 +68,7 @@ import java.util.function.Consumer;
  *   <li>a fresh player is on quest 0 with the red ? marker; clicking through his story grants "The Oracle's Plea" and
  *       makes quest 1 waiting; a walk-off mid-offer carries on at the next line;</li>
  *   <li>kills count only on their quest, the last one grants its advancement and makes it DONE; a tamed wolf's and a
- *       risen undead's kills count for their owner; a calf doesn't count where grown beasts are wanted;</li>
+ *       kills count for their owner; a calf doesn't count where grown beasts are wanted;</li>
  *   <li>a boss quest is DONE at once when its advancement is already held, and when it's earned while it's going;</li>
  *   <li>the last quest grants "Defeat the Dross" and sets off the fireworks;</li>
  *   <li>the lands and bosses follow the quest, creative and spectator are exempt;</li>
@@ -399,9 +398,9 @@ public final class OracleQuestGameTest
     }
 
     @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
-    public static void petsAndRisenKillsCount(GameTestHelper helper)
+    public static void petsKillsCount(GameTestHelper helper)
     {
-        run(helper, OracleQuestGameTest::petsAndRisenKillsCount, (h, players) -> {
+        run(helper, OracleQuestGameTest::petsKillsCount, (h, players) -> {
             ServerPlayer player = join(h, players, "oracle_wolf_owner", GameType.CREATIVE);
             OracleProgress.setQuest(player, OracleQuests.BENEATH_THE_ROT);
             hearOffer(player);
@@ -414,19 +413,10 @@ public final class OracleQuestGameTest
             expect(OracleProgress.kills(player) == 1, "a rat killed by the player's tamed wolf should count, kills: "
                     + OracleProgress.kills(player));
 
-            Mob risen = spawn(h, EntityType.ZOMBIE, MIDDLE.offset(-2, 0, 2));
-            risen.getPersistentData().putUUID(RisenUndead.OWNER_KEY, player.getUUID());
-            LivingEntity ravager = spawn(h, ModEntities.ENRAGED_RAT.get(), MIDDLE.offset(-3, 0, 2));
-            ravager.hurt(risen.damageSources().mobAttack(risen), 1000.0F);
-            expect(!ravager.isAlive(), "the risen zombie's blow should kill the Ravager");
-            expect(OracleProgress.kills(player) == 2, "a Ravager killed by the player's risen undead should count, kills: "
-                    + OracleProgress.kills(player));
-            risen.discard();
-
             Wolf stray = spawn(h, EntityType.WOLF, MIDDLE.offset(2, 0, -2));
             LivingEntity other = spawn(h, ModEntities.RAT.get(), MIDDLE.offset(3, 0, -2));
             other.hurt(stray.damageSources().mobAttack(stray), 1000.0F);
-            expect(OracleProgress.kills(player) == 2, "a wild wolf's kill shouldn't count for anyone");
+            expect(OracleProgress.kills(player) == 1, "a wild wolf's kill shouldn't count for anyone");
             wolf.discard();
             stray.discard();
         });

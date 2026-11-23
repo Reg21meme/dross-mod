@@ -1,6 +1,6 @@
 # Dross
 
-A Minecraft Forge mod that adds **the Dross**: a dangerous dimension of endless night, with its own forests, wastes and mountains, reached through an electric blue rift portal. Getting there takes a quest. You find an old letter in the Nether, prove yourself to a strange villager, and have him forge the key that opens the rift. The mod also adds two necromancy enchantments that raise the undead to fight for you.
+A Minecraft Forge mod that adds **the Dross**: a dangerous dimension of endless night, with its own forests, wastes and mountains, reached through an electric blue rift portal. Getting there takes a quest. You find an old letter in the Nether, prove yourself to a strange villager, and have him forge the key that opens the rift.
 
 The Dross is a **mid-to-late game** place. You reach it after surviving the Nether, the deep dark, the ocean and the End, not after beating every boss. There is one way in (the portal at the Fallen Cathedral) and one way out (the hub's portal).
 
@@ -34,7 +34,6 @@ How a player moves through the mod, from a normal survival world to the Dross.
 7. **The Dross.** Stepping through takes you to the **Shattered Spire**, the hub at Dross 0,0. The words "The Dross" fade in over four low piano notes. *Advancement: Enter the Dross*, the main achievement. On your first arrival you also get the **Dross Guide Book**. Two survivors, the Blind Oracle and the Ragged Seeker, keep watch at the spire.
 8. **The Blind Oracle's quests.** At the survivors' camp the Blind Oracle tells you his story and asks for your help, then sends you out one quest at a time: three of the Silverwood Forest's giants first, then for each boss a hunt in its land and then the boss itself (the Cinder Colossus, the Rat King, the Huntsman, the Emberdactyl), ending in *Defeat the Dross*. See [The Blind Oracle's quests](#the-blind-oracles-quests).
 9. **Exploring.** Round the hub lies the Silverwood Forest; further out are the Cinder Wastes, Blightwood, Rimefall and the Gravecrags' peaks. The Cinder Wastes, Blightwood and Rimefall stay locked until the Oracle's quests reach them. Somewhere in the Cinder Wastes a volcano holds the **Cinder Colossus**. *Advancement: Set in Stone.*
-10. **Necromancy.** The trader sells the Necromancy and Deathforged enchanted books, and Deathforged books also drop in the Dross. Raising your first undead earns *Rise!*
 
 **Lost items:**
 - If you lose the compass, the trader gives you a new one for free.
@@ -66,7 +65,6 @@ How a player moves through the mod, from a normal survival world to the Dross.
   - **Zombies** spawn in full netherite armor with a netherite sword.
   - **Skeletons** spawn in full netherite armor and keep their bows.
   - None of it is enchanted, and none of it drops when they die.
-  - These geared mobs are the only source of dropped Deathforged books (see Enchantments).
 - **No other way out:** no portal can be lit inside the Dross. The Rift Key does nothing there, and flint and steel or fire can't light a nether portal there either. The hub's portal is the only exit.
 - **Safe zone:** no hostile mobs spawn naturally within 48 blocks of the hub center. Mobs can still walk in from the dark.
 
@@ -225,7 +223,7 @@ The site's position and the frame's direction are available to the rest of the m
 Two survivors of the Dross live at the spire (`dross:survivor`): **the Blind Oracle**, the mentor, and **the Ragged Seeker**, his student. They wear two of the Dross skins drawn for the trader's villager model (8 and 3).
 - They live in their **camp** at the foot of the spire's front steps, west of the road: a slab of the spire's broken crown on four broken pillars behind a windbreak of masonry, the Oracle's seat by a humming shard of a Dross frame among his books and candles, the Seeker's bed among his crates and tools, and a blue soul fire with benches in front. They walk together round the camp (the fire, the books, the tools, the road), never more than 6 blocks outside it. They come with the hub's land, once per world.
 - Right-click the **Blind Oracle** and he gives you his quests, a line a click, with a marker over his head (see [The Blind Oracle's quests](#the-blind-oracles-quests)); once they're all done he talks to you as an old friend (7 new lines, in turn). Right-click the **Ragged Seeker** and he says his next line in chat; while you're after one of the big bosses (the Colossus, the Rat King, the Huntsman, the Emberdactyl) he jokes about it instead, and has a line for you once it's beaten.
-- Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them, and Necromancy never raises undead from hitting them.
+- Like the trader, they can be hit and knocked back but never die: at half health they heal and pop back to their spots. Hostile mobs ignore them.
 - No trades.
 
 ---
@@ -256,8 +254,8 @@ There's a kill quest only the first time you go into a land; after that he sends
   he stopped.
 - **The marker over his head** (only you see yours): a red **?** (a new quest is waiting), a yellow **...** (it's
   going), a green **!** (it's done: go back to him). Seen from about 48 blocks.
-- **Kills that count:** only while that quest is going: your own kills (a blow, an arrow, a thrown spear), your tamed
-  wolf's and your Necromancy risen undead's. Each one shows your progress above the hotbar ("Into the Ashes: 2 / 3").
+- **Kills that count:** only while that quest is going: your own kills (a blow, an arrow, a thrown spear) and your tamed
+  wolf's. Each one shows your progress above the hotbar ("Into the Ashes: 2 / 3").
 - **Bosses:** a boss quest is done when you get the boss's advancement. If you already beat that boss (say with a
   friend before your quest got there), the quest is done as soon as he gives it.
 - After "Defeat the Dross" ("You've beaten everything the Dross has to offer. Come back later to face more dangerous
@@ -297,7 +295,7 @@ Huntsman).
 A boss **at home** (the Colossus in its lair, the Rat King in his rat cave, the Huntsman at his village, the
 Emberdactyl on its volcano) only fights players whose quest has reached it (they've heard its quest from the Oracle).
 To anyone else it acts as if they weren't there: it doesn't rise, wake or come home for them, never attacks them,
-their hits (and their pets' and risen undead's) do nothing to it, and they don't make it stronger or keep it from
+their hits (and their pets') do nothing to it, and they don't make it stronger or keep it from
 resetting. Its arena is **warded**: walk into the Colossus's cavern, the Rat King's cave or onto the Emberdactyl's
 volcano (anywhere from its foot up) too early and you're bounced back out, with a flash of runes and a soft chime (an
 ender pearl in: you're sent back to where you were). The Rat King still lies asleep on his nest where you can see him
@@ -353,8 +351,6 @@ His shop opens only for players who have completed the quest.
 
 | Offer | Price |
 |---|---|
-| Necromancy book (lowest level) | 32 emeralds + 1 book |
-| Deathforged I book | 24 emeralds + 1 book |
 | Dross Guide Book (only for players with *Enter the Dross*) | 3 books |
 
 Unlimited uses, no restocking, no XP.
@@ -371,7 +367,7 @@ Unlimited uses, no restocking, no XP.
 | **Dross Guide Book** | Given on your first arrival in the Dross, and sold by the trader. A readable 5-page guide to the dimension: endless night, the safe hub, the netherite-clad dead, and no way out but the hub. |
 | **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
-| **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon, the Wither and every Dross boss, whatever stage it's in) while still counting as your kill (a boss's advancement and trophy too). Unbreakable and fireproof. It never hurts your own risen undead, and it hits the trader like a normal sword. |
+| **Admin Sword** | A testing sword (creative tab). Kills anything in one hit (including the Ender Dragon, the Wither and every Dross boss, whatever stage it's in) while still counting as your kill (a boss's advancement and trophy too). Unbreakable and fireproof. It hits the trader like a normal sword. |
 | **Rage Wand** | A creative-only testing wand with five **teams** (blue, red, green, yellow, purple: right-click to switch; the crystal shows the colour). Hit a mob with it (no damage) to give it **Rage** and the wand's team: mobs of different teams fight each other, never their own team, and ignore players while an enemy team is near. Teams and Rage last forever, not even milk cures them. Mobs use their own attacks; animals with none headbutt (1 heart). Bosses work too, and their minions join their team. See [The Rage Wand](#the-rage-wand). |
 | **Cinder Colossus Trophy** | A one-block miniature of the Cinder Colossus, in one of five poses (the tooltip names it). Place it on the floor and it faces you; right-click it to change its pose (1 to 5, then round again). Its lava glows and keeps flowing down it. The boss drops one for every player who helped beat it. Fireproof, never despawns (see [The Cinder Colossus](#the-cinder-colossus-mini-boss)). |
 | **Rat King Trophy** | A one-block miniature of the Rat King in one of five poses (the tooltip names it). Right-click a placed one to change its pose. The Rat King gives one to every player who helped beat him. Fireproof, never despawns (see [The Rat King](#the-rat-king)). |
@@ -384,84 +380,7 @@ Unlimited uses, no restocking, no XP.
 | **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
 | **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
-**The creative "Dross" tab** holds every item above, plus enchanted books for every level of Necromancy and Deathforged. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer, the Cinder Hermit, then the Silverwood Giant), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **enchanted books** (Necromancy I-V, then Deathforged I-X), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
-
----
-
-## Enchantments
-
-Both are **swords only** and **treasure enchantments**. They never come from the enchanting table, loot chests, fishing or normal librarians.
-
-### Necromancy (I–V)
-*"Hits have a chance to raise the undead to fight for you."*
-
-| Level | Chance per hit | Max alive | Soul capacity | Undead it can raise |
-|---|---|---|---|---|
-| I | 15% | 1 | 25 | zombie, skeleton |
-| II | 20% | 2 | 50 | zombie, skeleton |
-| III | 25% | 4 | 100 | + husk, stray, drowned |
-| IV | 30% | 6 | 250 | + chicken jockey, spider jockey, skeleton horseman |
-| V (admin, testing) | 100% | 10 | infinite | same as IV |
-
-- **Which hits count:** only a melee hit with the sword in your main hand, on the main target of the swing. Sweep hits never count. Hitting a player, the trader, the hub's survivors or your own risen undead never raises any.
-- **How many rise:**
-  - If none of yours are alive, a successful hit raises the full max. Otherwise it raises half the max, rounded up, never going over the max.
-  - Each one costs **1 soul**. Jockeys and horsemen cost 2.
-  - The type is random from what your level unlocks.
-- **Souls:**
-  - Killing any zombie or skeleton (or a variant) with the sword stores 1 soul, up to the level's capacity, and a blue wisp flies from the mob into your hand. Risen undead give no souls.
-  - Souls are stored **on the sword**, so each sword has its own count. The tooltip shows "Souls: X / Y" in gold ("Souls: ∞" at level V, which never spends souls).
-
-### The risen undead
-- **Real vanilla mobs:** they're normal zombies, skeletons and so on, owned by you, and they fight as a **pack**.
-- **Choosing a target**, in order:
-  1. anything attacking or targeting you;
-  2. whatever you hit in the last 5 seconds;
-  3. anything that hurt them;
-  4. any fight another of your risen undead is in.
-
-  Otherwise they follow you. Once fighting, they stick with their target until it dies, then help allies before coming back to you.
-- **Who they leave alone:** they never hurt players, the trader, the hub's survivors, villagers, wandering traders or each other. Your own hits never hurt them.
-- **Mobs fight back:** any mob they damage turns on them, even other undead.
-- **Your allies leave them alone:** iron golems (village or player-built), snow golems and tamed wolves (anyone's) never target, chase or hurt your risen undead, and drop any fight with one within half a second. A golem still spots a real monster standing behind them. Your risen undead never pick a golem or a wolf on their own (not even when a zombie the golem is fighting calls nearby zombies for help), but they still defend you from one that attacks you and join in when you hit one (it just won't hit back). The only exception is the Rage Wand: raged on different teams, they fight.
-- **Risen drowned** fight on land, day or night.
-- **How long they last:** they crumble into blue particles after **60 seconds**, or early if you log out, die or change dimension.
-- **What they never do:** drop items, give XP, pick things up, use portals or convert into other mobs. Normal burning rules apply.
-- **Peaceful:** on Peaceful, Necromancy does nothing.
-
-### Deathforged (I–X)
-*"Your risen undead come armored. Higher levels forge stronger gear."* Does nothing without Necromancy on the same sword.
-
-| Level | Armor (all types) | Sword (zombie types) |
-|---|---|---|
-| — (none) | none | none |
-| I | Leather | none |
-| II | Leather | Wooden |
-| III | Gold | Gold |
-| IV | Chainmail | Stone |
-| V | Iron | Stone |
-| VI | Iron | Iron |
-| VII | Diamond | Iron |
-| VIII | Diamond | Diamond |
-| IX | Netherite | Netherite |
-| X | Netherite | Netherite, plus Strength I and Speed I for their whole life |
-
-- **Nothing is enchanted**, and none of the gear drops.
-- **Skeleton types** (skeletons, strays, the riders of spider jockeys and horsemen) always hold a plain bow instead of a sword.
-- **Mounts** (chickens, spiders, horses) get no gear.
-- Level X's effects show no swirling particles, and they don't glow.
-
-### Anvil rules
-- **Deathforged I–V** combine like vanilla enchantments (I + I → II … IV + IV → V), up to V. Levels VI–X can't be combined, but a single VI–X book can go onto a sword without Deathforged.
-- **Necromancy never levels up at an anvil.** Two Necromancy swords can be combined: the result keeps the higher level, and the souls from both swords add up, capped at its capacity.
-- **Not allowed:**
-  - Necromancy with Smite.
-  - A combine that changes nothing.
-
-### Getting them
-- **From the trader**, after the quest: Necromancy (lowest level) and Deathforged I.
-- **As drops in the Dross:** Deathforged books drop only from the netherite-clad zombies and skeletons of the Dross, when a player hit them recently. The chance is 5% per kill, plus 1% per Looting level. Higher levels are rarer (weights I–X: 25, 20, 15, 12, 9, 7, 5, 4, 2, 1).
-- **Since November 9, 2026** the Silverwood Forest has no zombies or skeletons (the Silverwood Giants took their place), so in the Dross only **the Gravecrags** still have them: that's where the books drop and, inside the Dross, the only place to gather Necromancy souls (zombies and skeletons anywhere else, like the Overworld's, still give souls). New ways to get both will come later.
+**The creative "Dross" tab** holds every item above. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer, the Cinder Hermit, then the Silverwood Giant), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -547,11 +466,8 @@ shell bursting's 2.
 `ColossusTuning` (the user's table): up close it swipes and slams, further out it charges, throws and lobs, and very
 far away it mostly charges.
 
-**Against Necromancy:** with your risen undead nearby it raises one golem for every two of them (never more than 6),
-its golems go for the risen undead first, and when three or more of them crowd it, it slams more often.
-
 It's a slow stone brute, so it can't be beaten easily from afar: **arrows and other projectiles** (tridents,
-fireballs, snowballs, your risen skeletons' arrows) deal only **50%** of their damage in the Shell stage, **35%** in
+fireballs, snowballs) deal only **50%** of their damage in the Shell stage, **35%** in
 Cracking and **15%** in the Lava Core. You can tell: they clink off the stone with a few sparks, and in the Lava Core
 they hiss and burn up in a puff of smoke. Melee hits are never reduced, and its minions take full damage from
 anything. The minions are quick on their feet: stone golems walk about 3 blocks a second and lava golems about 4.6
@@ -923,11 +839,10 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | Proven Worthy | Bring the trader his three tributes | |
 | Keymaster | Have the trader forge the Rift Key | |
 | **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
-| Rise! | Raise the undead with Necromancy | Challenge |
 | The Oracle's Plea | Hear the Blind Oracle's story | Under *Enter the Dross*: the start of the Oracle's chain |
 | Giant Slayer | Bring down three of the Silverwood Giants | The Oracle's quest (the kills count only while it's going) |
 | Into the Ashes | Slay three creatures of the Cinder Wastes | The Oracle's quest |
-| Set in Stone | Defeat the Cinder Colossus | Challenge, under *Into the Ashes*. Goes to the player who killed it (their arrows, pets and risen undead count) and everyone within 40 blocks when it dies |
+| Set in Stone | Defeat the Cinder Colossus | Challenge, under *Into the Ashes*. Goes to the player who killed it (their arrows and pets count) and everyone within 40 blocks when it dies |
 | Beneath the Rot | Kill three of Blightwood's creatures | The Oracle's quest |
 | Down the Drain | End the Rat King's reign beneath Blightwood | Challenge, under *Beneath the Rot*. Goes to the player who killed him and everyone within 40 blocks when he dies |
 | First Frost | Hunt three of Rimefall's grown beasts | The Oracle's quest |
@@ -936,8 +851,7 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | **Defeat the Dross** | Hear the Blind Oracle's last words, after the Emberdactyl | Challenge, with blue fireworks: "You've beaten everything the Dross has to offer. Come back later to face more dangerous foes." |
 
 The Oracle's quests make one chain under *Enter the Dross*, from *The Oracle's Plea* to *Defeat the Dross*, with the
-four bosses' challenges in it (until November 9, 2026 those hung straight off *Enter the Dross*). *Rise!* stays beside
-it.
+four bosses' challenges in it (until November 9, 2026 those hung straight off *Enter the Dross*).
 
 ---
 
@@ -947,7 +861,6 @@ The Dross's color is **electric blue**: main `#2E6BFF`, deep cobalt `#0B2A9E`, h
 - the portal, its particles and screen swirl;
 - the frame's cracks;
 - the trader's glow and particles;
-- the risen undead's wisps and puffs;
 - the arrival title.
 
 Every color lives in one place, `DrossColors.java`.
@@ -976,7 +889,7 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
 | `/dross trader sendhome` | Sends the nearest trader whose land is loaded home. |
 | `/dross quest status` | Shows your quest progress, the Blind Oracle's quest too (which one, how far, the marker over him). |
-| `/dross quest reset` | Clears your quest progress, the Guide Book flag and the Blind Oracle's quests, and revokes the Dross advancements (except *Rise!* and the four bosses': *Set in Stone*, *Down the Drain*, *The Hunter Hunted*, *Wings Clipped*). |
+| `/dross quest reset` | Clears your quest progress, the Guide Book flag and the Blind Oracle's quests, and revokes the Dross advancements (except the four bosses': *Set in Stone*, *Down the Drain*, *The Hunter Hunted*, *Wings Clipped*). |
 | `/dross quest complete` | Finishes the trader's quest for you. |
 | `/dross quest skip` | Finishes the Blind Oracle's quest step you're on (with its own advancement; a boss's only comes from beating it) and makes the next quest wait for you. |
 | `/dross quest set <quest>` | Jumps you to one of the Blind Oracle's quests, by its advancement's name (`oracle_plea`, `giant_slayer`, `into_the_ashes`, `set_in_stone`, `beneath_the_rot`, `down_the_drain`, `first_frost`, `the_hunter_hunted`, `wings_clipped`, `defeat_the_dross`), waiting to be given: its land or boss opens once you've heard him offer it. |
@@ -1114,7 +1027,6 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 | `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (a world-generation structure fitted onto the terrain), the arrival sequence |
 | `world` | The portal site: its spot from the seed, the Fallen Cathedral as a world-generation structure, the tree tidy-up, ground fitting, the leak (`world/shrine` holds the shrine designs) |
 | `villager` | The trader, his Rift Chapel (a world-generation structure at a village the seed picks; the "once a village" rule), dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors (the Blind Oracle's quest talk and the marker over him) |
-| `enchant` | Necromancy, Deathforged, souls, the risen undead, anvil rules, book drops |
 | `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book; the Blind Oracle's quest line (`quest/oracle`: the quests, their progress, kill counting, the rules for the locked lands and bosses) |
 | `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss`; the locked bosses and their warded arenas (`BossLocks`, `BossWards`); the Silverwood Giant (`boss/giant`) |
 | `command` | The `/dross` command and its showcases |

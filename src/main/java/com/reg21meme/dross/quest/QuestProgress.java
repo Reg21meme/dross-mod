@@ -278,7 +278,7 @@ public final class QuestProgress
     /**
      * Clears all of this player's quest progress (including the Guide Book flag and the Blind Oracle's quests) and takes
      * away the quest advancements (root, A Weathered Letter, Proven Worthy, Keymaster, Enter the Dross, and the Oracle's
-     * own ones and "Defeat the Dross"; never "Rise!" or the bosses'). Items they already have are not taken.
+     * own ones and "Defeat the Dross"; never the bosses'). Items they already have are not taken.
      */
     public static void reset(ServerPlayer player)
     {

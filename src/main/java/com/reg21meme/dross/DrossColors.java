@@ -81,17 +81,6 @@ public final class DrossColors {
     /** The faint glow round each marker's outline: the Dross's light blue. */
     public static final int QUEST_MARKER_GLOW = PALETTE_HIGHLIGHT;
 
-    // ---------------------------------------------------------------- Enchantments (enchant-builder)
-
-    /** Soul wisp that flies from a killed mob to the player. Used in enchant/NecromancyEvents. */
-    public static final int SOUL_WISP = PALETTE_MAIN;
-
-    /** Puff when risen undead rise or crumble. Used in enchant/RisenUndead. */
-    public static final int RISEN_PUFF = PALETTE_MAIN;
-
-    /** "Souls: X / Y" tooltip text. Stays gold (user decision). Used in enchant/client/SoulTooltip. */
-    public static final ChatFormatting SOUL_TOOLTIP = ChatFormatting.GOLD;
-
     // ---------------------------------------------------------------- Quest (quest-builder)
 
     /** The "Right-click to read" tooltip line on the Weathered Letter and the Dross Guide Book. Used in quest/ReadableItem. */

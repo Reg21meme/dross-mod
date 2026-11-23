@@ -1,6 +1,5 @@
 package com.reg21meme.dross.villager;
 
-import com.reg21meme.dross.enchant.RisenUndead;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
@@ -33,10 +32,6 @@ public class AdminSwordItem extends SwordItem
         if (!(target instanceof LivingEntity living) || living instanceof DrossTrader || living instanceof Survivor)
         {
             return false; // boats, item frames, the trader, the hub's survivors...: a normal hit
-        }
-        if (player.getUUID().equals(RisenUndead.getOwnerId(living)))
-        {
-            return true; // your own risen undead: cancel the hit entirely, no damage
         }
         if (!player.level().isClientSide && living.isAlive())
         {

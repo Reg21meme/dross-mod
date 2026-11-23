@@ -4,7 +4,6 @@ import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.boss.rage.RageLeader;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
-import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModSounds;
@@ -105,7 +104,7 @@ import java.util.UUID;
  * run by {@link ColossusAttackGoal}. A boss bar shows for players within {@link ColossusTuning#BOSS_BAR_RANGE} blocks
  * (drawn by {@code boss.client.DrossBossBars}). When it dies it cools into an obsidian statue that stands for
  * {@link ColossusTuning#STATUE_TICKS} ticks and then crumbles; its minions crumble at once. The player who killed it
- * (or whose arrow or risen undead did) and every player within the boss bar's range get the "Set in Stone"
+ * (or whose arrow did) and every player within the boss bar's range get the "Set in Stone"
  * advancement. It never despawns (except on Peaceful, like every monster) and never spawns by itself. It follows
  * {@link BossRules} ({@link DrossBoss}): a hit takes at most a fifteenth of its health, more players make it stronger,
  * and with nobody near for 3 minutes it goes back to full health, dormant in its Shell ({@link #resetFight}).
@@ -231,7 +230,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader, Dr
     /** Server: its boss bar (made when it first fights). */
     @Nullable
     private ServerBossEvent bossBar;
-    /** Server: the last player credited with a hit (directly, or through their arrows, pets or risen undead), and when. */
+    /** Server: the last player credited with a hit (directly, or through their arrows or pets), and when. */
     @Nullable
     private UUID creditPlayer;
     private int creditTick;
@@ -488,7 +487,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader, Dr
 
     /**
      * True for ranged damage, which {@link ColossusStage#rangedDamageTaken} reduces: anything tagged
-     * {@code minecraft:is_projectile} (arrows, risen skeletons' too, tridents, fireballs, snowballs...), unless it
+     * {@code minecraft:is_projectile} (arrows, tridents, fireballs, snowballs...), unless it
      * bypasses invulnerability ({@code /kill}).
      */
     static boolean isRanged(DamageSource source)
@@ -597,7 +596,7 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader, Dr
         return super.isInvulnerableTo(source);
     }
 
-    /** Remembers which player gets the credit for a hit: theirs, their arrow's, their pet's or their risen undead's. */
+    /** Remembers which player gets the credit for a hit: theirs, their arrow's or their pet's. */
     private void noteCredit(DamageSource source)
     {
         UUID player = creditFor(source);
@@ -617,20 +616,11 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader, Dr
         {
             return player.getUUID();
         }
-        UUID owner = RisenUndead.getOwnerId(attacker);
-        if (owner == null)
+        if (attacker instanceof OwnableEntity pet)
         {
-            owner = RisenUndead.getOwnerId(direct);
+            return pet.getOwnerUUID();
         }
-        if (owner == null && direct != null && direct.getPersistentData().hasUUID(RisenUndead.PROJECTILE_OWNER_KEY))
-        {
-            owner = direct.getPersistentData().getUUID(RisenUndead.PROJECTILE_OWNER_KEY);
-        }
-        if (owner == null && attacker instanceof OwnableEntity pet)
-        {
-            owner = pet.getOwnerUUID();
-        }
-        return owner;
+        return null;
     }
 
     /**
@@ -1041,23 +1031,6 @@ public class CinderColossus extends Monster implements GeoEntity, RageLeader, Dr
         level.sendParticles(ParticleTypes.LARGE_SMOKE, this.getX(), this.getY() + 0.5D, this.getZ(), ROAR_SMOKE,
                 this.getBbWidth() * 0.5D, 0.3D, this.getBbWidth() * 0.5D, 0.05D);
         this.roarRing = 1;
-    }
-
-    /**
-     * True for a player's risen undead (raised by Necromancy; the enchant area's own check), not a jockey's mount: the
-     * Colossus summons golems against them, and its golems go for them first.
-     */
-    static boolean isRisenUndead(Entity entity)
-    {
-        return entity instanceof Mob && entity.isAlive() && RisenUndead.isRisen(entity)
-                && !entity.getPersistentData().getBoolean(RisenUndead.MOUNT_KEY);
-    }
-
-    /** The risen undead (see {@link #isRisenUndead}) within {@code range} blocks of it. */
-    List<Mob> risenNear(double range)
-    {
-        return this.level().getEntitiesOfClass(Mob.class, this.getBoundingBox().inflate(range),
-                mob -> isRisenUndead(mob) && mob.distanceToSqr(this) <= range * range);
     }
 
     /** Its fighting AI (for {@link ColossusGameTest}, which starts moves itself). Null only before its goals exist. */

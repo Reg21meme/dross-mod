@@ -16,10 +16,10 @@ import java.util.List;
  * {@code data/dross/advancements/}). All Dross advancements use the {@code minecraft:impossible}
  * trigger, so the only way to get them is from code, through {@link #grant}.
  *
- * <p>Example (from any area): {@code DrossAdvancements.grant(player, DrossAdvancements.RISE);}</p>
+ * <p>Example (from any area): {@code DrossAdvancements.grant(player, DrossAdvancements.SET_IN_STONE);}</p>
  *
  * <p>The Dross tab, in order: {@link #ROOT} (silent, unlocks the tab) → {@link #WEATHERED_LETTER} →
- * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose children are {@link #RISE} and the
+ * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose child is the
  * Blind Oracle's chain (QUEST_PLAN.md): {@link #ORACLE_PLEA} → {@link #GIANT_SLAYER} → {@link #INTO_THE_ASHES} →
  * {@link #SET_IN_STONE} → {@link #BENEATH_THE_ROT} → {@link #DOWN_THE_DRAIN} → {@link #FIRST_FROST} →
  * {@link #THE_HUNTER_HUNTED} → {@link #WINGS_CLIPPED} → {@link #DEFEAT_THE_DROSS}.
@@ -40,8 +40,6 @@ public final class DrossAdvancements
     public static final String KEYMASTER = "keymaster";
     /** "Enter the Dross" (the main achievement): the portal area grants it at the end of the arrival sequence. */
     public static final String ENTERED_THE_DROSS = "entered_the_dross";
-    /** "Rise!": the enchantments area grants it the first time a player raises undead. */
-    public static final String RISE = "rise";
     /** "Set in Stone": the boss area grants it when a player defeats the Cinder Colossus. It also finishes the Oracle's quest for that boss. */
     public static final String SET_IN_STONE = "set_in_stone";
     /** "Down the Drain": the boss area grants it when a player defeats the Rat King. It also finishes the Oracle's quest for that boss. */
@@ -66,7 +64,7 @@ public final class DrossAdvancements
     /** "Defeat the Dross" (challenge, with blue fireworks): the Oracle's last words, after the Emberdactyl. */
     public static final String DEFEAT_THE_DROSS = "defeat_the_dross";
 
-    /** The advancements {@code /dross quest reset} takes away ("Rise!", "Set in Stone" and "Down the Drain" stay: they're about Necromancy and the bosses, not the quest). */
+    /** The advancements {@code /dross quest reset} takes away ("Set in Stone" and "Down the Drain" stay: they're about the bosses, not the quest). */
     static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, PROVEN_WORTHY, KEYMASTER, ENTERED_THE_DROSS);
 
     private DrossAdvancements() {}
@@ -75,7 +73,7 @@ public final class DrossAdvancements
      * Grants the advancement {@code dross:<id>} to the player (every criterion it has).
      * Does nothing if they already have it. If no such advancement exists, logs a warning and does nothing.
      *
-     * @param id the advancement's file name without ".json", for example {@link #RISE} ("rise")
+     * @param id the advancement's file name without ".json", for example {@link #SET_IN_STONE} ("set_in_stone")
      */
     public static void grant(ServerPlayer player, String id)
     {

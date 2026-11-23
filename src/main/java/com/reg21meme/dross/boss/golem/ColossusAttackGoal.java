@@ -45,7 +45,7 @@ import java.util.Set;
  *       the Cracking and Lava Core stages it leaves a trail of fire;</li>
  *   <li><b>lob</b> (Cracking and Lava Core): its volcanoes spit lava blobs ({@link LavaBlob}) that land a few blocks
  *       from the player and leave pools of temporary lava;</li>
- *   <li><b>summon</b> (Cracking and Lava Core, and any stage while a player's risen undead are near): it pounds the
+ *   <li><b>summon</b> (Cracking and Lava Core): it pounds the
  *       ground three times and minions rise at the pounds (to its left, its right, in front of it): stone golems, or
  *       lava golems in the Lava Core stage.</li>
  * </ul>
@@ -57,10 +57,6 @@ import java.util.Set;
  * It faces its target nearly all the time (the user's wish: about 90% of the fight): it walks straight at it when the
  * way is clear ({@link BossChase}), turns to it standing and through its moves ({@link #tracks}), except the moment a
  * move commits to a direction and the charge's gallop, and after a charge it wheels round to face it again.
- * <p>
- * Against Necromancy's risen undead (when they're within {@link ColossusTuning#RISEN_RANGE} blocks): a summon raises
- * one golem for every two of them, the golems go for them first, and while it has fewer golems than half of them it may
- * summon in every stage. When three or more attack it up close, its close-range moves lean from the swipe to the slam.
  */
 public class ColossusAttackGoal extends Goal
 {
@@ -337,15 +333,12 @@ public class ColossusAttackGoal extends Goal
             return null; // beyond the charge's reach: it walks closer
         }
         ColossusStage stage = this.golem.stage();
-        int risen = this.golem.risenNear(ColossusTuning.RISEN_RANGE).size();
         int golems = this.golem.minions().size();
-        boolean risenSummon = risenSummonOpen(risen, golems);
-        boolean swarmed = band == Band.CLOSE && this.swarmCount() >= ColossusTuning.SWARM_ATTACKERS;
-        EnumMap<Move, Integer> weights = weights(stage, band, swarmed, risenSummon);
+        EnumMap<Move, Integer> weights = weights(stage, band);
         Set<Move> available = EnumSet.noneOf(Move.class);
         for (Move move : weights.keySet())
         {
-            if (weights.get(move) > 0 && this.fits(move, target, dist, stage, golems, risenSummon))
+            if (weights.get(move) > 0 && this.fits(move, target, dist, stage, golems))
             {
                 available.add(move);
             }
@@ -353,13 +346,8 @@ public class ColossusAttackGoal extends Goal
         return pick(weights, available, this.golem.getRandom());
     }
 
-    /**
-     * The chance (percent) of each move in a stage and distance band: its line of the stage's table in
-     * {@link ColossusTuning}. {@code swarmed} (three or more risen undead attacking it up close) moves
-     * {@link ColossusTuning#SWARM_SLAM_SHIFT} points of the close band from the swipe to the slam; {@code risenSummon}
-     * (risen undead near, and fewer golems than half of them) gives the summon a chance where the table has none.
-     */
-    static EnumMap<Move, Integer> weights(ColossusStage stage, Band band, boolean swarmed, boolean risenSummon)
+    /** The chance (percent) of each move in a stage and distance band: its line of the stage's table in {@link ColossusTuning}. */
+    static EnumMap<Move, Integer> weights(ColossusStage stage, Band band)
     {
         List<ColossusTuning.Chances> table = switch (stage)
         {
@@ -368,26 +356,13 @@ public class ColossusAttackGoal extends Goal
             case LAVA_CORE -> ColossusTuning.CORE_CHANCES;
         };
         ColossusTuning.Chances line = table.get(band.ordinal());
-        int swipe = line.swipe();
-        int slam = line.slam();
-        if (swarmed && band == Band.CLOSE)
-        {
-            int shift = Math.min(ColossusTuning.SWARM_SLAM_SHIFT, swipe);
-            swipe -= shift;
-            slam += shift;
-        }
-        int summon = line.summon();
-        if (risenSummon && summon == 0)
-        {
-            summon = ColossusTuning.RISEN_SUMMON_CHANCE;
-        }
         EnumMap<Move, Integer> weights = new EnumMap<>(Move.class);
-        weights.put(Move.SWIPE, swipe);
+        weights.put(Move.SWIPE, line.swipe());
         weights.put(Move.THROW, line.throwRock());
-        weights.put(Move.SLAM, slam);
+        weights.put(Move.SLAM, line.slam());
         weights.put(Move.CHARGE, line.charge());
         weights.put(Move.LOB, line.lob());
-        weights.put(Move.SUMMON, summon);
+        weights.put(Move.SUMMON, line.summon());
         return weights;
     }
 
@@ -416,14 +391,8 @@ public class ColossusAttackGoal extends Goal
         return null;
     }
 
-    /** True while risen undead are near and it has fewer golems than half of them (it may summon in any stage). */
-    static boolean risenSummonOpen(int risen, int golems)
-    {
-        return risen > 0 && golems * ColossusTuning.RISEN_PER_GOLEM < risen && golems < ColossusTuning.MAX_MINIONS;
-    }
-
     /** True if it can make this move at its target right now (ready, in range, in sight...). */
-    private boolean fits(Move move, LivingEntity target, double dist, ColossusStage stage, int golems, boolean risenSummon)
+    private boolean fits(Move move, LivingEntity target, double dist, ColossusStage stage, int golems)
     {
         if (!this.ready(move))
         {
@@ -435,8 +404,8 @@ public class ColossusAttackGoal extends Goal
             // (Out of reach but still close, it steps in first.)
             case SWIPE -> dist <= ColossusTuning.CLOSE_BAND && dy > -2.0D && dy < 4.0D;
             case SLAM -> dist <= ColossusTuning.SLAM_TRIGGER_RANGE && dy > -2.0D && dy < 3.0D;
-            case SUMMON -> golems < ColossusTuning.MAX_MINIONS && (risenSummon || (stage != ColossusStage.SHELL
-                    && golems < ColossusTuning.SUMMON_BELOW && dist <= ColossusTuning.SUMMON_RANGE));
+            case SUMMON -> golems < ColossusTuning.MAX_MINIONS && stage != ColossusStage.SHELL
+                    && golems < ColossusTuning.SUMMON_BELOW && dist <= ColossusTuning.SUMMON_RANGE;
             case LOB -> stage != ColossusStage.SHELL && dist >= ColossusTuning.LOB_MIN_RANGE
                     && dist <= ColossusTuning.LOB_MAX_RANGE && this.golem.getSensing().hasLineOfSight(target);
             case THROW -> stage != ColossusStage.LAVA_CORE && dist >= ColossusTuning.THROW_MIN_RANGE
@@ -452,8 +421,7 @@ public class ColossusAttackGoal extends Goal
     {
         double dist = flatDistance(this.golem.position(), target.position());
         int golems = this.golem.minions().size();
-        boolean risenSummon = risenSummonOpen(this.golem.risenNear(ColossusTuning.RISEN_RANGE).size(), golems);
-        return Band.of(dist) != null && this.fits(move, target, dist, this.golem.stage(), golems, risenSummon);
+        return Band.of(dist) != null && this.fits(move, target, dist, this.golem.stage(), golems);
     }
 
     private boolean ready(Move move)
@@ -469,32 +437,12 @@ public class ColossusAttackGoal extends Goal
         return edge <= ColossusTuning.SWIPE_REACH && dy > -2.0D && dy < 4.0D;
     }
 
-    /** How many risen undead are attacking it within its slam's range. */
-    int swarmCount()
-    {
-        int count = 0;
-        for (Mob risen : this.golem.risenNear(ColossusTuning.SLAM_TRIGGER_RANGE))
-        {
-            if (risen.getTarget() == this.golem)
-            {
-                count++;
-            }
-        }
-        return count;
-    }
-
     /**
-     * How many minions a summon raises: one for every two risen undead near it (half, rounded up) while there are any,
-     * otherwise {@link ColossusTuning#SUMMON_COUNT}. (Never past {@link ColossusTuning#MAX_MINIONS} alive: each pound
-     * checks.)
+     * How many minions a summon raises: {@link ColossusTuning#SUMMON_COUNT} (never past
+     * {@link ColossusTuning#MAX_MINIONS} alive: each pound checks).
      */
     int summonCount()
     {
-        int risen = this.golem.risenNear(ColossusTuning.RISEN_RANGE).size();
-        if (risen > 0)
-        {
-            return (risen + ColossusTuning.RISEN_PER_GOLEM - 1) / ColossusTuning.RISEN_PER_GOLEM;
-        }
         return ColossusTuning.SUMMON_COUNT;
     }
 

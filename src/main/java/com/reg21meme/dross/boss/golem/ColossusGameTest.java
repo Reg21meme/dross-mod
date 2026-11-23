@@ -83,7 +83,7 @@ import java.util.function.Consumer;
  *   <li>{@link #rightClickCyclesTrophyDesign}: right-clicking a placed trophy turns it 1, 2 ... 5, then 1 again,
  *       keeping the way it faces (holding a block too, which isn't placed).</li>
  * </ul>
- * The fight's moves (the roar, the stage changes' attacks, the long charge, the move chances, the answer to risen undead)
+ * The fight's moves (the roar, the stage changes' attacks, the long charge, the move chances)
  * are tested in {@link ColossusFightGameTest}.
  * The wild stone and lava golems of the Cinder Wastes have their own tests, {@link WildGolemGameTest}, on the same arena
  * (they share its helpers: {@link #waitForArena}, {@link #joinPlayer}, {@link #leaveAll}).

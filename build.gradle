@@ -219,7 +219,6 @@ tasks.named('jar', Jar).configure {
     exclude '**/*GameTest.class', '**/*GameTest$*.class'
     exclude 'com/reg21meme/dross/dimension/TerrainProbe*.class'
     exclude 'com/reg21meme/dross/dimension/TerrainSurvey*.class'
-    exclude 'com/reg21meme/dross/enchant/RisenTestWait*.class'
 
     // Showcase-only models (the user, November 7, 2026: "do not include the showcase galleries ... remove it from the
     // jar file, you can keep it in my system"): the Rimefall candidates' statues, the fire servant candidates (but the

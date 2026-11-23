@@ -2,7 +2,6 @@ package com.reg21meme.dross.boss.golem;
 
 import com.mojang.logging.LogUtils;
 import com.reg21meme.dross.Dross;
-import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModEntities;
 import net.minecraft.core.BlockPos;
@@ -61,10 +60,7 @@ import static com.reg21meme.dross.boss.golem.ColossusGameTest.waitForArena;
  *       and its fire is gone after 2 to 2.5 seconds.</li>
  *   <li>{@link #coreChargeFireLastsLonger}: a Lava Core charge's fire lasts 4 to 5 seconds.</li>
  *   <li>{@link #moveChancesMatchTheTable}: the move chooser, sampled many times per stage and distance band, matches
- *       the chance tables (no rock throw in the Lava Core); moves that can't be made share out their chance; three
- *       risen undead attacking move 20 points from the swipe to the slam.</li>
- *   <li>{@link #risenUndeadBringGolems}: with 4 risen undead near, it may summon even in the Shell, a summon raises 2
- *       golems and they go for the risen undead; with 3 of them attacking up close, the slam's share rises.</li>
+ *       the chance tables (no rock throw in the Lava Core); moves that can't be made share out their chance.</li>
  *   <li>{@link #facesItsTargetMostOfTheTime}: fighting a stand-in player who walks round it (in each stage in turn), its
  *       body faces them (within 30 degrees) at least 90% of the time, its charge's gallop not counted (the user's
  *       wish after a play test).</li>
@@ -611,7 +607,7 @@ public final class ColossusFightGameTest
                     helper.fail("the Lava Core should never throw rocks, but " + band + " gives it " + line.throwRock());
                     return;
                 }
-                String problem = sample(ColossusAttackGoal.weights(stage, band, false, false), all, expected, random,
+                String problem = sample(ColossusAttackGoal.weights(stage, band), all, expected, random,
                         stage + " " + band);
                 if (problem != null)
                 {
@@ -621,36 +617,14 @@ public final class ColossusFightGameTest
             }
         }
         // Only the moves it can make count: Shell mid with the charge on cooldown is always a throw...
-        String problem = sample(ColossusAttackGoal.weights(ColossusStage.SHELL, ColossusAttackGoal.Band.MID, false, false),
+        String problem = sample(ColossusAttackGoal.weights(ColossusStage.SHELL, ColossusAttackGoal.Band.MID),
                 EnumSet.of(ColossusAttackGoal.Move.THROW), percent(0, 100, 0, 0, 0, 0), random, "Shell mid, no charge");
         // ...and Cracking far without the charge shares its 45 out: lob 25, throw 15, summon 15 of 55.
         if (problem == null)
         {
-            problem = sample(ColossusAttackGoal.weights(ColossusStage.CRACKING, ColossusAttackGoal.Band.FAR, false, false),
+            problem = sample(ColossusAttackGoal.weights(ColossusStage.CRACKING, ColossusAttackGoal.Band.FAR),
                     EnumSet.of(ColossusAttackGoal.Move.LOB, ColossusAttackGoal.Move.THROW, ColossusAttackGoal.Move.SUMMON),
                     percent(0, 15, 0, 0, 25, 15), random, "Cracking far, no charge");
-        }
-        // Three risen undead attacking: 20 points from the swipe to the slam in the close band.
-        if (problem == null)
-        {
-            problem = sample(ColossusAttackGoal.weights(ColossusStage.SHELL, ColossusAttackGoal.Band.CLOSE, true, false), all,
-                    percent(40, 0, 60, 0, 0, 0), random, "Shell close, swarmed");
-        }
-        if (problem == null)
-        {
-            problem = sample(ColossusAttackGoal.weights(ColossusStage.CRACKING, ColossusAttackGoal.Band.CLOSE, true, false), all,
-                    percent(20, 0, 45, 0, 0, 35), random, "Cracking close, swarmed");
-        }
-        if (problem == null)
-        {
-            problem = sample(ColossusAttackGoal.weights(ColossusStage.LAVA_CORE, ColossusAttackGoal.Band.CLOSE, true, false), all,
-                    percent(20, 0, 50, 0, 0, 30), random, "Lava Core close, swarmed");
-        }
-        // Risen undead near and too few golems: the Shell may summon too.
-        if (problem == null && ColossusAttackGoal.weights(ColossusStage.SHELL, ColossusAttackGoal.Band.CLOSE, false, true)
-                .get(ColossusAttackGoal.Move.SUMMON) != ColossusTuning.RISEN_SUMMON_CHANCE)
-        {
-            problem = "with risen undead near, the Shell should be able to summon";
         }
         if (problem != null)
         {
@@ -721,114 +695,6 @@ public final class ColossusFightGameTest
         map.put(ColossusAttackGoal.Move.LOB, lob);
         map.put(ColossusAttackGoal.Move.SUMMON, summon);
         return map;
-    }
-
-    // ---------------------------------------------------------------------------------------------
-    // Against risen undead
-    // ---------------------------------------------------------------------------------------------
-
-    @GameTest(template = ARENA, batch = "dross_colossus_risen", timeoutTicks = ARENA_WAIT_TICKS + 300)
-    public static void risenUndeadBringGolems(GameTestHelper helper)
-    {
-        if (waitForArena(helper, ColossusFightGameTest::risenUndeadBringGolems))
-        {
-            return;
-        }
-        ServerLevel level = helper.getLevel();
-        CinderColossus golem = CinderColossus.spawnBoss(level, helper.absoluteVec(Vec3.atBottomCenterOf(MIDDLE)), 0.0F);
-        if (golem == null || golem.attackGoal() == null)
-        {
-            helper.fail("the Colossus couldn't be spawned");
-            return;
-        }
-        // Four of a player's risen undead (stand-ins: frozen zombies with Necromancy's owner mark): three up close at its
-        // corners, one further off.
-        UUID owner = UUID.randomUUID();
-        List<Zombie> risen = new ArrayList<>();
-        for (BlockPos at : List.of(MIDDLE.offset(3, 0, 3), MIDDLE.offset(-3, 0, 3), MIDDLE.offset(3, 0, -3), MIDDLE.offset(-6, 0, -6)))
-        {
-            Zombie zombie = EntityType.ZOMBIE.create(level);
-            if (zombie == null)
-            {
-                golem.discard();
-                risen.forEach(Zombie::discard);
-                helper.fail("a test zombie couldn't be made");
-                return;
-            }
-            Vec3 feet = helper.absoluteVec(Vec3.atBottomCenterOf(at));
-            zombie.moveTo(feet.x, feet.y, feet.z, 0.0F, 0.0F);
-            zombie.setNoAi(true);
-            zombie.setPersistenceRequired();
-            zombie.getPersistentData().putUUID(RisenUndead.OWNER_KEY, owner);
-            level.addFreshEntity(zombie);
-            risen.add(zombie);
-        }
-        ColossusAttackGoal goal = golem.attackGoal();
-        LivingEntity target = risen.get(0);
-        golem.setTarget(target);
-        String problem = null;
-        // Two attacking it up close: the swipe and slam keep their Shell chances (60 / 40)...
-        risen.get(0).setTarget(golem);
-        risen.get(1).setTarget(golem);
-        int two = goal.swarmCount();
-        RandomSource random = RandomSource.create(7L);
-        Set<ColossusAttackGoal.Move> close = EnumSet.of(ColossusAttackGoal.Move.SWIPE, ColossusAttackGoal.Move.SLAM);
-        String calm = sample(ColossusAttackGoal.weights(ColossusStage.SHELL, ColossusAttackGoal.Band.CLOSE,
-                two >= ColossusTuning.SWARM_ATTACKERS, false), close, percent(60, 0, 40, 0, 0, 0), random, "two attacking");
-        // ...three: the slam's share rises to 60.
-        risen.get(2).setTarget(golem);
-        int three = goal.swarmCount();
-        String swarmed = sample(ColossusAttackGoal.weights(ColossusStage.SHELL, ColossusAttackGoal.Band.CLOSE,
-                three >= ColossusTuning.SWARM_ATTACKERS, false), close, percent(40, 0, 60, 0, 0, 0), random, "three attacking");
-        if (two != 2 || three != 3)
-        {
-            problem = "it should count 2, then 3 risen undead attacking it up close, but it counted " + two + ", then " + three;
-        }
-        else if (calm != null || swarmed != null)
-        {
-            problem = calm != null ? calm : swarmed;
-        }
-        else if (!goal.available(ColossusAttackGoal.Move.SUMMON, target))
-        {
-            problem = "with 4 risen undead near and no golems it should be able to summon, even in the Shell";
-        }
-        else if (goal.summonCount() != 2)
-        {
-            problem = "with 4 risen undead near a summon should raise 2 golems, but it would raise " + goal.summonCount();
-        }
-        if (problem != null)
-        {
-            golem.discard();
-            risen.forEach(Zombie::discard);
-            helper.fail(problem);
-            return;
-        }
-        goal.begin(ColossusAttackGoal.Move.SUMMON, target);
-        helper.startSequence()
-                .thenWaitUntil(() -> helper.assertTrue(golem.getAction() != GolemAction.SUMMON, "still summoning"))
-                .thenExecute(() -> {
-                    List<GolemMinion> minions = golem.minions();
-                    String wrong = null;
-                    if (minions.size() != 2)
-                    {
-                        wrong = "with 4 risen undead near, the summon should raise 2 golems, but it raised " + minions.size();
-                    }
-                    for (GolemMinion minion : minions)
-                    {
-                        if (wrong == null && !(minion.getTarget() instanceof Zombie z && risen.contains(z)))
-                        {
-                            wrong = "its golems should go for the risen undead first, but one is after " + minion.getTarget();
-                        }
-                    }
-                    minions.forEach(GolemMinion::discard);
-                    risen.forEach(Zombie::discard);
-                    golem.discard();
-                    if (wrong != null)
-                    {
-                        helper.fail(wrong);
-                    }
-                })
-                .thenSucceed();
     }
 
     // ---------------------------------------------------------------------------------------------

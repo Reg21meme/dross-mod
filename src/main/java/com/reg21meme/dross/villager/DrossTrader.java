@@ -6,7 +6,6 @@ import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.QuestProgress;
 import com.reg21meme.dross.quest.QuestRequirement;
-import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
 import net.minecraft.core.BlockPos;
@@ -43,11 +42,8 @@ import net.minecraft.world.entity.ai.goal.WaterAvoidingRandomStrollGoal;
 import net.minecraft.world.entity.ai.navigation.GroundPathNavigation;
 import net.minecraft.world.entity.npc.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.EnchantedBookItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
 import net.minecraft.world.level.ChunkPos;
@@ -89,13 +85,7 @@ public class DrossTrader extends AbstractVillager
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
-    // ---- Shop prices (after the quest). Each costs emeralds plus one plain book. ----
-    /** Emeralds for Necromancy level I (Necromancy has five levels; he sells only the lowest). */
-    private static final int NECROMANCY_EMERALDS = 32;
-    /** Emeralds for Deathforged I. */
-    private static final int DEATHFORGED_EMERALDS = 24;
-    /** The Deathforged level he sells. */
-    private static final int DEATHFORGED_LEVEL = 1;
+    // ---- His shop (after the quest): only the Dross Guide Book (the user, November 23, 2026). ----
     /** Plain books for the Dross Guide Book (no emeralds). Only offered to players who have "Enter the Dross". */
     private static final int GUIDE_BOOK_COST_BOOKS = 3;
     /** The shop has no real use limit. */
@@ -720,23 +710,13 @@ public class DrossTrader extends AbstractVillager
     }
 
     /**
-     * His shop (same for everyone; the screen only opens for players who finished the quest).
-     * No XP, no price changes, no restock, unlimited uses.
+     * His shop's lasting offers (same for everyone; the screen only opens for players who finished the quest): none
+     * since Necromancy and Deathforged were removed (November 23, 2026). The Guide Book comes and goes per player
+     * ({@link #updateGuideBookOffer}).
      */
     private static List<MerchantOffer> buildOffers()
     {
-        Enchantment necromancy = ModEnchantments.NECROMANCY.get();
-        List<MerchantOffer> list = new ArrayList<>();
-        // Necromancy has five levels (I-V); he sells the lowest, level I (the enchantment's minimum level).
-        list.add(bookOffer(NECROMANCY_EMERALDS, necromancy, necromancy.getMinLevel()));
-        list.add(bookOffer(DEATHFORGED_EMERALDS, ModEnchantments.DEATHFORGED.get(), DEATHFORGED_LEVEL));
-        return list;
-    }
-
-    /** Emeralds plus one plain book for an enchanted book of the given enchantment and level. */
-    private static MerchantOffer bookOffer(int emeralds, Enchantment enchantment, int level)
-    {
-        return bookOffer(emeralds, EnchantedBookItem.createForEnchantment(new EnchantmentInstance(enchantment, level)));
+        return new ArrayList<>();
     }
 
     /** Emeralds plus one plain book for the given result item. */

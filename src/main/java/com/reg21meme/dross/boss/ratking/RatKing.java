@@ -4,7 +4,6 @@ import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.boss.rage.Rage;
 import com.reg21meme.dross.boss.rage.RageLeader;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophies;
-import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModParticles;
@@ -689,20 +688,11 @@ public class RatKing extends Monster implements GeoEntity, RageLeader, DrossBoss
         {
             return player.getUUID();
         }
-        UUID owner = RisenUndead.getOwnerId(attacker);
-        if (owner == null)
+        if (attacker instanceof OwnableEntity pet)
         {
-            owner = RisenUndead.getOwnerId(direct);
+            return pet.getOwnerUUID();
         }
-        if (owner == null && direct != null && direct.getPersistentData().hasUUID(RisenUndead.PROJECTILE_OWNER_KEY))
-        {
-            owner = direct.getPersistentData().getUUID(RisenUndead.PROJECTILE_OWNER_KEY);
-        }
-        if (owner == null && attacker instanceof OwnableEntity pet)
-        {
-            owner = pet.getOwnerUUID();
-        }
-        return owner;
+        return null;
     }
 
     /**

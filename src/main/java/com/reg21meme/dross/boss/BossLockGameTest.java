@@ -6,7 +6,6 @@ import com.reg21meme.dross.boss.golem.ColossusGameTest;
 import com.reg21meme.dross.boss.lair.LairKeeper;
 import com.reg21meme.dross.boss.ratking.RatKing;
 import com.reg21meme.dross.boss.ratking.lair.RatKingLairKeeper;
-import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.oracle.OracleBoss;
 import com.reg21meme.dross.quest.oracle.OracleDialogue;
 import com.reg21meme.dross.quest.oracle.OracleProgress;
@@ -215,7 +214,7 @@ public final class BossLockGameTest
             ServerPlayer lockedOne = locked(helper, players, "lock-hit-locked", MIDDLE.offset(0, 0, 5));
             expect(!OracleRules.mayFightBoss(lockedOne, OracleBoss.COLOSSUS), "a fresh player shouldn't be allowed to fight it yet");
 
-            // their own blow, their arrow, their tamed wolf, their risen zombie: none hurts it at home
+            // their own blow, their arrow, their tamed wolf: none hurts it at home
             expect(!hurts(home, level.damageSources().playerAttack(lockedOne)), "a locked player's blow hurt the Colossus at home");
             Arrow arrow = new Arrow(level, lockedOne);
             expect(!hurts(home, level.damageSources().arrow(arrow, lockedOne)), "a locked player's arrow hurt the Colossus at home");
@@ -227,14 +226,6 @@ public final class BossLockGameTest
             level.addFreshEntity(wolf);
             extras.add(wolf);
             expect(!hurts(home, level.damageSources().mobAttack(wolf)), "a locked player's tamed wolf hurt the Colossus at home");
-            Zombie risen = EntityType.ZOMBIE.create(level);
-            expect(risen != null, "couldn't make a zombie");
-            risen.moveTo(lockedOne.getX() + 2.0D, lockedOne.getY(), lockedOne.getZ(), 0.0F, 0.0F);
-            risen.setNoAi(true);
-            risen.getPersistentData().putUUID(RisenUndead.OWNER_KEY, lockedOne.getUUID());
-            level.addFreshEntity(risen);
-            extras.add(risen);
-            expect(!hurts(home, level.damageSources().mobAttack(risen)), "a locked player's risen zombie hurt the Colossus at home");
             expect(home.getHealth() >= home.getMaxHealth(), "the Colossus at home lost health to a locked player");
 
             // ...but a summoned one takes their blow as anyone's

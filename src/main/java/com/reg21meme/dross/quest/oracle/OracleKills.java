@@ -1,7 +1,6 @@
 package com.reg21meme.dross.quest.oracle;
 
 import com.reg21meme.dross.Dross;
-import com.reg21meme.dross.enchant.RisenUndead;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
@@ -75,13 +74,6 @@ public final class OracleKills
     public static ServerPlayer killer(LivingEntity victim, DamageSource source)
     {
         ServerPlayer player = owner(victim, source.getEntity());
-        Entity direct = source.getDirectEntity();
-        if (player == null && direct != null && direct.getPersistentData().hasUUID(RisenUndead.PROJECTILE_OWNER_KEY)
-                && victim.getServer() != null)
-        {
-            // A risen skeleton's arrow that landed after the skeleton crumbled.
-            player = victim.getServer().getPlayerList().getPlayer(direct.getPersistentData().getUUID(RisenUndead.PROJECTILE_OWNER_KEY));
-        }
         if (player == null && source.getEntity() == null)
         {
             player = owner(victim, victim.getKillCredit());
@@ -89,7 +81,7 @@ public final class OracleKills
         return player;
     }
 
-    /** The player behind this entity: the player themselves, their tamed animal's owner, or their risen undead's. */
+    /** The player behind this entity: the player themselves, or their tamed animal's owner. */
     @Nullable
     private static ServerPlayer owner(LivingEntity victim, @Nullable Entity entity)
     {
@@ -101,11 +93,7 @@ public final class OracleKills
         {
             return player;
         }
-        UUID owner = RisenUndead.getOwnerId(entity);
-        if (owner == null && entity instanceof OwnableEntity ownable)
-        {
-            owner = ownable.getOwnerUUID();
-        }
+        UUID owner = entity instanceof OwnableEntity ownable ? ownable.getOwnerUUID() : null;
         return owner == null ? null : victim.getServer().getPlayerList().getPlayer(owner);
     }
 }

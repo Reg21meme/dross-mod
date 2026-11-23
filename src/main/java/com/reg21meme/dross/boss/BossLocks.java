@@ -1,7 +1,6 @@
 package com.reg21meme.dross.boss;
 
 import com.reg21meme.dross.Dross;
-import com.reg21meme.dross.enchant.RisenUndead;
 import com.reg21meme.dross.quest.oracle.OracleBoss;
 import com.reg21meme.dross.quest.oracle.OracleRules;
 import net.minecraft.server.MinecraftServer;
@@ -98,8 +97,7 @@ public final class BossLocks
 
     /**
      * The player a hit is credited to: the player themselves (their blow, or their arrow or thrown spear: the damage's
-     * attacker), their tamed animal's owner, their risen undead's owner (a risen skeleton's arrow too, even after the
-     * skeleton has crumbled). Null for anything else, or an owner who isn't online.
+     * attacker), their tamed animal's owner. Null for anything else, or an owner who isn't online.
      */
     @Nullable
     public static ServerPlayer creditedPlayer(DamageSource source, MinecraftServer server)
@@ -109,15 +107,10 @@ public final class BossLocks
         {
             player = playerBehind(source.getDirectEntity(), server);
         }
-        Entity direct = source.getDirectEntity();
-        if (player == null && direct != null && direct.getPersistentData().hasUUID(RisenUndead.PROJECTILE_OWNER_KEY))
-        {
-            player = server.getPlayerList().getPlayer(direct.getPersistentData().getUUID(RisenUndead.PROJECTILE_OWNER_KEY));
-        }
         return player;
     }
 
-    /** The player behind this entity: the player themselves, their risen undead's or tamed animal's owner, a shot's shooter's. */
+    /** The player behind this entity: the player themselves, their tamed animal's owner, a shot's shooter's. */
     @Nullable
     public static ServerPlayer playerBehind(@Nullable Entity entity, MinecraftServer server)
     {
@@ -127,11 +120,7 @@ public final class BossLocks
             {
                 return player;
             }
-            UUID owner = RisenUndead.getOwnerId(entity);
-            if (owner == null && entity instanceof OwnableEntity ownable)
-            {
-                owner = ownable.getOwnerUUID();
-            }
+            UUID owner = entity instanceof OwnableEntity ownable ? ownable.getOwnerUUID() : null;
             if (owner != null)
             {
                 return server.getPlayerList().getPlayer(owner);

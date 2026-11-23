@@ -15,7 +15,7 @@ package com.reg21meme.dross.boss.golem;
  * </ol>
  * Each stage change starts with a roar that throws the players near it back, then an attack: four stone golems
  * (Cracking) or four lava blobs (Lava Core). Which move it picks in each stage is in the chance tables of
- * {@link ColossusTuning}; while a player's risen undead are near it may summon in any stage, the Shell too.
+ * {@link ColossusTuning}.
  * The stage is saved as the golem's look ({@link GolemPhase}), so a rejoin mid-fight restores both.
  */
 public enum ColossusStage

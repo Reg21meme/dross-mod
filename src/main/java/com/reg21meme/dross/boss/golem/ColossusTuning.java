@@ -186,7 +186,7 @@ public final class ColossusTuning
 
     /** Minions rise this far from its middle: one in front of it, one to its left, one to its right. */
     public static final double SUMMON_DISTANCE = 4.5D;
-    /** A summon raises this many minions (one at each of its three pounds), unless risen undead are near (below). */
+    /** A summon raises this many minions (one at each of its three pounds). */
     public static final int SUMMON_COUNT = 3;
     /**
      * When its eruption has finished (entering the Cracking stage, after its roar) this many stone golems climb out of
@@ -293,23 +293,6 @@ public final class ColossusTuning
      * at most this many ticks, then it thinks again.
      */
     public static final int SWIPE_STEP_IN_TICKS = 30;
-
-    // ---------------------------------------------------------------- against Necromancy's risen undead
-
-    /** Risen undead (a player's, raised by Necromancy) within this many blocks of it count... */
-    public static final double RISEN_RANGE = 24.0D;
-    /**
-     * ...and then a summon raises one golem for every this many of them (half, rounded up; never past
-     * {@link #MAX_MINIONS} alive), and the golems go for the risen undead first. While they're near it may summon in
-     * every stage (the Shell too) whenever it has fewer golems than half the risen undead.
-     */
-    public static final int RISEN_PER_GOLEM = 2;
-    /** The summon's chance (percent) in a band whose table has none (the Shell; the far bands) while it may summon. */
-    public static final int RISEN_SUMMON_CHANCE = 35;
-    /** When at least this many risen undead are attacking it within its slam range ({@link #SLAM_TRIGGER_RANGE})... */
-    public static final int SWARM_ATTACKERS = 3;
-    /** ...this many points of the close band's chance move from the swipe to the slam (back when there are fewer). */
-    public static final int SWARM_SLAM_SHIFT = 20;
 
     // ---------------------------------------------------------------- stone golems (Cracking stage)
 

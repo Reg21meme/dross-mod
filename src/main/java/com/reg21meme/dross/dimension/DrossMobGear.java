@@ -1,7 +1,6 @@
 package com.reg21meme.dross.dimension;
 
 import com.reg21meme.dross.Dross;
-import com.reg21meme.dross.enchant.RisenUndead;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -67,11 +66,6 @@ public final class DrossMobGear
         }
 
         Entity entity = event.getEntity();
-        // Risen undead (Necromancy summons) get their gear only from Deathforged, never from here.
-        if (RisenUndead.isRisen(entity))
-        {
-            return;
-        }
         // Exact type checks (not instanceof), so subtypes like husk/stray/drowned are left alone.
         if (entity.getType() == EntityType.ZOMBIE)
         {

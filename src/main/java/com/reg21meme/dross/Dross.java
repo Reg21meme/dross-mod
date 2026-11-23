@@ -6,7 +6,6 @@ import com.reg21meme.dross.registry.ModBlocks;
 import com.reg21meme.dross.registry.ModCreativeTabs;
 import com.reg21meme.dross.registry.ModDensityFunctions;
 import com.reg21meme.dross.registry.ModEffects;
-import com.reg21meme.dross.registry.ModEnchantments;
 import com.reg21meme.dross.registry.ModEntities;
 import com.reg21meme.dross.registry.ModFeatures;
 import com.reg21meme.dross.registry.ModItems;
@@ -39,7 +38,6 @@ public class Dross
         ModEntities.ENTITY_TYPES.register(modEventBus);
         ModParticles.PARTICLE_TYPES.register(modEventBus);
         ModCreativeTabs.CREATIVE_TABS.register(modEventBus);
-        ModEnchantments.ENCHANTMENTS.register(modEventBus);
         ModLootModifiers.LOOT_MODIFIERS.register(modEventBus);
         ModSounds.SOUND_EVENTS.register(modEventBus);
         ModBlockEntities.BLOCK_ENTITIES.register(modEventBus);
