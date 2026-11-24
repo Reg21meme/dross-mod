@@ -21,6 +21,7 @@ import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.portal.DrossHub;
 import com.reg21meme.dross.quest.QuestCommands;
 import com.reg21meme.dross.villager.TraderCommands;
+import com.reg21meme.dross.world.CathedralSiege;
 import com.reg21meme.dross.world.PortalSite;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
@@ -45,7 +46,7 @@ import net.minecraftforge.fml.common.Mod;
  * Names say what kind of thing a command is about and which one, so they stay clear as more bosses and places are
  * added: {@code goto <place>} (with {@code goto biome <name>} for the Dross's biomes and {@code goto lair <boss>} for
  * the bosses' lairs), {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
- * {@code quest <action>}.
+ * {@code quest <action>}, {@code siege <action>}.
  * <ul>
  *   <li>{@code /dross goto cathedral}: teleports you in front of the castle's portal frame (the Fallen Cathedral, made
  *       with its land: its chunks are loaded, the first time generated, before you land), facing it. In a world with no
@@ -75,6 +76,9 @@ import net.minecraftforge.fml.common.Mod;
  *       From the villager area ({@link TraderCommands}).</li>
  *   <li>{@code /dross quest status|reset|complete}: shows, clears or finishes your quest progress.
  *       From the quest area ({@link QuestCommands}).</li>
+ *   <li>{@code /dross siege status|reset|break}: the Fallen Cathedral's siege (its five knights and the barrier that keeps
+ *       players out until they're dead): shows it, starts it again (its knights back the next time a player is near), or
+ *       breaks it at once ({@link SiegeCommands}; the siege is {@code world/CathedralSiege}).</li>
  *   <li>{@code /dross showcase boss_designs colossus}: spawns one frozen Cinder Colossus per design in a row in front
  *       of you, dormant in their rock shells, each with a numbered sign;
  *       {@code /dross showcase boss_designs colossus dormant|erupt|erupted|break|core|die|walk|idle} switches them
@@ -242,6 +246,13 @@ public final class DrossCommand
                         .then(Commands.literal("set").then(Commands.argument(QuestCommands.QUEST_ARGUMENT,
                                         StringArgumentType.word())
                                 .suggests(QuestCommands::suggestQuests).executes(QuestCommands::set))))
+                // The Fallen Cathedral's siege (its five knights and its barrier): siege <action> (the logic lives in
+                // world/CathedralSiege; SiegeCommands).
+                .then(Commands.literal("siege")
+                        .requires(source -> source.hasPermission(2))
+                        .then(Commands.literal("status").executes(SiegeCommands::status))
+                        .then(Commands.literal("reset").executes(SiegeCommands::reset))
+                        .then(Commands.literal("break").executes(SiegeCommands::breakSiege)))
                 // Test showcases that build things side by side to compare them: showcase <kind> [<boss>]
                 // (the logic lives in GolemShowcase, RatKingShowcase, RimefallShowcase, RatShowcase, RatSoundShowcase and
                 // TrophyShowcase).
@@ -666,6 +677,12 @@ public final class DrossCommand
         player.teleportTo(overworld, spot.x, spot.y, spot.z, yaw, 0.0F);
         source.sendSuccess(() -> Component.literal("Teleported to the Dross portal site (frame at "
                 + frame.getX() + ", " + frame.getY() + ", " + frame.getZ() + ", along " + axis.getName().toUpperCase() + ")"), true);
+        if (CathedralSiege.holds(source.getServer()))
+        {
+            // (its barrier bounces a player in survival or adventure straight back out, to its great door)
+            source.sendSuccess(() -> Component.literal("Its siege holds: its barrier keeps you out (unless you're in creative or "
+                    + "spectator mode) until its " + CathedralSiege.GUARDS + " knights fall. /dross siege status"), false);
+        }
         return 1;
     }
 

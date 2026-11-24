@@ -1,0 +1,28 @@
+{
+  "parent": "dross:portal_orb",
+  "display": {
+    "icon": {
+      "item": "minecraft:netherite_sword"
+    },
+    "title": {
+      "translate": "advancements.dross.siege_broken.title"
+    },
+    "description": {
+      "translate": "advancements.dross.siege_broken.description"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "siege_broken": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "siege_broken"
+    ]
+  ]
+}

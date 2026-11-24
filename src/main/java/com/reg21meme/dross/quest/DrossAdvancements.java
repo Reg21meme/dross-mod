@@ -40,6 +40,10 @@ public final class DrossAdvancements
     public static final String PORTAL_ORB = "portal_orb";
     /** "Enter the Dross" (the main achievement): the portal area grants it at the end of the arrival sequence. */
     public static final String ENTERED_THE_DROSS = "entered_the_dross";
+    /** "Siege Broken" (challenge): world-builder's {@code world.CathedralSiege} grants it when the Fallen Cathedral's five
+     * knights are dead, to the player credited with the last kill and every player near. A child of {@link #PORTAL_ORB}
+     * beside "Enter the Dross", not in the chain: whoever comes after someone else broke it has no gap before it. */
+    public static final String SIEGE_BROKEN = "siege_broken";
     /** "Set in Stone": the boss area grants it when a player defeats the Cinder Colossus. It also finishes the Oracle's quest for that boss. */
     public static final String SET_IN_STONE = "set_in_stone";
     /** "Down the Drain": the boss area grants it when a player defeats the Rat King. It also finishes the Oracle's quest for that boss. */

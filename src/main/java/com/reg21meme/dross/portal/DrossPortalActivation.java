@@ -5,6 +5,7 @@ import com.reg21meme.dross.dimension.ModDimensions;
 import com.reg21meme.dross.quest.trader.TraderProgress;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
+import com.reg21meme.dross.world.CathedralSiege;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Optional;
@@ -35,7 +36,8 @@ import net.minecraftforge.fml.common.Mod;
  *   <li><b>Lighting:</b> when a Portal Orb item (thrown or dropped) is inside the empty opening of a complete
  *       {@code dross_portal_frame} frame (along X or Z), the opening fills with {@code dross:dross_portal}
  *       and exactly one orb is used up. Lighting the Fallen Cathedral's frame is remembered for the whole world (the
- *       quest area's {@code TraderProgress.portalLit}).</li>
+ *       quest area's {@code TraderProgress.portalLit}). While the cathedral's siege holds (its five knights; world-builder's
+ *       {@link CathedralSiege#refusesOrb}) its own frame doesn't light: the orb pops back out, unused.</li>
  *   <li><b>Already lit:</b> a Portal Orb that lands in a lit Dross portal isn't used. It's pushed back out of the
  *       portal and gets a portal cooldown, so it doesn't fall through to the Dross.</li>
  *   <li><b>Inside the Dross:</b> the Portal Orb lights nothing, and nether portals can't be lit either
@@ -124,6 +126,13 @@ public final class DrossPortalActivation
             return;
         }
         DrossPortalShape shape = found.get();
+        PortalOpening opening = PortalOpening.of(shape);
+        // The Fallen Cathedral's own frame stays shut while its siege holds (world-builder's CathedralSiege: its five
+        // knights still stand): the orb pops back out, unused.
+        if (CathedralSiege.refusesOrb(level, item, opening.minCorner(), opening.axis(), opening.width(), opening.height()))
+        {
+            return;
+        }
         shape.createPortalBlocks();
 
         // Use up exactly one orb.
@@ -142,7 +151,6 @@ public final class DrossPortalActivation
         }
 
         // Lighting sound (a whoosh, plus the glass orb shattering) and a burst of blue portal particles.
-        PortalOpening opening = PortalOpening.of(shape);
         TraderProgress.portalLit(level, opening.minCorner(), opening.axis(), opening.width(), opening.height());
         double cx = opening.axis() == Direction.Axis.X ? opening.centerAlong() : opening.minCorner().getX() + 0.5D;
         double cz = opening.axis() == Direction.Axis.Z ? opening.centerAlong() : opening.minCorner().getZ() + 0.5D;

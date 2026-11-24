@@ -185,6 +185,13 @@ public final class DrossColors {
     public static final int HUB_CAMP_BUTTON = PALETTE_MAIN;
     public static final int HUB_CAMP_OVERVIEW_BUTTON = PALETTE_HIGHLIGHT;
 
+    /** The cathedral's siege (world/CathedralSiege, CathedralWard): the line when its last knight falls and the spell
+     * breaks, the hint over the hotbar when its barrier bounces you, the frame refusing a Portal Orb, and the count of its
+     * knights fallen. The Dross's blue: it's the Dross's spell. */
+    public static final int SIEGE_BROKEN_TEXT = PALETTE_HIGHLIGHT;
+    public static final int SIEGE_WARD_TEXT = PALETTE_HIGHLIGHT;
+    public static final int SIEGE_PROGRESS_TEXT = PALETTE_HIGHLIGHT;
+
     // ---------------------------------------------------------------- Dimension (dimension-builder)
     // The Dross's own blocks and plants. (Their texture colors live in the Python palettes in tools/terrain/draw_blocks.py.)
 

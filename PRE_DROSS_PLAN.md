@@ -3,7 +3,8 @@
 **Status:** agreed with the user November 22-23, 2026, on the branch `oracle-quests` (its own copy of the project,
 `MyMinecraftMod-quests`). **T1, the trader's quests, built November 23-24, 2026, not yet tested in-game** (it builds and
 its headless tests compile; they haven't been run yet). Where the build differs from this plan, or settles something it
-left open, is listed at the end, under "As built (T1)". It replaces the trader's old hand-in quest (the tributes, the Dross Compass, the key materials
+left open, is listed at the end, under "As built (T1)". **T2, the cathedral's siege, built November 24, 2026, not yet
+tested in-game** (it builds and its headless tests compile; not run yet): "As built (T2)" at the end. It replaces the trader's old hand-in quest (the tributes, the Dross Compass, the key materials
 and the Rift Key; CLAUDE.md step 7). The Oracle's quests in the Dross (QUEST_PLAN.md) are unchanged. Each choice made
 where the user didn't say is marked *(my choice)*.
 
@@ -85,8 +86,9 @@ otherwise. Sent with the Oracle's sync (one message carries both markers).
 
 ## Advancements
 root → A Weathered Letter → **Knightfall** (3 knight ruins cleared; replaces Proven Worthy) → **The Portal Orb** (the
-orb made for you; replaces Keymaster) → **Siege Broken** (the cathedral's 5 knights; with stage T2) → Enter the Dross
-→ the Oracle's chain. Names and icons are placeholders until the user says.
+orb made for you; replaces Keymaster) → Enter the Dross → the Oracle's chain; and beside Enter the Dross, under The
+Portal Orb, **Siege Broken** (the cathedral's 5 knights; stage T2), not in the chain, so a player who comes after
+someone else broke the siege has no gap before Enter the Dross. Names and icons are placeholders until the user says.
 
 ## Stages
 1. **T0, done:** Necromancy and Deathforged removed (2365ac2); the portal item's designs and the user's pick, O3
@@ -95,8 +97,8 @@ orb made for you; replaces Keymaster) → **Siege Broken** (the cathedral's 5 kn
    texture) in place of the Rift Key, the tributes, key materials, Dross Compass, Proven Worthy and Keymaster removed,
    the letter at 20%, the two join messages removed, `/dross quest status|reset|complete` updated, his shop the Guide
    Book only. Headless tests.
-3. **T2, the cathedral's siege:** its 5 roaming knights and its barrier (falls for good once they're dead); "Siege
-   Broken".
+3. **T2, the cathedral's siege [built, not yet tested]:** its 5 roaming knights and its barrier (falls for good once
+   they're dead); "Siege Broken"; the frame refusing the orb while it holds; `/dross siege status|reset|break`.
 4. **T3, the Nether ruins:** the user's picks of the 20 designs placed in the Nether (fire knights, about one every
    1,000 blocks), counting for the trader.
 
@@ -144,3 +146,61 @@ right-click in `villager/DrossTrader`. What differs from the plan above, or sett
   joining and that the trader's rounded spot is the frame's; `RiftChapelGameTest` checks his first click is his offer.
 - **The letter's chance**: `config/dross-common.toml`'s `letterChance` default is 0.2; an existing config file keeps
   the value written in it (the dev runs' `run/config/dross-common.toml` still says 1.0 until it's changed or deleted).
+
+## As built (T2)
+Built November 24, 2026 (not yet run or tested in-game). The code: `world/CathedralSiege` (the plan from the seed, the
+keeper, the knights' deaths, the fall, the frame's refusal, the test tools' logic), `world/CathedralWard` (the barrier's
+push and send-back, its curtain, the fall's stretches), `world/CathedralSiegeData` (`data/dross_cathedral_siege.dat`),
+`command/SiegeCommands` (`/dross siege status|reset|break`), the headless test `world/CathedralSiegeGameTest`, the
+advancement `data/dross/advancements/siege_broken.json`. What settles what the user left open (*my choice*):
+- **Which knights.** Five **different** kinds of the ten (the user's "5 different Dross knights"), from a seeded shuffle;
+  with two kinds an element, that's never more than two of one element (the code still checks it, should kinds be
+  added). The world's seed picks them, so every world has its own five.
+- **Where.** Their directions from the footprint's middle are evenly spread (72 degrees apart) from a start the seed
+  picks, each turned by up to 10 degrees. Each one's spot is about 12 blocks past the footprint's edge along its
+  direction, on solid dry ground (not a log, leaves or water) with room for a knight and near the cathedral's ground
+  level; where that's no good, up to 30 blocks out and turned up to 32 degrees; never within 24 blocks of another's.
+  It's picked once, when all the ground it might be on is loaded, and saved, so it's the same whichever way a player
+  comes. They use the knight ruins' guard behaviour as it is (they wander within 36 blocks of their spot, fight players
+  who come there, walk back past 12): so you mostly face the one or two whose ground you're on (one that's hurt calls
+  the knights within its follow range, which are usually none: they stand about 75 blocks apart).
+- **When.** When a player (not a spectator) is within 160 blocks of the footprint, its land is loaded with its entities
+  and its tree tidy-up (`SiteTidy`) is done; the keeper looks every 2 seconds. A knight that left without dying comes
+  back; one that's missing but may only be in an unloaded chunk (part of the ground round its spot isn't loaded) is
+  waited for, and an old copy that loads after a new one came is refused (as the ruins do).
+- **The barrier's box.** The footprint (61 x 87), from 16 blocks under its lowest layer to 64 over its top. Pushed out
+  through the nearest side; sent back (deeper than 4 blocks in) to the player's last spot outside within 64 blocks, else
+  6 blocks in front of the great door (south), facing it. A line over the hotbar at most every 10 seconds: "A spell
+  holds the cathedral shut while its knights stand." The curtain is sent from the server, to each player it keeps out
+  within 28 blocks of the edge (the same particles as the land wards' curtain, the same number a block of edge), so
+  their game needs no new message; players in creative or spectator mode see none (as with the land wards).
+- **On Peaceful** the knights don't come, so the barrier stays up (as on Peaceful no ruin knights come either, the
+  whole trader quest waits for another difficulty).
+- **The count.** Each knight's death tells the players within 64 blocks of the cathedral (and the killer) "The
+  cathedral's knights fallen: 2 / 5" over the hotbar.
+- **The fall** goes to every player within 64 blocks of the footprint and the player credited with the last kill
+  (their own blow, their pet's, or the last player to hurt it), wherever they are: each sees the straight stretch of
+  curtain on the side nearest them (and the next side's when it's within 24 blocks: round a corner), the land barriers'
+  own fall at their feet's height. They're told "The last of the cathedral's knights falls, and the spell holding it
+  shut breaks. Its way in stands open." and get "Siege Broken": a **challenge**, its icon a netherite sword
+  (placeholder), under "The Portal Orb" beside "Enter the Dross". Not for `/kill` (as with the bosses): the siege still
+  breaks. `/dross quest reset` leaves it (it's a deed, like the bosses').
+- **The frame's refusal**: the orb pops back out the way it came (out of the frame's plane, a little up), runes flare
+  across the opening with a chime, and its thrower (or, with none, the players within 8 blocks) is told "A spell holds
+  this frame shut while its knights stand." (at most every 2 s for one orb). Only the cathedral's own frame (the one
+  holding its opening's middle), and only in a world where the cathedral was really made with the land.
+- **`/dross goto cathedral`** while it holds adds a line: the barrier will bounce a survival player straight out (to the
+  great door).
+- **The test tools.** `siege status` (its state and each knight's), `siege reset` (it holds again: its knights about now
+  go, and come back, their spots picked again, the next time a player is near; "Siege Broken" is taken from you so you
+  can earn it again), `siege break` (broken at once, its knights about now gone, the players near see it fall; no
+  advancement).
+- **Test server.** Like the knight ruins' keeper, the keeper and the barrier stand down on the GameTest server only (its
+  other tests' stand-in players visit the cathedral); the siege's own tests call them. Each of the three tests has its
+  own batch (the siege is one per world). The siege test lights the real frame once the siege is broken, then puts the
+  opening and the world's "cathedral lit" flag back as they were (the flag by reflection, test only) and resets the
+  siege.
+- **Shared files touched (added only):** `DrossColors` (the World site section: `SIEGE_BROKEN_TEXT`, `SIEGE_WARD_TEXT`,
+  `SIEGE_PROGRESS_TEXT`), `en_us.json` (six keys), `quest/DrossAdvancements` (`SIEGE_BROKEN`), the portal area's
+  `DrossPortalActivation` (the call to `CathedralSiege.refusesOrb` before a frame lights), `command/DrossCommand`
+  (`siege`), `command/DrossCommandGameTest` (the three names).

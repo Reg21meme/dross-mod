@@ -87,6 +87,19 @@ public class QuestProgressData extends SavedData
         }
     }
 
+    /**
+     * Sets the "cathedral's portal is lit" flag either way. For the tests only (in the game it never goes back): a test
+     * that lights the cathedral's frame puts it back as it was, so the trader's tests still see an unlit cathedral.
+     */
+    public void setCathedralLitForTests(boolean lit)
+    {
+        if (cathedralLit != lit)
+        {
+            cathedralLit = lit;
+            setDirty();
+        }
+    }
+
     /** Forgets everything about this player. */
     void remove(UUID player)
     {

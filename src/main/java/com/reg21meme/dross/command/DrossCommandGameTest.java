@@ -45,7 +45,7 @@ import java.util.Set;
  * <ul>
  *   <li><b>Names:</b> every command in the naming scheme ({@code goto <place>}, {@code goto biome <name>} and
  *       {@code goto lair <boss>}, {@code showcase <kind> [<boss>]}, {@code boss <action> <boss>}, {@code trader <action>},
- *       {@code quest <action>}) parses to a runnable command, including the chat buttons' commands (the golem showcase's
+ *       {@code quest <action>}, {@code siege <action>}) parses to a runnable command, including the chat buttons' commands (the golem showcase's
  *       controls and the arena's summon button), and {@code goto biome} or {@code goto lair} on its own, or with a
  *       name that isn't a Dross biome or a boss with a lair, doesn't. Running
  *       {@code goto biome} is checked by {@link GotoBiomeGameTest}, {@code goto lair colossus} by
@@ -81,6 +81,7 @@ public final class DrossCommandGameTest
             "dross trader sendhome",
             "dross quest status", "dross quest reset", "dross quest complete", "dross quest skip",
             "dross quest set oracle_plea",
+            "dross siege status", "dross siege reset", "dross siege break",
             "dross showcase boss_designs colossus", "dross showcase trophies colossus", "dross showcase trophies ratking",
             "dross showcase trophies emberdactyl",
             "dross showcase boss_designs ratking", "dross showcase rats", "dross showcase boss_sounds ratking",
