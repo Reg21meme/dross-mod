@@ -20,25 +20,25 @@ The Dross is a **mid-to-late game** place. You reach it after surviving the Neth
 How a player moves through the mod, from a normal survival world to the Dross.
 
 1. **Normal survival.** Nothing from the mod is needed at first. Somewhere 3,500–4,500 blocks from spawn, usually in a forest, taiga or snowy land, the **Fallen Cathedral** stands in ruins around an unlit blue portal frame, and the land around it is dying. At the edge of one of the villages near spawn stands a small stone **Rift Chapel** with an old villager inside: the **Dross Trader**.
-2. **The Weathered Letter.** Every Nether Fortress and Bastion Remnant chest holds a Weathered Letter. It's a 4-page letter from an unnamed friend:
+2. **The Weathered Letter.** One Nether Fortress or Bastion Remnant chest in five holds a Weathered Letter. It's a 4-page letter from an unnamed friend:
    - Blue portals from the Dross have been spilling into the world. "We" closed them, but the Dross is pressing to break through again.
    - An old villager, the writer's friend, is looking for someone strong enough to fight back.
    - It gives a rough location for his chapel at the edge of a village: a direction from where the world began, and coordinates rounded to 50 blocks.
    - It tells the reader to say an old friend sent them about the rift.
 
    Picking up the letter opens the **Dross** advancement tab.
-3. **Meeting the trader.** There's one per world; your quest progress is your own. The first time you right-click him, he doubts you're strong enough and sends you for three tributes, one each from the Nether's fortresses, the deep dark's cities and the End. After that, each right-click reminds you what's still missing. His trading screen stays closed until the quest is done.
-4. **The three tributes** (any order). Right-click him while holding the full amount: **1 wither skeleton skull**, **3 echo shards** and **15 end stone**. If you hold too few, he tells you how many to bring. If you hold more, he takes exactly what he needs. Once all three are in, he gives you the **Dross Compass**, which points at the cathedral's portal. He says he knows how to forge a key but needs materials. *Advancement: Proven Worthy.*
-5. **The key materials** (any order, same rules): **1 trident**, **1 Heart of the Sea** and **8 amethyst shards**. He forges the **Rift Key**, tells you to be careful what you let out, and mentions he has books that can help in there. *Advancement: Keymaster.* His shop opens for you.
-6. **Opening the rift.** Follow the compass to the Fallen Cathedral and throw the Rift Key into the frame's opening. The key is used up and the portal lights, staying open for everyone, permanently.
+3. **Meeting the trader.** There's one per world; your quest progress is your own. Like the Blind Oracle, he has a marker over his head that only you see: a red **?** while his offer waits for you, a yellow **...** while you're on his quest, a green **!** when it's done. Each right-click is his next line or two. He tells you his side of the story: when the Dross was locked away, its knights were left on our side, still guarding the broken portals they came through, and their souls still carry the Dross's magic. With enough of them he could make something to wake the great portal. Will you help? On your next click you answer "Yes, of course." (in chat, as you), and he gives you **3 golden apples** and tells you where the nearest **knight ruin** you haven't cleared is (rounded to 10 blocks; he takes a moment to feel for it, so that line may come a second later).
+4. **Three knight ruins.** Clear three different knight ruins (both their knights beaten: see [The elemental knights](#the-elemental-knights)). Only a ruin you clear for the first time counts, so beating the same ruin's knights again when they come back doesn't. Each one shows **"Knight ruins cleared: 1 / 3"** over your hotbar. Asked meanwhile, he tells you your count and the nearest ruin you haven't cleared. The third one: *Advancement: Knightfall.*
+5. **The Portal Orb.** Go back to him (the green **!**). Over a few lines he feels the souls on you, makes the **Portal Orb** (a glass ball with a little Dross portal swirling in it) in a puff of blue, tells you where the cathedral is (rounded to 100 blocks, for example "around X 7500, Z 1200") and warns you about its knights, then: "Go on. I believe in you." *Advancement: The Portal Orb.* Asked again, he reminds you where the portal should be. His shop opens for you (it sells the Dross Guide Book once you've been to the Dross).
+6. **Opening the rift.** Go to the Fallen Cathedral and throw the Portal Orb into the frame's opening. The orb is used up and the portal lights, staying open for everyone, permanently. There's no compass: his directions are all you get.
 7. **The Dross.** Stepping through takes you to the **Shattered Spire**, the hub at Dross 0,0. The words "The Dross" fade in over four low piano notes. *Advancement: Enter the Dross*, the main achievement. On your first arrival you also get the **Dross Guide Book**. Two survivors, the Blind Oracle and the Ragged Seeker, keep watch at the spire.
 8. **The Blind Oracle's quests.** At the survivors' camp the Blind Oracle tells you his story and asks for your help, then sends you out one quest at a time: three of the Silverwood Forest's giants first, then for each boss a hunt in its land and then the boss itself (the Cinder Colossus, the Rat King, the Huntsman, the Emberdactyl), ending in *Defeat the Dross*. See [The Blind Oracle's quests](#the-blind-oracles-quests).
 9. **Exploring.** Round the hub lies the Silverwood Forest; further out are the Cinder Wastes, Blightwood, Rimefall and the Gravecrags' peaks. The Cinder Wastes, Blightwood and Rimefall stay locked until the Oracle's quests reach them. Somewhere in the Cinder Wastes a volcano holds the **Cinder Colossus**. *Advancement: Set in Stone.*
 
-**Lost items:**
-- If you lose the compass, the trader gives you a new one for free.
-- If you lose the Rift Key, you bring the key materials again. Until you've entered the Dross, he reminds you that he can forge another.
-- The Rift Key is fireproof and never despawns.
+**A lost orb:**
+- If you've lost your Portal Orb (none in your inventory) and the cathedral's portal isn't lit yet, he offers to make another: clear **three more** knight ruins you've never cleared before (the yellow **...** again), then go back for a new orb. Once the portal is lit (by anyone) nobody needs another.
+- The Portal Orb is fireproof and never despawns.
+- Once you've been to the Dross (*Enter the Dross*), he has a few lines for you in turn ("I hope your battle in the Dross is going well.").
 
 ---
 
@@ -65,7 +65,7 @@ How a player moves through the mod, from a normal survival world to the Dross.
   - **Zombies** spawn in full netherite armor with a netherite sword.
   - **Skeletons** spawn in full netherite armor and keep their bows.
   - None of it is enchanted, and none of it drops when they die.
-- **No other way out:** no portal can be lit inside the Dross. The Rift Key does nothing there, and flint and steel or fire can't light a nether portal there either. The hub's portal is the only exit.
+- **No other way out:** no portal can be lit inside the Dross. The Portal Orb does nothing there, and flint and steel or fire can't light a nether portal there either. The hub's portal is the only exit.
 - **Safe zone:** no hostile mobs spawn naturally within 48 blocks of the hub center. Mobs can still walk in from the dark.
 
 ### The sewers under Blightwood
@@ -167,9 +167,10 @@ tree carried over his shoulder and swung overhead).
 - Every frame block "leaks" the Dross: drifting blue particles and a low ambient hum, even when the frame is unlit.
 - Flint and steel does nothing to it, and normal obsidian portals stay purple nether portals.
 
-### Lighting it with the Rift Key
-- Throw (Q) a **Rift Key** into the empty middle of a complete frame, along X or Z. The key is used up and the frame fills with the **Dross Portal** (`dross:dross_portal`).
-- If the frame is already lit, the key pops back out instead of being used, and it won't drift into the portal.
+### Lighting it with the Portal Orb
+- Throw (Q) a **Portal Orb** into the empty middle of a complete frame, along X or Z. The orb is used up (glass shatters) and the frame fills with the **Dross Portal** (`dross:dross_portal`).
+- If the frame is already lit, the orb pops back out instead of being used, and it won't drift into the portal.
+- Lighting the Fallen Cathedral's frame is remembered for the whole world (the trader stops offering new orbs).
 - A netherite ingot doesn't light anything.
 
 ### Look
@@ -191,7 +192,7 @@ The cathedral is the only way into the Dross. There's one per world, and it's ma
   - **Avoided:** ocean, river, beach, swamp, mountains, deep water, and villages and pillager outposts.
   - The land under it must be nearly flat to begin with: 5 blocks of variation or less.
   - If nothing passes, the rules relax step by step (more variation, further out, any dry land), so every world gets a site.
-  - Each time you join the world, a chat message gives its location.
+  - Nothing tells you where it is when you join any more: the Dross Trader tells you, rounded to 100 blocks, once he's made you a Portal Orb.
 - **What:** a huge ruined cathedral, 61 × 87 blocks. Its heart is an unlit, unbreakable portal frame with a 3 × 5 opening, facing south. Glowing blue cracks, broken frame shards and dead ground show the Dross leaking out.
 - **Fitting into the land:**
   - Minecraft's own terrain shaping (as for village houses) draws the land to its floor, and the footprint is levelled exactly, with no big foundations.
@@ -200,7 +201,7 @@ The cathedral is the only way into the Dross. There's one per world, and it's ma
 - **The leak:** within about 16 blocks, flowers and grass die or disappear, some grass turns to coarse dirt, and stone bricks crack.
 - **No site** in a superflat world, or one made with **Generate Structures** off (no structures at all, like vanilla's strongholds; a warning in the log): there, the hub's exit portal brings you back near the world spawn.
 
-The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size), worked out from the seed. The compass, `/dross goto cathedral` and the hub's exit portal all use it; the last two load the frame's land first (the first time, generating it), as a nether portal trip does.
+The site's position and the frame's direction are available to the rest of the mod through `world/PortalSite` (frame corner, axis, opening center and size), worked out from the seed. The trader's directions, `/dross goto cathedral` and the hub's exit portal all use it; the last two load the frame's land first (the first time, generating it), as a nether portal trip does.
 
 (Until November 4, 2026 the site was found by a long search at world start, 3,000–10,000 blocks out, and built a step at a time; on some modded worlds that froze the game, so it became a world-generation structure.)
 
@@ -326,7 +327,7 @@ An old villager (`dross:dross_trader`) who knows about the rift. He wears an ori
 - **Once a village:** every village that has had the trader is remembered in the save. A trader can never come to the same village twice, and a world never has a second one. If a chapel's land were ever made again, the extra trader would be removed at once.
 - **Fitting into the land:** Minecraft's own terrain shaping draws the land to its floor, and the ground round it steps back to the land a block at a time over 6 blocks. Trees that grew into it are felled, whole, by the trader the first time its land is loaded.
 - **No village with room** near spawn (a world of oceans, a modpack without villages): the chapel stands on its own on the nearest flat dry land at least 384 blocks from spawn, and the letter says so.
-- Each time you join the world, a chat message gives the chapel's location.
+- Nothing tells you where it is when you join: the Weathered Letter does.
 - In a superflat world, or one made with **Generate Structures** off, there's no chapel (only spawn-egg traders).
 - (Until November 4, 2026 his chapel was built at the edge of the nearest village to spawn, found by a search at world start that could freeze modded worlds; for a few hours that day there were many chapels in the countryside, each with a trader.)
 - **The Rift Chapel** (9 wide, 13 deep, 18 tall):
@@ -346,8 +347,14 @@ An old villager (`dross:dross_trader`) who knows about the rift. He wears an ori
 - **Glow:** while any player is within his 50-block area, he glows electric blue, visible through walls.
 - **Spawn egg:** "Dross Trader Spawn Egg" (creative tab). An egg trader treats the spot he was placed as his home, with the same rules.
 
+### His quest
+See [The story](#the-story), steps 3 to 6: his offer, three knight ruins, the Portal Orb and where the cathedral is. Its
+words are lang keys under `dross.trader.` in `en_us.json` (first drafts), and its progress is saved per player and per
+world (`/dross quest status`). The marker over him works like the Blind Oracle's.
+
 ### Shop
-His shop opens only for players who have completed the quest.
+His shop opens only for players he has made a Portal Orb, and only when he has something for them (right-clicking him
+gives his line, then opens it).
 
 | Offer | Price |
 |---|---|
@@ -361,9 +368,8 @@ Unlimited uses, no restocking, no XP.
 
 | Item | What it does |
 |---|---|
-| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in every Nether Fortress and Bastion Remnant chest (added with a global loot modifier, so other mods' loot still works). It comes out of its chest blank and is written the first time it's in your inventory: a rough location of the trader's Rift Chapel, at the edge of a village. |
-| **Dross Compass** | Given by the trader after the three tributes. Points at the Fallen Cathedral's portal and re-aims itself every second, so it stays correct. Spins in other dimensions. |
-| **Rift Key** | Forged by the trader from the key materials. A crystal key with a blue heart. Throw it into a Dross frame to light the portal (it's used up). Fireproof, never despawns. |
+| **Weathered Letter** | Starts the quest. A readable 4-page letter, found in one Nether Fortress or Bastion Remnant chest in five (added with a global loot modifier, so other mods' loot still works). It comes out of its chest blank and is written the first time it's in your inventory: a rough location of the trader's Rift Chapel, at the edge of a village. |
+| **Portal Orb** | Made by the trader from the souls of three knight ruins. A glass ball with a little Dross portal swirling in it. Throw it into a Dross frame to light the portal (it's used up). Fireproof, never despawns. |
 | **Dross Guide Book** | Given on your first arrival in the Dross, and sold by the trader. A readable 5-page guide to the dimension: endless night, the safe hub, the netherite-clad dead, and no way out but the hub. |
 | **Dross Portal Frame** | The frame block (creative tab or `/give` only). Can't be broken in survival and drops nothing. |
 | **Dross Trader Spawn Egg** | Spawns a trader who treats that spot as home. |
@@ -380,7 +386,7 @@ Unlimited uses, no restocking, no XP.
 | **Planted Moonsilver Spear** | A Moonsilver Spear standing upright, its butt in the ground: the hunter villages' spears, a decoration (it drops itself). |
 | **Alpha Moose Skull, Moose Skull, Rimehorn Skull** | Mounted bare skulls (no lower jaw or teeth) with their antlers or the Rimehorn's two ice horns, in 3D and life size (the Alpha Moose's antlers about 5 blocks across, a bull's nearly 4, a Rimehorn's skull 2.8 tall with its horn). Place one on top of a block (a post) and it stands there facing you, or against a wall and it hangs there. The Alpha Moose drops its own every time it dies; a bull moose or a Rimehorn sometimes (1 in 10, more with Looting) when a player kills it. They're in the hunter villages too. |
 
-**The creative "Dross" tab** holds every item above. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer, the Cinder Hermit, then the Silverwood Giant), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
+**The creative "Dross" tab** holds every item above. It's grouped by kind, in this order: **blocks** (the portal frame, then the terrain blocks by biome), **quest items** (Weathered Letter, Portal Orb, Guide Book), **trophies** (all five Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (the trader, the Cinder Colossus, the stone golem, the lava golem, the Rat King, the Plague Rat, the Plague Ravager, the Rimehorn, the moose, the Pond Skater, the Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer, the Cinder Hermit, then the Silverwood Giant), **weapons and tools** (the Admin Sword, the Rage Wand, the Moonsilver Spear), the **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), then the **crops** (Frostroot, Snow Lichen, Rimeberries). Everything from the mod is only in this tab: the Dross enchanted books are kept out of vanilla's Ingredients and Combat tabs.
 
 ---
 
@@ -836,8 +842,8 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 |---|---|---|
 | Dross (tab root) | Pick up a Weathered Letter | Silent, opens the tab |
 | A Weathered Letter | Pick up a Weathered Letter | |
-| Proven Worthy | Bring the trader his three tributes | |
-| Keymaster | Have the trader forge the Rift Key | |
+| Knightfall | Clear three knight ruins for the Dross Trader | Only ruins you clear for the first time, while his quest is going |
+| The Portal Orb | Have the Dross Trader make you a Portal Orb | |
 | **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
 | The Oracle's Plea | Hear the Blind Oracle's story | Under *Enter the Dross*: the start of the Oracle's chain |
 | Giant Slayer | Bring down three of the Silverwood Giants | The Oracle's quest (the kills count only while it's going) |
@@ -888,9 +894,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross locate villages` | A test tool for now: lists the 5 nearest hunter villages (which kind, where, how far, how many igloos), each with a [go] button. |
 | `/dross goto lair ratking` | Teleports you into the nearest rat cave under Blightwood, at a tunnel mouth facing the Rat King's nest, and tells you whether he's asleep there, awake, or already beaten (he never comes back). |
 | `/dross trader sendhome` | Sends the nearest trader whose land is loaded home. |
-| `/dross quest status` | Shows your quest progress, the Blind Oracle's quest too (which one, how far, the marker over him). |
-| `/dross quest reset` | Clears your quest progress, the Guide Book flag and the Blind Oracle's quests, and revokes the Dross advancements (except the four bosses': *Set in Stone*, *Down the Drain*, *The Hunter Hunted*, *Wings Clipped*). |
-| `/dross quest complete` | Finishes the trader's quest for you. |
+| `/dross quest status` | Shows your quest progress: the letter, the Dross Trader's quest (his offer, the ruins cleared, the orb, the marker over him, whether the cathedral's portal is lit), the Guide Book, and the Blind Oracle's quest (which one, how far, the marker over him). |
+| `/dross quest reset` | Clears your quest progress, the Guide Book flag, the trader's and the Blind Oracle's quests, and revokes the Dross advancements (except the four bosses': *Set in Stone*, *Down the Drain*, *The Hunter Hunted*, *Wings Clipped*). |
+| `/dross quest complete` | Finishes the trader's quest for you, as if he'd just made you the Portal Orb (*Knightfall* and *The Portal Orb*; no items given). |
 | `/dross quest skip` | Finishes the Blind Oracle's quest step you're on (with its own advancement; a boss's only comes from beating it) and makes the next quest wait for you. |
 | `/dross quest set <quest>` | Jumps you to one of the Blind Oracle's quests, by its advancement's name (`oracle_plea`, `giant_slayer`, `into_the_ashes`, `set_in_stone`, `beneath_the_rot`, `down_the_drain`, `first_frost`, `the_hunter_hunted`, `wings_clipped`, `defeat_the_dross`), waiting to be given: its land or boss opens once you've heard him offer it. |
 | `/dross showcase boss_designs colossus` | Spawns the Cinder Colossus (3G Saddleback), frozen (dormant), with its sign and clickable controls in chat. Right-click it to move it on a stage; sneak + right-click to make it die. |
@@ -960,7 +966,7 @@ mod's own tuning.
 | `portal_site` | `minDistance`, `maxDistance` | 3500, 4500 | How far from the world spawn the Fallen Cathedral can be. |
 | `trader` | `atVillages` | true | His Rift Chapel at the edge of a village; `false`: on its own, 384-1,536 blocks from spawn, no village laid out for it. |
 | `trader` | `villageSearchRadius` | 3000 | How far from spawn his village can be. |
-| `quest` | `letterChance` | 1.0 | The chance a Nether Fortress or Bastion Remnant chest holds a Weathered Letter. |
+| `quest` | `letterChance` | 0.2 | The chance a Nether Fortress or Bastion Remnant chest holds a Weathered Letter (1.0: every chest). |
 | `knight_ruins` | `spacing` | 800 | About how far apart the elemental knights' ruins are, on average (away from the ones near spawn). |
 | `knight_ruins` | `nearSpawn` | 5 | How many ruins go near the world spawn, each in its own big biome (0: none). |
 | `knight_ruins` | `nearSpawnRadius` | 1000 | The furthest those ruins can be from the spawn. |
@@ -1024,10 +1030,10 @@ Base package: `com.reg21meme.dross`. Client-only code is in each area's `client`
 | Package | What's in it |
 |---|---|
 | `dimension` | The Dross dimension: its terrain blocks and items (`dimension/block`), world generation features, tree decorators, the hub falloff and the filter that keeps features off the hub (`dimension/worldgen`), the biome finder, the sky and fog (`dimension/client`), mob gear, the hub's safe zone, the locked lands (`dimension/ward`) |
-| `portal` | Frame and portal blocks, the Rift Key, lighting, teleporting, the hub (a world-generation structure fitted onto the terrain), the arrival sequence |
+| `portal` | Frame and portal blocks, the Portal Orb, lighting, teleporting, the hub (a world-generation structure fitted onto the terrain), the arrival sequence |
 | `world` | The portal site: its spot from the seed, the Fallen Cathedral as a world-generation structure, the tree tidy-up, ground fitting, the leak (`world/shrine` holds the shrine designs) |
-| `villager` | The trader, his Rift Chapel (a world-generation structure at a village the seed picks; the "once a village" rule), dialogue, hand-ins, shop, skins, the Dross Compass, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors (the Blind Oracle's quest talk and the marker over him) |
-| `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book; the Blind Oracle's quest line (`quest/oracle`: the quests, their progress, kill counting, the rules for the locked lands and bosses) |
+| `villager` | The trader, his Rift Chapel (a world-generation structure at a village the seed picks; the "once a village" rule), his shop, skins, the Admin Sword (`villager/hut` draws the chapel), the hub's survivors, the quest markers over the Oracle and the trader (`villager/client/QuestMarkerRenderer`) |
+| `quest` | The Weathered Letter and its loot, quest progress, advancements, the Guide Book; the Dross Trader's quest (`quest/trader`: his talk, the knight ruins counted, the Portal Orb); the Blind Oracle's quest line (`quest/oracle`: the quests, their progress, kill counting, the rules for the locked lands and bosses) |
 | `boss` | The bosses: so far the Cinder Colossus golem (`boss/golem`): its fight, minions, projectiles, temporary lava and fire, its GeckoLib renderers and the showcase golems; its trophies (`boss/trophy`: the block, its block entity and item, their GeckoLib renderers); the custom boss bar (`boss/client`); the lair (`boss/lair`); the wild golems; the logic of `/dross boss`; the locked bosses and their warded arenas (`BossLocks`, `BossWards`); the Silverwood Giant (`boss/giant`) |
 | `command` | The `/dross` command and its showcases |
 | `registry` | Every `DeferredRegister`: blocks, block entities, items, entities, particles, enchantments, loot modifiers, sounds, world generation features, tree decorators, density functions, placement modifiers, structures, the creative tab |

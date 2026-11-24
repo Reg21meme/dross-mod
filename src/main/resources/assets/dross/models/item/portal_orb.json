@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/generated",
   "textures": {
-    "layer0": "dross:item/rift_key"
+    "layer0": "dross:item/portal_orb"
   }
 }

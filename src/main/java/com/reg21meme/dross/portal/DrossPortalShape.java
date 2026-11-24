@@ -14,7 +14,7 @@ import net.minecraft.world.level.block.state.BlockState;
  * The Dross version of vanilla's {@code PortalShape}: the same shape rules as a nether portal
  * (opening from 2x3 up to 21x21, standing upright along X or Z, corners optional),
  * but every frame block must be {@code dross:dross_portal_frame}.
- * Obsidian does not count, so a Rift Key does nothing in a normal obsidian frame.
+ * Obsidian does not count, so a Portal Orb does nothing in a normal obsidian frame.
  */
 public class DrossPortalShape
 {

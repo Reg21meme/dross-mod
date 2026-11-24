@@ -1,51 +1,43 @@
 package com.reg21meme.dross.quest;
 
 import com.reg21meme.dross.quest.oracle.OracleRecord;
+import com.reg21meme.dross.quest.trader.TraderRecord;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
-import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.saveddata.SavedData;
 
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 /**
- * The quest progress of every player, saved with the world (in the Overworld's
- * {@code data/dross_quest.dat}), so it's per player and per world, and survives death and rejoining.
+ * The quest progress of every player, saved with the world (in the Overworld's {@code data/dross_quest.dat}), so it's
+ * per player and per world, and survives death and rejoining: the Weathered Letter and Guide Book flags, the Dross
+ * Trader's quest ({@link TraderRecord}) and the Blind Oracle's ({@link OracleRecord}). And one flag for the whole world:
+ * the cathedral's portal has been lit ({@link #isCathedralLit}).
  *
- * <p>Other areas never use this class directly: they go through {@link QuestProgress},
- * which is the only way to change progress. That's why everything that changes data here is package-private.</p>
+ * <p>Other areas never change this class directly: they go through {@link QuestProgress}, {@code quest.trader.TraderProgress}
+ * and {@code quest.oracle.OracleProgress}, the only ways to change progress.</p>
  */
 public class QuestProgressData extends SavedData
 {
     private static final String NAME = "dross_quest";
 
     private final Map<UUID, PlayerQuest> players = new HashMap<>();
+    /** The Fallen Cathedral's portal has been lit (by anyone): it stays open for everyone. */
+    private boolean cathedralLit;
 
     /** One player's progress. */
     static final class PlayerQuest
     {
         /** A Weathered Letter has been in their inventory. */
         boolean letterFound;
-        /** The trader has said his opening line to them. */
-        boolean introSpoken;
-        /** Tributes handed in so far. */
-        final Set<QuestRequirement> tributes = EnumSet.noneOf(QuestRequirement.class);
-        /** All tributes are in, so they earned the Dross Compass ("Proven Worthy"). */
-        boolean compassEarned;
-        /** Key materials handed in towards the NEXT key (cleared each time a key is forged). */
-        final Set<QuestRequirement> keyMaterials = EnumSet.noneOf(QuestRequirement.class);
-        /** They were given a Rift Key at least once: the quest is complete. */
-        boolean keyGiven;
-        /** How many Rift Keys were forged for them (replacements included). */
-        int keysForged;
         /** They already got the Dross Guide Book on their first arrival. */
         boolean guideBookGiven;
+        /** Their Dross Trader quest (changed only by {@code quest.trader.TraderProgress}). */
+        TraderRecord trader = new TraderRecord();
         /** Their Oracle quest line (changed only by {@code quest.oracle.OracleProgress}). */
         OracleRecord oracle = new OracleRecord();
     }
@@ -62,12 +54,37 @@ public class QuestProgressData extends SavedData
     }
 
     /**
+     * This player's Dross Trader quest progress (a fresh one if they haven't started). Read freely; only
+     * {@code quest.trader.TraderProgress} changes it, and calls {@link #setDirty()} after.
+     */
+    public TraderRecord trader(UUID player)
+    {
+        return get(player).trader;
+    }
+
+    /**
      * This player's Oracle quest progress (a fresh one if they haven't started). Read freely; only
      * {@code quest.oracle.OracleProgress} changes it, and calls {@link #setDirty()} after.
      */
     public OracleRecord oracle(UUID player)
     {
         return get(player).oracle;
+    }
+
+    /** True once the Fallen Cathedral's portal has been lit (by anyone in this world). */
+    public boolean isCathedralLit()
+    {
+        return cathedralLit;
+    }
+
+    /** The cathedral's portal is lit (only {@code quest.trader.TraderProgress} calls this). */
+    public void markCathedralLit()
+    {
+        if (!cathedralLit)
+        {
+            cathedralLit = true;
+            setDirty();
+        }
     }
 
     /** Forgets everything about this player. */
@@ -82,6 +99,7 @@ public class QuestProgressData extends SavedData
     public static QuestProgressData load(CompoundTag tag)
     {
         QuestProgressData data = new QuestProgressData();
+        data.cathedralLit = tag.getBoolean("CathedralLit");
         ListTag list = tag.getList("Players", Tag.TAG_COMPOUND);
         for (int i = 0; i < list.size(); i++)
         {
@@ -92,13 +110,8 @@ public class QuestProgressData extends SavedData
             }
             PlayerQuest quest = new PlayerQuest();
             quest.letterFound = entry.getBoolean("LetterFound");
-            quest.introSpoken = entry.getBoolean("IntroSpoken");
-            readSet(entry.getList("Tributes", Tag.TAG_STRING), quest.tributes);
-            quest.compassEarned = entry.getBoolean("CompassEarned");
-            readSet(entry.getList("KeyMaterials", Tag.TAG_STRING), quest.keyMaterials);
-            quest.keyGiven = entry.getBoolean("KeyGiven");
-            quest.keysForged = entry.getInt("KeysForged");
             quest.guideBookGiven = entry.getBoolean("GuideBookGiven");
+            quest.trader = TraderRecord.read(entry);
             quest.oracle = OracleRecord.read(entry);
             data.players.put(entry.getUUID("Id"), quest);
         }
@@ -108,6 +121,7 @@ public class QuestProgressData extends SavedData
     @Override
     public CompoundTag save(CompoundTag tag)
     {
+        tag.putBoolean("CathedralLit", cathedralLit);
         ListTag list = new ListTag();
         for (Map.Entry<UUID, PlayerQuest> e : players.entrySet())
         {
@@ -115,39 +129,12 @@ public class QuestProgressData extends SavedData
             CompoundTag entry = new CompoundTag();
             entry.putUUID("Id", e.getKey());
             entry.putBoolean("LetterFound", quest.letterFound);
-            entry.putBoolean("IntroSpoken", quest.introSpoken);
-            entry.put("Tributes", writeSet(quest.tributes));
-            entry.putBoolean("CompassEarned", quest.compassEarned);
-            entry.put("KeyMaterials", writeSet(quest.keyMaterials));
-            entry.putBoolean("KeyGiven", quest.keyGiven);
-            entry.putInt("KeysForged", quest.keysForged);
             entry.putBoolean("GuideBookGiven", quest.guideBookGiven);
+            quest.trader.write(entry);
             quest.oracle.write(entry);
             list.add(entry);
         }
         tag.put("Players", list);
         return tag;
-    }
-
-    private static void readSet(ListTag list, Set<QuestRequirement> into)
-    {
-        for (int i = 0; i < list.size(); i++)
-        {
-            QuestRequirement requirement = QuestRequirement.fromSaveName(list.getString(i));
-            if (requirement != null)
-            {
-                into.add(requirement);
-            }
-        }
-    }
-
-    private static ListTag writeSet(Set<QuestRequirement> set)
-    {
-        ListTag list = new ListTag();
-        for (QuestRequirement requirement : set)
-        {
-            list.add(StringTag.valueOf(requirement.saveName()));
-        }
-        return list;
     }
 }

@@ -4,6 +4,7 @@ import com.reg21meme.dross.DrossColors;
 import com.reg21meme.dross.dimension.DrossBiomes;
 import com.reg21meme.dross.quest.DrossAdvancements;
 import com.reg21meme.dross.quest.QuestProgressData;
+import com.reg21meme.dross.quest.trader.TraderProgress;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerPlayer;
@@ -145,10 +146,14 @@ public final class OracleProgress
         QuestNetwork.sendTo(player, new LandFallMessage(bit, x, z, alongX, alongZ));
     }
 
-    /** Sends the player's marker, open lands and fallen barriers to their game. */
+    /**
+     * Sends the player's quest markers (the Oracle's and the Dross Trader's, {@link TraderProgress#marker}), open lands and
+     * fallen barriers to their game.
+     */
     public static void sync(ServerPlayer player)
     {
-        QuestNetwork.sendTo(player, new OracleSyncMessage(marker(player), openLandsMask(player), fallenLandsMask(player)));
+        QuestNetwork.sendTo(player, new OracleSyncMessage(marker(player), TraderProgress.marker(player), openLandsMask(player),
+                fallenLandsMask(player)));
     }
 
     // ------------------------------------------------------------------ Test commands

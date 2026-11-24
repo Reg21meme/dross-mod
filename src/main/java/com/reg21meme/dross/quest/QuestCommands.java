@@ -5,11 +5,12 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.suggestion.SuggestionsBuilder;
-import com.reg21meme.dross.quest.QuestRequirement.Group;
 import com.reg21meme.dross.quest.oracle.OracleProgress;
 import com.reg21meme.dross.quest.oracle.OracleQuest;
 import com.reg21meme.dross.quest.oracle.OracleQuests;
 import com.reg21meme.dross.quest.oracle.OracleState;
+import com.reg21meme.dross.quest.trader.TraderProgress;
+import com.reg21meme.dross.quest.trader.TraderState;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
@@ -34,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
  *                         .suggests(QuestCommands::suggestQuests)
  *                         .executes(QuestCommands::set))))
  * </pre>
+ * {@code status}, {@code reset} and {@code complete} cover the Dross Trader's quest ({@code quest.trader});
  * {@code status}, {@code reset}, {@code skip} and {@code set} cover the Blind Oracle's quests too ({@code quest.oracle}).
  * Each works on the player running the command. The overloads that take a {@link ServerPlayer}
  * are there in case a player argument is added later.
@@ -57,7 +59,7 @@ public final class QuestCommands
         return reset(context.getSource(), context.getSource().getPlayerOrException());
     }
 
-    /** {@code /dross quest complete}: marks your whole quest as done, as if the Rift Key had been given. */
+    /** {@code /dross quest complete}: marks the way into the Dross as done, as if the trader had just made you the Portal Orb. */
     public static int complete(CommandContext<CommandSourceStack> context) throws CommandSyntaxException
     {
         return complete(context.getSource(), context.getSource().getPlayerOrException());
@@ -84,29 +86,9 @@ public final class QuestCommands
 
     public static int status(CommandSourceStack source, ServerPlayer player)
     {
-        QuestProgress.Stage stage = QuestProgress.getStage(player);
         MutableComponent text = Component.literal("Dross quest progress for ").append(player.getDisplayName()).append(":");
-        line(text, "Stage: " + switch (stage)
-        {
-            case TRIBUTES -> "bringing the tributes";
-            case KEY_MATERIALS -> "bringing the key materials";
-            case COMPLETE -> "complete";
-        });
         line(text, "Weathered Letter found: " + yesNo(QuestProgress.hasFoundLetter(player)));
-        line(text, "Trader's opening line spoken: " + yesNo(QuestProgress.hasSpokenIntro(player)));
-        text.append("\n Tributes:");
-        for (QuestRequirement requirement : QuestRequirement.inGroup(Group.TRIBUTE))
-        {
-            requirementLine(text, player, requirement);
-        }
-        line(text, "Compass earned (Proven Worthy): " + yesNo(QuestProgress.hasEarnedCompass(player)));
-        text.append(QuestProgress.isQuestComplete(player) ? "\n Key materials (towards a replacement key):" : "\n Key materials:");
-        for (QuestRequirement requirement : QuestRequirement.inGroup(Group.KEY_MATERIAL))
-        {
-            requirementLine(text, player, requirement);
-        }
-        line(text, "Rift Key given (Keymaster): " + yesNo(QuestProgress.isQuestComplete(player))
-                + " (keys forged: " + QuestProgress.getKeysForged(player) + ")");
+        traderStatus(text, player);
         line(text, "Dross Guide Book given: " + yesNo(QuestProgress.hasReceivedGuideBook(player)));
         oracleStatus(text, player);
         source.sendSuccess(() -> text, false);
@@ -117,8 +99,8 @@ public final class QuestCommands
     {
         QuestProgress.reset(player);
         source.sendSuccess(() -> Component.literal("Reset the Dross quest for ").append(player.getDisplayName())
-                .append(" (progress, Guide Book flag, the Blind Oracle's quests and the quest advancements; the bosses' "
-                        + "advancements stay). Items they hold were not taken."), true);
+                .append(" (the letter and Guide Book flags, the Dross Trader's and the Blind Oracle's quests and the quest "
+                        + "advancements; the bosses' advancements stay). Items they hold were not taken."), true);
         return 1;
     }
 
@@ -126,7 +108,7 @@ public final class QuestCommands
     {
         QuestProgress.completeAll(player);
         source.sendSuccess(() -> Component.literal("Completed the Dross quest for ").append(player.getDisplayName())
-                .append(" (as if the Rift Key was given; no items given)."), true);
+                .append(" (as if the Dross Trader had just made the Portal Orb; no items given)."), true);
         return 1;
     }
 
@@ -160,6 +142,22 @@ public final class QuestCommands
         return 1;
     }
 
+    private static void traderStatus(MutableComponent text, ServerPlayer player)
+    {
+        TraderState state = TraderProgress.state(player);
+        String round = TraderProgress.round(player) > 1 ? " (round " + TraderProgress.round(player) + ", for a new orb)" : "";
+        text.append("\n Dross Trader: " + switch (state)
+        {
+            case OFFER -> "his offer waiting";
+            case RUINS -> "clearing knight ruins, " + TraderProgress.ruinsCleared(player) + " / " + TraderProgress.RUINS_NEEDED + round;
+            case READY -> "ruins cleared, the orb to collect" + round;
+            case ORB_GIVEN -> "the Portal Orb given";
+        });
+        line(text, "Marker over him: " + TraderProgress.marker(player).name().toLowerCase(Locale.ROOT));
+        line(text, "Portal Orbs made: " + TraderProgress.orbsMade(player) + "; one in the inventory: " + yesNo(TraderProgress.hasOrb(player))
+                + "; the cathedral's portal lit: " + yesNo(TraderProgress.isCathedralLit(player.server)));
+    }
+
     private static void oracleStatus(MutableComponent text, ServerPlayer player)
     {
         text.append("\n Blind Oracle: " + oracleLine(player));
@@ -188,12 +186,6 @@ public final class QuestCommands
             case DONE -> "done, to hand in";
             case FINISHED -> "every quest finished";
         };
-    }
-
-    private static void requirementLine(MutableComponent text, ServerPlayer player, QuestRequirement requirement)
-    {
-        text.append("\n   [" + (QuestProgress.hasHandedIn(player, requirement) ? "x" : " ") + "] ")
-                .append(requirement.describe());
     }
 
     private static void line(MutableComponent text, String line)

@@ -13,8 +13,9 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * CLIENT ONLY. What this player's game knows of their Oracle quest, as the server last sent it
- * ({@code quest.oracle.OracleSyncMessage}): the marker to draw over the Blind Oracle (the villager area), which locked
+ * CLIENT ONLY. What this player's game knows of their quests, as the server last sent it
+ * ({@code quest.oracle.OracleSyncMessage}): the markers to draw over the Blind Oracle and the Dross Trader (the villager
+ * area's {@code QuestMarkerRenderer}), which locked
  * lands are open and which of their barriers this player has seen fall (the dimension area's ward visuals). Forgotten on
  * leaving a world.
  */
@@ -22,6 +23,7 @@ import net.minecraftforge.fml.common.Mod;
 public final class OracleClientState
 {
     private static volatile OracleMarker marker = OracleMarker.NONE;
+    private static volatile OracleMarker traderMarker = OracleMarker.NONE;
     private static volatile int openLands;
     private static volatile int fallenLands;
 
@@ -31,6 +33,12 @@ public final class OracleClientState
     public static OracleMarker marker()
     {
         return marker;
+    }
+
+    /** The marker this player sees over the Dross Trader (NONE until the server says otherwise). */
+    public static OracleMarker traderMarker()
+    {
+        return traderMarker;
     }
 
     /** True in creative or spectator mode: nothing is locked, and no barrier is shown. */
@@ -88,9 +96,10 @@ public final class OracleClientState
     }
 
     /** From the server's message. */
-    public static void set(OracleMarker newMarker, int newOpenLands, int newFallenLands)
+    public static void set(OracleMarker newMarker, OracleMarker newTraderMarker, int newOpenLands, int newFallenLands)
     {
         marker = newMarker;
+        traderMarker = newTraderMarker;
         openLands = newOpenLands;
         fallenLands = newFallenLands;
     }
@@ -99,6 +108,7 @@ public final class OracleClientState
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event)
     {
         marker = OracleMarker.NONE;
+        traderMarker = OracleMarker.NONE;
         openLands = 0;
         fallenLands = 0;
     }

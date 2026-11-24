@@ -1,14 +1,14 @@
 {
-  "parent": "dross:proven_worthy",
+  "parent": "dross:knightfall",
   "display": {
     "icon": {
-      "item": "dross:rift_key"
+      "item": "dross:portal_orb"
     },
     "title": {
-      "translate": "advancements.dross.keymaster.title"
+      "translate": "advancements.dross.portal_orb.title"
     },
     "description": {
-      "translate": "advancements.dross.keymaster.description"
+      "translate": "advancements.dross.portal_orb.description"
     },
     "frame": "goal",
     "show_toast": true,
@@ -16,13 +16,13 @@
     "hidden": false
   },
   "criteria": {
-    "key_forged": {
+    "orb_made": {
       "trigger": "minecraft:impossible"
     }
   },
   "requirements": [
     [
-      "key_forged"
+      "orb_made"
     ]
   ]
 }

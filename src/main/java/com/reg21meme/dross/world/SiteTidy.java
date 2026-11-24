@@ -44,7 +44,7 @@ import org.slf4j.Logger;
  *       cathedral's own blocks kept: its beams of dark oak and spruce, its mossy cobblestone and blue ice);</li>
  *   <li>the cathedral's own blocks that the world's decoration changed after it was built are put back
  *       ({@link #restore}: a jungle's podzol and bamboo over its ground, the dirt a tree's trunk leaves under it);</li>
- *   <li>anything in the frame's opening is cleared (so the Rift Key can light it);</li>
+ *   <li>anything in the frame's opening is cleared (so the Portal Orb can light it);</li>
  *   <li>the Dross leaks out round the frame ({@link SiteLeak}: dead plants, coarse dirt, cracked bricks).</li>
  * </ol>
  * Then it's saved as done ({@link PortalSiteData}). If its land unloads half way, it waits; if the server stops after it

@@ -22,7 +22,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class WeatheredLetterLootModifier extends LootModifier
 {
-    /** The default chance that a chest gets a letter (1.0 = every chest); the game uses config/dross-common.toml's letterChance. */
+    /** The default chance that a chest gets a letter (0.2 = one chest in five); the game uses config/dross-common.toml's letterChance. */
     public static final float LETTER_CHANCE = (float) com.reg21meme.dross.DrossConfig.DEFAULT_LETTER_CHANCE;
 
     public static final Codec<WeatheredLetterLootModifier> CODEC =

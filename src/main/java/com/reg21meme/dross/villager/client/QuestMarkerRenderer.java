@@ -5,9 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.DrossColors;
-import com.reg21meme.dross.quest.client.OracleClientState;
 import com.reg21meme.dross.quest.oracle.OracleMarker;
-import com.reg21meme.dross.villager.Survivor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -15,13 +13,15 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
 
 /**
- * CLIENT ONLY. Draws the quest marker over the Blind Oracle's head (QUEST_PLAN.md, "Markers over his head"): what this
- * player's quest wants of him, as the server last told their game ({@link OracleClientState#marker()}), so each player
- * sees their own:
+ * CLIENT ONLY. Draws a quest marker over a character's head (QUEST_PLAN.md, "Markers over his head"; PRE_DROSS_PLAN.md,
+ * "His quests"): what this player's quest wants of him, as the server last told their game
+ * ({@code quest.client.OracleClientState}), so each player sees their own. It's drawn over the Blind Oracle
+ * ({@link SurvivorRenderer}, {@code marker()}) and over the Dross Trader ({@link DrossTraderRenderer}, {@code traderMarker()}):
  * <ul>
  *   <li>{@link OracleMarker#NEW}: a red "?" (a new quest is waiting);</li>
  *   <li>{@link OracleMarker#ACTIVE}: a yellow "..." (the quest is going);</li>
@@ -30,7 +30,7 @@ import org.joml.Matrix4f;
  * </ul>
  * It floats about a block over his head, always facing the camera, bobbing slowly, full-bright (so it glows a little at
  * night), seen from up to {@value #VIEW_DISTANCE} blocks, a little bigger the further off you are so it stays easy to
- * spot. It's drawn like a name tag, but never through walls. Only the Oracle has one ({@link SurvivorRenderer}).
+ * spot. It's drawn like a name tag, but never through walls.
  *
  * <p>The picture is pixel art ({@code textures/gui/quest_markers.png}, drawn by {@code tools/skins/quest_markers.py}),
  * one cell per marker in layers: its body (shades of grey tinted with the marker's colour, so its outline is a dark
@@ -38,7 +38,7 @@ import org.joml.Matrix4f;
  * also has a soft glow round each outline (its first row), no longer drawn (the user, November 18, 2026: "remove the
  * blue glow").</p>
  */
-public final class OracleMarkerRenderer
+public final class QuestMarkerRenderer
 {
     private static final ResourceLocation SHEET = new ResourceLocation(Dross.MODID, "textures/gui/quest_markers.png");
 
@@ -76,12 +76,15 @@ public final class OracleMarkerRenderer
     /** How far each layer is drawn in front of the one before (blocks), so they never flicker against each other. */
     private static final float LAYER_GAP = 0.002F;
 
-    private OracleMarkerRenderer() {}
+    private QuestMarkerRenderer() {}
 
-    /** Draws this player's marker over him, if any. Called by {@link SurvivorRenderer} for the Blind Oracle. */
-    static void render(Survivor oracle, float partialTick, PoseStack poseStack, MultiBufferSource buffers, EntityRenderDispatcher dispatcher)
+    /**
+     * Draws this marker over him (nothing for {@link OracleMarker#NONE}). Called after the character itself, with its
+     * renderer's pose stack (at his feet).
+     */
+    static void render(LivingEntity oracle, OracleMarker marker, float partialTick, PoseStack poseStack, MultiBufferSource buffers,
+                       EntityRenderDispatcher dispatcher)
     {
-        OracleMarker marker = OracleClientState.marker();
         int column = columnOf(marker);
         if (column < 0)
         {
@@ -120,14 +123,14 @@ public final class OracleMarkerRenderer
         poseStack.popPose();
     }
 
-    /** True if this player has a marker to see over him. */
-    static boolean isShown()
+    /** True if this marker is drawn at all. */
+    static boolean isShown(OracleMarker marker)
     {
-        return columnOf(OracleClientState.marker()) >= 0;
+        return columnOf(marker) >= 0;
     }
 
     /** A box round where his marker can be, at its biggest and at the top of its bob (for the view check). */
-    static AABB cullingBox(Survivor oracle)
+    static AABB cullingBox(LivingEntity oracle)
     {
         double half = CELL_WIDTH * PIXEL * FAR_SCALE / 2.0D;
         double bottom = oracle.getY() + oracle.getBbHeight() + LIFT;

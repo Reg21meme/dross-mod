@@ -1,8 +1,9 @@
 package com.reg21meme.dross.quest.oracle;
 
 /**
- * The marker a player sees over the Blind Oracle (each player their own; the villager area draws it from
- * {@code quest.client.OracleClientState.marker()}).
+ * The marker a player sees over the Blind Oracle, and over the Dross Trader for his quest (each player their own; the
+ * villager area's {@code QuestMarkerRenderer} draws them from {@code quest.client.OracleClientState.marker()} and
+ * {@code traderMarker()}).
  */
 public enum OracleMarker
 {

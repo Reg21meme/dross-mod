@@ -27,7 +27,7 @@ import net.minecraft.world.level.material.PushReaction;
  *       electric blue dust and a low hum (client side only, see {@link #animateTick}).</li>
  * </ul>
  * It deliberately does NOT override Forge's {@code isPortalFrame}, so flint and steel can't
- * make a purple nether portal inside it. Only the Rift Key lights it (see {@link DrossPortalActivation}).
+ * make a purple nether portal inside it. Only the Portal Orb lights it (see {@link DrossPortalActivation}).
  */
 public class DrossPortalFrameBlock extends Block
 {

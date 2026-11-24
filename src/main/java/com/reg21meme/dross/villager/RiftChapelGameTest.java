@@ -84,7 +84,7 @@ import org.slf4j.Logger;
  *   <li>{@link #chapelIsMadeWithTheLand}: the chapel's land loaded with a ticket (waited for by the clock, then its
  *       trader's tidy-up): its structure start; at least 99% of the design's blocks in place; its ground level; no tree's
  *       log or leaves in it; its broken frame unbreakable; its path laid; exactly one trader in it, at home there, whose
- *       first right-click gives the opening speech; {@code /dross goto trader} lands at its door facing it; a Weathered
+ *       first right-click gives his offer's first line; {@code /dross goto trader} lands at its door facing it; a Weathered
  *       Letter names it in the village's wording; the "once a village" rule turns away a second trader from its village
  *       and one from another village, but not a spawn-egg trader; after its land is unloaded and loaded again (if it's out
  *       of the spawn chunks), still the one trader.</li>
@@ -690,7 +690,7 @@ public final class RiftChapelGameTest
     }
 
     /**
-     * A player at the chapel: the trader's first right-click gives the opening speech; {@code /dross goto trader} lands at
+     * A player at the chapel: the trader's first right-click gives his offer's first line; {@code /dross goto trader} lands at
      * its door, facing it; a Weathered Letter held there names it (waited for: it's written off the server thread).
      */
     private static void checkVisitor(Run run)
@@ -702,7 +702,7 @@ public final class RiftChapelGameTest
         player.teleportTo(run.overworld, near.getX() + 0.5D, near.getY() + 8, near.getZ() + 0.5D, 0.0F, 0.0F);
         DrossTrader trader = run.traders().get(0);
         trader.mobInteract(player, InteractionHand.MAIN_HAND);
-        expect(problems, said(player, "dross.trader.dialogue.intro"), "his first right-click didn't give the opening speech (told: "
+        expect(problems, said(player, "dross.trader.offer.1"), "his first right-click didn't give his offer's first line (told: "
                 + player.messages.stream().map(Component::getString).toList() + ")");
         int result = player.server.getCommands().performPrefixedCommand(player.createCommandSourceStack().withPermission(2), "dross goto trader");
         BlockPos door = run.chapel.doorstep();

@@ -23,7 +23,8 @@ public final class DrossConfig
     public static final int DEFAULT_SITE_MAX_DISTANCE = 4500;
     public static final boolean DEFAULT_TRADER_AT_VILLAGES = true;
     public static final int DEFAULT_TRADER_SEARCH_RADIUS = 3000;
-    public static final double DEFAULT_LETTER_CHANCE = 1.0D;
+    /** One chest in five (PRE_DROSS_PLAN.md; it was every chest, 1.0, for testing). */
+    public static final double DEFAULT_LETTER_CHANCE = 0.2D;
     public static final int DEFAULT_PLANNER_THREADS = 0;
     public static final int DEFAULT_BUILD_MILLIS = 40;
     public static final int DEFAULT_RUIN_SPACING = 800;

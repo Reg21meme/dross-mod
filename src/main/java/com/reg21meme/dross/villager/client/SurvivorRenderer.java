@@ -1,6 +1,7 @@
 package com.reg21meme.dross.villager.client;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.reg21meme.dross.quest.client.OracleClientState;
 import com.reg21meme.dross.villager.Survivor;
 import com.reg21meme.dross.villager.SurvivorRole;
 import net.minecraft.client.model.VillagerModel;
@@ -14,7 +15,7 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * Draws a hub survivor like the trader: the vanilla villager model with its trader skin (the Blind Oracle skin 8, the
  * Ragged Seeker skin 3), at the trader's size; the Oracle raises his arms while he casts his spell ({@link SurvivorModel}). Its name ("Blind Oracle", "Ragged Seeker") shows while you look at it,
- * the way a named mob's does. Over the Blind Oracle floats this player's quest marker ({@link OracleMarkerRenderer}).
+ * the way a named mob's does. Over the Blind Oracle floats this player's quest marker ({@link QuestMarkerRenderer}).
  */
 public class SurvivorRenderer extends LivingEntityRenderer<Survivor, VillagerModel<Survivor>>
 {
@@ -45,7 +46,8 @@ public class SurvivorRenderer extends LivingEntityRenderer<Survivor, VillagerMod
         super.render(survivor, entityYaw, partialTick, poseStack, buffers, packedLight);
         if (survivor.getRole() == SurvivorRole.MENTOR)
         {
-            OracleMarkerRenderer.render(survivor, partialTick, poseStack, buffers, this.entityRenderDispatcher);
+            QuestMarkerRenderer.render(survivor, OracleClientState.marker(), partialTick, poseStack, buffers,
+                    this.entityRenderDispatcher);
         }
     }
 
@@ -61,7 +63,8 @@ public class SurvivorRenderer extends LivingEntityRenderer<Survivor, VillagerMod
             return true;
         }
         return survivor.getRole() == SurvivorRole.MENTOR && survivor.shouldRender(cameraX, cameraY, cameraZ)
-                && OracleMarkerRenderer.isShown() && frustum.isVisible(OracleMarkerRenderer.cullingBox(survivor));
+                && QuestMarkerRenderer.isShown(OracleClientState.marker())
+                && frustum.isVisible(QuestMarkerRenderer.cullingBox(survivor));
     }
 
     /** Like a mob with a name tag: its name shows while you look at it (and always if it's set to show). */

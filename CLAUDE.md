@@ -258,469 +258,11 @@ rats`).
 | Area | Agent | Owns |
 |---|---|---|
 | Dimension | `dimension-builder` | `com.reg21meme.dross.dimension.*`; `data/dross/dimension/`, `data/dross/dimension_type/`, `data/dross/worldgen/`; Dross mob equipment (skips risen undead; marks geared mobs for `DrossMobGear.hasDrossGear`); the hub's safe zone (no natural hostile spawns near `DrossHub.CENTER`); the lower monster limit in Silverwood Forest and the Gravecrags (`dimension/DrossMonsterLimit`); **the terrain** (Terrain v1): noise settings, density functions (`dross:hub_falloff`), the five biomes and their spawn lists, surface rules, world-generation features and their Java (`dimension/worldgen/`, `registry/ModFeatures`, `ModTreeDecorators`, `ModDensityFunctions`, `ModPlacementModifiers`), the 38 terrain blocks and 3 materials (`dimension/block/`) with their assets, tags, recipes and loot, `tools/terrain/` (the generators; `worldgen.py` holds every tuning number), `block-previews/`, `terrain-previews/`, the Dross sky/fog/light (`dimension/client/`), and `DrossBiomes` (biome keys, `findNearest`); the `dross:not_on_hub` placement filter (`dimension/worldgen/NotOnHubFilter`: trees, giant mushrooms and ice spikes keep 24 blocks past the hub's footprint, plant patches 8, ores 8 from 8 under its ground up; `HUB_TREE_MARGIN`, `HUB_PLANT_MARGIN`, `HUB_ORE_MARGIN`, `HUB_ORE_DEPTH` in `worldgen.py`) and writing the JSON of the hub's, the portal site's and the Rift Chapel's structures (`worldgen.py` owns those folders; their Java is Portal's, World site's and Villager's; November 4, 2026); **the sewers** (The plan, step 11: `dimension/sewer/` (the `dross:sewers` and `dross:rat_cave` structures, their maze planner and pieces, every number in `SewerTuning`, the `RatCaves` and `Sewers` API, the rat cave's spawn list `RatCaveSpawns`), `registry/ModStructures`, the underground `dross:sewers` biome and its depth climate `dross:climate/sewer_depth`, the rat spawn weights (`worldgen.py`, SEWERS section), Sewer Sludge (`dimension/block/SewerSludgeBlock`), the Blight Vent (`dimension/block/BlightVentBlock`), the `dross:not_near_sewer_entrance` placement filter, `tools/terrain/preview_sewers.py` and `terrain-previews/sewers/`); **Rimefall's big frozen lakes and its Rimehorn herds** (The plan, step 14: `dimension/rimefall/` (`RimefallAreas`, the plan per Rimefall patch; `RimefallLake`, `RimefallLakeStructure`, `RimefallLakePiece`, the `dross:rimefall_lake` structure in `registry/ModStructures`; `RimehornHerdFeature`, `dross:rimehorn_herd` in `registry/ModFeatures`; every number in `RimefallTuning`), the `dross:not_on_rimefall_lake` placement filter, Rimefall's and Silverwood's moose spawn weights (`worldgen.py`); where Rimefall's hunter villages go (`RimefallVillages`, the planner's `HUNTSMAN_VILLAGE` and `HUNTER_VILLAGE` uses, October 23)); **the boss-site planner** (The plan, step 12: `dimension/sites/` and its `dross:boss_site` structure placement in `registry/ModStructures`, `terrain-previews/boss_sites.png`; bosses plug their own fit tests into it); **the land wards** (The plan, step 19, November 9, 2026: `dimension/ward/` (`LandWard`, and in `client/` `LandWardEdge`, `WardStreakParticle`, `WardRuneParticle`, `LandWardClientSetup`), the `dross:ward_streak` and `dross:ward_rune` particles in `registry/ModParticles`, their sprites and the preview `terrain-previews/ward_edge.png` from `tools/terrain/ward_particles.py`) and Silverwood's monster list without zombies and skeletons, the Silverwood Giant in it (`worldgen.py`'s `SILVERWOOD_GIANT_WEIGHT`, `SILVERWOOD_KEEPS`; step 19) |
-| Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); the frame's ambient particles and sound; the **Rift Key** item and lighting a frame with it (replaces the netherite ingot); blocking portal lighting inside the Dross; the portal's look (texture, particles, screen overlay); teleporting; the **hub** at Dross 0,0 (`portal/DrossHub`: structure and exit portal); the frame's creative-only block item; the Rift Key and frame entries in the "Dross" creative tab; the arrival sequence (title, piano notes, and *when* `dross:entered_the_dross` is granted and the Guide Book is given, both through `quest-builder`'s API; the advancement JSON belongs to Quest); the hub as a world-generation structure made with the Dross land at 0,0 (November 4, 2026: `dross:dross_hub`, `portal/DrossHubStructure`, `DrossHubPiece`, `DrossHubPlacement`, its entries in `registry/ModStructures`; its ground level from the seed, `DrossHubGround`; `DrossHub.layout(server)`, pure arithmetic, for the survivors, the filters and the arrival) and `DrossTeleporter.findSafeSpot`; the survivors' camp at the spire's steps (`portal/camp/`: `HubCamp`, where its template goes with the hub's land and where they live in it, and the generated `HubCampDesigns`; templates `data/dross/structures/hub_camp/`, made by `tools/hub_camp/camps.py`, previews `shrine-previews/hub_camp/`) |
+| Portal | `portal-builder` | `com.reg21meme.dross.portal.*`; the frame block `dross:dross_portal_frame` and the portal block `dross:dross_portal` (definitions, assets, tags); the frame's ambient particles and sound; the **Portal Orb** item (`dross:portal_orb`, `portal/PortalOrbItem`, since November 24, 2026; the Rift Key before) and lighting a frame with it (replaces the netherite ingot; lighting the cathedral's own frame is reported to Quest, `TraderProgress.portalLit`); blocking portal lighting inside the Dross; the portal's look (texture, particles, screen overlay); teleporting; the **hub** at Dross 0,0 (`portal/DrossHub`: structure and exit portal); the frame's creative-only block item; the Portal Orb and frame entries in the "Dross" creative tab; the arrival sequence (title, piano notes, and *when* `dross:entered_the_dross` is granted and the Guide Book is given, both through `quest-builder`'s API; the advancement JSON belongs to Quest); the hub as a world-generation structure made with the Dross land at 0,0 (November 4, 2026: `dross:dross_hub`, `portal/DrossHubStructure`, `DrossHubPiece`, `DrossHubPlacement`, its entries in `registry/ModStructures`; its ground level from the seed, `DrossHubGround`; `DrossHub.layout(server)`, pure arithmetic, for the survivors, the filters and the arrival) and `DrossTeleporter.findSafeSpot`; the survivors' camp at the spire's steps (`portal/camp/`: `HubCamp`, where its template goes with the hub's land and where they live in it, and the generated `HubCampDesigns`; templates `data/dross/structures/hub_camp/`, made by `tools/hub_camp/camps.py`, previews `shrine-previews/hub_camp/`) |
 | World site | `world-builder` | `com.reg21meme.dross.world.*` (the site location `PortalSite` and its API; the **castle**, the Fallen Cathedral, around a frame made of `portal-builder`'s frame block, as a world-generation structure since November 4, 2026 (`dross:portal_site`: `world/PortalSiteStructure`, `PortalSitePiece`, `PortalSitePlacement`, its entries in `registry/ModStructures`; its spot from the seed, `SiteFinder`, `SiteRules`, `SiteSpot`, `SiteVillages`; the trees round it felled once its land is loaded, `SiteTidy`); the "leaking" dead plants and cracked blocks around it, `SiteLeak`); `com.reg21meme.dross.command.*` (the `/dross` command root and its names (see rule 9); `/dross goto cathedral`, `/dross goto hub` and `/dross goto trader`; its `trader`, `quest` and `boss` subcommands call the villager, quest and boss areas' logic; `/dross showcase boss_designs colossus` (`command/GolemShowcase`) lines up the boss area's golem designs and drives their showcase controls (dormant, erupt, erupted, break, core, die, walk, idle); `/dross showcase trophies colossus`, `/dross showcase trophies ratking` and `/dross showcase trophies huntsman` (`command/TrophyShowcase`) place the boss area's trophy designs in a row; `/dross showcase boss_designs ratking` (`command/RatKingShowcase`) lines up the Rat King designs and plays their animations (sleep, wake, idle, walk, burrow, popup, rage, die); `/dross showcase rats` (`command/RatShowcase`) lines up his rats, regular and enraged (idle, run); `/dross showcase boss_sounds ratking` (`command/RatSoundShowcase`) lists his and the rats' sounds with play buttons; `/dross showcase boss_designs rimefall` (`command/RimefallShowcase`) builds a snowy gallery of the boss area's Rimefall candidates (the user's picks, bosses then regular mobs); `/dross showcase rimefall_mobs` (`command/RimefallMobShowcase`) lines up Rimefall's animals and plays their animations; `/dross showcase mob_sounds rimefall` (`command/RimefallMobSoundShowcase`) lists their sounds with play buttons; `/dross showcase bossbars huntsman` (the boss area's `HuntsmanBarShowcase`) shows the Huntsman's boss bars; `/dross showcase frostfolk_villages` (`command/HunterVillageShowcase`) builds the boss area's village designs and the Huntsman's lodge; `/dross showcase frostfolk_igloos` (`command/HunterIglooShowcase`) builds the boss area's igloo templates and decorations; `/dross boss summon ratking` and `/dross boss arena ratking` (the boss area's `BossCommands`, `RatKingArena`); `/dross boss summon huntsman` and `/dross boss arena huntsman` (the boss area's `BossCommands`, `HuntsmanArena`); `/dross boss arena bedrock` (the boss area's `BedrockArena`)); the two **shrine designs** the user picked, No. 1 Fallen Cathedral and No. 2 Shattered Spire (`world/shrine/`: `ShrineDesign` places one, `ShrineDesigns` is generated; templates in `data/dross/structures/shrine/`, made by the Python generator in `tools/shrines/`, previews in `shrine-previews/`); `GroundFit` reading the Dross ground tags `#dross:fit_surface` / `#dross:fit_soil`; `/dross goto biome <name>` (`command/GotoBiome`), `/dross goto lair colossus` and `/dross goto lair ratking` (`command/GotoLair`, the rat cave through `dimension/sewer/RatCaves` and `boss/ratking/lair/RatKingLair`), `/dross goto sewer` (`command/GotoSewer`, through `dimension/sewer/Sewers`), `/dross goto lake` (`command/GotoLake`, through `dimension/rimefall/RimefallAreas`), `/dross goto lair huntsman`, `/dross goto village` and the temporary `/dross locate villages` (`command/GotoVillage`, through `dimension/rimefall/RimefallVillages` and the boss area's `HuntsmanVillages`), `/dross showcase frostfolk` (`command/FrostfolkShowcase`, the boss area's Frostfolk, one of each calling, and their controls); `/dross showcase boss_designs cinder_wastes` (`command/FireShowcase`, the boss area's fire servant candidates in a gallery), `/dross showcase boss_designs emberdactyl` (the same, the Emberdactyl's looks, with the boss area's `EmberVolcano` going up behind them) and `/dross showcase cinder_mobs` (the same, the Cinder Wastes' mobs); `/dross showcase hermit_caves` (`command/HermitCaveShowcase`, the boss area's hermit crab caves) and `/dross goto hermit_cave` (`command/GotoHermitCave`, through the boss area's `HermitCaveSites`); `/dross showcase hub_camps` (`command/HubCampShowcase`, the Portal area's camp candidates, each at a Shattered Spire); `/dross showcase boss_designs blightwood` (`command/BlightShowcase`, the boss area's Blightwood candidates in a gallery); `/dross showcase knights` (`command/KnightShowcase`, the boss area's ten real knights on show, element by element round broken portals, and buttons playing their moves; the design candidates' gallery is `/dross showcase boss_designs knights`); `/dross showcase knight_ruins [<element>]` (`command/KnightRuinShowcase`, the boss area's knight ruin candidates, all five elements side by side or one element, a row for each of its biome areas, with their knights on guard); `/dross showcase boss_sounds knights` (`command/KnightSoundShowcase`, the knights' sounds with play buttons); `/dross goto ruin [<element>]`, `/dross goto ruin <x> <z>` and `/dross locate ruins` (`command/GotoRuin`, through the boss area's `KnightRuins`); `/dross showcase silverwood_giants` (`command/SilverwoodGiantShowcase`, the boss area's Silverwood Giant in its three looks, and its controls); wiring `/dross quest skip` and `/dross quest set <quest>` (Quest's `QuestCommands`; step 19) |
-|
- 
-Villager
- 
-|
- 
-`villager-builder`
- 
-|
- 
-`com.reg21meme.dross.villager.*`;
- 
-trader
- 
-entity,
- 
-renderer,
- 
-his
- 
-hut
- 
-(the
- 
-Rift
- 
-Chapel,
- 
-`TraderHut.DESIGN`,
- 
-drawn
- 
-in
- 
-`villager.hut`),
- 
-since
- 
-November
- 
-4,
- 
-2026
- 
-a
- 
-world-generation
- 
-structure,
- 
-one
- 
-per
- 
-world,
- 
-at
- 
-the
- 
-edge
- 
-of
- 
-a
- 
-village
- 
-the
- 
-seed
- 
-picks,
- 
-with
- 
-its
- 
-trader
- 
-and
- 
-a
- 
-path
- 
-to
- 
-the
- 
-village's
- 
-nearest
- 
-street
- 
-(`dross:rift_chapel`:
- 
-`villager/RiftChapelStructure`,
- 
-`RiftChapelPiece`,
- 
-`RiftChapelPathPiece`,
- 
-`RiftChapelPlacement`,
- 
-their
- 
-entries
- 
-in
- 
-`registry/ModStructures`;
- 
-which
- 
-village
- 
-and
- 
-where,
- 
-from
- 
-the
- 
-seed,
- 
-`TraderVillages`;
- 
-the
- 
-API
- 
-`RiftChapels`;
- 
-the
- 
-"once
- 
-a
- 
-village"
- 
-rule,
- 
-`TraderVillageData`;
- 
-the
- 
-trees
- 
-felled
- 
-by
- 
-its
- 
-trader,
- 
-`RiftChapelTidy`;
- 
-working
- 
-his
- 
-home
- 
-out
- 
-as
- 
-the
- 
-world
- 
-loads,
- 
-and
- 
-the
- 
-Generate
- 
-Structures
- 
-warning,
- 
-`RiftChapelEvents`),
- 
-the
- 
-join
- 
-message
- 
-`TraderAnnouncer`,
- 
-his
- 
-dialogue,
- 
-tribute
- 
-and
- 
-key-material
- 
-hand-ins
- 
-(through
- 
-Quest's
- 
-progress
- 
-API),
- 
-giving
- 
-the
- 
-Dross
- 
-Compass
- 
-and
- 
-the
- 
-Rift
- 
-Key,
- 
-his
- 
-shop,
- 
-the
- 
-Admin
- 
-Sword
- 
-(item
- 
-and
- 
-texture),
- 
-the
- 
-Dross
- 
-Compass
- 
-(and
- 
-it
- 
-setting
- 
-its
- 
-own
- 
-target
- 
-when
- 
-in
- 
-a
- 
-player's
- 
-inventory),
- 
-the
- 
-Admin
- 
-Sword
- 
-and
- 
-Dross
- 
-Compass
- 
-entries
- 
-in
- 
-the
- 
-"Dross"
- 
-creative
- 
-tab,
- 
-spawn
- 
-egg,
- 
-`/dross
- 
-goto
- 
-trader`
- 
-logic
- 
-(`TraderCommands`);
- 
-the
- 
-**skins**
- 
-(`villager/TraderSkins`:
- 
-1
- 
-Hooded
- 
-Watcher,
- 
-2
- 
-The
- 
-Archivist,
- 
-3
- 
-Ragged
- 
-Seeker,
- 
-8
- 
-Blind
- 
-Oracle;
- 
-textures
- 
-in
- 
-`textures/entity/trader/`,
- 
-drawn
- 
-by
- 
-`tools/skins/`,
- 
-previews
- 
-in
- 
-`skin-previews/`);
- 
-**the
- 
-survivors**
- 
-at
- 
-the
- 
-hub
- 
-(`villager/Survivor*`,
- 
-entity
- 
-`dross:survivor`:
- 
-the
- 
-Blind
- 
-Oracle
- 
-and
- 
-the
- 
-Ragged
- 
-Seeker);
- 
-the
- 
-Blind
- 
-Oracle's
- 
-right-click
- 
-going
- 
-to
- 
-Quest's
- 
-quest
- 
-talk
- 
-(`Survivor.mobInteract`,
- 
-`OracleDialogue.talk`)
- 
-and
- 
-the
- 
-quest
- 
-marker
- 
-over
- 
-his
- 
-head
- 
-(`villager/client/OracleMarkerRenderer`,
- 
-drawn
- 
-from
- 
-`SurvivorRenderer`;
- 
-its
- 
-texture
- 
-`textures/gui/quest_markers.png`
- 
-and
- 
-preview
- 
-`skin-previews/quest_markers.png`
- 
-by
- 
-`tools/skins/quest_markers.py`;
- 
-step
- 
-19)
- 
-|
+| Villager | `villager-builder` | `com.reg21meme.dross.villager.*`; trader entity, renderer, his hut (the Rift Chapel, `TraderHut.DESIGN`, drawn in `villager.hut`), since November 4, 2026 a world-generation structure, one per world, at the edge of a village the seed picks, with its trader and a path to the village's nearest street (`dross:rift_chapel`: `villager/RiftChapelStructure`, `RiftChapelPiece`, `RiftChapelPathPiece`, `RiftChapelPlacement`, their entries in `registry/ModStructures`; which village and where, from the seed, `TraderVillages`; the API `RiftChapels`; the "once a village" rule, `TraderVillageData`; the trees felled by its trader, `RiftChapelTidy`; working his home out as the world loads, and the Generate Structures warning, `RiftChapelEvents`), his right-click going to Quest's trader talk (`DrossTrader.mobInteract`, `TraderDialogue.talk` with his `Speaker`: his lines in chat, the puff as he makes a Portal Orb) and his quest marker over his head (`DrossTraderRenderer`), his shop (the Guide Book only, once he's made a player an orb), the Admin Sword (item and texture), the Admin Sword entry in the "Dross" creative tab, spawn egg, `/dross goto trader` logic (`TraderCommands`); the **skins** (`villager/TraderSkins`: 1 Hooded Watcher, 2 The Archivist, 3 Ragged Seeker, 8 Blind Oracle; textures in `textures/entity/trader/`, drawn by `tools/skins/`, previews in `skin-previews/`); **the survivors** at the hub (`villager/Survivor*`, entity `dross:survivor`: the Blind Oracle and the Ragged Seeker); the Blind Oracle's right-click going to Quest's quest talk (`Survivor.mobInteract`, `OracleDialogue.talk`) and the quest marker over his head (`villager/client/QuestMarkerRenderer`, drawn from `SurvivorRenderer` and, for the trader's quest, `DrossTraderRenderer`; its texture `textures/gui/quest_markers.png` and preview `skin-previews/quest_markers.png` by `tools/skins/quest_markers.py`; step 19) |
 | Enchantments | (removed) | Nothing since November 23, 2026: Necromancy and Deathforged were taken out of the mod (The plan, step 6). |
-| Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item (it names the trader's Rift Chapel, through Villager's `RiftChapels`) and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic; the advancement icon items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon`, and since November 19, 2026 the Oracle's land quests' `giant_slayer_icon`, `into_the_ashes_icon`, `beneath_the_rot_icon`, `first_frost_icon`: the user's picks GS24, IA14, BR21, FF14, `tools/icons/quest_icons.py`, preview `quest-previews/advancement_icons/icons.png`) and their tool `tools/icons/`; **the Blind Oracle's quest line** (The plan, step 19, November 9, 2026: `quest/oracle/` (the list `OracleQuests` and `OracleQuest`, each player's progress `OracleProgress` and `OracleRecord` (saved in `QuestProgressData`), `OracleState`, his talk `OracleDialogue`, the kill counting `OracleKills`, the rules other areas ask `OracleRules` and `OracleBoss`, the marker `OracleMarker`, the network channel `QuestNetwork` and its `OracleSyncMessage`, the fireworks `OracleFireworks`, `OracleEvents`), `quest/client/OracleClientState`, the kill tags `data/dross/tags/entity_types/oracle/`, its seven advancements and the chain, its lang keys `dross.oracle.*`, `/dross quest skip|set` and the `quest-builder` agent's how-to for adding a boss's quests). Later: boss progression. The trader's dialogue and hand-ins stay with Villager, which uses Quest's progress API |
+| Quest | `quest-builder` | `com.reg21meme.dross.quest.*`; player progression: the Weathered Letter item (it names the trader's Rift Chapel, through Villager's `RiftChapels`) and its Nether chest loot (global loot modifier, `registry/ModLootModifiers`, `data/dross/loot_modifiers/`, `data/forge/loot_modifiers/`); per-player quest progress saving (`SavedData` by player UUID, with a public API other areas call); the Dross advancement tab and **all** Dross advancements (`data/dross/advancements/`, their lang keys, and the shared grant helper); the Dross Guide Book item (and the first-arrival flag); `/dross quest` logic; the advancement icon items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon`, and since November 19, 2026 the Oracle's land quests' `giant_slayer_icon`, `into_the_ashes_icon`, `beneath_the_rot_icon`, `first_frost_icon`: the user's picks GS24, IA14, BR21, FF14, `tools/icons/quest_icons.py`, preview `quest-previews/advancement_icons/icons.png`) and their tool `tools/icons/`; **the Blind Oracle's quest line** (The plan, step 19, November 9, 2026: `quest/oracle/` (the list `OracleQuests` and `OracleQuest`, each player's progress `OracleProgress` and `OracleRecord` (saved in `QuestProgressData`), `OracleState`, his talk `OracleDialogue`, the kill counting `OracleKills`, the rules other areas ask `OracleRules` and `OracleBoss`, the marker `OracleMarker`, the network channel `QuestNetwork` and its `OracleSyncMessage`, the fireworks `OracleFireworks`, `OracleEvents`), `quest/client/OracleClientState`, the kill tags `data/dross/tags/entity_types/oracle/`, its seven advancements and the chain, its lang keys `dross.oracle.*`, `/dross quest skip|set` and the `quest-builder` agent's how-to for adding a boss's quests); **the Dross Trader's quest** (PRE_DROSS_PLAN.md, stage T1, November 24, 2026: `quest/trader/` (`TraderState`, each player's `TraderRecord` (saved in `QuestProgressData`, with the world's "cathedral lit" flag), `TraderProgress` (the only way to change it), his talk `TraderDialogue`, the nearest uncleared ruin off the server thread `TraderRuins`, `TraderQuestEvents` (the boss area's `KnightRuinClearedEvent`)), his lines `dross.trader.*`, the advancements `knightfall` and `portal_orb`). Later: boss progression. The trader himself, his chapel and his shop stay with Villager, which calls Quest's trader talk |
 | Boss | `boss-builder` | `com.reg21meme.dross.boss.*`; the bosses and mini-bosses, starting with the **Cinder Colossus** golem: its entity (`boss/golem/CinderColossus`, `GolemAction`, `GolemAttributes`, the generated `GolemDesigns`), renderer and layers (`boss/golem/client/`), its entity type in `registry/ModEntities`, its design (the user's pick, **3G Saddleback**; model, animations and textures in `geo/`, `animations/` and `textures/entity/cinder_colossus/`, made by the Python generator in `tools/golems/`, previews in `boss-previews/cinder_wastes/cinder_colossus/`; the other candidates of rounds 1-3 archived in `tools/golems/designs/round1/`-`round3/` and `boss-previews/cinder_wastes/cinder_colossus/round1/`-`round3/`), the GeckoLib dependency, and the boss fights: the Colossus fight (`ColossusAttackGoal`, `ColossusStage`, every number in `ColossusTuning`), its minions (`GolemMinion`, `StoneGolem`, `LavaGolem`), projectiles (`ColossusRock`, `LavaBlob`), the temporary lava and fire blocks (`CinderLavaBlock`, `CinderFireBlock`, `LavaPools`; in `registry/ModBlocks`), its sounds (`registry/ModSounds`, `assets/dross/sounds.json`), its spawn egg and its minions' (stone golem, lava golem), the **trophies** (`boss/trophy/`: the `dross:colossus_trophy` block, its block entity (`registry/ModBlockEntities`) and item, their GeckoLib renderers and layers in `boss/trophy/client/`, the generated `TrophyModels`; made by `tools/golems/kit/trophies.py`, previews `boss-previews/cinder_wastes/cinder_colossus/trophies.png`) and the trophy drop, the custom boss bar (`boss/client/DrossBossBars`), the test commands' logic (`boss/BossCommands`, `boss/BossArena`, `boss/BedrockArena`; world-builder wires them into `/dross boss`), granting "Set in Stone" (through Quest's helper), and later boss progression (with Quest). Design: see The plan, step 8; the stone and lava golems as wild Cinder Wastes mobs (`WildGolemSpawns`, `WildLavaGolemTopUp`); **the Colossus lair** (`boss/lair/`: the lairs on the boss-site planner (`LairFinder`, `LairSetup`), built lazily near players (`LairPlacer`, `LairBuilder`), the volcano, the rise (no respawn), the `ColossusLair` API, previews `boss-previews/cinder_wastes/cinder_colossus/lair_*.png` from `tools/golems/lair_preview.py`); **the Rat King** (The plan, step 9: `boss/ratking/` (`RatKing`, `RatKingAction`, `Rat` for both kinds of rat, `RatKingEvents`, the generated `RatKingDesigns` and `RatDesigns`, `client/`), his and the rats' entity types and the `dross:zzz` particle (`registry/ModEntities`, `ModParticles`), the Python generator `tools/ratking/` and its previews `boss-previews/blightwood/rat_king/`, their original sounds (`tools/ratking/sounds.py`, `registry/ModSounds`, `assets/dross/sounds.json`, `assets/dross/sounds/rat_king|rat|enraged_rat/`), his and the rats' spawn eggs; **his fight** (`RatKingAttackGoal`, `RatKingBurrow`, every number in `RatKingTuning`, the poison ball and cloud `PlagueBall`, `PoisonCloud` (`registry/ModEntities`), his boss bar (the user's pick of nine designs: `tools/ratking/bossbars.py` makes `textures/gui/rat_king_bar.png` and the generated `boss/client/RatKingBarArt`; drawn by `DrossBossBars`), `boss/RatKingArena`, granting "Down the Drain" through Quest's helper); his **trophies** (`boss/ratking/trophy/`: the `dross:rat_king_trophy` block, block entity and item, `client/` renderers and layers, the generated `RatKingTrophyModels`, made by `tools/ratking/ratkit/trophies.py`, previews `boss-previews/blightwood/rat_king/trophies/`) and the trophy drop (shared with the Colossus: `boss/trophy/TrophyRewards`); `boss/BossChase` (both bosses steer straight at their target when the way is clear); his home in the rat caves (`boss/ratking/lair/`: asleep on the nest, never back once beaten, his snores at the grand entrance, the stronger cave Ravagers, the rats' spawn rules (dim light in the sewers); the caves themselves are Dimension's, step 11)); **the Rage Wand** (The plan, step 10: `boss/rage/`, the `dross:rage` effect in `registry/ModEffects`, its textures drawn by `tools/ragewand/draw.py`); **the Rimefall candidates** (The plan, step 13: `boss/rimefall/` (`RimefallCandidate`, the generated `RimefallDesigns`, `RimefallBlocks`, `client/` with the real-block layer), the entity type `dross:rimefall_candidate` in `registry/ModEntities`, the Python generator `tools/rimefall/` and its previews `boss-previews/rimefall/`); **Rimefall's animals** (The plan, step 14: `Rimehorn`, `Moose`, `PondSkater` and `PondSkaterPart`, `RimefallAnimals` (their spawn rules), `RimefallAnims`, every number in `RimefallMobTuning`, `client/RimefallMob*`, their entity types, sounds and spawn eggs; `tools/rimefall/mobs.py`, `rimemobs/`, `rimekit/mobkit.py` (their skeletons and animations) and `tools/rimefall/sounds.py`; previews `boss-previews/rimefall/mobs/`); **the Huntsman** (The plan, step 14 part 4: `boss/huntsman/` (his fight: `HuntFight`, `HuntStage`, `HuntGoal`, `WildHuntGoal`, `FootGoal`, `MooseGoal`, `HuntsmanPair`, `Bola`, `HuntSpear`, `SnaredEffect` (`dross:snared` in `registry/ModEffects`), `HuntsmanFightEvents`, every number in `HuntsmanTuning`; `boss/HuntsmanArena`; his spawn egg; granting "The Hunter Hunted" through Quest's helper; and `HuntsmanBarShowcase`), his boss bars (`boss/client/HuntsmanBarArt`, `textures/gui/huntsman_bar.png`), the hunter villages and his lodge (`boss/huntsman/village/`, `data/dross/structures/hunter_village/`; built in the world by `HunterVillageStructure`/`HunterVillagePiece`, `dross:huntsman_village` and `dross:hunter_village` in `registry/ModStructures`; him at home, `HuntsmanVillages`, `HuntsmanVillageData`), the hunter designs (`tools/rimefall/rimedesigns/d10_hunters.py`, `RimefallDesigns.HUNTERS`), the Frostfolk, Rimefall's villagers (`boss/frostfolk/`: `Frostfolk`, `FolkRole`, `FolkAnims`, `FolkEvents`, every number in `FolkTuning`, `client/`; their eleven entity types `dross:frostfolk_<calling>` and their three spawn eggs (`FrostfolkSpawnEggItem`: warrior, worker, elder), their voices; the model `tools/rimefall/rimemobs/frostfolk.py`, the preview `tools/huntsman/folk_preview.py`; never called hunters), his trophy candidates (`tools/rimefall/hunt_trophies.py`) and his trophies (`boss/huntsman/trophy/`: the `dross:huntsman_trophy` block, block entity and item, `client/` renderers and layer, the generated `HuntsmanTrophyModels`; made by `tools/huntsman/trophies.py`, previews `boss-previews/rimefall/huntsman/trophies/`) and their drop, the igloo templates and decorations (`HunterIglooDesigns`, `HunterIgloos`, `data/dross/structures/hunter_igloo/`, `hunter_decor/`; `tools/huntsman/igloos.py`, `igloo_designs/`), Rimefall's crops (`HunterCrops`, `HardyCropBlock`, `RimeberryBushBlock`: Frostroots, Snow Lichen, the two-block Rimeberry Bush, the Frostroot Crate and the Rimeberry Basket in `registry/ModBlocks`/`ModItems`; textures by `tools/huntsman/crops.py`), the villages' fires (`boss/huntsman/village/VillageFireBlock`: `dross:village_fire`, `village_soul_fire`), `boss/client/PartLayer` (a GeckoLib pass drawn only for the parts that show in it), the Moonsilver Spear and the Planted Moonsilver Spear (`boss/huntsman/spear/`), the mounted skulls and who drops them (`boss/huntsman/skull/`), the Python generators `tools/huntsman/` and the previews `boss-previews/rimefall/huntsman/`); the bosses' drawn
 spawn eggs (`tools/eggs/`, the picks' textures and the option sheets in each boss's `spawn_eggs/` preview folder);
 `BOSS_GUIDE.md` and `tools/photo_booth/` (how every new boss is made); the rules every boss follows (`boss/BossRules`, `DrossBoss`, `BossScale`, `BossRulesEvents`: the hit cap, more players, the reset); which models only the galleries show (`boss/ShowcaseOnly`, kept out of the jar); **the fire servant candidates** (The plan, step 15: `boss/fire/` (`FireCandidate`, the generated `FireDesigns`, `client/`; the fire mobs' hitboxes that follow their animations, `FireHitboxes`, `ShapedPart`, `assets/dross/hitboxes/`, made by `tools/fire/hitboxes.py`), the entity type `dross:fire_candidate` in `registry/ModEntities`, the Python generator `tools/fire/` and its previews `boss-previews/cinder_wastes/servants/`); **the Emberdactyl** (The plan, step 16: its looks, `FireDesigns.EMBERDACTYL` (`tools/fire/firekit/emberdactyl.py`, `firedesigns/eNN_*`, previews `boss-previews/cinder_wastes/emberdactyl/`), the fire mobs' skeletons and animations (`tools/fire/mobs.py`, `firemobs/`, the generated `boss/fire/FireAnims`, `geo|textures|animations/entity/firemob/`) and sounds (`tools/fire/sounds.py`, the generated `boss/fire/FireSounds`, `assets/dross/sounds/emberdactyl|emberyoung|pallbearer|hermit/`), and its volcano (`boss/emberdactyl/`: `EmberVolcano`, every number in `EmberVolcanoTuning`, the probe `EmberVolcanoProbeGameTest` and `tools/fire/volcano_preview.py`), its volcanoes in the Cinder Wastes (`VolcanoFinder` and `VolcanoSetup`, the planner's fit test; `VolcanoPlacer`, built near players; `EmberVolcanoData`; the API `EmberVolcanoes`; `/dross goto lair emberdactyl` is World site's `command/GotoVolcano`)); **the Cinder Wastes' mobs' looks** (`FireDesigns.CINDER_MOBS`, `firedesigns/mNN_*`, previews `boss-previews/cinder_wastes/mobs/`); **the hermit crab caves** (`boss/fire/cave/`: the generated `HermitCaveDesigns`, `HermitCaves`, `HermitCaveSites`, `HermitCaveStructure`, `HermitCavePiece`, `HermitCavePlacement` (`dross:hermit_cave` in `registry/ModStructures`), every number in `HermitCaveTuning`; templates `data/dross/structures/hermit_cave/`; their loot tables `data/dross/loot_tables/chests/hermit_cave.json` and `archaeology/hermit_cave.json`; made by `tools/fire/hermit_caves.py` with `tools/fire/cavekit.py` and `cavedesigns/`; previews `boss-previews/cinder_wastes/mobs/hermit_caves/`); **the Cinder Wastes' mobs in the world** (`boss/cinder/`: `CinderMob`, `Pallbearer`, `CinderHermit`, `CinderMobs` (attributes, spawn rules), `CinderMobEvents`, every number in `CinderMobTuning`, `client/`; their entity types `dross:pallbearer`, `dross:cinder_hermit`, spawn eggs and loot tables); **the Blightwood candidates** (The plan, step 17: `boss/blight/` (`BlightCandidate`, the generated `BlightDesigns`, `BlightEvents`, `client/`), the entity type `dross:blight_candidate` in `registry/ModEntities`, the Python generator `tools/blight/` and its previews `boss-previews/blightwood/servants/` and `mobs/`); **the elemental knights** (The plan, step 18: `boss/knight/` (`KnightCandidate`, the generated `KnightDesigns`, `KnightEvents`, `client/`), the entity type `dross:knight_candidate` in `registry/ModEntities`, the Python generator `tools/knights/` and its previews `boss-previews/knights/`; the real knights: `ElementalKnight`, `KnightKind`, every number in `KnightTuning`, `KnightAnchor`, `KnightFireball`, `KnightSpikes`, the generated `KnightAnims` (`tools/knights/mobs.py`, `props.py`, `geo|animations|textures/entity/knightmob/`), their ten entity types `dross:knight_<name>` and the anchor's and fireball's, their spawn eggs; their ruin candidates, every biome area's own layouts, the generated `KnightRuinDesigns`, `tools/knights/ruins.py` with its kit `ruinkit/` and the designs `ruindesigns/<element>/<area>.py`, `data/dross/structures/knight_ruin/<element>/`, previews `boss-previews/knights/ruins/`; their sounds, `tools/knights/sounds.py`, `assets/dross/sounds/knight/`, the generated `KnightSounds`; **the knight ruins in the Overworld** (`boss/knight/ruin/`: where the seed plans them, `KnightRuinSites`, `RuinAreas`, `RuinSite`, every number in `KnightRuinTuning`, their biome tags `data/dross/tags/worldgen/biome/knight_ruin/`; built with the land, `KnightRuinStructure`, `KnightRuinPiece`, `KnightRuinPlacement` (`dross:knight_ruin` in `registry/ModStructures`; its JSON written by `tools/terrain/worldgen.py`); the trees that grew into one felled once, `KnightRuinTidy`; its knights, `KnightRuinKeeper`, `KnightRuinData`; the quest's signal and API, `KnightRuinClearedEvent`, `KnightRuins`; `tools/knights/ruin_map.py` and `boss-previews/knights/ruins/placement/`); **the Silverwood Giant** (The plan, step 19, November 9, 2026: `boss/giant/` (`SilverwoodGiant`, `GiantBoulder`, `SilverwoodGiants` (its attributes and spawn rules), the generated `GiantMoments`, every number in `GiantTuning`, `client/`), its entity types `dross:silverwood_giant` and `dross:giant_boulder` in `registry/ModEntities`, its spawn egg, its sounds (`assets/dross/sounds/silverwood_giant/`); the Python generator `tools/forest_giant/` (`build.py` the looks, `mobs.py` the animations, `sounds.py`) and its previews `boss-previews/silverwood/mobs/forest_giant/`); **the locked bosses** (step 19: `boss/BossLocks`, `DrossBoss.lockedAs`, and the arena wards, `boss/BossWards` with `boss/lair/LairWard`, `boss/ratking/lair/RatCaveWard` and `boss/emberdactyl/CraterWard`; the protected homes, `boss/BossGrounds`) |
@@ -811,10 +353,10 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
    - **Frame** [built]: a custom block, `dross:dross_portal_frame`, which **can't be crafted or mined** (no recipe, no drops, unbreakable, blast-proof). For testing, it has a block item that is only available in the creative **"Dross"** tab (or `/give`); it still has no recipe, drops nothing and can't be broken in survival. Flint and steel can't light it, and normal obsidian frames stay normal purple nether portals.
    - **Frame look** [built]: an **original** texture (dark stone with electric blue cracks), no longer based on Mojang's obsidian.
    - **"The Dross is leaking out"** [built]: frame blocks give off drifting electric blue particles and a low ambient sound. This applies to every frame, including the unlit castle frame.
-   - **Lighting** [built]: throwing the **Rift Key** (step 7) into the empty middle of a valid frame (along X or Z) **uses up the key** and lights the portal.
-     - If that frame is already lit, the key isn't used: it pops back out, with a portal cooldown so it doesn't drift into the Dross.
+   - **Lighting** [built]: throwing the **Portal Orb** (step 7; the Rift Key until November 24, 2026) into the empty middle of a valid frame (along X or Z) **uses up the orb** (glass shattering) and lights the portal. Lighting the Fallen Cathedral's own frame is saved for the whole world (`TraderProgress.portalLit`: the trader stops offering new orbs).
+     - If that frame is already lit, the orb isn't used: it pops back out, with a portal cooldown so it doesn't drift into the Dross.
      - A netherite ingot no longer lights anything.
-   - **No portals inside the Dross** [built]: the Rift Key does nothing there, and lighting a nether portal (flint and steel or fire on obsidian) is blocked there. Otherwise a nether portal would be a second way out.
+   - **No portals inside the Dross** [built]: the Portal Orb does nothing there, and lighting a nether portal (flint and steel or fire on obsidian) is blocked there. Otherwise a nether portal would be a second way out.
    - **Portal look** [built]: Minecraft's nether portal texture copied and recolored **electric blue** (still a recolor, see Parked), blue particles, and a blue in-portal screen swirl.
    - **Stays open**: once lit, the castle portal stays open permanently, for everyone.
    - **Travel** [built]:
@@ -835,8 +377,8 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
      - If nothing passes, the rules relax step by step with a WARN (variation 8 → 2,048 blocks round the seed's spot → any dry-land biome, `#dross:portal_site_allowed` → any land at variation 12, 3,000-5,000 from spawn → the flattest dry spot looked at), so a world always gets a site. Over 16 test seeds (at 4,000-5,000 blocks) 13 found a forest, taiga or snowy spot, in 0.8 s on average (the probe `world/PortalSiteProbeGameTest`, its own GameTest namespace `dross_site_probe`).
      - **No site** (`PortalSite.isPlaced` false) in a superflat world (its list of structures leaves it out) or one made with **Generate Structures off** (no structures at all, like vanilla's strongholds; a WARN at server start from `villager/RiftChapelEvents`). There the hub's exit portal lands you near the world spawn.
      - (Until November 4, 2026: a background search over about 1.4 million spots 3,000–10,000 blocks out, then the best spot checked by loading its chunks; two players' modded worlds froze on it.)
-     - **Location in chat** [built] (`world/SiteAnnouncer`, lang key `dross.site.location`): each player who joins a world with a site is told "Dross portal site is at X, Y, Z" (`getOpeningCenter`); it's known from the start, before the cathedral's land is made. Plain text.
-   - **`PortalSite` API is axis-aware** [built]: `getFramePos` (bottom corner), `getFrameAxis`, `getOpeningCenter` (middle block of the opening's bottom row) and `getOpeningWidth`, all arithmetic on the seed's spot (the same before and after its chunks exist; none loads a chunk). `PortalSite.loadAround` loads the frame's chunks (the first time, generated: the cathedral with them) with vanilla's portal ticket, as a nether portal trip does. The compass, `/dross goto cathedral` and the hub's exit portal use them.
+     - **Location in chat** [removed November 24, 2026] (PRE_DROSS_PLAN.md): nothing tells a joining player where the site is any more (until then `world/SiteAnnouncer`, "Dross portal site is at X, Y, Z"); the Dross Trader tells them, rounded to 100, once he's made them a Portal Orb (step 7). `world/PortalSiteGameTest` checks nobody is told on joining and that the trader's rounded spot is the frame's.
+   - **`PortalSite` API is axis-aware** [built]: `getFramePos` (bottom corner), `getFrameAxis`, `getOpeningCenter` (middle block of the opening's bottom row) and `getOpeningWidth`, all arithmetic on the seed's spot (the same before and after its chunks exist; none loads a chunk). `PortalSite.loadAround` loads the frame's chunks (the first time, generated: the cathedral with them) with vanilla's portal ticket, as a nether portal trip does. The trader's directions (`quest/trader/TraderProgress.cathedral`), `/dross goto cathedral` and the hub's exit portal use them.
    - **Leaking** [built] (`world/SiteLeak`): once, by the tidy-up, within about 16 blocks:
      - flowers and grass become dead bushes or are removed,
      - some grass blocks become coarse dirt,
@@ -864,17 +406,16 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
      - The lightning rod draws natural lightning within 128 blocks to the spire (harmless).
    - **Behavior:** he wanders within 50 blocks of his hut (X and Z) and opens his door. If he's more than 50 blocks out, falls more than 4 blocks, or is more than 3 blocks below the surface (not counting his hut, whose footprint is saved on him as `HutBox`, or village buildings), he teleports to his spot in the hut (the chapel's aisle) with the enderman sound and enderman-style particles (the portal's electric blue particles). If he's riding a boat, minecart or anything else, he gets off first (the vehicle stays where it was) and anything riding him is thrown off. He can't use portals.
    - **Glow (finding aid):** while any player is within his 50-block area, he glows electric blue with an outline visible through walls.
-   - **Quest and dialogue:** see step 7.
+   - **Quest and dialogue:** see step 7 (the quest area's `quest/trader/`; over his head floats each player's marker for his quest, like the Blind Oracle's).
    - **Shop:**
      - The old test trades (nether star → compass, the Admin Sword, Necromancy I–IV) are gone.
      - Since November 23, 2026 (Necromancy and Deathforged removed, step 6) his shop sells only the Dross Guide Book (below).
-     - The offers are the same for everyone, but the trading screen only opens for players who completed the quest (received the Rift Key).
-     - His key-forging line ends by pointing to the shop: "...be careful what you let out. I've got some books that can help you in there." (`dross.trader.dialogue.key_forged`).
+     - The offers are the same for everyone, but the trading screen only opens for players he has made a Portal Orb, after his line, and only when he has something for them (an empty screen never opens).
      - **Dross Guide Book**: for players who have the "Enter the Dross" advancement, he also sells the Dross Guide Book for 3 books (no emeralds; a labeled constant). Unlimited uses, no restock, no XP. Players without that advancement don't see this offer.
    - **Spawn egg:** "Dross Trader Spawn Egg" in the creative Dross tab (electric blue spots). An egg trader treats the spot he was spawned at as his home, with the same 50-block area, glow and teleport-home rules. Having no hut footprint, he counts the 5x5 round that spot as his hut for the underground rule (`EGG_HOME_HALF` in `DrossTrader`).
    - **Test tools** (`villager/TraderCommands`): `/dross goto trader` teleports you onto the doorstep of the trader's Rift Chapel, facing its door, loading its chunks first (the first time, generated: the chapel, its trader and the village with them) with vanilla's portal ticket; in a world with no chapel it says so. `/dross trader sendhome` sends the nearest trader whose land is loaded home. His entity ID is `dross:dross_trader`; `@e` selectors only find him while his area is loaded. (`/locate structure dross:rift_chapel` can't find it: its placement isn't a grid.)
    - The old test-only join message (`TestingJoinMessage`, "[Dross test] ...") is removed.
-   - **Location in chat** [built] (`villager/TraderAnnouncer`, lang key `dross.trader.location`): each player who joins is told "Dross trader's hut is at X, Y, Z", his spot in the Rift Chapel (known from the seed from the start, before its land is made; nothing in a world with no chapel). No broadcast any more (until November 4, 2026 everyone online was told when he spawned). Spawn-egg (and `/summon`) traders never send it. Plain text; matches the site's message (step 3). `villager/TraderAnnouncerGameTest` checks it headlessly; `villager/RiftChapelGameTest` the chapel (its village the same as the land gets, piece for piece; the building, its ground, its path, its one trader, the rule, the letter) and the commands.
+   - **Location in chat** [removed November 24, 2026] (PRE_DROSS_PLAN.md): nothing tells a joining player where his chapel is any more (until then `villager/TraderAnnouncer`, "Dross trader's hut is at X, Y, Z", and its test `TraderAnnouncerGameTest`); the Weathered Letter does.
    - **Skins** [built]: 4 original electric blue skins on the vanilla villager model (`TraderSkins`), keeping their numbers from the ten candidates the user picked from: 1 Hooded Watcher, 2 The Archivist, 3 Ragged Seeker, 8 Blind Oracle.
      - **The Archivist** [built]: **the user picked skin 2, The Archivist, for the quest trader** (`TraderSkins.QUEST_TRADER`). Every trader wears it (the chapel's trader and spawn-egg traders alike); the renderer uses it directly, so traders carry no skin number. The vanilla villager placeholder is retired.
      - Skins 3 and 8 are worn by the hub's survivors (step 5). Kept for later (parked): skin 1 for a Dross enemy.
@@ -903,13 +444,13 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
      - **Dross Guide Book** [built]: on the player's **first arrival only** (a flag that survives death), they get the **Dross Guide Book**: a custom item, readable like a written book, with its own original texture and placeholder text explaining the dimension (5 pages, lang keys). If their inventory is full, it drops at their feet. Given through `QuestProgress.giveGuideBookOnFirstArrival`. Later copies can be bought from the trader (step 4).
 
 6. **Necromancy and Deathforged** [removed November 23, 2026] (the user: "scrap Necromancy and Deathforged ... those features just seem like they don't fit with the vision I have with the mod ... maybe we'll make something with that later on, but not now"). The two sword enchantments, their books (in the creative tab and the trader's shop, and the Deathforged drops from the Dross's netherite zombies and skeletons), the souls, the risen undead and the "Rise!" advancement went with the `enchant` package and `registry/ModEnchantments`; so did everything that answered to them elsewhere (kill credit through a risen undead, the Cinder Colossus's extra golems and slams against them, the iron golems' and wolves' truce with them, the Admin Sword sparing them). Their design is in git history (before the quest revamp's removal commit on `oracle-quests`).
-   - **Creative "Dross" tab:** the Admin Sword, the Dross Compass (a hidden marker tag; once it's in a player's inventory its target is set to the portal site). The tab is grouped by kind, in this order (the user's request, `registry/ModCreativeTabs`): **blocks** (the portal frame, then the 38 terrain blocks by biome), **quest items** (Weathered Letter, Dross Compass, Rift Key, Guide Book), **trophies** (the five Cinder Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (trader, Cinder Colossus, stone golem, lava golem, Rat King, Plague Rat, Plague Ravager, Rimehorn, Moose, Pond Skater, Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer and the Cinder Hermit, then the Silverwood Giant (step 19), then the ten elemental knights, two of each element), **weapons and tools** (Admin Sword, Rage Wand, Moonsilver Spear, Rage Bow), **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), **crops** (Frostroot, Snow Lichen, Rimeberries; October 20).
+   - **Creative "Dross" tab:** the Admin Sword. The tab is grouped by kind, in this order (the user's request, `registry/ModCreativeTabs`): **blocks** (the portal frame, then the 38 terrain blocks by biome), **quest items** (Weathered Letter, Portal Orb, Guide Book), **trophies** (the five Cinder Colossus trophy designs, then the Rat King's five, then the three mounted skulls, then the Huntsman's five), **spawn eggs** (trader, Cinder Colossus, stone golem, lava golem, Rat King, Plague Rat, Plague Ravager, Rimehorn, Moose, Pond Skater, Huntsman, then the Frostfolk's three: warrior, worker, elder, the Emberdactyl and its young, the Pallbearer and the Cinder Hermit, then the Silverwood Giant (step 19), then the ten elemental knights, two of each element), **weapons and tools** (Admin Sword, Rage Wand, Moonsilver Spear, Rage Bow), **materials** (Raw Moonsilver, Moonsilver Ingot, Stormite Shard), **crops** (Frostroot, Snow Lichen, Rimeberries; October 20).
 
-7. **The early-game quest** [built]. Progress is **per player, per world**, saved by Quest (a `SavedData` keyed by player UUID). The trader's side (dialogue, hand-ins, gifts) is Villager's, through Quest's API.
+7. **The way into the Dross** [revamped November 24, 2026: PRE_DROSS_PLAN.md, stage T1, the trader's quests; built, its headless tests written, not yet tested in-game]. Progress is **per player, per world**, saved by Quest (a `SavedData` keyed by player UUID). The trader's side is Quest's (`quest/trader/`: his talk, the ruins counted, the orb); Villager's `DrossTrader` sends his right-click there and plays his effects. (Until then: three tributes, the Dross Compass, three key materials and the Rift Key, with "Proven Worthy" and "Keymaster"; all removed.)
    1. **Normal survival.** Nothing from the mod is needed yet.
    2. **The Weathered Letter** (Quest):
       - A custom item, readable like a written book. It opens `BookViewScreen` from client code, with its pages in the item's tag.
-      - Found in **every Nether Fortress and Bastion Remnant chest**, 100% for testing (`LETTER_CHANCE = 1.0`, a labeled constant so it can be lowered later).
+      - Found in **one Nether Fortress or Bastion Remnant chest in five** (`config/dross-common.toml`'s `letterChance`, default 0.2 since November 24, 2026; it was 1.0 for testing).
       - Added with a Forge **global loot modifier**, so other mods' loot changes still work. Tables: `minecraft:chests/nether_bridge`, `bastion_treasure`, `bastion_other`, `bastion_bridge`, `bastion_hoglin_stable`.
       - **The story (4 pages):**
         1. Strange blue portals have appeared across the world, in shapes no one built: rifts from the Dross, spilling over into ours.
@@ -919,34 +460,26 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       - Lang keys: `book.dross.weathered_letter.page1`, `page2_intro`, `page3`, and the location page `location`, `location_near_spawn` (at a village); `page2_intro_wild`, `location_wild`, `location_near_spawn_wild` (a chapel on its own); `location_unknown` (no chapel). (`page2_intro_chapel` and `location_none` are the many-chapels wording of November 4, no longer written.) Every page fits a book page (checked with Minecraft's font widths: 13 of 14 lines at most with real coordinates, 14 at the world's edge).
       - A chest gives a blank letter (since November 4, 2026). The first time it's in a player's inventory it's written for the trader's chapel (`RiftChapels.home`, known from the seed); a letter that said it couldn't tell where he is is written again once there's a chapel to name. Creative-tab copies are written the same way.
       - Picking one up grants "A Weathered Letter".
-   3. **Meeting the trader** (Villager):
-      - The first time a player right-clicks him, he speaks in chat with his name as the speaker: `<Dross Trader> You've come about the rift? I don't believe you're strong enough. Show me. Bring me a skull from the Nether's fortresses, shards from the cities of the deep dark, and stone from the End.`
-      - Each later right-click (when he isn't taking an item) repeats what's still needed.
-      - Every line is a lang key in `en_us.json`, so the wording can be edited without code.
-      - Only the main hand counts. His trading screen never opens before the quest is complete.
-   4. **The three tributes** (Villager, any order): 1 **wither skeleton skull**, 3 **echo shards**, 15 **end stone**.
-      - Vanilla trades allow only two cost items, so instead the player **right-clicks him while holding** a tribute.
-      - **Full amount only**: if they're holding at least the required amount, he takes exactly that much and confirms in chat. If not, he says how many to bring.
-      - When all three are in, he gives the **Dross Compass** (dropped at the player's feet if their inventory is full) and says he knows how to forge a key but needs materials. This grants "Proven Worthy".
-   5. **The key materials** (Villager, only after all tributes, any order, same rules): 1 **trident** (any), 1 **Heart of the Sea**, 8 **amethyst shards**.
-      - When all are in, he forges the **Rift Key** and gives it with a line of dialogue. This grants "Keymaster".
-      - The quest is now complete, and his shop opens for that player.
-   6. **Lost items:**
-      - If a player earned the compass and has none in their inventory, he gives a new one for free.
-      - A lost Rift Key means bringing the key materials again (no free duplicates). After the quest he only takes key materials when the player has **no** Rift Key in their inventory; otherwise a right-click opens the shop.
-      - The Rift Key is fireproof and never despawns.
-   7. **The Rift Key** (Portal): a custom item with an original texture, a crystal key with a blue heart. Throwing it into the castle frame lights the portal and uses it up (step 2).
-   8. **The Dross Compass** (Villager): a vanilla compass with lodestone tags, re-aimed every second while it's in a player's inventory. Moving the site later keeps compasses correct. It targets `PortalSite.getOpeningCenter` and spins in other dimensions.
+   3. **The trader's quest** (Quest's `quest/trader/`; PRE_DROSS_PLAN.md, "His quests" and "As built (T1)"). His story is his own, the Overworld's side: when the Dross was locked away its knights were left on our side, still guarding the broken portals they came through; their souls still carry its magic, and with enough of them he can wake the great portal. Like the Blind Oracle he has a marker over his head that each player sees for themselves (`OracleMarker`, sent in the Oracle's `OracleSyncMessage`, protocol 5; drawn by `villager/client/QuestMarkerRenderer`): a red ? while his offer waits, a yellow ... while you clear ruins, a green ! when it's done, nothing after. Each right-click (main hand) is his next line or two in chat (`<Dross Trader> ...`); every line is a lang key under `dross.trader.` (the plan's drafts; the user may edit them).
+      - **His offer** (`OFFER`, ?): six lines a click each; the seventh click is your "Yes, of course." (as you in chat), his thanks and **3 golden apples**; then a click for his second line and the **nearest knight ruin you haven't cleared** (rounded to 10; worked out off the server thread by `TraderRuins`, within 1,200, 2,400 then 4,800 blocks of you: his line comes a moment later, never a freeze; none: "I can't feel any ruin near here").
+      - **Three knight ruins** (`RUINS`, ...): a ruin counts the first time you clear it (the boss area's `KnightRuinClearedEvent`, `isFirstTime`; step 18), only while his quest is going; "Knight ruins cleared: n / 3" above the hotbar (`TraderProgress.RUINS_NEEDED`); a click reminds you of the count and the nearest ruin you haven't cleared. The third grants "Knightfall" (`dross:knightfall`).
+      - **The Portal Orb** (`READY`, !): his hand-in a line a click: he makes the orb on line 3 (a puff of the portal's blue and smoke, a chime; "The Portal Orb", `dross:portal_orb`), names the cathedral's spot rounded to 100 on line 4 (`PortalSite.getOpeningCenter`: "around X 7500, Z 1200"), warns of its knights, "Go on. I believe in you.". No compass or pointing item.
+      - **After** (`ORB_GIVEN`, no marker): a click reminds you where the portal should be; his shop opens after his line when it has something for you (the Guide Book, step 4).
+      - **A lost orb**: none in your inventory, the cathedral's portal not lit yet (saved for the world when an orb lights its frame, or seen in its loaded chunk) and not been to the Dross: "Lost the orb? ... Clear three more ruins", then three more ruins you've never cleared (the ... again) and one line and a new orb.
+      - **Been to the Dross** ("Enter the Dross"): his three lines for an old friend in turn (`dross.trader.after.<n>`).
+   4. **The Portal Orb** (`dross:portal_orb`, Portal's `portal/PortalOrbItem`; the user's pick of the portal item's designs, O3, `quest-previews/portal_item/`): a glass ball with a little Dross portal swirling in it. Throwing it into the cathedral's frame lights the portal and uses it up (step 2). Fireproof, never despawns, one to a stack.
+   5. **The cathedral's siege** (T2) and **the Nether's fire ruins** (T3): planned, not built (PRE_DROSS_PLAN.md).
+   6. (Removed November 24, 2026: the tributes, the key materials, the Dross Compass, the Rift Key, "Proven Worthy", "Keymaster", and the two join messages.)
    9. **The Dross advancement tab** (Quest): all Dross advancements move out of the vanilla Minecraft tab into their **own "Dross" tab**.
       - The tab has a root advancement with a background (the new frame texture). The root shows no toast and no chat message, and is granted silently when the player picks up a Weathered Letter, so **the tab stays hidden until then**.
-      - Chain: root → **A Weathered Letter** → **Proven Worthy** → **Keymaster** → **Enter the Dross** (challenge, the main achievement), whose children are **Rise!** (challenge) and, since November 9, 2026, the Blind Oracle's chain (step 19): **The Oracle's Plea** → **Giant Slayer** → **Into the Ashes** → **Set in Stone** → **Beneath the Rot** → **Down the Drain** → **First Frost** → **The Hunter Hunted** → **The Burning Mountain** → **Wings Clipped** → **Defeat the Dross** (six regular ones, green in chat: his story's and the five kill quests'; the four bosses' and "Defeat the Dross" are challenges). The bosses' four (until November 9 each a child of "Enter the Dross"): **Set in Stone** (`set_in_stone`, challenge, a drawn icon: "Defeat the Cinder Colossus.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone, like "Rise!") and **Down the Drain** (`down_the_drain`, challenge, a drawn icon: "End the Rat King's reign beneath Blightwood.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **The Hunter Hunted** (`the_hunter_hunted`, challenge: "Bring down the Huntsman and his Alpha Moose.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **Wings Clipped** (`wings_clipped`, challenge, granted for beating the Emberdactyl's young, step 16). **Their icons** (the user, October 29: "change the advancement image of the Emberdactyl and the Huntsman to something more creative than just their spawn eggs"; then, after their second fight: "make custom advancement for the colossus as well, not just obsidian; also for the rat king change it up"): drawn 16x16 icons on icon-only items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon` in `registry/ModItems`, in no creative tab), drawn by `tools/icons/advancement_icons.py` in options (sheets `boss-previews/<biome>/<boss>/advancement_icon/options.png`, each shown in the real challenge frame): W1 the clipped wing (an obsidian wing, its long finger sheared off on a glowing cut), W2 the broken wing, W3 pinned down (a sword through the wing); H1 pierced hood (his wolf hood and antlers, an ice-fletched arrow clean through it), H2 the Alpha's skull and his broken spear, H3 the hunter's trophy (his own hood mounted on a plaque), **H4 pierced and crossed out** (H1 with his glowing eyes crossed out, dead: the user, "make it so his eyes are crossed out, died"), H5 crossed out (no arrow); S1 the Colossus's cooling face (its cracked three-eyed face going to obsidian, its eyes dimming), S2 its obsidian fist, S3 its cold volcanoes; D1 his crown down the drain (slipping between a sewer grate's bars), D2 belly up (his X-eyed face, crown askew), D3 his broken staff over a grate. **The user's picks** (October 30): **D1** ("I like the rat king one"), **H3 with his eyes crossed out** ("use H3 for the Huntsman, just cross his eyes out": his hood mounted on its plaque, a cartoon X over each eye); none of S1-S3 ("I don't like any of the colossus options": archived in `advancement_icon/round1/`), so round 2: **S4 sword in the stone** (your sword plunged into a boulder of its obsidian, the cut glowing: "Set in Stone"), S5 the obsidian statue (the Colossus side on, cooled for good on a plinth), S6 heart gone cold (its lava core half crusted in obsidian), S7 pickaxe in the shell; then (October 30) **S4** and **W1** ("I like the current colossus icon, the current one for the Emberdactyl is also fine"). **H3's X's half as big** (the same day: "make the X smaller for the Huntsman's dead eyes"): a 16x16 icon has no X smaller than 3 x 3 pixels, so H3 is drawn at 32x32 (Minecraft shows it at the same size with twice the detail), its eyes dark and a 3 x 3 X of the finer pixels over each (`FINE`, `MOUNTED_FINE_X`); its fangs show again.
+      - Chain: root → **A Weathered Letter** → **Knightfall** → **The Portal Orb** → **Enter the Dross** (challenge, the main achievement), whose child is, since November 9, 2026, the Blind Oracle's chain (step 19): **The Oracle's Plea** → **Giant Slayer** → **Into the Ashes** → **Set in Stone** → **Beneath the Rot** → **Down the Drain** → **First Frost** → **The Hunter Hunted** → **The Burning Mountain** → **Wings Clipped** → **Defeat the Dross** (six regular ones, green in chat: his story's and the five kill quests'; the four bosses' and "Defeat the Dross" are challenges). The bosses' four (until November 9 each a child of "Enter the Dross"): **Set in Stone** (`set_in_stone`, challenge, a drawn icon: "Defeat the Cinder Colossus.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone, like "Rise!") and **Down the Drain** (`down_the_drain`, challenge, a drawn icon: "End the Rat King's reign beneath Blightwood.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **The Hunter Hunted** (`the_hunter_hunted`, challenge: "Bring down the Huntsman and his Alpha Moose.", granted by the boss area through the grant helper; `/dross quest reset` leaves it alone) and **Wings Clipped** (`wings_clipped`, challenge, granted for beating the Emberdactyl's young, step 16). **Their icons** (the user, October 29: "change the advancement image of the Emberdactyl and the Huntsman to something more creative than just their spawn eggs"; then, after their second fight: "make custom advancement for the colossus as well, not just obsidian; also for the rat king change it up"): drawn 16x16 icons on icon-only items (`dross:wings_clipped_icon`, `hunter_hunted_icon`, `set_in_stone_icon`, `down_the_drain_icon` in `registry/ModItems`, in no creative tab), drawn by `tools/icons/advancement_icons.py` in options (sheets `boss-previews/<biome>/<boss>/advancement_icon/options.png`, each shown in the real challenge frame): W1 the clipped wing (an obsidian wing, its long finger sheared off on a glowing cut), W2 the broken wing, W3 pinned down (a sword through the wing); H1 pierced hood (his wolf hood and antlers, an ice-fletched arrow clean through it), H2 the Alpha's skull and his broken spear, H3 the hunter's trophy (his own hood mounted on a plaque), **H4 pierced and crossed out** (H1 with his glowing eyes crossed out, dead: the user, "make it so his eyes are crossed out, died"), H5 crossed out (no arrow); S1 the Colossus's cooling face (its cracked three-eyed face going to obsidian, its eyes dimming), S2 its obsidian fist, S3 its cold volcanoes; D1 his crown down the drain (slipping between a sewer grate's bars), D2 belly up (his X-eyed face, crown askew), D3 his broken staff over a grate. **The user's picks** (October 30): **D1** ("I like the rat king one"), **H3 with his eyes crossed out** ("use H3 for the Huntsman, just cross his eyes out": his hood mounted on its plaque, a cartoon X over each eye); none of S1-S3 ("I don't like any of the colossus options": archived in `advancement_icon/round1/`), so round 2: **S4 sword in the stone** (your sword plunged into a boulder of its obsidian, the cut glowing: "Set in Stone"), S5 the obsidian statue (the Colossus side on, cooled for good on a plinth), S6 heart gone cold (its lava core half crusted in obsidian), S7 pickaxe in the shell; then (October 30) **S4** and **W1** ("I like the current colossus icon, the current one for the Emberdactyl is also fine"). **H3's X's half as big** (the same day: "make the X smaller for the Huntsman's dead eyes"): a 16x16 icon has no X smaller than 3 x 3 pixels, so H3 is drawn at 32x32 (Minecraft shows it at the same size with twice the detail), its eyes dark and a 3 x 3 X of the finer pixels over each (`FINE`, `MOUNTED_FINE_X`); its fangs show again.
       - There is **no** "The Rift Reopened" advancement.
       - Quest owns every advancement JSON and a grant helper. Other areas call the helper when their event happens.
-      - Quest's progress API grants "Proven Worthy" and "Keymaster" itself when those stages complete.
+      - Quest's trader quest grants "Knightfall" and "The Portal Orb" itself (`TraderProgress`); "Siege Broken" comes with T2.
    10. **Test commands** (cheats on):
        - `/dross goto hub` teleports you to the hub (World site hooks it up).
-       - `/dross quest status|reset|complete` shows, clears or finishes your quest progress (Quest logic, World site hooks it up). `reset` also clears the Guide Book flag and revokes every Dross advancement except "Rise!" (which is about Necromancy, not the quest). Since November 9, 2026 `status` shows the Blind Oracle's quest too and `reset` clears it as well, taking away its own advancements and "Defeat the Dross" (never the bosses'); `/dross quest skip` and `/dross quest set <quest>` are his quests' test tools (step 19).
-   11. **Creative "Dross" tab** additions: the Weathered Letter, the Rift Key, the Dross Guide Book (in its "quest items" group, step 6).
+       - `/dross quest status|reset|complete` shows, clears or finishes your quest progress (Quest logic, World site hooks it up): since November 24, 2026 `status` shows the trader's quest (its state, ruins, round, orbs made, his marker, the cathedral lit), `reset` clears it with "Knightfall" and "The Portal Orb", `complete` finishes it as if he'd just made the orb (no items). `reset` also clears the Guide Book flag and revokes every Dross advancement except "Rise!" (which is about Necromancy, not the quest). Since November 9, 2026 `status` shows the Blind Oracle's quest too and `reset` clears it as well, taking away its own advancements and "Defeat the Dross" (never the bosses'); `/dross quest skip` and `/dross quest set <quest>` are his quests' test tools (step 19).
+   11. **Creative "Dross" tab** additions: the Weathered Letter, the Portal Orb, the Dross Guide Book (in its "quest items" group, step 6).
 
 8. **The Cinder Colossus** (Boss area, `com.reg21meme.dross.boss.golem`): a golem mini-boss that serves the **Fire Necromancer** (one of the three elemental necromancers, Parked). **The user picked 3G Saddleback** (round 3, with changes; see "The pick" below), and its **fight is built** (see "The fight" below; not yet tested in-game). It lives in its **lair**, a volcano in the Cinder Wastes (below), and also comes from its spawn egg or `/dross boss summon colossus`. "Cinder Colossus" is a working name.
    - **The look** [built]: a big, brawny, gorilla-like brute, hunched over and walking on its knuckles, with huge fist arms (bigger than its legs), dense and heavy. Cracks instead of a clean face, and a layered jaw: an outer bottom jaw and an inner jaw behind it. **A volcano on its back** (prominent: it's where its long-range attacks will come from) and **spikes**. About **5.5 blocks tall** to the volcano's rim, about **5.2 wide** (spikes included) and about 4.3 deep. The head sits out in front of the chest so the jaw doesn't clip into the body. No blue or electric accents: fire colors only.
@@ -3506,7 +3039,7 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
       Come back later to face more dangerous foes." Its fireworks (`OracleFireworks`): 6 rockets round you over about 2
       seconds (`ROCKETS`, `INTERVAL_TICKS` 7), in the Dross's blues (`DrossColors.ORACLE_FIREWORK_*`), never hurting
       anyone.
-    - **The markers** (`villager/client/OracleMarkerRenderer`): a red "?" (a quest waiting), a yellow "..." (going), a
+    - **The markers** (`villager/client/QuestMarkerRenderer`, since November 24, 2026 also over the Dross Trader for his quest, step 7): a red "?" (a quest waiting), a yellow "..." (going), a
       green "!" (done: go back to him), nothing once every quest is done; each player sees their own, and only over the
       Blind Oracle (never the Seeker). Pixel art (`textures/gui/quest_markers.png`, three layers per marker: a soft glow,
       the body, the shine; since November 18 the soft blue glow round it isn't drawn, the user: "remove the blue, the red,
@@ -3965,6 +3498,7 @@ red, yellow or green marker over his head, kill counting, seven new advancements
 Dross") and the bosses' four in one chain with them, the locked lands (Slowness V, Mining Fatigue V, Hunger II, the chat line and a curtain of streaks and runes at their edge),
 the locked bosses with their warded arenas, the Silverwood Giant in place of Silverwood's zombies and skeletons, and
 `/dross quest skip|set` and `/dross showcase silverwood_giants` (headless tests written; not yet tested in-game).
+Then (November 23-24, 2026) the pre-Dross revamp's stage T1 (PRE_DROSS_PLAN.md): the Dross Trader's quest in the Oracle's style (his story, 3 golden apples, three knight ruins, the Portal Orb in place of the Rift Key, the cathedral's spot rounded to 100, his markers), the tributes, key materials, Dross Compass, "Proven Worthy", "Keymaster" and the two join messages removed, the letter at 20% (headless tests written; not yet run or tested in-game).
 The
 README describes the whole mod as it is now. Minor issues are listed in "Known bugs". The early-game build steps below are kept as a record.
 
@@ -4028,6 +3562,7 @@ Run the agents **one at a time** (never in parallel). They add to the same share
 
 ## Verify over time
 Built and passing the headless check, but not yet tested in-game. Check these during future play tests and remove each line once confirmed.
+- **The trader's new quest** (November 24, 2026; a new world, survival, cheats on): `/dross goto trader`: a red ? floats over him (only you see it); each right-click is one line of his story, then you say "Yes, of course.", he gives 3 golden apples and the ? turns to a yellow ...; the next click names the nearest knight ruin a moment later (rounded to 10). Clear three ruins (`/dross goto ruin`): "Knight ruins cleared: 1 / 3" over the hotbar each time, a ruin cleared again doesn't count, the third gives "Knightfall" and a green ! over him. Back to him: a line a click, a puff of blue and the Portal Orb in your inventory ("The Portal Orb"), the cathedral's spot rounded to 100 (compare `/dross goto cathedral`), "Go on. I believe in you.", no marker after; the orb (a glass ball with a swirl) lights the cathedral's frame. Throw the orb away before lighting: he offers a new one for three more new ruins. After "Enter the Dross" he says his three old-friend lines in turn and his shop shows the Guide Book. No join message names the cathedral or his chapel. The Dross tab: A Weathered Letter, Knightfall, The Portal Orb, Enter the Dross.
 - **The Emberdactyl's cheaper wall checks** (November 20, 2026): fight it at its volcano and in the bedrock arena: it
   still turns away from walls and hills before it reaches them, its wings never pass through rock, it never gets stuck
   against the crater's rim, and the game stays smooth while it flies.
@@ -4212,7 +3747,7 @@ Built and passing the headless check, but not yet tested in-game. Check these du
 - **The Rat King (1C) and his showcase:** in a superflat world (cheats on) `/dross showcase boss_designs ratking` spawns Gnawrick 1C (broad shoulders) with a sign; he matches `boss-previews/blightwood/rat_king/ratking_1c_gnawrick_*`; his fist grips the staff across its knuckles and the staff's head is all green; every chat button: Sleep (curled up, the staff lying in front of him, never through him or the floor; Zzz and snores), Wake up (eep!, a yawn, he picks up his staff with a tap), Stand (his ears never pass through the staff), Walk (on tiptoe), Burrow (he digs a spot about a block ahead, then dives in head first: the mound is where his head went in), Pop up (a rumble, out of that mound with a pop, the staff straight up out of the hole), Rage! (his left fist goes up out to his side and pumps with every stomp, never through his head; steam puffs with the choo-choo-chooo whistle; a screech; he lifts the staff and smashes its foot into the ground in front of him with dust and green sparks), Die (squeal, thud and boing, clatter, clink; the X's only on the front of his face); the Rat King spawn egg (Dross tab) makes one that wanders about, walking without sliding feet, and snickers.
 - **Rat showcase and eggs:** `/dross showcase rats` puts the Plague Rat (R3) and the Plague Ravager (E3, bigger, glowing red eyes) on pedestals with signs; each matches `boss-previews/blightwood/rat_king/rats/`; their green spots and boils are the same on both sides; Idle: the rat sniffs, rears up and grooms, the Ravager hisses, bristles, lashes its tail and lunges; Run: they gallop on the spot; right-click switches one; the boils and the red eyes glow at night. The Plague Rat and Plague Ravager spawn eggs spawn that rat, which wanders about, running as it moves, and squeaks or growls.
 - **Rat King sounds:** `/dross showcase boss_sounds ratking` lists every sound with a [play] button; each plays (the same as `boss-previews/blightwood/rat_king/sounds/index.html`); none sounds like Minecraft's; the showcase kings make their animations' sounds at the right moments and no idle chatter.
-- **The Fallen Cathedral made with the land** (November 4): in a new world the join message gives the site 3,500-4,500 blocks from spawn, usually in a forest, taiga or snowy area (the log says which rung it came from); `/dross goto cathedral` takes a moment the first time, then puts you in front of the frame facing it, on level ground that steps back to the land at most a block at a time (no cliffs or dirt walls), no village or outpost beside it; the trees touching it vanish a moment after its land loads, whole (no floating leaves or half trees), the rest of the forest untouched; the dead plants and cracked bricks of the leak; the compass points at its frame; the Rift Key lights a 3x5 portal.
+- **The Fallen Cathedral made with the land** (November 4): in a new world the site is 3,500-4,500 blocks from spawn (`/dross goto cathedral`, or the trader's directions), usually in a forest, taiga or snowy area (the log says which rung it came from); `/dross goto cathedral` takes a moment the first time, then puts you in front of the frame facing it, on level ground that steps back to the land at most a block at a time (no cliffs or dirt walls), no village or outpost beside it; the trees touching it vanish a moment after its land loads, whole (no floating leaves or half trees), the rest of the forest untouched; the dead plants and cracked bricks of the leak; the Portal Orb lights a 3x5 portal.
 - **The hub made with the land** (November 4): in a new world, the first trip through the cathedral portal (or `/dross goto hub`) takes about a second longer while the hub's land is made (no long freeze), then lands you inside the spire's hall on the top step in front of the lit blue exit portal, facing the gate, with the arrival title and notes; the spire stands level on the forest floor, the ground stepping back to the land at most a block at a time, no tree in it and the forest's edge about 24 blocks out; the camp at its steps with the Blind Oracle and the Ragged Seeker (one of each, also after a rejoin); the exit portal takes you back to the cathedral's frame; the steps up the front of the spire are walkable.
 - **Generate Structures off and superflat worlds** (November 4): a new world made with Generate Structures OFF logs a WARN at start and has no cathedral, no Rift Chapel and no hub (no join messages; `/dross goto cathedral` and `/dross goto trader` say there's none; through a creative-built Dross portal you land on safe ground near Dross 0,0); a superflat world has no cathedral and no chapel either, but its Dross still has the hub (its exit portal brings you back near the world spawn).
 - **The quest trader wears The Archivist:** `/dross goto trader` shows him in skin 2 (bald scholar, glowing spectacles, blue book); a spawn-egg trader wears it too.

@@ -2,6 +2,7 @@ package com.reg21meme.dross.portal;
 
 import com.reg21meme.dross.Dross;
 import com.reg21meme.dross.dimension.ModDimensions;
+import com.reg21meme.dross.quest.trader.TraderProgress;
 import com.reg21meme.dross.registry.ModItems;
 import com.reg21meme.dross.registry.ModParticles;
 import java.util.ArrayList;
@@ -29,40 +30,41 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 
 /**
- * Lighting Dross portals with the Rift Key, and the "no portals inside the Dross" rule.
+ * Lighting Dross portals with the Portal Orb, and the "no portals inside the Dross" rule.
  * <ul>
- *   <li><b>Lighting:</b> when a Rift Key item (thrown or dropped) is inside the empty opening of a complete
+ *   <li><b>Lighting:</b> when a Portal Orb item (thrown or dropped) is inside the empty opening of a complete
  *       {@code dross_portal_frame} frame (along X or Z), the opening fills with {@code dross:dross_portal}
- *       and exactly one key is used up.</li>
- *   <li><b>Already lit:</b> a Rift Key that lands in a lit Dross portal isn't used. It's pushed back out of the
+ *       and exactly one orb is used up. Lighting the Fallen Cathedral's frame is remembered for the whole world (the
+ *       quest area's {@code TraderProgress.portalLit}).</li>
+ *   <li><b>Already lit:</b> a Portal Orb that lands in a lit Dross portal isn't used. It's pushed back out of the
  *       portal and gets a portal cooldown, so it doesn't fall through to the Dross.</li>
- *   <li><b>Inside the Dross:</b> the Rift Key lights nothing, and nether portals can't be lit either
+ *   <li><b>Inside the Dross:</b> the Portal Orb lights nothing, and nether portals can't be lit either
  *       (otherwise they would be a second way out).</li>
  * </ul>
- * To stay cheap, this never scans the world: it remembers only the Rift Key item entities that exist
+ * To stay cheap, this never scans the world: it remembers only the Portal Orb item entities that exist
  * (when they join a level) and checks the block each one is in, once per tick.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossPortalActivation
 {
-    /** How fast a key that landed in a lit portal is pushed back out (blocks per tick, sideways). */
+    /** How fast an orb that landed in a lit portal is pushed back out (blocks per tick, sideways). */
     private static final double POP_OUT_SPEED = 0.3D;
     /** And how fast upwards, so it hops out. */
     private static final double POP_OUT_UP_SPEED = 0.25D;
-    /** How far from the middle of the portal block the key is moved, so it is fully outside the portal. */
+    /** How far from the middle of the portal block the orb is moved, so it is fully outside the portal. */
     private static final double POP_OUT_DISTANCE = 0.9D;
     /** Blue particles when a portal lights: this many per opening block, but never more than the max. */
     private static final int LIGHT_PARTICLES_PER_BLOCK = 8;
     private static final int LIGHT_PARTICLES_MAX = 200;
 
-    /** Rift Key item entities currently in server levels (weak, so they are forgotten when gone). */
-    private static final Set<ItemEntity> KEYS = Collections.newSetFromMap(new WeakHashMap<>());
+    /** Portal Orb item entities currently in server levels (weak, so they are forgotten when gone). */
+    private static final Set<ItemEntity> ORBS = Collections.newSetFromMap(new WeakHashMap<>());
 
     private DrossPortalActivation() {}
 
-    private static boolean isRiftKey(ItemStack stack)
+    private static boolean isPortalOrb(ItemStack stack)
     {
-        return stack.is(ModItems.RIFT_KEY.get());
+        return stack.is(ModItems.PORTAL_ORB.get());
     }
 
     private static boolean isInDross(Level level)
@@ -75,24 +77,24 @@ public final class DrossPortalActivation
     {
         if (!event.getLevel().isClientSide()
                 && event.getEntity() instanceof ItemEntity item
-                && isRiftKey(item.getItem()))
+                && isPortalOrb(item.getItem()))
         {
-            KEYS.add(item);
+            ORBS.add(item);
         }
     }
 
     @SubscribeEvent
     public static void onServerTick(TickEvent.ServerTickEvent event)
     {
-        if (event.phase != TickEvent.Phase.END || KEYS.isEmpty())
+        if (event.phase != TickEvent.Phase.END || ORBS.isEmpty())
         {
             return;
         }
-        for (ItemEntity item : new ArrayList<>(KEYS))
+        for (ItemEntity item : new ArrayList<>(ORBS))
         {
-            if (item.isRemoved() || !isRiftKey(item.getItem()))
+            if (item.isRemoved() || !isPortalOrb(item.getItem()))
             {
-                KEYS.remove(item);
+                ORBS.remove(item);
                 continue;
             }
             if (item.level() instanceof ServerLevel level && !isInDross(level))
@@ -100,20 +102,20 @@ public final class DrossPortalActivation
                 tryLight(level, item);
                 if (item.isRemoved())
                 {
-                    KEYS.remove(item);
+                    ORBS.remove(item);
                 }
             }
         }
     }
 
-    /** Lights the frame the key is in, if the key is in the empty opening of a complete frame. */
+    /** Lights the frame the orb is in, if the orb is in the empty opening of a complete frame. */
     private static void tryLight(ServerLevel level, ItemEntity item)
     {
         BlockPos pos = item.blockPosition();
         BlockState here = level.getBlockState(pos);
         if (!here.isAir() && !here.is(BlockTags.FIRE))
         {
-            return; // a lit portal is handled by pushBackKey; anything else isn't an empty opening
+            return; // a lit portal is handled by pushBackOrb; anything else isn't an empty opening
         }
 
         Optional<DrossPortalShape> found = DrossPortalShape.findEmptyPortalShape(level, pos, Direction.Axis.X);
@@ -124,7 +126,7 @@ public final class DrossPortalActivation
         DrossPortalShape shape = found.get();
         shape.createPortalBlocks();
 
-        // Use up exactly one key.
+        // Use up exactly one orb.
         ItemStack stack = item.getItem().copy();
         stack.shrink(1);
         if (stack.isEmpty())
@@ -133,18 +135,20 @@ public final class DrossPortalActivation
         }
         else
         {
-            // (Keys don't stack, but just in case.) The leftovers now sit in the lit portal:
+            // (Orbs don't stack, but just in case.) The leftovers now sit in the lit portal:
             // a portal cooldown keeps them here for the player to pick up instead of falling through.
             item.setItem(stack);
             item.setPortalCooldown();
         }
 
-        // Lighting sound (a whoosh, plus the crystal key breaking) and a burst of blue portal particles.
+        // Lighting sound (a whoosh, plus the glass orb shattering) and a burst of blue portal particles.
         PortalOpening opening = PortalOpening.of(shape);
+        TraderProgress.portalLit(level, opening.minCorner(), opening.axis(), opening.width(), opening.height());
         double cx = opening.axis() == Direction.Axis.X ? opening.centerAlong() : opening.minCorner().getX() + 0.5D;
         double cz = opening.axis() == Direction.Axis.Z ? opening.centerAlong() : opening.minCorner().getZ() + 0.5D;
         double cy = opening.minCorner().getY() + opening.height() / 2.0D;
         level.playSound(null, cx, cy, cz, SoundEvents.FIRECHARGE_USE, SoundSource.BLOCKS, 1.0F, 0.8F + level.random.nextFloat() * 0.2F);
+        level.playSound(null, cx, cy, cz, SoundEvents.GLASS_BREAK, SoundSource.BLOCKS, 1.0F, 0.8F);
         level.playSound(null, cx, cy, cz, SoundEvents.AMETHYST_BLOCK_BREAK, SoundSource.BLOCKS, 1.0F, 0.6F);
         int count = Math.min(LIGHT_PARTICLES_MAX, LIGHT_PARTICLES_PER_BLOCK * opening.width() * opening.height());
         double spreadAlong = opening.width() / 3.0D;
@@ -155,14 +159,14 @@ public final class DrossPortalActivation
 
     /**
      * Called (server side) by {@link DrossPortalTravel} for every entity inside a lit Dross portal.
-     * If it's a Rift Key outside the Dross, the key is pushed back out of the portal and gets a portal
+     * If it's a Portal Orb outside the Dross, the orb is pushed back out of the portal and gets a portal
      * cooldown, so it isn't used and doesn't travel.
      *
-     * @return true if it was such a key (it must not travel)
+     * @return true if it was such an orb (it must not travel)
      */
-    static boolean pushBackKey(Entity entity, BlockPos portalPos)
+    static boolean pushBackOrb(Entity entity, BlockPos portalPos)
     {
-        if (!(entity instanceof ItemEntity item) || !isRiftKey(item.getItem())
+        if (!(entity instanceof ItemEntity item) || !isPortalOrb(item.getItem())
                 || !(item.level() instanceof ServerLevel level) || isInDross(level))
         {
             return false;
@@ -170,7 +174,7 @@ public final class DrossPortalActivation
 
         BlockState portal = level.getBlockState(portalPos);
         Direction.Axis axis = portal.hasProperty(DrossPortalBlock.AXIS) ? portal.getValue(DrossPortalBlock.AXIS) : Direction.Axis.X;
-        // The portal is a flat sheet; push the key out sideways (along Z for an X portal, along X for a Z portal).
+        // The portal is a flat sheet; push the orb out sideways (along Z for an X portal, along X for a Z portal).
         boolean pushAlongZ = axis == Direction.Axis.X;
         double offset = pushAlongZ ? item.getZ() - (portalPos.getZ() + 0.5D) : item.getX() - (portalPos.getX() + 0.5D);
         double motion = pushAlongZ ? item.getDeltaMovement().z : item.getDeltaMovement().x;

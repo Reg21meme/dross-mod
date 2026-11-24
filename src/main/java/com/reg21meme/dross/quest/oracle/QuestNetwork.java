@@ -17,8 +17,8 @@ import org.slf4j.Logger;
 
 /**
  * The quest area's network channel, {@code dross:quest} (the mod's first). Its messages, all server to client:
- * {@link OracleSyncMessage} (a player's Oracle marker, which locked lands are open for them and which barriers they've
- * seen fall), {@link OracleSpellMessage} (the Oracle casts his spell), {@link LandFallMessage} (a barrier falls) and the
+ * {@link OracleSyncMessage} (a player's quest markers, the Oracle's and the Dross Trader's, which locked lands are open
+ * for them and which barriers they've seen fall), {@link OracleSpellMessage} (the Oracle casts his spell), {@link LandFallMessage} (a barrier falls) and the
  * boss area's {@link BossGroundsMessage} (the protected grounds near a player that they may not break).
  * Registered in common setup (this class's own mod-bus subscriber).
  */
@@ -28,7 +28,7 @@ public final class QuestNetwork
     private static final Logger LOGGER = LogUtils.getLogger();
 
     /** Bump when a message's layout changes: client and server must match. */
-    private static final String PROTOCOL = "4";
+    private static final String PROTOCOL = "5";
 
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
             new ResourceLocation(Dross.MODID, "quest"), () -> PROTOCOL, PROTOCOL::equals, PROTOCOL::equals);

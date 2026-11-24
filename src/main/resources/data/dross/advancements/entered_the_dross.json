@@ -1,5 +1,5 @@
 {
-  "parent": "dross:keymaster",
+  "parent": "dross:portal_orb",
   "display": {
     "icon": {
       "item": "dross:dross_portal_frame"

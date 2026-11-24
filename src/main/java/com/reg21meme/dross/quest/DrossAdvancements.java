@@ -19,7 +19,7 @@ import java.util.List;
  * <p>Example (from any area): {@code DrossAdvancements.grant(player, DrossAdvancements.SET_IN_STONE);}</p>
  *
  * <p>The Dross tab, in order: {@link #ROOT} (silent, unlocks the tab) → {@link #WEATHERED_LETTER} →
- * {@link #PROVEN_WORTHY} → {@link #KEYMASTER} → {@link #ENTERED_THE_DROSS}, whose child is the
+ * {@link #KNIGHTFALL} → {@link #PORTAL_ORB} → {@link #ENTERED_THE_DROSS} (PRE_DROSS_PLAN.md), whose child is the
  * Blind Oracle's chain (QUEST_PLAN.md): {@link #ORACLE_PLEA} → {@link #GIANT_SLAYER} → {@link #INTO_THE_ASHES} →
  * {@link #SET_IN_STONE} → {@link #BENEATH_THE_ROT} → {@link #DOWN_THE_DRAIN} → {@link #FIRST_FROST} →
  * {@link #THE_HUNTER_HUNTED} → {@link #WINGS_CLIPPED} → {@link #DEFEAT_THE_DROSS}.
@@ -34,10 +34,10 @@ public final class DrossAdvancements
     public static final String ROOT = "root";
     /** "A Weathered Letter": granted by the quest area when a letter is in the player's inventory. */
     public static final String WEATHERED_LETTER = "weathered_letter";
-    /** "Proven Worthy": granted by {@link QuestProgress} when the last tribute is handed in. */
-    public static final String PROVEN_WORTHY = "proven_worthy";
-    /** "Keymaster": granted by {@link QuestProgress} when the Rift Key is forged. */
-    public static final String KEYMASTER = "keymaster";
+    /** "Knightfall": granted by {@code quest.trader.TraderProgress} when the third knight ruin is cleared for the Dross Trader. */
+    public static final String KNIGHTFALL = "knightfall";
+    /** "The Portal Orb": granted by {@code quest.trader.TraderProgress} when the Dross Trader makes a player their Portal Orb. */
+    public static final String PORTAL_ORB = "portal_orb";
     /** "Enter the Dross" (the main achievement): the portal area grants it at the end of the arrival sequence. */
     public static final String ENTERED_THE_DROSS = "entered_the_dross";
     /** "Set in Stone": the boss area grants it when a player defeats the Cinder Colossus. It also finishes the Oracle's quest for that boss. */
@@ -65,7 +65,7 @@ public final class DrossAdvancements
     public static final String DEFEAT_THE_DROSS = "defeat_the_dross";
 
     /** The advancements {@code /dross quest reset} takes away ("Set in Stone" and "Down the Drain" stay: they're about the bosses, not the quest). */
-    static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, PROVEN_WORTHY, KEYMASTER, ENTERED_THE_DROSS);
+    static final List<String> QUEST_ADVANCEMENTS = List.of(ROOT, WEATHERED_LETTER, KNIGHTFALL, PORTAL_ORB, ENTERED_THE_DROSS);
 
     private DrossAdvancements() {}
 

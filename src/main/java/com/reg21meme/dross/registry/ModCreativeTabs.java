@@ -6,7 +6,6 @@ import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophies;
 import com.reg21meme.dross.boss.trophy.ColossusTrophies;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.WeatheredLetterItem;
-import com.reg21meme.dross.villager.DrossCompass;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.CreativeModeTab;
@@ -23,7 +22,7 @@ public final class ModCreativeTabs
      * the end of the group it belongs to:
      * <ol>
      *   <li>Blocks: the portal frame and other building blocks</li>
-     *   <li>Quest items: the Weathered Letter, Dross Compass, Rift Key, Guide Book</li>
+     *   <li>Quest items: the Weathered Letter, Portal Orb, Guide Book</li>
      *   <li>Trophies: every design of every boss trophy</li>
      *   <li>Spawn eggs: the trader, the bosses and their minions, and any other mob</li>
      *   <li>Weapons and tools: the Admin Sword and the like</li>
@@ -96,10 +95,8 @@ public final class ModCreativeTabs
                         // 2. Quest items
                         // Quest area: a Weathered Letter (gets its text once it's in your inventory)
                         output.accept(WeatheredLetterItem.createBlank());
-                        // Villager area: a Dross Compass (it gets its target once it's in your inventory)
-                        output.accept(DrossCompass.createBlank());
-                        // Portal area: the Rift Key (throw it into a frame to light the portal)
-                        output.accept(ModItems.RIFT_KEY.get());
+                        // Portal area: the Portal Orb (throw it into a frame to light the portal)
+                        output.accept(ModItems.PORTAL_ORB.get());
                         // Quest area: the Dross Guide Book
                         output.accept(DrossGuideBookItem.create());
 

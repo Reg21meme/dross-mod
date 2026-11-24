@@ -8,13 +8,12 @@ import com.reg21meme.dross.portal.DrossPortalShape;
 import com.reg21meme.dross.portal.DrossTeleporter;
 import com.reg21meme.dross.portal.PortalOpening;
 import com.reg21meme.dross.registry.ModBlocks;
-import com.reg21meme.dross.villager.DrossCompass;
+import com.reg21meme.dross.quest.trader.TraderProgress;
 import com.reg21meme.dross.world.shrine.GroundFit;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -52,8 +51,6 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.decoration.ArmorStand;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.CompassItem;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
@@ -91,7 +88,8 @@ import org.slf4j.Logger;
  *       (a stone brick the leak cracked counts); the frame is complete, unlit and its opening empty; every column round
  *       it is within d blocks of its ground level d blocks out, so its edges never step more than a block a block; no
  *       tree's log or leaves on it; the leak there; {@code /dross goto cathedral} and the hub's exit portal land in front
- *       of the frame facing it; a Dross Compass aims at the opening's middle; a player who joins is told where it is.
+ *       of the frame facing it; the Dross Trader names its spot rounded to 100 (his lines' {@code TraderProgress.cathedral});
+ *       a player who joins is told nothing about where it is (the join message is gone: the trader tells you).
  *       In a world whose site's land was made before it came with the land, it's skipped with a log line.</li>
  * </ul>
  * A wait never fails by itself (Minecraft retries it until the test's tick limit): a wait that gives up keeps its failure
@@ -131,6 +129,8 @@ public final class PortalSiteGameTest
     private static final int NEAR_FRAME = 8;
     /** The stand-in player's name. */
     private static final String PLAYER = "site-test-player";
+    /** The lang key of the old join message that told a player where the site is (gone since the trader tells you). */
+    private static final String OLD_LOCATION_KEY = "dross.site.location";
 
     /** What was true when the server had started (before any test ran). */
     private static final class AtStart
@@ -634,8 +634,9 @@ public final class PortalSiteGameTest
     }
 
     /**
-     * {@code /dross goto cathedral} and the hub's exit portal land in front of the frame (its +Z side) facing it; a Dross
-     * Compass aims at the opening's middle; the stand-in player who joined was told where the site is, once.
+     * {@code /dross goto cathedral} and the hub's exit portal land in front of the frame (its +Z side) facing it; the Dross
+     * Trader's lines name the opening's middle rounded to 100; the stand-in player who joined wasn't told where the site is
+     * (no join message names it any more).
      */
     private static void checkArrivals(Run run)
     {
@@ -648,14 +649,12 @@ public final class PortalSiteGameTest
             int told = 0;
             for (Component message : player.messages)
             {
-                if (message.getContents() instanceof TranslatableContents t && SiteAnnouncer.LOCATION_KEY.equals(t.getKey()))
+                if (message.getContents() instanceof TranslatableContents t && OLD_LOCATION_KEY.equals(t.getKey()))
                 {
                     told++;
-                    expect(problems, Arrays.equals(t.getArgs(), new Object[] {center.getX(), center.getY(), center.getZ()}),
-                            "the join message says " + Arrays.toString(t.getArgs()) + ", not the opening's middle " + center.toShortString());
                 }
             }
-            expect(problems, told == 1, "on joining the player was told where the site is " + told + " times, not once");
+            expect(problems, told == 0, "on joining the player was told where the site is " + told + " times (the join message is gone)");
             int result = player.server.getCommands().performPrefixedCommand(player.createCommandSourceStack().withPermission(2),
                     "dross goto cathedral");
             expect(problems, result == 1, "/dross goto cathedral returned " + result);
@@ -667,13 +666,15 @@ public final class PortalSiteGameTest
             String through = info == null ? "no landing" : inFront(info.pos, info.yRot, frame);
             expect(problems, through == null, "the hub's exit lands at " + (info == null ? "nothing" : info.pos + " facing " + info.yRot)
                     + ": " + through);
-            ItemStack compass = DrossCompass.create(run.overworld);
-            CompoundTag tag = compass.getOrCreateTag();
-            BlockPos aim = tag.contains(CompassItem.TAG_LODESTONE_POS) ? NbtUtils.readBlockPos(tag.getCompound(CompassItem.TAG_LODESTONE_POS)) : null;
-            expect(problems, center.equals(aim), "the Dross Compass aims at " + aim + ", not the opening's middle " + center.toShortString());
+            BlockPos told2 = TraderProgress.cathedral(run.overworld.getServer()).orElse(null);
+            expect(problems, center.equals(told2), "the trader's lines would name " + told2 + ", not the opening's middle " + center.toShortString());
+            int roundedX = TraderProgress.rounded(center.getX(), TraderProgress.CATHEDRAL_ROUNDING);
+            int roundedZ = TraderProgress.rounded(center.getZ(), TraderProgress.CATHEDRAL_ROUNDING);
+            expect(problems, Math.abs(roundedX - center.getX()) <= 50 && Math.abs(roundedZ - center.getZ()) <= 50,
+                    "the trader's rounding of " + center.toShortString() + " is " + roundedX + ", " + roundedZ + ": more than 50 off");
             fail(problems);
-            LOGGER.info("[site test] /dross goto cathedral put the player at {} facing {}; the hub's exit lands at {}; the compass aims at {}",
-                    player.position(), player.getYRot(), info.pos, aim.toShortString());
+            LOGGER.info("[site test] /dross goto cathedral put the player at {} facing {}; the hub's exit lands at {}; the trader says around {}, {}",
+                    player.position(), player.getYRot(), info.pos, roundedX, roundedZ);
         }
         finally
         {

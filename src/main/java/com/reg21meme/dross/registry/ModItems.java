@@ -11,7 +11,7 @@ import com.reg21meme.dross.boss.rage.RageBowItem;
 import com.reg21meme.dross.boss.rage.RageWandItem;
 import com.reg21meme.dross.boss.ratking.trophy.RatKingTrophyItem;
 import com.reg21meme.dross.boss.trophy.ColossusTrophyItem;
-import com.reg21meme.dross.portal.RiftKeyItem;
+import com.reg21meme.dross.portal.PortalOrbItem;
 import com.reg21meme.dross.quest.DrossGuideBookItem;
 import com.reg21meme.dross.quest.WeatheredLetterItem;
 import com.reg21meme.dross.villager.AdminSwordItem;
@@ -35,8 +35,8 @@ public final class ModItems
     public static final RegistryObject<Item> DROSS_PORTAL_FRAME = ITEMS.register("dross_portal_frame",
             () -> new BlockItem(ModBlocks.DROSS_PORTAL_FRAME.get(), new Item.Properties()));
 
-    // Portal area: the Rift Key. Thrown into a Dross frame, it lights the portal (the villager area gives it out)
-    public static final RegistryObject<Item> RIFT_KEY = ITEMS.register("rift_key", RiftKeyItem::new);
+    // Portal area: the Portal Orb. Thrown into a Dross frame, it lights the portal (the trader's quest gives it out)
+    public static final RegistryObject<Item> PORTAL_ORB = ITEMS.register("portal_orb", PortalOrbItem::new);
 
     // Villager area: TESTING ONLY, sold by the Dross trader (see Parked in CLAUDE.md)
     public static final RegistryObject<Item> ADMIN_SWORD = ITEMS.register("admin_sword", AdminSwordItem::new);

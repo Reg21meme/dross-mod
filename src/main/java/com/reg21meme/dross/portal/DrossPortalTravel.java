@@ -35,8 +35,8 @@ import org.slf4j.Logger;
  * Where they land is decided by {@link DrossTeleporter}: every portal outside the Dross leads to the hub,
  * and the hub's exit portal leads to the castle portal.
  * <p>
- * Exception: a Rift Key item thrown into a lit portal outside the Dross doesn't travel. It's pushed back out
- * ({@link DrossPortalActivation#pushBackKey}).
+ * Exception: a Portal Orb item thrown into a lit portal outside the Dross doesn't travel. It's pushed back out
+ * ({@link DrossPortalActivation#pushBackOrb}).
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class DrossPortalTravel
@@ -58,9 +58,9 @@ public final class DrossPortalTravel
     /** Called (server side) every tick an entity is inside a Dross portal block. */
     public static void onEntityInside(Entity entity, BlockPos portalPos)
     {
-        if (DrossPortalActivation.pushBackKey(entity, portalPos))
+        if (DrossPortalActivation.pushBackOrb(entity, portalPos))
         {
-            return; // a Rift Key thrown into an already lit portal pops back out instead of travelling
+            return; // a Portal Orb thrown into an already lit portal pops back out instead of travelling
         }
         if (entity.isOnPortalCooldown())
         {

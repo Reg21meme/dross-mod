@@ -50,8 +50,8 @@ public final class DrossColors {
     /** Drifting dust that "leaks" out of every portal frame block. Used in portal/DrossPortalFrameBlock. */
     public static final int FRAME_LEAK_PARTICLE = PALETTE_MAIN;
 
-    /** The Rift Key's item name. Used in portal/RiftKeyItem. */
-    public static final int RIFT_KEY_NAME = PALETTE_HIGHLIGHT;
+    /** The Portal Orb's item name. Used in portal/PortalOrbItem. */
+    public static final int PORTAL_ORB_NAME = PALETTE_HIGHLIGHT;
 
     // ---------------------------------------------------------------- Villager (villager-builder)
 
@@ -67,7 +67,7 @@ public final class DrossColors {
     // The marker over the Blind Oracle's head (each player sees their own; QUEST_PLAN.md). The game tints the marker
     // texture (textures/gui/quest_markers.png, drawn by tools/skins/quest_markers.py) with these, so changing one here
     // needs no new texture; run the tool again only to see it in skin-previews/quest_markers.png.
-    // Used in villager/client/OracleMarkerRenderer.
+    // Used in villager/client/QuestMarkerRenderer (over the Blind Oracle and the Dross Trader).
 
     /** The red "?": a new quest is waiting, talk to him (the user's pick of red). */
     public static final int QUEST_MARKER_NEW = 0xFF4B3E;
@@ -116,6 +116,12 @@ public final class DrossColors {
 
     /** The Oracle's spell: the sparks the beam shatters into, as they fall (deep cobalt). Used in quest/client/OracleSpellEffects. */
     public static final int ORACLE_SPELL_SPARK = PALETTE_DEEP_COBALT;
+
+    /** The trader's quest progress above the hotbar ("Knight ruins cleared: 1 / 3"), quest/trader/TraderProgress. */
+    public static final int TRADER_PROGRESS_TEXT = PALETTE_HIGHLIGHT;
+
+    /** "Knight ruins cleared: 3 / 3. Go back to the Dross Trader." above the hotbar: the green of the "!" over him. */
+    public static final int TRADER_DONE_TEXT = QUEST_MARKER_DONE;
 
     // ---------------------------------------------------------------- World site (world-builder)
 
