@@ -2,11 +2,12 @@
 Draws the Dross project icon (for CurseForge and the like): curseforge/dross_icon.png, 512 x 512, and the same picture
 as the mod's logo in the game's Mods list (src/main/resources/dross_logo.png, mods.toml's logoFile).
 
-A boss's head, filling the picture: its real model and texture, drawn and framed by draw_page_art.py's boss classes
-(and their generators), on a plain night background with a soft electric blue glow behind it. Since November 6, 2026 the
-Emberdactyl, its head exactly as in its box on the banner (the user: "literally copy the same head from the Dross
-banner"): the same angle and framing, its neck running down into its body; from October 24, 2026 the Huntsman (his wolf
-hood and antlers), until then the Rat King. The colours come from the shared palette in DrossColors.java.
+A head, filling the picture: its real model and texture, drawn and framed by draw_page_art.py's boss classes (and
+their generators) or by SilverwoodGiant below, on a plain night background with a soft electric blue glow behind it.
+Since November 25, 2026 the Silverwood Giant's, G1 the Boulder-Hurler (the user's pick of three: "make G1 the new Dross
+icon"); from November 6, 2026 the Emberdactyl's, exactly as in its box on the banner; from October 24, 2026 the
+Huntsman's (his wolf hood and antlers), until then the Rat King's. The colours come from the shared palette in
+DrossColors.java.
 
     python tools/icon/draw_icon.py
     python tools/icon/draw_icon.py --giant-options   the Silverwood Giant's head in its three looks, as icon options to
@@ -38,8 +39,8 @@ OUT = art.OUT / "dross_icon.png"
 LOGO = art.ROOT / "src/main/resources/dross_logo.png"
 
 SIZE = 512
-# Whose head (one of draw_page_art's boss classes).
-ICON_BOSS = art.Emberdactyl
+# Whose head: a function making it (one of draw_page_art's boss classes, or SilverwoodGiant with its look).
+ICON_BOSS = lambda: SilverwoodGiant("hurler")   # noqa: E731
 # Its head: seen from this angle ((degrees round: + turns its face to the picture's left, - to its right; degrees down),
 # or None for the boss's own angle in its box on the banner), and as big as fits in this share of the picture (the
 # banner's boxes' share, so it's framed exactly as there).
