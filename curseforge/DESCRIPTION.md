@@ -4,20 +4,21 @@
 
 The Dross is a dangerous dimension for the mid-to-late game.
 
-## New update: the quest update
+## New update!
 
-- **A new way in.** The Dross Trader has quests of his own now: clear three knight ruins, earn a Portal Orb, and break
-  the siege on the Fallen Cathedral.
-- **The elemental knights.** Ten new knights of five elements guarding broken portals across the Overworld and the
-  Nether.
-- **The Blind Oracle's quests.** Inside the Dross, the Oracle sends you from land to land and boss to boss. Each land is
-  sealed behind a barrier until he breaks it.
-- **The Silverwood Giants** now walk the forest round the hub.
-- **Boss homes are protected** until you beat their boss.
+- **A new way into the Dross.** The Dross Trader now has quests of his own: clear three knight ruins, earn a Portal
+  Orb, and break the siege on the Fallen Cathedral.
+- **The elemental knights.** Ten knights of fire, ice, poison, thunder and earth guard broken portals in ruins across
+  the Overworld and the Nether.
+- **The Blind Oracle's quests.** Inside the Dross, the Oracle leads you from land to land and boss to boss. Each land
+  stays sealed behind a barrier until he breaks it.
+- **The Silverwood Giants.** Neutral giants now roam the forest around the hub. Linger too close and they attack.
+- **Protected boss homes.** You can't break into a boss's home until you've beaten it.
+- **Removed:** Necromancy and Deathforged. They may return in another form.
 
 ## Upcoming
 
-A faster way to travel the Dross, and Dross portals of your own.
+**Faster travel through the Dross**, and **Dross portals of your own**.
 
 ## Getting in
 
