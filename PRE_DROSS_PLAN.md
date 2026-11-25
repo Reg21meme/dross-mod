@@ -4,7 +4,9 @@
 `MyMinecraftMod-quests`). **T1, the trader's quests, built November 23-24, 2026, not yet tested in-game** (it builds and
 its headless tests compile; they haven't been run yet). Where the build differs from this plan, or settles something it
 left open, is listed at the end, under "As built (T1)". **T2, the cathedral's siege, built November 24, 2026, not yet
-tested in-game** (it builds and its headless tests compile; not run yet): "As built (T2)" at the end. It replaces the trader's old hand-in quest (the tributes, the Dross Compass, the key materials
+tested in-game** (it builds and its headless tests compile; not run yet): "As built (T2)" at the end. **T3, the knight
+ruins in the Nether, built November 25, 2026, not yet tested in-game** (it builds and its headless tests compile; not run
+yet): "As built (T3)" at the end. It replaces the trader's old hand-in quest (the tributes, the Dross Compass, the key materials
 and the Rift Key; CLAUDE.md step 7). The Oracle's quests in the Dross (QUEST_PLAN.md) are unchanged. Each choice made
 where the user didn't say is marked *(my choice)*.
 
@@ -99,7 +101,8 @@ someone else broke the siege has no gap before Enter the Dross. Names and icons 
    Book only. Headless tests.
 3. **T2, the cathedral's siege [built, not yet tested]:** its 5 roaming knights and its barrier (falls for good once
    they're dead); "Siege Broken"; the frame refusing the orb while it holds; `/dross siege status|reset|break`.
-4. **T3, the Nether ruins:** the user's picks of the 20 designs placed in the Nether (fire knights, about one every
+4. **T3, the Nether ruins [built, not yet tested]:** the user's 12 picks of the 20 designs placed in the Nether (fire
+   knights in three biomes, poison knights in the Warped Forest, earth knights in the Basalt Deltas; about one every
    1,000 blocks), counting for the trader.
 
 ## As built (T1)
@@ -204,3 +207,89 @@ advancement `data/dross/advancements/siege_broken.json`. What settles what the u
   `SIEGE_PROGRESS_TEXT`), `en_us.json` (six keys), `quest/DrossAdvancements` (`SIEGE_BROKEN`), the portal area's
   `DrossPortalActivation` (the call to `CathedralSiege.refusesOrb` before a frame lights), `command/DrossCommand`
   (`siege`), `command/DrossCommandGameTest` (the three names).
+
+## As built (T3)
+Built November 25, 2026 (not yet run or tested in-game). The user's words: "make Dross knights, the fire ones, spawn in
+the Nether ... still rare ... maybe make the Nether one every 1,000 blocks", then their 12 picks of the 20 candidates
+(the designs unchanged): `fire/nether_wastes` (Fortress Corner, Lava Cistern, Glowstone Fall), `fire/crimson_forest`
+(Wart Garden, Weeping Arch), `fire/soul_sand_valley` (Spine Bridge, Wither Altar), `poison/warped_forest` (Sprout
+Hollow, Strider Dock, Lamp Avenue: guarded by the poison knights), `earth/basalt_deltas` (Causeway, Black Forge: the
+earth knights). The code: `boss/knight/ruin/` `NetherRuinSites` (where), `NetherRuinStructure`, `NetherRuinPlacement`,
+`NetherRuinPiece` (built with the land), `NetherRuinTidy` (once, as it comes into view), `NetherRuinKeeper` (the
+Nether's planning and its keeper's rounds), the tests `NetherRuinWorldGameTest` and the probe `NetherRuinProbeGameTest`;
+the structure `dross:nether_knight_ruin` (`data/dross/worldgen/structure/` and `structure_set/nether_knight_ruin.json`,
+also written by `tools/terrain/worldgen.py`), the biome tags `data/dross/tags/worldgen/biome/knight_ruin/<area>.json`
+for the five Nether areas (a modpack may add its own Nether biomes to them). What settles what the brief left open
+(*my choice*):
+- **Where, from the seed alone** (no chunk made; the same on every thread, in any order). The Nether in squares
+  `netherSpacing` (1,000) blocks a side (Nether blocks), at most one ruin each. A ruin's middle keeps a sixth of the side
+  in from each edge, so two are never nearer than about 333 blocks (on average about 1,000 apart). A square tries up to
+  40 columns the seed picks; the first that fits is its ruin; a square where none fits has none.
+- **The floor search.** The Nether generator's own blocks (its rock, lava and air before its surface and features, the
+  same noise the land is made from) are read a column at a time. A floor is rock with air over it, its ground between
+  **y 40** (8 over the lava sea, whose top is y 31, so its foundation never reaches the sea) and **y 96**, with at least
+  14 blocks of air over it; at most 2 floors of a column are tried (the Nether has floors one over another). The floor's
+  biome (there) picks the area (by its tag) and the seed one of its layouts. Over the footprint the floor is read every 4
+  blocks (49 samples): every sample needs a floor within 12 blocks of the middle's or rock there (a drop or the lava sea
+  under it: no ruin, so nothing ever floats); at most 10% rock and at most 20% (rock included) with rock lower over them
+  than the ruin's top (so it's in the open, never buried); the floors varying by at most 10. Its ground is their median.
+  Its middle has open air 3 blocks past its top, and its top plus the 4 cleared over it stays under y 118 (the roof).
+- **Its way in** faces the side with the most open floor 6 blocks past the footprint (three samples a side, a floor
+  within 4 of its ground with room to stand; the best side needs 2), so you can walk up to it.
+- **Never on a fortress or bastion**: no ruin within 8 chunks of a possible start of the Nether's fortresses and bastions
+  (`minecraft:nether_complexes`; a fortress reaches about 100 blocks from its start).
+- **Built with the land** (`NetherRuinPiece`, the surface structures step, a chunk at a time). Minecraft's `beard_thin`
+  draws the rock to its floor first. Nothing reads a heightmap (it would find the roof): each column is read up and down
+  from the ruin's ground. The footprint: the space over its ground cleared to 4 over its top, its ground the column's own
+  top block (netherrack, nylium, soul soil, basalt...), every gap or lava pocket in the 8 blocks under it filled with its
+  own soil and netherrack, and on down to the column's ground (at most 16): it never floats. Round it, a staircase back to
+  the floor out to 8 blocks (a column d out kept within d of the ground), each from its own floor near the ground; a wall
+  or a drop there is left as it is. Lava beside or over a cleared cell is sealed with netherrack, and its template's own
+  lava is held: every cell beside or under it that lava could flow into becomes netherrack (worked out from the template,
+  so the chunks agree).
+- **Its tidy-up** (`NetherRuinTidy`, once, when a player is first within 256 blocks and its land is loaded, before its
+  knights): the Nether's features come after the structures, so in two ticks every huge fungus with a block in the space
+  over its ground is removed whole (stems, wart, shroomlights, vines; followed 16 blocks out), the space over its ground
+  cleared again (basalt columns, glowstone, fire, rock), lava in its footprint at or under its ground turned to
+  netherrack and round it (2 blocks out) a lava source to netherrack and flowing lava to air, then its template placed
+  again (so exactly its own blocks stand there) and its own lava held again.
+- **Its knights and the quest**: the Overworld's keeper, made to serve both (`KnightRuinKeeper.keep` in the level a ruin
+  stands in): the same rules (they come within 112 blocks, back `knightsReturnMinutes` after both are beaten only with
+  nobody within 64, never on Peaceful, only where it was really built), the same `KnightRuinClearedEvent` for the
+  players within 48 (and the killer), so the trader's "Knight ruins cleared: n / 3" counts a Nether ruin. Every ruin's
+  record, a Nether ruin's too, is kept with the Overworld (`data/dross_knight_ruins.dat`): a Nether ruin's id is
+  `nether:x,z`, so it never shares one with an Overworld ruin at the same x, z, and `KnightRuins.hasCleared` reads one
+  place. The Nether's keeper rounds (planning ahead of the Nether's players, looking after the ruins near them) are
+  `NetherRuinKeeper`'s; the tidy-ups step from the Overworld's tick as before.
+- **Only the Nether**: the structure's biomes are `#minecraft:is_nether` (so the Overworld's and the Dross's generators
+  never have it), and its placement only answers for the world's own Nether (`Level.NETHER`).
+- **Commands**: `/dross goto ruin [<element>]`, `goto ruin <x> <z>` and `locate ruins` search the Nether's ruins when
+  used in the Nether (from where you stand; landing on a real floor round its way in, else on its first knight's spot),
+  the Overworld's anywhere else, as before. A Nether with none (Generate Structures off): "This world's Nether has no
+  knight ruins". The trader's line naming the nearest ruin still names the Overworld's (he's in the Overworld; the
+  quest's `TraderRuins` is unchanged).
+- **The settings file**: `[knight_ruins]` `netherSpacing` (default 1000, 300-5000), saved per world with the others
+  (`DrossWorldSettings`, `NetherRuinSpacing`; a world saved before has 1000).
+- **Tests** (their own batch, `dross_knight_ruins_nether`): `netherRuinsArePlanned` (only the Nether's generator has the
+  set; every ruin within 3,000 blocks of 0, 0 in its area's biome, on a ground in the band, in its square's middle part,
+  found again by its id, no two nearer than 333 blocks; at least a quarter of the 16 squares wholly inside the radius
+  have one (the log gives the real share); planned again from nothing, the same) and `netherRuinIsBuiltAndGuarded` (the
+  ruin nearest 0, 0: built, its frame broken and unlit, every footprint column grounded; after the tidy-up 97% of its
+  template in place and next to nothing else over its ground, no lava loose, guard spots clear; its two knights, its
+  element's, on their spots; both killed: the cleared event, remembered, back only with the player 80 blocks off). The
+  probe `NetherRuinProbeGameTest` (namespace `dross_nether_ruin_probe`) logs how many of 64 squares get a ruin over 8
+  seeds, for tuning: the fit rate isn't measured yet.
+- **Shared files touched (added only)**: `registry/ModStructures` (the structure type, piece and placement),
+  `en_us.json` (`commands.dross.goto.ruin.none_nether`), `DrossConfig` and `DrossWorldSettings` (the setting, in the
+  knight ruins' section), `tools/terrain/worldgen.py` (the structure's JSON, next to the Overworld ruins'); World site's
+  `command/GotoRuin` (the Nether searches and landing, as the brief asked).
+
+## The lines, as agreed (November 25, 2026)
+After playing the whole path the user went through every line of the trader, the Oracle and the Seeker with me: no
+colons in what they say; the trader explains what the Dross is (a new second line), his old lines 2 and 3, the thanks
+and the nearest ruin, and his hand-in's first two lines each joined into one, the portal named "the last whole portal
+left on our side", a lost orb's "energy left over" (two ruins); the Oracle no longer introduces the Seeker, says some
+of the Dross "leaked through into your world" (the trader's knights), and every hand-in became only his thanks: the
+next quest's offer tells of the boss or the land, breaks its seal ("Stand back..."), then sends you off (QUEST_PLAN.md,
+"The Oracle's spell"); the Seeker got four lines for after "Defeat the Dross". Every line is in `en_us.json`
+(`dross.trader.*`, `dross.oracle.*`, `dross.seeker.*`).

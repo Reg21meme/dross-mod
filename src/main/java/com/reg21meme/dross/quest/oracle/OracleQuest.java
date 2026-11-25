@@ -48,6 +48,8 @@ public final class OracleQuest
     private final OracleBoss boss;
     private final List<ResourceKey<Biome>> opens;
     private int index = -1;
+    /** The offer line his spell goes off on (1 is the first), or 0: none in the offer. */
+    private int spellLine;
 
     private OracleQuest(String id, Kind kind, int offerLines, int doneLines, @Nullable TagKey<EntityType<?>> targets,
                         int count, boolean adultsOnly, String advancement, @Nullable OracleBoss boss,
@@ -105,6 +107,23 @@ public final class OracleQuest
     void setIndex(int index)
     {
         this.index = index;
+    }
+
+    /**
+     * His spell goes off on this line of the offer (1 is the first; the user, November 25, 2026: he tells you of the boss
+     * or the land first, breaks its seal, then sends you off). Whatever the quest opens (its {@link #opens} lands, a BOSS
+     * quest's boss's home) opens then. Without one, a quest that opens lands casts it at its hand-in (the forest giants').
+     */
+    OracleQuest spell(int line)
+    {
+        this.spellLine = line;
+        return this;
+    }
+
+    /** The offer line his spell goes off on (1 is the first), or 0 if it has none in its offer. */
+    public int spellLine()
+    {
+        return spellLine;
     }
 
     // ------------------------------------------------------------------ Reading

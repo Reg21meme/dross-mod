@@ -1,3 +1,59 @@
+# The Dross 0.4.0: the quest update
+
+## A new way into the Dross
+
+- **The Weathered Letter** now turns up in about one Nether Fortress or Bastion chest in five.
+- **The Dross Trader** has his own quests now, with a marker over his head (a red **?** when he has one for you, a
+  yellow **...** while you're on it, a green **!** when you can hand it in). He tells you what the Dross is and why its
+  knights are still on our side, gives you 3 golden apples and points you to the nearest knight ruin.
+- **Clear three knight ruins** (beat both knights at each), then he makes you a **Portal Orb** and tells you roughly
+  where the cathedral is. Lose the orb and two more ruins get you a new one.
+- **The Fallen Cathedral is under siege:** five knights roam round it and a spell keeps it shut until all five are
+  dead. Break the siege (for everyone in the world), throw the orb into the frame, and the portal opens.
+- Gone: the tributes and key materials, the Dross Compass, the Rift Key, and the chat messages that gave away the
+  cathedral's and the trader's locations.
+
+## The elemental knights
+
+- **Ten new knights**, two of each element: the Thawed Axeman and Spearman (ice), the Blight Warden and the Sporebound
+  (poison), the Cinder Knight and Flamehand (fire), the Wreck Knight and the Stormblade (thunder), the Geode Knight and
+  the Rockfall Knight (earth). Each has its own look, sounds, two moves and spawn egg, and shrugs off its own element.
+- **Their ruins:** small broken-portal fight spots in their element's biomes all over the Overworld (76 designs, each
+  biome its own), and now in the **Nether** too (12 designs: fire knights in the Nether Wastes, Crimson Forest and Soul
+  Sand Valley, poison knights in the Warped Forest, earth knights in the Basalt Deltas), about one every 1,000 blocks.
+  Their knights come back 10 minutes after you beat them, once nobody's near.
+
+## The Blind Oracle's quests (in the Dross)
+
+- At the survivors' camp the **Blind Oracle** gives the Dross's main quests, one at a time: the forest's giants, a
+  hunt in each new land, then each boss in turn (the Cinder Colossus, the Rat King, the Huntsman, the Emberdactyl),
+  ending in *Defeat the Dross* with fireworks. The Ragged Seeker has jokes about every boss.
+- **Locked lands:** the Dross's lands open as your quests go on. The Oracle breaks each land's barrier with a great
+  spell you can watch, and you see the barrier shatter the first time you reach it. Inside a land that's still locked
+  for you, you're slowed and weakened.
+- **Locked bosses:** a boss at home only fights you once the Oracle has broken the ward on its home.
+- **The Silverwood Giants:** neutral giants that replace the forest's zombies and skeletons. Linger near one and it
+  attacks: smashes, sweeps, stomps and hurled boulders.
+- **Protected boss homes:** you can't break the blocks of a boss's home until you've beaten that boss (like bedrock:
+  no cracks and nothing slows you). The hub is always protected.
+
+## Removed
+
+- **Necromancy and Deathforged** (the enchantments, their books and the risen undead). They may come back in another
+  form later.
+
+## Settings
+
+- `knight_ruins` in `config/dross-common.toml`: how far apart the ruins are (Overworld and Nether), how many near spawn,
+  and how long their knights take to come back.
+
+## For testing (creative / cheats)
+
+- `/dross locate ruins` and `/dross goto ruin [<element>]` (in the Overworld or the Nether), `/dross siege
+  status|reset|break`, `/dross showcase knights`, `/dross showcase knight_ruins [<element>]`.
+
+---
+
 # The Dross 0.3.0: the Emberdactyl update
 
 ## New boss: the Emberdactyl

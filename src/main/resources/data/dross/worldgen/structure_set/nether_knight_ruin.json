@@ -1,0 +1,12 @@
+{
+  "structures": [
+    {
+      "structure": "dross:nether_knight_ruin",
+      "weight": 1
+    }
+  ],
+  "placement": {
+    "type": "dross:nether_knight_ruin",
+    "salt": 1125202603
+  }
+}

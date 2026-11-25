@@ -133,6 +133,42 @@ final class RuinAreas
         return (code & STORM) != 0;
     }
 
+    // ---------------------------------------------------------------- the Nether (PRE_DROSS_PLAN.md, stage T3)
+
+    /** The Nether's areas, each its biome tag (the user's picks, November 25, 2026: fire in the wastes, the crimson forest
+     * and the soul sand valley, poison in the warped forest, earth in the basalt deltas). Never in the Overworld. */
+    private static final List<Entry> NETHER_ENTRIES = List.of(
+            new Entry(tag("nether_wastes"), KnightRuinDesigns.FIRE_NETHER_WASTES),
+            new Entry(tag("crimson_forest"), KnightRuinDesigns.FIRE_CRIMSON_FOREST),
+            new Entry(tag("soul_sand_valley"), KnightRuinDesigns.FIRE_SOUL_SAND_VALLEY),
+            new Entry(tag("warped_forest"), KnightRuinDesigns.POISON_WARPED_FOREST),
+            new Entry(tag("basalt_deltas"), KnightRuinDesigns.EARTH_BASALT_DELTAS));
+
+    /** The areas whose ruins stand in the Nether. */
+    static final java.util.Set<KnightRuinDesigns.Area> NETHER = NETHER_ENTRIES.stream().map(Entry::area)
+            .collect(java.util.stream.Collectors.toUnmodifiableSet());
+
+    /** The Nether area of a biome (its tag), or null if no Nether ruin goes there. */
+    @Nullable
+    static KnightRuinDesigns.Area netherArea(Holder<Biome> biome)
+    {
+        for (Entry e : NETHER_ENTRIES)
+        {
+            if (biome.is(e.tag()))
+            {
+                return e.area();
+            }
+        }
+        return null;
+    }
+
+    /** The biome tag of a Nether area (for the tests). */
+    @Nullable
+    static TagKey<Biome> netherTag(KnightRuinDesigns.Area area)
+    {
+        return NETHER_ENTRIES.stream().filter(e -> e.area() == area).map(Entry::tag).findFirst().orElse(null);
+    }
+
     /** The code patches are told apart by (the storm's peaks are one patch with the rest of their mountain). */
     static byte base(byte code)
     {

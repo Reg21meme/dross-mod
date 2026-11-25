@@ -192,6 +192,11 @@ public final class SurvivorTalkGameTest
                         for (int i = 1; i <= colossus.offerLines(); i++)
                         {
                             expectSaid(problems, player, mentor, colossus.key("offer." + i), ORACLE_NAME);
+                            if (i == colossus.spellLine())
+                            {
+                                expect(problems, mentor.isCasting(), "his spell should go off on the Colossus's offer line " + i);
+                                mentor.endCastForTests(); // (a player waits for it to end; the test doesn't)
+                            }
                         }
                         expectAt(problems, player, colossus, OracleState.ACTIVE, "after the Colossus's offer");
                         for (int i = 1; i <= SeekerDialogue.BOSS_LINES + 1; i++)
@@ -212,6 +217,12 @@ public final class SurvivorTalkGameTest
                             expectSaid(problems, player, mentor, "dross.oracle.after." + after, ORACLE_NAME);
                         }
                         expect(problems, OracleProgress.isFinished(player), "his lines for an old friend changed the quest");
+                        // The Seeker's lines for after, in turn.
+                        for (int i = 1; i <= SeekerDialogue.AFTER_LINES + 1; i++)
+                        {
+                            int after = (i - 1) % SeekerDialogue.AFTER_LINES + 1;
+                            expectSaid(problems, player, student, SeekerDialogue.key("after", String.valueOf(after)), SEEKER_NAME);
+                        }
                         SurvivorGameTest.fail(problems);
                         LOGGER.info("[survivor test] Right-clicking the Blind Oracle: his story's {} lines granted \"The Oracle's Plea\", the giants' "
                                 + "{} lines started that quest, then a reminder; the Ragged Seeker's lines left the quest alone, and on the Colossus's "

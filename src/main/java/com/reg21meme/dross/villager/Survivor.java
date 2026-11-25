@@ -715,6 +715,12 @@ public class Survivor extends PathfinderMob
     }
 
     /** True while he casts his spell (and the pause before it). */
+    /** Ends a spell he's casting at once (the tests click through his lines without waiting for it). */
+    public void endCastForTests()
+    {
+        this.castingUntil = this.tickCount;
+    }
+
     public boolean isCasting()
     {
         return this.tickCount < this.castingUntil;

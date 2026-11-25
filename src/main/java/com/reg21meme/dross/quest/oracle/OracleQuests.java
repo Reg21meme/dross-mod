@@ -35,28 +35,30 @@ public final class OracleQuests
 
     /** 0: his story. */
     public static final OracleQuest ORACLE_PLEA = OracleQuest.talk(DrossAdvancements.ORACLE_PLEA, 7);
-    /** 1: three Silverwood Giants. Handing it in breaks the forest's barrier: the Cinder Wastes and the Gravecrags open. */
-    public static final OracleQuest GIANT_SLAYER = OracleQuest.kill(DrossAdvancements.GIANT_SLAYER, 4, 2,
+    /** 1: three Silverwood Giants. Handing it in breaks the forest's barrier (his spell): the Cinder Wastes and the Gravecrags open. */
+    public static final OracleQuest GIANT_SLAYER = OracleQuest.kill(DrossAdvancements.GIANT_SLAYER, 3, 2,
             "silverwood_giants", 3, false, DrossBiomes.CINDER_WASTES, DrossBiomes.GRAVECRAGS);
-    /** 2: three of the Cinder Wastes' mobs. Handing it in opens the Colossus's volcanoes (the next quest is its). */
-    public static final OracleQuest INTO_THE_ASHES = OracleQuest.kill(DrossAdvancements.INTO_THE_ASHES, 2, 3,
+    /** 2: three of the Cinder Wastes' mobs. */
+    public static final OracleQuest INTO_THE_ASHES = OracleQuest.kill(DrossAdvancements.INTO_THE_ASHES, 3, 1,
             "cinder_wastes_mobs", 3, false);
-    /** 3: the Cinder Colossus. Handing it in opens Blightwood and its sewers. */
-    public static final OracleQuest SET_IN_STONE = OracleQuest.boss(DrossAdvancements.SET_IN_STONE, 3, 3, OracleBoss.COLOSSUS,
-            DrossBiomes.BLIGHTWOOD, DrossBiomes.SEWERS);
-    /** 4: three of Blightwood's creatures (its rats and witches, and its mobs to come). Handing it in opens the Rat King's cave. */
-    public static final OracleQuest BENEATH_THE_ROT = OracleQuest.kill(DrossAdvancements.BENEATH_THE_ROT, 3, 2,
-            "blightwood_mobs", 3, false);
-    /** 5: the Rat King. Handing it in opens Rimefall. */
-    public static final OracleQuest DOWN_THE_DRAIN = OracleQuest.boss(DrossAdvancements.DOWN_THE_DRAIN, 3, 3, OracleBoss.RAT_KING,
-            DrossBiomes.RIMEFALL);
-    /** 6: three of Rimefall's grown beasts. Handing it in opens the Huntsman's villages. */
-    public static final OracleQuest FIRST_FROST = OracleQuest.kill(DrossAdvancements.FIRST_FROST, 3, 2,
-            "rimefall_beasts", 3, true);
-    /** 7: the Huntsman and his Alpha Moose. Handing it in opens the Emberdactyl's volcanoes. */
-    public static final OracleQuest THE_HUNTER_HUNTED = OracleQuest.boss(DrossAdvancements.THE_HUNTER_HUNTED, 3, 3, OracleBoss.HUNTSMAN);
-    /** 8: the Emberdactyl and its young. */
-    public static final OracleQuest WINGS_CLIPPED = OracleQuest.boss(DrossAdvancements.WINGS_CLIPPED, 3, 2, OracleBoss.EMBERDACTYL);
+    /** 3: the Cinder Colossus. His offer tells of it, then breaks its volcanoes' ward (line 4). */
+    public static final OracleQuest SET_IN_STONE = OracleQuest.boss(DrossAdvancements.SET_IN_STONE, 5, 2, OracleBoss.COLOSSUS)
+            .spell(4);
+    /** 4: three of Blightwood's creatures (its rats and witches, and its mobs to come). His offer breaks Blightwood's barrier (line 2). */
+    public static final OracleQuest BENEATH_THE_ROT = OracleQuest.kill(DrossAdvancements.BENEATH_THE_ROT, 4, 1,
+            "blightwood_mobs", 3, false, DrossBiomes.BLIGHTWOOD, DrossBiomes.SEWERS).spell(2);
+    /** 5: the Rat King. His offer tells of him, then breaks his cave's ward (line 3). */
+    public static final OracleQuest DOWN_THE_DRAIN = OracleQuest.boss(DrossAdvancements.DOWN_THE_DRAIN, 4, 1, OracleBoss.RAT_KING)
+            .spell(3);
+    /** 6: three of Rimefall's grown beasts. His offer breaks Rimefall's barrier (line 3). */
+    public static final OracleQuest FIRST_FROST = OracleQuest.kill(DrossAdvancements.FIRST_FROST, 5, 1,
+            "rimefall_beasts", 3, true, DrossBiomes.RIMEFALL).spell(3);
+    /** 7: the Huntsman and his Alpha Moose. His offer tells of him, then breaks his village's ward (line 3). */
+    public static final OracleQuest THE_HUNTER_HUNTED = OracleQuest.boss(DrossAdvancements.THE_HUNTER_HUNTED, 4, 1, OracleBoss.HUNTSMAN)
+            .spell(3);
+    /** 8: the Emberdactyl and its young. His offer tells of it, then breaks its volcano's ward (line 3). */
+    public static final OracleQuest WINGS_CLIPPED = OracleQuest.boss(DrossAdvancements.WINGS_CLIPPED, 4, 2, OracleBoss.EMBERDACTYL)
+            .spell(3);
     /** 9: his last words, "Defeat the Dross". Always last. */
     public static final OracleQuest DEFEAT_THE_DROSS = OracleQuest.finale(DrossAdvancements.DEFEAT_THE_DROSS, 4);
 
@@ -122,6 +124,12 @@ public final class OracleQuests
         {
             throw new IllegalStateException("Oracle quest " + quest.id() + " is missing its lines, count or target");
         }
+        if (quest.spellLine() < 0 || quest.spellLine() > quest.offerLines()
+                || (quest.kind() == OracleQuest.Kind.BOSS && quest.spellLine() < 1))
+        {
+            throw new IllegalStateException("Oracle quest " + quest.id() + "'s spell line " + quest.spellLine()
+                    + " isn't one of its offer lines (a boss's quest must break its ward in its offer)");
+        }
         if (quest.kind() == OracleQuest.Kind.FINAL && index != ALL.size() - 1)
         {
             throw new IllegalStateException("the Oracle's final quest must be the last one");
@@ -160,7 +168,7 @@ public final class OracleQuests
         return ALL.stream().map(OracleQuest::id).toList();
     }
 
-    /** The quest whose hand-in opens this land, or null if no quest locks it (it's always open). */
+    /** The quest whose spell opens this land, or null if no quest locks it (it's always open). */
     @Nullable
     public static OracleQuest openerOf(ResourceKey<Biome> land)
     {
@@ -194,17 +202,12 @@ public final class OracleQuests
     }
 
     /**
-     * True if handing in this quest ends with the Oracle's spell: it opens a land, or the next quest is a boss's (whose
-     * home it opens).
+     * True if handing in this quest ends with the Oracle's spell: it opens lands and has no spell in its offer (the
+     * forest giants'). Every other spell goes off on its quest's {@link OracleQuest#spellLine} instead.
      */
     public static boolean castsSpell(OracleQuest quest)
     {
-        if (!quest.opens().isEmpty())
-        {
-            return true;
-        }
-        OracleQuest next = next(quest);
-        return next != null && next.kind() == OracleQuest.Kind.BOSS;
+        return quest.spellLine() == 0 && !quest.opens().isEmpty();
     }
 
     /** The quest after this one, or null for the last. */

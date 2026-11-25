@@ -55,14 +55,14 @@ public final class TraderProgress
     /** His offer's lines ({@code dross.trader.offer.<n>}), a click each; the click after the last is your answer. */
     public static final int OFFER_LINES = 6;
     /** His hand-in lines for the first orb ({@code dross.trader.done.<n>}), a click each. */
-    public static final int DONE_LINES = 5;
+    public static final int DONE_LINES = 4;
     /** The hand-in line he makes the orb on (1 is the first)... */
-    public static final int ORB_LINE = 3;
+    public static final int ORB_LINE = 2;
     /**
      * ...and the one that tells you where the cathedral is: the same line (the user, November 25, 2026: "combine some of
      * the dialogue ... like the portal orb and the cathedral words").
      */
-    public static final int CATHEDRAL_LINE = 3;
+    public static final int CATHEDRAL_LINE = 2;
     /** His lines for a player who has been to the Dross ({@code dross.trader.after.<n>}), in turn. */
     public static final int AFTER_LINES = 3;
 

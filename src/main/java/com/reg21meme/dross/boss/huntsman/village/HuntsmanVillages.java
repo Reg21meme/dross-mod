@@ -147,7 +147,7 @@ public final class HuntsmanVillages
      */
     public static boolean wakesHim(ServerPlayer player)
     {
-        return !player.isSpectator() && player.isAlive() && OracleProgress.isAtOrPast(player, OracleBoss.HUNTSMAN.quest());
+        return !player.isSpectator() && player.isAlive() && OracleProgress.opened(player, OracleBoss.HUNTSMAN.quest());
     }
 
     /** True if a player within {@link #APPEAR_RANGE} of the village's yard wakes him ({@link #wakesHim}). */

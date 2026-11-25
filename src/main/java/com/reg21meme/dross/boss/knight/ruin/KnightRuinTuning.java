@@ -77,5 +77,50 @@ public final class KnightRuinTuning
     /** How often the regions round the players are queued for working out (ticks). */
     public static final int WARM_EVERY = 100;
 
+    // ---------------------------------------------------------------- the Nether (PRE_DROSS_PLAN.md, stage T3)
+
+    /** The Nether is planned in squares {@code netherSpacing} (DrossConfig: 1,000) blocks a side, at most one ruin in each
+     * (the user, November 25, 2026: "maybe make the Nether one every 1,000 blocks"). A ruin's middle keeps at least this
+     * share of the side in from each edge, so two are never nearer than a third of the spacing (333 blocks). */
+    public static final double NETHER_EDGE_SHARE = 1.0D / 6.0D;
+    /** Spots a square tries (each a column the seed picks) before it gives up and has none. */
+    public static final int NETHER_TRIES = 40;
+    /** The Nether has floors one over another: at most this many of a spot's floors are tried, in an order the seed picks. */
+    public static final int NETHER_FLOORS_PER_SPOT = 2;
+    /** A ruin's ground is at least this high: 8 over the lava sea (its top at y 31), so its foundation never reaches it... */
+    public static final int NETHER_FLOOR_MIN = 40;
+    /** ... and at most this high, so it and the air over it stay under the roof. */
+    public static final int NETHER_FLOOR_MAX = 96;
+    /** Nothing of a ruin (its top and the air cleared over it) above this height: the roof's rock starts round here. */
+    public static final int NETHER_TOP_MAX = 118;
+    /** A floor at the middle needs at least this much air over it before a ruin is tried on it. */
+    public static final int NETHER_MIN_OPEN = 14;
+    /** Over its middle, the open air must reach this many blocks above the ruin's top. */
+    public static final int NETHER_HEADROOM = 3;
+    /** The floor under the footprint is read every this many blocks (the noise's own blocks: no chunk made). */
+    public static final int NETHER_SAMPLE_STEP = 4;
+    /** A sample's floor is looked for this far above and below the middle's. */
+    public static final int NETHER_FLOOR_WINDOW = 12;
+    /** The floors under the footprint may vary by at most this much (cut or filled to the ruin's ground: their median; a
+     * fill deeper than the piece's foundation goes on down to the ground, NetherRuinPiece.FILL_MAX). */
+    public static final int NETHER_MAX_RELIEF = 10;
+    /** At most this share of the samples may be rock at the ruin's ground (cut away; a ruin in the open, never buried). A
+     * sample with nothing under it within the window (a drop, the lava sea) is never allowed: no ruin floats. */
+    public static final double NETHER_MAX_WALL = 0.1D;
+    /** At most this share of the samples may have rock (cut away too) lower over them than the ruin's top. */
+    public static final double NETHER_MAX_LOW = 0.2D;
+    /** Its way in faces the side with the most open floor: samples this far past the footprint's edge, three a side... */
+    public static final int NETHER_FRONT_LOOK = 6;
+    /** ... a sample is walkable if its floor is within this many blocks of the ruin's ground with room to stand over it... */
+    public static final int NETHER_FRONT_STEP = 4;
+    /** ... and the best side needs this many of its three walkable. */
+    public static final int NETHER_FRONT_NEEDED = 2;
+    /** No ruin within this many chunks of a possible Nether fortress or bastion start (a fortress reaches about 100 blocks
+     * from its start: they'd run into each other). */
+    public static final int NETHER_COMPLEX_CHUNKS = 8;
+    /** At world load the squares this far round the Nether's side of the world spawn (its x and z over 8) are worked out in
+     * the background, where players usually first come through. */
+    public static final int NETHER_WARM_AT_LOAD = 2000;
+
     private KnightRuinTuning() {}
 }

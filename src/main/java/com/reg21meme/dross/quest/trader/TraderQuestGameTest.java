@@ -286,13 +286,19 @@ public final class TraderQuestGameTest
         return keys;
     }
 
-    /** The last chat line's arguments (the line's own), for a line of his with this key; fails if it isn't. */
+    /**
+     * The last line said to him (the game's own messages, an advancement's announcement, skipped): its arguments, for a
+     * line of his with this key; fails if it isn't.
+     */
     private static Object[] lastLineArgs(TestPlayer player, String key)
     {
-        expect(!player.chat.isEmpty(), name(player) + " was told nothing");
-        TranslatableContents line = traderLine(player.chat.get(player.chat.size() - 1));
-        expect(line != null && key.equals(line.getKey()), "the last line to " + name(player) + " should be " + key + ", but it's "
-                + (line != null ? line.getKey() : player.chat.get(player.chat.size() - 1).getString()));
+        TranslatableContents line = null;
+        for (int i = player.chat.size() - 1; i >= 0 && line == null; i--)
+        {
+            line = traderLine(player.chat.get(i));
+        }
+        expect(line != null, name(player) + " was told no line");
+        expect(key.equals(line.getKey()), "the last line to " + name(player) + " should be " + key + ", but it's " + line.getKey());
         return line.getArgs();
     }
 
@@ -388,8 +394,8 @@ public final class TraderQuestGameTest
             {
                 keys.add("dross.trader.after." + i);
             }
-            keys.addAll(List.of("dross.trader.answer", "dross.trader.accepted.1", "dross.trader.accepted.2", "dross.trader.accepted.3",
-                    "dross.trader.accepted.no_ruin", "dross.trader.remind", "dross.trader.remind.no_ruin", "dross.trader.remind_new",
+            keys.addAll(List.of("dross.trader.answer", "dross.trader.accepted.1", "dross.trader.accepted.2",
+                    "dross.trader.accepted.2.no_ruin", "dross.trader.remind", "dross.trader.remind.no_ruin", "dross.trader.remind_new",
                     "dross.trader.remind_new.no_ruin", "dross.trader.done." + TraderProgress.CATHEDRAL_LINE + ".none",
                     "dross.trader.orb_given", "dross.trader.orb_given.none", "dross.trader.orb_lost", "dross.trader.new_orb",
                     "dross.trader.progress", "dross.trader.return", "item.dross.portal_orb",
@@ -475,7 +481,8 @@ public final class TraderQuestGameTest
             expect(!DrossAdvancements.has(player, DrossAdvancements.KNIGHTFALL), "Knightfall came with the offer");
 
             List<String> next = click(trader, player);
-            expect(!next.isEmpty() && next.get(0).equals("dross.trader.accepted.2"), "the next click should be his second thanks line, not " + next);
+            expect(next.isEmpty() || next.get(0).equals("dross.trader.accepted.2") || next.get(0).equals("dross.trader.accepted.2.no_ruin"),
+                    "the next click should bring his line with the nearest ruin (at once or a moment later), not " + next);
             expect(!trader.isTrading() && !TraderProgress.isShopOpen(player), "his shop opened before the orb");
             expect(count(player, Items.GOLDEN_APPLE) == TraderProgress.GOLDEN_APPLES, "the apples came twice");
         });
@@ -714,21 +721,22 @@ public final class TraderQuestGameTest
         }
         Cast cast = new Cast();
         TestPlayer player;
+        int from;
         try
         {
             player = cast.player(helper, "trader_ruin_seeker");
             DrossTrader trader = cast.trader(helper);
             acceptOffer(trader, player);
+            from = player.chat.size();
             List<String> lines = click(trader, player);
-            expect(lines.equals(List.of("dross.trader.accepted.2")), "the click after your answer should be his second thanks line at once, not "
-                    + lines);
+            expect(lines.isEmpty() || lines.equals(List.of("dross.trader.accepted.2")) || lines.equals(List.of("dross.trader.accepted.2.no_ruin")),
+                    "the click after your answer should bring his line with the nearest ruin (at once or a moment later), not " + lines);
         }
         catch (RuntimeException e)
         {
             cast.leave();
             throw e;
         }
-        int from = player.chat.size();
         long deadline = Util.getMillis() + RUIN_LINE_MILLIS;
         String[] failure = {null};
         helper.startSequence()
@@ -750,7 +758,7 @@ public final class TraderQuestGameTest
                     {
                         expect(failure[0] == null, failure[0] == null ? "" : failure[0]);
                         TranslatableContents line = ruinLineSince(player, from);
-                        if ("dross.trader.accepted.3".equals(line.getKey()))
+                        if ("dross.trader.accepted.2".equals(line.getKey()))
                         {
                             Object[] args = line.getArgs();
                             expect(args.length == 2 && (int) args[0] % TraderProgress.RUIN_ROUNDING == 0
@@ -778,7 +786,7 @@ public final class TraderQuestGameTest
         for (int i = from; i < player.chat.size(); i++)
         {
             TranslatableContents line = traderLine(player.chat.get(i));
-            if (line != null && (line.getKey().equals("dross.trader.accepted.3") || line.getKey().equals("dross.trader.accepted.no_ruin")))
+            if (line != null && (line.getKey().equals("dross.trader.accepted.2") || line.getKey().equals("dross.trader.accepted.2.no_ruin")))
             {
                 return line;
             }

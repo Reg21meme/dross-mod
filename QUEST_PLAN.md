@@ -215,6 +215,8 @@ Its working name (entity `dross:silverwood_giant`); the name in the game can cha
   you defeat the boss you should be able to break the boss lair, not when you go back to the villager").
 
 ## The Oracle's spell
+**Since November 25, 2026** (the user, after playing the path: tell of the boss or the land first, then break its seal, then send the player off) the spell goes off on a "Stand back..." line of the next quest's offer (`OracleQuest.spellLine`): the Cinder Colossus line 4, Beneath the Rot 2 (Blightwood and its sewers open), the Rat King 3, First Frost 3 (Rimefall opens), the Huntsman 3, the Emberdactyl 3; only the forest giants' hand-in still casts it at its end. A land or a boss's home opens on that line (`OracleProgress.opened`); the hand-ins are only his thanks. The lines themselves were rewritten with the user the same day (en_us.json).
+
 The user, November 18, 2026: "every time you defeat an area ... 'all right, let me remove the barrier, so you can go
 defeat the boss now', and then he does a cool animation: lifting his hand, a giant spell circle being cast, a giant laser
 going in the air, and then you hear an explosion in the background ... make it cool, a cool destruction thing ...

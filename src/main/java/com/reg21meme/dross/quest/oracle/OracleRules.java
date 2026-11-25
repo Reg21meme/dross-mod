@@ -11,10 +11,10 @@ import net.minecraft.world.level.biome.Biome;
  * every land open, every boss allowed.
  *
  * <p>Which quest opens what comes from the quest list ({@link OracleQuests}), never a number kept here: today handing
- * in "The Forest Giants" opens the Cinder Wastes and the Gravecrags, "The Cinder Colossus" Blightwood and its sewers,
- * "The Rat King" Rimefall; Silverwood and every other land are always open. A boss fights a player once the quest
- * before its own is handed in (its own is AVAILABLE or further on). Each of those hand-ins ends with the Oracle's spell
- * ({@link OracleSpell}).</p>
+ * in "The Forest Giants" opens the Cinder Wastes and the Gravecrags (his spell at that hand-in); the spell lines in the
+ * offers of "Beneath the Rot" and "First Frost" open Blightwood (and its sewers) and Rimefall; Silverwood and every other
+ * land are always open. A boss fights a player once the spell line of its own quest's offer has broken its ward
+ * ({@link OracleProgress#opened}, {@link OracleSpell}).</p>
  */
 public final class OracleRules
 {
@@ -36,7 +36,7 @@ public final class OracleRules
         {
             return true;
         }
-        return OracleProgress.hasHandedIn(serverPlayer, opener);
+        return OracleProgress.opened(serverPlayer, opener);
     }
 
     /**
@@ -46,12 +46,12 @@ public final class OracleRules
     public static boolean isLandOpenByQuest(ServerPlayer player, ResourceKey<Biome> biome)
     {
         OracleQuest opener = OracleQuests.openerOf(biome);
-        return opener == null || OracleProgress.hasHandedIn(player, opener);
+        return opener == null || OracleProgress.opened(player, opener);
     }
 
     /**
-     * True if this boss may fight this player (the boss area's locks): they've handed in the quest before the boss's own
-     * (the Oracle broke the ward on its home). Pass a server player (any other is answered "allowed").
+     * True if this boss may fight this player (the boss area's locks): the Oracle has broken the ward on its home for them
+     * (the spell line of the boss's own quest's offer). Pass a server player (any other is answered "allowed").
      */
     public static boolean mayFightBoss(Player player, OracleBoss boss)
     {
@@ -59,7 +59,7 @@ public final class OracleRules
         {
             return true;
         }
-        return OracleProgress.isAtOrPast(serverPlayer, boss.quest());
+        return OracleProgress.opened(serverPlayer, boss.quest());
     }
 
     /** Creative and spectator players are never locked out of anything. */

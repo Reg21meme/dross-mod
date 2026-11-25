@@ -23,11 +23,11 @@ import java.util.function.Function;
  *   <li>{@link TraderState#OFFER} (red ?): each click is the next offer line ({@code offer.1} ... {@code offer.6}, the last
  *       asking if you'll help); the click after it is your answer ({@code answer}, "Yes, of course.", in chat as you), his
  *       thanks ({@code accepted.1}) and the golden apples: the quest is going.</li>
- *   <li>{@link TraderState#RUINS} (yellow ...): the first click after you agreed is {@code accepted.2} and, when it's worked
- *       out, the nearest ruin you haven't cleared ({@code accepted.3}, or {@code accepted.no_ruin}); then each click is
+ *   <li>{@link TraderState#RUINS} (yellow ...): the first click after you agreed is {@code accepted.2}, said with the nearest
+ *       ruin you haven't cleared once it's worked out (or {@code accepted.2.no_ruin}); then each click is
  *       the reminder with your count and that ruin ({@code remind}; {@code remind_new} for a new orb).</li>
- *   <li>{@link TraderState#READY} (green !): his hand-in, a line a click ({@code done.1} ... {@code done.5}): he makes the
- *       Portal Orb on {@code done.3} and names the cathedral's spot in the same line. For a new orb, one line
+ *   <li>{@link TraderState#READY} (green !): his hand-in, a line a click ({@code done.1} ... {@code done.4}): he makes the
+ *       Portal Orb on {@code done.2} and names the cathedral's spot in the same line. For a new orb, one line
  *       ({@code new_orb}) and the orb.</li>
  *   <li>{@link TraderState#ORB_GIVEN} (no marker): been to the Dross ("Enter the Dross"), his lines for an old friend in
  *       turn ({@code after.<n>}); else, with no orb on you and the cathedral's portal not lit yet, {@code orb_lost} and a
@@ -114,11 +114,10 @@ public final class TraderDialogue
         }
         if (record.line() == 0)
         {
-            // The rest of his thanks: what to do, and the nearest ruin.
-            speaker.say(Component.translatable("dross.trader.accepted.2"));
+            // The rest of his thanks, what to do and the nearest ruin, in one line (said once the ruin is worked out).
             record.line = 1;
             TraderProgress.saved(player);
-            sayNearestRuin(player, speaker, found -> ruinLine("dross.trader.accepted.3", "dross.trader.accepted.no_ruin", found));
+            sayNearestRuin(player, speaker, found -> ruinLine("dross.trader.accepted.2", "dross.trader.accepted.2.no_ruin", found));
             return Result.TALKED;
         }
         String key = record.isReplacementRound() ? "dross.trader.remind_new" : "dross.trader.remind";

@@ -472,7 +472,7 @@ public final class BossGrounds
         {
             LAST_MESSAGE.put(player.getUUID(), tick);
             String key = protectedFor(player, pos) == OracleBoss.HUNTSMAN
-                    && !OracleProgress.isAtOrPast(player, OracleBoss.HUNTSMAN.quest()) ? HUNTSMAN_ASLEEP_KEY : MESSAGE_KEY;
+                    && !OracleProgress.opened(player, OracleBoss.HUNTSMAN.quest()) ? HUNTSMAN_ASLEEP_KEY : MESSAGE_KEY;
             player.displayClientMessage(Component.translatable(key)
                     .withStyle(Style.EMPTY.withColor(TextColor.fromRgb(DrossColors.BOSS_GROUNDS_TEXT))), true);
         }

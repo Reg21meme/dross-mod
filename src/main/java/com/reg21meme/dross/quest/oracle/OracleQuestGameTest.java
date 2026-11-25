@@ -307,11 +307,19 @@ public final class OracleQuestGameTest
             expect(OracleQuests.BENEATH_THE_ROT.count() == 3 && OracleQuests.FIRST_FROST.count() == 3,
                     "Beneath the Rot and First Frost should want three each (the user, November 18, 2026)");
 
-            // The spell ends every hand-in that opens a land or a boss's home, and only those.
+            // The spell ends only the giants' hand-in; every other goes off on a line of its quest's offer (the user,
+            // November 25, 2026: he tells of the boss or the land, breaks its seal, then sends you off).
             List<OracleQuest> casting = OracleQuests.ALL.stream().filter(OracleQuests::castsSpell).toList();
-            expect(casting.equals(List.of(OracleQuests.GIANT_SLAYER, OracleQuests.INTO_THE_ASHES, OracleQuests.SET_IN_STONE,
-                    OracleQuests.BENEATH_THE_ROT, OracleQuests.DOWN_THE_DRAIN, OracleQuests.FIRST_FROST,
-                    OracleQuests.THE_HUNTER_HUNTED)), "the quests whose hand-in casts the spell are " + casting);
+            expect(casting.equals(List.of(OracleQuests.GIANT_SLAYER)), "the quests whose hand-in casts the spell are " + casting);
+            java.util.Map<OracleQuest, Integer> spells = java.util.Map.of(OracleQuests.SET_IN_STONE, 4, OracleQuests.BENEATH_THE_ROT, 2,
+                    OracleQuests.DOWN_THE_DRAIN, 3, OracleQuests.FIRST_FROST, 3, OracleQuests.THE_HUNTER_HUNTED, 3,
+                    OracleQuests.WINGS_CLIPPED, 3);
+            for (OracleQuest quest : OracleQuests.ALL)
+            {
+                int expected = spells.getOrDefault(quest, 0);
+                expect(quest.spellLine() == expected, quest.id() + "'s spell should be on offer line " + expected + ", not "
+                        + quest.spellLine());
+            }
         });
     }
 
@@ -606,32 +614,55 @@ public final class OracleQuestGameTest
             hearOffer(player);
             expectBosses(player, "Into the Ashes going");
 
-            // Into the Ashes handed in: the Colossus's volcanoes (its quest waiting is enough).
+            // The Colossus's quest waiting: its volcanoes stay warded until his offer breaks the ward (its spell line).
             OracleProgress.setQuest(player, OracleQuests.SET_IN_STONE);
-            expectBosses(player, "the Colossus's quest waiting", OracleBoss.COLOSSUS);
+            expectBosses(player, "the Colossus's quest waiting");
             expectLands(player, "the Colossus's quest waiting", forest, DrossBiomes.GRAVECRAGS, DrossBiomes.CINDER_WASTES);
+            for (int i = 1; i < OracleQuests.SET_IN_STONE.spellLine(); i++)
+            {
+                click(player);
+            }
+            expectBosses(player, "the Colossus's offer before its spell");
+            click(player);
+            expectBosses(player, "the Colossus's spell line heard", OracleBoss.COLOSSUS);
+            hearOffer(player);
+            expectBosses(player, "the Colossus's offer heard", OracleBoss.COLOSSUS);
 
-            // The Colossus handed in: Blightwood and its sewers.
+            // Beneath the Rot: Blightwood and its sewers open on its offer's spell line.
             OracleProgress.setQuest(player, OracleQuests.BENEATH_THE_ROT);
-            expectLands(player, "Beneath the Rot waiting", forest, DrossBiomes.GRAVECRAGS, DrossBiomes.CINDER_WASTES,
-                    DrossBiomes.BLIGHTWOOD, DrossBiomes.SEWERS);
+            expectLands(player, "Beneath the Rot waiting", forest, DrossBiomes.GRAVECRAGS, DrossBiomes.CINDER_WASTES);
             expectBosses(player, "Beneath the Rot waiting", OracleBoss.COLOSSUS);
+            for (int i = 1; i <= OracleQuests.BENEATH_THE_ROT.spellLine(); i++)
+            {
+                click(player);
+            }
+            expectAt(player, OracleQuests.BENEATH_THE_ROT, OracleState.AVAILABLE, "Beneath the Rot's spell line heard, its offer not over");
+            expectLands(player, "Beneath the Rot's spell line heard", forest, DrossBiomes.GRAVECRAGS, DrossBiomes.CINDER_WASTES,
+                    DrossBiomes.BLIGHTWOOD, DrossBiomes.SEWERS);
 
             OracleProgress.setQuest(player, OracleQuests.DOWN_THE_DRAIN);
-            expectBosses(player, "the Rat King's quest waiting", OracleBoss.COLOSSUS, OracleBoss.RAT_KING);
+            expectBosses(player, "the Rat King's quest waiting", OracleBoss.COLOSSUS);
+            hearOffer(player);
+            expectBosses(player, "the Rat King's offer heard", OracleBoss.COLOSSUS, OracleBoss.RAT_KING);
 
-            // The Rat King handed in: Rimefall.
+            // First Frost: Rimefall opens on its offer's spell line.
             OracleProgress.setQuest(player, OracleQuests.FIRST_FROST);
             expectLands(player, "First Frost waiting", forest, DrossBiomes.GRAVECRAGS, DrossBiomes.CINDER_WASTES,
+                    DrossBiomes.BLIGHTWOOD, DrossBiomes.SEWERS);
+            hearOffer(player);
+            expectLands(player, "First Frost's offer heard", forest, DrossBiomes.GRAVECRAGS, DrossBiomes.CINDER_WASTES,
                     DrossBiomes.BLIGHTWOOD, DrossBiomes.SEWERS, DrossBiomes.RIMEFALL);
-            expectBosses(player, "First Frost waiting", OracleBoss.COLOSSUS, OracleBoss.RAT_KING);
+            expectBosses(player, "First Frost going", OracleBoss.COLOSSUS, OracleBoss.RAT_KING);
 
             OracleProgress.setQuest(player, OracleQuests.THE_HUNTER_HUNTED);
-            expectBosses(player, "the Huntsman's quest waiting", OracleBoss.COLOSSUS, OracleBoss.RAT_KING, OracleBoss.HUNTSMAN);
+            expectBosses(player, "the Huntsman's quest waiting", OracleBoss.COLOSSUS, OracleBoss.RAT_KING);
+            hearOffer(player);
+            expectBosses(player, "the Huntsman's offer heard", OracleBoss.COLOSSUS, OracleBoss.RAT_KING, OracleBoss.HUNTSMAN);
 
-            // The Huntsman handed in: the Emberdactyl's volcanoes.
             OracleProgress.setQuest(player, OracleQuests.WINGS_CLIPPED);
-            expectBosses(player, "the Emberdactyl's quest waiting", OracleBoss.values());
+            expectBosses(player, "the Emberdactyl's quest waiting", OracleBoss.COLOSSUS, OracleBoss.RAT_KING, OracleBoss.HUNTSMAN);
+            hearOffer(player);
+            expectBosses(player, "the Emberdactyl's offer heard", OracleBoss.values());
 
             OracleProgress.setQuest(player, OracleQuests.DEFEAT_THE_DROSS);
             OracleProgress.skip(player);
@@ -659,9 +690,9 @@ public final class OracleQuestGameTest
     }
 
     @GameTest(template = ColossusGameTest.ARENA, batch = BATCH, timeoutTicks = TIMEOUT)
-    public static void handInsCastTheSpell(GameTestHelper helper)
+    public static void spellsGoOffOnTheirLines(GameTestHelper helper)
     {
-        run(helper, OracleQuestGameTest::handInsCastTheSpell, (h, players) -> {
+        run(helper, OracleQuestGameTest::spellsGoOffOnTheirLines, (h, players) -> {
             ServerPlayer player = join(h, players, "oracle_spell_watcher", GameType.SURVIVAL);
             Survivor oracle = ModEntities.SURVIVOR.get().create(h.getLevel());
             expect(oracle != null, "couldn't make the Blind Oracle");
@@ -671,29 +702,43 @@ public final class OracleQuestGameTest
             h.getLevel().addFreshEntity(oracle);
             try
             {
-                for (OracleQuest quest : List.of(OracleQuests.GIANT_SLAYER, OracleQuests.WINGS_CLIPPED, OracleQuests.SET_IN_STONE))
+                // The giants' hand-in: the spell on its last thanks line, not before.
+                OracleQuest giants = OracleQuests.GIANT_SLAYER;
+                OracleProgress.setQuest(player, giants);
+                hearOffer(player);
+                OracleProgress.record(player).enter(OracleState.DONE);
+                OracleSpell.Cast before = OracleSpell.lastCast();
+                for (int i = 1; i <= giants.doneLines(); i++)
+                {
+                    expect(OracleDialogue.talk(player, oracle).isPresent(), "the giants' thanks line " + i + " was nothing");
+                    boolean cast = OracleSpell.lastCast() != null && OracleSpell.lastCast() != before;
+                    expect(cast == (i == giants.doneLines()), "the giants' spell should go off on their last thanks line only (line " + i
+                            + (cast ? " cast it)" : " didn't)"));
+                }
+                expect(OracleSpell.lastCast().quest().equals(giants.id()), "the giants' hand-in should cast their spell");
+
+                // Every other spell: on its quest's offer line, not before or after, and none at its hand-in.
+                for (OracleQuest quest : List.of(OracleQuests.SET_IN_STONE, OracleQuests.BENEATH_THE_ROT, OracleQuests.WINGS_CLIPPED))
                 {
                     OracleProgress.setQuest(player, quest);
-                    hearOffer(player);
+                    before = OracleSpell.lastCast();
+                    for (int i = 1; i <= quest.offerLines(); i++)
+                    {
+                        OracleSpell.Cast was = OracleSpell.lastCast();
+                        expect(OracleDialogue.talk(player, oracle).isPresent(), quest.id() + "'s offer line " + i + " was nothing");
+                        boolean cast = OracleSpell.lastCast() != null && OracleSpell.lastCast() != was;
+                        expect(cast == (i == quest.spellLine()), quest.id() + ": the spell should go off on offer line " + quest.spellLine()
+                                + " only (line " + i + (cast ? " cast it)" : " didn't)"));
+                    }
+                    expect(OracleSpell.lastCast() != before && OracleSpell.lastCast().quest().equals(quest.id()), quest.id()
+                            + "'s offer should have cast its spell");
                     OracleProgress.record(player).enter(OracleState.DONE);
-                    OracleSpell.Cast before = OracleSpell.lastCast();
+                    OracleSpell.Cast handIn = OracleSpell.lastCast();
                     for (int i = 0; i < quest.doneLines(); i++)
                     {
-                        Optional<Component> line = OracleDialogue.talk(player, oracle);
-                        expect(line.isPresent(), quest.id() + "'s thanks line " + (i + 1) + " was nothing");
-                        OracleSpell.Cast now = OracleSpell.lastCast();
-                        boolean last = i == quest.doneLines() - 1;
-                        boolean cast = now != null && now != before;
-                        if (!last || !OracleQuests.castsSpell(quest))
-                        {
-                            expect(!cast, quest.id() + ": no spell before the last thanks line, nor for a hand-in that opens nothing"
-                                    + " (line " + (i + 1) + ")");
-                        }
-                        else
-                        {
-                            expect(cast && now.quest().equals(quest.id()), quest.id() + "'s last thanks line should cast the spell");
-                        }
+                        OracleDialogue.talk(player, oracle);
                     }
+                    expect(OracleSpell.lastCast() == handIn, quest.id() + "'s hand-in shouldn't cast a spell");
                     expect(OracleProgress.current(player) == OracleQuests.next(quest), "after " + quest.id() + "'s thanks the next "
                             + "quest should be waiting, not " + OracleProgress.current(player).id());
                 }

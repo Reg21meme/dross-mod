@@ -52,7 +52,9 @@ import java.util.UUID;
  *       {@link KnightRuinClearedEvent} (for the quest, built separately).</li>
  * </ul>
  * Also starts the ruins' planning when the Overworld loads ({@link KnightRuinSites#register}) and keeps the regions round
- * the players worked out ahead of them in the background.
+ * the players worked out ahead of them in the background. The Nether's ruins ({@link NetherRuinSites}) are looked after
+ * the same way, by {@link NetherRuinKeeper} through {@link #keep}; every ruin's record is the Overworld's
+ * ({@link KnightRuinData}), so a Nether ruin cleared counts for the quest like any other.
  */
 @Mod.EventBusSubscriber(modid = Dross.MODID)
 public final class KnightRuinKeeper
@@ -69,8 +71,8 @@ public final class KnightRuinKeeper
         }
     }
 
-    /** The tidy-ups going on, by ruin id (a step each server tick). */
-    private static final java.util.Map<String, KnightRuinTidy> TIDYING = new java.util.LinkedHashMap<>();
+    /** The tidy-ups going on, by ruin id (a step each server tick, the Nether's ruins' too: stepped from the Overworld's tick). */
+    private static final java.util.Map<String, RuinTidy> TIDYING = new java.util.LinkedHashMap<>();
 
     @SubscribeEvent
     public static void onLevelTick(TickEvent.LevelTickEvent event)
@@ -85,7 +87,7 @@ public final class KnightRuinKeeper
             var next = it.next();
             if (next.getValue().step())
             {
-                KnightRuinData.get(level).tidied(next.getKey());
+                data(level).tidied(next.getKey());
                 it.remove();
             }
         }
@@ -125,21 +127,26 @@ public final class KnightRuinKeeper
         }
     }
 
-    /** Looks after one ruin: its knights come (or come back) if they should. */
+    /** Looks after one ruin (in the level it stands in: the Overworld, or the Nether for a Nether ruin): its knights come
+     * (or come back) if they should. */
     static void keep(ServerLevel level, RuinSite site)
     {
+        if (level.dimension() != site.dimension())
+        {
+            return;
+        }
         double near = nearestPlayer(level, site);
         if (near > KnightRuinTuning.TIDY_RANGE || !level.hasChunkAt(site.ground()) || !built(level, site))
         {
             return;
         }
-        KnightRuinData data = KnightRuinData.get(level);
+        KnightRuinData data = data(level);
         if (!data.entry(site.id()).tidied())
         {
             // (once, as soon as its land is loaded: what grew into it felled, its blocks put back; its knights come after)
             if (!TIDYING.containsKey(site.id()) && KnightRuinTidy.landLoaded(level, site))
             {
-                TIDYING.put(site.id(), new KnightRuinTidy(level, site));
+                TIDYING.put(site.id(), site.inNether() ? new NetherRuinTidy(level, site) : new KnightRuinTidy(level, site));
             }
             return;
         }
@@ -186,7 +193,7 @@ public final class KnightRuinKeeper
     /** What the keeper sees at a ruin (for the tests' messages and the log). */
     static String state(ServerLevel level, RuinSite site)
     {
-        KnightRuinData.Entry e = KnightRuinData.get(level).find(site.id());
+        KnightRuinData.Entry e = data(level).find(site.id());
         return "nearest player " + (int) nearestPlayer(level, site) + " blocks, land ticking " + level.isPositionEntityTicking(site.ground())
                 + "/" + level.isPositionEntityTicking(site.guardCell(0)) + "/" + level.isPositionEntityTicking(site.guardCell(1))
                 + ", built " + built(level, site) + ", " + level.getDifficulty() + ", "
@@ -195,10 +202,11 @@ public final class KnightRuinKeeper
                 + ", knights " + e.knight(0) + "/" + e.knight(1));
     }
 
-    /** True if the ruin's structure is really there (its start was built with the land). */
+    /** True if the ruin's structure is really there (its start was built with the land; a Nether ruin's own structure). */
     static boolean built(ServerLevel level, RuinSite site)
     {
-        Structure structure = level.registryAccess().registryOrThrow(Registries.STRUCTURE).get(STRUCTURE);
+        Structure structure = level.registryAccess().registryOrThrow(Registries.STRUCTURE)
+                .get(site.inNether() ? NetherRuinSites.STRUCTURE : STRUCTURE);
         return structure != null && level.structureManager().getStructureWithPieceAt(site.ground(), structure).isValid();
     }
 
@@ -233,6 +241,30 @@ public final class KnightRuinKeeper
         return DrossConfig.ruinKnightsReturnMinutes() * 60L * 20L;
     }
 
+    /** Every ruin's record, the Nether's too, is kept with the Overworld (so the quest's "has cleared" reads one place). */
+    static KnightRuinData data(ServerLevel level)
+    {
+        return KnightRuinData.get(level.getServer().overworld());
+    }
+
+    /** True for the levels ruins stand in: the Overworld and the Nether. */
+    private static boolean ruinLevel(ServerLevel level)
+    {
+        return level.dimension() == Level.OVERWORLD || level.dimension() == Level.NETHER;
+    }
+
+    /** The ruin with this id, in whichever dimension it stands (null if none is planned there). */
+    @Nullable
+    static RuinSite siteById(net.minecraft.server.MinecraftServer server, String id)
+    {
+        if (RuinSite.isNetherId(id))
+        {
+            ServerLevel nether = server.getLevel(Level.NETHER);
+            return nether == null ? null : NetherRuinSites.byId(nether, id);
+        }
+        return KnightRuinSites.byId(server.overworld(), id);
+    }
+
     /** The distance to the nearest player (not a spectator) in the level, or {@link Double#MAX_VALUE}. */
     static double nearestPlayer(ServerLevel level, RuinSite site)
     {
@@ -253,12 +285,12 @@ public final class KnightRuinKeeper
     public static void onDeath(LivingDeathEvent event)
     {
         if (!(event.getEntity() instanceof ElementalKnight knight) || knight.ruin() == null || !(knight.level() instanceof ServerLevel level)
-                || level.dimension() != Level.OVERWORLD)
+                || !ruinLevel(level))
         {
             return;
         }
         String id = knight.ruin();
-        KnightRuinData data = KnightRuinData.get(level);
+        KnightRuinData data = data(level);
         KnightRuinData.Entry entry = data.find(id);
         int slot = knight.ruinSlot();
         if (entry == null || (entry.knight(slot) != null && !entry.knight(slot).equals(knight.getUUID())) || entry.beaten(slot))
@@ -269,7 +301,13 @@ public final class KnightRuinKeeper
         {
             return;
         }
-        RuinSite site = KnightRuinSites.byId(level, id);
+        RuinSite site = siteById(level.getServer(), id);
+        // (the players near are its own dimension's: a Nether ruin's in the Nether)
+        ServerLevel home = site == null ? level : level.getServer().getLevel(site.dimension());
+        if (home == null)
+        {
+            home = level;
+        }
         Entity killer = event.getSource().getEntity();
         ServerPlayer credited = killer instanceof ServerPlayer sp ? sp
                 : killer instanceof OwnableEntity pet && pet.getOwner() instanceof ServerPlayer owner ? owner : null;
@@ -278,11 +316,11 @@ public final class KnightRuinKeeper
         {
             players.add(credited);
         }
-        BlockPos home = site != null ? site.ground() : knight.ruinHome();
+        BlockPos middle = site != null ? site.ground() : knight.ruinHome();
         double range = KnightRuinTuning.CREDIT_RANGE;
-        for (ServerPlayer p : level.players())
+        for (ServerPlayer p : home.players())
         {
-            if (!p.isSpectator() && home != null && p.distanceToSqr(home.getX() + 0.5D, home.getY() + 1.0D, home.getZ() + 0.5D) <= range * range)
+            if (!p.isSpectator() && middle != null && p.distanceToSqr(middle.getX() + 0.5D, middle.getY() + 1.0D, middle.getZ() + 0.5D) <= range * range)
             {
                 players.add(p);
             }
@@ -305,9 +343,9 @@ public final class KnightRuinKeeper
     public static void onJoin(EntityJoinLevelEvent event)
     {
         if (event.loadedFromDisk() && event.getEntity() instanceof ElementalKnight knight && knight.ruin() != null
-                && event.getLevel() instanceof ServerLevel level && level.dimension() == Level.OVERWORLD)
+                && event.getLevel() instanceof ServerLevel level && ruinLevel(level))
         {
-            KnightRuinData.Entry entry = KnightRuinData.get(level).find(knight.ruin());
+            KnightRuinData.Entry entry = data(level).find(knight.ruin());
             int slot = knight.ruinSlot();
             if (entry != null && (entry.beaten(slot) || (entry.knight(slot) != null && !entry.knight(slot).equals(knight.getUUID()))))
             {
@@ -321,7 +359,7 @@ public final class KnightRuinKeeper
     public static void onLeave(EntityLeaveLevelEvent event)
     {
         if (!(event.getEntity() instanceof ElementalKnight knight) || knight.ruin() == null || !(event.getLevel() instanceof ServerLevel level)
-                || level.dimension() != Level.OVERWORLD)
+                || !ruinLevel(level))
         {
             return;
         }
@@ -331,7 +369,7 @@ public final class KnightRuinKeeper
         {
             return;
         }
-        KnightRuinData data = KnightRuinData.get(level);
+        KnightRuinData data = data(level);
         KnightRuinData.Entry entry = data.find(knight.ruin());
         int slot = knight.ruinSlot();
         if (entry != null && knight.getUUID().equals(entry.knight(slot)) && !entry.beaten(slot))

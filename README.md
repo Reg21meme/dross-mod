@@ -28,7 +28,7 @@ How a player moves through the mod, from a normal survival world to the Dross.
 
    Picking up the letter opens the **Dross** advancement tab.
 3. **Meeting the trader.** There's one per world; your quest progress is your own. Like the Blind Oracle, he has a marker over his head that only you see: a red **?** while his offer waits for you, a yellow **...** while you're on his quest, a green **!** when it's done. Each right-click is his next line or two. He tells you his side of the story: when the Dross was locked away, its knights were left on our side, still guarding the broken portals they came through, and their souls still carry the Dross's magic. With enough of them he could make something to wake the great portal. Will you help? On your next click you answer "Yes, of course." (in chat, as you), and he gives you **3 golden apples** and tells you where the nearest **knight ruin** you haven't cleared is (rounded to 10 blocks; he takes a moment to feel for it, so that line may come a second later).
-4. **Three knight ruins.** Clear three different knight ruins (both their knights beaten: see [The elemental knights](#the-elemental-knights)). Only a ruin you clear for the first time counts, so beating the same ruin's knights again when they come back doesn't. Each one shows **"Knight ruins cleared: 1 / 3"** over your hotbar. Asked meanwhile, he tells you your count and the nearest ruin you haven't cleared. The third one: *Advancement: Knightfall.*
+4. **Three knight ruins.** Clear three different knight ruins (both their knights beaten: see [The elemental knights](#the-elemental-knights)). Only a ruin you clear for the first time counts, so beating the same ruin's knights again when they come back doesn't. The Nether's ruins count too. Each one shows **"Knight ruins cleared: 1 / 3"** over your hotbar. Asked meanwhile, he tells you your count and the nearest ruin you haven't cleared. The third one: *Advancement: Knightfall.*
 5. **The Portal Orb.** Go back to him (the green **!**). Over a few lines he feels the souls on you, makes the **Portal Orb** (a glass ball with a little Dross portal swirling in it) in a puff of blue, tells you where the cathedral is (rounded to 100 blocks, for example "around X 7500, Z 1200") and warns you about its knights, then: "Go on. I believe in you." *Advancement: The Portal Orb.* Asked again, he reminds you where the portal should be. His shop opens for you (it sells the Dross Guide Book once you've been to the Dross).
 6. **The cathedral under siege.** Go to the Fallen Cathedral (there's no compass: his directions are all you get). Five of the Dross's elemental knights roam round it, each on its own spot, spread apart, a random mix of elements, and a spell holds it shut: a shimmering curtain of blue light along its edge, and walking in, you're pushed straight back out. Bring down all five (as they fall, "The cathedral's knights fallen: 2 / 5" over your hotbar) and the barrier cracks and shatters, **for good and for everyone in the world**. *Advancement: Siege Broken* (for whoever brings the last one down and everyone near). Someone else got there first? Then it's already open for you. See [The siege](#the-siege).
 7. **Opening the rift.** Throw the Portal Orb into the cathedral's frame. The orb is used up and the portal lights, staying open for everyone, permanently. (While the siege holds, the frame refuses it: the orb pops back out.)
@@ -276,12 +276,12 @@ There's a kill quest only the first time you go into a land; after that he sends
 
 Like the Twilight Forest, the Dross's lands open as your quests go on. After the war barriers were raised across the
 Dross, one ringing the forest round the hub, and the Blind Oracle breaks them for you: **the Cinder Wastes** and **the
-Gravecrags** when you hand in the giants, **Blightwood** (and its sewers) when you've beaten the Cinder Colossus,
-**Rimefall** when you've beaten the Rat King. So you can't leave the Silverwood Forest until the giants are dead. Each
-boss's home opens the same way: when you hand in the land's kill quest (the Emberdactyl's when you hand in the
-Huntsman).
+Gravecrags** when you hand in the giants; **Blightwood** (and its sewers) once you've beaten the Cinder Colossus, as
+he tells you of it; **Rimefall** once you've beaten the Rat King, the same way. So you can't leave the Silverwood
+Forest until the giants are dead. Each boss's home opens the same way: he tells you of the boss, breaks the ward on its
+home ("Stand back, and I will break the ward."), then sends you after it.
 
-- **His spell:** each time, he says his last thanks line, waits a few seconds so you can read it, then raises his arms:
+- **His spell:** each time, he says his "Stand back..." line, waits a few seconds so you can read it, then raises his arms:
   a great rune circle opens on the ground round him and light gathers into his hands, a beam of blue light bursts up into
   the sky with three thinner beams winding up into it, then it bends out towards the barrier, and far off over the land a
   flash, shock rings and a pillar of light burst, then the boom and its echo. It lasts about 12 seconds, and anyone near
@@ -304,7 +304,8 @@ Huntsman).
 ### Locked bosses
 
 A boss **at home** (the Colossus in its lair, the Rat King in his rat cave, the Huntsman at his village, the
-Emberdactyl on its volcano) only fights players whose quest has reached it (they've heard its quest from the Oracle).
+Emberdactyl on its volcano) only fights players the Oracle has broken its ward for (in the middle of its quest's
+offer).
 To anyone else it acts as if they weren't there: it doesn't rise, wake or come home for them, never attacks them,
 their hits (and their pets') do nothing to it, and they don't make it stronger or keep it from
 resetting. Its arena is **warded**: walk into the Colossus's cavern, the Rat King's cave or onto the Emberdactyl's
@@ -313,8 +314,8 @@ ender pearl in: you're sent back to where you were). The Rat King still lies asl
 from the tunnel. The Huntsman has no arena: until your quest reaches him he **sleeps at home**: him on his bed of furs
 in his lodge (look down at him through the clear ice window in its roof), his Alpha Moose lying in its barn
 with its eyes shut, both snoring,
-his spear, bow, bola and arrows lying before his door, and magic keeps them from harm. Once your quest reaches him (First
-Frost handed in) they wake and ride their patrol round his village, and they never sleep again. Spawn eggs, `/dross boss summon`, the test
+his spear, bow, bola and arrows lying before his door, and magic keeps them from harm. Once the Oracle breaks his village's ward
+for you they wake and ride their patrol round his village, and they never sleep again. Spawn eggs, `/dross boss summon`, the test
 arenas and the showcases are never locked, and neither are creative players.
 
 **Magic protects** the bosses' homes: until you've beaten a boss you can't break the blocks of its home (the
@@ -803,8 +804,8 @@ can't be cured, not even with milk.
 
 ## The elemental knights
 
-Two knights of each of the five elements; they'll guard broken Dross portals in their element's Overworld biomes (the
-ruins aren't in the world yet). For now they come from their **spawn eggs** (the end of the Dross tab's spawn eggs).
+Two knights of each of the five elements; they guard broken Dross portals in their element's biomes, in the Overworld
+and in the Nether (see **Their ruins** below). They also come from their **spawn eggs** (the end of the Dross tab's spawn eggs).
 Five of them, a mix the world's seed picks, also besiege the Fallen Cathedral (see [The siege](#the-siege)).
 Each is hostile, never despawns (no boss bar), calls the other knights near
 when hurt, shrugs off its own element (fire, cold, poison, lightning or falls), and fights with two moves:
@@ -836,7 +837,7 @@ bursts into its element as it dies. Up close they're alive with it: the Cinder K
 burn, the Thawed Soldiers' breath frosts, spores drift off the Sporebound. `tools/knights/audit.py` checks their
 animations for parts passing through each other or the floor, snaps and spins.
 
-**Their ruins** (candidates, not in the world yet): every area of each element's biomes has its own 4-5 small fight
+**Their ruins**: every area of each element's biomes has its own 4-5 small fight
 spots round a broken portal frame, built from that area's blocks: 76 in all (the user's picks). Ice: snowy plains, taiga, frozen shore.
 Poison: swamp, mushroom fields, dark forest, jungle, forest. Fire: desert, savanna, badlands. Thunder: warm shore, cold
 shore, stony shore, riverbank, and the storm peaks (mountain tops). Earth: plains, meadow and cherry grove, windswept
@@ -844,6 +845,18 @@ hills, peaks, and big caverns underground. The shore ruins stand on the beach wi
 out into it. Build them all, the five elements side by side, with `/dross showcase knight_ruins`, or one element's
 with `/dross showcase knight_ruins <element>` (pictures in
 `boss-previews/knights/ruins/index.html`).
+
+They're in the world: in the **Overworld** a ruin about every 800 blocks, each only in its element's biomes (a few near
+the world spawn), and in the **Nether** about one every 1,000 blocks (Nether blocks), with 12 layouts of their own: the
+Cinder Knight and Flamehand (fire) in the Nether Wastes (Fortress Corner, Lava Cistern, Glowstone Fall), the Crimson
+Forest (Wart Garden, Weeping Arch) and the Soul Sand Valley (Spine Bridge, Wither Altar); the Blight Warden and the
+Sporebound (poison) in the Warped Forest (Sprout Hollow, Strider Dock, Lamp Avenue); the Geode and Rockfall Knights
+(earth) in the Basalt Deltas (Causeway, Black Forge). A Nether ruin stands on an open floor under the Nether's roof
+(between y 40 and 96, never over the lava sea, with room over it), its way in facing the open side, never near a
+fortress or bastion. Its two knights come when you're near and come back 10 minutes after you beat them (only while
+nobody is within 64 blocks), just like the Overworld's, and a Nether ruin counts for the Dross Trader like any other.
+`/dross goto ruin` and `/dross locate ruins` find the Nether's ruins when you use them in the Nether. (The code:
+`boss/knight/ruin/`, `KnightRuinSites` for the Overworld and `NetherRuinSites` for the Nether.)
 
 ## Advancements
 
@@ -965,9 +978,9 @@ clear as more bosses and places are added: `goto <place>`, `showcase <kind> [<bo
 | `/dross boss arena bedrock team_up` | Puts every mob and player in each of the bedrock arena's sections on that section's team (the Rage Wand's Rage). |
 | `/dross rage team <targets> <team>` | Puts players and mobs on one of the Rage Wand's teams (blue, red, green, yellow or purple): `@s`, a player's name, `@e[...]`. Players on a team fight alongside their team's raged mobs and against the others. |
 | `/dross rage clear <targets>` | Takes players and mobs off their teams (a mob's Rage goes too). |
-| `/dross goto ruin [<element>]` | Teleports in front of the nearest elemental knights' ruin in the Overworld (of that element: `fire`, `ice`, `poison`, `thunder`, `earth`), building it first if need be. |
-| `/dross goto ruin <x> <z>` | The ruin nearest that spot (the locate list's [go] buttons). |
-| `/dross locate ruins` | Lists the 8 nearest knight ruins (within 2,400 blocks) with their element, area, layout and distance, each with a [go] button. |
+| `/dross goto ruin [<element>]` | Teleports in front of the nearest elemental knights' ruin (of that element: `fire`, `ice`, `poison`, `thunder`, `earth`), building it first if need be: in the Nether, the Nether's ruins (fire, poison or earth there); anywhere else, the Overworld's. |
+| `/dross goto ruin <x> <z>` | The ruin nearest that spot, in the dimension you're in (the locate list's [go] buttons). |
+| `/dross locate ruins` | Lists the 8 nearest knight ruins (within 2,400 blocks) with their element, area, layout and distance, each with a [go] button: in the Nether, the Nether's. |
 
 ---
 
@@ -987,6 +1000,7 @@ mod's own tuning.
 | `knight_ruins` | `nearSpawnRadius` | 1000 | The furthest those ruins can be from the spawn. |
 | `knight_ruins` | `nearSpawnMinDistance` | 200 | The nearest any ruin can be to the spawn. |
 | `knight_ruins` | `knightsReturnMinutes` | 10 | Minutes after both of a ruin's knights are beaten until they come back (only while no player is within 64 blocks; this one counts at once in every world). |
+| `knight_ruins` | `netherSpacing` | 1000 | About how far apart the knight ruins in the Nether are (Nether blocks: at most one in each square this size, where an open floor under the roof is found). |
 | `performance` | `plannerThreads` | 0 (automatic) | Helper threads for the Dross's boss-site planner (0: half the processors, 1 to 8; read at start). |
 | `performance` | `buildMillisPerTick` | 40 | How many milliseconds a server tick may spend building a boss lair or volcano. |
 
@@ -1006,6 +1020,7 @@ From the project folder, on Windows:
 | Run the automated in-game checks | `.\gradlew.bat runGameTestServer --console=plain` |
 | The same checks in a brand-new world | `.\gradlew.bat runGameTestServer -PgameTestWorld=world_check_1 --console=plain` (pick a folder name under `run/` that doesn't exist yet) |
 | The performance test (the mod's mobs and bosses fighting, every server tick timed) | `.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_perf -PgameTestWorld=perf_check_1 --console=plain` (the numbers in `run/perf/server_perf.txt`) |
+| How many Nether squares get a knight ruin, over 8 seeds (for tuning `KnightRuinTuning`'s Nether numbers; the answers in the log, `[nether ruin probe]`) | `.\gradlew.bat runGameTestServer -PgameTestNamespaces=dross_nether_ruin_probe -PgameTestWorld=nether_probe_1 --console=plain` |
 
 - **Logs:** `run/logs/latest.log`. **Crash reports:** `run/crash-reports/`.
 - **Commands in-game:** create the world with **Allow Cheats: ON** to use the commands.

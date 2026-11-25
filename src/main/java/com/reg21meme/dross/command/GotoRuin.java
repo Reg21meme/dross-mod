@@ -30,16 +30,19 @@ import org.slf4j.Logger;
 
 /**
  * {@code /dross goto ruin [<element>]}, {@code /dross goto ruin <x> <z>} and {@code /dross locate ruins}: the elemental
- * knights' ruins in the Overworld (the boss area's {@link KnightRuins}). Searched from where the player stands in the
- * Overworld, from the world spawn elsewhere; worked out off the server thread (a moment the first time), then the ruin's
- * chunks are made (it's built with them) and the player lands on safe ground just out of its way in, facing it. The
- * locate list has a [go] button per ruin ({@code goto ruin <x> <z>}). Wired into {@link DrossCommand}.
+ * knights' ruins (the boss area's {@link KnightRuins}). In the Nether, the Nether's ruins, searched from where the player
+ * stands (PRE_DROSS_PLAN.md, stage T3); anywhere else the Overworld's, from where the player stands in the Overworld and
+ * from the world spawn elsewhere (the Dross, the End). Worked out off the server thread (a moment the first time), then
+ * the ruin's chunks are made (it's built with them) and the player lands on safe ground just out of its way in, facing it
+ * (in the Nether on its floor, read up and down from the ruin's ground: never the roof). The locate list has a [go]
+ * button per ruin ({@code goto ruin <x> <z>}, in the dimension the player is in). Wired into {@link DrossCommand}.
  */
 public final class GotoRuin
 {
     private static final Logger LOGGER = LogUtils.getLogger();
 
     static final String NONE = "commands.dross.goto.ruin.none";
+    static final String NONE_NETHER = "commands.dross.goto.ruin.none_nether";
     static final String LOOKING = "commands.dross.goto.ruin.looking";
     static final String NOT_FOUND = "commands.dross.goto.ruin.not_found";
     static final String STOPPED = "commands.dross.goto.ruin.stopped";
@@ -66,15 +69,16 @@ public final class GotoRuin
     {
         ServerPlayer player = source.getPlayerOrException();
         MinecraftServer server = source.getServer();
-        if (!KnightRuins.available(server))
+        ServerLevel here = player.serverLevel();
+        if (!KnightRuins.available(here))
         {
-            source.sendFailure(Component.translatable(NONE));
+            source.sendFailure(Component.translatable(noneKey(here)));
             return 0;
         }
         BlockPos from = from(player);
         long started = Util.getMillis();
         source.sendSuccess(() -> Component.translatable(LOOKING), false);
-        KnightRuins.nearestAsync(server, from, element, SEARCH_RADIUS).whenComplete((found, error) -> server.execute(() ->
+        KnightRuins.nearestAsync(here, from, element, SEARCH_RADIUS).whenComplete((found, error) -> server.execute(() ->
         {
             if (error != null || found == null || found.isEmpty())
             {
@@ -96,12 +100,13 @@ public final class GotoRuin
     {
         ServerPlayer player = source.getPlayerOrException();
         MinecraftServer server = source.getServer();
-        if (!KnightRuins.available(server))
+        ServerLevel here = player.serverLevel();
+        if (!KnightRuins.available(here))
         {
-            source.sendFailure(Component.translatable(NONE));
+            source.sendFailure(Component.translatable(noneKey(here)));
             return 0;
         }
-        KnightRuins.nearestAsync(server, new BlockPos(x, 0, z), null, AT_RADIUS).whenComplete((found, error) -> server.execute(() ->
+        KnightRuins.nearestAsync(here, new BlockPos(x, 0, z), null, AT_RADIUS).whenComplete((found, error) -> server.execute(() ->
         {
             if (error != null || found == null || found.isEmpty())
             {
@@ -117,16 +122,17 @@ public final class GotoRuin
     {
         ServerPlayer player = source.getPlayerOrException();
         MinecraftServer server = source.getServer();
-        if (!KnightRuins.available(server))
+        ServerLevel here = player.serverLevel();
+        if (!KnightRuins.available(here))
         {
-            source.sendFailure(Component.translatable(NONE));
+            source.sendFailure(Component.translatable(noneKey(here)));
             return 0;
         }
         BlockPos from = from(player);
-        boolean fromHere = player.level().dimension() == Level.OVERWORLD;
+        boolean fromHere = player.level().dimension() == Level.OVERWORLD || player.level().dimension() == Level.NETHER;
         long started = Util.getMillis();
         source.sendSuccess(() -> Component.translatable(LOOKING), false);
-        CompletableFuture.supplyAsync(() -> KnightRuins.within(server, from, LIST_RADIUS)).whenComplete((list, error) -> server.execute(() ->
+        CompletableFuture.supplyAsync(() -> KnightRuins.within(here, from, LIST_RADIUS)).whenComplete((list, error) -> server.execute(() ->
         {
             if (error != null || list == null || list.isEmpty())
             {
@@ -174,21 +180,33 @@ public final class GotoRuin
 
     private static BlockPos from(ServerPlayer player)
     {
-        if (player.level().dimension() == Level.OVERWORLD)
+        if (player.level().dimension() == Level.OVERWORLD || player.level().dimension() == Level.NETHER)
         {
             return player.blockPosition();
         }
         return player.getServer().overworld().getSharedSpawnPos();
     }
 
+    /** "No ruins": the Nether's own line in the Nether. */
+    private static String noneKey(ServerLevel here)
+    {
+        return here.dimension() == Level.NETHER ? NONE_NETHER : NONE;
+    }
+
     /** Puts the player just out of the ruin's way in, facing it. */
     private static void teleport(CommandSourceStack source, ServerPlayer player, RuinSite site)
     {
-        ServerLevel overworld = source.getServer().overworld();
-        overworld.getChunkAt(site.ground());
+        ServerLevel level = KnightRuins.levelOf(source.getServer(), site);
+        if (level == null)
+        {
+            source.sendFailure(Component.translatable(STOPPED));
+            return;
+        }
+        level.getChunkAt(site.ground());
         BlockPos stand = site.doorstep();
-        overworld.getChunkAt(stand);
-        Optional<Vec3> landing = DrossTeleporter.findSafeSpot(overworld, player, stand.getX(), stand.getZ(), FALLBACK_RADIUS);
+        level.getChunkAt(stand);
+        Optional<Vec3> landing = site.inNether() ? KnightRuins.netherLanding(level, site)
+                : DrossTeleporter.findSafeSpot(level, player, stand.getX(), stand.getZ(), FALLBACK_RADIUS);
         if (landing.isEmpty())
         {
             source.sendFailure(Component.translatable(STOPPED));
@@ -196,8 +214,8 @@ public final class GotoRuin
         }
         Vec3 spot = landing.get();
         float yaw = (float) (Mth.atan2(site.z() + 0.5D - spot.z, site.x() + 0.5D - spot.x) * (180.0D / Math.PI)) - 90.0F;
-        player.teleportTo(overworld, spot.x, spot.y, spot.z, Set.of(), yaw, 10.0F);
-        if (player.level() != overworld)
+        player.teleportTo(level, spot.x, spot.y, spot.z, Set.of(), yaw, 10.0F);
+        if (player.level() != level)
         {
             source.sendFailure(Component.translatable(STOPPED));
             return;

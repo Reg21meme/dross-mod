@@ -32,6 +32,8 @@ public final class DrossConfig
     public static final int DEFAULT_RUINS_NEAR_SPAWN_RADIUS = 1000;
     public static final int DEFAULT_RUINS_NEAR_SPAWN_MIN = 200;
     public static final int DEFAULT_RUIN_KNIGHTS_RETURN_MINUTES = 10;
+    /** The knight ruins in the Nether: about one every 1,000 blocks (the user, November 25, 2026; PRE_DROSS_PLAN.md, T3). */
+    public static final int DEFAULT_NETHER_RUIN_SPACING = 1000;
 
     public static final ForgeConfigSpec SPEC;
 
@@ -47,6 +49,7 @@ public final class DrossConfig
     private static final ForgeConfigSpec.IntValue RUINS_NEAR_SPAWN_RADIUS;
     private static final ForgeConfigSpec.IntValue RUINS_NEAR_SPAWN_MIN;
     private static final ForgeConfigSpec.IntValue RUIN_KNIGHTS_RETURN_MINUTES;
+    private static final ForgeConfigSpec.IntValue NETHER_RUIN_SPACING;
 
     static
     {
@@ -70,8 +73,8 @@ public final class DrossConfig
                 .defineInRange("villageSearchRadius", DEFAULT_TRADER_SEARCH_RADIUS, 500, 8000);
         b.pop();
 
-        b.comment("The elemental knights' ruins in the Overworld: a broken Dross portal with two knights of its element on",
-                "guard, only in that element's biomes. Read when a world is first made and saved in it (all but",
+        b.comment("The elemental knights' ruins in the Overworld and the Nether: a broken Dross portal with two knights of its",
+                "element on guard, only in that element's biomes. Read when a world is first made and saved in it (all but",
                 "knightsReturnMinutes): changing these only affects new worlds.").push("knight_ruins");
         RUIN_SPACING = b.comment("About how far apart the ruins are on average, in blocks (away from the ones near spawn).")
                 .defineInRange("spacing", DEFAULT_RUIN_SPACING, 300, 5000);
@@ -84,6 +87,9 @@ public final class DrossConfig
         RUIN_KNIGHTS_RETURN_MINUTES = b.comment("Minutes after both of a ruin's knights are beaten until they come back (only",
                         "while no player is within 64 blocks of it). Counts at once.")
                 .defineInRange("knightsReturnMinutes", DEFAULT_RUIN_KNIGHTS_RETURN_MINUTES, 1, 240);
+        NETHER_RUIN_SPACING = b.comment("About how far apart the ruins in the Nether are, in blocks (Nether blocks: one in each",
+                        "square of this size, where an open floor under the Nether's roof is found).")
+                .defineInRange("netherSpacing", DEFAULT_NETHER_RUIN_SPACING, 300, 5000);
         b.pop();
 
         b.comment("The quest.").push("quest");
@@ -151,6 +157,11 @@ public final class DrossConfig
     public static int ruinKnightsReturnMinutes()
     {
         return get(RUIN_KNIGHTS_RETURN_MINUTES);
+    }
+
+    public static int netherRuinSpacing()
+    {
+        return get(NETHER_RUIN_SPACING);
     }
 
     public static double letterChance()

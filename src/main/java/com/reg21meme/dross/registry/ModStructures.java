@@ -11,6 +11,9 @@ import com.reg21meme.dross.boss.huntsman.village.HunterVillageStructure;
 import com.reg21meme.dross.boss.knight.ruin.KnightRuinPiece;
 import com.reg21meme.dross.boss.knight.ruin.KnightRuinPlacement;
 import com.reg21meme.dross.boss.knight.ruin.KnightRuinStructure;
+import com.reg21meme.dross.boss.knight.ruin.NetherRuinPiece;
+import com.reg21meme.dross.boss.knight.ruin.NetherRuinPlacement;
+import com.reg21meme.dross.boss.knight.ruin.NetherRuinStructure;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakePiece;
 import com.reg21meme.dross.dimension.rimefall.RimefallLakeStructure;
 import com.reg21meme.dross.dimension.sewer.RatCavePiece;
@@ -145,6 +148,16 @@ public final class ModStructures
             () -> (StructurePieceType.ContextlessType) KnightRuinPiece::new);
     public static final RegistryObject<StructurePlacementType<KnightRuinPlacement>> KNIGHT_RUIN_PLACEMENT = STRUCTURE_PLACEMENTS.register("knight_ruin",
             () -> () -> KnightRuinPlacement.CODEC);
+
+    // Boss area: dross:nether_knight_ruin, the elemental knights' ruins in the Nether (boss/knight/ruin/; PRE_DROSS_PLAN.md,
+    // stage T3), about one every 1,000 blocks on an open floor under the Nether's roof, in its five biomes: the structure,
+    // its one piece, and its placement (only in each ruin's own chunk)
+    public static final RegistryObject<StructureType<NetherRuinStructure>> NETHER_KNIGHT_RUIN = STRUCTURE_TYPES.register("nether_knight_ruin",
+            () -> () -> NetherRuinStructure.CODEC);
+    public static final RegistryObject<StructurePieceType> NETHER_KNIGHT_RUIN_PIECE = STRUCTURE_PIECES.register("nether_knight_ruin",
+            () -> (StructurePieceType.ContextlessType) NetherRuinPiece::new);
+    public static final RegistryObject<StructurePlacementType<NetherRuinPlacement>> NETHER_KNIGHT_RUIN_PLACEMENT = STRUCTURE_PLACEMENTS.register("nether_knight_ruin",
+            () -> () -> NetherRuinPlacement.CODEC);
 
     private ModStructures() {}
 }

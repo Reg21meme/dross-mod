@@ -18,6 +18,7 @@ import java.util.UUID;
  *       boss, {@value #BOSS_LINES} of them in turn ({@code dross.seeker.<quest>.<n>}, the quest's advancement name).</li>
  *   <li>A BOSS quest done (DONE: the boss beaten, not yet told to the Oracle): his one line for it
  *       ({@code dross.seeker.<quest>.done}).</li>
+ *   <li>Every quest done (FINISHED): his {@value #AFTER_LINES} lines for after, in turn ({@code dross.seeker.after.<n>}).</li>
  *   <li>Anything else: empty.</li>
  * </ul>
  * Which joke he's at is kept per player and quest while the server runs (not saved: they just start from the first).
@@ -26,6 +27,8 @@ public final class SeekerDialogue
 {
     /** How many jokes he has for each boss (each cycled in turn). */
     public static final int BOSS_LINES = 3;
+    /** How many lines he has once every quest is done ({@code dross.seeker.after.<n>}, in turn). */
+    public static final int AFTER_LINES = 4;
 
     /** The joke each player hears next, and for which quest. */
     private static final Map<UUID, Next> NEXT = new HashMap<>();
@@ -39,6 +42,14 @@ public final class SeekerDialogue
     {
         OracleQuest quest = OracleProgress.current(player);
         OracleState state = OracleProgress.state(player);
+        if (state == OracleState.FINISHED)
+        {
+            // Every quest done (the user, November 25, 2026: "I might actually touch grass ... can't wait to see the sun").
+            Next next = NEXT.get(player.getUUID());
+            int index = next != null && next.quest().equals("after") ? next.index() : 0;
+            NEXT.put(player.getUUID(), new Next("after", (index + 1) % AFTER_LINES));
+            return Optional.of(Component.translatable(key("after", String.valueOf(index + 1))));
+        }
         if (quest.kind() != OracleQuest.Kind.BOSS)
         {
             return Optional.empty();

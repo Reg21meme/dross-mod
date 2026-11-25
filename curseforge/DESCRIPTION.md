@@ -4,24 +4,28 @@
 
 The Dross is a dangerous dimension for the mid-to-late game.
 
-## New update
+## New update: the quest update
 
-- **A new boss: the Emberdactyl.** A giant volcanic pterosaur that nests on its own volcano in the Cinder Wastes.
-- **Tougher bosses.** More health, the Rat King's staff poisons, damage limits, and bosses grow stronger with every extra player.
-- **New mobs in the Cinder Wastes:** the Pallbearer, and the Cinder Hermit in eight different shells.
-- **No more freezes when a world starts.** The portal site, the hub and the trader's chapel are now made with the world.
-- **A settings file for modpacks:** `config/dross-common.toml`.
+- **A new way in.** The Dross Trader has quests of his own now: clear three knight ruins, earn a Portal Orb, and break
+  the siege on the Fallen Cathedral.
+- **The elemental knights.** Ten new knights of five elements guarding broken portals across the Overworld and the
+  Nether.
+- **The Blind Oracle's quests.** Inside the Dross, the Oracle sends you from land to land and boss to boss. Each land is
+  sealed behind a barrier until he breaks it.
+- **The Silverwood Giants** now walk the forest round the hub.
+- **Boss homes are protected** until you beat their boss.
 
 ## Upcoming
 
-**A new quest system** inside the Dross. New Dross ruins will appear throughout the world.
+A faster way to travel the Dross, and Dross portals of your own.
 
 ## Getting in
 
-1. **Find a Weathered Letter**
-2. **Meet the Dross Trader**
-3. **Forge the Rift Key.**
-4. **Light the portal.**
+1. **Find a Weathered Letter** in a Nether Fortress or Bastion.
+2. **Meet the Dross Trader.**
+3. **Clear three knight ruins.**
+4. **Break the siege on the Fallen Cathedral.**
+5. **Light the portal with the Portal Orb.**
 
 ## Biomes
 
@@ -52,6 +56,7 @@ The Dross is a dangerous dimension for the mid-to-late game.
 <p><b>The Huntsman</b>: he rides his Alpha Moose through frozen Rimefall, and when you knock him off, you fight them both at once.</p>
 <p><img src="https://media.forgecdn.net/attachments/2160/104/boss_emberdactyl-png.png" alt="The Emberdactyl"></p>
 <p><b>The Emberdactyl</b>: it circles its volcano in the Cinder Wastes, guarding its egg. Bring it down and the egg hatches.</p>
+<p><b>The elemental knights</b>: ten knights of fire, ice, poison, thunder and earth, two to every ruin, and five more besieging the Fallen Cathedral.</p>
 </div>
 
 ## Requirements

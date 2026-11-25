@@ -2189,6 +2189,21 @@ def knight_ruin_structures():
                      "placement": {"type": "dross:knight_ruin", "salt": KNIGHT_RUIN_SALT}}
     return structure, structure_set
 
+
+# The knight ruins in the Nether (PRE_DROSS_PLAN.md, stage T3; the Boss area's NetherRuinSites): about one every 1,000
+# blocks, on an open floor under the Nether's roof, in the Nether's five biomes. Its placement (dross:nether_knight_ruin)
+# starts a ruin only in the chunk holding a ruin's middle column; "biomes" is every Nether biome (the planner picked the
+# biome with the spot), so the Overworld and the Dross never have it. Written here for the same reason as the above.
+NETHER_KNIGHT_RUIN_SALT = 1125202603    # (under 2^31)
+
+
+def nether_knight_ruin_structures():
+    structure = {"type": "dross:nether_knight_ruin", "biomes": "#minecraft:is_nether", "spawn_overrides": {},
+                 "step": "surface_structures", "terrain_adaptation": "beard_thin"}
+    structure_set = {"structures": [{"structure": "dross:nether_knight_ruin", "weight": 1}],
+                     "placement": {"type": "dross:nether_knight_ruin", "salt": NETHER_KNIGHT_RUIN_SALT}}
+    return structure, structure_set
+
 # =====================================================================================================================
 # The dimension: noise settings, dimension type, dimension
 # =====================================================================================================================
@@ -2370,6 +2385,9 @@ def main():
     ruin, ruin_set = knight_ruin_structures()
     write_json("structure", "knight_ruin", ruin)
     write_json("structure_set", "knight_ruin", ruin_set)
+    nether_ruin, nether_ruin_set = nether_knight_ruin_structures()
+    write_json("structure", "nether_knight_ruin", nether_ruin)
+    write_json("structure_set", "nether_knight_ruin", nether_ruin_set)
 
     write_file(os.path.join(DATA, "dimension", "dross.json"), dimension(thresholds))
     write_file(os.path.join(DATA, "dimension_type", "dross.json"), dimension_type())

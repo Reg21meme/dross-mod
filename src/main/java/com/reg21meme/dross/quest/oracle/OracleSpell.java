@@ -187,8 +187,7 @@ public final class OracleSpell
             {
                 return best;
             }
-            OracleQuest next = OracleQuests.next(quest);
-            SiteUse use = next != null && next.boss() != null ? homeOf(next.boss()) : null;
+            SiteUse use = quest.boss() != null ? homeOf(quest.boss()) : null;
             if (use != null)
             {
                 Optional<Site> site = BossSites.forLevel(level).nearest(use, from, BOSS_SEARCH);

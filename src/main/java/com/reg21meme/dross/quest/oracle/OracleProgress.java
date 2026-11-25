@@ -68,6 +68,25 @@ public final class OracleProgress
         return record.index() > quest.index() || (record.index() == quest.index() && record.state() == OracleState.FINISHED);
     }
 
+    /**
+     * True if this quest's spell has broken its seal for them, so what it opens is open (its lands; a BOSS quest's boss's
+     * home): a quest with a spell in its offer once his offer has reached that line (or they're past it); one whose
+     * hand-in casts it (the forest giants') once it's handed in. Creative and spectator players aren't exempt here.
+     */
+    public static boolean opened(ServerPlayer player, OracleQuest quest)
+    {
+        OracleRecord record = record(player);
+        if (quest.spellLine() <= 0)
+        {
+            return hasHandedIn(player, quest);
+        }
+        if (record.index() != quest.index())
+        {
+            return record.index() > quest.index();
+        }
+        return record.state() != OracleState.AVAILABLE || record.line() >= quest.spellLine();
+    }
+
     /** True if they're on this quest (in any state) or past it. */
     public static boolean isAtOrPast(ServerPlayer player, OracleQuest quest)
     {
@@ -88,7 +107,7 @@ public final class OracleProgress
         for (int i = 0; i < lands.size(); i++)
         {
             OracleQuest opener = OracleQuests.openerOf(lands.get(i));
-            if (opener == null || hasHandedIn(player, opener))
+            if (opener == null || opened(player, opener))
             {
                 mask |= 1 << i;
             }

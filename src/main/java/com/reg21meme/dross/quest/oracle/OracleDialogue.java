@@ -63,6 +63,7 @@ public final class OracleDialogue
             {
                 int line = Math.min(record.line(), quest.offerLines() - 1);
                 Component text = Component.translatable(quest.key("offer." + (line + 1)));
+                boolean spell = quest.spellLine() == line + 1;
                 if (line + 1 >= quest.offerLines())
                 {
                     OracleProgress.accept(player);
@@ -70,7 +71,18 @@ public final class OracleDialogue
                 else
                 {
                     record.line = line + 1;
-                    OracleProgress.saved(player);
+                    if (spell)
+                    {
+                        OracleProgress.changed(player); // (what it opens is open now: their game is told)
+                    }
+                    else
+                    {
+                        OracleProgress.saved(player);
+                    }
+                }
+                if (spell && oracle != null)
+                {
+                    OracleSpell.cast(player, oracle, quest);
                 }
                 return Optional.of(text);
             }

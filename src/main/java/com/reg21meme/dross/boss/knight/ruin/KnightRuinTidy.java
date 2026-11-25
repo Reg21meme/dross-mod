@@ -21,7 +21,7 @@ import org.slf4j.Logger;
  * placed again, so its own blocks come back (its designed trees among them: a felling takes those too). A step a server
  * tick, at most about 40 ms each.
  */
-final class KnightRuinTidy
+final class KnightRuinTidy implements RuinTidy
 {
     private static final Logger LOGGER = LogUtils.getLogger();
     /** A tree touching the ruin is followed at most this far out of its footprint; this land must be loaded. */
@@ -60,7 +60,8 @@ final class KnightRuinTidy
     }
 
     /** At most about 40 ms of the felling, then (once it's done) the template placed again; true once it's all done. */
-    boolean step()
+    @Override
+    public boolean step()
     {
         if (!this.felling.step())
         {

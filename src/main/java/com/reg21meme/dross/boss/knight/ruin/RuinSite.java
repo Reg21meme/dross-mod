@@ -4,24 +4,48 @@ import com.reg21meme.dross.boss.knight.KnightKind;
 import com.reg21meme.dross.boss.knight.KnightRuinDesigns;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Mirror;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplate;
 
 /**
- * One knight ruin in the Overworld, as the seed plans it ({@link KnightRuinSites}): its middle column and ground level,
+ * One knight ruin, in the Overworld or the Nether, as the seed plans it ({@link KnightRuinSites}, {@link NetherRuinSites}):
+ * its middle column and ground level,
  * the way its way in faces, its design (its biome area's layout) and whether it's one of the few near the world spawn.
  * The same whenever and on whatever thread it's asked for. Its template is placed the showcase's way
  * ({@code command/KnightRuinShowcase}): turned about its middle so its way in (the template's south) faces {@link #front}.
  */
 public record RuinSite(int x, int z, int groundY, Direction front, KnightRuinDesigns.Design design, boolean nearSpawn)
 {
-    /** Its name in saves and in the quest's signal: its middle column. */
+    /** A Nether ruin's id starts with this ({@link #id}), so it never shares one with an Overworld ruin at the same x, z. */
+    public static final String NETHER_PREFIX = "nether:";
+
+    /** Its name in saves and in the quest's signal: its middle column ("x,z"; a Nether ruin's "nether:x,z"). */
     public String id()
     {
-        return this.x + "," + this.z;
+        return (this.inNether() ? NETHER_PREFIX : "") + this.x + "," + this.z;
+    }
+
+    /** True if it stands in the Nether (its area is one of the Nether's: {@link NetherRuinSites}); else in the Overworld. */
+    public boolean inNether()
+    {
+        return RuinAreas.NETHER.contains(this.design.area());
+    }
+
+    /** The dimension it stands in. */
+    public ResourceKey<Level> dimension()
+    {
+        return this.inNether() ? Level.NETHER : Level.OVERWORLD;
+    }
+
+    /** True if a ruin id ({@link #id}) is a Nether ruin's. */
+    public static boolean isNetherId(String id)
+    {
+        return id.startsWith(NETHER_PREFIX);
     }
 
     public KnightKind.Element element()
@@ -51,7 +75,7 @@ public record RuinSite(int x, int z, int groundY, Direction front, KnightRuinDes
     public String describe()
     {
         return this.design.id() + " at " + this.x + " " + this.groundY + " " + this.z + ", facing " + this.front.getName()
-                + (this.nearSpawn ? " (near spawn)" : "");
+                + (this.nearSpawn ? " (near spawn)" : "") + (this.inNether() ? " in the Nether" : "");
     }
 
     // ---------------------------------------------------------------- where its template's cells go
