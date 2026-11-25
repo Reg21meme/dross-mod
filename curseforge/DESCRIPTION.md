@@ -6,14 +6,14 @@ The Dross is a dangerous dimension for the mid-to-late game.
 
 ## New update!
 
-*   **A brand-new quest system.** The Blind Oracle leads you through the Dross, land by land and boss by boss.
-*   **New ruins across the Overworld and the Nether**, guarded by the elemental knights: mini-bosses of fire, ice, poison, thunder and earth.
+*   **A brand-new quest system.** The Blind Oracle leads you through the Dross.
+*   **New ruins across the Overworld and the Nether**, guarded by the elemental knights.
 *   **A new way into the Dross.** Clear the knight ruins, earn a Portal Orb, and break the siege on the Fallen Cathedral.
-*   **New giants in the forest.** The Silverwood Giants roam the woods around the hub. Linger too close and they attack.
+*   **New giants in the forest.** The Silverwood Giants roam the woods.
 
 ## Upcoming
 
-**A new boss is coming to Rimefall:** a trickster crow that hides among its copies, and only the real one can be killed.
+**A new boss is coming to Rimefall:** a trickster that hides in the fields.
 
 ## Biomes
 
