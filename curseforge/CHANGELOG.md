@@ -1,5 +1,7 @@
 # The Dross 0.4.0: the quest update
 
+**Start a new world** for the full update: the knight ruins only appear in land that hasn't been made yet.
+
 ## A new way into the Dross
 
 - **The Weathered Letter** now turns up in about one Nether Fortress or Bastion chest in five.
@@ -32,10 +34,15 @@
   spell you can watch, and you see the barrier shatter the first time you reach it. Inside a land that's still locked
   for you, you're slowed and weakened.
 - **Locked bosses:** a boss at home only fights you once the Oracle has broken the ward on its home.
-- **The Silverwood Giants:** neutral giants that replace the forest's zombies and skeletons. Linger near one and it
-  attacks: smashes, sweeps, stomps and hurled boulders.
 - **Protected boss homes:** you can't break the blocks of a boss's home until you've beaten that boss (like bedrock:
   no cracks and nothing slows you). The hub is always protected.
+
+## New giants in the forest
+
+- **The Silverwood Giants:** neutral giants that replace the Silverwood Forest's zombies and skeletons, in three looks
+  (the Boulder-Hurler, the Brawler and the Tree-Bearer). Linger near one and it attacks: smashes, sweeps, stomps and
+  hurled boulders.
+- **A new icon:** the Boulder-Hurler's head.
 
 ## Removed
 
