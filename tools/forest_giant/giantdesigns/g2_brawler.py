@@ -23,7 +23,7 @@ GLOWS = "its eyes"
 
 PROP_BONES = ("rock",)
 HIDDEN_AT_REST = ("rock",)    # the rock he tears out of the ground to throw: only shown in the throw
-EXTRA_BONES = (("kilt_f", v3(0.0, 34.5, -9.0), "body"), ("kilt_b", v3(0.0, 34.5, 9.0), "body"))
+EXTRA_BONES = props.kilt_bones()
 FREE = ()
 
 
@@ -85,7 +85,7 @@ def kilt(s, J):
     """A plain leather belt, a war-kilt of hide strips hanging from it (front and back on their own bones)."""
     b = s.part("body")
     props.belt(b, (0.0, 35.0, 0.0), 14.4, 11.2, 4, 2, "belt", n=14)
-    parts = (s.part("kilt_f"), s.part("kilt_b"))
+    parts = props.kilt_parts(s)
     props.kilt(parts, (0.0, 33.0, 0.0), 13.6, 10.8, 33.5, 12.0, 16, "kilt", width=4.6, flare=0.22)
     props.kilt(parts, (0.0, 33.0, 0.0), 13.1, 10.3, 33.0, 9.0, 16, "kilt2", width=4.4, flare=0.2, seed=13)
 

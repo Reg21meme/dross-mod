@@ -10,7 +10,7 @@ What the giant's animations stand on (tools/forest_giant/mobs.py, giantkit/moves
   aim()      any bone turned so one of its rest directions points somewhere (a spear laid down, a shield lying flat)
   place()    any bone moved so one of its points is somewhere (a boulder torn out of the ground, falling off a shoulder)
   hide()     a bone scaled to nothing (G2's and G3's rock outside the throw, G1's boulder once it's thrown)
-  follow()   the kilt's flaps and G3's cloak swinging clear of the legs
+  follow()   the kilt's flaps lifted just clear of their own legs, G3's cloak swinging clear of the legs
 
 Because every look has its own rest pose (G1's right arm up on its boulder, G2's arms in front with spear and shield,
 G3's club hanging), the moves name where the hands go (points in the chest's rest frame, or on the ground) rather than
@@ -32,6 +32,17 @@ from rimekit.shapes import unit, v3
 from . import rig
 
 PAD_FOLLOW = 0.45            # a shoulder pad (pad_l/r, on the chest) turns this share of its arm's turn
+# The kilt's four flaps (props.kilt_bones): each lifts only as far as it must to clear its own leg (the user, November
+# 25, 2026: the front of the kilt rose as far as the knee came up in the stomp, "too high ... it looks unnatural").
+KILT_CLEAR = 0.4             # units a flap's strips may sink into its leg beyond how far they sit in it at rest
+KILT_SLACK = 0.3             # units over the least it can get to (a raised thigh's top meets the strips' tops by the
+                             # belt, which no lift takes away): a flap lifts only until lifting more stops helping
+KILT_REST_ON = 2.0           # degrees a lifted flap rides further, so its strips lie on the thigh rather than in it
+KILT_SCAN = 3.0              # degrees between the lifts tried, then halved down to KILT_FINE
+KILT_FINE = 0.25
+KILT_OVER = 10.0             # degrees a flap may lift past its thigh's own turn (never more)
+KILT_BEND = 0.2              # the front flaps also lift this share of the body's forward bend (the pelvis tipping)
+KILT_SMOOTH = 0.15           # seconds round each frame a flap's lift is smoothed over (it never flickers)
 
 
 def g(v):
@@ -249,7 +260,9 @@ class GiantRig:
         """The kilt's flaps swing out of the thighs' way (front and back), G3's cloak hangs on behind the legs when the
         chest bends."""
         lx = [p.get3(f"leg_{s}")[0][0] for s in ("l", "r")]
-        if self.has("kilt_f"):
+        if self.has("kilt_fl"):
+            self.lift_kilt(p)
+        elif self.has("kilt_f"):
             p.rot("kilt_f", 1.0 * min(0.0, min(lx)) - 0.2 * max(0.0, p.get3("body")[0][0]))
         if self.has("kilt_b"):
             p.rot("kilt_b", 0.8 * max(0.0, max(lx)))
@@ -257,6 +270,110 @@ class GiantRig:
             bend = p.get3("chest")[0][0] + p.get3("body")[0][0]
             p.rot("cloak", -0.75 * max(0.0, bend) + 0.6 * max(0.0, max(lx)))
         return p
+
+    # ------------------------------------------------------------ the kilt's flaps
+
+    def _kilt_boxes(self, mats, bones):
+        return [mobkit._box_frame(mats, c) for b in bones for c in self.m.by_name[b].cubes]
+
+    def _kilt_depth(self, mats, flap, leg_frames):
+        """How deep (units) the flap's strips are inside its leg's boxes."""
+        pts = np.concatenate([mobkit._grid(fr) for fr in self._kilt_boxes(mats, [flap])])
+        return max(float(mobkit._inside_depth(pts, fr).max()) for fr in leg_frames)
+
+    def _kilt_rest(self):
+        """Each flap's depth in its own leg in the rest pose (some strips sit against the thigh's top already)."""
+        if not hasattr(self, "_kilt_rest_depth"):
+            mats = self.mats(Pose())
+            self._kilt_rest_depth = {}
+            for flap in ("kilt_fl", "kilt_fr", "kilt_bl", "kilt_br"):
+                side = flap[-1]
+                legs = self._kilt_boxes(mats, [f"leg_{side}", f"shin_{side}", f"foot_{side}"])
+                self._kilt_rest_depth[flap] = self._kilt_depth(mats, flap, legs)
+        return self._kilt_rest_depth
+
+    def lift_kilt(self, p):
+        """Each of the kilt's four flaps lifted the least that keeps its strips out of its own leg (front flaps forward,
+        back flaps back) or, if nothing takes them all out, until lifting more stops helping; never past its thigh's
+        own turn and KILT_OVER; then KILT_REST_ON more, so they lie on the thigh. The front ones also lift with the
+        pelvis's tip. smooth_kilt() evens the lifts out over time once an animation is recorded."""
+        rest = self._kilt_rest()
+        bend = max(0.0, p.get3("body")[0][0])
+        for flap in ("kilt_fl", "kilt_fr"):
+            p.rot(flap, -KILT_BEND * bend)
+        mats = self.mats(p)
+        for flap in ("kilt_fl", "kilt_fr", "kilt_bl", "kilt_br"):
+            side = flap[-1]
+            way = -1.0 if flap[5] == "f" else 1.0              # (forward is -x for a hanging flap)
+            legs = self._kilt_boxes(mats, [f"leg_{side}", f"shin_{side}"])
+            allowed = rest[flap] + KILT_CLEAR
+            r = p.get3(flap)[0]
+            base = r[0]
+
+            def depth(lift):
+                r[0] = base + way * lift
+                return self._kilt_depth(self.mats(p), flap, legs)
+
+            if depth(0.0) <= allowed:
+                r[0] = base
+                continue
+            cap = max(0.0, way * p.get3(f"leg_{side}")[0][0]) + KILT_OVER
+            scan = [(a, depth(a)) for a in np.arange(KILT_SCAN, cap + 1e-6, KILT_SCAN)]
+            if not scan:
+                r[0] = base
+                continue
+            target = max(allowed, min(d for _a, d in scan) + KILT_SLACK)
+            lo, hi = 0.0, None
+            for a, d in scan:
+                if d <= target:
+                    hi = float(a)
+                    break
+                lo = float(a)
+            while hi - lo > KILT_FINE:
+                mid = (lo + hi) / 2.0
+                if depth(mid) <= target:
+                    hi = mid
+                else:
+                    lo = mid
+            r[0] = base + way * min(cap, hi + min(KILT_REST_ON, hi))
+            mats = self.mats(p)
+        return p
+
+    def smooth_kilt(self, frames, loop):
+        """Evens out each flap's lift over an animation's frames [(t, Pose)]: the highest lift within KILT_SMOOTH of
+        each frame, then averaged over the same window (a loop wraps round), so a flap never flickers between frames
+        and never drops below what a moment near it needs."""
+        if not frames or not self.has("kilt_fl"):
+            return
+        n = len(frames)
+        step = frames[1][0] - frames[0][0] if n > 1 else 1.0
+        w = max(1, int(round(KILT_SMOOTH / step)))
+        for flap in ("kilt_fl", "kilt_fr", "kilt_bl", "kilt_br"):
+            way = -1.0 if flap[5] == "f" else 1.0
+            vals = np.array([way * p.get3(flap)[0][0] for _t, p in frames])
+            last = n - 1 if loop is True else n        # (a loop's last frame is its first again)
+
+            def at(i):
+                if loop is True:
+                    return vals[i % last]
+                return vals[min(max(i, 0), n - 1)]
+
+            def span(i):          # (a one-off move's window narrows at its ends, so it starts and ends as recorded)
+                return w if loop is True else min(w, i, n - 1 - i)
+
+            peak = np.array([max(at(j) for j in range(i - span(i), i + span(i) + 1)) for i in range(n)])
+            vals = peak
+
+            def at2(i):
+                if loop is True:
+                    return vals[i % last]
+                return vals[min(max(i, 0), n - 1)]
+
+            even = [sum(at2(j) for j in range(i - span(i), i + span(i) + 1)) / (2 * span(i) + 1) for i in range(n)]
+            if loop is True:
+                even[-1] = even[0]
+            for (_t, p), v in zip(frames, even):
+                p.get3(flap)[0][0] = way * float(v)
 
 
 Pose = Pose

@@ -27,7 +27,8 @@ It writes:
 
 The checks (printed; a problem says so): no arm into the body or head, no forearm into a leg or the other forearm, the
 weapon, the shield and the rock clear of the body, head and legs (deeper than they sit at rest: G1's boulder rests on
-its shoulder), and nothing under the floor, in every animation, every 0.1 s.
+its shoulder), each half of the kilt clear of its own leg, and nothing under the floor, in every animation,
+every 0.1 s.
 
 Needs numpy, scipy and Pillow.
 """
@@ -77,15 +78,17 @@ def clip_group(bone):
             return f"lower_{side}"
         if bone in (f"leg_{side}", f"shin_{side}", f"foot_{side}"):
             return f"legs_{side}"
+        if bone in (f"kilt_f{side}", f"kilt_b{side}"):
+            return f"kilt_{side}"
     if bone in ("weapon", "rock", "shield"):
         return bone
-    return None          # (pads, kilt, cloak, the spear on G1's back: dressing that follows the body)
+    return None          # (pads, cloak, the spear on G1's back: dressing that follows the body)
 
 
 CLIP_PAIRS = (("lower_l", "torso"), ("lower_r", "torso"), ("lower_l", "head"), ("lower_r", "head"),
               ("upper_l", "head"), ("upper_r", "head"), ("lower_l", "lower_r"), ("lower_r", "lower_l"),
               ("lower_l", "legs_l"), ("lower_l", "legs_r"), ("lower_r", "legs_l"), ("lower_r", "legs_r"),
-              ("legs_l", "legs_r"),
+              ("legs_l", "legs_r"), ("kilt_l", "legs_l"), ("kilt_r", "legs_r"),
               ("weapon", "torso"), ("weapon", "head"), ("weapon", "legs_l"), ("weapon", "legs_r"),
               ("weapon", "lower_l"), ("weapon", "upper_l"),
               ("rock", "torso"), ("rock", "head"), ("rock", "legs_l"), ("rock", "legs_r"),
@@ -97,9 +100,15 @@ DEATH_SKIP = ("lower_l/torso", "lower_r/torso", "lower_l/head", "lower_r/head", 
               "weapon/torso", "weapon/lower_l", "shield/torso", "shield/head", "lower_l/legs_l", "lower_r/legs_r")
 
 
+# Where the kilt's strips meet the belt a raised thigh's top touches them, which no lift of the flap takes away (it
+# turns about a point just over them); it's hidden under the strips. Deeper than this, a strip itself is in the leg.
+KILT_ROOT = 2.5
+
+
 def check(G, anims):
     found = mobkit.clip_check(G.m, anims, clip_group, CLIP_PAIRS, strict=STRICT)
     found = {k: v for k, v in found.items() if not (k[0] == "death" and k[1] in DEATH_SKIP)}
+    found = {k: v for k, v in found.items() if not (k[1].startswith("kilt_") and v[0] <= KILT_ROOT)}
     return found
 
 

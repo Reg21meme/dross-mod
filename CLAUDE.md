@@ -3283,7 +3283,15 @@ temporary camera script, November 19): 4 minutes flying at 170, 150, 40 gave 5 g
         over the top and down (never through its shoulder), its blow and the way back up higher and further out; the
         throws' heads down under the arms, the rock's follow-through out to its side, G1's hands wider round its
         boulder, his arm keeping its rest pose while it only steadies the boulder, the new boulder torn out further
-        from his foot; the neck slimmer at its foot (a raised arm's shoulder met it); G1's wild locks shorter. Its walk
+        from his foot; the neck slimmer at its foot (a raised arm's shoulder met it); G1's wild locks shorter. **Its kilt**
+        (the user, November 25, 2026: its "shorts" rose too high when it stomped, "it looks unnatural": the whole
+        front of the kilt was one flap that turned as far as either thigh, so the half over the standing leg flew up
+        too, 65 degrees at the stomp's top): four flaps, front and back, its left half and its right
+        (`props.kilt_bones`), each lifting only as far as its own leg needs, until lifting more stops helping, never past
+        its thigh's own turn (`motion.lift_kilt`; the stomp's raised side about 36 degrees, the other side down until it
+        crouches), evened out over a fifth of a second (`smooth_kilt`); the check holds each half off its own leg
+        (where a raised thigh's top meets the strips under the belt it may touch them, at most 2.5 units, hidden by the
+        strips: `KILT_ROOT`). Its walk
         and run play as fast as it really moves (`boss/SteadyController`). **Its sounds** (`tools/forest_giant/sounds.py`,
         original: its voice made with the Huntsman's voice synthesizer for a mouth far bigger than a man's, the rest with
         the Rat King's synthesizer): grumbles, the warning's huff and stamp, a roar, hurt, death and its fall, heavy

@@ -25,7 +25,7 @@ GLOWS = "its eyes, the sign on its belt"
 PROP_BONES = ()
 WEAPON_RESTS = {"arm_r": 3.5, "fore_r": 1.0, "chest": 2.0, "head": 1.2}   # the boulder rests on his right shoulder (sunk
                                                             # this far into it), against his mane
-EXTRA_BONES = (("kilt_f", v3(0.0, 34.5, -9.0), "body"), ("kilt_b", v3(0.0, 34.5, 9.0), "body"))
+EXTRA_BONES = props.kilt_bones()
 FREE = ()
 
 BOULDER_R = 8.0
@@ -113,7 +113,7 @@ def kilt(s, J):
     boss = v3(0.0, 35.0, -12.9)
     J["boss"] = boss
     b.blob(boss, (4.0, 0.8, 4.0), "boss", axis=(0.0, 0.0, -1.0), side=(1.0, 0.0, 0.0), slices=1)
-    parts = (s.part("kilt_f"), s.part("kilt_b"))
+    parts = props.kilt_parts(s)
     props.kilt(parts, (0.0, 33.0, 0.0), 13.6, 10.8, 33.5, 13.0, 16, "kilt", width=4.6, flare=0.22,
                plate_mat="bronze")
     props.kilt(parts, (0.0, 33.0, 0.0), 13.1, 10.3, 33.0, 10.0, 16, "kilt2", width=4.4, flare=0.2, seed=9)

@@ -25,8 +25,7 @@ BLURB = ("The oldest of the people, who has stood so long in the Silverwood Fore
 GLOWS = "its eyes, the Stormvine, the sign on its belt"
 
 CLOAK_PIVOT = rig.chest_frame().P((0.0, 52.0, 14.0))
-EXTRA_BONES = (("cloak", CLOAK_PIVOT, "chest"), ("kilt_f", v3(0.0, 34.5, -9.0), "body"),
-               ("kilt_b", v3(0.0, 34.5, 9.0), "body"))
+EXTRA_BONES = (("cloak", CLOAK_PIVOT, "chest"),) + props.kilt_bones()
 FREE = ()
 # He carries the tree over his right shoulder, gripping it just above its roots in front of the shoulder, its trunk
 # resting on the shoulder and its crown of leaves behind him; his overhead blow swings the crown over and down.
@@ -97,7 +96,7 @@ def growth(s, J):
     b = s.part("body")
     props.belt(b, (0.0, 35.0, 0.0), 14.4, 11.4, 4, 2, "belt", n=14)
     b.blob(BOSS, (4.0, 0.8, 4.0), "emblem", axis=(0.0, 0.0, -1.0), side=(1.0, 0.0, 0.0), slices=1)
-    props.kilt((s.part("kilt_f"), s.part("kilt_b")), (0.0, 33.0, 0.0), 13.6, 10.8, 33.5, 11.0, 16, "kilt",
+    props.kilt(props.kilt_parts(s), (0.0, 33.0, 0.0), 13.6, 10.8, 33.5, 11.0, 16, "kilt",
                width=4.6, flare=0.2)
     for side, sign in (("l", 1.0), ("r", -1.0)):
         pad = s.part(f"pad_{side}")

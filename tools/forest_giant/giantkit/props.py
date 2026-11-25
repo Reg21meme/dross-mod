@@ -42,12 +42,28 @@ def belt(s, centre, rx, rz, width, thick, mat, n=14, phase=0.0):
     return pts
 
 
+KILT_FLAPS = ("kilt_fl", "kilt_fr", "kilt_bl", "kilt_br")   # front and back, the giant's left half and its right
+
+
+def kilt_bones():
+    """The kilt's four flaps, each on a bone of its own on the body (a look's EXTRA_BONES): front and back, its left
+    half and its right. Each half swings with its own leg only, so a knee coming up lifts just the strips over that
+    thigh (the user, November 25, 2026: one front flap rose with either knee, the half over the standing leg too)."""
+    return tuple((f"kilt_{fb}{side}", v3(sign * 6.0, 34.5, -9.0 if fb == "f" else 9.0), "body")
+                 for fb in ("f", "b") for side, sign in (("l", 1.0), ("r", -1.0)))
+
+
+def kilt_parts(s):
+    """The four flaps' parts, in KILT_FLAPS' order, for kilt()."""
+    return tuple(s.part(n) for n in KILT_FLAPS)
+
+
 def kilt(parts, centre, rx, rz, top, length, strips, mat, width=4.0, flare=0.18, plate_mat=None, seed=5):
     """
     A war-kilt of hanging strips (hide, leather) round an ellipse, from `top` down `length` units, each flaring out a
-    little; the front half on parts[0], the back half on parts[1] (their own bones: they swing with the legs). Every
-    other strip a little shorter and set a hair further out, so neighbours never share a face. `plate_mat`: a little
-    bronze plate riveted near each strip's top.
+    little; on four parts (kilt_parts: front left, front right, back left, back right, their own bones: each swings
+    with its leg) or two (the front half, the back half). Every other strip a little shorter and set a hair further
+    out, so neighbours never share a face. `plate_mat`: a little bronze plate riveted near each strip's top.
     """
     rng = np.random.default_rng(seed)
     c = v3(centre)
@@ -59,7 +75,10 @@ def kilt(parts, centre, rx, rz, top, length, strips, mat, width=4.0, flare=0.18,
         L = length * (0.86 if k % 2 else 1.0) * rng.uniform(0.92, 1.05)
         off = 0.35 * (k % 2)
         tip = p + nrm * (L * flare + off) + v3(0.0, -L, 0.0)
-        s = parts[0] if out[2] < 0.0 else parts[1]
+        if len(parts) == 4:
+            s = parts[(0 if out[2] < 0.0 else 2) + (0 if out[0] > 0.0 else 1)]
+        else:
+            s = parts[0] if out[2] < 0.0 else parts[1]
         tang = v3(-nrm[2], 0.0, nrm[0])
         s.seg(tip, p + nrm * off + v3(0.0, 1.0, 0.0), width, 1, mat, side=tang, inflate=0.05 * (k % 3))
         if plate_mat:

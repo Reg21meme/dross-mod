@@ -84,6 +84,7 @@ def record(G, name, length, frame, loop=True, warm=1):
                 frame(i * STEP)
     for i in range(n + 1):
         a.add(i * STEP, frame(i * STEP))
+    G.smooth_kilt(a.frames, a.loop)
     a.bake(0.3, 0.04, 0.01)
     return a
 
@@ -757,7 +758,7 @@ def _probe_path(G, frame, release, bone="weapon", rest=None):
 KNEEL = {"leg": (-12.0, 0.0, 0.0), "shin": (98.0, 0.0, 0.0), "foot": (72.0, 0.0, 0.0)}   # its legs folded under it
 TOPPLE = 78.0              # degrees its body falls forward over its knees
 SETTLE_BONES = ("body", "chest", "head", "jaw", "leg_l", "shin_l", "foot_l", "leg_r", "shin_r", "foot_r",
-                "kilt_f", "kilt_b", "cloak", "back_spear", "pad_l", "pad_r")
+                "kilt_fl", "kilt_fr", "kilt_bl", "kilt_br", "cloak", "back_spear", "pad_l", "pad_r")
 L_DEATH = 3.8
 
 
