@@ -47,3 +47,15 @@ While the probe stands at a place, record the client with JFR (`jcmd <pid> JFR.s
 the default settings: `settings=profile` slows the game), then
 `jfr print --events jdk.ExecutionSample,jdk.NativeMethodSample --stack-depth 60 x.jfr | python -I jfrstat.py "Render thread"`:
 the render thread's top frames, how much of it is in Minecraft's chunk drawing, entities, the swap, and every mod frame.
+
+## The jar's size: `jar_size.py`
+
+`python tools/release_check/jar_size.py build/libs/dross-<version>-1.20.1-beta.jar [an older jar]` prints what takes the
+room in a built jar (compressed, as it's downloaded): its folders, file types, the biggest folders of pictures, sounds,
+models, animations and structures and the 25 biggest files; what may never be used (sound files no event names, sound
+files only a showcase's numbered versions `<event>.vN` play, pictures nothing names: most of those are loaded by names
+built while the game runs, so check by hand); and with an older jar, what grew or shrank. 0.4.0 (November 25, 2026):
+19.6 MB in the jar, pictures 7.0 MB (36%), sounds 6.2 MB (32%), code 2.7 MB (14%), structures 1.3 MB, models and
+animations 1.9 MB; no sound file unused, 455 KB of sound versions only the showcases play. Re-saving every picture
+losslessly in its own format saves only about 0.6 MB of the source's 20 MB; palette pictures save more but Minecraft
+loads one without transparency as RGB, which its mipmaps can't take, so don't.
