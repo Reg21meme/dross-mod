@@ -605,14 +605,15 @@ public final class TraderQuestGameTest
             expectState(player, TraderState.RUINS, OracleMarker.ACTIVE, "after the lost-orb line");
             expect(TraderProgress.round(player) == 2 && TraderProgress.ruinsCleared(player) == 0, "a lost orb should start round 2 from 0");
 
-            // A ruin cleared before doesn't count again; three new ones do.
+            // A ruin cleared before doesn't count again; two new ones do (his souls left over make up the third).
             clear(player, cleared.get(0), false);
             expect(TraderProgress.ruinsCleared(player) == 0, "a ruin cleared for the first orb shouldn't count for the new one");
+            expect(TraderProgress.ruinsNeeded(player) == TraderProgress.NEW_ORB_RUINS, "a new orb should want "
+                    + TraderProgress.NEW_ORB_RUINS + " ruins, not " + TraderProgress.ruinsNeeded(player));
             clear(player, fakeRuin(), true);
+            expectState(player, TraderState.RUINS, OracleMarker.ACTIVE, "after one new ruin for a new orb");
             clear(player, fakeRuin(), true);
-            expectState(player, TraderState.RUINS, OracleMarker.ACTIVE, "after two new ruins for a new orb");
-            clear(player, fakeRuin(), true);
-            expectState(player, TraderState.READY, OracleMarker.DONE, "after three new ruins for a new orb");
+            expectState(player, TraderState.READY, OracleMarker.DONE, "after two new ruins for a new orb");
 
             List<String> again = click(trader, player);
             expect(again.equals(List.of("dross.trader.new_orb")), "the new orb's hand-in should be one line, not " + again);

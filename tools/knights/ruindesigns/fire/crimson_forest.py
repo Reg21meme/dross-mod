@@ -274,5 +274,5 @@ def wart_heart(g, p):
 
 
 # The candidates (November 2026): the user picks; any not picked go to DROPPED.
-LAYOUTS = [wart_garden, stem_lodge, weeping_arch, wart_heart]
-DROPPED = []
+LAYOUTS = [wart_garden, weeping_arch]
+DROPPED = [stem_lodge, wart_heart]  # the user's picks, November 25, 2026: 1, 3

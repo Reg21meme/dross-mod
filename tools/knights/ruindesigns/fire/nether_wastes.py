@@ -324,5 +324,5 @@ def quartz_throne(g, p):
 
 
 # The candidates (November 2026): the user picks; any not picked go to DROPPED.
-LAYOUTS = [fortress_corner, lava_cistern, glowstone_fall, quartz_throne]
-DROPPED = []
+LAYOUTS = [fortress_corner, lava_cistern, glowstone_fall]
+DROPPED = [quartz_throne]  # the user's picks, November 25, 2026: 1, 2, 3

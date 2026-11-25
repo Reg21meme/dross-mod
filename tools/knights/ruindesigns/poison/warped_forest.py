@@ -22,7 +22,7 @@ P = dict(
     light="shroomlight",
 )
 
-AREA = Area(element="fire", id="warped_forest", name="Warped Forest", biomes="warped forest", setting=SURFACE,
+AREA = Area(element="poison", id="warped_forest", name="Warped Forest", biomes="warped forest", setting=SURFACE,
             ground="warped_nylium", under="netherrack", palette=P,
             blurb="Warped stems and planks among the teal fungi, shroomlights glowing orange, twisting vines climbing.")
 
@@ -295,5 +295,6 @@ def lamp_avenue(g, p):
 
 
 # The candidates (November 2026): the user picks; any not picked go to DROPPED.
-LAYOUTS = [twisted_tower, sprout_hollow, strider_dock, lamp_avenue]
-DROPPED = []
+LAYOUTS = [sprout_hollow, strider_dock, lamp_avenue]
+DROPPED = [twisted_tower]  # the user's picks, November 25, 2026: 2, 3, 4; poison knights guard them ("for the warped
+# forest have the poison knights")

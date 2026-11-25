@@ -17,7 +17,7 @@ P = dict(
     light="fire",
 )
 
-AREA = Area(element="fire", id="basalt_deltas", name="Basalt Deltas", biomes="basalt deltas", setting=SURFACE,
+AREA = Area(element="earth", id="basalt_deltas", name="Basalt Deltas", biomes="basalt deltas", setting=SURFACE,
             ground="basalt", under="blackstone", palette=P,
             blurb="Basalt and blackstone, the piglins' gilded bricks, magma in the cracks and lava held in the rock.")
 
@@ -313,5 +313,6 @@ def bastion_ramp(g, p):
 
 
 # The candidates (November 2026): the user picks; any not picked go to DROPPED.
-LAYOUTS = [lava_terraces, causeway, black_forge, bastion_ramp]
-DROPPED = []
+LAYOUTS = [causeway, black_forge]
+DROPPED = [lava_terraces, bastion_ramp]  # the user's picks, November 25, 2026: 2, 3; earth knights guard them ("the
+# basalt deltas have the rock knights")

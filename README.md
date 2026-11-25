@@ -855,7 +855,7 @@ All Dross advancements live in their own **Dross** tab, which stays hidden until
 | A Weathered Letter | Pick up a Weathered Letter | |
 | Knightfall | Clear three knight ruins for the Dross Trader | Only ruins you clear for the first time, while his quest is going |
 | The Portal Orb | Have the Dross Trader make you a Portal Orb | |
-| Siege Broken | Bring down the five knights guarding the Fallen Cathedral | Challenge, under *The Portal Orb* beside *Enter the Dross* (not in the chain: if someone else broke the siege first, nothing's missing before *Enter the Dross*). Goes to the player who killed the last knight and everyone within 64 blocks of the cathedral; never for `/kill` |
+| Siege Broken | Bring down the five knights guarding the Fallen Cathedral | Regular, under *The Portal Orb* beside *Enter the Dross* (not in the chain: if someone else broke the siege first, nothing's missing before *Enter the Dross*). Goes to the player who killed the last knight and everyone within 64 blocks of the cathedral; never for `/kill` |
 | **Enter the Dross** | Step through the blue portal | Challenge, the main achievement |
 | The Oracle's Plea | Hear the Blind Oracle's story | Under *Enter the Dross*: the start of the Oracle's chain |
 | Giant Slayer | Bring down three of the Silverwood Giants | The Oracle's quest (the kills count only while it's going) |

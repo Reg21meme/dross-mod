@@ -182,7 +182,7 @@ advancement `data/dross/advancements/siege_broken.json`. What settles what the u
   (their own blow, their pet's, or the last player to hurt it), wherever they are: each sees the straight stretch of
   curtain on the side nearest them (and the next side's when it's within 24 blocks: round a corner), the land barriers'
   own fall at their feet's height. They're told "The last of the cathedral's knights falls, and the spell holding it
-  shut breaks. Its way in stands open." and get "Siege Broken": a **challenge**, its icon a netherite sword
+  shut breaks. Its way in stands open." and get "Siege Broken": a regular advancement (a challenge until the user's "just the regular one", November 25), its icon a netherite sword
   (placeholder), under "The Portal Orb" beside "Enter the Dross". Not for `/kill` (as with the bosses): the siege still
   breaks. `/dross quest reset` leaves it (it's a deed, like the bosses').
 - **The frame's refusal**: the orb pops back out the way it came (out of the frame's plane, a little up), runes flare

@@ -322,5 +322,5 @@ def soul_graveyard(g, p):
 
 
 # The candidates (November 2026): the user picks; any not picked go to DROPPED.
-LAYOUTS = [great_ribcage, spine_bridge, wither_altar, soul_graveyard]
-DROPPED = []
+LAYOUTS = [spine_bridge, wither_altar]
+DROPPED = [great_ribcage, soul_graveyard]  # the user's picks, November 25, 2026: 2, 3

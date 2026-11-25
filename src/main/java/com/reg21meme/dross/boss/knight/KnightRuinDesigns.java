@@ -60,14 +60,13 @@ public final class KnightRuinDesigns
     public static final Area POISON_DARK_FOREST = new Area("dark_forest", "Dark Forest", KnightKind.Element.POISON, Setting.SURFACE, "minecraft:grass_block", "minecraft:dirt", "dark forest");
     public static final Area POISON_JUNGLE = new Area("jungle", "Jungle", KnightKind.Element.POISON, Setting.SURFACE, "minecraft:grass_block", "minecraft:dirt", "jungle, sparse jungle, bamboo jungle");
     public static final Area POISON_FOREST = new Area("forest", "Forest", KnightKind.Element.POISON, Setting.SURFACE, "minecraft:grass_block", "minecraft:dirt", "forest, birch forest, old growth birch forest, flower forest");
+    public static final Area POISON_WARPED_FOREST = new Area("warped_forest", "Warped Forest", KnightKind.Element.POISON, Setting.SURFACE, "minecraft:warped_nylium", "minecraft:netherrack", "warped forest");
     public static final Area FIRE_DESERT = new Area("desert", "Desert", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:sand", "minecraft:sandstone", "desert");
     public static final Area FIRE_SAVANNA = new Area("savanna", "Savanna", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:grass_block", "minecraft:dirt", "savanna, savanna plateau, windswept savanna");
     public static final Area FIRE_BADLANDS = new Area("badlands", "Badlands", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:red_sand", "minecraft:terracotta", "badlands, eroded badlands, wooded badlands");
     public static final Area FIRE_NETHER_WASTES = new Area("nether_wastes", "Nether Wastes", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:netherrack", "minecraft:netherrack", "nether wastes");
     public static final Area FIRE_CRIMSON_FOREST = new Area("crimson_forest", "Crimson Forest", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:crimson_nylium", "minecraft:netherrack", "crimson forest");
-    public static final Area FIRE_WARPED_FOREST = new Area("warped_forest", "Warped Forest", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:warped_nylium", "minecraft:netherrack", "warped forest");
     public static final Area FIRE_SOUL_SAND_VALLEY = new Area("soul_sand_valley", "Soulsand Valley", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:soul_soil", "minecraft:soul_sand", "soul sand valley");
-    public static final Area FIRE_BASALT_DELTAS = new Area("basalt_deltas", "Basalt Deltas", KnightKind.Element.FIRE, Setting.SURFACE, "minecraft:basalt", "minecraft:blackstone", "basalt deltas");
     public static final Area THUNDER_WARM_BEACH = new Area("warm_beach", "Warm Shore", KnightKind.Element.THUNDER, Setting.SHORE, "minecraft:sand", "minecraft:sandstone", "warm and lukewarm ocean shores");
     public static final Area THUNDER_COLD_BEACH = new Area("cold_beach", "Cold Shore", KnightKind.Element.THUNDER, Setting.SHORE, "minecraft:gravel", "minecraft:stone", "cold and deep cold ocean shores");
     public static final Area THUNDER_STONY_SHORE = new Area("stony_shore", "Stony Shore", KnightKind.Element.THUNDER, Setting.SHORE, "minecraft:stone", "minecraft:stone", "stony shore");
@@ -78,8 +77,9 @@ public final class KnightRuinDesigns
     public static final Area EARTH_WINDSWEPT_HILLS = new Area("windswept_hills", "Windswept Hills", KnightKind.Element.EARTH, Setting.SURFACE, "minecraft:grass_block", "minecraft:stone", "windswept hills, windswept gravelly hills, windswept forest");
     public static final Area EARTH_PEAKS = new Area("peaks", "Peaks", KnightKind.Element.EARTH, Setting.MOUNTAIN, "minecraft:stone", "minecraft:stone", "grove, snowy slopes, frozen peaks, jagged peaks, stony peaks");
     public static final Area EARTH_CAVERNS = new Area("caverns", "Caverns", KnightKind.Element.EARTH, Setting.CAVERN, "minecraft:deepslate", "minecraft:deepslate", "big caves underground (a chance there)");
+    public static final Area EARTH_BASALT_DELTAS = new Area("basalt_deltas", "Basalt Deltas", KnightKind.Element.EARTH, Setting.SURFACE, "minecraft:basalt", "minecraft:blackstone", "basalt deltas");
 
-    public static final List<Area> AREAS = List.of(ICE_SNOWY_PLAINS, ICE_TAIGA, ICE_FROZEN_SHORE, POISON_SWAMP, POISON_MUSHROOM_FIELDS, POISON_DARK_FOREST, POISON_JUNGLE, POISON_FOREST, FIRE_DESERT, FIRE_SAVANNA, FIRE_BADLANDS, FIRE_NETHER_WASTES, FIRE_CRIMSON_FOREST, FIRE_WARPED_FOREST, FIRE_SOUL_SAND_VALLEY, FIRE_BASALT_DELTAS, THUNDER_WARM_BEACH, THUNDER_COLD_BEACH, THUNDER_STONY_SHORE, THUNDER_RIVERBANK, THUNDER_MOUNTAINS, EARTH_PLAINS, EARTH_MEADOW, EARTH_WINDSWEPT_HILLS, EARTH_PEAKS, EARTH_CAVERNS);
+    public static final List<Area> AREAS = List.of(ICE_SNOWY_PLAINS, ICE_TAIGA, ICE_FROZEN_SHORE, POISON_SWAMP, POISON_MUSHROOM_FIELDS, POISON_DARK_FOREST, POISON_JUNGLE, POISON_FOREST, POISON_WARPED_FOREST, FIRE_DESERT, FIRE_SAVANNA, FIRE_BADLANDS, FIRE_NETHER_WASTES, FIRE_CRIMSON_FOREST, FIRE_SOUL_SAND_VALLEY, THUNDER_WARM_BEACH, THUNDER_COLD_BEACH, THUNDER_STONY_SHORE, THUNDER_RIVERBANK, THUNDER_MOUNTAINS, EARTH_PLAINS, EARTH_MEADOW, EARTH_WINDSWEPT_HILLS, EARTH_PEAKS, EARTH_CAVERNS, EARTH_BASALT_DELTAS);
 
     public static final List<Design> ALL = List.of(
             new Design("ice/snowy_plains_spike_grove", 1, "Spike Grove", ICE_SNOWY_PLAINS, 25, 22, 25, 3, List.of(new Guard(9, 1, 15, 0.0F), new Guard(15, 1, 15, 0.0F))),
@@ -108,6 +108,9 @@ public final class KnightRuinDesigns
             new Design("poison/forest_broken_bridge", 3, "Broken Bridge", POISON_FOREST, 25, 18, 25, 3, List.of(new Guard(8, 1, 18, 0.0F), new Guard(16, 1, 18, 0.0F))),
             new Design("poison/forest_gazebo", 4, "Gazebo", POISON_FOREST, 23, 20, 23, 3, List.of(new Guard(8, 1, 17, 0.0F), new Guard(14, 1, 17, 0.0F))),
             new Design("poison/forest_fallen_arch", 5, "Fallen Arch", POISON_FOREST, 25, 20, 25, 3, List.of(new Guard(8, 1, 16, 0.0F), new Guard(16, 1, 16, 0.0F))),
+            new Design("poison/warped_forest_sprout_hollow", 1, "Sprout Hollow", POISON_WARPED_FOREST, 25, 18, 25, 5, List.of(new Guard(9, -2, 14, 0.0F), new Guard(15, -2, 14, 0.0F))),
+            new Design("poison/warped_forest_strider_dock", 2, "Strider Dock", POISON_WARPED_FOREST, 25, 16, 25, 4, List.of(new Guard(8, 1, 20, 0.0F), new Guard(16, 1, 20, 0.0F))),
+            new Design("poison/warped_forest_lamp_avenue", 3, "Lamp Avenue", POISON_WARPED_FOREST, 25, 18, 25, 3, List.of(new Guard(10, 1, 15, 0.0F), new Guard(14, 1, 15, 0.0F))),
             new Design("fire/desert_buried_stair", 1, "Buried Stair", FIRE_DESERT, 23, 18, 25, 3, List.of(new Guard(7, 1, 17, 0.0F), new Guard(15, 1, 17, 0.0F))),
             new Design("fire/desert_sunken_oasis", 2, "Sunken Oasis", FIRE_DESERT, 25, 16, 25, 3, List.of(new Guard(9, -1, 15, 0.0F), new Guard(15, -1, 15, 0.0F))),
             new Design("fire/desert_obelisk_field", 3, "Obelisk Field", FIRE_DESERT, 25, 18, 25, 3, List.of(new Guard(9, 1, 15, 0.0F), new Guard(15, 1, 14, 0.0F))),
@@ -123,23 +126,10 @@ public final class KnightRuinDesigns
             new Design("fire/nether_wastes_fortress_corner", 1, "Fortress Corner", FIRE_NETHER_WASTES, 25, 20, 25, 3, List.of(new Guard(9, 1, 16, 0.0F), new Guard(15, 1, 16, 0.0F))),
             new Design("fire/nether_wastes_lava_cistern", 2, "Lava Cistern", FIRE_NETHER_WASTES, 25, 18, 25, 6, List.of(new Guard(7, -2, 17, 0.0F), new Guard(17, -2, 17, 0.0F))),
             new Design("fire/nether_wastes_glowstone_fall", 3, "Glowstone Fall", FIRE_NETHER_WASTES, 25, 20, 25, 4, List.of(new Guard(9, -2, 14, 0.0F), new Guard(15, -2, 14, 0.0F))),
-            new Design("fire/nether_wastes_quartz_throne", 4, "Quartz Throne", FIRE_NETHER_WASTES, 25, 18, 25, 3, List.of(new Guard(8, 1, 18, 0.0F), new Guard(16, 1, 18, 0.0F))),
             new Design("fire/crimson_forest_wart_garden", 1, "Wart Garden", FIRE_CRIMSON_FOREST, 25, 18, 25, 3, List.of(new Guard(8, 1, 16, 0.0F), new Guard(16, 1, 16, 0.0F))),
-            new Design("fire/crimson_forest_stem_lodge", 2, "Stem Lodge", FIRE_CRIMSON_FOREST, 25, 20, 25, 3, List.of(new Guard(8, 1, 16, 0.0F), new Guard(16, 1, 16, 0.0F))),
-            new Design("fire/crimson_forest_weeping_arch", 3, "Weeping Arch", FIRE_CRIMSON_FOREST, 25, 22, 25, 3, List.of(new Guard(8, 1, 15, 0.0F), new Guard(16, 1, 15, 0.0F))),
-            new Design("fire/crimson_forest_wart_heart", 4, "Wart Heart", FIRE_CRIMSON_FOREST, 25, 20, 25, 3, List.of(new Guard(8, 1, 16, 0.0F), new Guard(16, 1, 16, 0.0F))),
-            new Design("fire/warped_forest_twisted_tower", 1, "Twisted Tower", FIRE_WARPED_FOREST, 23, 24, 25, 3, List.of(new Guard(8, 1, 17, 0.0F), new Guard(15, 1, 17, 0.0F))),
-            new Design("fire/warped_forest_sprout_hollow", 2, "Sprout Hollow", FIRE_WARPED_FOREST, 25, 18, 25, 5, List.of(new Guard(9, -2, 14, 0.0F), new Guard(15, -2, 14, 0.0F))),
-            new Design("fire/warped_forest_strider_dock", 3, "Strider Dock", FIRE_WARPED_FOREST, 25, 16, 25, 4, List.of(new Guard(8, 1, 20, 0.0F), new Guard(16, 1, 20, 0.0F))),
-            new Design("fire/warped_forest_lamp_avenue", 4, "Lamp Avenue", FIRE_WARPED_FOREST, 25, 18, 25, 3, List.of(new Guard(10, 1, 15, 0.0F), new Guard(14, 1, 15, 0.0F))),
-            new Design("fire/soul_sand_valley_great_ribcage", 1, "Great Ribcage", FIRE_SOUL_SAND_VALLEY, 25, 20, 25, 3, List.of(new Guard(8, 1, 17, 0.0F), new Guard(16, 1, 17, 0.0F))),
-            new Design("fire/soul_sand_valley_spine_bridge", 2, "Spine Bridge", FIRE_SOUL_SAND_VALLEY, 25, 18, 25, 5, List.of(new Guard(8, 1, 19, 0.0F), new Guard(16, 1, 19, 0.0F))),
-            new Design("fire/soul_sand_valley_wither_altar", 3, "Wither Altar", FIRE_SOUL_SAND_VALLEY, 25, 20, 25, 3, List.of(new Guard(8, 1, 17, 0.0F), new Guard(16, 1, 17, 0.0F))),
-            new Design("fire/soul_sand_valley_soul_graveyard", 4, "Soul Graveyard", FIRE_SOUL_SAND_VALLEY, 25, 18, 25, 3, List.of(new Guard(10, 1, 12, 0.0F), new Guard(14, 1, 12, 0.0F))),
-            new Design("fire/basalt_deltas_lava_terraces", 1, "Lava Terraces", FIRE_BASALT_DELTAS, 25, 22, 25, 4, List.of(new Guard(8, 1, 18, 0.0F), new Guard(16, 1, 18, 0.0F))),
-            new Design("fire/basalt_deltas_causeway", 2, "Causeway", FIRE_BASALT_DELTAS, 25, 20, 25, 3, List.of(new Guard(8, 1, 19, 0.0F), new Guard(16, 1, 19, 0.0F))),
-            new Design("fire/basalt_deltas_black_forge", 3, "Black Forge", FIRE_BASALT_DELTAS, 25, 18, 25, 3, List.of(new Guard(8, 1, 16, 0.0F), new Guard(16, 1, 16, 0.0F))),
-            new Design("fire/basalt_deltas_bastion_ramp", 4, "Bastion Ramp", FIRE_BASALT_DELTAS, 25, 22, 25, 3, List.of(new Guard(8, 1, 18, 0.0F), new Guard(16, 1, 18, 0.0F))),
+            new Design("fire/crimson_forest_weeping_arch", 2, "Weeping Arch", FIRE_CRIMSON_FOREST, 25, 22, 25, 3, List.of(new Guard(8, 1, 15, 0.0F), new Guard(16, 1, 15, 0.0F))),
+            new Design("fire/soul_sand_valley_spine_bridge", 1, "Spine Bridge", FIRE_SOUL_SAND_VALLEY, 25, 18, 25, 5, List.of(new Guard(8, 1, 19, 0.0F), new Guard(16, 1, 19, 0.0F))),
+            new Design("fire/soul_sand_valley_wither_altar", 2, "Wither Altar", FIRE_SOUL_SAND_VALLEY, 25, 20, 25, 3, List.of(new Guard(8, 1, 17, 0.0F), new Guard(16, 1, 17, 0.0F))),
             new Design("thunder/warm_beach_coral_ring", 1, "Coral Ring", THUNDER_WARM_BEACH, 25, 18, 25, 3, List.of(new Guard(8, 1, 18, 0.0F), new Guard(16, 1, 18, 0.0F))),
             new Design("thunder/warm_beach_drowned_pier", 2, "Drowned Pier", THUNDER_WARM_BEACH, 21, 18, 25, 3, List.of(new Guard(6, 1, 17, 0.0F), new Guard(14, 1, 17, 0.0F))),
             new Design("thunder/warm_beach_temple_steps", 3, "Temple Steps", THUNDER_WARM_BEACH, 25, 20, 25, 3, List.of(new Guard(8, 1, 18, 0.0F), new Guard(16, 1, 18, 0.0F))),
@@ -177,7 +167,9 @@ public final class KnightRuinDesigns
             new Design("earth/caverns_crystal_grotto", 2, "Crystal Grotto", EARTH_CAVERNS, 25, 18, 25, 3, List.of(new Guard(9, 1, 13, 0.0F), new Guard(15, 1, 13, 0.0F))),
             new Design("earth/caverns_pillar_hall", 3, "Pillar Hall", EARTH_CAVERNS, 25, 18, 25, 3, List.of(new Guard(9, 1, 11, 0.0F), new Guard(15, 1, 11, 0.0F))),
             new Design("earth/caverns_mossy_grotto", 4, "Mossy Grotto", EARTH_CAVERNS, 25, 18, 25, 3, List.of(new Guard(9, 1, 13, 0.0F), new Guard(15, 1, 13, 0.0F))),
-            new Design("earth/caverns_rockfall_heap", 5, "Rockfall Heap", EARTH_CAVERNS, 25, 18, 25, 3, List.of(new Guard(9, 1, 14, 0.0F), new Guard(15, 1, 14, 0.0F))));
+            new Design("earth/caverns_rockfall_heap", 5, "Rockfall Heap", EARTH_CAVERNS, 25, 18, 25, 3, List.of(new Guard(9, 1, 14, 0.0F), new Guard(15, 1, 14, 0.0F))),
+            new Design("earth/basalt_deltas_causeway", 1, "Causeway", EARTH_BASALT_DELTAS, 25, 20, 25, 3, List.of(new Guard(8, 1, 19, 0.0F), new Guard(16, 1, 19, 0.0F))),
+            new Design("earth/basalt_deltas_black_forge", 2, "Black Forge", EARTH_BASALT_DELTAS, 25, 18, 25, 3, List.of(new Guard(8, 1, 16, 0.0F), new Guard(16, 1, 16, 0.0F))));
 
     private KnightRuinDesigns() {}
 }

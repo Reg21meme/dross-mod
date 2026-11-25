@@ -40,6 +40,11 @@ public final class TraderProgress
      * {@code en_us.json} with it.
      */
     public static final int RUINS_NEEDED = 3;
+    /**
+     * Knight ruins to clear for a new orb after a lost one (the user, November 25, 2026: "make him clear 2 instead of 3,
+     * say I have some left over souls"). His lost-orb line says "two" in words.
+     */
+    public static final int NEW_ORB_RUINS = 2;
     /** Golden apples he gives when you agree to help. */
     public static final int GOLDEN_APPLES = 3;
     /** A ruin's spot in his lines is rounded to this many blocks. */
@@ -50,11 +55,14 @@ public final class TraderProgress
     /** His offer's lines ({@code dross.trader.offer.<n>}), a click each; the click after the last is your answer. */
     public static final int OFFER_LINES = 6;
     /** His hand-in lines for the first orb ({@code dross.trader.done.<n>}), a click each. */
-    public static final int DONE_LINES = 6;
-    /** The hand-in line he makes the orb on (1 is the first). */
+    public static final int DONE_LINES = 5;
+    /** The hand-in line he makes the orb on (1 is the first)... */
     public static final int ORB_LINE = 3;
-    /** The hand-in line that tells you where the cathedral is (1 is the first). */
-    public static final int CATHEDRAL_LINE = 4;
+    /**
+     * ...and the one that tells you where the cathedral is: the same line (the user, November 25, 2026: "combine some of
+     * the dialogue ... like the portal orb and the cathedral words").
+     */
+    public static final int CATHEDRAL_LINE = 3;
     /** His lines for a player who has been to the Dross ({@code dross.trader.after.<n>}), in turn. */
     public static final int AFTER_LINES = 3;
 
@@ -193,20 +201,33 @@ public final class TraderProgress
         {
             return;
         }
-        record.ruins = Math.min(RUINS_NEEDED, record.ruins + 1);
-        if (record.ruins >= RUINS_NEEDED)
+        int needed = ruinsNeeded(record);
+        record.ruins = Math.min(needed, record.ruins + 1);
+        if (record.ruins >= needed)
         {
             record.enter(TraderState.READY);
             DrossAdvancements.grant(player, DrossAdvancements.KNIGHTFALL);
-            player.displayClientMessage(Component.translatable("dross.trader.return", record.ruins, RUINS_NEEDED)
+            player.displayClientMessage(Component.translatable("dross.trader.return", record.ruins, needed)
                     .withStyle(style -> style.withColor(DrossColors.TRADER_DONE_TEXT)), true);
         }
         else
         {
-            player.displayClientMessage(Component.translatable("dross.trader.progress", record.ruins, RUINS_NEEDED)
+            player.displayClientMessage(Component.translatable("dross.trader.progress", record.ruins, needed)
                     .withStyle(style -> style.withColor(DrossColors.TRADER_PROGRESS_TEXT)), true);
         }
         changed(player);
+    }
+
+    /** Ruins this round wants: {@value #RUINS_NEEDED} for the first orb, {@value #NEW_ORB_RUINS} for a new one. */
+    public static int ruinsNeeded(TraderRecord record)
+    {
+        return record.isReplacementRound() ? NEW_ORB_RUINS : RUINS_NEEDED;
+    }
+
+    /** Ruins this player's round wants. */
+    public static int ruinsNeeded(ServerPlayer player)
+    {
+        return ruinsNeeded(record(player));
     }
 
     // ------------------------------------------------------------------ Test commands
